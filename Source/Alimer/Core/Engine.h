@@ -23,6 +23,11 @@
 #pragma once
 
 #include "Core/Window.h"
+#include <new>
+#include <memory>
+#include <string>
+#include <cstring>
+#include <array>
 #include <vector>
 #include <string>
 #include <atomic>
