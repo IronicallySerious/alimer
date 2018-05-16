@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "Core/Window.h"
 #include <new>
 #include <memory>
 #include <string>
@@ -30,46 +29,6 @@
 #include <array>
 #include <vector>
 #include <string>
-#include <atomic>
-
-void AlimerMain(const std::vector<std::string>& args);
-
-namespace Alimer
-{
-	/// Application subsystem for main loop and all modules and OS setup.
-	class Engine
-	{
-	protected:
-		/// Construct and register subsystem.
-		Engine();
-
-	public:
-		/// Destructor.
-		virtual ~Engine();
-
-		/// Runs main loop.
-		virtual int Run();
-
-		void Pause();
-		void Resume();
-
-		virtual std::shared_ptr<Window> CreateWindow() = 0;
-
-	protected:
-		virtual bool Initialize();
-		virtual void RunMain();
-		static bool SetCurrentThreadName(const std::string& name);
-
-		std::vector<std::string> _args;
-		std::atomic<bool> _running;
-		std::atomic<bool> _paused;
-		std::atomic<bool> _headless;
-
-		std::shared_ptr<Window> _window;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Engine);
-	};
-
-	extern Engine* engine;
-}
+#include "Core/Engine.h"
+#include "Core/Window.h"
+#include "Graphics/Graphics.h"

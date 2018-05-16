@@ -19,3 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+#include "Alimer/Alimer.h"
+using namespace Alimer;
+
+void AlimerMain(const std::vector<std::string>& args)
+{
+}

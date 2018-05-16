@@ -142,6 +142,7 @@ namespace Alimer
 			{
 				if (LOWORD(lParam) == HTCLIENT)
 				{
+					::SetCursor(LoadCursorW(nullptr, IDC_ARROW));
 					//static_cast<Win32Input*>(Input::GetInstance())->UpdateCursor();
 					return TRUE;
 				}
@@ -201,9 +202,8 @@ namespace Alimer
 				{
 					HandleMouseMotionEvent(wParam, lParam);
 				}
-
-				return 0;
 			}
+			break;
 
 			case WM_DROPFILES:
 			{

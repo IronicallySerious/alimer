@@ -57,7 +57,15 @@ namespace Alimer
 
 		//ALIMER_LOGINFO("Application initialized.");
 		_running = true;
+
+		// TODO: Multithreading main
+		RunMain();
 		return true;
+	}
+
+	void Engine::RunMain()
+	{
+		AlimerMain(_args);
 	}
 
 	void Engine::Pause()
