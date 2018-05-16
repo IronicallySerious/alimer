@@ -38,6 +38,9 @@ if (APPLE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif ()
 
+set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set (CMAKE_INCLUDE_CURRENT_DIR ON)
+set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Define standard configurations
@@ -73,3 +76,6 @@ if(CMAKE_VERSION VERSION_GREATER  "3.6")
 		set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer" )
 	endif ()
 endif()
+
+# Install CMake modules and toolchains provided by and for Alimer
+install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant

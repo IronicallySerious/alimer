@@ -20,12 +20,5 @@
 # THE SOFTWARE.
 #
 
-# ThirdParty
-add_subdirectory(ThirdParty)
-
-# Engine
-add_subdirectory (Alimer)
-
-if (NOT CMAKE_CROSS_COMPILING)
-    add_subdirectory (Tools)
-endif ()
+# Player
+add_subdirectory(Player)

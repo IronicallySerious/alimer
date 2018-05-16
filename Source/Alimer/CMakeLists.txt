@@ -36,7 +36,7 @@ macro (define_engine_source_files)
 		)
 		list (APPEND HEADER_FILES ${_files})
 		# Install them
-		install (FILES ${_files} DESTINATION ${DEST_INCLUDE_DIR}/${path})
+		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
 		# Get source files
 		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.cpp)
 		list (APPEND SOURCE_FILES ${_files})
@@ -60,29 +60,45 @@ endif (ALIMER_D3D12)
 group_sources()
 
 # Define the library target.
- if (PLATFORM_ANDROID)
-	add_library(Alimer SHARED ${SOURCE_FILES} ${HEADER_FILES})
-else ()
-	add_executable (Alimer WIN32 ${SOURCE_FILES} ${HEADER_FILES})
-endif ()
+add_library(libAlimer ${SOURCE_FILES} ${HEADER_FILES})
 
-target_include_directories(Alimer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(libAlimer 
+	PUBLIC  
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>        # For parent projects to find auto-generated engine headers
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>        # For parent projects to find engine headers
+	$<INSTALL_INTERFACE:${DEST_BASE_INCLUDE_DIR}>
+	PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+)
 
-if (ALIMER_D3D12)
-	target_compile_definitions(Alimer PRIVATE ALIMER_D3D12=1)
-endif (ALIMER_D3D12)
+# Add any variables starting with Alimer_ as project defines
+get_cmake_property(__cmake_variables VARIABLES)
+foreach (var ${__cmake_variables})
+    if ("${var}" MATCHES "^ALIMER_")
+        if (${${var}})
+            target_compile_definitions(libAlimer PRIVATE -D${var})
+        endif ()
+    endif ()
+endforeach()
 
 if (ALIMER_VULKAN)
-	target_compile_definitions(Alimer PRIVATE ALIMER_VULKAN=1)
+	target_compile_definitions(libAlimer PRIVATE ALIMER_VULKAN=1)
 endif (ALIMER_VULKAN)
 
 # Add OS-specific library dependencies
 if (PLATFORM_WINDOWS)
-	target_compile_definitions (Alimer PRIVATE -D_UNICODE)
+	target_compile_definitions (libAlimer PRIVATE -D_UNICODE)
 elseif (PLATFORM_UWP)
-	set_target_properties(Alimer PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${PLATFORM_UWP_VERSION_MIN}")
-	target_compile_definitions (Alimer PRIVATE -D_UNICODE)
-	target_link_libraries (Alimer mincore d3d12 d3d11 dxgi dxguid)
+	set_target_properties(libAlimer PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${PLATFORM_UWP_VERSION_MIN}")
+	target_compile_definitions (libAlimer PRIVATE -D_UNICODE)
+	target_link_libraries (libAlimer mincore d3d12 d3d11 dxgi dxguid)
 else ()
-	target_link_libraries (Alimer pthread)
+	target_link_libraries (libAlimer pthread)
 endif ()
+
+# SDK installation
+install(TARGETS libAlimer
+    EXPORT Alimer
+    LIBRARY DESTINATION ${DEST_LIBRARY_DIR}
+    RUNTIME DESTINATION ${DEST_BIN_DIR}
+    ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR}
+)

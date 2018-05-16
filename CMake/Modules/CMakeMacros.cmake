@@ -102,3 +102,17 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
+macro (add_alimer_executable TARGET)
+    file (GLOB SOURCE_FILES *.cpp *.h)
+    if (NOT ALIMER_WIN32_CONSOLE)
+        set (TARGET_TYPE WIN32)
+    endif ()
+
+    if (PLATFORM_ANDROID)
+        add_library(${TARGET} SHARED ${ARGN})
+    else ()
+        add_executable (${TARGET} ${TARGET_TYPE} ${ARGN})
+    endif ()
+    target_link_libraries (${TARGET} libAlimer)
+endmacro ()
+

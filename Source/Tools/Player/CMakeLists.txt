@@ -20,12 +20,9 @@
 # THE SOFTWARE.
 #
 
-# ThirdParty
-add_subdirectory(ThirdParty)
+file (GLOB_RECURSE HEADER_FILES *.h *.hpp)
+file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
 
-# Engine
-add_subdirectory (Alimer)
-
-if (NOT CMAKE_CROSS_COMPILING)
-    add_subdirectory (Tools)
-endif ()
+# Define the target.
+add_alimer_executable(Alimer ${SOURCE_FILES} ${HEADER_FILES})
+install(TARGETS Alimer RUNTIME DESTINATION ${DEST_BIN_DIR})

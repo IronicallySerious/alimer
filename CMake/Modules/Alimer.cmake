@@ -113,3 +113,29 @@ add_compile_options("$<$<CONFIG:Dev>:${DEV_COMPILE_OPTIONS}>")
 
 set(RELEASE_COMPILE_OPTIONS "-DALIMER_DEV=0")
 add_compile_options("$<$<CONFIG:Release>:${RELEASE_COMPILE_OPTIONS}>")
+
+# Setup SDK install destinations
+if (WIN32)
+    set (SCRIPT_EXT .bat)
+else ()
+    set (SCRIPT_EXT .sh)
+endif ()
+
+if (ANDROID)
+    # For Android platform, install to a path based on the chosen Android ABI, e.g. libs/armeabi-v7a
+    set (LIB_SUFFIX s/${ANDROID_NDK_ABI_NAME})
+	set (DEST_ARCHIVE_DIR lib${LIB_SUFFIX})
+else ()
+	set (DEST_ARCHIVE_DIR lib)
+endif ()
+
+set (DEST_BASE_INCLUDE_DIR include)
+set (DEST_BIN_DIR bin)
+set (DEST_SHARE_DIR share)
+
+
+if (ANDROID)
+    set (DEST_LIBRARY_DIR ${DEST_ARCHIVE_DIR})
+else ()
+    set (DEST_LIBRARY_DIR bin)
+endif ()
