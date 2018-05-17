@@ -23,9 +23,7 @@
 #pragma once
 
 #include "../PlatformDef.h"
-#include <vector>
 #include <string>
-#include <atomic>
 
 namespace Alimer
 {
@@ -40,8 +38,11 @@ namespace Alimer
 		/// Destructor.
 		virtual ~Window();
 
+		inline uint32_t GetWidth() const { return _width; }
+		inline uint32_t GetHeight() const { return _height; }
+
 	protected:
-		// Window title.
+		/// Window title.
 		std::string _title;
 		/// Window width.
 		uint32_t _width;

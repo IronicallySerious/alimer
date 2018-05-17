@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "Core/Window.h"
 #include <new>
 #include <memory>
 #include <string>
@@ -31,16 +30,18 @@
 #include <vector>
 #include <string>
 #include <atomic>
+#include "Core/Window.h"
+#include "Graphics/Graphics.h"
 
 void AlimerMain(const std::vector<std::string>& args);
 
 namespace Alimer
 {
-	/// Application subsystem for main loop and all modules and OS setup.
+	/// Engine for main loop and all modules and OS setup.
 	class Engine
 	{
 	protected:
-		/// Construct and register subsystem.
+		/// Constructor.
 		Engine();
 
 	public:
@@ -50,14 +51,26 @@ namespace Alimer
 		/// Runs main loop.
 		virtual int Run();
 
+		/// Tick/Run one frame.
+		void Tick();
+
+		/// Request application to exit.
+		void Exit();
+
 		void Pause();
 		void Resume();
 
 		virtual std::shared_ptr<Window> CreateWindow() = 0;
 
+		inline Window* GetMainWindow() const { return _window.get(); }
+		inline Graphics* GetGraphics() const { return _graphics.get(); }
+
 	protected:
 		virtual bool Initialize();
 		virtual void RunMain();
+		/// Render after frame update.
+		void Render();
+
 		static bool SetCurrentThreadName(const std::string& name);
 
 		std::vector<std::string> _args;
@@ -66,6 +79,9 @@ namespace Alimer
 		std::atomic<bool> _headless;
 
 		std::shared_ptr<Window> _window;
+		std::unique_ptr<Graphics> _graphics;
+
+		GraphicsDeviceType _graphicsDeviceType{ GraphicsDeviceType::Default };
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Engine);

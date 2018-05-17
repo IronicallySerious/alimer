@@ -20,46 +20,21 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <windows.h>
-#include "Core/Window.h"
+#include "Graphics/Texture.h"
+#include "Graphics/Graphics.h"
 
 namespace Alimer
 {
-	class OleDropTarget;
-
-	/// Win32 OS window implementation.
-	class WindowWindows final : public Window
+	Texture::Texture(Graphics* graphics)
+		: _graphics(graphics)
+		, _textureType(TextureType::Type2D)
+		, _format(PixelFormat::Undefined)
+		, _width(0)
+		, _height(0)
 	{
-	public:
-		WindowWindows(HINSTANCE hInstance);
-		~WindowWindows() override;
-		void Destroy();
-		void Activate(bool focused);
+	}
 
-		void Show();
-		void Close();
-		LRESULT OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
-
-		inline HWND GetHandle() const { return _hwnd; }
-
-	private:
-		void InitAfterCreation();
-
-		DWORD _windowStyle = 0;
-		DWORD _windowExStyle = 0;
-		HINSTANCE _hInstance = nullptr;
-		HWND _hwnd = nullptr;
-		HMONITOR _monitor = nullptr;
-		bool _visible = false;
-		bool _focused = false;
-		int _showCommand = SW_SHOW;
-		OleDropTarget* _dropTarget;
-		HCURSOR _cursor;
-	};
+	Texture::~Texture()
+	{
+	}
 }

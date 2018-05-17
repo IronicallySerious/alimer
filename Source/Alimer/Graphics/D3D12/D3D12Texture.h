@@ -22,44 +22,33 @@
 
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <windows.h>
-#include "Core/Window.h"
+#include "Graphics/Texture.h"
+#include <d3d12.h>
+#include <dxgi1_4.h>
+#include <d3dcompiler.h>
+#pragma warning(push)
+#pragma warning(disable : 4467)
+#include <wrl.h>
+#pragma warning(pop)
+using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-	class OleDropTarget;
+	class D3D12Graphics;
 
-	/// Win32 OS window implementation.
-	class WindowWindows final : public Window
+	/// D3D12 Texture implementation.
+	class D3D12Texture final : public Texture
 	{
 	public:
-		WindowWindows(HINSTANCE hInstance);
-		~WindowWindows() override;
-		void Destroy();
-		void Activate(bool focused);
+		/// Constructor.
+		D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource = nullptr);
 
-		void Show();
-		void Close();
-		LRESULT OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
+		/// Destructor.
+		~D3D12Texture() override;
 
-		inline HWND GetHandle() const { return _hwnd; }
+		inline ID3D12Resource* GetD3DResource() const { return _resource.Get(); }
 
 	private:
-		void InitAfterCreation();
-
-		DWORD _windowStyle = 0;
-		DWORD _windowExStyle = 0;
-		HINSTANCE _hInstance = nullptr;
-		HWND _hwnd = nullptr;
-		HMONITOR _monitor = nullptr;
-		bool _visible = false;
-		bool _focused = false;
-		int _showCommand = SW_SHOW;
-		OleDropTarget* _dropTarget;
-		HCURSOR _cursor;
+		ComPtr<ID3D12Resource> _resource;
 	};
 }

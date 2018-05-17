@@ -22,44 +22,43 @@
 
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <windows.h>
-#include "Core/Window.h"
+#include "../Graphics/PixelFormat.h"
 
 namespace Alimer
 {
-	class OleDropTarget;
+	class Graphics;
 
-	/// Win32 OS window implementation.
-	class WindowWindows final : public Window
+	/// Texture types.
+	enum class TextureType : uint32_t
 	{
+		Type1D = 0,
+		Type2D,
+		Type3D,
+		TypeCube,
+	};
+
+	/// Defines a Texture class.
+	class Texture
+	{
+	protected:
+		/// Constructor.
+		Texture(Graphics* graphics);
+
 	public:
-		WindowWindows(HINSTANCE hInstance);
-		~WindowWindows() override;
-		void Destroy();
-		void Activate(bool focused);
+		/// Destructor.
+		virtual ~Texture();
 
-		void Show();
-		void Close();
-		LRESULT OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
-
-		inline HWND GetHandle() const { return _hwnd; }
-
+		inline TextureType GetTextureType() const { return _textureType; }
+		inline PixelFormat GetFormat() const { return _format; }
+		inline uint32_t GetWidth() const { return _width; }
+		inline uint32_t GetHeight() const { return _height; }
+	protected:
+		Graphics* _graphics;
+		TextureType _textureType;
+		PixelFormat _format;
+		uint32_t _width;
+		uint32_t _height;
 	private:
-		void InitAfterCreation();
-
-		DWORD _windowStyle = 0;
-		DWORD _windowExStyle = 0;
-		HINSTANCE _hInstance = nullptr;
-		HWND _hwnd = nullptr;
-		HMONITOR _monitor = nullptr;
-		bool _visible = false;
-		bool _focused = false;
-		int _showCommand = SW_SHOW;
-		OleDropTarget* _dropTarget;
-		HCURSOR _cursor;
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Texture);
 	};
 }

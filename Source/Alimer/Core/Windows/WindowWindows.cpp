@@ -115,110 +115,7 @@ namespace Alimer
 		if (!window)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 
-		switch (msg)
-		{
-			case WM_CLOSE:
-			{
-				window->Close();
-				return 0;
-			}
-
-			case WM_DESTROY:
-			{
-				_windowCount--;
-				if (_windowCount == 0)
-					PostQuitMessage(0);
-				break;
-			}
-
-			case WM_ACTIVATE:
-			{
-				bool newFocus = LOWORD(wParam) != WA_INACTIVE;
-				window->Activate(newFocus);
-			}
-			break;
-
-			case WM_SETCURSOR:
-			{
-				if (LOWORD(lParam) == HTCLIENT)
-				{
-					::SetCursor(LoadCursorW(nullptr, IDC_ARROW));
-					//static_cast<Win32Input*>(Input::GetInstance())->UpdateCursor();
-					return TRUE;
-				}
-				break;
-			}
-
-			case WM_SYSCOMMAND:
-			{
-				switch (wParam)
-				{
-					case SC_SCREENSAVE:
-					case SC_MONITORPOWER:
-					{
-						//if (!IsScreenSaverEnabled())
-						{
-							// Disable screensaver
-							return 0;
-						}
-						break;
-					}
-					// Disable accessing menu using alt key
-					case SC_KEYMENU:
-						return 0;
-				}
-				break;
-			}
-
-			case WM_LBUTTONDOWN:
-			case WM_LBUTTONUP:
-			case WM_RBUTTONDOWN:
-			case WM_RBUTTONUP:
-			case WM_MBUTTONDOWN:
-			case WM_MBUTTONUP:
-			case WM_XBUTTONDOWN:
-			case WM_XBUTTONUP:
-			{
-				LONG_PTR extraInfo = GetMessageExtraInfo();
-
-				// don't handle mouse event that came from touch
-				if ((extraInfo & SIGNATURE_MASK) != MOUSEEVENTF_FROMTOUCH)
-				{
-					HandleMouseButtonEvent(msg, wParam, lParam);
-
-					if (msg == WM_XBUTTONDOWN || msg == WM_XBUTTONUP)
-						return TRUE;
-				}
-
-				return 0;
-			}
-
-			case WM_MOUSEMOVE:
-			{
-				LPARAM extraInfo = GetMessageExtraInfo();
-
-				// don't handle mouse event that came from touch
-				if ((extraInfo & SIGNATURE_MASK) != MOUSEEVENTF_FROMTOUCH)
-				{
-					HandleMouseMotionEvent(wParam, lParam);
-				}
-			}
-			break;
-
-			case WM_DROPFILES:
-			{
-				HDROP drop = (HDROP)wParam;
-				UINT count = DragQueryFileW(drop, 0xFFFFFFFF, NULL, 0);
-				for (UINT i = 0; i < count; ++i)
-				{
-				}
-
-				DragFinish(drop);
-				return 0;
-			}
-		}
-
-		return DefWindowProcW(hwnd, msg, wParam, lParam);
+		return window->OnWindowMessage(msg, wParam, lParam);
 	}
 
 	// OleDropTarget.
@@ -281,6 +178,7 @@ namespace Alimer
 
 	WindowWindows::WindowWindows(HINSTANCE hInstance)
 		: _dropTarget(new OleDropTarget())
+		, _cursor(LoadCursorW(nullptr, IDC_ARROW))
 	{
 		_hInstance = hInstance;
 		if (_hInstance)
@@ -299,7 +197,7 @@ namespace Alimer
 			wc.cbWndExtra = 0;
 			wc.hInstance = _hInstance;
 			wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
-			wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+			wc.hCursor = _cursor;
 			wc.hIconSm = nullptr;
 			wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));;
 			wc.lpszMenuName = nullptr;  // No default menu
@@ -442,5 +340,115 @@ namespace Alimer
 			return;
 
 		_focused = focused;
+	}
+
+	LRESULT WindowWindows::OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		switch (msg)
+		{
+			case WM_CLOSE:
+			{
+				Close();
+				return 0;
+			}
+
+			case WM_DESTROY:
+			{
+				_windowCount--;
+				if (_windowCount == 0)
+					PostQuitMessage(0);
+				break;
+			}
+
+			case WM_ACTIVATE:
+			{
+				bool newFocus = LOWORD(wParam) != WA_INACTIVE;
+				Activate(newFocus);
+			}
+			break;
+
+			case WM_SETCURSOR:
+			{
+				if (LOWORD(lParam) == HTCLIENT)
+				{
+					::SetCursor(_cursor);
+					//static_cast<Win32Input*>(Input::GetInstance())->UpdateCursor();
+					return TRUE;
+				}
+				break;
+			}
+
+			case WM_SYSCOMMAND:
+			{
+				switch (wParam)
+				{
+					case SC_SCREENSAVE:
+					case SC_MONITORPOWER:
+					{
+						//if (!IsScreenSaverEnabled())
+						{
+							// Disable screensaver
+							return 0;
+						}
+						break;
+					}
+					// Disable accessing menu using alt key
+					case SC_KEYMENU:
+						return 0;
+				}
+				break;
+			}
+
+			case WM_LBUTTONDOWN:
+			case WM_LBUTTONUP:
+			case WM_RBUTTONDOWN:
+			case WM_RBUTTONUP:
+			case WM_MBUTTONDOWN:
+			case WM_MBUTTONUP:
+			case WM_XBUTTONDOWN:
+			case WM_XBUTTONUP:
+			{
+				LONG_PTR extraInfo = GetMessageExtraInfo();
+
+				// don't handle mouse event that came from touch
+				if ((extraInfo & SIGNATURE_MASK) != MOUSEEVENTF_FROMTOUCH)
+				{
+					HandleMouseButtonEvent(msg, wParam, lParam);
+
+					if (msg == WM_XBUTTONDOWN || msg == WM_XBUTTONUP)
+						return TRUE;
+				}
+
+				return 0;
+			}
+
+			case WM_MOUSEMOVE:
+			{
+				LPARAM extraInfo = GetMessageExtraInfo();
+
+				// don't handle mouse event that came from touch
+				if ((extraInfo & SIGNATURE_MASK) != MOUSEEVENTF_FROMTOUCH)
+				{
+					HandleMouseMotionEvent(wParam, lParam);
+				}
+
+				return 0;
+			}
+			break;
+
+			case WM_DROPFILES:
+			{
+				HDROP drop = (HDROP)wParam;
+				UINT count = DragQueryFileW(drop, 0xFFFFFFFF, NULL, 0);
+				for (UINT i = 0; i < count; ++i)
+				{
+				}
+
+				DragFinish(drop);
+				return 0;
+			}
+		}
+
+		return DefWindowProcW(_hwnd, msg, wParam, lParam);
 	}
 }

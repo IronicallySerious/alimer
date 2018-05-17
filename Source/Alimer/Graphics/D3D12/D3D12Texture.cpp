@@ -20,46 +20,43 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <windows.h>
-#include "Core/Window.h"
+#include "D3D12Texture.h"
+#include "D3D12Graphics.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
-	class OleDropTarget;
-
-	/// Win32 OS window implementation.
-	class WindowWindows final : public Window
+	D3D12Texture::D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource)
+		: Texture(graphics)
+		, _resource(resource)
 	{
-	public:
-		WindowWindows(HINSTANCE hInstance);
-		~WindowWindows() override;
-		void Destroy();
-		void Activate(bool focused);
+		if (resource)
+		{
+			D3D12_RESOURCE_DESC desc = resource->GetDesc();
+			switch (desc.Dimension)
+			{
+				case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+					_textureType = TextureType::Type1D;
+					break;
+				case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+					_textureType = TextureType::Type2D;
+					break;
 
-		void Show();
-		void Close();
-		LRESULT OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
+				case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+					_textureType = TextureType::Type3D;
+					break;
 
-		inline HWND GetHandle() const { return _hwnd; }
+				default:
+					break;
+			}
 
-	private:
-		void InitAfterCreation();
+			_format = PixelFormat::BGRA8UNorm;
+			_width = static_cast<uint32_t>(desc.Width);
+			_height = static_cast<uint32_t>(desc.Height);
+		}
+	}
 
-		DWORD _windowStyle = 0;
-		DWORD _windowExStyle = 0;
-		HINSTANCE _hInstance = nullptr;
-		HWND _hwnd = nullptr;
-		HMONITOR _monitor = nullptr;
-		bool _visible = false;
-		bool _focused = false;
-		int _showCommand = SW_SHOW;
-		OleDropTarget* _dropTarget;
-		HCURSOR _cursor;
-	};
+	D3D12Texture::~D3D12Texture()
+	{
+	}
 }

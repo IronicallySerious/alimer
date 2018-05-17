@@ -21,6 +21,7 @@
 //
 
 #include "../Core/Engine.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {
@@ -46,6 +47,31 @@ namespace Alimer
 		return EXIT_SUCCESS;
 	}
 
+	void Engine::Tick()
+	{
+		if (_paused)
+		{
+			//_input->Update();
+			return;
+		}
+
+		//_time->Update();
+		Render();
+		//_input->Update();
+	}
+
+	void Engine::Render()
+	{
+		if (_headless)
+			return;
+
+		if (!_graphics->BeginFrame())
+			return;
+
+		//OnRender();
+		_graphics->Present();
+	}
+
 	bool Engine::Initialize()
 	{
 		SetCurrentThreadName("Main");
@@ -53,9 +79,18 @@ namespace Alimer
 		if (!_headless)
 		{
 			_window = CreateWindow();
+
+			// Create and init graphics.
+			_graphics.reset(Graphics::Create(_graphicsDeviceType));
+
+			if (!_graphics->Initialize(_window))
+			{
+				ALIMER_LOGERROR("Failed to initialize Graphics.");
+				return false;
+			}
 		}
 
-		//ALIMER_LOGINFO("Application initialized.");
+		ALIMER_LOGINFO("Engine initialized with success.");
 		_running = true;
 
 		// TODO: Multithreading main
@@ -68,13 +103,32 @@ namespace Alimer
 		AlimerMain(_args);
 	}
 
+	void Engine::Exit()
+	{
+		_paused = true;
+
+		if (_running)
+		{
+			// TODO: Fire event.
+			_running = false;
+		}
+	}
+
 	void Engine::Pause()
 	{
-
+		if (_running && !_paused)
+		{
+			// TODO: Fire event.
+			_paused = true;
+		}
 	}
 
 	void Engine::Resume()
 	{
-
+		if (_running && _paused)
+		{
+			// TODO: Fire event.
+			_paused = false;
+		}
 	}
 }

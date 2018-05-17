@@ -44,7 +44,7 @@ macro (define_engine_source_files)
 endmacro()
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . Core Graphics)
+define_engine_source_files (NORECURSE . Debug Core Graphics)
 
 if (PLATFORM_WINDOWS)
 	define_engine_source_files(Core/Windows)
@@ -65,7 +65,7 @@ add_library(libAlimer ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(libAlimer 
 	PUBLIC  
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>        # For parent projects to find auto-generated engine headers
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>        # For parent projects to find engine headers
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>        # For parent projects to find engine headers
 	$<INSTALL_INTERFACE:${DEST_BASE_INCLUDE_DIR}>
 	PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
@@ -73,11 +73,11 @@ target_include_directories(libAlimer
 # Add any variables starting with Alimer_ as project defines
 get_cmake_property(__cmake_variables VARIABLES)
 foreach (var ${__cmake_variables})
-    if ("${var}" MATCHES "^ALIMER_")
-        if (${${var}})
-            target_compile_definitions(libAlimer PRIVATE -D${var})
-        endif ()
-    endif ()
+	if ("${var}" MATCHES "^ALIMER_")
+		if (${${var}})
+			target_compile_definitions(libAlimer PRIVATE -D${var})
+		endif ()
+	endif ()
 endforeach()
 
 if (ALIMER_VULKAN)
@@ -97,8 +97,8 @@ endif ()
 
 # SDK installation
 install(TARGETS libAlimer
-    EXPORT Alimer
-    LIBRARY DESTINATION ${DEST_LIBRARY_DIR}
-    RUNTIME DESTINATION ${DEST_BIN_DIR}
-    ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR}
+	EXPORT Alimer
+	LIBRARY DESTINATION ${DEST_LIBRARY_DIR}
+	RUNTIME DESTINATION ${DEST_BIN_DIR}
+	ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR}
 )

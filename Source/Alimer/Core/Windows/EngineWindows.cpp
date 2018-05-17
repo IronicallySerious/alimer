@@ -22,6 +22,7 @@
 
 #include "EngineWindows.h"
 #include "WindowWindows.h"
+#include "../../Debug/Log.h"
 #include <shellapi.h>
 #include <Ole2.h>
 #include <oleidl.h>
@@ -134,26 +135,26 @@ namespace Alimer
 
 					if (msg.message == WM_QUIT)
 					{
-						//Exit();
+						Exit();
 						break;
 					}
 				}
 
-				//Tick();
-				//gInput().Update();
+				// Tick handles pause state.
+				Tick();
 			}
 			else
 			{
 				BOOL ret = GetMessageW(&msg, nullptr, 0, 0);
 				if (ret == 0)
 				{
-					//Exit();
+					Exit();
 					break;
 				}
 				else if (ret == -1)
 				{
-					//Exit();
-					//ALIMER_LOGERROR("[Win32] - Failed to get message");
+					Exit();
+					ALIMER_LOGERROR("[Win32] - Failed to get message");
 					return EXIT_FAILURE;
 				}
 				else
@@ -162,7 +163,8 @@ namespace Alimer
 					DispatchMessageW(&msg);
 				}
 
-				//gInput().Update();
+				// Tick handles pause state.
+				Tick();
 			}
 		}
 

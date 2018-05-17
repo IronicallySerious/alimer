@@ -22,25 +22,47 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
-#include <vector>
-#include <string>
+#include "../Core/Window.h"
+#include "../Graphics/Texture.h"
+#include <new>
+#include <memory>
 #include <atomic>
 
 namespace Alimer
 {
+	enum class GraphicsDeviceType
+	{
+		Default,
+		Empty,
+		Direct3D12
+	};
+
 	/// Low-level 3D graphics API class.
 	class Graphics
 	{
 	protected:
-		/// Construct and register subsystem.
+		/// Constructor.
 		Graphics();
 
 	public:
 		/// Destructor.
 		virtual ~Graphics();
 
+		/// Factory method for Graphics creation.
+		static Graphics* Create(GraphicsDeviceType deviceType);
+
+		virtual bool Initialize(std::shared_ptr<Window> window);
+
+		/// Wait for a device to become idle
+		virtual bool WaitIdle() = 0;
+
+		/// Begin rendering frame and return current backbuffer texture.
+		virtual std::shared_ptr<Texture> BeginFrame() = 0;
+
+		/// Present frame.
+		virtual bool Present() = 0;
 	protected:
+		std::shared_ptr<Window> _window;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);
