@@ -86,6 +86,11 @@ namespace Alimer
 		bool Present() override;
 
 		inline IDXGIFactory4* GetDXGIFactory() const { return _factory.Get(); }
+		inline ID3D12Device* GetD3DDevice() const { return _d3dDevice.Get(); }
+		ID3D12CommandAllocator* GetCommandAllocator() const
+		{
+			return _commandAllocators[_frameIndex].Get();
+		}
 
 	private:
 		bool InitializeCaps();
@@ -102,7 +107,7 @@ namespace Alimer
 		ComPtr<ID3D12CommandQueue> _d3dAsyncComputeQueue;
 		ComPtr<IDXGISwapChain3> _swapChain;
 		ComPtr<ID3D12Resource> _renderTargets[FrameCount];
-		std::vector<std::shared_ptr<Texture>> _textures;
+		ComPtr<ID3D12CommandAllocator> _commandAllocators[FrameCount];
 
 		bool _useWarpDevice{ false };
 

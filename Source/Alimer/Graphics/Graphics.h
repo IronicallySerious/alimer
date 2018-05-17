@@ -24,8 +24,10 @@
 
 #include "../Core/Window.h"
 #include "../Graphics/Texture.h"
+#include "../Graphics/CommandBuffer.h"
 #include <new>
 #include <memory>
+#include <vector>
 #include <atomic>
 
 namespace Alimer
@@ -63,6 +65,8 @@ namespace Alimer
 		virtual bool Present() = 0;
 	protected:
 		std::shared_ptr<Window> _window;
+		std::vector<std::shared_ptr<Texture>> _textures;
+		std::vector<std::shared_ptr<CommandBuffer>> _commandBuffers;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

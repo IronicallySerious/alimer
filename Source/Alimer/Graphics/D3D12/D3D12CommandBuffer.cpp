@@ -20,64 +20,28 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/Graphics.h"
-#include "../Debug/Log.h"
-
-#if ALIMER_D3D12
-#include "Graphics/D3D12/D3D12Graphics.h"
-#endif
+#include "D3D12CommandBuffer.h"
+#include "D3D12Graphics.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
-	Alimer::Graphics* graphics = nullptr;
-
-	Graphics::Graphics()
-		: _window(nullptr)
+	D3D12CommandBuffer::D3D12CommandBuffer(D3D12Graphics* graphics)
+		: CommandBuffer(graphics)
 	{
-		graphics = this;
+		// TODO: Add RequestAllocator from Device.
+		
+		ThrowIfFailed(graphics->GetD3DDevice()->CreateCommandList(
+			0,
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			graphics->GetCommandAllocator(),
+			nullptr,
+			IID_PPV_ARGS(&_commandList)));
+
+		_commandList->Close();
 	}
 
-	Graphics::~Graphics()
+	D3D12CommandBuffer::~D3D12CommandBuffer()
 	{
-		_commandBuffers.clear();
-		_textures.clear();
-		graphics = nullptr;
-	}
-
-	Graphics* Graphics::Create(GraphicsDeviceType deviceType)
-	{
-		if (deviceType == GraphicsDeviceType::Default)
-		{
-			// TODO: Find best device type
-			deviceType = GraphicsDeviceType::Direct3D12;
-		}
-
-		Graphics* graphics = nullptr;
-		switch (deviceType)
-		{
-			case GraphicsDeviceType::Direct3D12:
-#if ALIMER_D3D12
-				ALIMER_LOGINFO("Using Direct3D 12 graphics backend");
-				graphics = new D3D12Graphics();
-#else
-				ALIMER_LOGERROR("Direct3D 12 graphics backend not supported");
-#endif
-				break;
-
-			case GraphicsDeviceType::Default:
-				break;
-
-			case GraphicsDeviceType::Empty:
-			default:
-				break;
-		}
-
-		return graphics;
-	}
-
-	bool Graphics::Initialize(std::shared_ptr<Window> window)
-	{
-		_window = window;
-		return true;
 	}
 }

@@ -22,6 +22,7 @@
 
 #include "D3D12Graphics.h"
 #include "D3D12Texture.h"
+#include "D3D12CommandBuffer.h"
 #include "../../Debug/Log.h"
 #include "../../Core/Windows/WindowWindows.h"
 
@@ -252,6 +253,9 @@ namespace Alimer
 
 	std::shared_ptr<Texture> D3D12Graphics::BeginFrame()
 	{
+		ThrowIfFailed(_commandAllocators[_frameIndex]->Reset());
+		//ThrowIfFailed(_commandBuffers[_frameIndex]->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
+
 		return _textures[_frameIndex];
 	}
 
@@ -408,11 +412,20 @@ namespace Alimer
 		_frameIndex = _swapChain->GetCurrentBackBufferIndex();
 
 		_textures.resize(swapChainDesc.BufferCount);
+		
 		for (UINT i = 0; i < swapChainDesc.BufferCount; ++i)
 		{
 			// Get buffer from swapchain.
 			ThrowIfFailed(_swapChain->GetBuffer(i, IID_PPV_ARGS(&_renderTargets[i])));
 			_textures[i] = std::make_shared<D3D12Texture>(this, _renderTargets[i].Get());
+
+			ThrowIfFailed(_d3dDevice->CreateCommandAllocator(
+				D3D12_COMMAND_LIST_TYPE_DIRECT,
+				IID_PPV_ARGS(&_commandAllocators[i])));
 		}
+
+		// Use single command list with different allocators.
+		_commandBuffers.resize(swapChainDesc.BufferCount);
+		_commandBuffers[0] = std::make_shared<D3D12CommandBuffer>(this);
 	}
 }
