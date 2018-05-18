@@ -113,13 +113,51 @@ namespace Alimer
 		}
 		else if (newState == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
 		{
-			//InsertUAVBarrier(Resource, FlushImmediate);
+			InsertUAVBarrier(resource, flushImmediate);
 		}
 
 		if (flushImmediate || _numBarriersToFlush == 16)
-		{
 			FlushResourceBarriers();
+	}
+
+	void D3D12CommandBuffer::BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
+	{
+		// If it's already transitioning, finish that transition
+		if (resource->GetTransitioningState() != (D3D12_RESOURCE_STATES)-1)
+			TransitionResource(resource, resource->GetTransitioningState());
+
+		D3D12_RESOURCE_STATES oldState = resource->GetUsageState();
+
+		if (oldState != newState)
+		{
+			assert(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
+			D3D12_RESOURCE_BARRIER& barrierDesc = _resourceBarrierBuffer[_numBarriersToFlush++];
+
+			barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			barrierDesc.Transition.pResource = resource->GetResource();
+			barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			barrierDesc.Transition.StateBefore = oldState;
+			barrierDesc.Transition.StateAfter = newState;
+			barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+
+			resource->SetTransitioningState(newState);
 		}
+
+		if (flushImmediate || _numBarriersToFlush == 16)
+			FlushResourceBarriers();
+	}
+
+	void D3D12CommandBuffer::InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate)
+	{
+		assert(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
+		D3D12_RESOURCE_BARRIER& barrierDesc = _resourceBarrierBuffer[_numBarriersToFlush++];
+
+		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+		barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrierDesc.UAV.pResource = resource->GetResource();
+
+		if (flushImmediate)
+			FlushResourceBarriers();
 	}
 
 	void D3D12CommandBuffer::FlushResourceBarriers()

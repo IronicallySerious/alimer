@@ -113,4 +113,57 @@ namespace Alimer
 				return DXGI_FORMAT_UNKNOWN;
 		}
 	}
+
+	static inline D3D12_HEAP_PROPERTIES HeapProperties(
+		D3D12_HEAP_TYPE type,
+		UINT creationNodeMask = 1,
+		UINT nodeMask = 1)
+	{
+		D3D12_HEAP_PROPERTIES heapProps;
+		heapProps.Type = type;
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProps.CreationNodeMask = creationNodeMask;
+		heapProps.VisibleNodeMask = nodeMask;
+		return heapProps;
+	}
+
+	static inline D3D12_RESOURCE_DESC BufferResourceDesc(
+		const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo,
+		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE)
+	{
+		D3D12_RESOURCE_DESC desc;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		desc.Alignment = resAllocInfo.Alignment;
+		desc.Width = resAllocInfo.SizeInBytes;
+		desc.Height = 1;
+		desc.DepthOrArraySize = 1;
+		desc.MipLevels = 1;
+		desc.Format = DXGI_FORMAT_UNKNOWN;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		desc.Flags = flags;
+		return desc;
+	}
+
+	static inline D3D12_RESOURCE_DESC BufferResourceDesc(
+		UINT64 width,
+		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE,
+		UINT64 alignment = 0)
+	{
+		D3D12_RESOURCE_DESC desc;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		desc.Alignment = alignment;
+		desc.Width = width;
+		desc.Height = 1;
+		desc.DepthOrArraySize = 1;
+		desc.MipLevels = 1;
+		desc.Format = DXGI_FORMAT_UNKNOWN;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		desc.Flags = flags;
+		return desc;
+	}
 }

@@ -51,6 +51,7 @@ namespace Alimer
 	{
 		if (_paused)
 		{
+			// When paused still update input logic.
 			//_input->Update();
 			return;
 		}

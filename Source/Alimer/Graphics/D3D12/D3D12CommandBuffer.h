@@ -54,6 +54,8 @@ namespace Alimer
 		uint64_t Commit(bool waitForCompletion = false);
 
 		void TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
+		void BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
+		void InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate = false);
 		void FlushResourceBarriers();
 
 		void BeginRenderPass(std::shared_ptr<Texture> texture) override;

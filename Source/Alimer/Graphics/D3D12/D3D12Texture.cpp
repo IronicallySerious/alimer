@@ -64,8 +64,6 @@ namespace Alimer
 					nullptr,
 					_rtvHandle);
 			}
-
-			_gpuVirtualAddress = _resource->GetGPUVirtualAddress();
 		}
 	}
 

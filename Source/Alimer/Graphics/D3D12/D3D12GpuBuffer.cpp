@@ -31,37 +31,32 @@ namespace Alimer
 	{
 		_usageState = D3D12_RESOURCE_STATE_COMMON;
 
-		D3D12_HEAP_PROPERTIES heapProps = {};
-		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
-
-		D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
-
-		D3D12_RESOURCE_DESC resourceDesc = {};
-		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		resourceDesc.Width = _size;
-		resourceDesc.Height = 1;
-		resourceDesc.DepthOrArraySize = 1;
-		resourceDesc.Alignment = 0;
-		resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		resourceDesc.MipLevels = 1;
-		resourceDesc.SampleDesc.Count = 1;
-		resourceDesc.SampleDesc.Quality = 0;
+		D3D12_HEAP_PROPERTIES heapProps = HeapProperties(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_RESOURCE_DESC resourceDesc = BufferResourceDesc(_size);
 
 		ThrowIfFailed(
 			graphics->GetD3DDevice()->CreateCommittedResource(
 				&heapProps,
-				heapFlags,
+				D3D12_HEAP_FLAG_NONE,
 				&resourceDesc,
 				_usageState,
 				nullptr,
 				IID_PPV_ARGS(&_resource))
 		);
+
+		if (initialData)
+		{
+			// Create staging buffer for copy data.
+			ComPtr<ID3D12Resource> stagingBuffer;
+
+			ThrowIfFailed(graphics->GetD3DDevice()->CreateCommittedResource(
+				&HeapProperties(D3D12_HEAP_TYPE_UPLOAD),
+				D3D12_HEAP_FLAG_NONE,
+				&BufferResourceDesc(_size),
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr,
+				IID_PPV_ARGS(&stagingBuffer)));
+		}
 
 		_gpuVirtualAddress = _resource->GetGPUVirtualAddress();
 	}
