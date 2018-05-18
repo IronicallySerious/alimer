@@ -22,57 +22,22 @@
 
 #pragma once
 
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <d3dcompiler.h>
-
-#pragma warning(push)
-#pragma warning(disable : 4467)
-#include <wrl.h>
-#pragma warning(pop)
-
-#include <vector>
-
-inline std::string HrToString(HRESULT hr)
-{
-	char s_str[64] = {};
-	sprintf_s(s_str, "HRESULT of 0x%08X", static_cast<UINT>(hr));
-	return std::string(s_str);
-}
-
-
-class HrException : public std::runtime_error
-{
-public:
-	HrException(HRESULT hr) : std::runtime_error(HrToString(hr)), m_hr(hr) {}
-	HRESULT Error() const { return m_hr; }
-private:
-	const HRESULT m_hr;
-};
-
-inline void ThrowIfFailed(HRESULT hr)
-{
-	if (FAILED(hr))
-	{
-		throw HrException(hr);
-	}
-}
-
-inline void D3D12SetObjectName(ID3D12Object* object, _In_z_  LPCWSTR name)
-{
-#if defined(ALIMER_DEV)
-		object->SetName(name);
-#endif
-}
-
 #include "Graphics/Graphics.h"
-using namespace Microsoft::WRL;
+#include "D3D12DescriptorAllocator.h"
+#include "D3D12Helpers.h"
+#include <array>
+#include <mutex>
 
 namespace Alimer
 {
+	class D3D12CommandBuffer;
+	class D3D12CommandListManager;
+
 	/// D3D12 Low-level 3D graphics API class.
 	class D3D12Graphics final : public Graphics
 	{
+		friend class D3D12DescriptorAllocator;
+
 	public:
 		/// Constructor.
 		D3D12Graphics();
@@ -82,39 +47,48 @@ namespace Alimer
 
 		bool Initialize(std::shared_ptr<Window> window) override;
 		bool WaitIdle() override;
-		std::shared_ptr<Texture> BeginFrame() override;
+		std::shared_ptr<Texture> AcquireNextImage() override;
 		bool Present() override;
+
+		CommandBufferPtr CreateCommandBuffer() override;
+		bool Submit(CommandBufferPtr commandBuffer) override;
+
+		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 
 		inline IDXGIFactory4* GetDXGIFactory() const { return _factory.Get(); }
 		inline ID3D12Device* GetD3DDevice() const { return _d3dDevice.Get(); }
-		ID3D12CommandAllocator* GetCommandAllocator() const
+		inline D3D12CommandListManager* GetCommandListManager() const { return _commandListManager.get(); }
+
+		inline D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT Count = 1)
 		{
-			return _commandAllocators[_frameIndex].Get();
+			return _descriptorAllocator[type].Allocate(Count);
 		}
 
 	private:
 		bool InitializeCaps();
-		void CreateCommandQueues();
 		void CreateSwapchain(std::shared_ptr<Window> window);
-		bool MoveToNextFrame();
+		std::shared_ptr<D3D12CommandBuffer> RetrieveCommandBuffer();
+		void RecycleCommandBuffer(const std::shared_ptr<D3D12CommandBuffer>& cmd);
 
 		static constexpr UINT FrameCount = 2;
+		bool _useWarpDevice{ false };
 
 		ComPtr<IDXGIFactory4> _factory;
 		ComPtr<IDXGIAdapter1> _adapter;
 		ComPtr<ID3D12Device> _d3dDevice;
-		ComPtr<ID3D12CommandQueue> _d3dDirectQueue;
-		ComPtr<ID3D12CommandQueue> _d3dAsyncComputeQueue;
 		ComPtr<IDXGISwapChain3> _swapChain;
 		ComPtr<ID3D12Resource> _renderTargets[FrameCount];
-		ComPtr<ID3D12CommandAllocator> _commandAllocators[FrameCount];
 
-		bool _useWarpDevice{ false };
+		ID3D12DescriptorHeap* RequestNewHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
 
-		// Synchronization objects.
-		uint32_t _frameIndex{};
-		HANDLE _fenceEvent;
-		ComPtr<ID3D12Fence> _d3dFence;
-		UINT64 _fenceValues[FrameCount] = {};
+		std::mutex _heapAllocationMutex;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> _descriptorHeapPool;
+		D3D12DescriptorAllocator _descriptorAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+		std::unique_ptr<D3D12CommandListManager> _commandListManager;
+		static constexpr size_t CommandBufferRecycleCount = 16;
+		std::mutex _commandBufferMutex;
+		std::array<std::shared_ptr<D3D12CommandBuffer>, CommandBufferRecycleCount> _recycledCommandBuffers;
+		size_t _commandBufferObjectId = 0;
 	};
 }

@@ -21,6 +21,8 @@
 //
 
 #include "D3D12CommandBuffer.h"
+#include "D3D12CommandListManager.h"
+#include "D3D12Texture.h"
 #include "D3D12Graphics.h"
 #include "../../Debug/Log.h"
 
@@ -28,20 +30,124 @@ namespace Alimer
 {
 	D3D12CommandBuffer::D3D12CommandBuffer(D3D12Graphics* graphics)
 		: CommandBuffer(graphics)
+		, _manager(graphics->GetCommandListManager())
+		, _commandList(nullptr)
+		, _currentAllocator(nullptr)
+		, _type(D3D12_COMMAND_LIST_TYPE_DIRECT)
+		, _numBarriersToFlush(0)
 	{
-		// TODO: Add RequestAllocator from Device.
-		
-		ThrowIfFailed(graphics->GetD3DDevice()->CreateCommandList(
-			0,
-			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			graphics->GetCommandAllocator(),
-			nullptr,
-			IID_PPV_ARGS(&_commandList)));
-
-		_commandList->Close();
+		_manager->CreateNewCommandList(
+			_type,
+			&_commandList,
+			&_currentAllocator);
 	}
 
 	D3D12CommandBuffer::~D3D12CommandBuffer()
 	{
+	}
+
+	void D3D12CommandBuffer::Reset()
+	{
+		assert(_commandList != nullptr && _currentAllocator == nullptr);
+		_currentAllocator = _manager->GetQueue(_type).RequestAllocator();
+		_commandList->Reset(_currentAllocator, nullptr);
+
+		_numBarriersToFlush = 0;
+	}
+
+	uint64_t D3D12CommandBuffer::Commit(bool waitForCompletion)
+	{
+		FlushResourceBarriers();
+
+		assert(_currentAllocator != nullptr);
+
+		// Execute the command list.
+		auto& queue = _manager->GetQueue(_type);
+		uint64_t fenceValue = queue.ExecuteCommandList(_commandList);
+		queue.DiscardAllocator(fenceValue, _currentAllocator);
+		_currentAllocator = nullptr;
+
+		if (waitForCompletion)
+		{
+			_manager->WaitForFence(fenceValue);
+		}
+
+		//FreeCommandBuffer(this);
+
+		return fenceValue;
+	}
+
+	void D3D12CommandBuffer::TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
+	{
+		D3D12_RESOURCE_STATES oldState = resource->GetUsageState();
+
+		if (_type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+		{
+			assert((oldState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == oldState);
+			assert((newState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == newState);
+		}
+
+		if (oldState != newState)
+		{
+			assert(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
+			D3D12_RESOURCE_BARRIER& barrierDesc = _resourceBarrierBuffer[_numBarriersToFlush++];
+
+			barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			barrierDesc.Transition.pResource = resource->GetResource();
+			barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			barrierDesc.Transition.StateBefore = oldState;
+			barrierDesc.Transition.StateAfter = newState;
+
+			// Check to see if we already started the transition
+			if (newState == resource->GetTransitioningState())
+			{
+				barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
+				resource->SetTransitioningState((D3D12_RESOURCE_STATES)-1);
+			}
+			else
+			{
+				barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			}
+
+			resource->SetUsageState(newState);
+		}
+		else if (newState == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+		{
+			//InsertUAVBarrier(Resource, FlushImmediate);
+		}
+
+		if (flushImmediate || _numBarriersToFlush == 16)
+		{
+			FlushResourceBarriers();
+		}
+	}
+
+	void D3D12CommandBuffer::FlushResourceBarriers()
+	{
+		if (_numBarriersToFlush > 0)
+		{
+			_commandList->ResourceBarrier(_numBarriersToFlush, _resourceBarrierBuffer);
+			_numBarriersToFlush = 0;
+		}
+	}
+
+	void D3D12CommandBuffer::BeginRenderPass(std::shared_ptr<Texture> texture)
+	{
+		_boundTexture = std::static_pointer_cast<D3D12Texture>(texture);
+
+		// Indicate that the back buffer will be used as a render target.
+		TransitionResource(_boundTexture.get(), D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+
+		_boundRTV[0] = _boundTexture->GetRTV();
+		_commandList->OMSetRenderTargets(1, _boundRTV, FALSE, nullptr);
+
+		// Record commands.
+		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+		_commandList->ClearRenderTargetView(_boundTexture->GetRTV(), clearColor, 0, nullptr);
+	}
+
+	void D3D12CommandBuffer::EndRenderPass()
+	{
+		TransitionResource(_boundTexture.get(), D3D12_RESOURCE_STATE_PRESENT, true);
 	}
 }

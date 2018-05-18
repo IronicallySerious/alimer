@@ -23,21 +23,14 @@
 #pragma once
 
 #include "Graphics/Texture.h"
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <d3dcompiler.h>
-#pragma warning(push)
-#pragma warning(disable : 4467)
-#include <wrl.h>
-#pragma warning(pop)
-using namespace Microsoft::WRL;
+#include "D3D12Helpers.h"
 
 namespace Alimer
 {
 	class D3D12Graphics;
 
 	/// D3D12 Texture implementation.
-	class D3D12Texture final : public Texture
+	class D3D12Texture final : public Texture, public D3D12Resource
 	{
 	public:
 		/// Constructor.
@@ -46,9 +39,9 @@ namespace Alimer
 		/// Destructor.
 		~D3D12Texture() override;
 
-		inline ID3D12Resource* GetD3DResource() const { return _resource.Get(); }
+		const D3D12_CPU_DESCRIPTOR_HANDLE& GetRTV() const { return _rtvHandle; }
 
 	private:
-		ComPtr<ID3D12Resource> _resource;
+		D3D12_CPU_DESCRIPTOR_HANDLE _rtvHandle;
 	};
 }

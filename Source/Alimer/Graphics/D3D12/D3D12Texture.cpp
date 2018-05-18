@@ -28,10 +28,12 @@ namespace Alimer
 {
 	D3D12Texture::D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource)
 		: Texture(graphics)
-		, _resource(resource)
 	{
+		_rtvHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
+
 		if (resource)
 		{
+			_resource = resource;
 			D3D12_RESOURCE_DESC desc = resource->GetDesc();
 			switch (desc.Dimension)
 			{
@@ -53,6 +55,17 @@ namespace Alimer
 			_format = PixelFormat::BGRA8UNorm;
 			_width = static_cast<uint32_t>(desc.Width);
 			_height = static_cast<uint32_t>(desc.Height);
+
+			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+			{
+				_rtvHandle = graphics->AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+				graphics->GetD3DDevice()->CreateRenderTargetView(
+					resource,
+					nullptr,
+					_rtvHandle);
+			}
+
+			_gpuVirtualAddress = _resource->GetGPUVirtualAddress();
 		}
 	}
 

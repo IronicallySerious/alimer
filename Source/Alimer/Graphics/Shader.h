@@ -20,63 +20,43 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/Graphics.h"
-#include "../Debug/Log.h"
+#pragma once
 
-#if ALIMER_D3D12
-#include "Graphics/D3D12/D3D12Graphics.h"
-#endif
+#include "../Graphics/PixelFormat.h"
 
 namespace Alimer
 {
-	Alimer::Graphics* graphics = nullptr;
+	class Graphics;
 
-	Graphics::Graphics()
-		: _window(nullptr)
+	/// Shader stage.
+	enum class ShaderStage
 	{
-		graphics = this;
-	}
+		Vertex = 0,
+		TessControl = 1,
+		TessEvaluation = 2,
+		Geometry = 3,
+		Fragment = 4,
+		Compute = 5,
+		Count
+	};
 
-	Graphics::~Graphics()
+	/// Defines a shader (module/function) class.
+	class Shader
 	{
-		_textures.clear();
-		graphics = nullptr;
-	}
+	protected:
+		/// Constructor.
+		Shader(Graphics* graphics, ShaderStage stage);
 
-	Graphics* Graphics::Create(GraphicsDeviceType deviceType)
-	{
-		if (deviceType == GraphicsDeviceType::Default)
-		{
-			// TODO: Find best device type
-			deviceType = GraphicsDeviceType::Direct3D12;
-		}
+	public:
+		/// Destructor.
+		virtual ~Shader();
 
-		Graphics* graphics = nullptr;
-		switch (deviceType)
-		{
-			case GraphicsDeviceType::Direct3D12:
-#if ALIMER_D3D12
-				ALIMER_LOGINFO("Using Direct3D 12 graphics backend");
-				graphics = new D3D12Graphics();
-#else
-				ALIMER_LOGERROR("Direct3D 12 graphics backend not supported");
-#endif
-				break;
+		inline ShaderStage GetStage() const { return _stage; }
 
-			case GraphicsDeviceType::Default:
-				break;
-
-			case GraphicsDeviceType::Empty:
-			default:
-				break;
-		}
-
-		return graphics;
-	}
-
-	bool Graphics::Initialize(std::shared_ptr<Window> window)
-	{
-		_window = window;
-		return true;
-	}
+	protected:
+		Graphics* _graphics;
+		ShaderStage _stage;
+	private:
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
+	};
 }

@@ -21,8 +21,10 @@
 //
 
 #include "D3D12Graphics.h"
+#include "D3D12CommandListManager.h"
 #include "D3D12Texture.h"
 #include "D3D12CommandBuffer.h"
+#include "D3D12GpuBuffer.h"
 #include "../../Debug/Log.h"
 #include "../../Core/Windows/WindowWindows.h"
 
@@ -86,6 +88,9 @@ namespace Alimer
 #endif
 
 	D3D12Graphics::D3D12Graphics()
+		: _descriptorAllocator {
+		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
+		D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV}
 	{
 
 	}
@@ -96,7 +101,8 @@ namespace Alimer
 		// cleaned up by the destructor.
 		WaitIdle();
 
-		CloseHandle(_fenceEvent);
+		// Clear DescriptorHeap Pools.
+		_descriptorHeapPool.clear();
 	}
 
 	bool D3D12Graphics::Initialize(std::shared_ptr<Window> window)
@@ -204,59 +210,30 @@ namespace Alimer
 			}
 		}
 #endif
+		// Create the command list manager class.
+		_commandListManager.reset(new D3D12CommandListManager(_d3dDevice.Get()));
 
-		CreateCommandQueues();
-		CreateSwapchain(window);
-
-		// Create synchronization objects and wait until assets have been uploaded to the GPU.
+		// Init heaps.
+		for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 		{
-			ThrowIfFailed(_d3dDevice->CreateFence(_fenceValues[_frameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_d3dFence)));
-			_fenceValues[_frameIndex]++;
-
-			// Create an event handle to use for frame synchronization.
-			_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-			if (_fenceEvent == nullptr)
-			{
-				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-			}
-
-			WaitIdle();
+			_descriptorAllocator[i].Initialize(this);
 		}
+
+		// Create Swapchain.
+		CreateSwapchain(window);
 
 		return Graphics::Initialize(window);
 	}
 
 	bool D3D12Graphics::WaitIdle()
 	{
-		// Schedule a Signal command in the queue.
-		if (FAILED(_d3dDirectQueue->Signal(
-			_d3dFence.Get(),
-			_fenceValues[_frameIndex])))
-		{
-			ALIMER_LOGERROR("D3D12 failed to Signal fence");
-			return false;
-		}
-
-		// Wait until the fence has been processed.
-		if (FAILED(_d3dFence->SetEventOnCompletion(_fenceValues[_frameIndex], _fenceEvent)))
-		{
-			ALIMER_LOGERROR("D3D12 SetEventOnCompletion fail.");
-			return false;
-		}
-
-		WaitForSingleObjectEx(_fenceEvent, INFINITE, FALSE);
-
-		// Increment the fence value for the current frame.
-		_fenceValues[_frameIndex]++;
-		return true;
+		return _commandListManager->WaitIdle();
 	}
 
-	std::shared_ptr<Texture> D3D12Graphics::BeginFrame()
+	std::shared_ptr<Texture> D3D12Graphics::AcquireNextImage()
 	{
-		ThrowIfFailed(_commandAllocators[_frameIndex]->Reset());
-		//ThrowIfFailed(_commandBuffers[_frameIndex]->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr));
-
-		return _textures[_frameIndex];
+		uint32_t index = _swapChain->GetCurrentBackBufferIndex();
+		return _textures[index];
 	}
 
 	bool D3D12Graphics::Present()
@@ -270,30 +247,6 @@ namespace Alimer
 			return false;
 		}
 
-		return MoveToNextFrame();
-	}
-
-	bool D3D12Graphics::MoveToNextFrame()
-	{
-		// Schedule a Signal command in the queue.
-		const UINT64 currentFenceValue = _fenceValues[_frameIndex];
-		if (FAILED(_d3dDirectQueue->Signal(_d3dFence.Get(), currentFenceValue)))
-		{
-			return false;
-		}
-
-		// Update the frame index.
-		_frameIndex = _swapChain->GetCurrentBackBufferIndex();
-
-		// If the next frame is not ready to be rendered yet, wait until it is ready.
-		if (_d3dFence->GetCompletedValue() < _fenceValues[_frameIndex])
-		{
-			ThrowIfFailed(_d3dFence->SetEventOnCompletion(_fenceValues[_frameIndex], _fenceEvent));
-			WaitForSingleObjectEx(_fenceEvent, INFINITE, FALSE);
-		}
-
-		// Set the fence value for the next frame.
-		_fenceValues[_frameIndex] = currentFenceValue + 1;
 		return true;
 	}
 
@@ -339,34 +292,6 @@ namespace Alimer
 		return true;
 	}
 
-	void D3D12Graphics::CreateCommandQueues()
-	{
-		// Describe and create the command queue.
-		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-		queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-		queueDesc.NodeMask = 0x0;
-
-		if (FAILED(_d3dDevice->CreateCommandQueue(
-			&queueDesc, IID_PPV_ARGS(&_d3dDirectQueue))))
-		{
-			ALIMER_LOGERROR("Failed to create D3D12 Direct CommandQueue");
-			return;
-		}
-
-		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-		if (FAILED(_d3dDevice->CreateCommandQueue(
-			&queueDesc, IID_PPV_ARGS(&_d3dAsyncComputeQueue))))
-		{
-			ALIMER_LOGERROR("Failed to create D3D12 Async CommandQueue");
-			return;
-		}
-
-		D3D12SetObjectName(_d3dDirectQueue.Get(), L"Direct Command Queue");
-		D3D12SetObjectName(_d3dAsyncComputeQueue.Get(), L"Async Compute Command Queue");
-	}
-
 	void D3D12Graphics::CreateSwapchain(std::shared_ptr<Window> window)
 	{
 		// Describe and create the swap chain.
@@ -388,7 +313,7 @@ namespace Alimer
 
 		HWND handle = win32Window->GetHandle();
 		ThrowIfFailed(_factory->CreateSwapChainForHwnd(
-			_d3dDirectQueue.Get(),
+			_commandListManager->GetD3DCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
 			handle,
 			&swapChainDesc,
 			nullptr,
@@ -400,7 +325,7 @@ namespace Alimer
 		ThrowIfFailed(_factory->MakeWindowAssociation(handle, DXGI_MWA_NO_ALT_ENTER));
 #else
 		ThrowIfFailed(_factory->CreateSwapChainForCoreWindow(
-			_d3dDirectQueue.Get(),
+			_commandListManager->GetD3DCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
 			reinterpret_cast<IUnknown*>(Windows::UI::Core::CoreWindow::GetForCurrentThread()),
 			&swapChainDesc,
 			nullptr,
@@ -409,7 +334,6 @@ namespace Alimer
 #endif
 
 		ThrowIfFailed(swapChain.As(&_swapChain));
-		_frameIndex = _swapChain->GetCurrentBackBufferIndex();
 
 		_textures.resize(swapChainDesc.BufferCount);
 		
@@ -417,15 +341,75 @@ namespace Alimer
 		{
 			// Get buffer from swapchain.
 			ThrowIfFailed(_swapChain->GetBuffer(i, IID_PPV_ARGS(&_renderTargets[i])));
-			_textures[i] = std::make_shared<D3D12Texture>(this, _renderTargets[i].Get());
 
-			ThrowIfFailed(_d3dDevice->CreateCommandAllocator(
-				D3D12_COMMAND_LIST_TYPE_DIRECT,
-				IID_PPV_ARGS(&_commandAllocators[i])));
+			auto d3dTexture = std::make_shared<D3D12Texture>(this, _renderTargets[i].Get());
+			d3dTexture->SetUsageState(D3D12_RESOURCE_STATE_PRESENT);
+			_textures[i] = d3dTexture;
+		}
+	}
+
+	CommandBufferPtr D3D12Graphics::CreateCommandBuffer()
+	{
+		auto d3dCommandBuffer = RetrieveCommandBuffer();
+		if (d3dCommandBuffer == nullptr)
+		{
+			d3dCommandBuffer = std::make_shared<D3D12CommandBuffer>(this);
+		}
+		else
+		{
+			d3dCommandBuffer->Reset();
 		}
 
-		// Use single command list with different allocators.
-		_commandBuffers.resize(swapChainDesc.BufferCount);
-		_commandBuffers[0] = std::make_shared<D3D12CommandBuffer>(this);
+		return d3dCommandBuffer;
+	}
+
+	bool D3D12Graphics::Submit(CommandBufferPtr commandBuffer)
+	{
+		auto d3dCommandBuffer = std::static_pointer_cast<D3D12CommandBuffer>(commandBuffer);
+		d3dCommandBuffer->Commit();
+		RecycleCommandBuffer(d3dCommandBuffer);
+
+		return true;
+	}
+
+	GpuBufferPtr D3D12Graphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
+	{
+		return std::make_shared<D3D12GpuBuffer>(this, usage, elementCount, elementSize, initialData);
+	}
+
+	std::shared_ptr<D3D12CommandBuffer> D3D12Graphics::RetrieveCommandBuffer()
+	{
+		std::lock_guard<std::mutex> lock(_commandBufferMutex);
+
+		if (_commandBufferObjectId == 0)
+			return nullptr;
+
+		return _recycledCommandBuffers.at(--_commandBufferObjectId);
+	}
+
+	void D3D12Graphics::RecycleCommandBuffer(const std::shared_ptr<D3D12CommandBuffer>& cmd)
+	{
+		std::lock_guard<std::mutex> lock(_commandBufferMutex);
+
+		if (_commandBufferObjectId < CommandBufferRecycleCount)
+		{
+			_recycledCommandBuffers.at(_commandBufferObjectId++) = cmd;
+		}
+	}
+
+	ID3D12DescriptorHeap* D3D12Graphics::RequestNewHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
+	{
+		std::lock_guard<std::mutex> guard(_heapAllocationMutex);
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
+		heapDesc.Type = type;
+		heapDesc.NumDescriptors = numDescriptors;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		heapDesc.NodeMask = 1;
+
+		ComPtr<ID3D12DescriptorHeap> heap;
+		ThrowIfFailed(_d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap)));
+		_descriptorHeapPool.emplace_back(heap);
+		return heap.Get();
 	}
 }

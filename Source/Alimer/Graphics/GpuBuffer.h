@@ -20,63 +20,50 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/Graphics.h"
-#include "../Debug/Log.h"
+#pragma once
 
-#if ALIMER_D3D12
-#include "Graphics/D3D12/D3D12Graphics.h"
-#endif
+#include "../Graphics/PixelFormat.h"
+#include <memory>
 
 namespace Alimer
 {
-	Alimer::Graphics* graphics = nullptr;
+	class Graphics;
 
-	Graphics::Graphics()
-		: _window(nullptr)
+	enum class BufferUsage
 	{
-		graphics = this;
-	}
+		Undefined = 0,
+		Vertex = 1 << 0,
+		Index = 1 << 1,
+		Uniform = 1 << 2,
+	};
+	ALIMER_BITMASK(BufferUsage);
 
-	Graphics::~Graphics()
+	/// Defines a GPU Buffer class.
+	class GpuBuffer
 	{
-		_textures.clear();
-		graphics = nullptr;
-	}
+	protected:
+		/// Constructor.
+		GpuBuffer(Graphics* graphics, BufferUsage bufferUsage, uint32_t elementCount, uint32_t elementSize);
 
-	Graphics* Graphics::Create(GraphicsDeviceType deviceType)
-	{
-		if (deviceType == GraphicsDeviceType::Default)
-		{
-			// TODO: Find best device type
-			deviceType = GraphicsDeviceType::Direct3D12;
-		}
+	public:
+		/// Destructor.
+		virtual ~GpuBuffer() = default;
 
-		Graphics* graphics = nullptr;
-		switch (deviceType)
-		{
-			case GraphicsDeviceType::Direct3D12:
-#if ALIMER_D3D12
-				ALIMER_LOGINFO("Using Direct3D 12 graphics backend");
-				graphics = new D3D12Graphics();
-#else
-				ALIMER_LOGERROR("Direct3D 12 graphics backend not supported");
-#endif
-				break;
+		inline BufferUsage GetBufferUsage() const { return _bufferUsage; }
+		inline uint32_t GetElementCount() const { return _elementCount; }
+		inline uint32_t GetElementSize() const { return _elementSize; }
+		inline uint64_t GetSize() const { return _size; }
 
-			case GraphicsDeviceType::Default:
-				break;
+	protected:
+		Graphics* _graphics;
+		BufferUsage _bufferUsage;
+		uint32_t _elementCount;
+		uint32_t _elementSize;
+		uint64_t _size;
 
-			case GraphicsDeviceType::Empty:
-			default:
-				break;
-		}
+	private:
+		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuBuffer);
+	};
 
-		return graphics;
-	}
-
-	bool Graphics::Initialize(std::shared_ptr<Window> window)
-	{
-		_window = window;
-		return true;
-	}
+	using GpuBufferPtr = std::shared_ptr<GpuBuffer>;
 }

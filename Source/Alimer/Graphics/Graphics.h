@@ -23,10 +23,8 @@
 #pragma once
 
 #include "../Core/Window.h"
-#include "../Graphics/Texture.h"
+#include "../Graphics/GpuBuffer.h"
 #include "../Graphics/CommandBuffer.h"
-#include <new>
-#include <memory>
 #include <vector>
 #include <atomic>
 
@@ -59,14 +57,20 @@ namespace Alimer
 		virtual bool WaitIdle() = 0;
 
 		/// Begin rendering frame and return current backbuffer texture.
-		virtual std::shared_ptr<Texture> BeginFrame() = 0;
+		virtual std::shared_ptr<Texture> AcquireNextImage() = 0;
 
 		/// Present frame.
 		virtual bool Present() = 0;
+
+		// CommandBuffer
+		virtual CommandBufferPtr CreateCommandBuffer() = 0;
+		virtual bool Submit(CommandBufferPtr commandBuffer) = 0;
+
+		// Buffer
+		virtual GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr) = 0;
 	protected:
 		std::shared_ptr<Window> _window;
 		std::vector<std::shared_ptr<Texture>> _textures;
-		std::vector<std::shared_ptr<CommandBuffer>> _commandBuffers;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

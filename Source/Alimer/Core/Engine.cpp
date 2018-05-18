@@ -65,8 +65,11 @@ namespace Alimer
 		if (_headless)
 			return;
 
-		if (!_graphics->BeginFrame())
-			return;
+		auto frameTexture = _graphics->AcquireNextImage();
+		auto commandBuffer = _graphics->CreateCommandBuffer();
+		commandBuffer->BeginRenderPass(frameTexture);
+		commandBuffer->EndRenderPass();
+		_graphics->Submit(commandBuffer);
 
 		//OnRender();
 		_graphics->Present();

@@ -34,6 +34,7 @@ Alimer is greatly inspired by [Urho3D](https://github.com/urho3d/Urho3D) and [Og
 by the engine needs, Urho3D is licensed under the [MIT](https://github.com/urho3d/Urho3D/blob/master/LICENSE). Additional inspiration, research or code used:
 
 - Vulkan examples from Sascha Willems (https://github.com/SaschaWillems/Vulkan)
+- DirectX Graphics samples (https://github.com/Microsoft/DirectX-Graphics-Samples)
 - Abstract GPU project (https://github.com/ronsaldo/abstract-gpu)
 - Granite (https://github.com/Themaister/Granite)
 - Articles from (http://ourmachinery.com/)

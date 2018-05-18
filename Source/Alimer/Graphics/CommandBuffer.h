@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
+#include "../Graphics/Texture.h"
+#include <memory>
 
 namespace Alimer
 {
@@ -39,8 +40,15 @@ namespace Alimer
 		/// Destructor.
 		virtual ~CommandBuffer();
 
-	private:
+		virtual void BeginRenderPass(std::shared_ptr<Texture> texture) = 0;
+		virtual void EndRenderPass() = 0;
+
+	protected:
 		Graphics* _graphics;
+
+	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);
 	};
+
+	using CommandBufferPtr = std::shared_ptr<CommandBuffer>;
 }

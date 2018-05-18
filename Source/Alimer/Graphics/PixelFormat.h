@@ -30,7 +30,6 @@ namespace Alimer
 	enum class PixelFormat : uint32_t
 	{
 		Undefined,
-		A8UNorm,
 		R8UNorm,
 		RG8UNorm,
 		RGBA8UNorm,

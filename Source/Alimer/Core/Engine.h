@@ -57,7 +57,10 @@ namespace Alimer
 		/// Request application to exit.
 		void Exit();
 
+		/// Pause the main execution loop.
 		void Pause();
+
+		/// Resume the main execution loop.
 		void Resume();
 
 		virtual std::shared_ptr<Window> CreateWindow() = 0;

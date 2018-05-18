@@ -23,18 +23,22 @@
 #pragma once
 
 #include "Graphics/CommandBuffer.h"
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <d3dcompiler.h>
-#pragma warning(push)
-#pragma warning(disable : 4467)
-#include <wrl.h>
-#pragma warning(pop)
-using namespace Microsoft::WRL;
+#include "D3D12Helpers.h"
+#include <vector>
+#include <queue>
+#include <mutex>
+
+#define VALID_COMPUTE_QUEUE_RESOURCE_STATES \
+	( D3D12_RESOURCE_STATE_UNORDERED_ACCESS \
+	| D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE \
+	| D3D12_RESOURCE_STATE_COPY_DEST \
+	| D3D12_RESOURCE_STATE_COPY_SOURCE )
 
 namespace Alimer
 {
 	class D3D12Graphics;
+	class D3D12Texture;
+	class D3D12CommandListManager;
 
 	/// D3D12 CommandBuffer implementation.
 	class D3D12CommandBuffer final : public CommandBuffer
@@ -46,9 +50,25 @@ namespace Alimer
 		/// Destructor.
 		~D3D12CommandBuffer() override;
 
-		inline ID3D12GraphicsCommandList* GetD3DCommandList() const { return _commandList.Get(); }
+		void Reset();
+		uint64_t Commit(bool waitForCompletion = false);
+
+		void TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
+		void FlushResourceBarriers();
+
+		void BeginRenderPass(std::shared_ptr<Texture> texture) override;
+		void EndRenderPass() override;
 
 	private:
-		ComPtr<ID3D12GraphicsCommandList> _commandList;
+		D3D12CommandListManager * _manager;
+		ID3D12GraphicsCommandList* _commandList;
+		ID3D12CommandAllocator* _currentAllocator;
+		D3D12_COMMAND_LIST_TYPE _type;
+
+		D3D12_RESOURCE_BARRIER _resourceBarrierBuffer[16];
+		uint32_t _numBarriersToFlush;
+
+		std::shared_ptr<D3D12Texture> _boundTexture;
+		D3D12_CPU_DESCRIPTOR_HANDLE _boundRTV[8];
 	};
 }
