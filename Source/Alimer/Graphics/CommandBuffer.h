@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Graphics/Types.h"
 #include "../Graphics/Texture.h"
 #include <memory>
 
@@ -40,7 +41,10 @@ namespace Alimer
 		/// Destructor.
 		virtual ~CommandBuffer();
 
-		virtual void BeginRenderPass(std::shared_ptr<Texture> texture) = 0;
+		/// Commit for execution and optionally wait for completion.
+		virtual uint64_t Commit(bool waitForCompletion = false) = 0;
+
+		virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
 		virtual void EndRenderPass() = 0;
 
 	protected:

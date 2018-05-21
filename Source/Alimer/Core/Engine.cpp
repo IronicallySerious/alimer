@@ -68,9 +68,12 @@ namespace Alimer
 
 		auto frameTexture = _graphics->AcquireNextImage();
 		auto commandBuffer = _graphics->CreateCommandBuffer();
-		commandBuffer->BeginRenderPass(frameTexture);
+		RenderPassDescriptor passDescriptor;
+		passDescriptor.colorAttachments[0].texture = frameTexture.get();
+		passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
+		commandBuffer->BeginRenderPass(passDescriptor);
 		commandBuffer->EndRenderPass();
-		_graphics->Submit(commandBuffer);
+		commandBuffer->Commit();
 
 		//OnRender();
 		_graphics->Present();

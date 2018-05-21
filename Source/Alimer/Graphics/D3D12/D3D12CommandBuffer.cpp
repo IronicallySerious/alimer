@@ -35,6 +35,7 @@ namespace Alimer
 		, _currentAllocator(nullptr)
 		, _type(D3D12_COMMAND_LIST_TYPE_DIRECT)
 		, _numBarriersToFlush(0)
+		, _boundRTVCount(0)
 	{
 		_manager->CreateNewCommandList(
 			_type,
@@ -71,6 +72,8 @@ namespace Alimer
 		{
 			_manager->WaitForFence(fenceValue);
 		}
+
+		static_cast<D3D12Graphics*>(_graphics)->RecycleCommandBuffer(shared_from_this());
 
 		//FreeCommandBuffer(this);
 
@@ -169,23 +172,47 @@ namespace Alimer
 		}
 	}
 
-	void D3D12CommandBuffer::BeginRenderPass(std::shared_ptr<Texture> texture)
+	void D3D12CommandBuffer::BeginRenderPass(const RenderPassDescriptor& descriptor)
 	{
-		_boundTexture = std::static_pointer_cast<D3D12Texture>(texture);
+		_boundRTVCount = 0;
+		for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+		{
+			const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor.colorAttachments[i];
+			Texture* texture = colorAttachment.texture;
+			if (!texture)
+				continue;
 
-		// Indicate that the back buffer will be used as a render target.
-		TransitionResource(_boundTexture.get(), D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+			D3D12Texture* d3dTexture = static_cast<D3D12Texture*>(texture);
+			_boundRTV[_boundRTVCount] = d3dTexture->GetRTV();
+			_boundRTVResources[_boundRTVCount++] = d3dTexture;
 
-		_boundRTV[0] = _boundTexture->GetRTV();
-		_commandList->OMSetRenderTargets(1, _boundRTV, FALSE, nullptr);
+			// Transition to render target state.
+			TransitionResource(d3dTexture, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
 
-		// Record commands.
-		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-		_commandList->ClearRenderTargetView(_boundTexture->GetRTV(), clearColor, 0, nullptr);
+			switch (colorAttachment.loadAction)
+			{
+				case LoadAction::Clear:
+					_commandList->ClearRenderTargetView(
+						d3dTexture->GetRTV(),
+						colorAttachment.clearColor,
+						0,
+						nullptr);
+
+					break;
+
+				default:
+					break;
+			}
+		}
+
+		_commandList->OMSetRenderTargets(_boundRTVCount, _boundRTV, FALSE, nullptr);
 	}
 
 	void D3D12CommandBuffer::EndRenderPass()
 	{
-		TransitionResource(_boundTexture.get(), D3D12_RESOURCE_STATE_PRESENT, true);
+		for (uint32_t i = 0; i < _boundRTVCount; ++i)
+		{
+			TransitionResource(_boundRTVResources[i], D3D12_RESOURCE_STATE_COMMON, true);
+		}
 	}
 }

@@ -31,7 +31,6 @@ macro (define_engine_source_files)
 		# Get header files
 		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h)
 		list (REMOVE_ITEM _files
-			Alimer.h
 			Graphics/GraphicsImpl.h
 		)
 		list (APPEND HEADER_FILES ${_files})
@@ -44,12 +43,15 @@ macro (define_engine_source_files)
 endmacro()
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . Debug Core Graphics)
+define_engine_source_files (NORECURSE . Core Util IO Math Graphics)
+define_engine_source_files (Debug Resource)
 
 if (PLATFORM_WINDOWS)
 	define_engine_source_files(Core/Windows)
+	define_engine_source_files(IO/Windows)
 elseif (PLATFORM_UWP)
 	define_engine_source_files(Application/UWP)
+	define_engine_source_files(IO/Windows)
 endif ()
 
 if (ALIMER_D3D12)

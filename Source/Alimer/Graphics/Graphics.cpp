@@ -29,18 +29,14 @@
 
 namespace Alimer
 {
-	Alimer::Graphics* graphics = nullptr;
-
 	Graphics::Graphics()
 		: _window(nullptr)
 	{
-		graphics = this;
 	}
 
 	Graphics::~Graphics()
 	{
 		_textures.clear();
-		graphics = nullptr;
 	}
 
 	Graphics* Graphics::Create(GraphicsDeviceType deviceType)

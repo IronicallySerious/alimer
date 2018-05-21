@@ -20,32 +20,18 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Graphics/Types.h"
-#include "../Resource/Resource.h"
+#include "../Math/Color.h"
+#include <cstdio>
 
 namespace Alimer
 {
-	class Graphics;
+	const Color Color::Black = { 0.f, 0.f, 0.f, 1.f };
+	const Color Color::White = { 1.f, 1.f, 1.f, 1.f };
 
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
+	std::string Color::ToString() const
 	{
-	protected:
-		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
-
-	public:
-		/// Destructor.
-		virtual ~Shader();
-
-		inline ShaderStage GetStage() const { return _stage; }
-
-	protected:
-		Graphics* _graphics;
-		ShaderStage _stage;
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
-	};
+		char tempBuffer[128];
+		sprintf(tempBuffer, "%g %g %g %g", r, g, b, a);
+		return std::string(tempBuffer);
+	}
 }

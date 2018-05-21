@@ -22,30 +22,56 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
-#include "../Resource/Resource.h"
+#include "../PlatformDef.h"
+#include <memory>
+#include <string>
+#include <atomic>
 
 namespace Alimer
 {
-	class Graphics;
+	/// Asynchronous loading state of a resource.
+	enum class AsyncLoadState : uint32_t
+	{
+		/// No async operation in progress.
+		Done = 0,
+		/// Queued for asynchronous loading.
+		Queued = 1,
+		/// In progress of calling BeginLoad() in a worker thread.
+		Loading = 2,
+		/// BeginLoad() succeeded. EndLoad() can be called in the main thread.
+		Success = 3,
+		/// BeginLoad() failed.
+		Fail = 4
+	};
 
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
+
+	/// Runtime resource class.
+	class Resource
 	{
 	protected:
 		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
+		Resource();
 
 	public:
 		/// Destructor.
-		virtual ~Shader();
+		virtual ~Resource() = default;
 
-		inline ShaderStage GetStage() const { return _stage; }
+		/// Set name.
+		void SetName(const std::string& name);
+
+		/// Return name.
+		const std::string& GetName() const { return _name; }
+
+		/// Return the asynchronous loading state.
+		AsyncLoadState GetAsyncLoadState() const { return _asyncLoadState; }
 
 	protected:
-		Graphics* _graphics;
-		ShaderStage _stage;
+		std::string _name;
+		AsyncLoadState _asyncLoadState;
+
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Resource);
 	};
+
+	using ResourcePtr = std::shared_ptr<Resource>;
 }

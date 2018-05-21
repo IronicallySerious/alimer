@@ -22,21 +22,17 @@
 
 #pragma once
 
+#include "../Graphics/Types.h"
 #include "../Core/Window.h"
 #include "../Graphics/GpuBuffer.h"
+#include "../Graphics/Texture.h"
+#include "../Graphics/Shader.h"
 #include "../Graphics/CommandBuffer.h"
 #include <vector>
 #include <atomic>
 
 namespace Alimer
 {
-	enum class GraphicsDeviceType
-	{
-		Default,
-		Empty,
-		Direct3D12
-	};
-
 	/// Low-level 3D graphics API class.
 	class Graphics
 	{
@@ -64,7 +60,6 @@ namespace Alimer
 
 		// CommandBuffer
 		virtual CommandBufferPtr CreateCommandBuffer() = 0;
-		virtual bool Submit(CommandBufferPtr commandBuffer) = 0;
 
 		// Buffer
 		virtual GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr) = 0;
@@ -75,6 +70,4 @@ namespace Alimer
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);
 	};
-
-	extern Graphics* graphics;
 }

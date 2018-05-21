@@ -22,30 +22,33 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
 #include "../Resource/Resource.h"
+#include <memory>
+#include <atomic>
 
 namespace Alimer
 {
-	class Graphics;
+	class Stream;
 
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
+	/// Runtime resource loader class.
+	class ResourceLoader
 	{
 	protected:
 		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
+		ResourceLoader();
 
 	public:
 		/// Destructor.
-		virtual ~Shader();
+		virtual ~ResourceLoader() = default;
 
-		inline ShaderStage GetStage() const { return _stage; }
+		/// Load the resource synchronously from a binary stream. Return instance on success.
+		ResourcePtr Load(Stream& source);
 
 	protected:
-		Graphics* _graphics;
-		ShaderStage _stage;
+		virtual bool BeginLoad(Stream& source) = 0;
+		virtual ResourcePtr EndLoad() = 0;
+
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
+		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceLoader);
 	};
 }

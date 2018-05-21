@@ -214,6 +214,28 @@
 #	define ALIMER_DLL_IMPORT
 #endif
 
+#ifdef __cplusplus
+
+namespace Alimer
+{
+	template <typename T>
+	void SafeDelete(T *&resource)
+	{
+		delete resource;
+		resource = nullptr;
+	}
+
+	template <typename T>
+	void SafeRelease(T& resource)
+	{
+		if (resource)
+		{
+			resource->Release();
+			resource = nullptr;
+		}
+	}
+}
+
 // Put this in the declarations for a class to be uncopyable and unassignable.
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
 	TypeName(const TypeName&) = delete; \
@@ -279,3 +301,5 @@
 	typedef typename std::underlying_type<enum_class>::type enum_type; \
 	return static_cast<enum_type>(lhs) != 0;                           \
   }
+
+#endif

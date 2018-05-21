@@ -88,7 +88,8 @@ namespace Alimer
 #endif
 
 	D3D12Graphics::D3D12Graphics()
-		: _descriptorAllocator {
+		: _commandListManager(nullptr)
+		, _descriptorAllocator {
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
 		D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV}
 	{
@@ -101,8 +102,14 @@ namespace Alimer
 		// cleaned up by the destructor.
 		WaitIdle();
 
+		// Delete command list manager.
+		SafeDelete(_commandListManager);
+
 		// Clear DescriptorHeap Pools.
-		_descriptorHeapPool.clear();
+		{
+			std::lock_guard<std::mutex> guard(_heapAllocationMutex);
+			_descriptorHeapPool.clear();
+		}
 	}
 
 	bool D3D12Graphics::Initialize(std::shared_ptr<Window> window)
@@ -211,7 +218,7 @@ namespace Alimer
 		}
 #endif
 		// Create the command list manager class.
-		_commandListManager.reset(new D3D12CommandListManager(_d3dDevice.Get()));
+		_commandListManager = new D3D12CommandListManager(_d3dDevice.Get());
 
 		// Init heaps.
 		for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
@@ -361,15 +368,6 @@ namespace Alimer
 		}
 
 		return d3dCommandBuffer;
-	}
-
-	bool D3D12Graphics::Submit(CommandBufferPtr commandBuffer)
-	{
-		auto d3dCommandBuffer = std::static_pointer_cast<D3D12CommandBuffer>(commandBuffer);
-		d3dCommandBuffer->Commit();
-		RecycleCommandBuffer(d3dCommandBuffer);
-
-		return true;
 	}
 
 	GpuBufferPtr D3D12Graphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)

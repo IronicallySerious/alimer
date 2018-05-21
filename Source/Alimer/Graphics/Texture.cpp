@@ -28,9 +28,14 @@ namespace Alimer
 	Texture::Texture(Graphics* graphics)
 		: _graphics(graphics)
 		, _textureType(TextureType::Type2D)
-		, _format(PixelFormat::Undefined)
-		, _width(0)
-		, _height(0)
+		, _format(PixelFormat::RGBA8UNorm)
+		, _width(1)
+		, _height(1)
+		, _depth(1)
+		, _mipLevels(1)
+		, _arrayLayers(1)
+		, _samples(SampleCount::Count1)
+		, _usage(TextureUsage::ShaderRead)
 	{
 	}
 

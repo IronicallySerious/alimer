@@ -22,30 +22,25 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
-#include "../Resource/Resource.h"
+#include <string>
+#include <utility>
 
 namespace Alimer
 {
-	class Graphics;
-
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
+	namespace Path
 	{
-	protected:
-		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
+		bool IsAbsolutePath(const std::string &path);
+		bool IsRootPath(const std::string &path);
 
-	public:
-		/// Destructor.
-		virtual ~Shader();
+		std::string Join(const std::string &base, const std::string &path);
+		std::string GetBaseDir(const std::string &path);
+		std::string GetBaseName(const std::string &path);
+		std::string GetRelativePath(const std::string &base, const std::string &path);
+		std::string GetExtension(const std::string &path);
 
-		inline ShaderStage GetStage() const { return _stage; }
+		std::pair<std::string, std::string> ProtocolSplit(const std::string &path);
 
-	protected:
-		Graphics* _graphics;
-		ShaderStage _stage;
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
-	};
+		/// Return the executable application folder.
+		static std::string GetExecutableFolder();
+	}
 }

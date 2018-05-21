@@ -22,30 +22,40 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
-#include "../Resource/Resource.h"
+#include "../IO/FileSystem.h"
+#include "../Resource/ResourceLoader.h"
+#include <string>
+#include <atomic>
+#include <future>
 
 namespace Alimer
 {
-	class Graphics;
-
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
+	/// Resource cache subsystem. Loads resources on demand and stores them for later access.
+	class ResourceManager final
 	{
-	protected:
-		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
-
 	public:
+		/// Constructor.
+		ResourceManager();
+
 		/// Destructor.
-		virtual ~Shader();
+		~ResourceManager();
 
-		inline ShaderStage GetStage() const { return _stage; }
+		ResourcePtr LoadResource(const std::string& assetName);
+		std::future<ResourcePtr> LoadResourceAsync(const std::string& assetName);
 
-	protected:
-		Graphics* _graphics;
-		ShaderStage _stage;
+		template <class T> std::shared_ptr<T> Load(const std::string& assetName)
+		{
+			return std::static_pointer_cast<T>(LoadResource(assetName));
+		}
+
+		template <class T> std::future<std::shared_ptr<T>> LoadAsync(const std::string& assetName)
+		{
+			return std::async(std::launch::async, &ResourceManager::Load<T>, this, assetName);
+		}
+
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
+		std::string _dataDirectory;
+
+		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceManager);
 	};
 }

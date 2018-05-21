@@ -41,7 +41,9 @@ namespace Alimer
 	class D3D12CommandListManager;
 
 	/// D3D12 CommandBuffer implementation.
-	class D3D12CommandBuffer final : public CommandBuffer
+	class D3D12CommandBuffer final
+		: public CommandBuffer
+		, public std::enable_shared_from_this<D3D12CommandBuffer>
 	{
 	public:
 		/// Constructor.
@@ -51,14 +53,14 @@ namespace Alimer
 		~D3D12CommandBuffer() override;
 
 		void Reset();
-		uint64_t Commit(bool waitForCompletion = false);
+		uint64_t Commit(bool waitForCompletion) override;
 
 		void TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
 		void BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
 		void InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate = false);
 		void FlushResourceBarriers();
 
-		void BeginRenderPass(std::shared_ptr<Texture> texture) override;
+		void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
 		void EndRenderPass() override;
 
 	private:
@@ -70,7 +72,8 @@ namespace Alimer
 		D3D12_RESOURCE_BARRIER _resourceBarrierBuffer[16];
 		uint32_t _numBarriersToFlush;
 
-		std::shared_ptr<D3D12Texture> _boundTexture;
-		D3D12_CPU_DESCRIPTOR_HANDLE _boundRTV[8];
+		uint32_t _boundRTVCount;
+		D3D12Resource* _boundRTVResources[MaxColorAttachments];
+		D3D12_CPU_DESCRIPTOR_HANDLE _boundRTV[MaxColorAttachments];
 	};
 }

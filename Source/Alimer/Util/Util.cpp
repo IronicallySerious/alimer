@@ -20,32 +20,54 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#include "../Util/Util.h"
+using namespace std;
 
-#include "../Graphics/Types.h"
-#include "../Resource/Resource.h"
-
-namespace Alimer
+namespace Util
 {
-	class Graphics;
-
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
+	vector<string> Split(
+		const string &str,
+		const char *delim,
+		bool allowEmpty)
 	{
-	protected:
-		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
+		if (str.empty())
+			return {};
+		vector<std::string> ret;
 
-	public:
-		/// Destructor.
-		virtual ~Shader();
+		size_t start_index = 0;
+		size_t index = 0;
+		while ((index = str.find_first_of(delim, start_index)) != string::npos)
+		{
+			if (allowEmpty || index > start_index)
+				ret.push_back(str.substr(start_index, index - start_index));
+			start_index = index + 1;
 
-		inline ShaderStage GetStage() const { return _stage; }
+			if (allowEmpty && (index == str.size() - 1))
+				ret.emplace_back();
+		}
 
-	protected:
-		Graphics* _graphics;
-		ShaderStage _stage;
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
-	};
+		if (start_index < str.size())
+			ret.push_back(str.substr(start_index));
+		return ret;
+	}
+
+	string Replace(
+		const string& str,
+		const string& find,
+		const string& replace,
+		uint32_t maxReplacements)
+	{
+		string dest = str;
+		size_t pos = 0;
+		while ((pos = dest.find(find, pos)) != string::npos)
+		{
+			dest.replace(dest.find(find), find.size(), replace);
+			maxReplacements--;
+			pos += replace.size();
+			if (maxReplacements == 0)
+				break;
+		}
+
+		return dest;
+	}
 }

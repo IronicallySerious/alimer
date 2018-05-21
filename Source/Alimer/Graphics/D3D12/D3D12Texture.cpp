@@ -55,6 +55,34 @@ namespace Alimer
 			_format = PixelFormat::BGRA8UNorm;
 			_width = static_cast<uint32_t>(desc.Width);
 			_height = static_cast<uint32_t>(desc.Height);
+			if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+			{
+				_depth = desc.DepthOrArraySize;
+				_arrayLayers = 1;
+			}
+			else
+			{
+				_depth = 1;
+				_arrayLayers = desc.DepthOrArraySize;
+			}
+			_mipLevels = desc.MipLevels;
+
+			_usage = TextureUsage::Unknown;
+			if (!(desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE))
+			{
+				_usage |= TextureUsage::ShaderRead;
+			}
+
+			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+			{
+				_usage |= TextureUsage::ShaderWrite;
+			}
+
+			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+				|| desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+			{
+				_usage |= TextureUsage::RenderTarget;
+			}
 
 			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
 			{

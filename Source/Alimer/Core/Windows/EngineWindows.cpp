@@ -93,8 +93,9 @@ namespace Alimer
 
 		if (argc)
 		{
+			// Skip first one as its executable path.
 			char temporaryCString[256];
-			for (int i = 0; i < argc; i++)
+			for (int i = 1; i < argc; i++)
 			{
 				WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, temporaryCString, sizeof(temporaryCString), nullptr, nullptr);
 

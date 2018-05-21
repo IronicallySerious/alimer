@@ -37,6 +37,7 @@ namespace Alimer
 	class D3D12Graphics final : public Graphics
 	{
 		friend class D3D12DescriptorAllocator;
+		friend class D3D12CommandBuffer;
 
 	public:
 		/// Constructor.
@@ -51,13 +52,12 @@ namespace Alimer
 		bool Present() override;
 
 		CommandBufferPtr CreateCommandBuffer() override;
-		bool Submit(CommandBufferPtr commandBuffer) override;
 
 		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 
 		inline IDXGIFactory4* GetDXGIFactory() const { return _factory.Get(); }
 		inline ID3D12Device* GetD3DDevice() const { return _d3dDevice.Get(); }
-		inline D3D12CommandListManager* GetCommandListManager() const { return _commandListManager.get(); }
+		inline D3D12CommandListManager* GetCommandListManager() const { return _commandListManager; }
 
 		inline D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT Count = 1)
 		{
@@ -85,7 +85,7 @@ namespace Alimer
 		std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> _descriptorHeapPool;
 		D3D12DescriptorAllocator _descriptorAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
-		std::unique_ptr<D3D12CommandListManager> _commandListManager;
+		D3D12CommandListManager* _commandListManager;
 		static constexpr size_t CommandBufferRecycleCount = 16;
 		std::mutex _commandBufferMutex;
 		std::array<std::shared_ptr<D3D12CommandBuffer>, CommandBufferRecycleCount> _recycledCommandBuffers;

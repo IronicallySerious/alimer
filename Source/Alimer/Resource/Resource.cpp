@@ -20,32 +20,20 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Graphics/Types.h"
 #include "../Resource/Resource.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {
-	class Graphics;
-
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
+	Resource::Resource()
+		: _asyncLoadState(AsyncLoadState::Done)
 	{
-	protected:
-		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
+	}
 
-	public:
-		/// Destructor.
-		virtual ~Shader();
 
-		inline ShaderStage GetStage() const { return _stage; }
-
-	protected:
-		Graphics* _graphics;
-		ShaderStage _stage;
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
-	};
+	void Resource::SetName(const std::string& name)
+	{
+		_name = name;
+		//_nameHash = name;
+	}
 }

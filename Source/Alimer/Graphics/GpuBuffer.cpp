@@ -34,7 +34,7 @@ namespace Alimer
 		_elementSize = elementSize;
 		_size = _elementCount * elementSize;
 
-		assert(bufferUsage != BufferUsage::Undefined);
+		assert(bufferUsage != BufferUsage::Unknown);
 		assert(_size != 0);
 	}
 }

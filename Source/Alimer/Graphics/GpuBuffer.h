@@ -22,21 +22,12 @@
 
 #pragma once
 
-#include "../Graphics/PixelFormat.h"
+#include "../Graphics/Types.h"
 #include <memory>
 
 namespace Alimer
 {
 	class Graphics;
-
-	enum class BufferUsage
-	{
-		Undefined = 0,
-		Vertex = 1 << 0,
-		Index = 1 << 1,
-		Uniform = 1 << 2,
-	};
-	ALIMER_BITMASK(BufferUsage);
 
 	/// Defines a GPU Buffer class.
 	class GpuBuffer

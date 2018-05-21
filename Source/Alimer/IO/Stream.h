@@ -22,30 +22,45 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
-#include "../Resource/Resource.h"
+#include "../PlatformDef.h"
+#include <string>
 
 namespace Alimer
 {
-	class Graphics;
-
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
+	enum class StreamMode
 	{
-	protected:
-		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
+		ReadOnly,
+		WriteOnly,
+		ReadWrite
+	};
 
+	/// Abstract stream for reading and writing.
+	class Stream
+	{
 	public:
-		/// Destructor.
-		virtual ~Shader();
+		/// Constructor.
+		Stream();
 
-		inline ShaderStage GetStage() const { return _stage; }
+		/// Destructor.
+		virtual ~Stream() = default;
+
+		/// Return whether stream supports reading.
+		bool CanRead() const {
+			return _mode == StreamMode::ReadOnly || _mode == StreamMode::ReadWrite;
+		}
+
+		/// Return whether stream supports writing.
+		virtual bool CanWrite() const {
+			return _mode == StreamMode::WriteOnly || _mode == StreamMode::ReadWrite;
+		}
+
+		/// Return whether stream supports seeking.
+		virtual bool CanSeek() const = 0;
 
 	protected:
-		Graphics* _graphics;
-		ShaderStage _stage;
+		StreamMode _mode;
+
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Stream);
 	};
 }

@@ -30,8 +30,10 @@
 #include <vector>
 #include <string>
 #include <atomic>
-#include "Core/Window.h"
-#include "Graphics/Graphics.h"
+#include "../Core/Window.h"
+#include "../IO/FileSystem.h"
+#include "../Resource/ResourceManager.h"
+#include "../Graphics/Graphics.h"
 
 void AlimerMain(const std::vector<std::string>& args);
 
@@ -65,6 +67,7 @@ namespace Alimer
 
 		virtual std::shared_ptr<Window> CreateWindow() = 0;
 
+		inline ResourceManager* GetResources() { return &_resources; }
 		inline Window* GetMainWindow() const { return _window.get(); }
 		inline Graphics* GetGraphics() const { return _graphics.get(); }
 
@@ -81,6 +84,7 @@ namespace Alimer
 		std::atomic<bool> _paused;
 		std::atomic<bool> _headless;
 
+		ResourceManager _resources;
 		std::shared_ptr<Window> _window;
 		std::unique_ptr<Graphics> _graphics;
 

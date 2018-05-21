@@ -22,30 +22,29 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
-#include "../Resource/Resource.h"
+#include "../FileSystem.h"
+#ifndef WIN32_LEAN_AND_MEAN
+#	define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#	define NOMINMAX
+#endif
+
+#include <Windows.h>
 
 namespace Alimer
 {
-	class Graphics;
-
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
+	class OSFileSystem final : public FileSystemProtocol
 	{
-	protected:
-		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
-
 	public:
-		/// Destructor.
-		virtual ~Shader();
+		OSFileSystem(const std::string &basePath);
+		~OSFileSystem();
 
-		inline ShaderStage GetStage() const { return _stage; }
+		bool FileExists(const std::string &path) override;
+		bool DirectoryExists(const std::string &path) override;
+		std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode) override;
 
-	protected:
-		Graphics* _graphics;
-		ShaderStage _stage;
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
+		std::string _basePath;
 	};
 }

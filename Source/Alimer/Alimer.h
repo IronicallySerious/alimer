@@ -29,6 +29,13 @@
 #include <array>
 #include <vector>
 #include <string>
+#include "Debug/Log.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
+#include "Graphics/PixelFormat.h"
+#include "Graphics/GpuBuffer.h"
+#include "Graphics/Texture.h"
+#include "Graphics/Shader.h"
 #include "Graphics/Graphics.h"
+#include "Resource/Resource.h"
+#include "Resource/ResourceManager.h"
