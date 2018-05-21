@@ -26,7 +26,6 @@
 #include "../Resource/ResourceLoader.h"
 #include <string>
 #include <atomic>
-#include <future>
 
 namespace Alimer
 {
@@ -41,16 +40,10 @@ namespace Alimer
 		~ResourceManager();
 
 		ResourcePtr LoadResource(const std::string& assetName);
-		std::future<ResourcePtr> LoadResourceAsync(const std::string& assetName);
 
 		template <class T> std::shared_ptr<T> Load(const std::string& assetName)
 		{
 			return std::static_pointer_cast<T>(LoadResource(assetName));
-		}
-
-		template <class T> std::future<std::shared_ptr<T>> LoadAsync(const std::string& assetName)
-		{
-			return std::async(std::launch::async, &ResourceManager::Load<T>, this, assetName);
 		}
 
 	private:

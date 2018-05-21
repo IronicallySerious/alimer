@@ -61,9 +61,4 @@ namespace Alimer
 		auto b = FileSystem::Get().FileExists(assetName);
 		return nullptr;
 	}
-
-	std::future<ResourcePtr> ResourceManager::LoadResourceAsync(const std::string& assetName)
-	{
-		return std::async(std::launch::async, &ResourceManager::LoadResource, this, assetName);
-	}
 }

@@ -121,15 +121,8 @@ else ()
     set (SCRIPT_EXT .sh)
 endif ()
 
-if (ANDROID)
-    # For Android platform, install to a path based on the chosen Android ABI, e.g. libs/armeabi-v7a
-    set (LIB_SUFFIX s/${ANDROID_NDK_ABI_NAME})
-	set (DEST_ARCHIVE_DIR lib${LIB_SUFFIX})
-else ()
-	set (DEST_ARCHIVE_DIR lib)
-endif ()
-
 set (DEST_BASE_INCLUDE_DIR include)
+set (DEST_ARCHIVE_DIR lib)
 set (DEST_BIN_DIR bin)
 set (DEST_SHARE_DIR share)
 

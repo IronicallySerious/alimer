@@ -25,6 +25,5 @@ using namespace Alimer;
 
 void AlimerMain(const std::vector<std::string>& args)
 {
-	auto b = engine->GetResources()->LoadAsync<Shader>("assets://shaders/test.vert");
-	auto value = b.get();
+	auto shader = engine->GetResources()->Load<Shader>("assets://shaders/test.vert");
 }
