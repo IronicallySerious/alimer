@@ -33,4 +33,14 @@ namespace Alimer
 	CommandBuffer::~CommandBuffer()
 	{
 	}
+
+	void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+	{
+		DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
+	}
+
+	void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+	{
+		DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
+	}
 }

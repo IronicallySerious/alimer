@@ -47,7 +47,13 @@ namespace Alimer
 		virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
 		virtual void EndRenderPass() = 0;
 
+		void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t vertexStart = 0, uint32_t baseInstance = 0);
+		void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1, uint32_t startIndex = 0);
+
 	protected:
+		virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
+		virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
+
 		Graphics* _graphics;
 
 	private:

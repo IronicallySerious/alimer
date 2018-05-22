@@ -105,9 +105,43 @@ namespace Alimer
 		return true;
 	}
 
+	GpuBufferPtr vertexBuffer;
+
 	void Engine::RunMain()
 	{
 		AlimerMain(_args);
+
+		struct Vector3
+		{
+			float x;
+			float y;
+			float z;
+		};
+
+		struct Vector4
+		{
+			float x;
+			float y;
+			float z;
+			float w;
+		};
+
+		struct Vertex
+		{
+			Vector3 position;
+			Vector4 color;
+		};
+
+		const float aspectRatio = static_cast<float>(_window->GetWidth()) / _window->GetHeight();
+
+		Vertex triangleVertices[] =
+		{
+			{ { 0.0f, 0.25f * aspectRatio, 0.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { 0.25f, -0.25f * aspectRatio, 0.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.25f, -0.25f * aspectRatio, 0.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } }
+		};
+
+		vertexBuffer = _graphics->CreateBuffer(BufferUsage::Vertex, 3, sizeof(Vertex), triangleVertices);
 	}
 
 	void Engine::Exit()

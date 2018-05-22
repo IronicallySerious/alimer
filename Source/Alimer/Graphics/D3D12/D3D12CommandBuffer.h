@@ -63,6 +63,10 @@ namespace Alimer
 		void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
 		void EndRenderPass() override;
 
+		void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
+		void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
+		bool PrepareDraw(PrimitiveTopology topology);
+
 	private:
 		D3D12CommandListManager * _manager;
 		ID3D12GraphicsCommandList* _commandList;
@@ -75,5 +79,7 @@ namespace Alimer
 		uint32_t _boundRTVCount;
 		D3D12Resource* _boundRTVResources[MaxColorAttachments];
 		D3D12_CPU_DESCRIPTOR_HANDLE _boundRTV[MaxColorAttachments];
+
+		PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
 	};
 }

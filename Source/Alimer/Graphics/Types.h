@@ -93,6 +93,17 @@ namespace Alimer
 		Count
 	};
 
+	/// Primitive topology.
+	enum class PrimitiveTopology : uint32_t
+	{
+		Points,
+		Lines,
+		LineStrip,
+		Triangles,
+		TriangleStrip,
+		Count
+	};
+
 	enum class LoadAction
 	{
 		DontCare,

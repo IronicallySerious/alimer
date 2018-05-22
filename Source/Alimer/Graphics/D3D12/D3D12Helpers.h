@@ -33,6 +33,7 @@
 using namespace Microsoft::WRL;
 
 #include <vector>
+#include "Graphics/Types.h"
 #include "Graphics/PixelFormat.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
@@ -95,75 +96,99 @@ namespace Alimer
 		D3D12_GPU_VIRTUAL_ADDRESS _gpuVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
 	};
 
-	static inline DXGI_FORMAT Convert(PixelFormat format)
+	namespace d3d12
 	{
-		switch (format)
+		static inline DXGI_FORMAT Convert(PixelFormat format)
 		{
-			case PixelFormat::R8UNorm:
-				return DXGI_FORMAT_R8_UNORM;
-			case PixelFormat::RG8UNorm:
-				return DXGI_FORMAT_R8G8_UNORM;
-			case PixelFormat::RGBA8UNorm:
-				return DXGI_FORMAT_R8G8B8A8_UNORM;
-			case PixelFormat::BGRA8UNorm:
-				return DXGI_FORMAT_B8G8R8A8_UNORM;
+			switch (format)
+			{
+				case PixelFormat::R8UNorm:
+					return DXGI_FORMAT_R8_UNORM;
+				case PixelFormat::RG8UNorm:
+					return DXGI_FORMAT_R8G8_UNORM;
+				case PixelFormat::RGBA8UNorm:
+					return DXGI_FORMAT_R8G8B8A8_UNORM;
+				case PixelFormat::BGRA8UNorm:
+					return DXGI_FORMAT_B8G8R8A8_UNORM;
 
-			case PixelFormat::Undefined:
-			default:
-				return DXGI_FORMAT_UNKNOWN;
+				case PixelFormat::Undefined:
+				default:
+					return DXGI_FORMAT_UNKNOWN;
+			}
 		}
-	}
 
-	static inline D3D12_HEAP_PROPERTIES HeapProperties(
-		D3D12_HEAP_TYPE type,
-		UINT creationNodeMask = 1,
-		UINT nodeMask = 1)
-	{
-		D3D12_HEAP_PROPERTIES heapProps;
-		heapProps.Type = type;
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = creationNodeMask;
-		heapProps.VisibleNodeMask = nodeMask;
-		return heapProps;
-	}
+		static inline D3D12_PRIMITIVE_TOPOLOGY Convert(PrimitiveTopology topology)
+		{
+			switch (topology)
+			{
+				case PrimitiveTopology::Points:
+					return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+				case PrimitiveTopology::Lines:
+					return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+				case PrimitiveTopology::LineStrip:
+					return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
 
-	static inline D3D12_RESOURCE_DESC BufferResourceDesc(
-		const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo,
-		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE)
-	{
-		D3D12_RESOURCE_DESC desc;
-		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		desc.Alignment = resAllocInfo.Alignment;
-		desc.Width = resAllocInfo.SizeInBytes;
-		desc.Height = 1;
-		desc.DepthOrArraySize = 1;
-		desc.MipLevels = 1;
-		desc.Format = DXGI_FORMAT_UNKNOWN;
-		desc.SampleDesc.Count = 1;
-		desc.SampleDesc.Quality = 0;
-		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		desc.Flags = flags;
-		return desc;
-	}
+				case PrimitiveTopology::Triangles:
+					return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+				case PrimitiveTopology::TriangleStrip:
+					return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 
-	static inline D3D12_RESOURCE_DESC BufferResourceDesc(
-		UINT64 width,
-		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE,
-		UINT64 alignment = 0)
-	{
-		D3D12_RESOURCE_DESC desc;
-		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		desc.Alignment = alignment;
-		desc.Width = width;
-		desc.Height = 1;
-		desc.DepthOrArraySize = 1;
-		desc.MipLevels = 1;
-		desc.Format = DXGI_FORMAT_UNKNOWN;
-		desc.SampleDesc.Count = 1;
-		desc.SampleDesc.Quality = 0;
-		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		desc.Flags = flags;
-		return desc;
+				default:
+					return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+			}
+		}
+
+		static inline D3D12_HEAP_PROPERTIES HeapProperties(
+			D3D12_HEAP_TYPE type,
+			UINT creationNodeMask = 1,
+			UINT nodeMask = 1)
+		{
+			D3D12_HEAP_PROPERTIES heapProps;
+			heapProps.Type = type;
+			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+			heapProps.CreationNodeMask = creationNodeMask;
+			heapProps.VisibleNodeMask = nodeMask;
+			return heapProps;
+		}
+
+		static inline D3D12_RESOURCE_DESC BufferResourceDesc(
+			const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo,
+			D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE)
+		{
+			D3D12_RESOURCE_DESC desc;
+			desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+			desc.Alignment = resAllocInfo.Alignment;
+			desc.Width = resAllocInfo.SizeInBytes;
+			desc.Height = 1;
+			desc.DepthOrArraySize = 1;
+			desc.MipLevels = 1;
+			desc.Format = DXGI_FORMAT_UNKNOWN;
+			desc.SampleDesc.Count = 1;
+			desc.SampleDesc.Quality = 0;
+			desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+			desc.Flags = flags;
+			return desc;
+		}
+
+		static inline D3D12_RESOURCE_DESC BufferResourceDesc(
+			UINT64 width,
+			D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE,
+			UINT64 alignment = 0)
+		{
+			D3D12_RESOURCE_DESC desc;
+			desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+			desc.Alignment = alignment;
+			desc.Width = width;
+			desc.Height = 1;
+			desc.DepthOrArraySize = 1;
+			desc.MipLevels = 1;
+			desc.Format = DXGI_FORMAT_UNKNOWN;
+			desc.SampleDesc.Count = 1;
+			desc.SampleDesc.Quality = 0;
+			desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+			desc.Flags = flags;
+			return desc;
+		}
 	}
 }

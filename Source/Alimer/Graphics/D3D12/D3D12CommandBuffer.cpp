@@ -215,4 +215,30 @@ namespace Alimer
 			TransitionResource(_boundRTVResources[i], D3D12_RESOURCE_STATE_COMMON, true);
 		}
 	}
+
+	void D3D12CommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+	{
+		if (!PrepareDraw(topology))
+			return;
+		
+	}
+
+	void D3D12CommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+	{
+		if (!PrepareDraw(topology))
+			return;
+
+		_commandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, 0,  0);
+	}
+
+	bool D3D12CommandBuffer::PrepareDraw(PrimitiveTopology topology)
+	{
+		if (_currentTopology != topology)
+		{
+			_commandList->IASetPrimitiveTopology(d3d12::Convert(topology));
+			_currentTopology = topology;
+		}
+
+		return true;
+	}
 }
