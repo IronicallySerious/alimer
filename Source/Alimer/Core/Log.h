@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../PlatformDef.h"
-#include <cassert>
 
 namespace Alimer
 {
@@ -92,7 +91,7 @@ extern "C" __declspec(dllimport) void __stdcall DebugBreak();
 { \
 	Alimer::log->Log(Alimer::LogLevel::Error, "%s -- %s", __current__func__, __VA_ARGS__); \
 	ALIMER_DEBUG_BREAK(); \
-	assert(0); \
+	ALIMER_ASSERT(0); \
 	std::exit(-1); \
 } while (0)
 

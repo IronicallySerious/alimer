@@ -21,7 +21,7 @@
 //
 
 #include "../IO/Stream.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {

@@ -20,11 +20,10 @@
 // THE SOFTWARE.
 //
 
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
-#include <cassert>
 #include <vector>
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP

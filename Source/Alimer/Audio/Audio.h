@@ -22,44 +22,28 @@
 
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#	define NOMINMAX
-#endif
-
-#include <windows.h>
-#undef CreateWindow
+#include "../PlatformDef.h"
+#include <memory>
 #include <string>
-
-#include "../Log.h"
-
-namespace Alimer
-{
-	inline void ThrowIfFailed(HRESULT hr)
-	{
-		if (FAILED(hr))
-		{
-			ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
-		}
-	}
-}
-
-#include "../Engine.h"
+#include <atomic>
 
 namespace Alimer
 {
-	class EngineWindows final : public Engine
+	/// Audio system class.
+	class Audio
 	{
+	protected:
+		/// Constructor.
+		Audio();
+
 	public:
-		EngineWindows(LPWSTR commandLine);
-		~EngineWindows() override;
+		/// Destructor.
+		virtual ~Audio();
 
-		int Run() override;
-		std::shared_ptr<Window> CreateWindow() override;
-		Input* CreateInput() override;
-		Audio* CreateAudio() override;
+	private:
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Audio);
 	};
+
+	// Direct access to audio module.
+	extern Audio* audio;
 }

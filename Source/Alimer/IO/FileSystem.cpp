@@ -23,7 +23,7 @@
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
 #include "../Util/Util.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
 #include "../IO/Windows/FileSystemWindows.h"

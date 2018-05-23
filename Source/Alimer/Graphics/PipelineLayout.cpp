@@ -20,46 +20,13 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#	define NOMINMAX
-#endif
-
-#include <windows.h>
-#undef CreateWindow
-#include <string>
-
-#include "../Log.h"
+#include "Graphics/PipelineLayout.h"
+#include "Graphics/Graphics.h"
 
 namespace Alimer
 {
-	inline void ThrowIfFailed(HRESULT hr)
+	PipelineLayout::PipelineLayout(Graphics* graphics)
+		: _graphics(graphics)
 	{
-		if (FAILED(hr))
-		{
-			ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
-		}
 	}
-}
-
-#include "../Engine.h"
-
-namespace Alimer
-{
-	class EngineWindows final : public Engine
-	{
-	public:
-		EngineWindows(LPWSTR commandLine);
-		~EngineWindows() override;
-
-		int Run() override;
-		std::shared_ptr<Window> CreateWindow() override;
-		Input* CreateInput() override;
-		Audio* CreateAudio() override;
-	};
 }

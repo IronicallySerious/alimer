@@ -22,44 +22,27 @@
 
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#	define NOMINMAX
-#endif
-
-#include <windows.h>
-#undef CreateWindow
-#include <string>
-
-#include "../Log.h"
+#include "../Graphics/Types.h"
 
 namespace Alimer
 {
-	inline void ThrowIfFailed(HRESULT hr)
-	{
-		if (FAILED(hr))
-		{
-			ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
-		}
-	}
-}
+	class Graphics;
 
-#include "../Engine.h"
-
-namespace Alimer
-{
-	class EngineWindows final : public Engine
+	/// Defines a PipelineLayout class.
+	class PipelineLayout 
 	{
+	protected:
+		/// Constructor.
+		PipelineLayout(Graphics* graphics);
+
 	public:
-		EngineWindows(LPWSTR commandLine);
-		~EngineWindows() override;
+		/// Destructor.
+		virtual ~PipelineLayout() = default;
 
-		int Run() override;
-		std::shared_ptr<Window> CreateWindow() override;
-		Input* CreateInput() override;
-		Audio* CreateAudio() override;
+	protected:
+		Graphics* _graphics;
+
+	private:
+		DISALLOW_COPY_MOVE_AND_ASSIGN(PipelineLayout);
 	};
 }

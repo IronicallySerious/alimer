@@ -21,7 +21,7 @@
 //
 
 #include "Graphics/Graphics.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 #if ALIMER_D3D12
 #include "Graphics/D3D12/D3D12Graphics.h"

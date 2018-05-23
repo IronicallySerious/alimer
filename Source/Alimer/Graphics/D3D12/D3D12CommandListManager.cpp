@@ -22,7 +22,8 @@
 
 #include "D3D12CommandListManager.h"
 #include "D3D12Graphics.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
+#include "../../Core/Windows/EngineWindows.h"
 
 namespace Alimer
 {
@@ -182,7 +183,7 @@ namespace Alimer
 		// The max() is to protect against an unlikely race condition that could cause the last
 		// completed fence value to regress.
 		if (fenceValue > _lastCompletedFenceValue)
-			_lastCompletedFenceValue = max(_lastCompletedFenceValue, _d3dFence->GetCompletedValue());
+			_lastCompletedFenceValue = std::max(_lastCompletedFenceValue, _d3dFence->GetCompletedValue());
 
 		return fenceValue <= _lastCompletedFenceValue;
 	}

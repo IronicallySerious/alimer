@@ -33,38 +33,14 @@
 using namespace Microsoft::WRL;
 
 #include <vector>
-#include "Graphics/Types.h"
-#include "Graphics/PixelFormat.h"
+#include "../Types.h"
+#include "../PixelFormat.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
 
 namespace Alimer
 {
-	inline std::string HrToString(HRESULT hr)
-	{
-		char s_str[64] = {};
-		sprintf_s(s_str, "HRESULT of 0x%08X", static_cast<UINT>(hr));
-		return std::string(s_str);
-	}
-
-	class HrException : public std::runtime_error
-	{
-	public:
-		HrException(HRESULT hr) : std::runtime_error(HrToString(hr)), m_hr(hr) {}
-		HRESULT Error() const { return m_hr; }
-	private:
-		const HRESULT m_hr;
-	};
-
-	inline void ThrowIfFailed(HRESULT hr)
-	{
-		if (FAILED(hr))
-		{
-			throw HrException(hr);
-		}
-	}
-
 	inline void D3D12SetObjectName(ID3D12Object* object, _In_z_  LPCWSTR name)
 	{
 #if defined(ALIMER_DEV)

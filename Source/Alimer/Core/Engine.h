@@ -33,6 +33,8 @@
 #include "../Core/Window.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceManager.h"
+#include "../Input/Input.h"
+#include "../Audio/Audio.h"
 #include "../Graphics/Graphics.h"
 
 void AlimerMain(const std::vector<std::string>& args);
@@ -70,12 +72,18 @@ namespace Alimer
 		inline ResourceManager* GetResources() { return &_resources; }
 		inline Window* GetMainWindow() const { return _window.get(); }
 		inline Graphics* GetGraphics() const { return _graphics.get(); }
+		inline Input* GetInput() const { return _input.get(); }
+		inline Audio* GetAudio() const { return _audio.get(); }
 
 	protected:
 		virtual bool Initialize();
 		virtual void RunMain();
+
 		/// Render after frame update.
 		void Render();
+
+		virtual Input* CreateInput() = 0;
+		virtual Audio* CreateAudio() = 0;
 
 		static bool SetCurrentThreadName(const std::string& name);
 
@@ -87,6 +95,8 @@ namespace Alimer
 		ResourceManager _resources;
 		std::shared_ptr<Window> _window;
 		std::unique_ptr<Graphics> _graphics;
+		std::unique_ptr<Input> _input;
+		std::unique_ptr<Audio> _audio;
 
 		GraphicsDeviceType _graphicsDeviceType{ GraphicsDeviceType::Default };
 

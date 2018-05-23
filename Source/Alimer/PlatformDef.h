@@ -181,7 +181,7 @@
 /**
 * Force inline macro
 */
-#if !defined(ALIMER_FORCE_INLINE)
+#ifndef ALIMER_FORCE_INLINE
 #	if defined(__clang___)
 #		if __has_attribute(always_inline)
 #			define ALIMER_FORCE_INLINE __attribute__((always_inline)) __inline__
@@ -195,6 +195,16 @@
 #	else
 #		define ALIMER_FORCE_INLINE inline
 #	endif
+#endif
+
+#ifndef ALIMER_ASSERT
+#	ifdef _DEBUG
+#	include <cassert>
+#	define ALIMER_ASSERT(expression) assert(expression)
+#	else
+#	define ALIMER_ASSERT(expression)
+#	endif
+
 #endif
 
 #if defined (__GNUC__)

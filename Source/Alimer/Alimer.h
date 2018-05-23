@@ -29,7 +29,7 @@
 #include <array>
 #include <vector>
 #include <string>
-#include "Debug/Log.h"
+#include "Core/Log.h"
 #include "Core/Engine.h"
 #include "Core/Window.h"
 #include "Graphics/PixelFormat.h"

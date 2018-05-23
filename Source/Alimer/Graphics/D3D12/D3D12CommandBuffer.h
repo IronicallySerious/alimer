@@ -65,9 +65,13 @@ namespace Alimer
 
 		void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
 		void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
+
+	private:
+		void FlushGraphicsPipelineState();
 		bool PrepareDraw(PrimitiveTopology topology);
 
 	private:
+		ID3D12Device * _d3dDevice;
 		D3D12CommandListManager * _manager;
 		ID3D12GraphicsCommandList* _commandList;
 		ID3D12CommandAllocator* _currentAllocator;
@@ -80,6 +84,10 @@ namespace Alimer
 		D3D12Resource* _boundRTVResources[MaxColorAttachments];
 		D3D12_CPU_DESCRIPTOR_HANDLE _boundRTV[MaxColorAttachments];
 
+		ID3D12PipelineState* _currentPipeline = nullptr;
 		PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
+
+		ComPtr<ID3D12PipelineState> _testPipeline;
+		ComPtr<ID3D12RootSignature> _testRootSignature;
 	};
 }

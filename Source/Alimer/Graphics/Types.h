@@ -27,6 +27,9 @@
 
 namespace Alimer
 {
+	static constexpr uint32_t MaxDescriptorSets = 4u;
+	static constexpr uint32_t MaxBindings = 16u;
+	static constexpr uint32_t MaxVertexBufferBindings = 4u;
 	static constexpr uint32_t MaxColorAttachments = 8u;
 
 	/// Enum describing the Graphics backend type.
@@ -102,6 +105,13 @@ namespace Alimer
 		Triangles,
 		TriangleStrip,
 		Count
+	};
+
+	/// VertexInputRate
+	enum class VertexInputRate
+	{
+		Vertex,
+		Instance
 	};
 
 	enum class LoadAction

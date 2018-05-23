@@ -20,46 +20,59 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#	define NOMINMAX
-#endif
-
-#include <windows.h>
-#undef CreateWindow
-#include <string>
-
-#include "../Log.h"
+#include "InputWindows.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {
-	inline void ThrowIfFailed(HRESULT hr)
+	InputWindows::InputWindows()
 	{
-		if (FAILED(hr))
+		for (uint32_t i = 0; i < static_cast<unsigned>(CursorType::Count); ++i)
 		{
-			ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
+			switch (static_cast<CursorType>(i))
+			{
+				case CursorType::Arrow:
+					_cursors[i] = LoadCursorW(nullptr, IDC_ARROW);
+					break;
+
+				case CursorType::Cross:
+					_cursors[i] = LoadCursorW(nullptr, IDC_CROSS);
+					break;
+
+				case CursorType::Hand:
+					_cursors[i] = LoadCursorW(nullptr, IDC_HAND);
+					break;
+			}
+		}
+
+		_cursor = _cursors[static_cast<unsigned>(CursorType::Arrow)];
+	}
+
+	InputWindows::~InputWindows()
+	{
+	}
+
+	bool InputWindows::IsCursorVisible() const
+	{
+		return _cursorVisible;
+	}
+
+	void InputWindows::SetCursorVisible(bool visible)
+	{
+		_cursorVisible = visible;
+		UpdateCursor();
+	}
+
+	void InputWindows::UpdateCursor()
+	{
+		if (_cursorVisible)
+		{
+			while (::ShowCursor(TRUE) < 0);
+			::SetCursor(_cursor);
+		}
+		else
+		{
+			while (::ShowCursor(FALSE) >= 0);
 		}
 	}
-}
-
-#include "../Engine.h"
-
-namespace Alimer
-{
-	class EngineWindows final : public Engine
-	{
-	public:
-		EngineWindows(LPWSTR commandLine);
-		~EngineWindows() override;
-
-		int Run() override;
-		std::shared_ptr<Window> CreateWindow() override;
-		Input* CreateInput() override;
-		Audio* CreateAudio() override;
-	};
 }

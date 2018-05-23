@@ -22,7 +22,7 @@
 
 #include "D3D12GpuBuffer.h"
 #include "D3D12Graphics.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {
@@ -36,14 +36,13 @@ namespace Alimer
 		D3D12_HEAP_PROPERTIES heapProps = d3d12::HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
 		D3D12_RESOURCE_DESC resourceDesc = d3d12::BufferResourceDesc(_size);
 
-		ThrowIfFailed(
-			graphics->GetD3DDevice()->CreateCommittedResource(
+		HRESULT hr =  graphics->GetD3DDevice()->CreateCommittedResource(
 				&heapProps,
 				D3D12_HEAP_FLAG_NONE,
 				&resourceDesc,
 				_usageState,
 				nullptr,
-				IID_PPV_ARGS(&_resource))
+				IID_PPV_ARGS(&_resource)
 		);
 
 		if (initialData)
@@ -61,8 +60,8 @@ namespace Alimer
 
 			UINT8* pDataBegin;
 			D3D12_RANGE readRange = {};
-			ThrowIfFailed(_resource->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)));
-			memcpy(pDataBegin, initialData, sizeof(_size));
+			hr = _resource->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin));
+			memcpy(pDataBegin, initialData, _size);
 			_resource->Unmap(0, nullptr);
 		}
 

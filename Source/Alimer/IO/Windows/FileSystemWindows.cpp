@@ -23,7 +23,7 @@
 #include "FileSystemWindows.h"
 #include "../../IO/Path.h"
 #include "../../Util/Util.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 using namespace std;
 
 inline wstring ToWide(const string& str)

@@ -22,44 +22,36 @@
 
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
+#include "../Audio.h"
+#include <atomic>
+
+#if defined(_MSC_VER)
+#	pragma warning(push)
+#	pragma warning(disable:4091)   // 'typedef ': ignored on left of '' when no variable is declared
 #endif
-
-#ifndef NOMINMAX
-#	define NOMINMAX
+#	include <audioclient.h>
+#	include <audiopolicy.h>
+#	include <mmdeviceapi.h>
+#if defined(_MSC_VER)
+#	pragma warning(pop)
 #endif
-
-#include <windows.h>
-#undef CreateWindow
-#include <string>
-
-#include "../Log.h"
 
 namespace Alimer
 {
-	inline void ThrowIfFailed(HRESULT hr)
-	{
-		if (FAILED(hr))
-		{
-			ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
-		}
-	}
-}
-
-#include "../Engine.h"
-
-namespace Alimer
-{
-	class EngineWindows final : public Engine
+	/// WASAPI Audio module implementation class.
+	class AudioWASAPI final : public Audio
 	{
 	public:
-		EngineWindows(LPWSTR commandLine);
-		~EngineWindows() override;
+		/// Constructor.
+		AudioWASAPI();
 
-		int Run() override;
-		std::shared_ptr<Window> CreateWindow() override;
-		Input* CreateInput() override;
-		Audio* CreateAudio() override;
+		/// Destructor.
+		~AudioWASAPI() override;
+
+	private:
+		IMMDeviceEnumerator* _deviceEnumerator;
+		IMMNotificationClient* _notificationClient;
+		IAudioClient* _renderAudioClient;
+		IAudioRenderClient* _audioRender;
 	};
 }

@@ -70,7 +70,7 @@ namespace Alimer
 		std::shared_ptr<D3D12CommandBuffer> RetrieveCommandBuffer();
 		void RecycleCommandBuffer(const std::shared_ptr<D3D12CommandBuffer>& cmd);
 
-		static constexpr UINT FrameCount = 2;
+		static constexpr uint32_t FrameCount = 2u;
 		bool _useWarpDevice{ false };
 
 		ComPtr<IDXGIFactory4> _factory;

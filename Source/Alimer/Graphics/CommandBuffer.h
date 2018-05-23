@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Graphics/Types.h"
+#include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
 #include <memory>
 
@@ -47,14 +48,49 @@ namespace Alimer
 		virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
 		virtual void EndRenderPass() = 0;
 
-		void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t vertexStart = 0, uint32_t baseInstance = 0);
-		void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1, uint32_t startIndex = 0);
+		virtual void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+
+		void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
+		void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
 
 	protected:
+		virtual void ResetState();
 		virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
 		virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
 
 		Graphics* _graphics;
+
+		enum CommandBufferDirtyBits
+		{
+			COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT = 1 << 0,
+		};
+		using CommandBufferDirtyFlags = uint32_t;
+		void SetDirty(CommandBufferDirtyFlags flags)
+		{
+			_dirty |= flags;
+		}
+
+		CommandBufferDirtyFlags GetAndClear(CommandBufferDirtyFlags flags)
+		{
+			auto mask = _dirty & flags;
+			_dirty &= ~flags;
+			return mask;
+		}
+
+
+		struct VertexBindingState
+		{
+			GpuBuffer* buffers[MaxVertexBufferBindings];
+			uint64_t offsets[MaxVertexBufferBindings];
+			uint64_t strides[MaxVertexBufferBindings];
+			VertexInputRate inputRates[MaxVertexBufferBindings];
+		};
+
+		VertexBindingState _vbo = {};
+
+		CommandBufferDirtyFlags _dirty = ~0u;
+		uint32_t _dirtyVbos = 0;
+		uint32_t _activeVbos = 0;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);

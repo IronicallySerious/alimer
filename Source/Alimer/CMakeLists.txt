@@ -43,15 +43,18 @@ macro (define_engine_source_files)
 endmacro()
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . Core Util IO Math Graphics)
-define_engine_source_files (Debug Resource)
+define_engine_source_files (NORECURSE . Core Util IO Math Graphics Input Audio)
+define_engine_source_files (Resource)
 
 if (PLATFORM_WINDOWS)
 	define_engine_source_files(Core/Windows)
 	define_engine_source_files(IO/Windows)
+	define_engine_source_files(Input/Windows)
+	define_engine_source_files(Audio/WASAPI)
 elseif (PLATFORM_UWP)
 	define_engine_source_files(Application/UWP)
 	define_engine_source_files(IO/Windows)
+	define_engine_source_files(Audio/WASAPI)
 endif ()
 
 if (ALIMER_D3D12)
@@ -88,10 +91,10 @@ endif (ALIMER_VULKAN)
 
 # Add OS-specific library dependencies
 if (PLATFORM_WINDOWS)
-	target_compile_definitions (libAlimer PRIVATE -D_UNICODE)
+	target_compile_definitions (libAlimer PRIVATE -D_UNICODE -DNOMINMAX)
 elseif (PLATFORM_UWP)
 	set_target_properties(libAlimer PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${PLATFORM_UWP_VERSION_MIN}")
-	target_compile_definitions (libAlimer PRIVATE -D_UNICODE)
+	target_compile_definitions (libAlimer PRIVATE -D_UNICODE -DNOMINMAX)
 	target_link_libraries (libAlimer mincore d3d12 d3d11 dxgi dxguid)
 else ()
 	target_link_libraries (libAlimer pthread)

@@ -22,7 +22,7 @@
 
 #include "D3D12Shader.h"
 #include "D3D12Graphics.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {

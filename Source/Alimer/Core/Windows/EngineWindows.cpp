@@ -22,7 +22,9 @@
 
 #include "EngineWindows.h"
 #include "WindowWindows.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
+#include "../../Input/Windows/InputWindows.h"
+#include "../../Audio/WASAPI/AudioWASAPI.h"
 #include <shellapi.h>
 #include <Ole2.h>
 #include <oleidl.h>
@@ -175,6 +177,16 @@ namespace Alimer
 	std::shared_ptr<Window> EngineWindows::CreateWindow()
 	{
 		return std::make_shared<WindowWindows>(alimerHinstance);
+	}
+
+	Input* EngineWindows::CreateInput()
+	{
+		return new InputWindows();
+	}
+
+	Audio* EngineWindows::CreateAudio()
+	{
+		return new AudioWASAPI();
 	}
 
 	bool Engine::SetCurrentThreadName(const std::string& name)

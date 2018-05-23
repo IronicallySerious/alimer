@@ -22,6 +22,8 @@
 
 #include "WindowWindows.h"
 #include "EngineWindows.h"
+#include "../../Input/Windows/InputWindows.h"
+#include "../../Core/Log.h"
 
 // Dropfile support.
 #include <shellapi.h>
@@ -205,7 +207,7 @@ namespace Alimer
 
 			if (!::RegisterClassExW(&wc))
 			{
-				//ALIMER_LOGERROR("[Win32] - Failed to register window class.");
+				ALIMER_LOGERROR("[Win32] - Failed to register window class.");
 				return;
 			}
 
@@ -213,7 +215,7 @@ namespace Alimer
 			HRESULT result = OleInitialize(nullptr);
 			if (result != S_OK && result != S_FALSE)
 			{
-				//ALIMER_LOGERROR("[Win32] - OleInitialize failed.");
+				ALIMER_LOGERROR("[Win32] - OleInitialize failed.");
 			}
 		}
 
@@ -241,7 +243,7 @@ namespace Alimer
 		if (!_title.empty()
 			&& MultiByteToWideChar(CP_UTF8, 0, _title.c_str(), -1, titleBuffer, 256) == 0)
 		{
-			//ALIMER_LOGERROR("[Win32] - Failed to convert UTF-8 to wide char");
+			ALIMER_LOGERROR("[Win32] - Failed to convert UTF-8 to wide char");
 			return;
 		}
 
@@ -259,7 +261,7 @@ namespace Alimer
 
 		if (!_hwnd)
 		{
-			//ALIMER_LOGERROR("[Win32] - Failed to create window");
+			ALIMER_LOGERROR("[Win32] - Failed to create window");
 			return;
 		}
 
@@ -289,7 +291,7 @@ namespace Alimer
 
 		if (RegisterTouchWindow(_hwnd, 0) == FALSE)
 		{
-			//ALIMER_LOGWARN("[Win32] - Failed to enable touch for window");
+			ALIMER_LOGWARN("[Win32] - Failed to enable touch for window");
 		}
 
 		// Enable dropping files.
@@ -297,7 +299,7 @@ namespace Alimer
 
 		if (RegisterDragDrop(_hwnd, _dropTarget) != S_OK)
 		{
-			//ALIMER_LOGWARN("[Win32] - Failed to register drag and drop for window");
+			ALIMER_LOGWARN("[Win32] - Failed to register drag and drop for window");
 		}
 	}
 
@@ -371,8 +373,7 @@ namespace Alimer
 			{
 				if (LOWORD(lParam) == HTCLIENT)
 				{
-					::SetCursor(_cursor);
-					//static_cast<Win32Input*>(Input::GetInstance())->UpdateCursor();
+					static_cast<InputWindows*>(input)->UpdateCursor();
 					return TRUE;
 				}
 				break;

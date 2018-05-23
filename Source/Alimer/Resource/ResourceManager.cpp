@@ -24,7 +24,7 @@
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
 #include "../Util/Util.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 using namespace std;
 
 namespace Alimer

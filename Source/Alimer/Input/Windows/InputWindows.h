@@ -22,44 +22,36 @@
 
 #pragma once
 
+#include "../Input.h"
 #ifndef WIN32_LEAN_AND_MEAN
 #	define WIN32_LEAN_AND_MEAN
 #endif
-
 #ifndef NOMINMAX
 #	define NOMINMAX
 #endif
 
-#include <windows.h>
-#undef CreateWindow
-#include <string>
-
-#include "../Log.h"
+#include <Windows.h>
 
 namespace Alimer
 {
-	inline void ThrowIfFailed(HRESULT hr)
-	{
-		if (FAILED(hr))
-		{
-			ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
-		}
-	}
-}
-
-#include "../Engine.h"
-
-namespace Alimer
-{
-	class EngineWindows final : public Engine
+	/// Win32 Input system implementation.
+	class InputWindows final : public Input
 	{
 	public:
-		EngineWindows(LPWSTR commandLine);
-		~EngineWindows() override;
+		/// Constructor.
+		InputWindows();
 
-		int Run() override;
-		std::shared_ptr<Window> CreateWindow() override;
-		Input* CreateInput() override;
-		Audio* CreateAudio() override;
+		/// Destructor.
+		~InputWindows() override;
+
+		bool IsCursorVisible() const override;
+		void SetCursorVisible(bool visible) override;
+
+		void UpdateCursor();
+
+	private:
+		bool _cursorVisible = true;
+		HCURSOR _cursors[static_cast<unsigned>(CursorType::Count)] = {};
+		HCURSOR _cursor = nullptr;
 	};
 }

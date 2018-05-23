@@ -20,46 +20,31 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#	define NOMINMAX
-#endif
-
-#include <windows.h>
-#undef CreateWindow
-#include <string>
-
-#include "../Log.h"
+#include "../Input/Input.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
-	inline void ThrowIfFailed(HRESULT hr)
+	Alimer::Input* input = nullptr;
+
+	Input::Input()
 	{
-		if (FAILED(hr))
-		{
-			ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
-		}
+		input = this;
 	}
-}
 
-#include "../Engine.h"
 
-namespace Alimer
-{
-	class EngineWindows final : public Engine
+	Input::~Input()
 	{
-	public:
-		EngineWindows(LPWSTR commandLine);
-		~EngineWindows() override;
+		input = nullptr;
+	}
 
-		int Run() override;
-		std::shared_ptr<Window> CreateWindow() override;
-		Input* CreateInput() override;
-		Audio* CreateAudio() override;
-	};
+	bool Input::IsCursorVisible() const
+	{
+		return true;
+	}
+
+	void Input::SetCursorVisible(bool visible)
+	{
+		// Do nothing by default
+	}
 }

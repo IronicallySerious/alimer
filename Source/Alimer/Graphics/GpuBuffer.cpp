@@ -22,7 +22,7 @@
 
 #include "Graphics/GpuBuffer.h"
 #include "Graphics/Graphics.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -34,7 +34,7 @@ namespace Alimer
 		_elementSize = elementSize;
 		_size = _elementCount * elementSize;
 
-		assert(bufferUsage != BufferUsage::Unknown);
-		assert(_size != 0);
+		ALIMER_ASSERT(bufferUsage != BufferUsage::Unknown);
+		ALIMER_ASSERT(_size != 0);
 	}
 }

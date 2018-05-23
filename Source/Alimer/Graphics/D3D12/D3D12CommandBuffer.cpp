@@ -23,13 +23,24 @@
 #include "D3D12CommandBuffer.h"
 #include "D3D12CommandListManager.h"
 #include "D3D12Texture.h"
+#include "D3D12GpuBuffer.h"
 #include "D3D12Graphics.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
+#include "../../Core/Windows/EngineWindows.h"
+#include "../../Util/Util.h"
+#include "../../Util/HashMap.h"
+#include "Shaders/Compiled/Triangle_VSMain.inc"
+#include "Shaders/Compiled/Triangle_PSMain.inc"
 
 namespace Alimer
 {
+#if !ALIMER_PLATFORM_UWP
+	extern PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignature;
+#endif
+
 	D3D12CommandBuffer::D3D12CommandBuffer(D3D12Graphics* graphics)
 		: CommandBuffer(graphics)
+		, _d3dDevice(graphics->GetD3DDevice())
 		, _manager(graphics->GetCommandListManager())
 		, _commandList(nullptr)
 		, _currentAllocator(nullptr)
@@ -49,18 +60,22 @@ namespace Alimer
 
 	void D3D12CommandBuffer::Reset()
 	{
-		assert(_commandList != nullptr && _currentAllocator == nullptr);
+		ALIMER_ASSERT(_commandList != nullptr && _currentAllocator == nullptr);
 		_currentAllocator = _manager->GetQueue(_type).RequestAllocator();
 		_commandList->Reset(_currentAllocator, nullptr);
 
 		_numBarriersToFlush = 0;
+		_currentPipeline = nullptr;
+		_currentTopology = PrimitiveTopology::Count;
+		// Reset cached state as well.
+		CommandBuffer::ResetState();
 	}
 
 	uint64_t D3D12CommandBuffer::Commit(bool waitForCompletion)
 	{
 		FlushResourceBarriers();
 
-		assert(_currentAllocator != nullptr);
+		ALIMER_ASSERT(_currentAllocator != nullptr);
 
 		// Execute the command list.
 		auto& queue = _manager->GetQueue(_type);
@@ -86,13 +101,13 @@ namespace Alimer
 
 		if (_type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
 		{
-			assert((oldState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == oldState);
-			assert((newState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == newState);
+			ALIMER_ASSERT((oldState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == oldState);
+			ALIMER_ASSERT((newState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == newState);
 		}
 
 		if (oldState != newState)
 		{
-			assert(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
+			ALIMER_ASSERT(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
 			D3D12_RESOURCE_BARRIER& barrierDesc = _resourceBarrierBuffer[_numBarriersToFlush++];
 
 			barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -205,6 +220,22 @@ namespace Alimer
 			}
 		}
 
+		D3D12_VIEWPORT viewport;
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = 800;
+		viewport.Height = 600;
+		viewport.MinDepth = D3D12_MIN_DEPTH;
+		viewport.MaxDepth = D3D12_MAX_DEPTH;
+		D3D12_RECT scissorRect;
+		scissorRect.left = 0;
+		scissorRect.top = 0;
+		scissorRect.right = 800;
+		scissorRect.bottom = 600;
+
+		_commandList->RSSetViewports(1, &viewport);
+		_commandList->RSSetScissorRects(1, &scissorRect);
+
 		_commandList->OMSetRenderTargets(_boundRTVCount, _boundRTV, FALSE, nullptr);
 	}
 
@@ -220,7 +251,8 @@ namespace Alimer
 	{
 		if (!PrepareDraw(topology))
 			return;
-		
+
+		_commandList->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
 	}
 
 	void D3D12CommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
@@ -228,16 +260,158 @@ namespace Alimer
 		if (!PrepareDraw(topology))
 			return;
 
-		_commandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, 0,  0);
+		_commandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, 0, 0);
+	}
+
+	void D3D12CommandBuffer::FlushGraphicsPipelineState()
+	{
+		using namespace Util;
+		Hasher h;
+		_activeVbos = 0;
+
+		// TODO:
+		_activeVbos |= 1u << 0;
+		//auto &layout = current_layout->get_resource_layout();
+		//ForEachBit(layout.attribute_mask, [&](uint32_t bit) {
+		//	h.u32(bit);
+			//_activeVbos |= 1u << attribs[bit].binding;
+		//	h.u32(attribs[bit].binding);
+		//	h.u32(attribs[bit].format);
+		//	h.u32(attribs[bit].offset);
+		//});
+
+		ForEachBit(_activeVbos, [&](uint32_t bit) {
+			h.u32(static_cast<uint32_t>(_vbo.inputRates[bit]));
+			h.u32(_vbo.strides[bit]);
+		});
+
+		// Create an empty root signature.
+		if (!_testRootSignature)
+		{
+			D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+			rootSignatureDesc.NumParameters = 0;
+			rootSignatureDesc.pParameters = nullptr;
+			rootSignatureDesc.NumStaticSamplers = 0;
+			rootSignatureDesc.pStaticSamplers = nullptr;
+			rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+
+			ComPtr<ID3DBlob> signature;
+			ComPtr<ID3DBlob> error;
+			ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
+			ThrowIfFailed(
+				_d3dDevice->CreateRootSignature(
+					0,
+					signature->GetBufferPointer(),
+					signature->GetBufferSize(),
+					IID_PPV_ARGS(&_testRootSignature))
+			);
+		}
+
+		if (!_testPipeline)
+		{
+			// Describe and create the graphics pipeline state object (PSO).
+			D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+			{
+				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+			};
+
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+			psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+			psoDesc.pRootSignature = _testRootSignature.Get();
+			psoDesc.VS.pShaderBytecode = Triangle_VSMain;
+			psoDesc.VS.BytecodeLength = sizeof(Triangle_VSMain);
+
+			psoDesc.PS.pShaderBytecode = Triangle_PSMain;
+			psoDesc.PS.BytecodeLength = sizeof(Triangle_PSMain);
+			psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+			psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+			psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
+			psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+			psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+			psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+			psoDesc.RasterizerState.DepthClipEnable = TRUE;
+			psoDesc.RasterizerState.MultisampleEnable = FALSE;
+			psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+			psoDesc.RasterizerState.ForcedSampleCount = 0;
+			psoDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+			// BlendState
+			psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
+			psoDesc.BlendState.IndependentBlendEnable = FALSE;
+			const D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc =
+			{
+				FALSE,FALSE,
+				D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
+				D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
+				D3D12_LOGIC_OP_NOOP,
+				D3D12_COLOR_WRITE_ENABLE_ALL,
+			};
+			for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+			{
+				psoDesc.BlendState.RenderTarget[i] = defaultRenderTargetBlendDesc;
+			}
+
+			// DepthStencilState
+			psoDesc.DepthStencilState.DepthEnable = FALSE;
+			psoDesc.DepthStencilState.StencilEnable = FALSE;
+			psoDesc.SampleMask = UINT_MAX;
+			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+			psoDesc.NumRenderTargets = 1;
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+			psoDesc.SampleDesc.Count = 1;
+			ThrowIfFailed(_d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&_testPipeline)));
+		}
+
+		_currentPipeline = _testPipeline.Get();
 	}
 
 	bool D3D12CommandBuffer::PrepareDraw(PrimitiveTopology topology)
 	{
+		using namespace Util;
+
+		// We've invalidated pipeline state, update the VkPipeline.
+		if (GetAndClear(
+			/*COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT
+			| COMMAND_BUFFER_DIRTY_PIPELINE_BIT
+			| */COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT))
+		{
+			ID3D12PipelineState* oldPipelineState = _currentPipeline;
+			FlushGraphicsPipelineState();
+			if (oldPipelineState != _currentPipeline)
+			{
+				_commandList->SetGraphicsRootSignature(_testRootSignature.Get());
+				_commandList->SetPipelineState(_currentPipeline);
+				//SetDirty(COMMAND_BUFFER_DYNAMIC_BITS);
+			}
+		}
+
 		if (_currentTopology != topology)
 		{
 			_commandList->IASetPrimitiveTopology(d3d12::Convert(topology));
 			_currentTopology = topology;
 		}
+
+		uint32_t updateVboMask = _dirtyVbos & _activeVbos;
+		ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
+		{
+			static D3D12_VERTEX_BUFFER_VIEW views[MaxVertexBufferBindings] = {};
+
+			for (unsigned i = binding; i < binding + count; i++)
+			{
+#ifdef ALIMER_DEV
+				assert(_vbo.buffers[i] != nullptr);
+#endif
+
+				views[i].BufferLocation = static_cast<D3D12GpuBuffer*>(_vbo.buffers[i])->GetGpuVirtualAddress();
+				views[i].StrideInBytes = _vbo.strides[i];
+				views[i].SizeInBytes = _vbo.buffers[i]->GetSize();
+			}
+
+			_commandList->IASetVertexBuffers(binding, count, views);
+		});
+		_dirtyVbos &= ~updateVboMask;
 
 		return true;
 	}

@@ -21,7 +21,7 @@
 //
 
 #include "../Core/Engine.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -61,6 +61,8 @@ namespace Alimer
 		//_input->Update();
 	}
 
+	GpuBufferPtr vertexBuffer;
+
 	void Engine::Render()
 	{
 		if (_headless)
@@ -72,6 +74,8 @@ namespace Alimer
 		passDescriptor.colorAttachments[0].texture = frameTexture.get();
 		passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
 		commandBuffer->BeginRenderPass(passDescriptor);
+		commandBuffer->SetVertexBuffer(vertexBuffer.get(), 0);
+		commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
 		commandBuffer->EndRenderPass();
 		commandBuffer->Commit();
 
@@ -97,6 +101,12 @@ namespace Alimer
 			}
 		}
 
+		// Create per platform Input module.
+		_input.reset(CreateInput());
+
+		// Create per platform Audio module.
+		_audio.reset(CreateAudio());
+
 		ALIMER_LOGINFO("Engine initialized with success.");
 		_running = true;
 
@@ -105,7 +115,7 @@ namespace Alimer
 		return true;
 	}
 
-	GpuBufferPtr vertexBuffer;
+	
 
 	void Engine::RunMain()
 	{

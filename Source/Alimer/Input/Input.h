@@ -22,44 +22,42 @@
 
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#	define NOMINMAX
-#endif
-
-#include <windows.h>
-#undef CreateWindow
+#include "../PlatformDef.h"
+#include <memory>
 #include <string>
-
-#include "../Log.h"
-
-namespace Alimer
-{
-	inline void ThrowIfFailed(HRESULT hr)
-	{
-		if (FAILED(hr))
-		{
-			ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
-		}
-	}
-}
-
-#include "../Engine.h"
+#include <atomic>
 
 namespace Alimer
 {
-	class EngineWindows final : public Engine
+	enum class CursorType : uint32_t
 	{
-	public:
-		EngineWindows(LPWSTR commandLine);
-		~EngineWindows() override;
-
-		int Run() override;
-		std::shared_ptr<Window> CreateWindow() override;
-		Input* CreateInput() override;
-		Audio* CreateAudio() override;
+		Arrow = 0,
+		Cross,
+		Hand,
+		Count
 	};
+
+	/// Input system class.
+	class Input
+	{
+	protected:
+		/// Constructor.
+		Input();
+
+	public:
+		/// Destructor.
+		virtual ~Input();
+
+		/// Is cursor visible.
+		virtual bool IsCursorVisible() const;
+
+		/// Set cursor visibility.
+		virtual void SetCursorVisible(bool visible);
+
+	private:
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Input);
+	};
+
+	// Direct access to Input module.
+	extern Input* input;
 }

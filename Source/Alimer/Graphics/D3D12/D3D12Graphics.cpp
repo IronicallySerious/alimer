@@ -25,7 +25,8 @@
 #include "D3D12Texture.h"
 #include "D3D12CommandBuffer.h"
 #include "D3D12GpuBuffer.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
+#include "../../Core/Windows/EngineWindows.h"
 #include "../../Core/Windows/WindowWindows.h"
 
 namespace Alimer
@@ -308,7 +309,7 @@ namespace Alimer
 		swapChainDesc.BufferCount = FrameCount;
 		swapChainDesc.Width = window->GetWidth();
 		swapChainDesc.Height = window->GetHeight();
-		swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.SampleDesc.Count = 1;
