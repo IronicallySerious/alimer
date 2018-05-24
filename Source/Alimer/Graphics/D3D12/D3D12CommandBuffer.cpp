@@ -25,19 +25,16 @@
 #include "D3D12Texture.h"
 #include "D3D12GpuBuffer.h"
 #include "D3D12Graphics.h"
+#include "D3D12PipelineState.h"
+#include "D3D12PipelineLayout.h"
 #include "../../Core/Log.h"
 #include "../../Core/Windows/EngineWindows.h"
 #include "../../Util/Util.h"
 #include "../../Util/HashMap.h"
-#include "Shaders/Compiled/Triangle_VSMain.inc"
-#include "Shaders/Compiled/Triangle_PSMain.inc"
+
 
 namespace Alimer
 {
-#if !ALIMER_PLATFORM_UWP
-	extern PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignature;
-#endif
-
 	D3D12CommandBuffer::D3D12CommandBuffer(D3D12Graphics* graphics)
 		: CommandBuffer(graphics)
 		, _d3dDevice(graphics->GetD3DDevice())
@@ -247,6 +244,18 @@ namespace Alimer
 		}
 	}
 
+	void D3D12CommandBuffer::SetPipeline(const PipelineStatePtr& pipeline)
+	{
+		auto d3dPipeline = std::static_pointer_cast<D3D12PipelineState>(pipeline);
+		auto d3dPipelineLayout = std::static_pointer_cast<D3D12PipelineLayout>(pipeline->GetLayout());
+
+		if (pipeline->IsGraphics())
+		{
+			_commandList->SetGraphicsRootSignature(d3dPipelineLayout->GetD3DRootSignature());
+			_commandList->SetPipelineState(d3dPipeline->GetD3DPipelineState());
+		}
+	}
+
 	void D3D12CommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
 	{
 		if (!PrepareDraw(topology))
@@ -284,87 +293,6 @@ namespace Alimer
 			h.u32(static_cast<uint32_t>(_vbo.inputRates[bit]));
 			h.u32(_vbo.strides[bit]);
 		});
-
-		// Create an empty root signature.
-		if (!_testRootSignature)
-		{
-			D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-			rootSignatureDesc.NumParameters = 0;
-			rootSignatureDesc.pParameters = nullptr;
-			rootSignatureDesc.NumStaticSamplers = 0;
-			rootSignatureDesc.pStaticSamplers = nullptr;
-			rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-
-			ComPtr<ID3DBlob> signature;
-			ComPtr<ID3DBlob> error;
-			ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
-			ThrowIfFailed(
-				_d3dDevice->CreateRootSignature(
-					0,
-					signature->GetBufferPointer(),
-					signature->GetBufferSize(),
-					IID_PPV_ARGS(&_testRootSignature))
-			);
-		}
-
-		if (!_testPipeline)
-		{
-			// Describe and create the graphics pipeline state object (PSO).
-			D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-			{
-				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-			};
-
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-			psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-			psoDesc.pRootSignature = _testRootSignature.Get();
-			psoDesc.VS.pShaderBytecode = Triangle_VSMain;
-			psoDesc.VS.BytecodeLength = sizeof(Triangle_VSMain);
-
-			psoDesc.PS.pShaderBytecode = Triangle_PSMain;
-			psoDesc.PS.BytecodeLength = sizeof(Triangle_PSMain);
-			psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-			psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
-			psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
-			psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-			psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-			psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-			psoDesc.RasterizerState.DepthClipEnable = TRUE;
-			psoDesc.RasterizerState.MultisampleEnable = FALSE;
-			psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
-			psoDesc.RasterizerState.ForcedSampleCount = 0;
-			psoDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-
-			// BlendState
-			psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
-			psoDesc.BlendState.IndependentBlendEnable = FALSE;
-			const D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc =
-			{
-				FALSE,FALSE,
-				D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
-				D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
-				D3D12_LOGIC_OP_NOOP,
-				D3D12_COLOR_WRITE_ENABLE_ALL,
-			};
-			for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-			{
-				psoDesc.BlendState.RenderTarget[i] = defaultRenderTargetBlendDesc;
-			}
-
-			// DepthStencilState
-			psoDesc.DepthStencilState.DepthEnable = FALSE;
-			psoDesc.DepthStencilState.StencilEnable = FALSE;
-			psoDesc.SampleMask = UINT_MAX;
-			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			psoDesc.NumRenderTargets = 1;
-			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-			psoDesc.SampleDesc.Count = 1;
-			ThrowIfFailed(_d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&_testPipeline)));
-		}
-
-		_currentPipeline = _testPipeline.Get();
 	}
 
 	bool D3D12CommandBuffer::PrepareDraw(PrimitiveTopology topology)
@@ -381,8 +309,8 @@ namespace Alimer
 			FlushGraphicsPipelineState();
 			if (oldPipelineState != _currentPipeline)
 			{
-				_commandList->SetGraphicsRootSignature(_testRootSignature.Get());
-				_commandList->SetPipelineState(_currentPipeline);
+				//_commandList->SetGraphicsRootSignature(_testRootSignature.Get());
+				//_commandList->SetPipelineState(_currentPipeline);
 				//SetDirty(COMMAND_BUFFER_DYNAMIC_BITS);
 			}
 		}

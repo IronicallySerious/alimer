@@ -54,6 +54,8 @@ namespace Alimer
 		CommandBufferPtr CreateCommandBuffer() override;
 
 		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
+		PipelineLayoutPtr CreatePipelineLayout() override;
+		PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
 
 		inline IDXGIFactory4* GetDXGIFactory() const { return _factory.Get(); }
 		inline ID3D12Device* GetD3DDevice() const { return _d3dDevice.Get(); }

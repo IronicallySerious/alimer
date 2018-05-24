@@ -20,31 +20,46 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Graphics/Types.h"
+#include "D3D12PipelineLayout.h"
+#include "D3D12Graphics.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {
-	class Graphics;
+#if !ALIMER_PLATFORM_UWP
+	extern PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignature;
+#endif
 
-	/// Defines a PipelineLayout class.
-	class PipelineLayout 
+	D3D12PipelineLayout::D3D12PipelineLayout(D3D12Graphics* graphics)
+		: PipelineLayout(graphics)
 	{
-	protected:
-		/// Constructor.
-		PipelineLayout(Graphics* graphics);
+		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		rootSignatureDesc.NumParameters = 0;
+		rootSignatureDesc.pParameters = nullptr;
+		rootSignatureDesc.NumStaticSamplers = 0;
+		rootSignatureDesc.pStaticSamplers = nullptr;
+		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-	public:
-		/// Destructor.
-		virtual ~PipelineLayout() = default;
 
-	protected:
-		Graphics* _graphics;
+		ComPtr<ID3DBlob> signature;
+		ComPtr<ID3DBlob> error;
+		if (FAILED(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error)))
+		{
+			ALIMER_LOGERROR("D3D12SerializeRootSignature failed");
+			return;
+		}
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(PipelineLayout);
-	};
+		if (FAILED(
+			graphics->GetD3DDevice()->CreateRootSignature(
+				0,
+				signature->GetBufferPointer(),
+				signature->GetBufferSize(),
+				IID_PPV_ARGS(&_rootSignature))))
+		{
+			ALIMER_LOGERROR("CreateRootSignature failed");
+			return;
+		}
+	}
 
-	using PipelineLayoutPtr = std::shared_ptr<PipelineLayout>;
+	D3D12PipelineLayout::~D3D12PipelineLayout() = default;
 }

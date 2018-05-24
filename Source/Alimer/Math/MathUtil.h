@@ -22,50 +22,25 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
-#include "../Graphics/PixelFormat.h"
-#include "../Resource/Resource.h"
+#include "../PlatformDef.h"
+#include <string>
 
 namespace Alimer
 {
-	class Graphics;
 
-	/// Defines a Texture class.
-	class Texture : public Resource
+	/**
+	* Defines a math utility class.
+	*/
+	class MathUtil
 	{
-	protected:
-		/// Constructor.
-		Texture(Graphics* graphics);
-
 	public:
-		/// Destructor.
-		virtual ~Texture();
 
-		inline TextureType GetTextureType() const { return _textureType; }
-		inline PixelFormat GetFormat() const { return _format; }
-		inline uint32_t GetWidth() const { return _width; }
-		inline uint32_t GetHeight() const { return _height; }
-		inline uint32_t GetDepth() const { return _depth; }
-		inline uint32_t GetMipLevels() const { return _mipLevels; }
-		inline uint32_t GetArrayLayers() const { return _arrayLayers; }
-		inline SampleCount GetSamples() const { return _samples; }
-		inline TextureUsage GetUsage() const { return _usage; }
-
-	protected:
-		Graphics* _graphics;
-		TextureType _textureType;
-		PixelFormat _format;
-		uint32_t _width;
-		uint32_t _height;
-		uint32_t _depth;
-		uint32_t _mipLevels;
-		uint32_t _arrayLayers;
-		SampleCount _samples;
-		TextureUsage _usage;
+		/**
+		* Linear interpolation function.
+		*/
+		static float Lerp(float from, float to, float amount);
 
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Texture);
+		MathUtil() = delete;
 	};
-
-	using TexturePtr = std::shared_ptr<Texture>;
 }

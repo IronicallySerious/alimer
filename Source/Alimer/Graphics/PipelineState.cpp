@@ -20,31 +20,15 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Graphics/Types.h"
+#include "Graphics/PipelineState.h"
+#include "Graphics/Graphics.h"
 
 namespace Alimer
 {
-	class Graphics;
-
-	/// Defines a PipelineLayout class.
-	class PipelineLayout 
+	PipelineState::PipelineState(Graphics* graphics, bool isGraphics, const PipelineLayoutPtr& layout)
+		: _graphics(graphics)
+		, _isGraphics(isGraphics)
+		, _layout(layout)
 	{
-	protected:
-		/// Constructor.
-		PipelineLayout(Graphics* graphics);
-
-	public:
-		/// Destructor.
-		virtual ~PipelineLayout() = default;
-
-	protected:
-		Graphics* _graphics;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(PipelineLayout);
-	};
-
-	using PipelineLayoutPtr = std::shared_ptr<PipelineLayout>;
+	}
 }

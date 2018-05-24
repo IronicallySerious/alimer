@@ -25,6 +25,7 @@
 #include "../Graphics/Types.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
+#include "../Graphics/PipelineState.h"
 #include <memory>
 
 namespace Alimer
@@ -49,6 +50,8 @@ namespace Alimer
 		virtual void EndRenderPass() = 0;
 
 		virtual void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+
+		virtual void SetPipeline(const PipelineStatePtr& pipeline) = 0;
 
 		void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
 		void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);

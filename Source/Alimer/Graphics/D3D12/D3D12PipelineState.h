@@ -22,50 +22,26 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
-#include "../Graphics/PixelFormat.h"
-#include "../Resource/Resource.h"
+#include "Graphics/PipelineState.h"
+#include "D3D12Helpers.h"
 
 namespace Alimer
 {
-	class Graphics;
+	class D3D12Graphics;
 
-	/// Defines a Texture class.
-	class Texture : public Resource
+	/// D3D12 PipelineState implementation.
+	class D3D12PipelineState final : public PipelineState
 	{
-	protected:
-		/// Constructor.
-		Texture(Graphics* graphics);
-
 	public:
+		/// Constructor.
+		D3D12PipelineState(D3D12Graphics* graphics, const RenderPipelineDescriptor& descriptor);
+
 		/// Destructor.
-		virtual ~Texture();
+		~D3D12PipelineState() override;
 
-		inline TextureType GetTextureType() const { return _textureType; }
-		inline PixelFormat GetFormat() const { return _format; }
-		inline uint32_t GetWidth() const { return _width; }
-		inline uint32_t GetHeight() const { return _height; }
-		inline uint32_t GetDepth() const { return _depth; }
-		inline uint32_t GetMipLevels() const { return _mipLevels; }
-		inline uint32_t GetArrayLayers() const { return _arrayLayers; }
-		inline SampleCount GetSamples() const { return _samples; }
-		inline TextureUsage GetUsage() const { return _usage; }
-
-	protected:
-		Graphics* _graphics;
-		TextureType _textureType;
-		PixelFormat _format;
-		uint32_t _width;
-		uint32_t _height;
-		uint32_t _depth;
-		uint32_t _mipLevels;
-		uint32_t _arrayLayers;
-		SampleCount _samples;
-		TextureUsage _usage;
-
+		ID3D12PipelineState* GetD3DPipelineState() const { return _pipelineState.Get(); }
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Texture);
-	};
 
-	using TexturePtr = std::shared_ptr<Texture>;
+		ComPtr<ID3D12PipelineState> _pipelineState;
+	};
 }

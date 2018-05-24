@@ -48,4 +48,6 @@ namespace Alimer
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
 	};
+
+	using ShaderPtr = std::shared_ptr<Shader>;
 }

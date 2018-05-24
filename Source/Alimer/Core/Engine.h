@@ -38,6 +38,8 @@
 #include "../Graphics/Graphics.h"
 
 void AlimerMain(const std::vector<std::string>& args);
+void AlimerShutdown();
+void AlimerRender();
 
 namespace Alimer
 {

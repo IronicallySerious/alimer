@@ -27,6 +27,7 @@
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Shader.h"
+#include "../Graphics/PipelineState.h"
 #include "../Graphics/CommandBuffer.h"
 #include <vector>
 #include <atomic>
@@ -63,6 +64,13 @@ namespace Alimer
 
 		// Buffer
 		virtual GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr) = 0;
+
+		// PipelineLayout
+		virtual PipelineLayoutPtr CreatePipelineLayout() = 0;
+
+		// PipelineState
+		virtual PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
+
 	protected:
 		std::shared_ptr<Window> _window;
 		std::vector<std::shared_ptr<Texture>> _textures;
@@ -70,4 +78,7 @@ namespace Alimer
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);
 	};
+
+	// Direct access to Graphics module.
+	extern Graphics* graphics;
 }

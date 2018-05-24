@@ -37,6 +37,7 @@ namespace Alimer
 
 	Engine::~Engine()
 	{
+		AlimerShutdown();
 		_paused = true;
 		_running = false;
 		engine = nullptr;
@@ -61,24 +62,12 @@ namespace Alimer
 		//_input->Update();
 	}
 
-	GpuBufferPtr vertexBuffer;
-
 	void Engine::Render()
 	{
 		if (_headless)
 			return;
 
-		auto frameTexture = _graphics->AcquireNextImage();
-		auto commandBuffer = _graphics->CreateCommandBuffer();
-		RenderPassDescriptor passDescriptor;
-		passDescriptor.colorAttachments[0].texture = frameTexture.get();
-		passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
-		commandBuffer->BeginRenderPass(passDescriptor);
-		commandBuffer->SetVertexBuffer(vertexBuffer.get(), 0);
-		commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
-		commandBuffer->EndRenderPass();
-		commandBuffer->Commit();
-
+		AlimerRender();
 		//OnRender();
 		_graphics->Present();
 	}
@@ -115,43 +104,9 @@ namespace Alimer
 		return true;
 	}
 
-	
-
 	void Engine::RunMain()
 	{
 		AlimerMain(_args);
-
-		struct Vector3
-		{
-			float x;
-			float y;
-			float z;
-		};
-
-		struct Vector4
-		{
-			float x;
-			float y;
-			float z;
-			float w;
-		};
-
-		struct Vertex
-		{
-			Vector3 position;
-			Vector4 color;
-		};
-
-		const float aspectRatio = static_cast<float>(_window->GetWidth()) / _window->GetHeight();
-
-		Vertex triangleVertices[] =
-		{
-			{ { 0.0f, 0.25f * aspectRatio, 0.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
-			{ { 0.25f, -0.25f * aspectRatio, 0.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.25f, -0.25f * aspectRatio, 0.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } }
-		};
-
-		vertexBuffer = _graphics->CreateBuffer(BufferUsage::Vertex, 3, sizeof(Vertex), triangleVertices);
 	}
 
 	void Engine::Exit()

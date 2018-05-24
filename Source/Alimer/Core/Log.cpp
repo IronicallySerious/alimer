@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <cstdarg>
 #include <vector>
+#include <ctime>
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
 #	ifndef WIN32_LEAN_AND_MEAN
@@ -32,6 +33,7 @@
 #	endif
 
 #include <windows.h>
+#include <mmsystem.h>
 #endif
 
 
@@ -46,6 +48,30 @@ namespace Alimer
 		"CRITICAL",
 		"OFF"
 	};
+
+#if defined(ALIMER_DEV) && !ALIMER_PLATFORM_UWP 
+	WORD SetConsoleAttribs(HANDLE consoleHandle, WORD attribs)
+	{
+		CONSOLE_SCREEN_BUFFER_INFO orig_buffer_info;
+		GetConsoleScreenBufferInfo(consoleHandle, &orig_buffer_info);
+		WORD back_color = orig_buffer_info.wAttributes;
+		// retrieve the current background color
+		back_color &= static_cast<WORD>(~(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY));
+		// keep the background color unchanged
+		SetConsoleTextAttribute(consoleHandle, attribs | back_color);
+		return orig_buffer_info.wAttributes; // return orig attribs
+	}
+#endif
+
+	std::string GetTimeStamp()
+	{
+		char dateTime[20];
+		time_t sysTime;
+		time(&sysTime);
+		tm* timeInfo = localtime(&sysTime);
+		strftime(dateTime, sizeof(dateTime), "%Y-%m-%d %H:%M:%S", timeInfo);
+		return dateTime;
+	}
 
 	static void LogOutput(LogLevel level, const char* message)
 	{
@@ -80,7 +106,71 @@ namespace Alimer
 		if (handle)
 		{
 			DWORD bytesWritten;
-			WriteConsoleW(handle, szBuffer.data(), static_cast<DWORD>(wcslen(szBuffer.data())), &bytesWritten, nullptr);
+
+			std::string timeStamp = GetTimeStamp();
+			timeStamp += " [";
+
+			WriteConsoleA(handle,
+				timeStamp.c_str(),
+				static_cast<DWORD>(timeStamp.length()),
+				&bytesWritten,
+				nullptr);
+
+			const WORD BOLD = FOREGROUND_INTENSITY;
+			const WORD RED = FOREGROUND_RED;
+			const WORD GREEN = FOREGROUND_GREEN;
+			const WORD CYAN = FOREGROUND_GREEN | FOREGROUND_BLUE;
+			const WORD WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+			const WORD YELLOW = FOREGROUND_RED | FOREGROUND_GREEN;
+
+			DWORD attribs = 0;
+			switch (level)
+			{
+				case LogLevel::Trace:
+					attribs = WHITE;
+					break;
+
+				case LogLevel::Debug:
+					// Cyan 
+					attribs = CYAN;
+					break;
+
+				case LogLevel::Info:
+					attribs = GREEN;
+					break;
+
+				case LogLevel::Warn:
+					attribs = YELLOW | BOLD;
+					break;
+
+				case LogLevel::Error:
+					attribs = RED | BOLD;
+					break;
+
+				case LogLevel::Critical:
+					attribs = BACKGROUND_RED | WHITE | BOLD; // white bold on red background
+					break;
+			}
+
+			const char* levelMessage = LogLevelPrefix[static_cast<unsigned>(level)];
+
+			DWORD origAttribs = SetConsoleAttribs(handle, attribs);
+			WriteConsoleA(handle,
+				levelMessage,
+				static_cast<DWORD>(strlen(levelMessage)),
+				&bytesWritten,
+				nullptr);
+			::SetConsoleTextAttribute(handle, origAttribs); // Reset to original colors
+
+			std::string printMessage = "] ";
+			printMessage += message;
+			printMessage += "\r\n";
+
+			WriteConsoleA(handle,
+				printMessage.data(),
+				static_cast<DWORD>(printMessage.size()),
+				&bytesWritten,
+				nullptr);
 		}
 #endif 
 #endif

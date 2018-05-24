@@ -20,31 +20,13 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Graphics/Types.h"
+#include "../Math/MathUtil.h"
+#include <cstdio>
 
 namespace Alimer
 {
-	class Graphics;
-
-	/// Defines a PipelineLayout class.
-	class PipelineLayout 
+	float MathUtil::Lerp(float from, float to, float amount)
 	{
-	protected:
-		/// Constructor.
-		PipelineLayout(Graphics* graphics);
-
-	public:
-		/// Destructor.
-		virtual ~PipelineLayout() = default;
-
-	protected:
-		Graphics* _graphics;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(PipelineLayout);
-	};
-
-	using PipelineLayoutPtr = std::shared_ptr<PipelineLayout>;
+		return from + (to - from) * amount;
+	}
 }

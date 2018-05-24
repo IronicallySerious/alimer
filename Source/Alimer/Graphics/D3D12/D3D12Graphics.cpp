@@ -25,6 +25,8 @@
 #include "D3D12Texture.h"
 #include "D3D12CommandBuffer.h"
 #include "D3D12GpuBuffer.h"
+#include "D3D12PipelineLayout.h"
+#include "D3D12PipelineState.h"
 #include "../../Core/Log.h"
 #include "../../Core/Windows/EngineWindows.h"
 #include "../../Core/Windows/WindowWindows.h"
@@ -374,6 +376,16 @@ namespace Alimer
 	GpuBufferPtr D3D12Graphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
 	{
 		return std::make_shared<D3D12GpuBuffer>(this, usage, elementCount, elementSize, initialData);
+	}
+
+	PipelineLayoutPtr D3D12Graphics::CreatePipelineLayout()
+	{
+		return std::make_shared<D3D12PipelineLayout>(this);
+	}
+
+	PipelineStatePtr D3D12Graphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
+	{
+		return std::make_shared<D3D12PipelineState>(this, descriptor);
 	}
 
 	std::shared_ptr<D3D12CommandBuffer> D3D12Graphics::RetrieveCommandBuffer()

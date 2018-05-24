@@ -28,7 +28,8 @@
 namespace Alimer
 {
 	static constexpr uint32_t MaxDescriptorSets = 4u;
-	static constexpr uint32_t MaxBindings = 16u;
+	static constexpr uint32_t MaxBindingsPerSet = 16u;
+	static constexpr uint32_t MaxVertexAttributes = 16u;
 	static constexpr uint32_t MaxVertexBufferBindings = 4u;
 	static constexpr uint32_t MaxColorAttachments = 8u;
 
@@ -125,6 +126,31 @@ namespace Alimer
 	{
 		DontCare,
 		Store
+	};
+
+	enum class VertexFormat
+	{
+		Invalid,
+		Float,
+		Float2,
+		Float3,
+		Float4,
+		Byte4,
+		Byte4N,
+		UByte4,
+		UByte4N,
+		Short2,
+		Short2N,
+		Short4,
+		Short4N,
+		Count
+	};
+
+	struct VertexElement
+	{
+		uint32_t binding;
+		VertexFormat format;
+		uint32_t offset;
 	};
 
 	class Texture;

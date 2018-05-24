@@ -63,6 +63,8 @@ namespace Alimer
 		void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
 		void EndRenderPass() override;
 
+		void SetPipeline(const PipelineStatePtr& pipeline) override;
+
 		void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
 		void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
@@ -86,8 +88,5 @@ namespace Alimer
 
 		ID3D12PipelineState* _currentPipeline = nullptr;
 		PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
-
-		ComPtr<ID3D12PipelineState> _testPipeline;
-		ComPtr<ID3D12RootSignature> _testRootSignature;
 	};
 }
