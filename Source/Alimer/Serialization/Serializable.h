@@ -22,35 +22,30 @@
 
 #pragma once
 
-#include <new>
+#include "../PlatformDef.h"
 #include <memory>
 #include <string>
-#include <cstring>
-#include <array>
-#include <vector>
-#include <string>
 
-// Core
-#include "Core/Log.h"
-#include "Core/Engine.h"
-#include "Core/Window.h"
+namespace Alimer
+{
+	class Serializer;
 
-// Math
-#include "Math/MathUtil.h"
-#include "Math/Color.h"
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Quaternion.h"
-#include "Math/Matrix4x4.h"
+	/// Base class that supports serialization.
+	class Serializable
+	{
+	protected:
+		/// Constructor.
+		Serializable();
 
-// Graphics
-#include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
+	public:
+		/// Destructor.
+		virtual ~Serializable();
 
-// Resource
-#include "Resource/Resource.h"
-#include "Resource/ResourceManager.h"
+		/// Serialize. 
+		virtual void Serialize(Serializer& serializer) = 0;
+	protected:
+
+	private:
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Serializable);
+	};
+}

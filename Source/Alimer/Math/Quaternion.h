@@ -22,70 +22,69 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
-#include <string>
+#include "../Math/Vector3.h"
+#include "../Math/Vector4.h"
 
 namespace Alimer
 {
+	class Matrix4x4;
 
 	/**
-	* Defines 4-element floating point RGBA color.
+	* Defines 4-element floating point quaternion.
 	*/
-	class Color
+	class Quaternion
 	{
 	public:
 		/**
-		* Red value.
+		* The x-coordinate.
 		*/
-		float r;
+		float x;
 
 		/**
-		* Green value.
+		* The y-coordinate.
 		*/
-		float g;
+		float y;
 
 		/**
-		* Blue value.
+		* The z-coordinate.
 		*/
-		float b;
+		float z;
 
 		/**
-		* Alpha value.
+		* The w-coordinate.
 		*/
-		float a;
+		float w;
 
-		/// Construct with default values (opaque black.)
-		Color() noexcept : r(0.0f), g(0.0f), b(0.0f), a(0.0f)
+		/// Construct an identity quaternion
+		Quaternion() noexcept : x(0.0f), y(0.0f), z(0.0f), w(1.0f)
 		{
 		}
 
-		constexpr Color(float r_, float g_, float b_)
-			: r(r_), g(g_), b(b_), a(1.0f) {}
-		constexpr Color(float r_, float g_, float b_, float a_)
-			: r(r_), g(g_), b(b_), a(a_) {}
+		constexpr Quaternion(float x_, float y_, float z_, float w_)
+			: x(x_), y(y_), z(z_), w(w_) {}
 
-		Color(const Color&) = default;
-		Color& operator=(const Color&) = default;
+		Quaternion(const Vector3& v, float scalar) : x(v.x), y(v.y), z(v.z), w(scalar) {}
+		explicit Quaternion(const Vector4& v) : x(v.x), y(v.y), z(v.z), w(v.w) {}
+		explicit Quaternion(_In_reads_(4) const float *pArray) : x(pArray[0]), y(pArray[1]), z(pArray[2]), w(pArray[3]) {}
 
-		Color(Color&&) = default;
-		Color& operator=(Color&&) = default;
+		Quaternion(const Quaternion&) = default;
+		Quaternion& operator=(const Quaternion&) = default;
 
-		/// Operators
-		operator const float*() const { return reinterpret_cast<const float*>(this); }
+		Quaternion(Quaternion&&) = default;
+		Quaternion& operator=(Quaternion&&) = default;
 
 		/// Test for equality with another color without epsilon.
-		bool operator ==(const Color& rhs) const { return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a; }
+		bool operator ==(const Quaternion& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
 
 		/// Test for inequality with another color without epsilon.
-		bool operator !=(const Color& rhs) const { return r != rhs.r || g != rhs.g || b != rhs.b || a != rhs.a; }
+		bool operator !=(const Quaternion& rhs) const { return x != rhs.x || y != rhs.y || z != rhs.z || w != rhs.w; }
 
 		/// Return as string.
 		std::string ToString() const;
 
-		/// Black color.
-		static const Color Black;
+		/// Sets the x, y, z and w to the specified values.
+		void Set(float x_, float y_, float z_, float w_);
 
-		/// White color.
-		static const Color White;
+		static const Quaternion Identity;
 	};
 }

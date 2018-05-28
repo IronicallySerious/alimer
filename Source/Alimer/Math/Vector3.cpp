@@ -20,37 +20,35 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#include "../Math/Vector3.h"
+#include <cstdio>
 
-#include <new>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <array>
-#include <vector>
-#include <string>
+namespace Alimer
+{
+	const Vector3 Vector3::Zero = { 0.f, 0.f, 0.f };
+	const Vector3 Vector3::One = { 1.f, 1.f, 1.f };
+	const Vector3 Vector3::UnitX = { 1.f, 0.f, 0.f };
+	const Vector3 Vector3::UnitY = { 0.f, 1.f, 0.f };
+	const Vector3 Vector3::UnitZ = { 0.f, 0.f, 1.f };
+	const Vector3 Vector3::Up = { 0.f, 1.f, 0.f };
+	const Vector3 Vector3::Down = { 0.f, -1.f, 0.f };
+	const Vector3 Vector3::Right = { 1.f, 0.f, 0.f };
+	const Vector3 Vector3::Left = { -1.f, 0.f, 0.f };
+	const Vector3 Vector3::Forward = { 0.f, 0.f, -1.f };
+	const Vector3 Vector3::Backward = { 0.f, 0.f, 1.f };
 
-// Core
-#include "Core/Log.h"
-#include "Core/Engine.h"
-#include "Core/Window.h"
 
-// Math
-#include "Math/MathUtil.h"
-#include "Math/Color.h"
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Quaternion.h"
-#include "Math/Matrix4x4.h"
+	std::string Vector3::ToString() const
+	{
+		char tempBuffer[128];
+		sprintf(tempBuffer, "%g %g %g", x, y, z);
+		return std::string(tempBuffer);
+	}
 
-// Graphics
-#include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
-
-// Resource
-#include "Resource/Resource.h"
-#include "Resource/ResourceManager.h"
+	void Vector3::Set(float x_, float y_, float z_)
+	{
+		x = x_;
+		y = y_;
+		z = z_;
+	}
+}

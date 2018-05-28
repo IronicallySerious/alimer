@@ -30,6 +30,7 @@
 #include "../Graphics/PipelineState.h"
 #include "../Graphics/CommandBuffer.h"
 #include <vector>
+#include <set>
 #include <atomic>
 
 namespace Alimer
@@ -39,14 +40,17 @@ namespace Alimer
 	{
 	protected:
 		/// Constructor.
-		Graphics();
+		Graphics(GraphicsDeviceType deviceType);
 
 	public:
 		/// Destructor.
 		virtual ~Graphics();
 
+		/// Get supported graphics backends.
+		static std::set<GraphicsDeviceType> GetAvailableBackends();
+
 		/// Factory method for Graphics creation.
-		static Graphics* Create(GraphicsDeviceType deviceType);
+		static Graphics* Create(GraphicsDeviceType deviceType, bool validation = false, const std::string& applicationName = "Alimer");
 
 		virtual bool Initialize(std::shared_ptr<Window> window);
 
@@ -71,7 +75,13 @@ namespace Alimer
 		// PipelineState
 		virtual PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
 
+		inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
+
 	protected:
+		virtual void Finalize();
+
+	protected:
+		GraphicsDeviceType _deviceType;
 		std::shared_ptr<Window> _window;
 		std::vector<std::shared_ptr<Texture>> _textures;
 

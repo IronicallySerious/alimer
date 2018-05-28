@@ -40,6 +40,9 @@ namespace Alimer
 		friend class D3D12CommandBuffer;
 
 	public:
+		/// Is backend supported?
+		static bool IsSupported();
+
 		/// Constructor.
 		D3D12Graphics();
 

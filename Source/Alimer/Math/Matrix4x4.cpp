@@ -20,37 +20,51 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#include "../Math/Matrix4x4.h"
+#include <cstdio>
 
-#include <new>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <array>
-#include <vector>
-#include <string>
+namespace Alimer
+{
+	const Matrix4x4 Matrix4x4::Identity = {
+		1.f, 0.f, 0.f, 0.f,
+		0.f, 1.f, 0.f, 0.f,
+		0.f, 0.f, 1.f, 0.f,
+		0.f, 0.f, 0.f, 1.f
+	};
 
-// Core
-#include "Core/Log.h"
-#include "Core/Engine.h"
-#include "Core/Window.h"
+	Matrix4x4::Matrix4x4(_In_reads_(16) const float *pArray)
+	{
+		assert(pArray != nullptr);
 
-// Math
-#include "Math/MathUtil.h"
-#include "Math/Color.h"
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Quaternion.h"
-#include "Math/Matrix4x4.h"
+		m[0][0] = pArray[0];
+		m[0][1] = pArray[1];
+		m[0][2] = pArray[2];
+		m[0][3] = pArray[3];
 
-// Graphics
-#include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
+		m[1][0] = pArray[4];
+		m[1][1] = pArray[5];
+		m[1][2] = pArray[6];
+		m[1][3] = pArray[7];
 
-// Resource
-#include "Resource/Resource.h"
-#include "Resource/ResourceManager.h"
+		m[2][0] = pArray[8];
+		m[2][1] = pArray[9];
+		m[2][2] = pArray[10];
+		m[2][3] = pArray[11];
+
+		m[3][0] = pArray[12];
+		m[3][1] = pArray[13];
+		m[3][2] = pArray[14];
+		m[3][3] = pArray[15];
+	}
+
+	std::string Matrix4x4::ToString() const
+	{
+		char tempBuffer[256];
+		sprintf(tempBuffer, "%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g",
+			m11, m12, m13, m14,
+			m21, m22, m23, m24,
+			m31, m32, m33, m34,
+			m41, m42, m43, m44);
+		return std::string(tempBuffer);
+	}
+}

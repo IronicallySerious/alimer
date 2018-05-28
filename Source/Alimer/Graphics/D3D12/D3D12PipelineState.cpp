@@ -97,6 +97,18 @@ namespace Alimer
 			psoDesc.VS.BytecodeLength = sizeof(Triangle_VSMain);
 		}
 
+		/*ComPtr<ID3D11ShaderReflection> reflection = nullptr;
+		HRESULT hr = D3DReflect(
+			Triangle_VSMain,
+			sizeof(Triangle_VSMain),
+			IID_PPV_ARGS(&reflection));
+		if (FAILED(hr) || !reflection)
+		{
+			D3D11_SHADER_DESC desc;
+			reflection->GetDesc(&desc);
+			printf("");
+		}*/
+
 		psoDesc.PS.pShaderBytecode = Triangle_PSMain;
 		psoDesc.PS.BytecodeLength = sizeof(Triangle_PSMain);
 

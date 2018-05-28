@@ -27,65 +27,65 @@
 
 namespace Alimer
 {
+	class Matrix4x4;
 
 	/**
-	* Defines 4-element floating point RGBA color.
+	* Defines 4-element floating point vector.
 	*/
-	class Color
+	class Vector4
 	{
 	public:
 		/**
-		* Red value.
+		* The x-coordinate.
 		*/
-		float r;
+		float x;
 
 		/**
-		* Green value.
+		* The y-coordinate.
 		*/
-		float g;
+		float y;
 
 		/**
-		* Blue value.
+		* The z-coordinate.
 		*/
-		float b;
+		float z;
 
 		/**
-		* Alpha value.
+		* The w-coordinate.
 		*/
-		float a;
+		float w;
 
-		/// Construct with default values (opaque black.)
-		Color() noexcept : r(0.0f), g(0.0f), b(0.0f), a(0.0f)
-		{
-		}
+		/// Construct with all values set to zero.
+		Vector4() noexcept : x(0.0f), y(0.0f), z(0.0f), w(0.0f) { }
 
-		constexpr Color(float r_, float g_, float b_)
-			: r(r_), g(g_), b(b_), a(1.0f) {}
-		constexpr Color(float r_, float g_, float b_, float a_)
-			: r(r_), g(g_), b(b_), a(a_) {}
+		constexpr explicit Vector4(float value) : x(value), y(value), z(value), w(value) { }
 
-		Color(const Color&) = default;
-		Color& operator=(const Color&) = default;
+		constexpr Vector4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
+		explicit Vector4(_In_reads_(4) const float *pArray) : x(pArray[0]), y(pArray[1]), z(pArray[2]), w(pArray[3]) {}
 
-		Color(Color&&) = default;
-		Color& operator=(Color&&) = default;
+		Vector4(const Vector4&) = default;
+		Vector4& operator=(const Vector4&) = default;
 
-		/// Operators
-		operator const float*() const { return reinterpret_cast<const float*>(this); }
+		Vector4(Vector4&&) = default;
+		Vector4& operator=(Vector4&&) = default;
 
 		/// Test for equality with another color without epsilon.
-		bool operator ==(const Color& rhs) const { return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a; }
+		inline bool operator ==(const Vector4& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
 
 		/// Test for inequality with another color without epsilon.
-		bool operator !=(const Color& rhs) const { return r != rhs.r || g != rhs.g || b != rhs.b || a != rhs.a; }
+		inline bool operator !=(const Vector4& rhs) const { return x != rhs.x || y != rhs.y || z != rhs.z || w != rhs.w; }
 
 		/// Return as string.
 		std::string ToString() const;
 
-		/// Black color.
-		static const Color Black;
+		/// Sets the x, y, z and w to the specified values.
+		void Set(float x_, float y_, float z_, float w_);
 
-		/// White color.
-		static const Color White;
+		static const Vector4 Zero;
+		static const Vector4 One;
+		static const Vector4 UnitX;
+		static const Vector4 UnitY;
+		static const Vector4 UnitZ;
+		static const Vector4 UnitW;
 	};
 }

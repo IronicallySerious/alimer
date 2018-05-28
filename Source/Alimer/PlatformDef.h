@@ -224,6 +224,11 @@
 #	define ALIMER_DLL_IMPORT
 #endif
 
+#ifdef _MSC_VER
+// SAL 
+#define _In_reads_(size)
+#endif
+
 #ifdef __cplusplus
 
 namespace Alimer

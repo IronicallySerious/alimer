@@ -68,6 +68,7 @@ namespace Alimer
 			return;
 
 		AlimerRender();
+		// TODO: Render Scene.
 		//OnRender();
 		_graphics->Present();
 	}
@@ -81,6 +82,7 @@ namespace Alimer
 			_window = CreateWindow();
 
 			// Create and init graphics.
+			_graphicsDeviceType = GraphicsDeviceType::Direct3D12;
 			_graphics.reset(Graphics::Create(_graphicsDeviceType));
 
 			if (!_graphics->Initialize(_window))
@@ -136,5 +138,10 @@ namespace Alimer
 			// TODO: Fire event.
 			_paused = false;
 		}
+	}
+
+	void Engine::SetScene(std::shared_ptr<Scene> scene)
+	{
+		_scene = scene;
 	}
 }

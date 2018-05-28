@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../PlatformDef.h"
+#include <memory>
 #include <string>
 
 namespace Alimer
@@ -57,8 +58,42 @@ namespace Alimer
 		/// Return whether stream supports seeking.
 		virtual bool CanSeek() const = 0;
 
+		/**
+		* Read data from stream.
+		*
+		* @param dest Destination buffer.
+		* @param size Number of bytes to read.
+		* @return Number of bytes actually read.
+		*/
+		virtual size_t Read(void* dest, size_t size) = 0;
+
+		/**
+		* Write bytes to the stream.
+		*
+		* @param data The source data to write.
+		* @param size Number of bytes to write.
+		*/
+		virtual void Write(const void* data, size_t size) = 0;
+
+		/**
+		* Get current position in bytes.
+		*/
+		size_t GetPosition() const { return _position; }
+
+		/**
+		* Get the size in bytes of the stream.
+		*/
+		size_t GetSize() const { return _size; }
+
+		/**
+		* Get whether the end of stream has been reached.
+		*/
+		bool IsEof() const { return _position >= _size; }
+
 	protected:
 		StreamMode _mode;
+		size_t _position = 0;
+		size_t _size = 0;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Stream);

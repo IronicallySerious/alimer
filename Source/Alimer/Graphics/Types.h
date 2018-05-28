@@ -36,8 +36,13 @@ namespace Alimer
 	/// Enum describing the Graphics backend type.
 	enum class GraphicsDeviceType
 	{
+		/// Best device supported for running platform.
 		Default,
+		/// Empty/Headless device type.
 		Empty,
+		/// Vulkan backend.
+		Vulkan,
+		/// DirectX12 backend.
 		Direct3D12
 	};
 

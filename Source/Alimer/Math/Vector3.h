@@ -27,65 +27,65 @@
 
 namespace Alimer
 {
+	class Matrix4x4;
 
 	/**
-	* Defines 4-element floating point RGBA color.
+	* Defines a 3-element floating point vector.
 	*/
-	class Color
+	class Vector3
 	{
 	public:
 		/**
-		* Red value.
+		* The x-coordinate.
 		*/
-		float r;
+		float x;
 
 		/**
-		* Green value.
+		* The y-coordinate.
 		*/
-		float g;
+		float y;
 
 		/**
-		* Blue value.
+		* The z-coordinate.
 		*/
-		float b;
+		float z;
 
-		/**
-		* Alpha value.
-		*/
-		float a;
+		/// Construct with all values set to zero.
+		Vector3() noexcept : x(0.0f), y(0.0f), z(0.0f) { }
 
-		/// Construct with default values (opaque black.)
-		Color() noexcept : r(0.0f), g(0.0f), b(0.0f), a(0.0f)
-		{
-		}
+		constexpr explicit Vector3(float value) : x(value), y(value), z(value) { }
 
-		constexpr Color(float r_, float g_, float b_)
-			: r(r_), g(g_), b(b_), a(1.0f) {}
-		constexpr Color(float r_, float g_, float b_, float a_)
-			: r(r_), g(g_), b(b_), a(a_) {}
+		constexpr Vector3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
+		explicit Vector3(_In_reads_(3) const float *pArray) : x(pArray[0]), y(pArray[1]), z(pArray[2]) {}
 
-		Color(const Color&) = default;
-		Color& operator=(const Color&) = default;
+		Vector3(const Vector3&) = default;
+		Vector3& operator=(const Vector3&) = default;
 
-		Color(Color&&) = default;
-		Color& operator=(Color&&) = default;
-
-		/// Operators
-		operator const float*() const { return reinterpret_cast<const float*>(this); }
+		Vector3(Vector3&&) = default;
+		Vector3& operator=(Vector3&&) = default;
 
 		/// Test for equality with another color without epsilon.
-		bool operator ==(const Color& rhs) const { return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a; }
+		inline bool operator ==(const Vector3& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z; }
 
 		/// Test for inequality with another color without epsilon.
-		bool operator !=(const Color& rhs) const { return r != rhs.r || g != rhs.g || b != rhs.b || a != rhs.a; }
+		inline bool operator !=(const Vector3& rhs) const { return x != rhs.x || y != rhs.y || z != rhs.z; }
 
 		/// Return as string.
 		std::string ToString() const;
 
-		/// Black color.
-		static const Color Black;
+		/// Sets the x, y and z to the specified values.
+		void Set(float x_, float y_, float z_);
 
-		/// White color.
-		static const Color White;
+		static const Vector3 Zero;
+		static const Vector3 One;
+		static const Vector3 UnitX;
+		static const Vector3 UnitY;
+		static const Vector3 UnitZ;
+		static const Vector3 Up;
+		static const Vector3 Down;
+		static const Vector3 Right;
+		static const Vector3 Left;
+		static const Vector3 Forward;
+		static const Vector3 Backward;
 	};
 }

@@ -22,35 +22,24 @@
 
 #pragma once
 
-#include <new>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <array>
-#include <vector>
-#include <string>
+#include "../Serialization/Serializable.h"
 
-// Core
-#include "Core/Log.h"
-#include "Core/Engine.h"
-#include "Core/Window.h"
+namespace Alimer
+{
+	/// Defines a scene, which is a container of SceneObject's.
+	class Scene final: public Serializable, public std::enable_shared_from_this<Scene>
+	{
+	public:
+		/// Constructor.
+		Scene();
 
-// Math
-#include "Math/MathUtil.h"
-#include "Math/Color.h"
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Quaternion.h"
-#include "Math/Matrix4x4.h"
+		/// Destructor.
+		~Scene();
 
-// Graphics
-#include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
 
-// Resource
-#include "Resource/Resource.h"
-#include "Resource/ResourceManager.h"
+	protected:
+
+	private:
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);
+	};
+}

@@ -36,6 +36,7 @@
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
 #include "../Graphics/Graphics.h"
+#include "../Scene/Scene.h"
 
 void AlimerMain(const std::vector<std::string>& args);
 void AlimerShutdown();
@@ -77,6 +78,10 @@ namespace Alimer
 		inline Input* GetInput() const { return _input.get(); }
 		inline Audio* GetAudio() const { return _audio.get(); }
 
+		/// Sets the current scene to be active and rendered.
+		void SetScene(std::shared_ptr<Scene> scene);
+		std::shared_ptr<Scene> GetScene() const { return _scene; }
+
 	protected:
 		virtual bool Initialize();
 		virtual void RunMain();
@@ -93,6 +98,7 @@ namespace Alimer
 		std::atomic<bool> _running;
 		std::atomic<bool> _paused;
 		std::atomic<bool> _headless;
+		GraphicsDeviceType _graphicsDeviceType{ GraphicsDeviceType::Default };
 
 		ResourceManager _resources;
 		std::shared_ptr<Window> _window;
@@ -100,7 +106,9 @@ namespace Alimer
 		std::unique_ptr<Input> _input;
 		std::unique_ptr<Audio> _audio;
 
-		GraphicsDeviceType _graphicsDeviceType{ GraphicsDeviceType::Default };
+		/// Current scene.
+		std::shared_ptr<Scene> _scene;
+
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Engine);

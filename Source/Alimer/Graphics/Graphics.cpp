@@ -23,6 +23,10 @@
 #include "Graphics/Graphics.h"
 #include "../Core/Log.h"
 
+#if ALIMER_VULKAN
+#include "Graphics/Vulkan/VulkanGraphics.h"
+#endif
+
 #if ALIMER_D3D12
 #include "Graphics/D3D12/D3D12Graphics.h"
 #endif
@@ -31,29 +35,84 @@ namespace Alimer
 {
 	Alimer::Graphics* graphics = nullptr;
 
-	Graphics::Graphics()
-		: _window(nullptr)
+	Graphics::Graphics(GraphicsDeviceType deviceType)
+		: _deviceType(deviceType)
+		, _window(nullptr)
 	{
 		graphics = this;
 	}
 
 	Graphics::~Graphics()
 	{
+		Finalize();
 		_textures.clear();
 		graphics = nullptr;
 	}
 
-	Graphics* Graphics::Create(GraphicsDeviceType deviceType)
+	void Graphics::Finalize()
+	{
+
+	}
+
+	std::set<GraphicsDeviceType> Graphics::GetAvailableBackends()
+	{
+		static std::set<GraphicsDeviceType> availableBackends;
+
+		if (availableBackends.empty())
+		{
+			availableBackends.insert(GraphicsDeviceType::Empty);
+
+#if ALIMER_VULKAN
+			if (VulkanGraphics::IsSupported())
+			{
+				availableBackends.insert(GraphicsDeviceType::Vulkan);
+			}
+#endif
+
+#if ALIMER_D3D12
+			if (D3D12Graphics::IsSupported())
+			{
+				availableBackends.insert(GraphicsDeviceType::Direct3D12);
+			}
+#endif
+
+		}
+
+		return availableBackends;
+	}
+
+	Graphics* Graphics::Create(GraphicsDeviceType deviceType, bool validation, const std::string& applicationName)
 	{
 		if (deviceType == GraphicsDeviceType::Default)
 		{
-			// TODO: Find best device type
-			deviceType = GraphicsDeviceType::Direct3D12;
+			auto availableDrivers = Graphics::GetAvailableBackends();
+
+			if (availableDrivers.find(GraphicsDeviceType::Vulkan) != availableDrivers.end())
+			{
+				deviceType = GraphicsDeviceType::Vulkan;
+			}
+			else if (availableDrivers.find(GraphicsDeviceType::Direct3D12) != availableDrivers.end())
+			{
+				deviceType = GraphicsDeviceType::Direct3D12;
+			}
+			else
+			{
+				deviceType = GraphicsDeviceType::Empty;
+			}
 		}
 
 		Graphics* graphics = nullptr;
 		switch (deviceType)
 		{
+			case GraphicsDeviceType::Vulkan:
+#if ALIMER_D3D12
+				ALIMER_LOGINFO("Using Vulkan graphics backend");
+				graphics = new VulkanGraphics(validation, applicationName);
+#else
+				ALIMER_LOGERROR("Vulkan graphics backend not supported");
+#endif
+				break;
+
 			case GraphicsDeviceType::Direct3D12:
 #if ALIMER_D3D12
 				ALIMER_LOGINFO("Using Direct3D 12 graphics backend");

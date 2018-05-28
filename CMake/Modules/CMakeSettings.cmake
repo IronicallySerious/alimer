@@ -9,6 +9,14 @@ include(CMakePlatforms)
 include(CMakeMacros)
 
 # Graphics backends
+if (NOT ALIMER_DISABLE_VULKAN)
+	if (PLATFORM_WINDOWS OR PLATFORM_LINUX OR PLATFORM_ANDROID)
+		set (ALIMER_VULKAN_DEFAULT ON)
+	else ()
+		set (ALIMER_VULKAN_DEFAULT OFF)
+	endif ()
+endif ()
+
 if (NOT ALIMER_DISABLE_D3D12)
 	if (PLATFORM_WINDOWS OR PLATFORM_UWP)
 		set (ALIMER_D3D12_DEFAULT ON)
@@ -26,5 +34,6 @@ if (NOT ALIMER_DISABLE_ASSET_PIPELINE)
 	endif()
 endif ()
 
+option (ALIMER_VULKAN "Enable Vulkan backend" ${ALIMER_VULKAN_DEFAULT})
 option (ALIMER_D3D12 "Enable D3D12 backend" ${ALIMER_D3D12_DEFAULT})
 option (ALIMER_ASSET_PIPELINE "Enable AssetPipeline" ${ALIMER_ASSET_PIPELINE_DEFAULT})

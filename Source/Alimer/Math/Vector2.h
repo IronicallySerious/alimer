@@ -27,65 +27,53 @@
 
 namespace Alimer
 {
+	class Matrix4x4;
 
 	/**
-	* Defines 4-element floating point RGBA color.
+	* Defines a 2-element floating point vector.
 	*/
-	class Color
+	class Vector2
 	{
 	public:
 		/**
-		* Red value.
+		* The x coordinate.
 		*/
-		float r;
+		float x;
 
 		/**
-		* Green value.
+		* The y coordinate.
 		*/
-		float g;
+		float y;
 
-		/**
-		* Blue value.
-		*/
-		float b;
+		/// Construct with all values set to zero.
+		Vector2() noexcept : x(0.0f), y(0.0f) { }
 
-		/**
-		* Alpha value.
-		*/
-		float a;
+		constexpr explicit Vector2(float value) : x(value), y(value) { }
 
-		/// Construct with default values (opaque black.)
-		Color() noexcept : r(0.0f), g(0.0f), b(0.0f), a(0.0f)
-		{
-		}
+		constexpr Vector2(float x_, float y_) : x(x_), y(y_) {}
+		explicit Vector2(_In_reads_(2) const float *pArray) : x(pArray[0]), y(pArray[1]) {}
 
-		constexpr Color(float r_, float g_, float b_)
-			: r(r_), g(g_), b(b_), a(1.0f) {}
-		constexpr Color(float r_, float g_, float b_, float a_)
-			: r(r_), g(g_), b(b_), a(a_) {}
+		Vector2(const Vector2&) = default;
+		Vector2& operator=(const Vector2&) = default;
 
-		Color(const Color&) = default;
-		Color& operator=(const Color&) = default;
-
-		Color(Color&&) = default;
-		Color& operator=(Color&&) = default;
-
-		/// Operators
-		operator const float*() const { return reinterpret_cast<const float*>(this); }
+		Vector2(Vector2&&) = default;
+		Vector2& operator=(Vector2&&) = default;
 
 		/// Test for equality with another color without epsilon.
-		bool operator ==(const Color& rhs) const { return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a; }
+		inline bool operator ==(const Vector2& rhs) const { return x == rhs.x && y == rhs.y; }
 
 		/// Test for inequality with another color without epsilon.
-		bool operator !=(const Color& rhs) const { return r != rhs.r || g != rhs.g || b != rhs.b || a != rhs.a; }
+		inline bool operator !=(const Vector2& rhs) const { return x != rhs.x || y != rhs.y; }
 
 		/// Return as string.
 		std::string ToString() const;
 
-		/// Black color.
-		static const Color Black;
+		/// Sets the x and y to the specified values.
+		void Set(float x_, float y_);
 
-		/// White color.
-		static const Color White;
+		static const Vector2 Zero;
+		static const Vector2 One;
+		static const Vector2 UnitX;
+		static const Vector2 UnitY;
 	};
 }

@@ -90,11 +90,72 @@ namespace Alimer
 	}
 #endif
 
+	_Use_decl_annotations_ static void GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
+	{
+		ComPtr<IDXGIAdapter1> adapter;
+		*ppAdapter = nullptr;
+
+		for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != pFactory->EnumAdapters1(adapterIndex, &adapter); ++adapterIndex)
+		{
+			DXGI_ADAPTER_DESC1 desc;
+			adapter->GetDesc1(&desc);
+
+			if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+			{
+				// Don't select the Basic Render Driver adapter.
+				// If you want a software adapter, pass in "/warp" on the command line.
+				continue;
+			}
+
+			// Check to see if the adapter supports Direct3D 12, but don't create the
+			// actual device yet.
+			if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+			{
+				break;
+			}
+		}
+
+		*ppAdapter = adapter.Detach();
+	}
+
+	bool D3D12Graphics::IsSupported()
+	{
+		static bool availableCheck = false;
+		static bool isAvailable = false;
+
+		if (availableCheck)
+			return isAvailable;
+
+		availableCheck = true;
+#if !ALIMER_PLATFORM_UWP
+		if (FAILED(LoadD3D12Libraries()))
+		{
+			isAvailable = false;
+			return false;
+		}
+#endif
+
+		// Create temp dxgi factory for check support.
+		ComPtr<IDXGIFactory2> factory;
+		HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
+		if (FAILED(hr))
+		{
+			isAvailable = false;
+			return false;
+		}
+
+		ComPtr<IDXGIAdapter1> hardwareAdapter;
+		GetHardwareAdapter(factory.Get(), &hardwareAdapter);
+		isAvailable = hardwareAdapter != nullptr;
+		return isAvailable;
+	}
+
 	D3D12Graphics::D3D12Graphics()
-		: _commandListManager(nullptr)
-		, _descriptorAllocator {
+		: Graphics(GraphicsDeviceType::Direct3D12)
+		, _commandListManager(nullptr)
+		, _descriptorAllocator{
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-		D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV}
+		D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV }
 	{
 
 	}
@@ -120,7 +181,7 @@ namespace Alimer
 #if !ALIMER_PLATFORM_UWP
 		if (FAILED(LoadD3D12Libraries()))
 		{
-			//ALIMER_LOGERROR("Failed to load D3D12 libraries.");
+			ALIMER_LOGERROR("Failed to load D3D12 libraries.");
 			return false;
 		}
 #endif
@@ -346,7 +407,7 @@ namespace Alimer
 		ThrowIfFailed(swapChain.As(&_swapChain));
 
 		_textures.resize(swapChainDesc.BufferCount);
-		
+
 		for (UINT i = 0; i < swapChainDesc.BufferCount; ++i)
 		{
 			// Get buffer from swapchain.

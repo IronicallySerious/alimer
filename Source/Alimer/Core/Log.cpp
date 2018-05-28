@@ -205,7 +205,7 @@ namespace Alimer
 
 	void Logger::Log(LogLevel level, const char* message, ...)
 	{
-		if (level == LogLevel::Off || _level >= level)
+		if (level == LogLevel::Off || _level > level)
 			return;
 
 		// Declare a moderately sized buffer on the stack that should be

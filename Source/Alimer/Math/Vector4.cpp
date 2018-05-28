@@ -20,37 +20,30 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#include "../Math/Vector4.h"
+#include <cstdio>
 
-#include <new>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <array>
-#include <vector>
-#include <string>
+namespace Alimer
+{
+	const Vector4 Vector4::Zero = { 0.f, 0.f, 0.f, 0.f };
+	const Vector4 Vector4::One = { 1.f, 1.f, 1.f, 1.f };
+	const Vector4 Vector4::UnitX = { 1.f, 0.f, 0.f, 0.f };
+	const Vector4 Vector4::UnitY = { 0.f, 1.f, 0.f, 0.f };
+	const Vector4 Vector4::UnitZ = { 0.f, 0.f, 1.f, 0.f };
+	const Vector4 Vector4::UnitW = { 0.f, 0.f, 0.f, 1.f };
 
-// Core
-#include "Core/Log.h"
-#include "Core/Engine.h"
-#include "Core/Window.h"
+	std::string Vector4::ToString() const
+	{
+		char tempBuffer[128];
+		sprintf(tempBuffer, "%g %g %g %g", x, y, z, w);
+		return std::string(tempBuffer);
+	}
 
-// Math
-#include "Math/MathUtil.h"
-#include "Math/Color.h"
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Quaternion.h"
-#include "Math/Matrix4x4.h"
-
-// Graphics
-#include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
-
-// Resource
-#include "Resource/Resource.h"
-#include "Resource/ResourceManager.h"
+	void Vector4::Set(float x_, float y_, float z_, float w_)
+	{
+		x = x_;
+		y = y_;
+		z = z_;
+		w = w_;
+	}
+}
