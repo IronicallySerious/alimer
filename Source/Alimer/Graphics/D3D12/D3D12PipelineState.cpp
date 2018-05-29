@@ -22,10 +22,10 @@
 
 #include "D3D12PipelineState.h"
 #include "D3D12PipelineLayout.h"
+#include "D3D12Shader.h"
 #include "D3D12Graphics.h"
 #include "../../Core/Log.h"
-#include "Shaders/Compiled/Triangle_VSMain.inc"
-#include "Shaders/Compiled/Triangle_PSMain.inc"
+
 
 namespace Alimer
 {
@@ -68,6 +68,7 @@ namespace Alimer
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 
 		auto d3dPipelineLayout = std::static_pointer_cast<D3D12PipelineLayout>(descriptor.layout);
+		auto d3dShader = std::static_pointer_cast<D3D12Shader>(descriptor.shader);
 
 		UINT elementsCount = 0;
 		D3D12_INPUT_ELEMENT_DESC elements[MaxVertexAttributes];
@@ -91,11 +92,19 @@ namespace Alimer
 		psoDesc.InputLayout.pInputElementDescs = elements;
 		psoDesc.InputLayout.NumElements = elementsCount;
 		psoDesc.pRootSignature = d3dPipelineLayout->GetD3DRootSignature();
-		//if (descriptor.vertex)
+
+		if (d3dShader->GetVertex().length)
 		{
-			psoDesc.VS.pShaderBytecode = Triangle_VSMain;
-			psoDesc.VS.BytecodeLength = sizeof(Triangle_VSMain);
+			psoDesc.VS.BytecodeLength = d3dShader->GetVertex().length;
+			psoDesc.VS.pShaderBytecode = d3dShader->GetVertex().pData;
 		}
+
+		if (d3dShader->GetFragment().length)
+		{
+			psoDesc.PS.BytecodeLength = d3dShader->GetFragment().length;
+			psoDesc.PS.pShaderBytecode = d3dShader->GetFragment().pData;
+		}
+
 
 		/*ComPtr<ID3D11ShaderReflection> reflection = nullptr;
 		HRESULT hr = D3DReflect(
@@ -108,9 +117,6 @@ namespace Alimer
 			reflection->GetDesc(&desc);
 			printf("");
 		}*/
-
-		psoDesc.PS.pShaderBytecode = Triangle_PSMain;
-		psoDesc.PS.BytecodeLength = sizeof(Triangle_PSMain);
 
 		// RasterizerState
 		psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;

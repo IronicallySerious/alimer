@@ -49,6 +49,8 @@ namespace Alimer
 
 		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 		PipelineLayoutPtr CreatePipelineLayout() override;
+		std::shared_ptr<Shader> CreateShader(const std::string& name) override;
+		std::shared_ptr<Shader> CreateShader(const ShaderBytecode& vertex, const ShaderBytecode& fragment) override;
 		PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
 		
 		VkDevice GetVkDevice() const { return _device; }

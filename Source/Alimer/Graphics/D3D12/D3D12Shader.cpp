@@ -26,10 +26,45 @@
 
 namespace Alimer
 {
-	D3D12Shader::D3D12Shader(D3D12Graphics* graphics, ShaderStage stage)
-		: Shader(graphics, stage)
+	D3D12Shader::D3D12Shader(D3D12Graphics* graphics, ID3DBlob* blob)
+		: Shader(graphics, false)
 	{
-		
+		ID3D12ShaderReflection* reflection;
+
+		HRESULT hr = D3DReflect(
+			blob->GetBufferPointer(),
+			blob->GetBufferSize(),
+			_uuidof(ID3D12ShaderReflection),
+			(void**)&reflection);
+
+		if (FAILED(hr))
+		{
+			ALIMER_LOGERROR("Cannot reflect D3D compiled shader.");
+			return;
+		}
+
+		D3D12_SHADER_DESC shaderDesc;
+		hr = reflection->GetDesc(&shaderDesc);
+		if (FAILED(hr))
+		{
+			ALIMER_LOGERROR("Cannot get D3D compiled shader desc.");
+			return;
+		}
+
+		switch (D3D12_SHVER_GET_TYPE(shaderDesc.Version))
+		{
+			case D3D12_SHVER_VERTEX_SHADER:
+				break;
+		}
+
+		reflection->Release();
+	}
+
+	D3D12Shader::D3D12Shader(D3D12Graphics* graphics, const ShaderBytecode& vertex, const ShaderBytecode& fragment)
+		: Shader(graphics, false)
+		, _vertexByteCode(std::move(vertex))
+		, _fragmentByteCode(std::move(fragment))
+	{
 	}
 
 	D3D12Shader::~D3D12Shader()

@@ -92,4 +92,26 @@ namespace Alimer
 
 		return backend->Open(paths.second, mode);
 	}
+
+	std::string FileSystem::ReadAllText(const std::string &path)
+	{
+		auto paths = Path::ProtocolSplit(path);
+		auto *backend = GetProtocol(paths.first);
+		if (!backend)
+			return {};
+
+		auto stream = backend->Open(paths.second, StreamMode::ReadOnly);
+		return stream->ReadAllText();
+	}
+
+	std::vector<uint8_t> FileSystem::ReadAllBytes(const std::string& path)
+	{
+		auto paths = Path::ProtocolSplit(path);
+		auto *backend = GetProtocol(paths.first);
+		if (!backend)
+			return {};
+
+		auto stream = backend->Open(paths.second, StreamMode::ReadOnly);
+		return stream->ReadBytes();
+	}
 }

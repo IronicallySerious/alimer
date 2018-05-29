@@ -29,4 +29,34 @@ namespace Alimer
 		: _mode(StreamMode::ReadOnly)
 	{
 	}
+
+	std::string Stream::ReadAllText()
+	{
+		std::string content;
+		uint64_t length = _size;
+		if (length)
+		{
+			content.resize(length);
+			Read(&content[0], length);
+		}
+
+		return content;
+	}
+
+	std::vector<uint8_t> Stream::ReadBytes(size_t count)
+	{
+		if (!count)
+			count = _size;
+
+		std::vector<uint8_t> result(count);
+
+		size_t read = Read(result.data(), count);
+		if (read != count)
+		{
+			ALIMER_LOGERROR("Failed to read complete contents of stream (amount read vs. file size: %u < %u).", read, count);
+			return {};
+		}
+
+		return result;
+	}
 }

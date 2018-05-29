@@ -25,6 +25,7 @@
 #include "../PlatformDef.h"
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Alimer
 {
@@ -74,6 +75,12 @@ namespace Alimer
 		* @param size Number of bytes to write.
 		*/
 		virtual void Write(const void* data, size_t size) = 0;
+
+		/// Read entire file as text.
+		std::string ReadAllText();
+
+		/// Read content as vector bytes.
+		std::vector<uint8_t> ReadBytes(size_t count = 0);
 
 		/**
 		* Get current position in bytes.

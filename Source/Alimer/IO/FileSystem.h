@@ -72,6 +72,11 @@ namespace Alimer
 
 		std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
 
+		/// Read entire file as text.
+		std::string ReadAllText(const std::string &path);
+
+		/// Read entire file as vector bytes.
+		std::vector<uint8_t> ReadAllBytes(const std::string& path);
 	private:
 		/// Constructor.
 		FileSystem();

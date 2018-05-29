@@ -26,10 +26,18 @@
 #include "D3D12CommandBuffer.h"
 #include "D3D12GpuBuffer.h"
 #include "D3D12PipelineLayout.h"
+#include "D3D12Shader.h"
 #include "D3D12PipelineState.h"
 #include "../../Core/Log.h"
+#include "../../IO/Path.h"
+#include "../../IO/FileSystem.h"
 #include "../../Core/Windows/EngineWindows.h"
 #include "../../Core/Windows/WindowWindows.h"
+#include "Shaders/Compiled/Triangle_VSMain.inc"
+#include "Shaders/Compiled/Triangle_PSMain.inc"
+
+#define SOURCE_SHADER_EXT ".hlsl"
+#define COMPILED_SHADER_EXT ".cso"
 
 namespace Alimer
 {
@@ -293,6 +301,12 @@ namespace Alimer
 		// Create Swapchain.
 		CreateSwapchain(window);
 
+		// Init stock resources
+		_stockVertexColor = std::make_shared<D3D12Shader>(this,
+			ShaderBytecode{ sizeof(Triangle_VSMain), Triangle_VSMain },
+			ShaderBytecode{ sizeof(Triangle_PSMain), Triangle_PSMain }
+		);
+
 		return Graphics::Initialize(window);
 	}
 
@@ -442,6 +456,81 @@ namespace Alimer
 	PipelineLayoutPtr D3D12Graphics::CreatePipelineLayout()
 	{
 		return std::make_shared<D3D12PipelineLayout>(this);
+	}
+
+	std::shared_ptr<Shader> D3D12Graphics::CreateShader(const std::string& name)
+	{
+		// Lookup cache first.
+		std::string shaderUrl = "shaders/cache/";
+		shaderUrl.append(name);
+		shaderUrl.append(COMPILED_SHADER_EXT);
+
+		if (!FileSystem::Get().FileExists("assets://" + shaderUrl))
+		{
+			// Compile shader from source.
+			shaderUrl = "shaders/";
+			shaderUrl.append(name);
+			shaderUrl.append(SOURCE_SHADER_EXT);
+			if (!FileSystem::Get().FileExists("assets://" + shaderUrl))
+			{
+				ALIMER_LOGERROR("Source shader does not exists '%s'", shaderUrl.c_str());
+				return nullptr;
+			}
+
+			std::string hlslSource = FileSystem::Get().ReadAllText("assets://" + shaderUrl);
+
+			UINT compileFlags = 0;
+#if defined(_DEBUG)
+			// Enable better shader debugging with the graphics debugging tools.
+			compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+			// Optimize.
+			compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
+			// SPRIV-cross does matrix multiplication expecting row major matrices
+			compileFlags |= D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
+
+			const char* compileTarget = nullptr;
+			std::string ext = Path::GetExtension(name);
+			if (ext == "vert")
+				compileTarget = "vs_5_0";
+			else if (ext == "frag")
+				compileTarget = "ps_5_0";
+
+			ComPtr<ID3DBlob> shaderBlob;
+			ComPtr<ID3DBlob> errors;
+			if (FAILED(D3DCompile(
+				hlslSource.c_str(),
+				hlslSource.length(),
+				nullptr,
+				nullptr,
+				nullptr,
+				"main",
+				compileTarget,
+				compileFlags, 0,
+				shaderBlob.ReleaseAndGetAddressOf(),
+				errors.ReleaseAndGetAddressOf())))
+			{
+				ALIMER_LOGERROR("D3DCompile failed with error: %s", reinterpret_cast<char*>(errors->GetBufferPointer()));
+				return nullptr;
+			}
+
+			return std::make_shared<D3D12Shader>(this, shaderBlob.Get());
+		}
+
+		// We could recompiled shader here, log error.
+		if (!FileSystem::Get().FileExists("assets://" + shaderUrl))
+		{
+			ALIMER_LOGERROR("Compiled shader does not exists '%s'", shaderUrl.c_str());
+			return nullptr;
+		}
+
+		return nullptr;
+	}
+
+	std::shared_ptr<Shader> D3D12Graphics::CreateShader(const ShaderBytecode& vertex, const ShaderBytecode& fragment)
+	{
+		return std::make_shared<D3D12Shader>(this, vertex, fragment);
 	}
 
 	PipelineStatePtr D3D12Graphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)

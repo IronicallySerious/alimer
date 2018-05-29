@@ -66,34 +66,19 @@ void AlimerMain(const std::vector<std::string>& args)
 		serializer.Serialize("vector3", vector3);
 	}
 
-	struct Vector3
-	{
-		float x;
-		float y;
-		float z;
-	};
-
-	struct Vector4
-	{
-		float x;
-		float y;
-		float z;
-		float w;
-	};
-
 	struct Vertex
 	{
 		Vector3 position;
-		Vector4 color;
+		Color color;
 	};
 
 	const float aspectRatio = static_cast<float>(engine->GetMainWindow()->GetWidth()) / engine->GetMainWindow()->GetHeight();
 
 	Vertex triangleVertices[] =
 	{
-		{ { 0.0f, 0.25f * aspectRatio, 0.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
-		{ { 0.25f, -0.25f * aspectRatio, 0.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
-		{ { -0.25f, -0.25f * aspectRatio, 0.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } }
+		{ Vector3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f)},
+		{ Vector3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
+		{ Vector3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
 	};
 
 	vertexBuffer = graphics->CreateBuffer(BufferUsage::Vertex, 3, sizeof(Vertex), triangleVertices);
@@ -101,6 +86,7 @@ void AlimerMain(const std::vector<std::string>& args)
 	renderPipelineLayout = graphics->CreatePipelineLayout();
 
 	RenderPipelineDescriptor renderPipelineDescriptor;
+	renderPipelineDescriptor.shader = graphics->CreateShader("color.vert");
 	renderPipelineDescriptor.layout = renderPipelineLayout;
 	renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
 	renderPipelineDescriptor.vertexElements[1].format = VertexFormat::Float4;
@@ -119,7 +105,7 @@ void AlimerShutdown()
 
 void AlimerRender()
 {
-	/*auto frameTexture = graphics->AcquireNextImage();
+	auto frameTexture = graphics->AcquireNextImage();
 	auto commandBuffer = graphics->CreateCommandBuffer();
 	RenderPassDescriptor passDescriptor;
 	passDescriptor.colorAttachments[0].texture = frameTexture.get();
@@ -129,5 +115,5 @@ void AlimerRender()
 	commandBuffer->SetPipeline(renderPipeline);
 	commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
 	commandBuffer->EndRenderPass();
-	commandBuffer->Commit();*/
+	commandBuffer->Commit();
 }

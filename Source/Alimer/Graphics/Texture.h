@@ -66,6 +66,4 @@ namespace Alimer
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Texture);
 	};
-
-	using TexturePtr = std::shared_ptr<Texture>;
 }

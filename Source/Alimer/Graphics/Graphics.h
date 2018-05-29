@@ -72,10 +72,16 @@ namespace Alimer
 		// PipelineLayout
 		virtual PipelineLayoutPtr CreatePipelineLayout() = 0;
 
+		// Shader
+		virtual std::shared_ptr<Shader> CreateShader(const std::string& name) = 0;
+		virtual std::shared_ptr<Shader> CreateShader(const ShaderBytecode& vertex, const ShaderBytecode& fragment) = 0;
+
 		// PipelineState
 		virtual PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
 
 		inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
+
+		std::shared_ptr<Shader> GetStockVertexColor() const;
 
 	protected:
 		virtual void Finalize();
@@ -84,6 +90,7 @@ namespace Alimer
 		GraphicsDeviceType _deviceType;
 		std::shared_ptr<Window> _window;
 		std::vector<std::shared_ptr<Texture>> _textures;
+		std::shared_ptr<Shader> _stockVertexColor;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

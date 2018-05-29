@@ -359,6 +359,16 @@ namespace Alimer
 		return nullptr;
 	}
 
+	std::shared_ptr<Shader> VulkanGraphics::CreateShader(const std::string& name)
+	{
+		return nullptr;
+	}
+
+	std::shared_ptr<Shader> VulkanGraphics::CreateShader(const ShaderBytecode& vertex, const ShaderBytecode& fragment)
+	{
+		return nullptr;
+	}
+
 	PipelineStatePtr VulkanGraphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
 	{
 		return nullptr;

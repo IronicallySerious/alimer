@@ -29,25 +29,30 @@ namespace Alimer
 {
 	class Graphics;
 
+	struct ShaderBytecode
+	{
+		size_t length;
+		const void* pData;
+	};
+
 	/// Defines a shader (module/function) class.
 	class Shader : public Resource
 	{
 	protected:
 		/// Constructor.
-		Shader(Graphics* graphics, ShaderStage stage);
+		Shader(Graphics* graphics, bool compute);
 
 	public:
 		/// Destructor.
 		virtual ~Shader();
 
-		inline ShaderStage GetStage() const { return _stage; }
+		inline bool IsCompute() const { return _compute; }
+		inline bool IsGraphics() const { return !_compute; }
 
 	protected:
 		Graphics* _graphics;
-		ShaderStage _stage;
+		bool _compute;
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
 	};
-
-	using ShaderPtr = std::shared_ptr<Shader>;
 }

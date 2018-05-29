@@ -25,9 +25,9 @@
 
 namespace Alimer
 {
-	Shader::Shader(Graphics* graphics, ShaderStage stage)
+	Shader::Shader(Graphics* graphics, bool compute)
 		: _graphics(graphics)
-		, _stage(stage)
+		, _compute(compute)
 	{
 	}
 
