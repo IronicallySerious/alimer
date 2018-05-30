@@ -36,16 +36,11 @@ namespace Alimer
 		/// Constructor.
 		D3D12Shader(D3D12Graphics* graphics, ID3DBlob* blob);
 
-		/// Constructor.
-		D3D12Shader(D3D12Graphics* graphics, const ShaderBytecode& vertex, const ShaderBytecode& fragment);
-
 		/// Destructor.
 		~D3D12Shader() override;
 
-		const ShaderBytecode& GetVertex() const { return _vertexByteCode; }
-		const ShaderBytecode& GetFragment() const { return _fragmentByteCode; }
+		std::vector<uint8_t> AcquireBytecode();
 	private:
-		ShaderBytecode _vertexByteCode;
-		ShaderBytecode _fragmentByteCode;
+		std::vector<uint8_t> _byteCode;
 	};
 }

@@ -65,10 +65,7 @@ namespace Alimer
 	D3D12PipelineState::D3D12PipelineState(D3D12Graphics* graphics, const RenderPipelineDescriptor& descriptor)
 		: PipelineState(graphics, true, descriptor.layout)
 	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-
 		auto d3dPipelineLayout = std::static_pointer_cast<D3D12PipelineLayout>(descriptor.layout);
-		auto d3dShader = std::static_pointer_cast<D3D12Shader>(descriptor.shader);
 
 		UINT elementsCount = 0;
 		D3D12_INPUT_ELEMENT_DESC elements[MaxVertexAttributes];
@@ -89,34 +86,20 @@ namespace Alimer
 			elementsCount++;
 		}
 
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.InputLayout.pInputElementDescs = elements;
 		psoDesc.InputLayout.NumElements = elementsCount;
 		psoDesc.pRootSignature = d3dPipelineLayout->GetD3DRootSignature();
 
-		if (d3dShader->GetVertex().length)
+		std::vector<uint8_t> vsByteCode = std::static_pointer_cast<D3D12Shader>(descriptor.vertex)->AcquireBytecode();
+		auto psShader = std::static_pointer_cast<D3D12Shader>(descriptor.fragment);
+
+		psoDesc.VS = { vsByteCode.data(), vsByteCode.size() };
+		if (psShader)
 		{
-			psoDesc.VS.BytecodeLength = d3dShader->GetVertex().length;
-			psoDesc.VS.pShaderBytecode = d3dShader->GetVertex().pData;
+			std::vector<uint8_t> psByteCode = psShader->AcquireBytecode();
+			psoDesc.PS = { psByteCode.data(), psByteCode.size() };
 		}
-
-		if (d3dShader->GetFragment().length)
-		{
-			psoDesc.PS.BytecodeLength = d3dShader->GetFragment().length;
-			psoDesc.PS.pShaderBytecode = d3dShader->GetFragment().pData;
-		}
-
-
-		/*ComPtr<ID3D11ShaderReflection> reflection = nullptr;
-		HRESULT hr = D3DReflect(
-			Triangle_VSMain,
-			sizeof(Triangle_VSMain),
-			IID_PPV_ARGS(&reflection));
-		if (FAILED(hr) || !reflection)
-		{
-			D3D11_SHADER_DESC desc;
-			reflection->GetDesc(&desc);
-			printf("");
-		}*/
 
 		// RasterizerState
 		psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;

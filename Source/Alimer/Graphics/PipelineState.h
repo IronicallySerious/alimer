@@ -33,7 +33,8 @@ namespace Alimer
 	struct RenderPipelineDescriptor
 	{
 		PipelineLayoutPtr layout;
-		std::shared_ptr<Shader> shader;
+		std::shared_ptr<Shader> vertex;
+		std::shared_ptr<Shader> fragment;
 		VertexElement vertexElements[MaxVertexAttributes] = {};
 	};
 

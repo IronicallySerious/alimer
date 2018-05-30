@@ -27,8 +27,11 @@
 namespace Alimer
 {
 	D3D12Shader::D3D12Shader(D3D12Graphics* graphics, ID3DBlob* blob)
-		: Shader(graphics, false)
+		: Shader(graphics)
 	{
+		_byteCode.resize(blob->GetBufferSize());
+		memcpy(_byteCode.data(), blob->GetBufferPointer(), blob->GetBufferSize());
+
 		ID3D12ShaderReflection* reflection;
 
 		HRESULT hr = D3DReflect(
@@ -54,20 +57,23 @@ namespace Alimer
 		switch (D3D12_SHVER_GET_TYPE(shaderDesc.Version))
 		{
 			case D3D12_SHVER_VERTEX_SHADER:
+				_stage = ShaderStage::Vertex;
+				break;
+
+			case D3D12_SHVER_PIXEL_SHADER:
+				_stage = ShaderStage::Fragment;
 				break;
 		}
 
 		reflection->Release();
 	}
 
-	D3D12Shader::D3D12Shader(D3D12Graphics* graphics, const ShaderBytecode& vertex, const ShaderBytecode& fragment)
-		: Shader(graphics, false)
-		, _vertexByteCode(std::move(vertex))
-		, _fragmentByteCode(std::move(fragment))
+	D3D12Shader::~D3D12Shader()
 	{
 	}
 
-	D3D12Shader::~D3D12Shader()
+	std::vector<uint8_t> D3D12Shader::AcquireBytecode()
 	{
+		return std::move(_byteCode);
 	}
 }

@@ -40,18 +40,17 @@ namespace Alimer
 	{
 	protected:
 		/// Constructor.
-		Shader(Graphics* graphics, bool compute);
+		Shader(Graphics* graphics);
 
 	public:
 		/// Destructor.
 		virtual ~Shader();
 
-		inline bool IsCompute() const { return _compute; }
-		inline bool IsGraphics() const { return !_compute; }
+		inline ShaderStage GetStage() const { return _stage; }
 
 	protected:
 		Graphics* _graphics;
-		bool _compute;
+		ShaderStage _stage;
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
 	};

@@ -86,7 +86,8 @@ void AlimerMain(const std::vector<std::string>& args)
 	renderPipelineLayout = graphics->CreatePipelineLayout();
 
 	RenderPipelineDescriptor renderPipelineDescriptor;
-	renderPipelineDescriptor.shader = graphics->CreateShader("color.vert");
+	renderPipelineDescriptor.vertex = graphics->CreateShader("color.vert");
+	renderPipelineDescriptor.fragment = graphics->CreateShader("color.frag");
 	renderPipelineDescriptor.layout = renderPipelineLayout;
 	renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
 	renderPipelineDescriptor.vertexElements[1].format = VertexFormat::Float4;

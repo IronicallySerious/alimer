@@ -302,10 +302,10 @@ namespace Alimer
 		CreateSwapchain(window);
 
 		// Init stock resources
-		_stockVertexColor = std::make_shared<D3D12Shader>(this,
-			ShaderBytecode{ sizeof(Triangle_VSMain), Triangle_VSMain },
-			ShaderBytecode{ sizeof(Triangle_PSMain), Triangle_PSMain }
-		);
+		//_stockVertexColor = std::make_shared<D3D12Shader>(this,
+		//	ShaderBytecode{ sizeof(Triangle_VSMain), Triangle_VSMain },
+		//	ShaderBytecode{ sizeof(Triangle_PSMain), Triangle_PSMain }
+		//);
 
 		return Graphics::Initialize(window);
 	}
@@ -530,7 +530,7 @@ namespace Alimer
 
 	std::shared_ptr<Shader> D3D12Graphics::CreateShader(const ShaderBytecode& vertex, const ShaderBytecode& fragment)
 	{
-		return std::make_shared<D3D12Shader>(this, vertex, fragment);
+		return nullptr;
 	}
 
 	PipelineStatePtr D3D12Graphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
