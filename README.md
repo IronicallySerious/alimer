@@ -31,7 +31,19 @@ Alimer development, contributions and bugfixes by:
 - Amer Koleci
 
 Alimer is greatly inspired by [Urho3D](https://github.com/urho3d/Urho3D) and [Ogre3D](http://www.ogre3d.org), some code has been take from Urho3D library and adopted
-by the engine needs, Urho3D is licensed under the [MIT](https://github.com/urho3d/Urho3D/blob/master/LICENSE). Additional inspiration, research or code used:
+by the engine needs, Urho3D is licensed under the [MIT](https://github.com/urho3d/Urho3D/blob/master/LICENSE). 
+
+The engine uses the following third-party libraries:
+
+- [Nothings](https://github.com/nothings/stb) single file libs.
+  - [stb_image.h 2.19](https://github.com/nothings/stb/blob/master/stb_image.h)
+  - [stb_image_write.h 1.09](https://github.com/nothings/stb/blob/master/stb_image_write.h)
+- [rapidjson](https://github.com/Tencent/rapidjson)
+- [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
+- [glslang](https://github.com/KhronosGroup/glslang)
+- [volk Metaloader for Vulkan](https://github.com/zeux/volk)
+
+Additional inspiration, research or code used:
 
 - Vulkan examples from Sascha Willems (https://github.com/SaschaWillems/Vulkan)
 - DirectX Graphics samples (https://github.com/Microsoft/DirectX-Graphics-Samples)
@@ -41,12 +53,3 @@ by the engine needs, Urho3D is licensed under the [MIT](https://github.com/urho3
 - Learn OpenGL (https://learnopengl.com/)
 - sokol (https://github.com/floooh/sokol)
 - EntityX (https://github.com/alecthomas/entityx)
-
-The engine uses the following third-party libraries:
-
-- [Nothings](https://github.com/nothings/stb) single file libs.
-  - [stb_image.h 2.19](https://github.com/nothings/stb/blob/master/stb_image.h)
-  - [stb_image_write.h 1.09](https://github.com/nothings/stb/blob/master/stb_image_write.h)
-- [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
-- [volk Metaloader for Vulkan](https://github.com/zeux/volk)
-- [rapidjson](https://github.com/Tencent/rapidjson)

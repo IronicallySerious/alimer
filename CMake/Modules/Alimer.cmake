@@ -125,7 +125,7 @@ set (DEST_BASE_INCLUDE_DIR include)
 set (DEST_ARCHIVE_DIR lib)
 set (DEST_BIN_DIR bin)
 set (DEST_SHARE_DIR share)
-
+set (DEST_ASSETS_DIR ${DEST_BIN_DIR})
 
 if (ANDROID)
     set (DEST_LIBRARY_DIR ${DEST_ARCHIVE_DIR})

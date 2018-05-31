@@ -34,7 +34,7 @@ namespace Alimer
 
 	Matrix4x4::Matrix4x4(_In_reads_(16) const float *pArray)
 	{
-		assert(pArray != nullptr);
+		ALIMER_ASSERT(pArray != nullptr);
 
 		m[0][0] = pArray[0];
 		m[0][1] = pArray[1];

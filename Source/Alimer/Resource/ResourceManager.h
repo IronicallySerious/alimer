@@ -51,4 +51,7 @@ namespace Alimer
 
 		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceManager);
 	};
+
+	// Direct access to ResourceManager module.
+	extern ResourceManager* resources;
 }

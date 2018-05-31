@@ -138,9 +138,4 @@ namespace Alimer
 		_window = window;
 		return true;
 	}
-
-	std::shared_ptr<Shader> Graphics::GetStockVertexColor() const
-	{
-		return _stockVertexColor;
-	}
 }

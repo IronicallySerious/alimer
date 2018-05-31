@@ -145,7 +145,7 @@ namespace Alimer
 
 		if (oldState != newState)
 		{
-			assert(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
+			ALIMER_ASSERT(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
 			D3D12_RESOURCE_BARRIER& barrierDesc = _resourceBarrierBuffer[_numBarriersToFlush++];
 
 			barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -164,7 +164,7 @@ namespace Alimer
 
 	void D3D12CommandBuffer::InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate)
 	{
-		assert(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
+		ALIMER_ASSERT(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
 		D3D12_RESOURCE_BARRIER& barrierDesc = _resourceBarrierBuffer[_numBarriersToFlush++];
 
 		barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
@@ -326,10 +326,10 @@ namespace Alimer
 		{
 			static D3D12_VERTEX_BUFFER_VIEW views[MaxVertexBufferBindings] = {};
 
-			for (unsigned i = binding; i < binding + count; i++)
+			for (uint32_t i = binding; i < binding + count; i++)
 			{
 #ifdef ALIMER_DEV
-				assert(_vbo.buffers[i] != nullptr);
+				ALIMER_ASSERT(_vbo.buffers[i] != nullptr);
 #endif
 
 				views[i].BufferLocation = static_cast<D3D12GpuBuffer*>(_vbo.buffers[i])->GetGpuVirtualAddress();

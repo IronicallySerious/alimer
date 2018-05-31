@@ -81,8 +81,6 @@ namespace Alimer
 
 		inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
 
-		std::shared_ptr<Shader> GetStockVertexColor() const;
-
 	protected:
 		virtual void Finalize();
 
@@ -90,7 +88,6 @@ namespace Alimer
 		GraphicsDeviceType _deviceType;
 		std::shared_ptr<Window> _window;
 		std::vector<std::shared_ptr<Texture>> _textures;
-		std::shared_ptr<Shader> _stockVertexColor;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

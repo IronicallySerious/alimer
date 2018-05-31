@@ -122,7 +122,7 @@ namespace Alimer
 		_d3dFence->Signal((uint64_t)_type << 56);
 
 		_fenceEventHandle = CreateEvent(nullptr, false, false, nullptr);
-		assert(_fenceEventHandle != INVALID_HANDLE_VALUE);
+		ALIMER_ASSERT(_fenceEventHandle != INVALID_HANDLE_VALUE);
 	}
 
 	D3D12CommandQueue::~D3D12CommandQueue()
@@ -246,7 +246,7 @@ namespace Alimer
 		ID3D12GraphicsCommandList** commandList,
 		ID3D12CommandAllocator** allocator)
 	{
-		assert(type != D3D12_COMMAND_LIST_TYPE_BUNDLE && "Bundles are not yet supported");
+		ALIMER_ASSERT(type != D3D12_COMMAND_LIST_TYPE_BUNDLE && "Bundles are not yet supported");
 		switch (type)
 		{
 			case D3D12_COMMAND_LIST_TYPE_DIRECT: *allocator = _graphicsQueue.RequestAllocator(); break;

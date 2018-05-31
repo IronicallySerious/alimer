@@ -68,6 +68,23 @@ set (ALIMER_ASSETS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 # Source
 add_subdirectory (Source)
 
+include(AlimerPackaging)
+
+# Install CMake modules and toolchains provided by and for Alimer
+install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant
+
+if (NOT ANDROID)
+    foreach (ASSERT_DIR ${ASSET_DIRS})
+		get_filename_component (NAME ${ASSERT_DIR} NAME)
+		install (DIRECTORY ${ASSERT_DIR} DESTINATION ${DEST_ASSETS_DIR})
+		foreach(CONFIG ${CMAKE_CONFIGURATION_TYPES})
+        	if (NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG}/${NAME})
+            	create_symlink(${ASSERT_DIR} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG}/${NAME})
+			endif ()
+			endforeach ()
+    endforeach ()
+endif (NOT ANDROID)
+
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER  "3.6")
 	if (ALIMER_TOOLS)
@@ -76,6 +93,3 @@ if(CMAKE_VERSION VERSION_GREATER  "3.6")
 		set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer" )
 	endif ()
 endif()
-
-# Install CMake modules and toolchains provided by and for Alimer
-install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant

@@ -28,6 +28,7 @@
 #include "D3D12PipelineLayout.h"
 #include "D3D12Shader.h"
 #include "D3D12PipelineState.h"
+#include "../ShaderCompiler.h"
 #include "../../Core/Log.h"
 #include "../../IO/Path.h"
 #include "../../IO/FileSystem.h"
@@ -36,8 +37,15 @@
 #include "Shaders/Compiled/Triangle_VSMain.inc"
 #include "Shaders/Compiled/Triangle_PSMain.inc"
 
-#define SOURCE_SHADER_EXT ".hlsl"
 #define COMPILED_SHADER_EXT ".cso"
+
+#if ALIMER_DEV && ( defined(_DEBUG) || defined(PROFILE) )
+#	if !defined(_XBOX_ONE) || !defined(_TITLE)
+#		pragma comment(lib,"dxguid.lib")
+#	endif
+#endif
+
+#include <spirv-cross/spirv_hlsl.hpp>
 
 namespace Alimer
 {
@@ -97,6 +105,8 @@ namespace Alimer
 		return S_OK;
 	}
 #endif
+
+	
 
 	_Use_decl_annotations_ static void GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
 	{
@@ -461,23 +471,45 @@ namespace Alimer
 	std::shared_ptr<Shader> D3D12Graphics::CreateShader(const std::string& name)
 	{
 		// Lookup cache first.
-		std::string shaderUrl = "shaders/cache/";
-		shaderUrl.append(name);
-		shaderUrl.append(COMPILED_SHADER_EXT);
+		std::string baseShaderUrl = "assets://shaders/";
+		// TODO: use cache protocol from FileSystem.
+		std::string cacheShaderUrl = baseShaderUrl + "cache/hlsl/" + name + COMPILED_SHADER_EXT;
 
-		if (!FileSystem::Get().FileExists("assets://" + shaderUrl))
+		if (!FileSystem::Get().FileExists(cacheShaderUrl))
 		{
-			// Compile shader from source.
-			shaderUrl = "shaders/";
-			shaderUrl.append(name);
-			shaderUrl.append(SOURCE_SHADER_EXT);
-			if (!FileSystem::Get().FileExists("assets://" + shaderUrl))
-			{
-				ALIMER_LOGERROR("Source shader does not exists '%s'", shaderUrl.c_str());
-				return nullptr;
-			}
+			// Lookup for HLSL shader source first.
+			std::string hlslSource;
 
-			std::string hlslSource = FileSystem::Get().ReadAllText("assets://" + shaderUrl);
+			if (FileSystem::Get().FileExists(baseShaderUrl + name + ".hlsl"))
+			{
+				hlslSource = FileSystem::Get().ReadAllText(baseShaderUrl + name + ".hlsl");
+			}
+			else
+			{
+				// Lookup for GLSL shader.
+				if (!FileSystem::Get().FileExists(baseShaderUrl + name + ".glsl"))
+				{
+					ALIMER_LOGERROR("Both HLSL or GLSL source shader does not exists '%s'", name.c_str());
+					return nullptr;
+				}
+
+				// Compile GLSL.
+				std::string errorLog;
+				auto spirv = ShaderCompiler::Compile(baseShaderUrl + name + ".glsl", errorLog);
+
+				spirv_cross::CompilerGLSL::Options options_glsl;
+				//options_glsl.vertex.fixup_clipspace = true;
+				//options_glsl.vertex.flip_vert_y = true;
+
+				spirv_cross::CompilerHLSL compiler(spirv);
+				compiler.set_common_options(options_glsl);
+
+				spirv_cross::CompilerHLSL::Options options_hlsl;
+				options_hlsl.shader_model = 51;
+				compiler.set_hlsl_options(options_hlsl);
+
+				hlslSource = compiler.compile();
+			}
 
 			UINT compileFlags = 0;
 #if defined(_DEBUG)
@@ -493,9 +525,9 @@ namespace Alimer
 			const char* compileTarget = nullptr;
 			std::string ext = Path::GetExtension(name);
 			if (ext == "vert")
-				compileTarget = "vs_5_0";
+				compileTarget = "vs_5_1";
 			else if (ext == "frag")
-				compileTarget = "ps_5_0";
+				compileTarget = "ps_5_1";
 
 			ComPtr<ID3DBlob> shaderBlob;
 			ComPtr<ID3DBlob> errors;
@@ -519,11 +551,11 @@ namespace Alimer
 		}
 
 		// We could recompiled shader here, log error.
-		if (!FileSystem::Get().FileExists("assets://" + shaderUrl))
+		/*if (!FileSystem::Get().FileExists("assets://" + shaderUrl))
 		{
 			ALIMER_LOGERROR("Compiled shader does not exists '%s'", shaderUrl.c_str());
 			return nullptr;
-		}
+		}*/
 
 		return nullptr;
 	}

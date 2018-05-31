@@ -91,13 +91,15 @@ namespace Alimer
 		psoDesc.InputLayout.NumElements = elementsCount;
 		psoDesc.pRootSignature = d3dPipelineLayout->GetD3DRootSignature();
 
-		std::vector<uint8_t> vsByteCode = std::static_pointer_cast<D3D12Shader>(descriptor.vertex)->AcquireBytecode();
+		std::vector<uint8_t> vsByteCode;
+		std::vector<uint8_t> psByteCode;
+		vsByteCode = std::static_pointer_cast<D3D12Shader>(descriptor.vertex)->AcquireBytecode();
 		auto psShader = std::static_pointer_cast<D3D12Shader>(descriptor.fragment);
 
 		psoDesc.VS = { vsByteCode.data(), vsByteCode.size() };
 		if (psShader)
 		{
-			std::vector<uint8_t> psByteCode = psShader->AcquireBytecode();
+			psByteCode = psShader->AcquireBytecode();
 			psoDesc.PS = { psByteCode.data(), psByteCode.size() };
 		}
 

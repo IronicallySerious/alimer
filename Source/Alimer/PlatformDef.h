@@ -202,7 +202,7 @@
 #	include <cassert>
 #	define ALIMER_ASSERT(expression) assert(expression)
 #	else
-#	define ALIMER_ASSERT(expression)
+#	define ALIMER_ASSERT(expression) ((void)0)
 #	endif
 
 #endif

@@ -20,50 +20,23 @@
 // THE SOFTWARE.
 //
 
-#include "../Resource/ResourceManager.h"
-#include "../IO/FileSystem.h"
-#include "../IO/Path.h"
-#include "../Util/Util.h"
-#include "../Core/Log.h"
-using namespace std;
+#pragma once
+
+#include "../Graphics/Types.h"
+#include <string>
+#include <vector>
 
 namespace Alimer
 {
-	Alimer::ResourceManager* resources = nullptr;
-
-	ResourceManager::ResourceManager()
+	/// Class for shader compilation support.
+	class ShaderCompiler
 	{
-#ifdef ALIMER_ASSET_PIPELINE
-		_dataDirectory = FileSystem::Get().GetProtocol("assets")->GetPath();
-		_dataDirectory += '_';
-		_dataDirectory += "windows";
-#else
-		_dataDirectory = FileSystem::Get().GetProtocol("assets")->GetPath();
-#endif
+	public:
+		static std::vector<uint32_t> Compile(const std::string& filePath, std::string& errorLog);
+		static std::vector<uint32_t> Compile(const std::string& shaderSource, const std::string& filePath, ShaderStage stage, std::string& errorLog);
 
-		resources = this;
-	}
-
-	ResourceManager::~ResourceManager()
-	{
-		resources = nullptr;
-	}
-
-	ResourcePtr ResourceManager::LoadResource(const std::string& assetName)
-	{
-		auto paths = Path::ProtocolSplit(assetName);
-		string fullPath = Path::Join(_dataDirectory, paths.second);
-		string compiledAssetName = fullPath + ".alb";
-
-		if (!FileSystem::Get().FileExists(compiledAssetName))
-		{
-			if (!FileSystem::Get().FileExists(assetName))
-			{
-				return nullptr;
-			}
-		}
-
-		auto b = FileSystem::Get().FileExists(assetName);
-		return nullptr;
-	}
+	private:
+		ShaderCompiler() = delete;
+		DISALLOW_COPY_MOVE_AND_ASSIGN(ShaderCompiler);
+	};
 }

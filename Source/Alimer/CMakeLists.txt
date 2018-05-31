@@ -67,6 +67,46 @@ if (ALIMER_D3D12)
 	define_engine_source_files(Graphics/D3D12)
 endif (ALIMER_D3D12)
 
+# SPIRV-Cross
+set(SPIRV_CROSS_HEADER_FILES
+	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/GLSL.std.450.h
+	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_common.hpp
+	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_cfg.hpp
+	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_cross.hpp
+	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv.hpp
+)
+
+set(SPIRV_CROSS_SOURCE_FILES
+	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_cfg.cpp
+	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_cross.cpp
+)
+
+set(NEED_SPIRV_CROSS_GLSL OFF)
+
+if (ALIMER_D3D11 OR ALIMER_D3D12)
+	list(APPEND SPIRV_CROSS_HEADER_FILES
+		${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_hlsl.hpp
+	)
+
+	list(APPEND SPIRV_CROSS_SOURCE_FILES
+		${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_hlsl.cpp
+	)
+	set(NEED_SPIRV_CROSS_GLSL ON)
+endif()
+
+if (ALIMER_VULKAN OR ALIMER_OPENGL OR NEED_SPIRV_CROSS_GLSL)
+	list(APPEND SPIRV_CROSS_HEADER_FILES
+		${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_glsl.hpp
+	)
+	list(APPEND SPIRV_CROSS_SOURCE_FILES
+		${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_glsl.cpp
+	)
+endif()
+
+list (APPEND HEADER_FILES ${SPIRV_CROSS_HEADER_FILES})
+list (APPEND SOURCE_FILES ${SPIRV_CROSS_SOURCE_FILES})
+install (FILES ${SPIRV_CROSS_HEADER_FILES} DESTINATION ${DEST_INCLUDE_DIR}/ThirdParty/SPIRV-Cross)
+
 # Group source code in VS solution
 group_sources()
 
@@ -148,12 +188,6 @@ if (ALIMER_D3D11 OR ALIMER_D3D12)
 		${DXGI_LIBRARY}
 		${D3DCOMPILER_LIBRARY}
 	)
-
-	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-		find_library(DXGUID_LIBRARY NAMES dxguid.lib HINTS ${WIN10_SDK_LIB_PATH})
-		list(APPEND D3D11_LIBRARIES ${DXGUID_LIBRARY})
-		list(APPEND D3D12_LIBRARIES ${DXGUID_LIBRARY})
-	endif()
 endif()
 
 if (ALIMER_D3D12)
@@ -165,13 +199,19 @@ if (ALIMER_VULKAN)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_VULKAN)
 endif (ALIMER_VULKAN)
 
+if (ALIMER_SHADER_COMPILER)
+	target_include_directories(libAlimer PRIVATE ${ALIMER_THIRD_PARTY_DIR}/glslang)
+	target_compile_definitions(libAlimer PRIVATE -DALIMER_SHADER_COMPILER)
+	target_link_libraries (libAlimer glslang SPIRV)
+endif (ALIMER_SHADER_COMPILER)
+
 # Add OS-specific library dependencies
 if (PLATFORM_WINDOWS)
 	target_compile_definitions (libAlimer PRIVATE -D_UNICODE -DNOMINMAX)
 elseif (PLATFORM_UWP)
 	set_target_properties(libAlimer PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${PLATFORM_UWP_VERSION_MIN}")
 	target_compile_definitions (libAlimer PRIVATE -D_UNICODE -DNOMINMAX)
-	target_link_libraries (libAlimer mincore)
+	target_link_libraries (libAlimer mincore d3d12.lib dxgi.lib d3dcompiler.lib)
 else ()
 	target_link_libraries (libAlimer pthread)
 endif ()
