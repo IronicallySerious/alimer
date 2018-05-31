@@ -20,57 +20,56 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
 #include "../Util/Ptr.h"
-#include <memory>
-#include <string>
-#include <atomic>
 
 namespace Alimer
 {
-	/// Asynchronous loading state of a resource.
-	enum class AsyncLoadState : uint32_t
+	RefCounted::RefCounted()
+		: _refCount(new RefCount())
 	{
-		/// No async operation in progress.
-		Done = 0,
-		/// Queued for asynchronous loading.
-		Queued = 1,
-		/// In progress of calling BeginLoad() in a worker thread.
-		Loading = 2,
-		/// BeginLoad() succeeded. EndLoad() can be called in the main thread.
-		Success = 3,
-		/// BeginLoad() failed.
-		Fail = 4
-	};
+		// Hold a weak ref to self to avoid possible double delete of the refcount
+		(_refCount->weakRefs)++;
+	}
 
-	/// Runtime resource class.
-	class Resource : public RefCounted
+	RefCounted::~RefCounted()
 	{
-	protected:
-		/// Constructor.
-		Resource();
+		assert(_refCount);
+		assert(_refCount->refs == 0);
+		assert(_refCount->weakRefs > 0);
 
-	public:
-		/// Destructor.
-		virtual ~Resource() = default;
+		// Mark object as expired, release the self weak ref and delete the refcount if no other weak refs exist
+		_refCount->refs = -1;
+		(_refCount->weakRefs)--;
+		if (!_refCount->weakRefs)
+			delete _refCount;
 
-		/// Set name.
-		void SetName(const std::string& name);
+		_refCount = nullptr;
+	}
 
-		/// Return name.
-		const std::string& GetName() const { return _name; }
+	uint32_t RefCounted::AddRef()
+	{
+		assert(_refCount->refs >= 0);
+		uint32_t newRefs = (_refCount->refs)++;
+		return newRefs;
+	}
 
-		/// Return the asynchronous loading state.
-		AsyncLoadState GetAsyncLoadState() const { return _asyncLoadState; }
+	uint32_t RefCounted::Release()
+	{
+		assert(_refCount->refs > 0);
+		uint32_t newRefs = (_refCount->refs)--;
+		if (!_refCount->refs)
+			delete this;
+		return newRefs;
+	}
 
-	protected:
-		std::string _name;
-		AsyncLoadState _asyncLoadState;
+	uint32_t RefCounted::Refs() const
+	{
+		return _refCount->refs;
+	}
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Resource);
-	};
-
-	using ResourcePtr = std::shared_ptr<Resource>;
+	uint32_t RefCounted::WeakRefs() const
+	{
+		// Subtract one to not return the internally held reference
+		return _refCount->weakRefs - 1;
+	}
 }

@@ -30,42 +30,6 @@ PipelineStatePtr renderPipeline;
 
 void AlimerMain(const std::vector<std::string>& args)
 {
-	{
-		auto stream = FileSystem::Get().Open("assets://Test.json", StreamMode::WriteOnly);
-		Serializer serializer(*stream.get(), SerializerMode::Write, Serializer::Type::JSON);
-		bool testVal = true;
-		int16_t testInt16 = std::numeric_limits<int16_t>::min();
-		uint16_t testUInt16 = std::numeric_limits<uint16_t>::max();
-		float floatV = 3.145f;
-		double floatD = 6.26;
-		Vector3 vector3 = Vector3::UnitY;
-		serializer.Serialize("bool", testVal);
-		serializer.Serialize("int16_t", testInt16);
-		serializer.Serialize("uint16_t", testUInt16);
-		serializer.Serialize("float", floatV);
-		serializer.Serialize("double", floatD);
-		serializer.Serialize("vector3", vector3);
-	}
-
-	// Read now.
-	{
-		auto stream = FileSystem::Get().Open("assets://Test.json", StreamMode::ReadOnly);
-		Serializer serializer(*stream.get(), SerializerMode::Read, Serializer::Type::JSON);
-		bool testVal;
-		int16_t testInt16;
-		uint16_t testUInt16;
-		float floatV;
-		double floatD;
-		Vector3 vector3;
-
-		serializer.Serialize("bool", testVal);
-		serializer.Serialize("int16_t", testInt16);
-		serializer.Serialize("uint16_t", testUInt16);
-		serializer.Serialize("float", floatV);
-		serializer.Serialize("double", floatD);
-		serializer.Serialize("vector3", vector3);
-	}
-
 	struct Vertex
 	{
 		Vector3 position;
