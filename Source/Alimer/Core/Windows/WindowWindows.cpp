@@ -178,7 +178,7 @@ namespace Alimer
 		LONG _oleRefCount = 0;
 	};
 
-	WindowWindows::WindowWindows(HINSTANCE hInstance)
+	WindowWindows::WindowWindows(HINSTANCE hInstance, const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
 		: _dropTarget(new OleDropTarget())
 		, _cursor(LoadCursorW(nullptr, IDC_ARROW))
 	{
@@ -193,7 +193,7 @@ namespace Alimer
 		{
 			WNDCLASSEX wc;
 			wc.cbSize = sizeof(WNDCLASSEX);
-			wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+			wc.style = CS_HREDRAW | CS_VREDRAW;
 			wc.lpfnWndProc = WndProc;
 			wc.cbClsExtra = 0;
 			wc.cbWndExtra = 0;
@@ -204,10 +204,11 @@ namespace Alimer
 			wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));;
 			wc.lpszMenuName = nullptr;  // No default menu
 			wc.lpszClassName = AppWindowClass;
+			wc.hIconSm = LoadIcon(NULL, IDI_WINLOGO);
 
 			if (!::RegisterClassExW(&wc))
 			{
-				ALIMER_LOGERROR("[Win32] - Failed to register window class.");
+				ALIMER_LOGERROR("Failed to register Win32 class.");
 				return;
 			}
 
@@ -219,24 +220,54 @@ namespace Alimer
 			}
 		}
 
-		_windowStyle = WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_BORDER | WS_DLGFRAME | WS_THICKFRAME | WS_GROUP | WS_TABSTOP;
-		_windowExStyle = WS_EX_APPWINDOW;
+		int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+		int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-		if (_resizable)
-			_windowStyle |= WS_SIZEBOX | WS_MAXIMIZEBOX;
+		if (fullscreen)
+		{
+			DEVMODE dmScreenSettings;
+			memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
+			dmScreenSettings.dmSize = sizeof(dmScreenSettings);
+			dmScreenSettings.dmPelsWidth = screenWidth;
+			dmScreenSettings.dmPelsHeight = screenHeight;
+			dmScreenSettings.dmBitsPerPel = 32;
+			dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+			if ((width != (uint32_t)screenWidth) && (height != (uint32_t)screenHeight)) {
+				if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
+					if (MessageBoxW(nullptr, L"Fullscreen Mode not supported!\n Switch to window mode?", L"Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
+					{
+						fullscreen = false;
+					}
+					else
+					{
+						return;
+					}
+				}
+			}
+		}
 
-		int x = CW_USEDEFAULT;
-		int y = CW_USEDEFAULT;
+		DWORD dwExStyle;
+		DWORD dwStyle;
 
-		RECT windowRect = { 0, 0, static_cast<LONG>(_width), static_cast<LONG>(_height) };
-		AdjustWindowRectEx(&windowRect, _windowStyle, FALSE, _windowExStyle);
+		if (fullscreen)
+		{
+			dwExStyle = WS_EX_APPWINDOW;
+			dwStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+		}
+		else {
+			dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+			dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 
-		int width = CW_USEDEFAULT;
-		int height = CW_USEDEFAULT;
-		if (_width > 0)
-			width = windowRect.right - windowRect.left;
-		if (_height > 0)
-			height = windowRect.bottom - windowRect.top;
+			if (_resizable)
+				dwStyle |= WS_SIZEBOX | WS_MAXIMIZEBOX;
+		}
+
+		RECT windowRect;
+		windowRect.left = 0L;
+		windowRect.top = 0L;
+		windowRect.right = fullscreen ? (long)screenWidth : (long)width;
+		windowRect.bottom = fullscreen ? (long)screenHeight : (long)height;
+		AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
 		wchar_t titleBuffer[256] = L"";
 
@@ -247,13 +278,22 @@ namespace Alimer
 			return;
 		}
 
+		int x, y;
+		if (!fullscreen) {
+			x = (screenWidth - windowRect.right) / 2;
+			y = (screenHeight - windowRect.bottom) / 2;
+		}
+
 		_hwnd =
 			CreateWindowExW(
-				_windowExStyle,
+				dwExStyle,
 				AppWindowClass,
 				titleBuffer,
-				_windowStyle,
-				x, y, width, height,
+				dwStyle,
+				x,
+				y,
+				windowRect.right - windowRect.left,
+				windowRect.bottom - windowRect.top,
 				nullptr,
 				nullptr,
 				_hInstance,

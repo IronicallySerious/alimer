@@ -49,7 +49,7 @@ namespace Alimer
 		resources = nullptr;
 	}
 
-	ResourcePtr ResourceManager::LoadResource(const std::string& assetName)
+	SharedPtr<Resource> ResourceManager::LoadResource(const std::string& assetName)
 	{
 		auto paths = Path::ProtocolSplit(assetName);
 		string fullPath = Path::Join(_dataDirectory, paths.second);

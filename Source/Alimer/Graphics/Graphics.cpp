@@ -133,7 +133,7 @@ namespace Alimer
 		return graphics;
 	}
 
-	bool Graphics::Initialize(std::shared_ptr<Window> window)
+	bool Graphics::Initialize(const SharedPtr<Window>& window)
 	{
 		_window = window;
 		return true;

@@ -58,7 +58,7 @@ namespace Alimer
 		~EngineWindows() override;
 
 		int Run() override;
-		std::shared_ptr<Window> CreateWindow() override;
+		SharedPtr<Window> CreateWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen) override;
 		Input* CreateInput() override;
 		Audio* CreateAudio() override;
 	};

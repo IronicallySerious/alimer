@@ -70,15 +70,15 @@ void AlimerShutdown()
 
 void AlimerRender()
 {
-	auto frameTexture = graphics->AcquireNextImage();
-	auto commandBuffer = graphics->CreateCommandBuffer();
+	/*SharedPtr<Texture> frameTexture = graphics->AcquireNextImage();
+	SharedPtr<CommandBuffer> commandBuffer = graphics->CreateCommandBuffer();
 	RenderPassDescriptor passDescriptor;
-	passDescriptor.colorAttachments[0].texture = frameTexture.get();
+	passDescriptor.colorAttachments[0].texture = frameTexture;
 	passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
 	commandBuffer->BeginRenderPass(passDescriptor);
 	commandBuffer->SetVertexBuffer(vertexBuffer.get(), 0);
 	commandBuffer->SetPipeline(renderPipeline);
 	commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
 	commandBuffer->EndRenderPass();
-	commandBuffer->Commit();
+	commandBuffer->Commit();*/
 }

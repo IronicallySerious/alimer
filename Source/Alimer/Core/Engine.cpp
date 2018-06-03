@@ -79,11 +79,12 @@ namespace Alimer
 
 		if (!_headless)
 		{
-			_window = CreateWindow();
+			_window = CreateWindow("Alimer", 800, 600);
 
 			// Create and init graphics.
-			_graphicsDeviceType = GraphicsDeviceType::Direct3D12;
-			_graphics.reset(Graphics::Create(_graphicsDeviceType));
+			//_graphicsDeviceType = GraphicsDeviceType::Direct3D12;
+			//_graphicsDeviceType = GraphicsDeviceType::Vulkan;
+			_graphics = Graphics::Create(_graphicsDeviceType);
 
 			if (!_graphics->Initialize(_window))
 			{
@@ -93,10 +94,10 @@ namespace Alimer
 		}
 
 		// Create per platform Input module.
-		_input.reset(CreateInput());
+		_input = CreateInput();
 
 		// Create per platform Audio module.
-		_audio.reset(CreateAudio());
+		_audio = CreateAudio();
 
 		ALIMER_LOGINFO("Engine initialized with success.");
 		_running = true;

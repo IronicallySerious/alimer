@@ -49,12 +49,12 @@ namespace Alimer
 		/// Destructor.
 		virtual ~D3D12Graphics() override;
 
-		bool Initialize(std::shared_ptr<Window> window) override;
+		bool Initialize(const SharedPtr<Window>& window) override;
 		bool WaitIdle() override;
-		std::shared_ptr<Texture> AcquireNextImage() override;
+		SharedPtr<Texture> AcquireNextImage() override;
 		bool Present() override;
 
-		CommandBufferPtr CreateCommandBuffer() override;
+		SharedPtr<CommandBuffer> CreateCommandBuffer() override;
 
 		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 		PipelineLayoutPtr CreatePipelineLayout() override;
@@ -74,9 +74,9 @@ namespace Alimer
 
 	private:
 		bool InitializeCaps();
-		void CreateSwapchain(std::shared_ptr<Window> window);
-		std::shared_ptr<D3D12CommandBuffer> RetrieveCommandBuffer();
-		void RecycleCommandBuffer(const std::shared_ptr<D3D12CommandBuffer>& cmd);
+		void CreateSwapchain(const SharedPtr<Window>& window);
+		SharedPtr<D3D12CommandBuffer> RetrieveCommandBuffer();
+		void RecycleCommandBuffer(D3D12CommandBuffer* commandBuffer);
 
 		static constexpr uint32_t FrameCount = 2u;
 		bool _useWarpDevice{ false };
@@ -96,7 +96,7 @@ namespace Alimer
 		D3D12CommandListManager* _commandListManager;
 		static constexpr size_t CommandBufferRecycleCount = 16;
 		std::mutex _commandBufferMutex;
-		std::array<std::shared_ptr<D3D12CommandBuffer>, CommandBufferRecycleCount> _recycledCommandBuffers;
+		std::array<SharedPtr<D3D12CommandBuffer>, CommandBufferRecycleCount> _recycledCommandBuffers;
 		size_t _commandBufferObjectId = 0;
 	};
 }

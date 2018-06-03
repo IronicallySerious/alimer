@@ -22,18 +22,18 @@
 
 #pragma once
 
+#include "../Foundation/Ptr.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/PipelineState.h"
-#include <memory>
 
 namespace Alimer
 {
 	class Graphics;
 
 	/// Defines a command buffer for storing recorded gpu commands.
-	class CommandBuffer
+	class CommandBuffer : public RefCounted
 	{
 	protected:
 		/// Constructor.
@@ -98,6 +98,4 @@ namespace Alimer
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);
 	};
-
-	using CommandBufferPtr = std::shared_ptr<CommandBuffer>;
 }

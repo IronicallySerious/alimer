@@ -25,6 +25,7 @@
 #include "../../Core/Log.h"
 #include "../../Input/Windows/InputWindows.h"
 #include "../../Audio/WASAPI/AudioWASAPI.h"
+#include <ShellScalingAPI.h>
 #include <shellapi.h>
 #include <Ole2.h>
 #include <oleidl.h>
@@ -59,16 +60,17 @@ namespace Alimer
 
 		if (hr == S_FALSE || FAILED(hr))
 		{
-			//ALIMER_LOGDEBUG("Failed to initialize COM, error: {}", hr);
+			ALIMER_LOGDEBUG("Failed to initialize COM, error: {}", hr);
 			return false;
 		}
 
 		// Enable high DPI as SDL not support.
 		if (HMODULE shCoreLibrary = ::LoadLibraryW(L"Shcore.dll"))
 		{
-			typedef HRESULT(WINAPI*SetProcessDpiAwarenessType)(size_t value);
-			if (auto fn = GetProcAddress(shCoreLibrary, "SetProcessDpiAwareness"))
-				((SetProcessDpiAwarenessType)fn)(2);    // PROCESS_PER_MONITOR_DPI_AWARE
+			if (auto fn = (decltype(&SetProcessDpiAwareness))GetProcAddress(shCoreLibrary, "SetProcessDpiAwareness"))
+			{
+				fn(PROCESS_PER_MONITOR_DPI_AWARE);
+			}
 
 			FreeLibrary(shCoreLibrary);
 		}
@@ -76,10 +78,8 @@ namespace Alimer
 		{
 			if (HMODULE user32Library = ::LoadLibraryW(L"user32.dll"))
 			{
-				typedef BOOL(WINAPI * PFN_SetProcessDPIAware)(void);
-
-				if (auto fn = GetProcAddress(user32Library, "SetProcessDPIAware"))
-					((PFN_SetProcessDPIAware)fn)();
+				if (auto fn = (decltype(&SetProcessDPIAware))GetProcAddress(user32Library, "SetProcessDPIAware"))
+					fn();
 
 				FreeLibrary(user32Library);
 			}
@@ -117,7 +117,7 @@ namespace Alimer
 	{
 		if (!Win32PlatformInitialize())
 		{
-			//ALIMER_LOGERROR("[Win32] - Failed to setup");
+			ALIMER_LOGERROR("[Win32] - Failed to setup");
 			return EXIT_FAILURE;
 		}
 
@@ -174,9 +174,9 @@ namespace Alimer
 		return EXIT_SUCCESS;
 	}
 
-	std::shared_ptr<Window> EngineWindows::CreateWindow()
+	SharedPtr<Window> EngineWindows::CreateWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
 	{
-		return std::make_shared<WindowWindows>(alimerHinstance);
+		return MakeShared<WindowWindows>(alimerHinstance, title, width, height, fullscreen);
 	}
 
 	Input* EngineWindows::CreateInput()

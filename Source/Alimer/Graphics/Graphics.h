@@ -52,19 +52,19 @@ namespace Alimer
 		/// Factory method for Graphics creation.
 		static Graphics* Create(GraphicsDeviceType deviceType, bool validation = false, const std::string& applicationName = "Alimer");
 
-		virtual bool Initialize(std::shared_ptr<Window> window);
+		virtual bool Initialize(const SharedPtr<Window>& window);
 
 		/// Wait for a device to become idle
 		virtual bool WaitIdle() = 0;
 
 		/// Begin rendering frame and return current backbuffer texture.
-		virtual std::shared_ptr<Texture> AcquireNextImage() = 0;
+		virtual SharedPtr<Texture> AcquireNextImage() = 0;
 
 		/// Present frame.
 		virtual bool Present() = 0;
 
 		// CommandBuffer
-		virtual CommandBufferPtr CreateCommandBuffer() = 0;
+		virtual SharedPtr<CommandBuffer> CreateCommandBuffer() = 0;
 
 		// Buffer
 		virtual GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr) = 0;
@@ -86,8 +86,8 @@ namespace Alimer
 
 	protected:
 		GraphicsDeviceType _deviceType;
-		std::shared_ptr<Window> _window;
-		std::vector<std::shared_ptr<Texture>> _textures;
+		SharedPtr<Window> _window;
+		std::vector<SharedPtr<Texture>> _textures;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

@@ -26,6 +26,7 @@
 #include "../Resource/ResourceLoader.h"
 #include <string>
 #include <atomic>
+#include <map>
 
 namespace Alimer
 {
@@ -39,15 +40,16 @@ namespace Alimer
 		/// Destructor.
 		~ResourceManager();
 
-		ResourcePtr LoadResource(const std::string& assetName);
+		SharedPtr<Resource> LoadResource(const std::string& assetName);
 
-		template <class T> std::shared_ptr<T> Load(const std::string& assetName)
+		template <class T> SharedPtr<T> Load(const std::string& assetName)
 		{
-			return std::static_pointer_cast<T>(LoadResource(assetName));
+			return StaticCast<T>(LoadResource(assetName));
 		}
 
 	private:
 		std::string _dataDirectory;
+		std::map<std::string, SharedPtr<Resource>> _resources;
 
 		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceManager);
 	};

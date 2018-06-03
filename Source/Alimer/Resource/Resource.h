@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Util/Ptr.h"
+#include "../Foundation/Ptr.h"
 #include <memory>
 #include <string>
 #include <atomic>
@@ -71,6 +71,4 @@ namespace Alimer
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Resource);
 	};
-
-	using ResourcePtr = std::shared_ptr<Resource>;
 }

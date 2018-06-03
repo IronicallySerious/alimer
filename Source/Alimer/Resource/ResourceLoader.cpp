@@ -30,13 +30,13 @@ namespace Alimer
 	{
 	}
 
-	ResourcePtr ResourceLoader::Load(Stream& source)
+	SharedPtr<Resource> ResourceLoader::Load(Stream& source)
 	{
-		ResourcePtr result = nullptr;
+		Resource* result = nullptr;
 		bool success = BeginLoad(source);
 		if (success)
 			result = EndLoad();
 
-		return result;
+		return SharedPtr<Resource>(result);
 	}
 }

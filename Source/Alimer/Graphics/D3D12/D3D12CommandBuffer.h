@@ -41,9 +41,7 @@ namespace Alimer
 	class D3D12CommandListManager;
 
 	/// D3D12 CommandBuffer implementation.
-	class D3D12CommandBuffer final
-		: public CommandBuffer
-		, public std::enable_shared_from_this<D3D12CommandBuffer>
+	class D3D12CommandBuffer final : public CommandBuffer
 	{
 	public:
 		/// Constructor.

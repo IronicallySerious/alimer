@@ -45,7 +45,7 @@ void AlimerRender();
 namespace Alimer
 {
 	/// Engine for main loop and all modules and OS setup.
-	class Engine
+	class Engine : public RefCounted
 	{
 	protected:
 		/// Constructor.
@@ -70,13 +70,13 @@ namespace Alimer
 		/// Resume the main execution loop.
 		void Resume();
 
-		virtual std::shared_ptr<Window> CreateWindow() = 0;
+		virtual SharedPtr<Window> CreateWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false) = 0;
 
 		inline ResourceManager* GetResources() { return &_resources; }
-		inline Window* GetMainWindow() const { return _window.get(); }
-		inline Graphics* GetGraphics() const { return _graphics.get(); }
-		inline Input* GetInput() const { return _input.get(); }
-		inline Audio* GetAudio() const { return _audio.get(); }
+		inline Window* GetMainWindow() const { return _window.Get(); }
+		inline Graphics* GetGraphics() const { return _graphics.Get(); }
+		inline Input* GetInput() const { return _input.Get(); }
+		inline Audio* GetAudio() const { return _audio.Get(); }
 
 		/// Sets the current scene to be active and rendered.
 		void SetScene(std::shared_ptr<Scene> scene);
@@ -101,10 +101,10 @@ namespace Alimer
 		GraphicsDeviceType _graphicsDeviceType{ GraphicsDeviceType::Default };
 
 		ResourceManager _resources;
-		std::shared_ptr<Window> _window;
-		std::unique_ptr<Graphics> _graphics;
-		std::unique_ptr<Input> _input;
-		std::unique_ptr<Audio> _audio;
+		SharedPtr<Window> _window;
+		UniquePtr<Graphics> _graphics;
+		UniquePtr<Input> _input;
+		UniquePtr<Audio> _audio;
 
 		/// Current scene.
 		std::shared_ptr<Scene> _scene;

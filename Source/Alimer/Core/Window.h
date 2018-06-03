@@ -22,13 +22,13 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
+#include "../Foundation/Ptr.h"
 #include <string>
 
 namespace Alimer
 {
 	/// OS Window class.
-	class Window
+	class Window : public RefCounted
 	{
 	protected:
 		/// Constructor.

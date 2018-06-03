@@ -43,7 +43,7 @@ macro (define_engine_source_files)
 endmacro()
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . Core Util IO Math Graphics Input Audio)
+define_engine_source_files (NORECURSE . Foundation Core Util IO Math Graphics Input Audio)
 define_engine_source_files (Resource Serialization Scene)
 
 if (PLATFORM_WINDOWS)
@@ -197,6 +197,18 @@ endif (ALIMER_D3D12)
 
 if (ALIMER_VULKAN)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_VULKAN)
+	if (PLATFORM_WINDOWS)
+		target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_WIN32_KHR)
+	elseif (PLATFORM_LINUX)
+		if(ALIMER_LINUX_WAYLAND)
+			target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_WAYLAND_KHR)
+		else()
+			target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_XCB_KHR)
+		endif()
+	elseif (PLATFORM_ANDROID)
+		target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
+	endif()
+
 endif (ALIMER_VULKAN)
 
 if (ALIMER_SHADER_COMPILER)

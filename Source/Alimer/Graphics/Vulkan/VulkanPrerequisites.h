@@ -25,11 +25,14 @@
 #include "../../Core/Log.h"
 
 #if defined(_WIN32)
-#	define VK_USE_PLATFORM_WIN32_KHR 1
+#	ifndef VK_USE_PLATFORM_WIN32_KHR
+#		define VK_USE_PLATFORM_WIN32_KHR
+#	endif
 #elif defined(__linux__)
-#	define VK_USE_PLATFORM_XLIB_KHR 1
+#	define VK_USE_PLATFORM_XLIB_KHR
 #endif
 
+#define VK_NO_PROTOTYPES 0
 #include "volk/volk.h"
 
 inline const char* GetVulkanResultString(VkResult result)

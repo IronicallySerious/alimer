@@ -85,7 +85,7 @@ namespace Alimer
 			_manager->WaitForFence(fenceValue);
 		}
 
-		static_cast<D3D12Graphics*>(_graphics)->RecycleCommandBuffer(shared_from_this());
+		static_cast<D3D12Graphics*>(_graphics)->RecycleCommandBuffer(this);
 
 		//FreeCommandBuffer(this);
 

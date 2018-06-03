@@ -23,6 +23,11 @@
 #include "../../Core/Log.h"
 #include "../../Core/Window.h"
 #include "VulkanGraphics.h"
+
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#	include "../../Core/Windows/WindowWindows.h"
+#endif
+
 using namespace std;
 
 namespace Alimer
@@ -50,7 +55,7 @@ namespace Alimer
 			res = vkEnumerateInstanceExtensionProperties(layer_name, &instanceExtensionCount, nullptr);
 			if (res) return res;
 
-			if (instanceExtensionCount == 0) 
+			if (instanceExtensionCount == 0)
 				return VK_SUCCESS;
 
 			layer_props.instance_extensions.resize(instanceExtensionCount);
@@ -266,21 +271,71 @@ namespace Alimer
 		instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensionNames.size());
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensionNames.data();
 
-		result = vkCreateInstance(&instanceCreateInfo, nullptr, &_vkInstance);
+		result = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
 		vkThrowIfFailed(result);
 
 		// Now load vk symbols.
-		volkLoadInstance(_vkInstance);
+		volkLoadInstance(_instance);
+
+		// Setup debug callback
+		if (validation)
+		{
+			VkDebugReportCallbackCreateInfoEXT debugCreateInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
+			debugCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+			debugCreateInfo.pfnCallback = VkDebugCallback;
+			debugCreateInfo.pUserData = nullptr;
+			result = vkCreateDebugReportCallbackEXT(_instance, &debugCreateInfo, nullptr, &_debugCallback);
+		}
+	}
+
+	VulkanGraphics::~VulkanGraphics()
+	{
+		Finalize();
+	}
+
+	void VulkanGraphics::Finalize()
+	{
+		WaitIdle();
+
+		// Release all GPU objects
+		Graphics::Finalize();
+
+		// Destroy logical device.
+		if (_logicalDevice != VK_NULL_HANDLE)
+		{
+			vkDestroyDevice(_logicalDevice, nullptr);
+			_logicalDevice = VK_NULL_HANDLE;
+		}
+
+		if (_debugCallback != VK_NULL_HANDLE) {
+			vkDestroyDebugReportCallbackEXT(_instance, _debugCallback, nullptr);
+		}
+		vkDestroyInstance(_instance, nullptr);
+		_instance = VK_NULL_HANDLE;
+	}
+
+	bool VulkanGraphics::WaitIdle()
+	{
+		VkResult result = vkDeviceWaitIdle(_logicalDevice);
+		if (result < VK_SUCCESS)
+			return false;
+
+		return true;
+	}
+
+	bool VulkanGraphics::Initialize(const SharedPtr<Window>& window)
+	{
+		VkResult result = VK_SUCCESS;
 
 		// Enumerate physical devices.
 		uint32_t gpuCount = 0;
 		// Get number of available physical devices
-		vkThrowIfFailed(vkEnumeratePhysicalDevices(_vkInstance, &gpuCount, nullptr));
+		vkThrowIfFailed(vkEnumeratePhysicalDevices(_instance, &gpuCount, nullptr));
 		if (gpuCount > 0)
 		{
 			// Enumerate physical devices.
 			std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
-			vkEnumeratePhysicalDevices(_vkInstance, &gpuCount, physicalDevices.data());
+			result = vkEnumeratePhysicalDevices(_instance, &gpuCount, physicalDevices.data());
 
 			//for (uint32_t i = 0; i < gpuCount; ++i)
 			//{
@@ -290,52 +345,200 @@ namespace Alimer
 			_vkPhysicalDevice = physicalDevices.front();
 		}
 
-		// Setup debug callback
-		if (validation)
+		// Store Properties features, limits and properties of the physical device for later use
+		// Device properties also contain limits and sparse properties
+		vkGetPhysicalDeviceProperties(_vkPhysicalDevice, &_deviceProperties);
+		// Features should be checked by the examples before using them
+		vkGetPhysicalDeviceFeatures(_vkPhysicalDevice, &_deviceFeatures);
+		// Memory properties are used regularly for creating all kinds of buffers
+		vkGetPhysicalDeviceMemoryProperties(_vkPhysicalDevice, &_deviceMemoryProperties);
+		// Queue family properties, used for setting up requested queues upon device creation
+		uint32_t queueFamilyCount;
+		vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, nullptr);
+		assert(queueFamilyCount > 0);
+		_queueFamilyProperties.resize(queueFamilyCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, _queueFamilyProperties.data());
+
+		// Create the os-specific surface
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+		SharedPtr<WindowWindows> win32Window = StaticCast<WindowWindows>(window);
+
+		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+		surfaceCreateInfo.hinstance = win32Window->GetHInstance();
+		surfaceCreateInfo.hwnd = win32Window->GetHandle();
+		result = vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
+#elif defined(VK_USE_PLATFORM_XLIB_KHR)
+		VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR };
+		surfaceCreateInfo.dpy = (Display*)connection;
+		surfaceCreateInfo.window = (Window)window;
+		result = vkCreateXlibSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR };
+		surfaceCreateInfo.window = (ANativeWindow*)window;
+		result = vkCreateAndroidSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
+#endif
+		vkThrowIfFailed(result);
+
+		std::vector<VkBool32> supportsPresent(queueFamilyCount);
+		for (uint32_t i = 0; i < queueFamilyCount; i++)
 		{
-			VkDebugReportCallbackCreateInfoEXT debugCreateInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
-			debugCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-			debugCreateInfo.pfnCallback = VkDebugCallback;
-			debugCreateInfo.pUserData = nullptr;
-			result = vkCreateDebugReportCallbackEXT(_vkInstance, &debugCreateInfo, nullptr, &_vkDebugCallback);
+			vkGetPhysicalDeviceSurfaceSupportKHR(_vkPhysicalDevice, i, _surface, &supportsPresent[i]);
 		}
-	}
 
-	VulkanGraphics::~VulkanGraphics()
-	{
-		WaitIdle();
-		Finalize();
-	}
-
-	void VulkanGraphics::Finalize()
-	{
-		// Release all GPU objects
-		Graphics::Finalize();
-
-		// Destroy logical device.
-		if (_device != VK_NULL_HANDLE)
+		// Search for a graphics and a present queue in the array of queue
+		// families, try to find one that supports both
+		uint32_t graphicsQueueNodeIndex = UINT32_MAX;
+		uint32_t presentQueueNodeIndex = UINT32_MAX;
+		for (uint32_t i = 0; i < queueFamilyCount; i++)
 		{
-			vkDestroyDevice(_device, nullptr);
-			_device = VK_NULL_HANDLE;
-		}
-	}
+			if ((_queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
+			{
+				if (graphicsQueueNodeIndex == UINT32_MAX)
+				{
+					graphicsQueueNodeIndex = i;
+				}
 
-	bool VulkanGraphics::WaitIdle()
-	{
-		VkResult result = vkDeviceWaitIdle(_device);
-		if (result < VK_SUCCESS)
+				if (supportsPresent[i] == VK_TRUE)
+				{
+					graphicsQueueNodeIndex = i;
+					presentQueueNodeIndex = i;
+					break;
+				}
+			}
+		}
+		if (presentQueueNodeIndex == UINT32_MAX)
+		{
+			// If there's no queue that supports both present and graphics
+			// try to find a separate present queue
+			for (uint32_t i = 0; i < queueFamilyCount; ++i)
+			{
+				if (supportsPresent[i] == VK_TRUE)
+				{
+					presentQueueNodeIndex = i;
+					break;
+				}
+			}
+		}
+
+		// Exit if either a graphics or a presenting queue hasn't been found
+		if (graphicsQueueNodeIndex == UINT32_MAX
+			|| presentQueueNodeIndex == UINT32_MAX)
+		{
+			ALIMER_LOGCRITICAL("Could not find a graphics and/or presenting queue");
 			return false;
+		}
 
-		return true;
-	}
+		// Get list of supported surface formats
+		uint32_t formatCount;
+		vkThrowIfFailed(vkGetPhysicalDeviceSurfaceFormatsKHR(_vkPhysicalDevice, _surface, &formatCount, NULL));
+		assert(formatCount > 0);
 
-	bool VulkanGraphics::Initialize(std::shared_ptr<Window> window)
-	{
+		std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
+		vkThrowIfFailed(vkGetPhysicalDeviceSurfaceFormatsKHR(_vkPhysicalDevice, _surface, &formatCount, surfaceFormats.data()));
+
+		// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
+		// there is no preferered format, so we assume VK_FORMAT_B8G8R8A8_UNORM
+		if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED))
+		{
+			_swapchainFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
+			_swapchainFormat.colorSpace = surfaceFormats[0].colorSpace;
+		}
+		else
+		{
+			// iterate over the list of available surface format and
+			// check for the presence of VK_FORMAT_B8G8R8A8_UNORM
+			bool found_B8G8R8A8_UNORM = false;
+			for (auto&& surfaceFormat : surfaceFormats)
+			{
+				if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM)
+				{
+					_swapchainFormat.format = surfaceFormat.format;
+					_swapchainFormat.colorSpace = surfaceFormat.colorSpace;
+					found_B8G8R8A8_UNORM = true;
+					break;
+				}
+			}
+
+			// in case VK_FORMAT_B8G8R8A8_UNORM is not available
+			// select the first available color format
+			if (!found_B8G8R8A8_UNORM)
+			{
+				_swapchainFormat.format = surfaceFormats[0].format;
+				_swapchainFormat.colorSpace = surfaceFormats[0].colorSpace;
+			}
+		}
+
+		// Now create logical device.
+		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+
+		const float defaultQueuePriority(0.0f);
+
+		// Graphics queue.
+		const VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
+		if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT) {
+			_queueFamilyIndices.graphics = GetQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
+			VkDeviceQueueCreateInfo queueInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+			queueInfo.queueFamilyIndex = _queueFamilyIndices.graphics;
+			queueInfo.queueCount = 1;
+			queueInfo.pQueuePriorities = &defaultQueuePriority;
+			queueCreateInfos.push_back(queueInfo);
+		}
+		else {
+			_queueFamilyIndices.graphics = static_cast<uint32_t>(-1);
+		}
+
+		// Dedicated compute queue
+		if (requestedQueueTypes & VK_QUEUE_COMPUTE_BIT) {
+			_queueFamilyIndices.compute = GetQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT);
+			if (_queueFamilyIndices.compute != _queueFamilyIndices.graphics) {
+				// If compute family index differs, we need an additional queue create info for the compute queue
+				VkDeviceQueueCreateInfo queueInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+				queueInfo.queueFamilyIndex = _queueFamilyIndices.compute;
+				queueInfo.queueCount = 1;
+				queueInfo.pQueuePriorities = &defaultQueuePriority;
+				queueCreateInfos.push_back(queueInfo);
+			}
+		}
+		else {
+			// Else we use the same queue
+			_queueFamilyIndices.compute = _queueFamilyIndices.graphics;
+		}
+
+		// Create the logical device representation
+		std::vector<const char*> deviceExtensions;
+		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+		VkPhysicalDeviceFeatures enabledFeatures{};
+		if (_deviceFeatures.samplerAnisotropy) {
+			enabledFeatures.samplerAnisotropy = VK_TRUE;
+		}
+
+		VkDeviceCreateInfo deviceCreateInfo = {};
+		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
+		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+		deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+
+		if (deviceExtensions.size() > 0) {
+			deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
+			deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+		}
+
+		result = vkCreateDevice(_vkPhysicalDevice, &deviceCreateInfo, nullptr, &_logicalDevice);
+		vkThrowIfFailed(result);
+
+		// Get queue's.
+		vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.graphics, 0, &_graphicsQueue);
+		vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.compute, 0, &_computeQueue);
+
 		return Graphics::Initialize(window);
 	}
 
-	std::shared_ptr<Texture> VulkanGraphics::AcquireNextImage()
+	SharedPtr<Texture> VulkanGraphics::AcquireNextImage()
 	{
+		// Acquire the next image from the swap chain
+		vkAcquireNextImageKHR(_logicalDevice, _swapchain, UINT64_MAX, _imageAcquiredSemaphore, (VkFence)nullptr, &_swapchainImageIndex);
+
 		return nullptr;
 	}
 
@@ -344,7 +547,7 @@ namespace Alimer
 		return true;
 	}
 
-	CommandBufferPtr VulkanGraphics::CreateCommandBuffer()
+	SharedPtr<CommandBuffer> VulkanGraphics::CreateCommandBuffer()
 	{
 		return nullptr;
 	}

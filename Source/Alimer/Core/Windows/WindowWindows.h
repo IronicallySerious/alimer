@@ -37,7 +37,7 @@ namespace Alimer
 	class WindowWindows final : public Window
 	{
 	public:
-		WindowWindows(HINSTANCE hInstance);
+		WindowWindows(HINSTANCE hInstance, const std::string& title, uint32_t width, uint32_t height, bool fullscreen);
 		~WindowWindows() override;
 		void Destroy();
 		void Activate(bool focused);
@@ -46,13 +46,12 @@ namespace Alimer
 		void Close();
 		LRESULT OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
 
+		inline HINSTANCE GetHInstance() const { return _hInstance; }
 		inline HWND GetHandle() const { return _hwnd; }
 
 	private:
 		void InitAfterCreation();
 
-		DWORD _windowStyle = 0;
-		DWORD _windowExStyle = 0;
 		HINSTANCE _hInstance = nullptr;
 		HWND _hwnd = nullptr;
 		HMONITOR _monitor = nullptr;

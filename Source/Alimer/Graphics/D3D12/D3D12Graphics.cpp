@@ -34,8 +34,6 @@
 #include "../../IO/FileSystem.h"
 #include "../../Core/Windows/EngineWindows.h"
 #include "../../Core/Windows/WindowWindows.h"
-#include "Shaders/Compiled/Triangle_VSMain.inc"
-#include "Shaders/Compiled/Triangle_PSMain.inc"
 
 #define COMPILED_SHADER_EXT ".cso"
 
@@ -194,7 +192,7 @@ namespace Alimer
 		}
 	}
 
-	bool D3D12Graphics::Initialize(std::shared_ptr<Window> window)
+	bool D3D12Graphics::Initialize(const SharedPtr<Window>& window)
 	{
 #if !ALIMER_PLATFORM_UWP
 		if (FAILED(LoadD3D12Libraries()))
@@ -311,12 +309,6 @@ namespace Alimer
 		// Create Swapchain.
 		CreateSwapchain(window);
 
-		// Init stock resources
-		//_stockVertexColor = std::make_shared<D3D12Shader>(this,
-		//	ShaderBytecode{ sizeof(Triangle_VSMain), Triangle_VSMain },
-		//	ShaderBytecode{ sizeof(Triangle_PSMain), Triangle_PSMain }
-		//);
-
 		return Graphics::Initialize(window);
 	}
 
@@ -325,7 +317,7 @@ namespace Alimer
 		return _commandListManager->WaitIdle();
 	}
 
-	std::shared_ptr<Texture> D3D12Graphics::AcquireNextImage()
+	SharedPtr<Texture> D3D12Graphics::AcquireNextImage()
 	{
 		uint32_t index = _swapChain->GetCurrentBackBufferIndex();
 		return _textures[index];
@@ -387,7 +379,7 @@ namespace Alimer
 		return true;
 	}
 
-	void D3D12Graphics::CreateSwapchain(std::shared_ptr<Window> window)
+	void D3D12Graphics::CreateSwapchain(const SharedPtr<Window>& window)
 	{
 		// Describe and create the swap chain.
 		// TODO: Add VSync support.
@@ -404,7 +396,7 @@ namespace Alimer
 		ComPtr<IDXGISwapChain1> swapChain;
 
 #if !ALIMER_PLATFORM_UWP
-		std::shared_ptr<WindowWindows> win32Window = std::static_pointer_cast<WindowWindows>(window);
+		SharedPtr<WindowWindows> win32Window = StaticCast<WindowWindows>(window);
 
 		HWND handle = win32Window->GetHandle();
 		ThrowIfFailed(_factory->CreateSwapChainForHwnd(
@@ -437,18 +429,18 @@ namespace Alimer
 			// Get buffer from swapchain.
 			ThrowIfFailed(_swapChain->GetBuffer(i, IID_PPV_ARGS(&_renderTargets[i])));
 
-			auto d3dTexture = std::make_shared<D3D12Texture>(this, _renderTargets[i].Get());
+			auto d3dTexture = new D3D12Texture(this, _renderTargets[i].Get());
 			d3dTexture->SetUsageState(D3D12_RESOURCE_STATE_PRESENT);
 			_textures[i] = d3dTexture;
 		}
 	}
 
-	CommandBufferPtr D3D12Graphics::CreateCommandBuffer()
+	SharedPtr<CommandBuffer> D3D12Graphics::CreateCommandBuffer()
 	{
-		auto d3dCommandBuffer = RetrieveCommandBuffer();
+		SharedPtr<D3D12CommandBuffer> d3dCommandBuffer = RetrieveCommandBuffer();
 		if (d3dCommandBuffer == nullptr)
 		{
-			d3dCommandBuffer = std::make_shared<D3D12CommandBuffer>(this);
+			d3dCommandBuffer = MakeShared<D3D12CommandBuffer>(this);
 		}
 		else
 		{
@@ -570,7 +562,7 @@ namespace Alimer
 		return std::make_shared<D3D12PipelineState>(this, descriptor);
 	}
 
-	std::shared_ptr<D3D12CommandBuffer> D3D12Graphics::RetrieveCommandBuffer()
+	SharedPtr<D3D12CommandBuffer> D3D12Graphics::RetrieveCommandBuffer()
 	{
 		std::lock_guard<std::mutex> lock(_commandBufferMutex);
 
@@ -580,13 +572,13 @@ namespace Alimer
 		return _recycledCommandBuffers.at(--_commandBufferObjectId);
 	}
 
-	void D3D12Graphics::RecycleCommandBuffer(const std::shared_ptr<D3D12CommandBuffer>& cmd)
+	void D3D12Graphics::RecycleCommandBuffer(D3D12CommandBuffer* commandBuffer)
 	{
 		std::lock_guard<std::mutex> lock(_commandBufferMutex);
 
 		if (_commandBufferObjectId < CommandBufferRecycleCount)
 		{
-			_recycledCommandBuffers.at(_commandBufferObjectId++) = cmd;
+			_recycledCommandBuffers.at(_commandBufferObjectId++) = commandBuffer;
 		}
 	}
 
