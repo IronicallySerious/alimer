@@ -86,10 +86,10 @@ extern "C" __declspec(dllimport) void __stdcall DebugBreak();
 #	define ALIMER_LOGDEBUG(...) Alimer::log->Log(Alimer::LogLevel::Debug, __VA_ARGS__)
 #	define ALIMER_LOGINFO(...) Alimer::log->Log(Alimer::LogLevel::Info, __VA_ARGS__)
 #	define ALIMER_LOGWARN(...) Alimer::log->Log(Alimer::LogLevel::Warn, __VA_ARGS__)
-#	define ALIMER_LOGERROR(...) Alimer::log->Log(Alimer::LogLevel::Critical, __VA_ARGS__)
+#	define ALIMER_LOGERROR(...) Alimer::log->Log(Alimer::LogLevel::Error, __VA_ARGS__)
 #	define ALIMER_LOGCRITICAL(...) do \
 { \
-	Alimer::log->Log(Alimer::LogLevel::Error, "%s -- %s", __current__func__, __VA_ARGS__); \
+	Alimer::log->Log(Alimer::LogLevel::Critical, "%s -- %s", __current__func__, __VA_ARGS__); \
 	ALIMER_DEBUG_BREAK(); \
 	ALIMER_ASSERT(0); \
 	std::exit(-1); \

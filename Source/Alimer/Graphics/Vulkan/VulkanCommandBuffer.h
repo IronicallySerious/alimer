@@ -23,40 +23,23 @@
 #pragma once
 
 #include "../CommandBuffer.h"
-#include "D3D12Helpers.h"
+#include "VulkanPrerequisites.h"
 #include <vector>
-#include <queue>
-#include <mutex>
-
-#define VALID_COMPUTE_QUEUE_RESOURCE_STATES \
-	( D3D12_RESOURCE_STATE_UNORDERED_ACCESS \
-	| D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE \
-	| D3D12_RESOURCE_STATE_COPY_DEST \
-	| D3D12_RESOURCE_STATE_COPY_SOURCE )
 
 namespace Alimer
 {
-	class D3D12Graphics;
-	class D3D12Texture;
-	class D3D12CommandListManager;
+	class VulkanGraphics;
 
-	/// D3D12 CommandBuffer implementation.
-	class D3D12CommandBuffer final : public CommandBuffer
+	/// Vulkan CommandBuffer.
+	class VulkanCommandBuffer final : public CommandBuffer
 	{
 	public:
-		/// Constructor.
-		D3D12CommandBuffer(D3D12Graphics* graphics);
+		VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, VkCommandBuffer vkCommandBuffer);
+		~VulkanCommandBuffer() override;
 
-		/// Destructor.
-		~D3D12CommandBuffer() override;
-
-		void Reset();
+		void Begin();
+		void End();
 		uint64_t Commit(bool waitForCompletion) override;
-
-		void TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
-		void BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
-		void InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate = false);
-		void FlushResourceBarriers();
 
 		void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
 		void EndRenderPass() override;
@@ -66,25 +49,12 @@ namespace Alimer
 		void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
 		void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
-	private:
-		void FlushGraphicsPipelineState();
-		bool PrepareDraw(PrimitiveTopology topology);
+		inline VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
 
 	private:
-		ID3D12Device* _d3dDevice;
-		D3D12CommandListManager* _manager;
-		ID3D12GraphicsCommandList* _commandList;
-		ID3D12CommandAllocator* _currentAllocator;
-		D3D12_COMMAND_LIST_TYPE _type;
-
-		D3D12_RESOURCE_BARRIER _resourceBarrierBuffer[16];
-		uint32_t _numBarriersToFlush;
-
-		uint32_t _boundRTVCount;
-		D3D12Resource* _boundRTVResources[MaxColorAttachments];
-		D3D12_CPU_DESCRIPTOR_HANDLE _boundRTV[MaxColorAttachments];
-
-		ID3D12PipelineState* _currentPipeline = nullptr;
-		PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
+		VkDevice _logicalDevice;
+		VkCommandPool _commandPool;
+		VkCommandBuffer _vkCommandBuffer;
+		uint64_t _fenceValue{};
 	};
 }

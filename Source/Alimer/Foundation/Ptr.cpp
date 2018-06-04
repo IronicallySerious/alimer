@@ -22,91 +22,132 @@
 
 #include "../Foundation/Ptr.h"
 
+#if ALIMER_CSHARP
+#ifdef _MSC_VER
+#   define CSHARP_EXPORT __declspec(dllexport)
+#else
+#   define CSHARP_EXPORT
+#endif
+
+enum RefCountedCallbackType
+{
+    RefCounted_AddRef,
+    RefCounted_Delete,
+};
+
+typedef void(*RefCountedCallback)(RefCountedCallbackType, Alimer::RefCounted*);
+RefCountedCallback _refCountedNativeCallback;
+
+extern "C" CSHARP_EXPORT void AlimerRegisterRefCountedCallback(RefCountedCallback callback)
+{
+    _refCountedNativeCallback = callback;
+}
+
+void InvokeRefCountedCallback(RefCountedCallbackType type, Alimer::RefCounted* instance)
+{
+    if (_refCountedNativeCallback)
+        _refCountedNativeCallback(type, instance);
+}
+
+#endif
+
 namespace Alimer
 {
-	RefCounted::RefCounted()
-		: _refCount(new RefCount())
-	{
+    RefCounted::RefCounted()
+        : _refCount(new RefCount())
+    {
 #if !ALIMER_DISABLE_THREADING
-		// Hold a weak ref to self to avoid possible double delete of the refcount
-		_refCount->weakRefs.fetch_add(1, std::memory_order_relaxed);
+        // Hold a weak ref to self to avoid possible double delete of the refcount
+        _refCount->weakRefs.fetch_add(1, std::memory_order_relaxed);
 #else
-		(_refCount->weakRefs)++;
+        (_refCount->weakRefs)++;
 #endif
-	}
+    }
 
-	RefCounted::~RefCounted()
-	{
-		assert(_refCount);
+    RefCounted::~RefCounted()
+    {
+        assert(_refCount);
 #if !ALIMER_DISABLE_THREADING
-		assert(_refCount->refs.load(std::memory_order_relaxed) == 0);
-		assert(_refCount->weakRefs.load(std::memory_order_relaxed) > 0);
+        assert(_refCount->refs.load(std::memory_order_relaxed) == 0);
+        assert(_refCount->weakRefs.load(std::memory_order_relaxed) > 0);
 
-		// Mark object as expired, release the self weak ref and delete the refcount if no other weak refs exist
-		_refCount->refs.store(-1, std::memory_order_relaxed);
-		if (_refCount->weakRefs.fetch_sub(1, std::memory_order_relaxed) == 1)
-			delete _refCount;
-#else
-		assert(_refCount->refs == 0);
-		assert(_refCount->weakRefs > 0);
-
-		// Mark object as expired, release the self weak ref and delete the refcount if no other weak refs exist
-		_refCount->refs = -1;
-		(_refCount->weakRefs)--;
-		if (!_refCount->weakRefs)
-			delete _refCount;
-
+#if ALIMER_CSHARP
+        InvokeRefCountedCallback(RefCounted_Delete, this);
 #endif
 
-		_refCount = nullptr;
-	}
-
-	void RefCounted::AddRef()
-	{
-#if !ALIMER_DISABLE_THREADING
-		assert(_refCount->refs.load(std::memory_order_relaxed) >= 0);
-		_refCount->refs.fetch_add(1, std::memory_order_relaxed);
+        // Mark object as expired, release the self weak ref and delete the refcount if no other weak refs exist
+        _refCount->refs.store(-1, std::memory_order_relaxed);
+        if (_refCount->weakRefs.fetch_sub(1, std::memory_order_relaxed) == 1)
+            delete _refCount;
 #else
-		assert(_refCount->refs >= 0);
-		(_refCount->refs)++;
-#endif
-	}
+        assert(_refCount->refs == 0);
+        assert(_refCount->weakRefs > 0);
 
-	void RefCounted::Release()
-	{
+#if ALIMER_CSHARP
+        InvokeRefCountedCallback(RefCounted_Delete, this);
+#endif
+
+        // Mark object as expired, release the self weak ref and delete the refcount if no other weak refs exist
+        _refCount->refs = -1;
+        (_refCount->weakRefs)--;
+        if (!_refCount->weakRefs)
+            delete _refCount;
+
+#endif
+
+        _refCount = nullptr;
+    }
+
+    void RefCounted::AddRef()
+    {
 #if !ALIMER_DISABLE_THREADING
-		assert(_refCount->refs.load(std::memory_order_relaxed) > 0);
-		if (_refCount->refs.fetch_sub(1, std::memory_order_relaxed) == 1)
-		{
-			delete this;
-		}
+        assert(_refCount->refs.load(std::memory_order_relaxed) >= 0);
+        _refCount->refs.fetch_add(1, std::memory_order_relaxed);
+#else
+        assert(_refCount->refs >= 0);
+        (_refCount->refs)++;
+#endif
+
+#if ALIMER_CSHARP
+        InvokeRefCountedCallback(RefCounted_AddRef, this);
+#endif
+    }
+
+    void RefCounted::Release()
+    {
+#if !ALIMER_DISABLE_THREADING
+        assert(_refCount->refs.load(std::memory_order_relaxed) > 0);
+        if (_refCount->refs.fetch_sub(1, std::memory_order_relaxed) == 1)
+        {
+            delete this;
+        }
 
 #else
-		assert(_refCount->refs > 0);
-		(_refCount->refs)--;
-		if (!_refCount->refs)
-		{
-			delete this;
-		}
+        assert(_refCount->refs > 0);
+        (_refCount->refs)--;
+        if (!_refCount->refs)
+        {
+            delete this;
+        }
 #endif
-	}
+    }
 
-	int RefCounted::Refs() const
-	{
+    int RefCounted::Refs() const
+    {
 #if !ALIMER_DISABLE_THREADING
-		return _refCount->refs.load(std::memory_order_relaxed);
+        return _refCount->refs.load(std::memory_order_relaxed);
 #else
-		return _refCount->refs;
+        return _refCount->refs;
 #endif
-	}
+    }
 
-	int RefCounted::WeakRefs() const
-	{
-		// Subtract one to not return the internally held reference
+    int RefCounted::WeakRefs() const
+    {
+        // Subtract one to not return the internally held reference
 #if !ALIMER_DISABLE_THREADING
-		return _refCount->weakRefs.load(std::memory_order_relaxed) - 1;
+        return _refCount->weakRefs.load(std::memory_order_relaxed) - 1;
 #else
-		return _refCount->weakRefs - 1;
+        return _refCount->weakRefs - 1;
 #endif
-	}
+    }
 }

@@ -228,6 +228,10 @@ else ()
 	target_link_libraries (libAlimer pthread)
 endif ()
 
+if (ALIMER_CSHARP)
+	target_compile_definitions(libAlimer PRIVATE -DALIMER_CSHARP)
+endif (ALIMER_CSHARP)
+
 # SDK installation
 install(TARGETS libAlimer
 	EXPORT Alimer

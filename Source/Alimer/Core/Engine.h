@@ -40,7 +40,7 @@
 
 void AlimerMain(const std::vector<std::string>& args);
 void AlimerShutdown();
-void AlimerRender();
+void AlimerRender(const Alimer::SharedPtr<Alimer::Texture>& frameTexture);
 
 namespace Alimer
 {

@@ -24,10 +24,12 @@
 
 #include "../Graphics.h"
 #include "../../Util/HashMap.h"
-#include "VulkanPrerequisites.h"
+#include "VulkanSwapchain.h"
 
 namespace Alimer
 {
+	class VulkanCommandBuffer;
+
 	/// Vulkan graphics backend.
 	class VulkanGraphics final : public Graphics
 	{
@@ -45,7 +47,7 @@ namespace Alimer
 		SharedPtr<Texture> AcquireNextImage() override;
 		bool Present() override;
 
-		SharedPtr<CommandBuffer> CreateCommandBuffer() override;
+		SharedPtr<CommandBuffer> GetCommandBuffer() override;
 
 		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 		PipelineLayoutPtr CreatePipelineLayout() override;
@@ -54,6 +56,7 @@ namespace Alimer
 		PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
 
 		VkInstance GetInstance() const { return _instance; }
+		VkPhysicalDevice GetPhysicalDevice() const { return _vkPhysicalDevice; }
 		VkDevice GetLogicalDevice() const { return _logicalDevice; }
 
 		/**
@@ -90,8 +93,16 @@ namespace Alimer
 				}
 			}
 
-			throw std::runtime_error("Could not find a matching queue family index");
+			ALIMER_LOGCRITICAL("Vulkan - Could not find a matching queue family index");
 		}
+
+		VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
+		void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
+		void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
+		void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkAccessFlagBits srcAccessMask, VkClearColorValue *clearValue);
+		void SubmitCommandBuffer(VulkanCommandBuffer* commandBuffer);
+
+		VkRenderPass GetVkRenderPass(const RenderPassDescriptor& descriptor, uint64_t hash);
 
 	private:
 		void Finalize() override;
@@ -120,12 +131,19 @@ namespace Alimer
 		VkQueue _graphicsQueue = VK_NULL_HANDLE;
 		VkQueue _computeQueue = VK_NULL_HANDLE;
 
-		VkSurfaceKHR _surface = VK_NULL_HANDLE;
-		VkSurfaceFormatKHR _swapchainFormat{};
-		VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
+		UniquePtr<VulkanSwapchain> _swapchain;
 		uint32_t _swapchainImageIndex = 0;
+
+		// CommandPools
+		VkCommandPool _graphicsCommandPool = VK_NULL_HANDLE;
+		std::vector<SharedPtr<VulkanCommandBuffer>> _commandBuffers;
 
 		// Sync semaphores
 		VkSemaphore _imageAcquiredSemaphore = VK_NULL_HANDLE;
+		VkSemaphore	_renderCompleteSemaphore = VK_NULL_HANDLE;
+		std::vector<VkFence> _waitFences;
+
+		// Cache
+		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
 	};
 }

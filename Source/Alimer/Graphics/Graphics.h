@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Foundation/Ptr.h"
 #include "../Graphics/Types.h"
 #include "../Core/Window.h"
 #include "../Graphics/GpuBuffer.h"
@@ -36,7 +37,7 @@
 namespace Alimer
 {
 	/// Low-level 3D graphics API class.
-	class Graphics
+	class Graphics : public RefCounted
 	{
 	protected:
 		/// Constructor.
@@ -63,8 +64,8 @@ namespace Alimer
 		/// Present frame.
 		virtual bool Present() = 0;
 
-		// CommandBuffer
-		virtual SharedPtr<CommandBuffer> CreateCommandBuffer() = 0;
+		/// Get current frame CommandBuffer
+		virtual SharedPtr<CommandBuffer> GetCommandBuffer() = 0;
 
 		// Buffer
 		virtual GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr) = 0;

@@ -435,7 +435,7 @@ namespace Alimer
 		}
 	}
 
-	SharedPtr<CommandBuffer> D3D12Graphics::CreateCommandBuffer()
+	SharedPtr<CommandBuffer> D3D12Graphics::GetCommandBuffer()
 	{
 		SharedPtr<D3D12CommandBuffer> d3dCommandBuffer = RetrieveCommandBuffer();
 		if (d3dCommandBuffer == nullptr)

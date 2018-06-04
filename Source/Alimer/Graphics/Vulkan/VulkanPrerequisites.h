@@ -35,7 +35,7 @@
 #define VK_NO_PROTOTYPES 0
 #include "volk/volk.h"
 
-inline const char* GetVulkanResultString(VkResult result)
+inline const char* vkGetVulkanResultString(VkResult result)
 {
 	switch (result)
 	{
@@ -97,7 +97,7 @@ inline void vkThrowIfFailed(VkResult result)
 	{
 		ALIMER_LOGCRITICAL(
 			"Fatal Vulkan result is \" %s \" in %s at line %d",
-			GetVulkanResultString(result),
+			vkGetVulkanResultString(result),
 			__FILE__,
 			__LINE__);
 	}

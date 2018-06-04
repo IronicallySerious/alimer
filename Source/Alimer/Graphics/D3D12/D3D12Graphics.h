@@ -54,7 +54,7 @@ namespace Alimer
 		SharedPtr<Texture> AcquireNextImage() override;
 		bool Present() override;
 
-		SharedPtr<CommandBuffer> CreateCommandBuffer() override;
+		SharedPtr<CommandBuffer> GetCommandBuffer() override;
 
 		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 		PipelineLayoutPtr CreatePipelineLayout() override;
