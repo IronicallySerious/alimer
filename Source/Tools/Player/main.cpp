@@ -49,15 +49,12 @@ void AlimerMain(const std::vector<std::string>& args)
 	renderPipelineLayout = graphics->CreatePipelineLayout();
 
 	RenderPipelineDescriptor renderPipelineDescriptor;
-	renderPipelineDescriptor.vertex = graphics->CreateShader("color.vert");
-	renderPipelineDescriptor.fragment = graphics->CreateShader("color.frag");
+	renderPipelineDescriptor.shader = graphics->CreateShader("color.vert", "color.frag");
 	renderPipelineDescriptor.layout = renderPipelineLayout;
 	renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
 	renderPipelineDescriptor.vertexElements[1].format = VertexFormat::Float4;
 	renderPipelineDescriptor.vertexElements[1].offset = 12;
 	renderPipeline = graphics->CreateRenderPipelineState(renderPipelineDescriptor);
-
-	//auto shader = engine->GetResources()->Load<Shader>("assets://shaders/test.vert");
 }
 
 void AlimerShutdown()
@@ -74,9 +71,9 @@ void AlimerRender(const SharedPtr<Texture>& frameTexture)
 	passDescriptor.colorAttachments[0].texture = frameTexture;
 	passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
 	commandBuffer->BeginRenderPass(passDescriptor);
-	//commandBuffer->SetVertexBuffer(vertexBuffer.get(), 0);
-	//commandBuffer->SetPipeline(renderPipeline);
-	//commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
+	commandBuffer->SetVertexBuffer(vertexBuffer.get(), 0);
+	commandBuffer->SetPipeline(renderPipeline);
+	commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
 	commandBuffer->EndRenderPass();
-	//commandBuffer->Commit();
+	commandBuffer->Commit();
 }

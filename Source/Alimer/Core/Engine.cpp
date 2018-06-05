@@ -83,7 +83,7 @@ namespace Alimer
 			_window = CreateWindow("Alimer", 800, 600);
 
 			// Create and init graphics.
-			//_graphicsDeviceType = GraphicsDeviceType::Direct3D12;
+			_graphicsDeviceType = GraphicsDeviceType::Direct3D12;
 			//_graphicsDeviceType = GraphicsDeviceType::Vulkan;
 #ifdef _DEBUG
 			const bool validation = true;

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
+#include "../AlimerConfig.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -37,7 +37,7 @@ namespace Alimer
 	};
 
 	/// Abstract stream for reading and writing.
-	class Stream
+	class ALIMER_API Stream
 	{
 	public:
 		/// Constructor.

@@ -29,125 +29,122 @@
 
 namespace Alimer
 {
-	static DXGI_FORMAT VertexFormatType(VertexFormat format)
-	{
-		switch (format)
-		{
-			case VertexFormat::Float:
-				return DXGI_FORMAT_R32_FLOAT;
-			case VertexFormat::Float2:
-				return DXGI_FORMAT_R32G32_FLOAT;
-			case VertexFormat::Float3:
-				return DXGI_FORMAT_R32G32B32_FLOAT;
-			case VertexFormat::Float4:
-				return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case VertexFormat::Byte4:
-				return DXGI_FORMAT_R8G8B8A8_SINT;
-			case VertexFormat::Byte4N:
-				return DXGI_FORMAT_R8G8B8A8_SNORM;
-			case VertexFormat::UByte4:
-				return DXGI_FORMAT_R8G8B8A8_UINT;
-			case VertexFormat::UByte4N:
-				return DXGI_FORMAT_R8G8B8A8_UNORM;
-			case VertexFormat::Short2:
-				return DXGI_FORMAT_R16G16_SINT;
-			case VertexFormat::Short2N:
-				return DXGI_FORMAT_R16G16_SNORM;
-			case VertexFormat::Short4:
-				return DXGI_FORMAT_R16G16B16A16_SINT;
-			case VertexFormat::Short4N:
-				return DXGI_FORMAT_R16G16B16A16_SNORM;
-			default:
-				return DXGI_FORMAT_UNKNOWN;
-		}
-	}
+    static DXGI_FORMAT VertexFormatType(VertexFormat format)
+    {
+        switch (format)
+        {
+            case VertexFormat::Float:
+                return DXGI_FORMAT_R32_FLOAT;
+            case VertexFormat::Float2:
+                return DXGI_FORMAT_R32G32_FLOAT;
+            case VertexFormat::Float3:
+                return DXGI_FORMAT_R32G32B32_FLOAT;
+            case VertexFormat::Float4:
+                return DXGI_FORMAT_R32G32B32A32_FLOAT;
+            case VertexFormat::Byte4:
+                return DXGI_FORMAT_R8G8B8A8_SINT;
+            case VertexFormat::Byte4N:
+                return DXGI_FORMAT_R8G8B8A8_SNORM;
+            case VertexFormat::UByte4:
+                return DXGI_FORMAT_R8G8B8A8_UINT;
+            case VertexFormat::UByte4N:
+                return DXGI_FORMAT_R8G8B8A8_UNORM;
+            case VertexFormat::Short2:
+                return DXGI_FORMAT_R16G16_SINT;
+            case VertexFormat::Short2N:
+                return DXGI_FORMAT_R16G16_SNORM;
+            case VertexFormat::Short4:
+                return DXGI_FORMAT_R16G16B16A16_SINT;
+            case VertexFormat::Short4N:
+                return DXGI_FORMAT_R16G16B16A16_SNORM;
+            default:
+                return DXGI_FORMAT_UNKNOWN;
+        }
+    }
 
-	D3D12PipelineState::D3D12PipelineState(D3D12Graphics* graphics, const RenderPipelineDescriptor& descriptor)
-		: PipelineState(graphics, true, descriptor.layout)
-	{
-		auto d3dPipelineLayout = std::static_pointer_cast<D3D12PipelineLayout>(descriptor.layout);
+    D3D12PipelineState::D3D12PipelineState(D3D12Graphics* graphics, const RenderPipelineDescriptor& descriptor)
+        : PipelineState(graphics, true, descriptor.layout)
+    {
+        auto d3dPipelineLayout = std::static_pointer_cast<D3D12PipelineLayout>(descriptor.layout);
+        auto d3dShader = StaticCast<D3D12Shader>(descriptor.shader);
 
-		UINT elementsCount = 0;
-		D3D12_INPUT_ELEMENT_DESC elements[MaxVertexAttributes];
-		for (uint32_t i = 0; i < MaxVertexAttributes; ++i)
-		{
-			if (descriptor.vertexElements[i].format == VertexFormat::Invalid)
-				continue;
+        UINT elementsCount = 0;
+        D3D12_INPUT_ELEMENT_DESC elements[MaxVertexAttributes];
+        for (uint32_t i = 0; i < MaxVertexAttributes; ++i)
+        {
+            if (descriptor.vertexElements[i].format == VertexFormat::Invalid)
+                continue;
 
-			// If the HLSL semantic is TEXCOORDN the SemanticName should be "TEXCOORD" and the
-			// SemanticIndex N
-			elements[i].SemanticName = "TEXCOORD";
-			elements[i].SemanticIndex = static_cast<uint32_t>(i);
-			elements[i].Format = VertexFormatType(descriptor.vertexElements[i].format);
-			elements[i].InputSlot = descriptor.vertexElements[i].binding;
-			elements[i].AlignedByteOffset = descriptor.vertexElements[i].offset;
-			elements[i].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-			elements[i].InstanceDataStepRate = 0;
-			elementsCount++;
-		}
+            // If the HLSL semantic is TEXCOORDN the SemanticName should be "TEXCOORD" and the
+            // SemanticIndex N
+            elements[i].SemanticName = "TEXCOORD";
+            elements[i].SemanticIndex = static_cast<uint32_t>(i);
+            elements[i].Format = VertexFormatType(descriptor.vertexElements[i].format);
+            elements[i].InputSlot = descriptor.vertexElements[i].binding;
+            elements[i].AlignedByteOffset = descriptor.vertexElements[i].offset;
+            elements[i].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+            elements[i].InstanceDataStepRate = 0;
+            elementsCount++;
+        }
 
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-		psoDesc.InputLayout.pInputElementDescs = elements;
-		psoDesc.InputLayout.NumElements = elementsCount;
-		psoDesc.pRootSignature = d3dPipelineLayout->GetD3DRootSignature();
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.InputLayout.pInputElementDescs = elements;
+        psoDesc.InputLayout.NumElements = elementsCount;
+        psoDesc.pRootSignature = d3dPipelineLayout->GetD3DRootSignature();
 
-		std::vector<uint8_t> vsByteCode;
-		std::vector<uint8_t> psByteCode;
-		vsByteCode = std::static_pointer_cast<D3D12Shader>(descriptor.vertex)->AcquireBytecode();
-		auto psShader = std::static_pointer_cast<D3D12Shader>(descriptor.fragment);
+        std::vector<uint8_t> vsByteCode;
+        std::vector<uint8_t> psByteCode;
+        vsByteCode = d3dShader->AcquireBytecode(ShaderStage::Vertex);
+        psByteCode = d3dShader->AcquireBytecode(ShaderStage::Fragment);
 
-		psoDesc.VS = { vsByteCode.data(), vsByteCode.size() };
-		if (psShader)
-		{
-			psByteCode = psShader->AcquireBytecode();
-			psoDesc.PS = { psByteCode.data(), psByteCode.size() };
-		}
+        psoDesc.VS = { vsByteCode.data(), vsByteCode.size() };
+        psoDesc.PS = { psByteCode.data(), psByteCode.size() };
 
-		// RasterizerState
-		psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
-		psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
-		psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-		psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-		psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-		psoDesc.RasterizerState.DepthClipEnable = TRUE;
-		psoDesc.RasterizerState.MultisampleEnable = FALSE;
-		psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
-		psoDesc.RasterizerState.ForcedSampleCount = 0;
-		psoDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+        // RasterizerState
+        psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+        psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+        psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
+        psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+        psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+        psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+        psoDesc.RasterizerState.DepthClipEnable = TRUE;
+        psoDesc.RasterizerState.MultisampleEnable = FALSE;
+        psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+        psoDesc.RasterizerState.ForcedSampleCount = 0;
+        psoDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
-		// BlendState
-		psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
-		psoDesc.BlendState.IndependentBlendEnable = FALSE;
-		const D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc =
-		{
-			FALSE,FALSE,
-			D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
-			D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
-			D3D12_LOGIC_OP_NOOP,
-			D3D12_COLOR_WRITE_ENABLE_ALL,
-		};
-		for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-		{
-			psoDesc.BlendState.RenderTarget[i] = defaultRenderTargetBlendDesc;
-		}
+        // BlendState
+        psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
+        psoDesc.BlendState.IndependentBlendEnable = FALSE;
+        const D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc =
+        {
+            FALSE,FALSE,
+            D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
+            D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
+            D3D12_LOGIC_OP_NOOP,
+            D3D12_COLOR_WRITE_ENABLE_ALL,
+        };
+        for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+        {
+            psoDesc.BlendState.RenderTarget[i] = defaultRenderTargetBlendDesc;
+        }
 
-		// DepthStencilState
-		psoDesc.DepthStencilState.DepthEnable = FALSE;
-		psoDesc.DepthStencilState.StencilEnable = FALSE;
-		psoDesc.SampleMask = UINT_MAX;
-		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		psoDesc.SampleDesc.Count = 1;
+        // DepthStencilState
+        psoDesc.DepthStencilState.DepthEnable = FALSE;
+        psoDesc.DepthStencilState.StencilEnable = FALSE;
+        psoDesc.SampleMask = UINT_MAX;
+        psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        psoDesc.NumRenderTargets = 1;
+        psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+        psoDesc.SampleDesc.Count = 1;
 
-		if (FAILED(graphics->GetD3DDevice()->CreateGraphicsPipelineState(
-			&psoDesc, IID_PPV_ARGS(&_pipelineState))))
-		{
-			ALIMER_LOGERROR("CreateGraphicsPipelineState failed");
-			return;
-		}
-	}
+        if (FAILED(graphics->GetD3DDevice()->CreateGraphicsPipelineState(
+            &psoDesc, IID_PPV_ARGS(&_pipelineState))))
+        {
+            ALIMER_LOGERROR("CreateGraphicsPipelineState failed");
+            return;
+        }
+    }
 
-	D3D12PipelineState::~D3D12PipelineState() = default;
+    D3D12PipelineState::~D3D12PipelineState() = default;
 }

@@ -20,7 +20,10 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/Graphics.h"
+#include "Graphics.h"
+#include "ShaderCompiler.h"
+#include "../IO/FileSystem.h"
+#include "../IO/Path.h"
 #include "../Core/Log.h"
 
 #if ALIMER_VULKAN
@@ -33,109 +36,143 @@
 
 namespace Alimer
 {
-	Alimer::Graphics* graphics = nullptr;
+    Alimer::Graphics* graphics = nullptr;
 
-	Graphics::Graphics(GraphicsDeviceType deviceType)
-		: _deviceType(deviceType)
-		, _window(nullptr)
-	{
-		graphics = this;
-	}
+    Graphics::Graphics(GraphicsDeviceType deviceType)
+        : _deviceType(deviceType)
+        , _window(nullptr)
+    {
+        graphics = this;
+    }
 
-	Graphics::~Graphics()
-	{
-		Finalize();
-		_textures.clear();
-		graphics = nullptr;
-	}
+    Graphics::~Graphics()
+    {
+        Finalize();
+        graphics = nullptr;
+    }
 
-	void Graphics::Finalize()
-	{
+    void Graphics::Finalize()
+    {
 
-	}
+    }
 
-	std::set<GraphicsDeviceType> Graphics::GetAvailableBackends()
-	{
-		static std::set<GraphicsDeviceType> availableBackends;
+    std::set<GraphicsDeviceType> Graphics::GetAvailableBackends()
+    {
+        static std::set<GraphicsDeviceType> availableBackends;
 
-		if (availableBackends.empty())
-		{
-			availableBackends.insert(GraphicsDeviceType::Empty);
+        if (availableBackends.empty())
+        {
+            availableBackends.insert(GraphicsDeviceType::Empty);
 
 #if ALIMER_VULKAN
-			if (VulkanGraphics::IsSupported())
-			{
-				availableBackends.insert(GraphicsDeviceType::Vulkan);
-			}
+            if (VulkanGraphics::IsSupported())
+            {
+                availableBackends.insert(GraphicsDeviceType::Vulkan);
+            }
 #endif
 
 #if ALIMER_D3D12
-			if (D3D12Graphics::IsSupported())
-			{
-				availableBackends.insert(GraphicsDeviceType::Direct3D12);
-			}
+            if (D3D12Graphics::IsSupported())
+            {
+                availableBackends.insert(GraphicsDeviceType::Direct3D12);
+            }
 #endif
 
-		}
+        }
 
-		return availableBackends;
-	}
+        return availableBackends;
+    }
 
-	Graphics* Graphics::Create(GraphicsDeviceType deviceType, bool validation, const std::string& applicationName)
-	{
-		if (deviceType == GraphicsDeviceType::Default)
-		{
-			auto availableDrivers = Graphics::GetAvailableBackends();
+    Graphics* Graphics::Create(GraphicsDeviceType deviceType, bool validation, const std::string& applicationName)
+    {
+        if (deviceType == GraphicsDeviceType::Default)
+        {
+            auto availableDrivers = Graphics::GetAvailableBackends();
 
-			if (availableDrivers.find(GraphicsDeviceType::Vulkan) != availableDrivers.end())
-			{
-				deviceType = GraphicsDeviceType::Vulkan;
-			}
-			else if (availableDrivers.find(GraphicsDeviceType::Direct3D12) != availableDrivers.end())
-			{
-				deviceType = GraphicsDeviceType::Direct3D12;
-			}
-			else
-			{
-				deviceType = GraphicsDeviceType::Empty;
-			}
-		}
+            if (availableDrivers.find(GraphicsDeviceType::Vulkan) != availableDrivers.end())
+            {
+                deviceType = GraphicsDeviceType::Vulkan;
+            }
+            else if (availableDrivers.find(GraphicsDeviceType::Direct3D12) != availableDrivers.end())
+            {
+                deviceType = GraphicsDeviceType::Direct3D12;
+            }
+            else
+            {
+                deviceType = GraphicsDeviceType::Empty;
+            }
+        }
 
-		Graphics* graphics = nullptr;
-		switch (deviceType)
-		{
-			case GraphicsDeviceType::Vulkan:
+        Graphics* graphics = nullptr;
+        switch (deviceType)
+        {
+            case GraphicsDeviceType::Vulkan:
 #if ALIMER_D3D12
-				ALIMER_LOGINFO("Using Vulkan graphics backend");
-				graphics = new VulkanGraphics(validation, applicationName);
+                ALIMER_LOGINFO("Using Vulkan graphics backend");
+                graphics = new VulkanGraphics(validation, applicationName);
 #else
-				ALIMER_LOGERROR("Vulkan graphics backend not supported");
+                ALIMER_LOGERROR("Vulkan graphics backend not supported");
 #endif
-				break;
+                break;
 
-			case GraphicsDeviceType::Direct3D12:
+            case GraphicsDeviceType::Direct3D12:
 #if ALIMER_D3D12
-				ALIMER_LOGINFO("Using Direct3D 12 graphics backend");
-				graphics = new D3D12Graphics();
+                ALIMER_LOGINFO("Using Direct3D 12 graphics backend");
+                graphics = new D3D12Graphics();
 #else
-				ALIMER_LOGERROR("Direct3D 12 graphics backend not supported");
+                ALIMER_LOGERROR("Direct3D 12 graphics backend not supported");
 #endif
-				break;
+                break;
 
-			case GraphicsDeviceType::Default:
-				break;
+            case GraphicsDeviceType::Default:
+                break;
 
-			case GraphicsDeviceType::Empty:
-			default:
-				break;
-		}
+            case GraphicsDeviceType::Empty:
+            default:
+                break;
+        }
 
-		return graphics;
-	}
+        return graphics;
+    }
 
-	bool Graphics::Initialize(const SharedPtr<Window>& window)
-	{
-		_window = window;
-		return true;
-	}
+    bool Graphics::Initialize(const SharedPtr<Window>& window)
+    {
+        _window = window;
+        return true;
+    }
+
+    SharedPtr<Shader> Graphics::CreateShader(const std::string& vertexShaderFile, const std::string& fragmentShaderFile)
+    {
+        std::string baseShaderUrl = "assets://shaders/";
+
+        // Lookup for GLSL shader.
+        if (!FileSystem::Get().FileExists(baseShaderUrl + vertexShaderFile + ".glsl"))
+        {
+            ALIMER_LOGERROR("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
+            return nullptr;
+        }
+
+        if (!FileSystem::Get().FileExists(baseShaderUrl + fragmentShaderFile + ".glsl"))
+        {
+            ALIMER_LOGERROR("GLSL shader does not exists '%s'", fragmentShaderFile.c_str());
+            return nullptr;
+        }
+
+        // Compile GLSL.
+        std::string errorLog;
+        std::vector<uint32_t> vertexByteCode = ShaderCompiler::Compile(baseShaderUrl + vertexShaderFile + ".glsl", errorLog);
+        std::vector<uint32_t> fragmentByteCode = ShaderCompiler::Compile(baseShaderUrl + fragmentShaderFile + ".glsl", errorLog);
+
+        ShaderStageDescription vertex = {};
+        vertex.byteCode = vertexByteCode.data();
+        vertex.byteCodeSize = vertexByteCode.size();
+        vertex.entryPoint = "main";
+
+        ShaderStageDescription fragment = {};
+        fragment.byteCode = fragmentByteCode.data();
+        fragment.byteCodeSize = fragmentByteCode.size();
+        fragment.entryPoint = "main";
+
+        return CreateShader(vertex, fragment);
+    }
 }

@@ -20,6 +20,34 @@
 # THE SOFTWARE.
 #
 
+# Compile SPIRV GLSL (https://gist.github.com/vlsh/a0d191701cb48f157b05be7f74d79396)
+#if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
+#	set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslangValidator.exe")
+#else()
+#	set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin32/glslangValidator.exe")
+#endif()
+
+#file(GLOB_RECURSE GLSL_SOURCE_FILES
+#	"${ALIMER_ASSETS_PATH}/shaders/*.vert"
+#	"${ALIMER_ASSETS_PATH}/shaders/*.frag"
+#	)
+
+#foreach(GLSL ${GLSL_SOURCE_FILES})
+#	get_filename_component(FILE_NAME ${GLSL} NAME)
+#	set(SPIRV "${PROJECT_BINARY_DIR}/shaders/${FILE_NAME}.spv")
+#	add_custom_command(
+#		OUTPUT ${SPIRV}
+#		COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/shaders/"
+#		COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
+#		DEPENDS ${GLSL})
+#	list(APPEND SPIRV_BINARY_FILES ${SPIRV})
+#endforeach()
+
+#add_custom_target(
+#	AlimerShaders 
+#	DEPENDS ${SPIRV_BINARY_FILES}
+#	)
+
 macro (define_engine_source_files)
 	cmake_parse_arguments(DEFINE_SRC_FILES "NORECURSE" "" "" ${ARGN} )
 	if (DEFINE_SRC_FILES_NORECURSE)
@@ -190,6 +218,10 @@ if (ALIMER_D3D11 OR ALIMER_D3D12)
 	)
 endif()
 
+if (BUILD_SHARED_LIBS)
+	target_compile_definitions(libAlimer PRIVATE -DALIMER_SHARED=1)
+endif ()
+
 if (ALIMER_D3D12)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D12)
 	target_link_libraries (libAlimer ${D3D12_LIBRARIES})
@@ -231,6 +263,15 @@ endif ()
 if (ALIMER_CSHARP)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_CSHARP)
 endif (ALIMER_CSHARP)
+
+# add_dependencies(libAlimer AlimerShaders)
+
+# add_custom_command(TARGET libAlimer POST_BUILD
+# 	COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:libAlimer>/shaders/"
+# 	COMMAND ${CMAKE_COMMAND} -E copy_directory
+# 		"${PROJECT_BINARY_DIR}/shaders"
+# 		"$<TARGET_FILE_DIR:libAlimer>/shaders"
+# 		)
 
 # SDK installation
 install(TARGETS libAlimer

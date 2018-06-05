@@ -38,50 +38,50 @@ namespace Alimer
 			switch (desc.Dimension)
 			{
 				case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
-					_textureType = TextureType::Type1D;
+					_description.type = TextureType::Type1D;
 					break;
 				case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-					_textureType = TextureType::Type2D;
+					_description.type = TextureType::Type2D;
 					break;
 
 				case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
-					_textureType = TextureType::Type3D;
+					_description.type = TextureType::Type3D;
 					break;
 
 				default:
 					break;
 			}
 
-			_format = PixelFormat::BGRA8UNorm;
-			_width = static_cast<uint32_t>(desc.Width);
-			_height = static_cast<uint32_t>(desc.Height);
+			_description.format = PixelFormat::BGRA8UNorm;
+			_description.width = static_cast<uint32_t>(desc.Width);
+			_description.height = static_cast<uint32_t>(desc.Height);
 			if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
 			{
-				_depth = desc.DepthOrArraySize;
-				_arrayLayers = 1;
+				_description.depth = desc.DepthOrArraySize;
+				_description.arrayLayers = 1;
 			}
 			else
 			{
-				_depth = 1;
-				_arrayLayers = desc.DepthOrArraySize;
+				_description.depth = 1;
+				_description.arrayLayers = desc.DepthOrArraySize;
 			}
-			_mipLevels = desc.MipLevels;
+			_description.mipLevels = desc.MipLevels;
 
-			_usage = TextureUsage::Unknown;
+			_description.usage = TextureUsage::Unknown;
 			if (!(desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE))
 			{
-				_usage |= TextureUsage::ShaderRead;
+				_description.usage |= TextureUsage::ShaderRead;
 			}
 
 			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
 			{
-				_usage |= TextureUsage::ShaderWrite;
+				_description.usage |= TextureUsage::ShaderWrite;
 			}
 
 			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 				|| desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
 			{
-				_usage |= TextureUsage::RenderTarget;
+				_description.usage |= TextureUsage::RenderTarget;
 			}
 
 			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)

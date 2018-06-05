@@ -305,8 +305,20 @@ namespace Alimer
 
         // Destroy main swap chain.
         _swapchain.Reset();
-
         _commandBuffers.clear();
+
+        for (auto& it : _renderPassCache)
+        {
+            vkDestroyRenderPass(_logicalDevice, it.second, nullptr);
+        }
+        _renderPassCache.clear();
+
+        for (auto& it : _framebufferCache)
+        {
+            vkDestroyFramebuffer(_logicalDevice, it.second->framebuffer, nullptr);
+            SafeDelete(it.second);
+        }
+        _renderPassCache.clear();
 
         //vkDestroyPipelineCache(_logicalDevice, pipelineCache, nullptr);
         vkDestroyCommandPool(_logicalDevice, _graphicsCommandPool, nullptr);
@@ -466,11 +478,9 @@ namespace Alimer
         cmdBufAllocateInfo.commandBufferCount = imageCount;
         vkThrowIfFailed(vkAllocateCommandBuffers(_logicalDevice, &cmdBufAllocateInfo, vkCommandBuffers.data()));
         _commandBuffers.resize(imageCount);
-        _textures.resize(imageCount);
 
         for (uint32_t i = 0; i < imageCount; ++i)
         {
-            _textures[i] = MakeShared<VulkanTexture>(this, _swapchain->GetImage(i));
             _commandBuffers[i] = MakeShared<VulkanCommandBuffer>(this, _graphicsCommandPool, vkCommandBuffers[i]);
         }
 
@@ -494,21 +504,15 @@ namespace Alimer
     SharedPtr<Texture> VulkanGraphics::AcquireNextImage()
     {
         // Acquire the next image from the swap chain
-        VkResult result = _swapchain->AcquireNextImage(_imageAcquiredSemaphore, &_swapchainImageIndex);
+        SharedPtr<Texture> texture = _swapchain->AcquireNextImage(_imageAcquiredSemaphore, &_swapchainImageIndex);
 
-        if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-            //WindowResize();
-        }
-        else {
-            vkThrowIfFailed(result);
-        }
-
+        // Wait for frame fence.
         vkThrowIfFailed(vkWaitForFences(_logicalDevice, 1, &_waitFences[_swapchainImageIndex], VK_TRUE, UINT64_MAX));
         vkThrowIfFailed(vkResetFences(_logicalDevice, 1, &_waitFences[_swapchainImageIndex]));
 
         //DestroyPendingResources();
 
-        return _textures[_swapchainImageIndex];
+        return texture;
     }
 
     bool VulkanGraphics::Present()
@@ -547,12 +551,12 @@ namespace Alimer
         return nullptr;
     }
 
-    std::shared_ptr<Shader> VulkanGraphics::CreateShader(const std::string& name)
+    SharedPtr<Shader> VulkanGraphics::CreateComputeShader(const ShaderStageDescription& desc)
     {
         return nullptr;
     }
 
-    std::shared_ptr<Shader> VulkanGraphics::CreateShader(const ShaderBytecode& vertex, const ShaderBytecode& fragment)
+    SharedPtr<Shader> VulkanGraphics::CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
     {
         return nullptr;
     }
@@ -762,8 +766,67 @@ namespace Alimer
 
         VkRenderPass renderPass;
         VkResult result = vkCreateRenderPass(_logicalDevice, &createInfo, nullptr, &renderPass);
-        vkThrowIfFailed(result);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("Vulkan - Failed to create render pass.");
+            return VK_NULL_HANDLE;
+        }
+
         _renderPassCache[hash] = renderPass;
         return renderPass;
+    }
+
+    VulkanFramebuffer* VulkanGraphics::GetFramebuffer(VkRenderPass renderPass, const RenderPassDescriptor& descriptor, uint64_t hash)
+    {
+        auto it = _framebufferCache.find(hash);
+        if (it != end(_framebufferCache))
+            return it->second;
+
+        VkImageView views[MaxColorAttachments + 1];
+        uint32_t numViews = 0;
+        uint32_t width = UINT32_MAX;
+        uint32_t height = UINT32_MAX;
+
+        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        {
+            const RenderPassColorAttachmentDescriptor& attachment = descriptor.colorAttachments[i];
+            Texture* texture = attachment.texture;
+            if (!texture)
+                continue;
+
+            width = std::min(width, texture->GetLevelWidth(attachment.level));
+            height = std::min(height, texture->GetLevelHeight(attachment.level));
+            views[numViews++] = static_cast<VulkanTexture*>(texture)->GetDefaultImageView();
+        }
+
+        if (descriptor.depthAttachment.texture
+            || descriptor.stencilAttachment.texture)
+        {
+        }
+
+        VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+        createInfo.renderPass = renderPass;
+        createInfo.attachmentCount = numViews;
+        createInfo.pAttachments = views;
+        createInfo.width = width;
+        createInfo.height = height;
+        createInfo.layers = 1;
+
+        VkFramebuffer framebuffer;
+        VkResult result = vkCreateFramebuffer(_logicalDevice, &createInfo, nullptr, &framebuffer);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("Vulkan - Failed to create framebuffer.");
+            return nullptr;
+        }
+
+        VulkanFramebuffer* fbo = new VulkanFramebuffer();
+        fbo->renderPass = renderPass;
+        fbo->framebuffer = framebuffer;
+        fbo->size = { width, height };
+        _framebufferCache[hash] = fbo;
+        return fbo;
     }
 }

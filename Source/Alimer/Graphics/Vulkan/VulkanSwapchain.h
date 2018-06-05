@@ -28,6 +28,7 @@
 
 namespace Alimer
 {
+	class VulkanTexture;
 	class VulkanGraphics;
 
 	/// Vulkan Swapchain.
@@ -41,7 +42,7 @@ namespace Alimer
 
 		void Resize(uint32_t width, uint32_t height, bool force = false);
 
-		VkResult AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex);
+		SharedPtr<VulkanTexture> AcquireNextImage(VkSemaphore acquireSemaphore, uint32_t *imageIndex);
 		VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 
 		uint32_t GetImageCount() const { return _imageCount; }
@@ -62,6 +63,7 @@ namespace Alimer
 		VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
 		uint32_t _imageCount{};
 		std::vector<VkImage> _images;
+		std::vector<SharedPtr<VulkanTexture>> _textures;
 
 		uint32_t _width{};
 		uint32_t _height{};

@@ -57,18 +57,11 @@ namespace Alimer
 		return Util::Replace(path, "\\", "/");
 	}
 
-	string Path::GetExecutableFolder()
-	{
-		wchar_t exeName[MAX_PATH];
-		exeName[0] = 0;
-		GetModuleFileNameW(nullptr, exeName, MAX_PATH);
-		return Path::GetBaseDir(ToUniversalPath(ToMultibyte(exeName)));
-	}
-
+	
 	OSFileSystem::OSFileSystem(const string &basePath)
 		: _basePath(basePath)
 	{
-		_path = Path::Join(Path::GetExecutableFolder(), basePath);
+		_path = Path::Join(FileSystem::GetExecutableFolder(), basePath);
 
 		static bool pathToExecutableSet = false;
 		if (!pathToExecutableSet)
@@ -269,4 +262,12 @@ namespace Alimer
 			return {};
 		}
 	}
+
+    string FileSystem::GetExecutableFolder()
+    {
+        wchar_t exeName[MAX_PATH];
+        exeName[0] = 0;
+        GetModuleFileNameW(nullptr, exeName, MAX_PATH);
+        return Path::GetBaseDir(ToUniversalPath(ToMultibyte(exeName)));
+    }
 }

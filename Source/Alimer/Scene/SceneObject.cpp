@@ -32,4 +32,9 @@ namespace Alimer
 	SceneObject::~SceneObject()
 	{
 	}
+
+	void SceneObject::SetName(const std::string& name)
+	{
+		_name = name;
+	}
 }

@@ -30,6 +30,13 @@ namespace Alimer
 {
 	class VulkanCommandBuffer;
 
+	struct VulkanFramebuffer
+	{
+		VkRenderPass renderPass;
+		VkFramebuffer framebuffer;
+		VkExtent2D size;
+	};
+
 	/// Vulkan graphics backend.
 	class VulkanGraphics final : public Graphics
 	{
@@ -51,8 +58,8 @@ namespace Alimer
 
 		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 		PipelineLayoutPtr CreatePipelineLayout() override;
-		std::shared_ptr<Shader> CreateShader(const std::string& name) override;
-		std::shared_ptr<Shader> CreateShader(const ShaderBytecode& vertex, const ShaderBytecode& fragment) override;
+		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
+		SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
 		PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
 
 		VkInstance GetInstance() const { return _instance; }
@@ -103,6 +110,7 @@ namespace Alimer
 		void SubmitCommandBuffer(VulkanCommandBuffer* commandBuffer);
 
 		VkRenderPass GetVkRenderPass(const RenderPassDescriptor& descriptor, uint64_t hash);
+		VulkanFramebuffer* GetFramebuffer(VkRenderPass renderPass, const RenderPassDescriptor& descriptor, uint64_t hash);
 
 	private:
 		void Finalize() override;
@@ -145,5 +153,6 @@ namespace Alimer
 
 		// Cache
 		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
+		std::unordered_map<uint64_t, VulkanFramebuffer*> _framebufferCache;
 	};
 }

@@ -39,8 +39,5 @@ namespace Alimer
 		std::string GetExtension(const std::string &path);
 
 		std::pair<std::string, std::string> ProtocolSplit(const std::string &path);
-
-		/// Return the executable application folder.
-		static std::string GetExecutableFolder();
 	}
 }

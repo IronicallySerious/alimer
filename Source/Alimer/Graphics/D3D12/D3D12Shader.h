@@ -34,13 +34,20 @@ namespace Alimer
 	{
 	public:
 		/// Constructor.
+		D3D12Shader(D3D12Graphics* graphics, const ShaderStageDescription& desc);
+		/// Constructor.
+		D3D12Shader(D3D12Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
+
+
+		/// Constructor.
 		D3D12Shader(D3D12Graphics* graphics, ID3DBlob* blob);
 
 		/// Destructor.
 		~D3D12Shader() override;
 
-		std::vector<uint8_t> AcquireBytecode();
+		bool HasBytecode(ShaderStage stage);
+		std::vector<uint8_t> AcquireBytecode(ShaderStage stage);
 	private:
-		std::vector<uint8_t> _byteCode;
+		std::vector<uint8_t> _shaders[static_cast<unsigned>(ShaderStage::Count)];
 	};
 }

@@ -26,9 +26,9 @@ if( PLATFORM_WINDOWS OR PLATFORM_UWP )
 	add_compile_options(/GF)
 
 	# Select static/dynamic runtime library
-	if( PLATFORM_WINDOWS )
+	if( PLATFORM_WINDOWS AND ALIMER_STATIC_RUNTIME)
 		add_compile_options($<$<CONFIG:DEBUG>:/MTd> $<$<NOT:$<CONFIG:DEBUG>>:/MT>)
-	elseif( PLATFORM_UWP )
+	else ()
 		add_compile_options($<$<CONFIG:DEBUG>:/MDd> $<$<NOT:$<CONFIG:DEBUG>>:/MD>)
 	endif()
 

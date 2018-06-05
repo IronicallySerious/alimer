@@ -74,8 +74,11 @@ namespace Alimer
 		virtual PipelineLayoutPtr CreatePipelineLayout() = 0;
 
 		// Shader
-		virtual std::shared_ptr<Shader> CreateShader(const std::string& name) = 0;
-		virtual std::shared_ptr<Shader> CreateShader(const ShaderBytecode& vertex, const ShaderBytecode& fragment) = 0;
+		SharedPtr<Shader> CreateShader(const std::string& vertexShaderFile, const std::string& fragmentShaderFile);
+		virtual SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) = 0;
+		virtual SharedPtr<Shader> CreateShader(
+			const ShaderStageDescription& vertex,
+			const ShaderStageDescription& fragment) = 0;
 
 		// PipelineState
 		virtual PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
@@ -88,7 +91,6 @@ namespace Alimer
 	protected:
 		GraphicsDeviceType _deviceType;
 		SharedPtr<Window> _window;
-		std::vector<SharedPtr<Texture>> _textures;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

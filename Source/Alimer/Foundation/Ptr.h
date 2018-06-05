@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
+#include "../AlimerConfig.h"
 #include <cassert>
 #include <cstddef>
 #include <utility>
@@ -63,7 +63,7 @@ namespace Alimer
 	};
 
 	/// Base class for intrusively reference counted objects that can be pointed to with SharedPtr and WeakPtr. These are not copy-constructible and not assignable.
-	class RefCounted
+	class ALIMER_API RefCounted
 	{
 	public:
 		/// Construct. The reference count is not allocated yet; it will be allocated on demand.

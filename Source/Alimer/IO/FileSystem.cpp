@@ -32,86 +32,108 @@ using namespace std;
 
 namespace Alimer
 {
-	FileSystem &FileSystem::Get()
-	{
-		static FileSystem fileSystem;
-		return fileSystem;
-	}
+    string RemoveTrailingSlash(const string& pathName)
+    {
+        string ret = pathName;
+        Util::Trim(ret);
+        ret = Util::Replace(ret, "\\", "/");
+        if (!ret.empty() && ret.back() == '/')
+        {
+            ret.resize(ret.length() - 1);
+        }
 
-	FileSystem::FileSystem()
-	{
+        return ret;
+    }
+
+    string GetParentPath(const string& path)
+    {
+        size_t pos = RemoveTrailingSlash(path).find_last_of('/');
+        if (pos != string::npos)
+            return path.substr(0, pos + 1);
+
+        return string();
+    }
+
+    FileSystem &FileSystem::Get()
+    {
+        static FileSystem fileSystem;
+        return fileSystem;
+    }
+
+    FileSystem::FileSystem()
+    {
 #ifdef ALIMER_ASSET_PIPELINE
-		RegisterProtocol("assets", std::unique_ptr<FileSystemProtocol>(new OSFileSystem("assets")));
+        RegisterProtocol("assets", std::unique_ptr<FileSystemProtocol>(new OSFileSystem("assets")));
 #else
-		RegisterProtocol("assets", std::unique_ptr<FileSystemProtocol>(new OSFileSystem("assets")));
+        RegisterProtocol("assets", std::unique_ptr<FileSystemProtocol>(new OSFileSystem("assets")));
 #endif
-	}
+    }
 
-	void FileSystem::RegisterProtocol(const std::string &proto, std::unique_ptr<FileSystemProtocol> protocol)
-	{
-		protocol->SetProtocol(proto);
-		_protocols[proto] = std::move(protocol);
-	}
+    void FileSystem::RegisterProtocol(const std::string &proto, std::unique_ptr<FileSystemProtocol> protocol)
+    {
+        protocol->SetProtocol(proto);
+        _protocols[proto] = std::move(protocol);
+    }
 
-	FileSystemProtocol *FileSystem::GetProtocol(const std::string &proto) const
-	{
-		auto itr = _protocols.find(proto);
-		if (itr != end(_protocols))
-			return itr->second.get();
+    FileSystemProtocol *FileSystem::GetProtocol(const std::string &proto) const
+    {
+        auto itr = _protocols.find(proto);
+        if (itr != end(_protocols))
+            return itr->second.get();
 
-		// Not found.
-		return nullptr;
-	}
+        // Not found.
+        return nullptr;
+    }
 
-	bool FileSystem::FileExists(const std::string& path) const
-	{
-		auto paths = Path::ProtocolSplit(path);
-		auto *backend = GetProtocol(paths.first);
-		if (!backend)
-			return false;
+    bool FileSystem::FileExists(const std::string& path) const
+    {
+        auto paths = Path::ProtocolSplit(path);
+        auto *backend = GetProtocol(paths.first);
+        if (!backend)
+            return false;
 
-		return backend->FileExists(paths.second);
-	}
+        return backend->FileExists(paths.second);
+    }
 
-	bool FileSystem::DirectoryExists(const std::string& path) const
-	{
-		auto paths = Path::ProtocolSplit(path);
-		auto *backend = GetProtocol(paths.first);
-		if (!backend)
-			return false;
+    bool FileSystem::DirectoryExists(const std::string& path) const
+    {
+        auto paths = Path::ProtocolSplit(path);
+        auto *backend = GetProtocol(paths.first);
+        if (!backend)
+            return false;
 
-		return backend->DirectoryExists(paths.second);
-	}
+        return backend->DirectoryExists(paths.second);
+    }
 
-	std::unique_ptr<Stream> FileSystem::Open(const std::string &path, StreamMode mode)
-	{
-		auto paths = Path::ProtocolSplit(path);
-		auto *backend = GetProtocol(paths.first);
-		if (!backend)
-			return {};
+    std::unique_ptr<Stream> FileSystem::Open(const std::string &path, StreamMode mode)
+    {
+        auto paths = Path::ProtocolSplit(path);
+        auto *backend = GetProtocol(paths.first);
+        if (!backend)
+            return {};
 
-		return backend->Open(paths.second, mode);
-	}
+        return backend->Open(paths.second, mode);
+    }
 
-	std::string FileSystem::ReadAllText(const std::string &path)
-	{
-		auto paths = Path::ProtocolSplit(path);
-		auto *backend = GetProtocol(paths.first);
-		if (!backend)
-			return {};
+    std::string FileSystem::ReadAllText(const std::string &path)
+    {
+        auto paths = Path::ProtocolSplit(path);
+        auto *backend = GetProtocol(paths.first);
+        if (!backend)
+            return {};
 
-		auto stream = backend->Open(paths.second, StreamMode::ReadOnly);
-		return stream->ReadAllText();
-	}
+        auto stream = backend->Open(paths.second, StreamMode::ReadOnly);
+        return stream->ReadAllText();
+    }
 
-	std::vector<uint8_t> FileSystem::ReadAllBytes(const std::string& path)
-	{
-		auto paths = Path::ProtocolSplit(path);
-		auto *backend = GetProtocol(paths.first);
-		if (!backend)
-			return {};
+    std::vector<uint8_t> FileSystem::ReadAllBytes(const std::string& path)
+    {
+        auto paths = Path::ProtocolSplit(path);
+        auto *backend = GetProtocol(paths.first);
+        if (!backend)
+            return {};
 
-		auto stream = backend->Open(paths.second, StreamMode::ReadOnly);
-		return stream->ReadBytes();
-	}
+        auto stream = backend->Open(paths.second, StreamMode::ReadOnly);
+        return stream->ReadBytes();
+    }
 }

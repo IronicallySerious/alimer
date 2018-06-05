@@ -1,4 +1,5 @@
 //
+// Alimer is based on the Turso3D codebase.
 // Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,17 +21,30 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/Texture.h"
-#include "Graphics/Graphics.h"
+#pragma once
 
-namespace Alimer
-{
-	Texture::Texture(Graphics* graphics)
-		: _graphics(graphics)
-	{
-	}
+#include "PlatformDef.h"
 
-	Texture::~Texture()
-	{
-	}
-}
+#ifdef _WIN32
+#   ifdef _MSC_VER
+#       pragma warning(disable: 4251)
+#       pragma warning(disable: 4275)
+#   endif
+
+#   ifdef ALIMER_SHARED
+#       define ALIMER_API ALIMER_DLL_EXPORT /* We are building this library */
+#   elif ALIMER_USE_SHARED
+#       define ALIMER_API ALIMER_DLL_IMPORT /* We are using this library */
+#   endif
+
+#else
+
+#   ifdef ALIMER_SHARED
+#       define ALIMER_API ALIMER_DLL_EXPORT
+#   endif
+
+#endif
+
+#ifndef ALIMER_API
+#   define ALIMER_API
+#endif

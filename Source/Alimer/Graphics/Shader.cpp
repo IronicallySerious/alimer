@@ -27,7 +27,6 @@ namespace Alimer
 {
 	Shader::Shader(Graphics* graphics)
 		: _graphics(graphics)
-		, _stage(ShaderStage::Count)
 	{
 	}
 

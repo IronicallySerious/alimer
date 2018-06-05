@@ -21,6 +21,11 @@
 //
 
 #include "../Util/Util.h"
+#include <algorithm> 
+#include <functional> 
+#include <cctype>
+#include <locale>
+
 using namespace std;
 
 namespace Util
@@ -70,4 +75,24 @@ namespace Util
 
 		return dest;
 	}
+
+    void LeftTrim(string& s)
+    {
+        s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
+            return !std::isspace(ch);
+        }));
+    }
+
+    void RightTrim(string& s)
+    {
+        s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+            return !std::isspace(ch);
+        }).base(), s.end());
+    }
+
+    void Trim(string& s)
+    {
+        LeftTrim(s);
+        RightTrim(s);
+    }
 }

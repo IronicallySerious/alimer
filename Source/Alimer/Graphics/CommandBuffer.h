@@ -33,7 +33,7 @@ namespace Alimer
 	class Graphics;
 
 	/// Defines a command buffer for storing recorded gpu commands.
-	class CommandBuffer : public RefCounted
+	class ALIMER_API CommandBuffer : public RefCounted
 	{
 	protected:
 		/// Constructor.

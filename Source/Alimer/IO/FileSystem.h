@@ -29,6 +29,9 @@
 
 namespace Alimer
 {
+    /// Return the parent path, or the path itself if not available.
+    ALIMER_API std::string GetParentPath(const std::string& path);
+
 	class FileSystemProtocol
 	{
 	public:
@@ -53,7 +56,7 @@ namespace Alimer
 	};
 
 	/// FileSystem subsystem. 
-	class FileSystem final
+	class ALIMER_API FileSystem final
 	{
 	public:
 		static FileSystem &Get();
@@ -77,6 +80,10 @@ namespace Alimer
 
 		/// Read entire file as vector bytes.
 		std::vector<uint8_t> ReadAllBytes(const std::string& path);
+
+        /// Return the executable application folder.
+        static std::string GetExecutableFolder();
+
 	private:
 		/// Constructor.
 		FileSystem();

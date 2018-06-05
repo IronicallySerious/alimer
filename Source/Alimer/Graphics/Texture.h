@@ -28,42 +28,64 @@
 
 namespace Alimer
 {
-	class Graphics;
+    class Graphics;
 
-	/// Defines a Texture class.
-	class Texture : public Resource
-	{
-	protected:
-		/// Constructor.
-		Texture(Graphics* graphics);
+    struct TextureDescription
+    {
+        TextureType type = TextureType::Type2D;
+        TextureUsage usage = TextureUsage::ShaderRead;
+        PixelFormat format = PixelFormat::RGBA8UNorm;
+        uint32_t width = 1;
+        uint32_t height = 1;
+        uint32_t depth = 1;
+        uint32_t mipLevels = 1;
+        uint32_t arrayLayers = 1;
+        SampleCount samples = SampleCount::Count1;
+    };
 
-	public:
-		/// Destructor.
-		virtual ~Texture();
+    /// Defines a Texture class.
+    class ALIMER_API Texture : public Resource
+    {
+    protected:
+        /// Constructor.
+        Texture(Graphics* graphics);
 
-		inline TextureType GetTextureType() const { return _textureType; }
-		inline PixelFormat GetFormat() const { return _format; }
-		inline uint32_t GetWidth() const { return _width; }
-		inline uint32_t GetHeight() const { return _height; }
-		inline uint32_t GetDepth() const { return _depth; }
-		inline uint32_t GetMipLevels() const { return _mipLevels; }
-		inline uint32_t GetArrayLayers() const { return _arrayLayers; }
-		inline SampleCount GetSamples() const { return _samples; }
-		inline TextureUsage GetUsage() const { return _usage; }
+    public:
+        /// Destructor.
+        virtual ~Texture();
 
-	protected:
-		Graphics* _graphics;
-		TextureType _textureType;
-		PixelFormat _format;
-		uint32_t _width;
-		uint32_t _height;
-		uint32_t _depth;
-		uint32_t _mipLevels;
-		uint32_t _arrayLayers;
-		SampleCount _samples;
-		TextureUsage _usage;
+        const TextureDescription &GetDescription() const { return _description; }
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Texture);
-	};
+        inline TextureType GetTextureType() const { return _description.type; }
+        inline TextureUsage GetUsage() const { return _description.usage; }
+        inline PixelFormat GetFormat() const { return _description.format; }
+        inline uint32_t GetWidth() const { return _description.width; }
+        inline uint32_t GetHeight() const { return _description.height; }
+        inline uint32_t GetDepth() const { return _description.depth; }
+        inline uint32_t GetMipLevels() const { return _description.mipLevels; }
+        inline uint32_t GetArrayLayers() const { return _description.arrayLayers; }
+        inline SampleCount GetSamples() const { return _description.samples; }
+
+        uint32_t GetLevelWidth(uint32_t mipLevel) const
+        {
+            return std::max(1u, _description.width >> mipLevel);
+        }
+
+        uint32_t GetLevelHeight(uint32_t mipLevel) const
+        {
+            return std::max(1u, _description.height >> mipLevel);
+        }
+
+        uint32_t GetLevelDepth(uint32_t mipLevel) const
+        {
+            return std::max(1u, _description.depth >> mipLevel);
+        }
+
+    protected:
+        Graphics* _graphics;
+        TextureDescription _description{};
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Texture);
+    };
 }

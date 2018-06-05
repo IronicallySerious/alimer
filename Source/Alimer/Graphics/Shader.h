@@ -29,10 +29,11 @@ namespace Alimer
 {
 	class Graphics;
 
-	struct ShaderBytecode
+	struct ShaderStageDescription
 	{
-		size_t length;
-		const void* pData;
+		size_t byteCodeSize;
+		const uint32_t* byteCode;
+		const char* entryPoint;
 	};
 
 	/// Defines a shader (module/function) class.
@@ -46,11 +47,8 @@ namespace Alimer
 		/// Destructor.
 		virtual ~Shader();
 
-		inline ShaderStage GetStage() const { return _stage; }
-
 	protected:
 		Graphics* _graphics;
-		ShaderStage _stage;
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
 	};

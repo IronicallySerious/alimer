@@ -33,6 +33,8 @@ namespace Alimer
 
 	ResourceManager::ResourceManager()
 	{
+        auto p = FileSystem::GetExecutableFolder();
+
 #ifdef ALIMER_ASSET_PIPELINE
 		_dataDirectory = FileSystem::Get().GetProtocol("assets")->GetPath();
 		_dataDirectory += '_';

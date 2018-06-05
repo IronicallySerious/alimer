@@ -23,6 +23,8 @@
 #include "VulkanSwapchain.h"
 #include "VulkanGraphics.h"
 #include "VulkanCommandBuffer.h"
+#include "VulkanTexture.h"
+#include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -292,19 +294,15 @@ namespace Alimer
 		createInfo.clipped = VK_TRUE;
 		createInfo.compositeAlpha = compositeAlpha;
 
-		// Set additional usage flag for blitting from the swapchain images if supported
-		VkFormatProperties formatProps;
-		vkGetPhysicalDeviceFormatProperties(_physicalDevice, _swapchainFormat.format, &formatProps);
-
-		if ((formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR)
-			|| (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT))
+		// Enable transfer source on swap chain images if supported
+		if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 		{
-			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		}
 
-		if ((formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR)
-			|| (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
-			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		// Enable transfer destination on swap chain images if supported
+		if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
 
 		vkThrowIfFailed(vkCreateSwapchainKHR(_logicalDevice, &createInfo, nullptr, &_swapchain));
@@ -326,7 +324,24 @@ namespace Alimer
 
 		// Get the swap chain images
 		_images.resize(_imageCount);
+		_textures.resize(_imageCount);
 		vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _swapchain, &_imageCount, _images.data()));
+
+		TextureDescription textureDesc = {};
+		textureDesc.type = TextureType::Type2D;
+		textureDesc.usage = TextureUsage::RenderTarget;
+		textureDesc.format = vk::Convert(_swapchainFormat.format);
+		textureDesc.width = _width;
+		textureDesc.height = _height;
+
+		for (uint32_t i = 0; i < _imageCount; i++)
+		{
+			_textures[i] = MakeShared<VulkanTexture>(
+				_graphics.Get(),
+				textureDesc,
+				_images[i],
+				createInfo.imageUsage);
+		}
 
 		if (createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 		{
@@ -357,15 +372,25 @@ namespace Alimer
 		}
 	}
 
-	VkResult VulkanSwapchain::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex)
+	SharedPtr<VulkanTexture> VulkanSwapchain::AcquireNextImage(VkSemaphore acquireSemaphore, uint32_t *imageIndex)
 	{
-		return vkAcquireNextImageKHR(
+		VkResult result =  vkAcquireNextImageKHR(
 			_logicalDevice,
 			_swapchain,
-			std::numeric_limits<uint64_t>::max(),
-			presentCompleteSemaphore,
+			UINT64_MAX,
+			acquireSemaphore,
 			(VkFence)nullptr,
 			imageIndex);
+
+		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+			Resize(_width, _height, true);
+			return AcquireNextImage(acquireSemaphore, imageIndex);
+		}
+		else {
+			vkThrowIfFailed(result);
+		}
+
+		return _textures[*imageIndex];
 	}
 
 	VkResult VulkanSwapchain::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)

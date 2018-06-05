@@ -28,14 +28,44 @@
 
 namespace Alimer
 {
-    VulkanTexture::VulkanTexture(VulkanGraphics* graphics, VkImage vkImage)
+	VulkanTexture::VulkanTexture(VulkanGraphics* graphics, const TextureDescription& description, VkImage vkImage, VkImageUsageFlags usage)
 		: Texture(graphics)
-        , _vkImage(vkImage)
+		, _logicalDevice(graphics->GetLogicalDevice())
+		, _vkImage(vkImage)
 	{
-		
+		_description = description;
+
+		if (usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))
+		{
+			VkImageViewCreateInfo viewCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+			viewCreateInfo.image = vkImage;
+			viewCreateInfo.format = vk::Convert(description.format);
+			viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+			viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+			viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+			viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+			viewCreateInfo.subresourceRange.aspectMask = vk::FormatToAspectMask(viewCreateInfo.format);
+			viewCreateInfo.subresourceRange.baseMipLevel = 0;
+			viewCreateInfo.subresourceRange.baseArrayLayer = 0;
+			viewCreateInfo.subresourceRange.levelCount = _description.mipLevels;
+			viewCreateInfo.subresourceRange.layerCount = _description.arrayLayers;
+			viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // get_image_view_type(tmpinfo, nullptr);
+
+			if (vkCreateImageView(_logicalDevice, &viewCreateInfo, nullptr, &_defaultImageView) != VK_SUCCESS)
+			{
+				vkDestroyImage(_logicalDevice, _vkImage, nullptr);
+				return;
+			}
+		}
 	}
 
-    VulkanTexture::~VulkanTexture()
+	VulkanTexture::~VulkanTexture()
 	{
+		if (_defaultImageView != VK_NULL_HANDLE)
+		{
+			vkDestroyImageView(_logicalDevice, _defaultImageView, nullptr);
+			_defaultImageView = VK_NULL_HANDLE;
+		}
 	}
 }

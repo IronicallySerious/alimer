@@ -106,13 +106,14 @@ namespace Alimer
 
 		auto vulkanGraphics = static_cast<VulkanGraphics*>(_graphics);
 		VkRenderPass renderPass = vulkanGraphics->GetVkRenderPass(descriptor, renderPassHash);
+		VulkanFramebuffer* framebuffer = vulkanGraphics->GetFramebuffer(renderPass, descriptor, framebufferHash);
 
 		VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.framebuffer = framebuffer->framebuffer;
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
-		//renderPassBeginInfo.renderArea.extent.width = width;
-		//renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.renderArea.extent = framebuffer->size;
 		renderPassBeginInfo.clearValueCount = numClearValues;
 		renderPassBeginInfo.pClearValues = clearValues;
 

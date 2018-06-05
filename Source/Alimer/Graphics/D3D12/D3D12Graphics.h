@@ -32,6 +32,7 @@ namespace Alimer
 {
 	class D3D12CommandBuffer;
 	class D3D12CommandListManager;
+	class D3D12Texture;
 
 	/// D3D12 Low-level 3D graphics API class.
 	class D3D12Graphics final : public Graphics
@@ -59,8 +60,8 @@ namespace Alimer
 		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 		PipelineLayoutPtr CreatePipelineLayout() override;
 
-		std::shared_ptr<Shader> CreateShader(const std::string& name) override;
-		std::shared_ptr<Shader> CreateShader(const ShaderBytecode& vertex, const ShaderBytecode& fragment) override;
+		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
+		SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
 		PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
 
 		inline IDXGIFactory4* GetDXGIFactory() const { return _factory.Get(); }
@@ -98,5 +99,7 @@ namespace Alimer
 		std::mutex _commandBufferMutex;
 		std::array<SharedPtr<D3D12CommandBuffer>, CommandBufferRecycleCount> _recycledCommandBuffers;
 		size_t _commandBufferObjectId = 0;
+
+		std::vector<SharedPtr<D3D12Texture>> _textures;
 	};
 }

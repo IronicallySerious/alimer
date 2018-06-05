@@ -39,7 +39,14 @@ namespace Alimer
 		/// Destructor.
 		~SceneObject();
 
-	protected:
+		/// Gets the name of this object.
+		std::string GetName() const { return _name; }
+
+		/// Sets the name of this object.
+		void SetName(const std::string& name);
+
+	private:
+		std::string _name;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(SceneObject);
