@@ -62,11 +62,11 @@ namespace Alimer
 
     FileSystem::FileSystem()
     {
-#ifdef ALIMER_ASSET_PIPELINE
-        RegisterProtocol("assets", std::unique_ptr<FileSystemProtocol>(new OSFileSystem("assets")));
-#else
-        RegisterProtocol("assets", std::unique_ptr<FileSystemProtocol>(new OSFileSystem("assets")));
-#endif
+        std::string parentAssetsDirectory = Path::Join(GetParentPath(FileSystem::GetExecutableFolder()), "assets");
+        //if (DirectoryExists(parentAssetsDirectory))
+            RegisterProtocol("assets", std::unique_ptr<FileSystemProtocol>(new OSFileSystem(parentAssetsDirectory)));
+        //else
+        //    RegisterProtocol("assets", std::unique_ptr<FileSystemProtocol>(new OSFileSystem("assets")));
     }
 
     void FileSystem::RegisterProtocol(const std::string &proto, std::unique_ptr<FileSystemProtocol> protocol)
