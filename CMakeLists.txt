@@ -94,6 +94,9 @@ endif()
 
 # Print current build configuration
 message(STATUS "Alimer Configuration:")
+message(STATUS "  Platform        ${PLATFORM_NAME}")
+message(STATUS "  Architecture    ${ARCH_NAME}")
+
 if (ALIMER_STATIC_RUNTIME)
     message(STATUS "  Runtime         STATIC")
 else ()

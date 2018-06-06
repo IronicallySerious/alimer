@@ -174,7 +174,7 @@ namespace Alimer
 		return EXIT_SUCCESS;
 	}
 
-	SharedPtr<Window> EngineWindows::CreateWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
+	SharedPtr<Window> EngineWindows::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
 	{
 		return MakeShared<WindowWindows>(alimerHinstance, title, width, height, fullscreen);
 	}

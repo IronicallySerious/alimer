@@ -33,64 +33,60 @@
 #include <vector>
 #include <set>
 #include <atomic>
+#include "volk/volk.h"
 
 namespace Alimer
 {
 	/// Low-level 3D graphics API class.
 	class Graphics : public RefCounted
 	{
-	protected:
+    public:
 		/// Constructor.
-		Graphics(GraphicsDeviceType deviceType);
+		Graphics(bool validation = false, const std::string& applicationName = "Alimer");
 
 	public:
 		/// Destructor.
 		virtual ~Graphics();
 
-		/// Get supported graphics backends.
-		static std::set<GraphicsDeviceType> GetAvailableBackends();
-
-		/// Factory method for Graphics creation.
-		static Graphics* Create(GraphicsDeviceType deviceType, bool validation = false, const std::string& applicationName = "Alimer");
-
 		virtual bool Initialize(const SharedPtr<Window>& window);
 
 		/// Wait for a device to become idle
-		virtual bool WaitIdle() = 0;
+		virtual bool WaitIdle();
 
 		/// Begin rendering frame and return current backbuffer texture.
-		virtual SharedPtr<Texture> AcquireNextImage() = 0;
+		virtual SharedPtr<Texture> AcquireNextImage();
 
 		/// Present frame.
-		virtual bool Present() = 0;
+		virtual bool Present();
 
 		/// Get current frame CommandBuffer
-		virtual SharedPtr<CommandBuffer> GetCommandBuffer() = 0;
+		virtual SharedPtr<CommandBuffer> GetCommandBuffer();
 
 		// Buffer
-		virtual GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr) = 0;
+		virtual GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr);
 
 		// PipelineLayout
-		virtual PipelineLayoutPtr CreatePipelineLayout() = 0;
+		virtual PipelineLayoutPtr CreatePipelineLayout();
 
 		// Shader
 		SharedPtr<Shader> CreateShader(const std::string& vertexShaderFile, const std::string& fragmentShaderFile);
-		virtual SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) = 0;
+		virtual SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc);
 		virtual SharedPtr<Shader> CreateShader(
 			const ShaderStageDescription& vertex,
-			const ShaderStageDescription& fragment) = 0;
+			const ShaderStageDescription& fragment);
 
 		// PipelineState
-		virtual PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
-
-		inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
+		virtual PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor);
 
 	protected:
 		virtual void Finalize();
 
 	protected:
-		GraphicsDeviceType _deviceType;
-		SharedPtr<Window> _window;
+        bool _validation;
+        VkInstance _instance = VK_NULL_HANDLE;
+        VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
+
+        SharedPtr<Window> _window{};
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

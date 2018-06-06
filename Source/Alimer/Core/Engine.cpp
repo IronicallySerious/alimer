@@ -68,10 +68,10 @@ namespace Alimer
 			return;
 
 		// Acquire frame texture first.
-		SharedPtr<Texture> frameTexture = graphics->AcquireNextImage();
+		//SharedPtr<Texture> frameTexture = graphics->AcquireNextImage();
 		// TODO: Render Scene.
-		AlimerRender(frameTexture);
-		_graphics->Present();
+		//AlimerRender(frameTexture);
+		//_graphics->Present();
 	}
 
 	bool Engine::Initialize()
@@ -80,10 +80,10 @@ namespace Alimer
 
 		if (!_headless)
 		{
-			_window = CreateWindow("Alimer", 800, 600);
+			_window = MakeWindow("Alimer", 800, 600);
 
 			// Create and init graphics.
-			_graphicsDeviceType = GraphicsDeviceType::Direct3D12;
+			//_graphicsDeviceType = GraphicsDeviceType::Direct3D12;
 			//_graphicsDeviceType = GraphicsDeviceType::Vulkan;
 #ifdef _DEBUG
 			const bool validation = true;
@@ -91,7 +91,7 @@ namespace Alimer
 			const bool validation = false;
 #endif
 
-			_graphics = Graphics::Create(_graphicsDeviceType, validation);
+			_graphics = new Graphics(validation);
 
 			if (!_graphics->Initialize(_window))
 			{

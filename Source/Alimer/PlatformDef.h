@@ -153,7 +153,7 @@
 /**
 * noinline macro
 */
-#if ALIMER_MICROSOFT_FAMILY
+#if ALIMER_WINDOWS_FAMILY
 #	define ALIMER_NOINLINE __declspec(noinline)
 #elif ALIMER_GCC_FAMILY
 #	define ALIMER_NOINLINE __attribute__((noinline))
@@ -164,7 +164,7 @@
 /**
 * noalias macro
 */
-#if ALIMER_MICROSOFT_FAMILY
+#if ALIMER_WINDOWS_FAMILY
 #	define ALIMER_NOALIAS __declspec(noalias)
 #else
 #	define ALIMER_NOALIAS
@@ -174,7 +174,7 @@
 * Inline macro
 */
 #define ALIMER_INLINE inline
-#if ALIMER_MICROSOFT_FAMILY
+#if ALIMER_WINDOWS_FAMILY
 #	pragma inline_depth( 255 )
 #endif
 
@@ -230,6 +230,13 @@
 #endif
 
 #ifdef __cplusplus
+
+// avoid unreferenced parameter warning
+// preferred solution: omit the parameter's name from the declaration
+template <class T>
+ALIMER_INLINE void ALIMER_UNUSED(T const&)
+{
+}
 
 namespace Alimer
 {

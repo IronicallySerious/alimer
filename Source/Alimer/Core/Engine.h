@@ -70,7 +70,7 @@ namespace Alimer
 		/// Resume the main execution loop.
 		void Resume();
 
-		virtual SharedPtr<Window> CreateWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false) = 0;
+		virtual SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false) = 0;
 
 		inline ResourceManager* GetResources() { return &_resources; }
 		inline Window* GetMainWindow() const { return _window.Get(); }
@@ -98,7 +98,6 @@ namespace Alimer
 		std::atomic<bool> _running;
 		std::atomic<bool> _paused;
 		std::atomic<bool> _headless;
-		GraphicsDeviceType _graphicsDeviceType{ GraphicsDeviceType::Default };
 
 		ResourceManager _resources;
 		SharedPtr<Window> _window;

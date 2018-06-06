@@ -32,7 +32,6 @@
 #include "../../Util/Util.h"
 #include "../../Util/HashMap.h"
 
-
 namespace Alimer
 {
 	D3D12CommandBuffer::D3D12CommandBuffer(D3D12Graphics* graphics)

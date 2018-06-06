@@ -1,4 +1,4 @@
-include (CMakeSettings)
+include (AlimerOptions)
 
 # Setup global per-platform compiler/linker options
 if( PLATFORM_WINDOWS OR PLATFORM_UWP )
@@ -18,7 +18,7 @@ if( PLATFORM_WINDOWS OR PLATFORM_UWP )
 
     # Favor fast code
 	add_compile_options(/Ot)
-	
+
 	# Enable fiber-safe optimizations in dev/release
 	add_compile_options($<$<NOT:$<CONFIG:DEBUG>>:/GT>)
 

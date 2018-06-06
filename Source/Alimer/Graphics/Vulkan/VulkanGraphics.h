@@ -41,9 +41,6 @@ namespace Alimer
 	class VulkanGraphics final : public Graphics
 	{
 	public:
-		/// Is backend supported?
-		static bool IsSupported();
-
 		/// Construct. Set parent shader and defines but do not compile yet.
 		VulkanGraphics(bool validation, const std::string& applicationName);
 		/// Destruct.

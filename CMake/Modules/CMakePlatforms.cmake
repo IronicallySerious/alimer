@@ -72,10 +72,6 @@ else()
 	message(FATAL_ERROR "Unknown platform architecture!")
 endif()
 
-message(STATUS "Detected platform: ${PLATFORM_NAME}")
-message(STATUS "Detected architecture: ${ARCH_NAME}")
-
-
 set(LIB_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
 set(LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
 

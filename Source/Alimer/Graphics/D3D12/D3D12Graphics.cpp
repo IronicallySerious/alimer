@@ -100,8 +100,6 @@ namespace Alimer
     }
 #endif
 
-
-
     _Use_decl_annotations_ static void GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
     {
         ComPtr<IDXGIAdapter1> adapter;
@@ -163,7 +161,7 @@ namespace Alimer
     }
 
     D3D12Graphics::D3D12Graphics()
-        : Graphics(GraphicsDeviceType::Direct3D12)
+        : Graphics(false, "Alimer")
         , _commandListManager(nullptr)
         , _descriptorAllocator{
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
