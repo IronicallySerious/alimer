@@ -22,14 +22,12 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
+#include "../Graphics/GpuResource.h"
 #include "../Graphics/PixelFormat.h"
 #include "../Resource/Resource.h"
 
 namespace Alimer
 {
-    class Graphics;
-
     struct TextureDescription
     {
         TextureType type = TextureType::Type2D;
@@ -44,11 +42,11 @@ namespace Alimer
     };
 
     /// Defines a Texture class.
-    class ALIMER_API Texture : public Resource
+    class ALIMER_API Texture : public Resource, public GpuResource
     {
     protected:
         /// Constructor.
-        Texture(Graphics* graphics);
+        Texture();
 
     public:
         /// Destructor.
@@ -82,10 +80,6 @@ namespace Alimer
         }
 
     protected:
-        Graphics* _graphics;
         TextureDescription _description{};
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Texture);
     };
 }

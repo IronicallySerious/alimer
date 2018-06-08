@@ -65,9 +65,30 @@ namespace Alimer
                 break;
         }
 
+        static decltype(D3DCompile)* d3dCompile_;
+        static decltype(D3DStripShader)* d3dStripShader_;
+        static decltype(D3DReflect)* d3dReflect_;
+
+#if !ALIMER_PLATFORM_UWP
+        if (!d3dCompile_)
+        {
+            HMODULE d3dCompilerLib = LoadLibraryW(D3DCOMPILER_DLL_W);
+            d3dCompile_ = (decltype(d3dCompile_))::GetProcAddress(d3dCompilerLib, "D3DCompile");
+            ALIMER_ASSERT(d3dCompile_);
+            d3dStripShader_ = (decltype(d3dStripShader_))::GetProcAddress(d3dCompilerLib, "D3DStripShader");
+            ALIMER_ASSERT(d3dStripShader_);
+            d3dReflect_ = (decltype(d3dReflect_))::GetProcAddress(d3dCompilerLib, "D3DReflect");
+            ALIMER_ASSERT(d3dReflect_);
+        }
+#else
+        d3dCompile_ = D3DCompile;
+        d3dStripShader_ = D3DStripShader;
+        d3dReflect_ = D3DReflect;
+#endif
+
         ComPtr<ID3DBlob> shaderBlob;
         ComPtr<ID3DBlob> errors;
-        if (FAILED(D3DCompile(
+        if (FAILED(d3dCompile_(
             hlslSource.c_str(),
             hlslSource.length(),
             nullptr,
@@ -106,62 +127,71 @@ namespace Alimer
     }
 
     D3D12Shader::D3D12Shader(D3D12Graphics* graphics, const ShaderStageDescription& desc)
-        : Shader(graphics)
+        : Shader()
+        , _graphics(graphics)
     {
         _shaders[static_cast<unsigned>(ShaderStage::Compute)] = ConvertAndCompileHLSL(desc, ShaderStage::Compute);
+        InitializeRootSignature();
     }
 
     D3D12Shader::D3D12Shader(D3D12Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
-        : Shader(graphics)
+        : Shader()
+        , _graphics(graphics)
     {
         _shaders[static_cast<unsigned>(ShaderStage::Vertex)] = ConvertAndCompileHLSL(vertex, ShaderStage::Vertex);
         _shaders[static_cast<unsigned>(ShaderStage::Fragment)] = ConvertAndCompileHLSL(fragment, ShaderStage::Fragment);
-    }
-
-    D3D12Shader::D3D12Shader(D3D12Graphics* graphics, ID3DBlob* blob)
-        : Shader(graphics)
-    {
-        /*_byteCode.resize(blob->GetBufferSize());
-        memcpy(_byteCode.data(), blob->GetBufferPointer(), blob->GetBufferSize());
-
-        ID3D12ShaderReflection* reflection;
-
-        HRESULT hr = D3DReflect(
-            blob->GetBufferPointer(),
-            blob->GetBufferSize(),
-            _uuidof(ID3D12ShaderReflection),
-            (void**)&reflection);
-
-        if (FAILED(hr))
-        {
-            ALIMER_LOGERROR("Cannot reflect D3D compiled shader.");
-            return;
-        }
-
-        D3D12_SHADER_DESC shaderDesc;
-        hr = reflection->GetDesc(&shaderDesc);
-        if (FAILED(hr))
-        {
-            ALIMER_LOGERROR("Cannot get D3D compiled shader desc.");
-            return;
-        }
-
-        switch (D3D12_SHVER_GET_TYPE(shaderDesc.Version))
-        {
-            case D3D12_SHVER_VERTEX_SHADER:
-                _stage = ShaderStage::Vertex;
-                break;
-
-            case D3D12_SHVER_PIXEL_SHADER:
-                _stage = ShaderStage::Fragment;
-                break;
-        }
-
-        reflection->Release();*/
+        InitializeRootSignature();
     }
 
     D3D12Shader::~D3D12Shader()
     {
+    }
+
+    void D3D12Shader::InitializeRootSignature()
+    {
+        // TODO: Cache root signature.
+        // Allow input layout and deny uneccessary access to certain pipeline stages.
+        D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+
+        CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
+        CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+
+        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+        rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
+
+        CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+        rootSignatureDesc.Init_1_1(
+            1,
+            rootParameters,
+            0, nullptr,
+            rootSignatureFlags);
+
+        ComPtr<ID3DBlob> signature;
+        ComPtr<ID3DBlob> error;
+        if (FAILED(AlimerD3DX12SerializeVersionedRootSignature(
+            &rootSignatureDesc,
+            _graphics->GetFeatureDataRootSignature().HighestVersion,
+            &signature, &error)))
+        {
+            ALIMER_LOGERROR("D3D12SerializeRootSignature failed");
+            return;
+        }
+
+        if (FAILED(
+            _graphics->GetD3DDevice()->CreateRootSignature(
+                0,
+                signature->GetBufferPointer(),
+                signature->GetBufferSize(),
+                IID_PPV_ARGS(&_rootSignature))))
+        {
+            ALIMER_LOGERROR("CreateRootSignature failed");
+            return;
+        }
     }
 
     bool D3D12Shader::HasBytecode(ShaderStage stage)

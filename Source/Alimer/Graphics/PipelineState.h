@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Graphics/Types.h"
-#include "../Graphics/PipelineLayout.h"
 #include "../Graphics/Shader.h"
 
 namespace Alimer
@@ -32,7 +31,6 @@ namespace Alimer
 
 	struct RenderPipelineDescriptor
 	{
-		PipelineLayoutPtr layout;
 		SharedPtr<Shader> shader;
 		VertexElement vertexElements[MaxVertexAttributes] = {};
 	};
@@ -42,19 +40,17 @@ namespace Alimer
 	{
 	protected:
 		/// Constructor.
-		PipelineState(Graphics* graphics, bool isGraphics, const PipelineLayoutPtr& layout);
+		PipelineState(Graphics* graphics, bool isGraphics);
 
 	public:
 		/// Destructor.
 		virtual ~PipelineState() = default;
 
 		bool IsGraphics() const { return _isGraphics; }
-		PipelineLayoutPtr GetLayout() const { return _layout; }
 
 	protected:
 		Graphics* _graphics;
 		bool _isGraphics;
-		PipelineLayoutPtr _layout;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(PipelineState);

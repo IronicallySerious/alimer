@@ -38,16 +38,19 @@ namespace Alimer
 		/// Constructor.
 		D3D12Shader(D3D12Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
 
-
-		/// Constructor.
-		D3D12Shader(D3D12Graphics* graphics, ID3DBlob* blob);
-
 		/// Destructor.
 		~D3D12Shader() override;
 
 		bool HasBytecode(ShaderStage stage);
 		std::vector<uint8_t> AcquireBytecode(ShaderStage stage);
+
+        ID3D12RootSignature* GetD3DRootSignature() const { return _rootSignature.Get(); }
+
 	private:
+        void InitializeRootSignature();
+
+        D3D12Graphics* _graphics;
 		std::vector<uint8_t> _shaders[static_cast<unsigned>(ShaderStage::Count)];
+        ComPtr<ID3D12RootSignature> _rootSignature;
 	};
 }

@@ -42,7 +42,7 @@ namespace Alimer
 		virtual ~Serializable();
 
 		/// Serialize. 
-		virtual void Serialize(Serializer& serializer) = 0;
+		//virtual void Serialize(Serializer& serializer) = 0;
 	protected:
 
 	private:

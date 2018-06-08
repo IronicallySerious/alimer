@@ -26,8 +26,14 @@
 
 namespace Alimer
 {
-	GpuBuffer::GpuBuffer(Graphics* graphics, BufferUsage bufferUsage, uint32_t elementCount, uint32_t elementSize)
-		: _graphics(graphics)
+    GpuBuffer::GpuBuffer()
+        : GpuResource(GpuResourceType::Buffer)
+    {
+
+    }
+
+	GpuBuffer::GpuBuffer(BufferUsage bufferUsage, uint32_t elementCount, uint32_t elementSize)
+        : GpuResource(GpuResourceType::Buffer)
 		, _bufferUsage(bufferUsage)
 	{
 		_elementCount = elementCount;

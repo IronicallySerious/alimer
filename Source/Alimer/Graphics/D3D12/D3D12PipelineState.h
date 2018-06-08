@@ -28,6 +28,7 @@
 namespace Alimer
 {
 	class D3D12Graphics;
+    class D3D12Shader;
 
 	/// D3D12 PipelineState implementation.
 	class D3D12PipelineState final : public PipelineState
@@ -39,9 +40,11 @@ namespace Alimer
 		/// Destructor.
 		~D3D12PipelineState() override;
 
+        void Bind(ID3D12GraphicsCommandList* commandList);
+
 		ID3D12PipelineState* GetD3DPipelineState() const { return _pipelineState.Get(); }
 	private:
-
 		ComPtr<ID3D12PipelineState> _pipelineState;
+        SharedPtr<D3D12Shader> _shader;
 	};
 }

@@ -29,26 +29,29 @@
 
 namespace Alimer
 {
-	/// Defines a scene object class.
-	class SceneObject final : public Serializable, public std::enable_shared_from_this<SceneObject>
-	{
-	public:
-		/// Constructor.
-		SceneObject();
+    /// Defines a scene object class.
+    class SceneObject final : public Serializable
+    {
+        friend class Scene;
 
-		/// Destructor.
-		~SceneObject();
+    public:
+        /// Constructor.
+        SceneObject();
 
-		/// Gets the name of this object.
-		std::string GetName() const { return _name; }
+        /// Destructor.
+        ~SceneObject();
 
-		/// Sets the name of this object.
-		void SetName(const std::string& name);
+        /// Gets the name of this object.
+        std::string GetName() const { return _name; }
 
-	private:
-		std::string _name;
+        /// Sets the name of this object.
+        void SetName(const std::string& name);
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(SceneObject);
-	};
+    private:
+        std::string _name;
+        bool _isRoot{ false };
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(SceneObject);
+    };
 }

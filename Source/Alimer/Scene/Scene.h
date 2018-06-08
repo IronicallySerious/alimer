@@ -22,12 +22,12 @@
 
 #pragma once
 
-#include "../Serialization/Serializable.h"
+#include "../Scene/SceneObject.h"
 
 namespace Alimer
 {
 	/// Defines a scene, which is a container of SceneObject's.
-	class Scene final: public Serializable, public std::enable_shared_from_this<Scene>
+	class Scene final: public Serializable
 	{
 	public:
 		/// Constructor.
@@ -36,8 +36,10 @@ namespace Alimer
 		/// Destructor.
 		~Scene();
 
+        SceneObject* GetRoot() { return &_root; }
 
-	protected:
+	private:
+        SceneObject _root;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);

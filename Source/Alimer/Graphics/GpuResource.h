@@ -22,25 +22,38 @@
 
 #pragma once
 
-#include "Graphics/PipelineLayout.h"
-#include "D3D12Helpers.h"
+#include "../Foundation/Ptr.h"
+#include "../Graphics/Types.h"
 
 namespace Alimer
 {
-	class D3D12Graphics;
+	class Graphics;
 
-	/// D3D12 PipelineLayout implementation.
-	class D3D12PipelineLayout final : public PipelineLayout
+	/// Defines a base GPU Resource.
+	class ALIMER_API GpuResource //: public RefCounted
 	{
-	public:
+	protected:
 		/// Constructor.
-		D3D12PipelineLayout(D3D12Graphics* graphics);
+        GpuResource(GpuResourceType resourceType);
 
+	public:
 		/// Destructor.
-		~D3D12PipelineLayout() override;
+		virtual ~GpuResource();
 
-		ID3D12RootSignature* GetD3DRootSignature() const { return _rootSignature.Get(); }
+        /// Unconditionally destroy the GPU resource.
+        virtual void Destroy() {}
+
+        /// Return the graphics subsystem associated with this GPU object.
+        Graphics* GetGraphics() const;
+
+        inline GpuResourceType GetResourceType() const { return _resourceType; }
+
+    protected:
+        /// Graphics subsystem.
+        WeakPtr<Graphics> _graphics;
+        GpuResourceType _resourceType;
+		
 	private:
-		ComPtr<ID3D12RootSignature> _rootSignature;
+		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);
 	};
 }

@@ -32,61 +32,75 @@
 #include "../Graphics/CommandBuffer.h"
 #include <vector>
 #include <set>
+#include <mutex>
 #include <atomic>
-#include "volk/volk.h"
 
 namespace Alimer
 {
 	/// Low-level 3D graphics API class.
 	class Graphics : public RefCounted
 	{
-    public:
+    protected:
 		/// Constructor.
-		Graphics(bool validation = false, const std::string& applicationName = "Alimer");
+		Graphics(GraphicsDeviceType deviceType, bool validation = false);
 
 	public:
 		/// Destructor.
 		virtual ~Graphics();
 
+        /// Get supported graphics backends.
+        static std::set<GraphicsDeviceType> GetAvailableBackends();
+
+        /// Factory method for Graphics creation.
+        static Graphics* Create(GraphicsDeviceType deviceType, bool validation = false, const std::string& applicationName = "Alimer");
+
+        /// Initialize graphics with given window.
 		virtual bool Initialize(const SharedPtr<Window>& window);
 
 		/// Wait for a device to become idle
-		virtual bool WaitIdle();
+		virtual bool WaitIdle() = 0;
 
 		/// Begin rendering frame and return current backbuffer texture.
-		virtual SharedPtr<Texture> AcquireNextImage();
+		virtual SharedPtr<Texture> AcquireNextImage() = 0;
 
 		/// Present frame.
-		virtual bool Present();
+		virtual bool Present() = 0;
 
 		/// Get current frame CommandBuffer
-		virtual SharedPtr<CommandBuffer> GetCommandBuffer();
+		virtual SharedPtr<CommandBuffer> GetCommandBuffer() = 0;
 
 		// Buffer
-		virtual GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr);
-
-		// PipelineLayout
-		virtual PipelineLayoutPtr CreatePipelineLayout();
+		virtual SharedPtr<GpuBuffer> CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr) = 0;
 
 		// Shader
 		SharedPtr<Shader> CreateShader(const std::string& vertexShaderFile, const std::string& fragmentShaderFile);
-		virtual SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc);
+		virtual SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) = 0;
 		virtual SharedPtr<Shader> CreateShader(
 			const ShaderStageDescription& vertex,
-			const ShaderStageDescription& fragment);
+			const ShaderStageDescription& fragment) = 0;
 
 		// PipelineState
-		virtual PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor);
+		virtual PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
+
+        inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
+
+        /// Add a GpuResource to keep track of. 
+        void AddGpuResource(GpuResource* resource);
+
+        /// Remove a GpuResource.
+        void RemoveGpuResource(GpuResource* resource);
 
 	protected:
 		virtual void Finalize();
 
 	protected:
+        GraphicsDeviceType _deviceType;
         bool _validation;
-        VkInstance _instance = VK_NULL_HANDLE;
-        VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
-
         SharedPtr<Window> _window{};
+
+    private:
+        std::mutex _gpuResourceMutex;
+        std::vector<GpuResource*> _gpuResources;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

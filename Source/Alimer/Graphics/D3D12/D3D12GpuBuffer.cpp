@@ -27,14 +27,13 @@
 namespace Alimer
 {
 	D3D12GpuBuffer::D3D12GpuBuffer(D3D12Graphics* graphics, BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
-		: GpuBuffer(graphics, usage, elementCount, elementSize)
+		: GpuBuffer(usage, elementCount, elementSize)
 	{
 		// TODO: Property initialize using CommandList.
 		_usageState = D3D12_RESOURCE_STATE_GENERIC_READ;
 
-		//D3D12_HEAP_PROPERTIES heapProps = HeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-		D3D12_HEAP_PROPERTIES heapProps = d3d12::HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
-		D3D12_RESOURCE_DESC resourceDesc = d3d12::BufferResourceDesc(_size);
+        CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(_size);
 
 		HRESULT hr =  graphics->GetD3DDevice()->CreateCommittedResource(
 				&heapProps,

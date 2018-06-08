@@ -26,8 +26,14 @@
 
 namespace Alimer
 {
-	SceneComponent::SceneComponent()
-		: _enabled(true)
-	{
-	}
+    SceneComponent::SceneComponent()
+        : _object(nullptr)
+        , _enabled(true)
+    {
+    }
+
+    SceneComponent::~SceneComponent()
+    {
+        _object = nullptr;
+    }
 }

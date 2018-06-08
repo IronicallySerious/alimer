@@ -139,16 +139,17 @@ install (FILES ${SPIRV_CROSS_HEADER_FILES} DESTINATION ${DEST_INCLUDE_DIR}/Third
 group_sources()
 
 # Define the library target.
-add_library(libAlimer ${SOURCE_FILES} ${HEADER_FILES})
+add_library(libAlimer ${ALIMER_LIBRARY_TYPE} ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(libAlimer 
 	PUBLIC  
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${DEST_BASE_INCLUDE_DIR}>
-	$<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
 	PRIVATE 
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+    $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
+    $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}/glfw/include>
 )
 
 if (BUILD_SHARED_LIBS)
@@ -157,7 +158,6 @@ endif ()
 
 if (ALIMER_D3D12)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D12)
-	target_link_libraries (libAlimer ${D3D12_LIBRARIES})
 endif (ALIMER_D3D12)
 
 if (ALIMER_VULKAN)

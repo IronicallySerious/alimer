@@ -37,10 +37,12 @@ namespace Alimer
 
 	public:
 		/// Destructor.
-		virtual ~SceneComponent() = default;
+		virtual ~SceneComponent();
+
+        SceneObject* GetSceneObject() const { return _object; }
 
 	protected:
-		std::weak_ptr<SceneObject> _object;
+		SceneObject* _object;
 		bool _enabled;
 
 	private:

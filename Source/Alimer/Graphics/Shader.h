@@ -41,14 +41,12 @@ namespace Alimer
 	{
 	protected:
 		/// Constructor.
-		Shader(Graphics* graphics);
+		Shader();
 
 	public:
 		/// Destructor.
 		virtual ~Shader();
 
-	protected:
-		Graphics* _graphics;
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
 	};

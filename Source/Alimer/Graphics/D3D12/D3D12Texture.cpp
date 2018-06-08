@@ -27,7 +27,7 @@
 namespace Alimer
 {
 	D3D12Texture::D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource)
-		: Texture(graphics)
+		: Texture()
 	{
 		_rtvHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
 

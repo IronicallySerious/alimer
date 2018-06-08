@@ -25,10 +25,9 @@
 
 namespace Alimer
 {
-	PipelineState::PipelineState(Graphics* graphics, bool isGraphics, const PipelineLayoutPtr& layout)
+	PipelineState::PipelineState(Graphics* graphics, bool isGraphics)
 		: _graphics(graphics)
 		, _isGraphics(isGraphics)
-		, _layout(layout)
 	{
 	}
 }

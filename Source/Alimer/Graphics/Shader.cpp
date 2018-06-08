@@ -25,8 +25,7 @@
 
 namespace Alimer
 {
-	Shader::Shader(Graphics* graphics)
-		: _graphics(graphics)
+	Shader::Shader()
 	{
 	}
 

@@ -44,6 +44,17 @@ void AlimerRender(const Alimer::SharedPtr<Alimer::Texture>& frameTexture);
 
 namespace Alimer
 {
+    struct EngineSettings
+    {
+        GraphicsDeviceType graphicsDeviceType = GraphicsDeviceType::Default;
+
+#ifdef _DEBUG
+        bool validation = true;
+#else
+        bool validation = false;
+#endif
+    };
+
 	/// Engine for main loop and all modules and OS setup.
 	class Engine : public RefCounted
 	{
@@ -79,8 +90,8 @@ namespace Alimer
 		inline Audio* GetAudio() const { return _audio.Get(); }
 
 		/// Sets the current scene to be active and rendered.
-		void SetScene(std::shared_ptr<Scene> scene);
-		std::shared_ptr<Scene> GetScene() const { return _scene; }
+		void SetScene(Scene* scene);
+		Scene* GetScene() const { return _scene; }
 
 	protected:
 		virtual bool Initialize();
@@ -98,6 +109,7 @@ namespace Alimer
 		std::atomic<bool> _running;
 		std::atomic<bool> _paused;
 		std::atomic<bool> _headless;
+        EngineSettings _settings{};
 
 		ResourceManager _resources;
 		SharedPtr<Window> _window;
@@ -106,8 +118,7 @@ namespace Alimer
 		UniquePtr<Audio> _audio;
 
 		/// Current scene.
-		std::shared_ptr<Scene> _scene;
-
+		Scene* _scene = nullptr;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Engine);

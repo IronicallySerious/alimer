@@ -46,6 +46,13 @@ namespace Alimer
 		Direct3D12
 	};
 
+    enum class GpuResourceType : uint32_t
+    {
+        Unknown,
+        Buffer,
+        Texture
+    };
+
 	/// Enum describing the number of samples.
 	enum class SampleCount : uint32_t
 	{

@@ -27,6 +27,7 @@ namespace Alimer
 {
 	Scene::Scene()
 	{
+        _root._isRoot = true;
 	}
 
 	Scene::~Scene()

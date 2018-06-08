@@ -102,3 +102,8 @@ if (ALIMER_STATIC_RUNTIME)
 else ()
     message(STATUS "  Runtime         SHARED")
 endif ()
+
+message(STATUS "  Library         ${ALIMER_LIBRARY_TYPE}")
+message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
+message(STATUS "  D3D12           ${ALIMER_D3D12}")
+message(STATUS "  CSharp          ${ALIMER_CSHARP}")

@@ -23,8 +23,7 @@
 #include "Alimer.h"
 using namespace Alimer;
 
-GpuBufferPtr vertexBuffer;
-std::shared_ptr<PipelineLayout> renderPipelineLayout;
+SharedPtr<GpuBuffer> vertexBuffer;
 PipelineStatePtr renderPipeline;
 
 void AlimerMain(const std::vector<std::string>& args)
@@ -46,11 +45,8 @@ void AlimerMain(const std::vector<std::string>& args)
 
 	vertexBuffer = graphics->CreateBuffer(BufferUsage::Vertex, 3, sizeof(Vertex), triangleVertices);
 
-	renderPipelineLayout = graphics->CreatePipelineLayout();
-
 	RenderPipelineDescriptor renderPipelineDescriptor;
 	renderPipelineDescriptor.shader = graphics->CreateShader("color.vert", "color.frag");
-	renderPipelineDescriptor.layout = renderPipelineLayout;
 	renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
 	renderPipelineDescriptor.vertexElements[1].format = VertexFormat::Float4;
 	renderPipelineDescriptor.vertexElements[1].offset = 12;
@@ -59,9 +55,8 @@ void AlimerMain(const std::vector<std::string>& args)
 
 void AlimerShutdown()
 {
-	vertexBuffer.reset();
+	vertexBuffer.Reset();
 	renderPipeline.reset();
-	renderPipelineLayout.reset();
 }
 
 void AlimerRender(const SharedPtr<Texture>& frameTexture)

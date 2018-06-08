@@ -25,7 +25,6 @@
 #include "D3D12Texture.h"
 #include "D3D12CommandBuffer.h"
 #include "D3D12GpuBuffer.h"
-#include "D3D12PipelineLayout.h"
 #include "D3D12Shader.h"
 #include "D3D12PipelineState.h"
 #include "../ShaderCompiler.h"
@@ -41,65 +40,114 @@
 #	endif
 #endif
 
-namespace Alimer
-{
 #if !ALIMER_PLATFORM_UWP
-    typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY2)(UINT flags, REFIID _riid, _Out_ void** ppFactory);
-    typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE)(UINT flags, REFIID _riid, void** _debug);
+static bool s_d3d12Initialized = false;
+static HMODULE DXGIDebugHandle = nullptr;
+static HMODULE DXGIHandle = nullptr;
+static HMODULE D3D12Handle = nullptr;
 
-    bool _d3d12_libInitialized = false;
-    HMODULE _d3d12_DXGIDebugHandle = nullptr;
-    HMODULE _d3d12_DXGIHandle = nullptr;
-    HMODULE _d3d12_Handle = nullptr;
-
-    PFN_GET_DXGI_DEBUG_INTERFACE DXGIGetDebugInterface1 = nullptr;
-    PFN_CREATE_DXGI_FACTORY2 CreateDXGIFactory2 = nullptr;
-
-    PFN_D3D12_CREATE_DEVICE D3D12CreateDevice = nullptr;
-    PFN_D3D12_GET_DEBUG_INTERFACE D3D12GetDebugInterface = nullptr;
-    PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignature = nullptr;
-    static bool D3D12GetDebugInterfaceAvailable = false;
-
-    HRESULT LoadD3D12Libraries()
-    {
-        if (_d3d12_libInitialized)
-            return S_OK;
-
-        _d3d12_DXGIDebugHandle = ::LoadLibraryW(L"dxgidebug.dll");
-        _d3d12_DXGIHandle = ::LoadLibraryW(L"dxgi.dll");
-        _d3d12_Handle = ::LoadLibraryW(L"d3d12.dll");
-
-        if (!_d3d12_DXGIHandle)
-            return E_FAIL;
-
-        if (!_d3d12_Handle)
-            return E_FAIL;
-
-        // Load symbols.
-        DXGIGetDebugInterface1 = (PFN_GET_DXGI_DEBUG_INTERFACE)::GetProcAddress(_d3d12_DXGIHandle, "DXGIGetDebugInterface1");
-        CreateDXGIFactory2 = (PFN_CREATE_DXGI_FACTORY2)::GetProcAddress(_d3d12_DXGIHandle, "CreateDXGIFactory2");
-
-        // We need at least D3D11.1
-        if (!CreateDXGIFactory2)
-            return E_FAIL;
-
-        D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)::GetProcAddress(_d3d12_Handle, "D3D12CreateDevice");
-        D3D12GetDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)::GetProcAddress(_d3d12_Handle, "D3D12GetDebugInterface");
-        D3D12SerializeRootSignature = (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)::GetProcAddress(_d3d12_Handle, "D3D12SerializeRootSignature");
-
-        if (!D3D12CreateDevice)
-            return E_FAIL;
-
-        if (!D3D12SerializeRootSignature)
-            return E_FAIL;
-
-        D3D12GetDebugInterfaceAvailable = D3D12GetDebugInterface != nullptr;
-
-        _d3d12_libInitialized = true;
+decltype(CreateDXGIFactory2)* CreateDXGIFactory2Fn = nullptr;
+PFN_D3D12_GET_DEBUG_INTERFACE D3D12GetDebugInterfaceFn = nullptr;
+PFN_D3D12_CREATE_DEVICE D3D12CreateDeviceFn = nullptr;
+PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignatureFn = nullptr;
+PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE D3D12SerializeVersionedRootSignatureFn = nullptr;
+HRESULT D3D12LoadLibraries()
+{
+    if (s_d3d12Initialized)
         return S_OK;
-    }
+
+    DXGIDebugHandle = LoadLibraryW(L"dxgidebug.dll");
+    DXGIHandle = LoadLibraryW(L"dxgi.dll");
+    D3D12Handle = LoadLibraryW(L"d3d12.dll");
+
+    if (!DXGIHandle)
+        return S_FALSE;
+    if (!D3D12Handle)
+        return S_FALSE;
+
+    // Load symbols.
+    //DXGIGetDebugInterface1Fn = (PFN_GET_DXGI_DEBUG_INTERFACE)::GetProcAddress(DXGIHandle, "DXGIGetDebugInterface1");
+    CreateDXGIFactory2Fn = (decltype(CreateDXGIFactory2Fn))::GetProcAddress(DXGIHandle, "CreateDXGIFactory2");
+    D3D12CreateDeviceFn = (PFN_D3D12_CREATE_DEVICE)::GetProcAddress(D3D12Handle, "D3D12CreateDevice");
+    D3D12GetDebugInterfaceFn = (PFN_D3D12_GET_DEBUG_INTERFACE)::GetProcAddress(D3D12Handle, "D3D12GetDebugInterface");
+    D3D12SerializeRootSignatureFn = (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)::GetProcAddress(D3D12Handle, "D3D12SerializeRootSignature");
+    D3D12SerializeVersionedRootSignatureFn = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)::GetProcAddress(D3D12Handle, "D3D12SerializeVersionedRootSignature");
+
+    if (!CreateDXGIFactory2Fn)
+        return S_FALSE;
+    if (!D3D12CreateDeviceFn)
+        return S_FALSE;
+    if (!D3D12GetDebugInterfaceFn)
+        return S_FALSE;
+    if (!D3D12SerializeRootSignatureFn)
+       return S_FALSE;
+
+    // Done.
+    s_d3d12Initialized = true;
+    return S_OK;
+}
 #endif
 
+HRESULT privateD3D12GetDebugInterface(
+    _In_ REFIID riid,
+    _COM_Outptr_opt_ void** ppvDebug)
+{
+#ifdef VK_D3D_UWP
+    return D3D12GetDebugInterface(riid, ppvDebug);
+#else
+    return D3D12GetDebugInterfaceFn(riid, ppvDebug);
+#endif
+}
+
+HRESULT privateCreateDXGIFactory2(UINT Flags, REFIID riid, _COM_Outptr_ void **ppFactory)
+{
+#ifdef VK_D3D_UWP
+    return CreateDXGIFactory2(Flags, riid, ppFactory);
+#else
+    return CreateDXGIFactory2Fn(Flags, riid, ppFactory);
+#endif
+}
+
+HRESULT privateD3D12CreateDevice(
+    _In_opt_ IUnknown* pAdapter,
+    D3D_FEATURE_LEVEL MinimumFeatureLevel,
+    _In_ REFIID riid, // Expected: ID3D12Device
+    _COM_Outptr_opt_ void** ppDevice)
+{
+#ifdef VK_D3D_UWP
+    return D3D12CreateDevice(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+#else
+    return D3D12CreateDeviceFn(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+#endif
+}
+
+HRESULT privateD3D12SerializeRootSignature(
+    _In_ const D3D12_ROOT_SIGNATURE_DESC* pRootSignature,
+    _In_ D3D_ROOT_SIGNATURE_VERSION Version,
+    _Out_ ID3DBlob** ppBlob,
+    _Always_(_Outptr_opt_result_maybenull_) ID3DBlob** ppErrorBlob)
+{
+#ifdef VK_D3D_UWP
+    return D3D12SerializeRootSignature(pRootSignature, Version, ppBlob, ppErrorBlob); 
+#else
+    return D3D12SerializeRootSignatureFn(pRootSignature, Version, ppBlob, ppErrorBlob);
+#endif
+}
+
+HRESULT privateD3D12SerializeVersionedRootSignature(
+    _In_ const D3D12_VERSIONED_ROOT_SIGNATURE_DESC* pRootSignature,
+    _Out_ ID3DBlob** ppBlob,
+    _Always_(_Outptr_opt_result_maybenull_) ID3DBlob** ppErrorBlob)
+{
+#ifdef VK_D3D_UWP
+    return D3D12SerializeVersionedRootSignature(pRootSignature, ppBlob, ppErrorBlob);
+#else
+    return D3D12SerializeVersionedRootSignatureFn(pRootSignature, ppBlob, ppErrorBlob);
+#endif
+}
+
+namespace Alimer
+{
     _Use_decl_annotations_ static void GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
     {
         ComPtr<IDXGIAdapter1> adapter;
@@ -119,7 +167,7 @@ namespace Alimer
 
             // Check to see if the adapter supports Direct3D 12, but don't create the
             // actual device yet.
-            if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+            if (SUCCEEDED(privateD3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
             {
                 break;
             }
@@ -138,16 +186,15 @@ namespace Alimer
 
         availableCheck = true;
 #if !ALIMER_PLATFORM_UWP
-        if (FAILED(LoadD3D12Libraries()))
+        if (FAILED(D3D12LoadLibraries()))
         {
             isAvailable = false;
             return false;
         }
 #endif
-
         // Create temp dxgi factory for check support.
         ComPtr<IDXGIFactory2> factory;
-        HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
+        HRESULT hr = privateCreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
         if (FAILED(hr))
         {
             isAvailable = false;
@@ -160,8 +207,8 @@ namespace Alimer
         return isAvailable;
     }
 
-    D3D12Graphics::D3D12Graphics()
-        : Graphics(false, "Alimer")
+    D3D12Graphics::D3D12Graphics(bool validation)
+        : Graphics(GraphicsDeviceType::Direct3D12, validation)
         , _commandListManager(nullptr)
         , _descriptorAllocator{
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
@@ -189,7 +236,7 @@ namespace Alimer
     bool D3D12Graphics::Initialize(const SharedPtr<Window>& window)
     {
 #if !ALIMER_PLATFORM_UWP
-        if (FAILED(LoadD3D12Libraries()))
+        if (FAILED(D3D12LoadLibraries()))
         {
             ALIMER_LOGERROR("Failed to load D3D12 libraries.");
             return false;
@@ -203,7 +250,7 @@ namespace Alimer
         // NOTE: Enabling the debug layer after device creation will invalidate the active device.
         {
             ComPtr<ID3D12Debug> debugController;
-            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
+            if (SUCCEEDED(privateD3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
             {
                 debugController->EnableDebugLayer();
 
@@ -213,7 +260,7 @@ namespace Alimer
         }
 #endif
 
-        HRESULT hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&_factory));
+        HRESULT hr = privateCreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&_factory));
         if (FAILED(hr))
         {
             return false;
@@ -221,10 +268,11 @@ namespace Alimer
 
         if (_useWarpDevice)
         {
-            ThrowIfFailed(_factory->EnumWarpAdapter(IID_PPV_ARGS(&_adapter)));
+            ComPtr<IDXGIAdapter1> warpAdapter;
+            ThrowIfFailed(_factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
 
-            ThrowIfFailed(D3D12CreateDevice(
-                _adapter.Get(),
+            ThrowIfFailed(privateD3D12CreateDevice(
+                warpAdapter.Get(),
                 D3D_FEATURE_LEVEL_11_0,
                 IID_PPV_ARGS(&_d3dDevice)
             ));
@@ -247,19 +295,14 @@ namespace Alimer
 
                 // Check to see if the adapter supports Direct3D 12, but don't create the
                 // actual device yet.
-                if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+                if (SUCCEEDED(privateD3D12CreateDevice(
+                    adapter.Get(),
+                    D3D_FEATURE_LEVEL_11_0,
+                    IID_PPV_ARGS(&_d3dDevice))))
                 {
                     break;
                 }
             }
-
-            _adapter.Attach(adapter.Detach());
-
-            ThrowIfFailed(D3D12CreateDevice(
-                adapter.Get(),
-                D3D_FEATURE_LEVEL_11_0,
-                IID_PPV_ARGS(&_d3dDevice)
-            ));
         }
 
         if (!InitializeCaps())
@@ -370,6 +413,17 @@ namespace Alimer
             return false;
         }
 
+        // This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
+        _featureDataRootSignature.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
+        if (FAILED(_d3dDevice->CheckFeatureSupport(
+            D3D12_FEATURE_ROOT_SIGNATURE,
+            &_featureDataRootSignature,
+            sizeof(_featureDataRootSignature))))
+        {
+            _featureDataRootSignature.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+        }
+
         return true;
     }
 
@@ -444,14 +498,9 @@ namespace Alimer
         return d3dCommandBuffer;
     }
 
-    GpuBufferPtr D3D12Graphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
+    SharedPtr<GpuBuffer> D3D12Graphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
     {
-        return std::make_shared<D3D12GpuBuffer>(this, usage, elementCount, elementSize, initialData);
-    }
-
-    PipelineLayoutPtr D3D12Graphics::CreatePipelineLayout()
-    {
-        return std::make_shared<D3D12PipelineLayout>(this);
+        return MakeShared<D3D12GpuBuffer>(this, usage, elementCount, elementSize, initialData);
     }
 
     SharedPtr<Shader> D3D12Graphics::CreateComputeShader(const ShaderStageDescription& desc)

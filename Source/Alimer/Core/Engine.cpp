@@ -68,10 +68,10 @@ namespace Alimer
 			return;
 
 		// Acquire frame texture first.
-		//SharedPtr<Texture> frameTexture = graphics->AcquireNextImage();
+		SharedPtr<Texture> frameTexture = graphics->AcquireNextImage();
 		// TODO: Render Scene.
 		//AlimerRender(frameTexture);
-		//_graphics->Present();
+		_graphics->Present();
 	}
 
 	bool Engine::Initialize()
@@ -83,16 +83,10 @@ namespace Alimer
 			_window = MakeWindow("Alimer", 800, 600);
 
 			// Create and init graphics.
-			//_graphicsDeviceType = GraphicsDeviceType::Direct3D12;
-			//_graphicsDeviceType = GraphicsDeviceType::Vulkan;
-#ifdef _DEBUG
-			const bool validation = true;
-#else
-			const bool validation = false;
-#endif
+            _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
+			//_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
 
-			_graphics = new Graphics(validation);
-
+			_graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
 			if (!_graphics->Initialize(_window))
 			{
 				ALIMER_LOGERROR("Failed to initialize Graphics.");
@@ -148,7 +142,7 @@ namespace Alimer
 		}
 	}
 
-	void Engine::SetScene(std::shared_ptr<Scene> scene)
+	void Engine::SetScene(Scene* scene)
 	{
 		_scene = scene;
 	}

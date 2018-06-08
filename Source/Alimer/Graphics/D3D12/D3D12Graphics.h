@@ -45,7 +45,7 @@ namespace Alimer
 		static bool IsSupported();
 
 		/// Constructor.
-		D3D12Graphics();
+		D3D12Graphics(bool validation);
 
 		/// Destructor.
 		virtual ~D3D12Graphics() override;
@@ -57,8 +57,7 @@ namespace Alimer
 
 		SharedPtr<CommandBuffer> GetCommandBuffer() override;
 
-		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
-		PipelineLayoutPtr CreatePipelineLayout() override;
+        SharedPtr<GpuBuffer> CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
 		SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
@@ -73,6 +72,8 @@ namespace Alimer
 			return _descriptorAllocator[type].Allocate(Count);
 		}
 
+        D3D12_FEATURE_DATA_ROOT_SIGNATURE GetFeatureDataRootSignature() const { return _featureDataRootSignature; }
+
 	private:
 		bool InitializeCaps();
 		void CreateSwapchain(const SharedPtr<Window>& window);
@@ -83,8 +84,10 @@ namespace Alimer
 		bool _useWarpDevice{ false };
 
 		ComPtr<IDXGIFactory4> _factory;
-		ComPtr<IDXGIAdapter1> _adapter;
 		ComPtr<ID3D12Device> _d3dDevice;
+
+        D3D12_FEATURE_DATA_ROOT_SIGNATURE _featureDataRootSignature;
+
 		ComPtr<IDXGISwapChain3> _swapChain;
 		ComPtr<ID3D12Resource> _renderTargets[FrameCount];
 

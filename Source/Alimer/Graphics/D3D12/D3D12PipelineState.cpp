@@ -21,7 +21,6 @@
 //
 
 #include "D3D12PipelineState.h"
-#include "D3D12PipelineLayout.h"
 #include "D3D12Shader.h"
 #include "D3D12Graphics.h"
 #include "../../Core/Log.h"
@@ -33,40 +32,39 @@ namespace Alimer
     {
         switch (format)
         {
-            case VertexFormat::Float:
-                return DXGI_FORMAT_R32_FLOAT;
-            case VertexFormat::Float2:
-                return DXGI_FORMAT_R32G32_FLOAT;
-            case VertexFormat::Float3:
-                return DXGI_FORMAT_R32G32B32_FLOAT;
-            case VertexFormat::Float4:
-                return DXGI_FORMAT_R32G32B32A32_FLOAT;
-            case VertexFormat::Byte4:
-                return DXGI_FORMAT_R8G8B8A8_SINT;
-            case VertexFormat::Byte4N:
-                return DXGI_FORMAT_R8G8B8A8_SNORM;
-            case VertexFormat::UByte4:
-                return DXGI_FORMAT_R8G8B8A8_UINT;
-            case VertexFormat::UByte4N:
-                return DXGI_FORMAT_R8G8B8A8_UNORM;
-            case VertexFormat::Short2:
-                return DXGI_FORMAT_R16G16_SINT;
-            case VertexFormat::Short2N:
-                return DXGI_FORMAT_R16G16_SNORM;
-            case VertexFormat::Short4:
-                return DXGI_FORMAT_R16G16B16A16_SINT;
-            case VertexFormat::Short4N:
-                return DXGI_FORMAT_R16G16B16A16_SNORM;
-            default:
-                return DXGI_FORMAT_UNKNOWN;
+        case VertexFormat::Float:
+            return DXGI_FORMAT_R32_FLOAT;
+        case VertexFormat::Float2:
+            return DXGI_FORMAT_R32G32_FLOAT;
+        case VertexFormat::Float3:
+            return DXGI_FORMAT_R32G32B32_FLOAT;
+        case VertexFormat::Float4:
+            return DXGI_FORMAT_R32G32B32A32_FLOAT;
+        case VertexFormat::Byte4:
+            return DXGI_FORMAT_R8G8B8A8_SINT;
+        case VertexFormat::Byte4N:
+            return DXGI_FORMAT_R8G8B8A8_SNORM;
+        case VertexFormat::UByte4:
+            return DXGI_FORMAT_R8G8B8A8_UINT;
+        case VertexFormat::UByte4N:
+            return DXGI_FORMAT_R8G8B8A8_UNORM;
+        case VertexFormat::Short2:
+            return DXGI_FORMAT_R16G16_SINT;
+        case VertexFormat::Short2N:
+            return DXGI_FORMAT_R16G16_SNORM;
+        case VertexFormat::Short4:
+            return DXGI_FORMAT_R16G16B16A16_SINT;
+        case VertexFormat::Short4N:
+            return DXGI_FORMAT_R16G16B16A16_SNORM;
+        default:
+            return DXGI_FORMAT_UNKNOWN;
         }
     }
 
     D3D12PipelineState::D3D12PipelineState(D3D12Graphics* graphics, const RenderPipelineDescriptor& descriptor)
-        : PipelineState(graphics, true, descriptor.layout)
+        : PipelineState(graphics, true)
     {
-        auto d3dPipelineLayout = std::static_pointer_cast<D3D12PipelineLayout>(descriptor.layout);
-        auto d3dShader = StaticCast<D3D12Shader>(descriptor.shader);
+        _shader = StaticCast<D3D12Shader>(descriptor.shader);
 
         UINT elementsCount = 0;
         D3D12_INPUT_ELEMENT_DESC elements[MaxVertexAttributes];
@@ -90,12 +88,12 @@ namespace Alimer
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         psoDesc.InputLayout.pInputElementDescs = elements;
         psoDesc.InputLayout.NumElements = elementsCount;
-        psoDesc.pRootSignature = d3dPipelineLayout->GetD3DRootSignature();
+        psoDesc.pRootSignature = _shader->GetD3DRootSignature();
 
         std::vector<uint8_t> vsByteCode;
         std::vector<uint8_t> psByteCode;
-        vsByteCode = d3dShader->AcquireBytecode(ShaderStage::Vertex);
-        psByteCode = d3dShader->AcquireBytecode(ShaderStage::Fragment);
+        vsByteCode = _shader->AcquireBytecode(ShaderStage::Vertex);
+        psByteCode = _shader->AcquireBytecode(ShaderStage::Fragment);
 
         psoDesc.VS = { vsByteCode.data(), vsByteCode.size() };
         psoDesc.PS = { psByteCode.data(), psByteCode.size() };
@@ -147,4 +145,18 @@ namespace Alimer
     }
 
     D3D12PipelineState::~D3D12PipelineState() = default;
+
+    void D3D12PipelineState::Bind(ID3D12GraphicsCommandList* commandList)
+    {
+        if (_isGraphics)
+        {
+            commandList->SetGraphicsRootSignature(_shader->GetD3DRootSignature());
+        }
+        else
+        {
+            commandList->SetComputeRootSignature(_shader->GetD3DRootSignature());
+        }
+
+        commandList->SetPipelineState(_pipelineState.Get());
+    }
 }

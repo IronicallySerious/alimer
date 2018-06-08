@@ -26,7 +26,6 @@
 #include "D3D12GpuBuffer.h"
 #include "D3D12Graphics.h"
 #include "D3D12PipelineState.h"
-#include "D3D12PipelineLayout.h"
 #include "../../Core/Log.h"
 #include "../../Core/Windows/EngineWindows.h"
 #include "../../Util/Util.h"
@@ -246,13 +245,7 @@ namespace Alimer
 	void D3D12CommandBuffer::SetPipeline(const PipelineStatePtr& pipeline)
 	{
 		auto d3dPipeline = std::static_pointer_cast<D3D12PipelineState>(pipeline);
-		auto d3dPipelineLayout = std::static_pointer_cast<D3D12PipelineLayout>(pipeline->GetLayout());
-
-		if (pipeline->IsGraphics())
-		{
-			_commandList->SetGraphicsRootSignature(d3dPipelineLayout->GetD3DRootSignature());
-			_commandList->SetPipelineState(d3dPipeline->GetD3DPipelineState());
-		}
+        d3dPipeline->Bind(_commandList);
 	}
 
 	void D3D12CommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)

@@ -41,20 +41,21 @@ namespace Alimer
 	class VulkanGraphics final : public Graphics
 	{
 	public:
+        static bool IsSupported();
+
 		/// Construct. Set parent shader and defines but do not compile yet.
 		VulkanGraphics(bool validation, const std::string& applicationName);
 		/// Destruct.
 		~VulkanGraphics() override;
 
-		bool WaitIdle() override;
-		bool Initialize(const SharedPtr<Window>& window) override;
+        bool WaitIdle() override;
+        bool Initialize(const SharedPtr<Window>& window) override;
 		SharedPtr<Texture> AcquireNextImage() override;
 		bool Present() override;
 
 		SharedPtr<CommandBuffer> GetCommandBuffer() override;
 
-		GpuBufferPtr CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
-		PipelineLayoutPtr CreatePipelineLayout() override;
+        SharedPtr<GpuBuffer> CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
 		SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
 		PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
@@ -62,43 +63,6 @@ namespace Alimer
 		VkInstance GetInstance() const { return _instance; }
 		VkPhysicalDevice GetPhysicalDevice() const { return _vkPhysicalDevice; }
 		VkDevice GetLogicalDevice() const { return _logicalDevice; }
-
-		/**
-		* Get the index of a queue family that supports the requested queue flags
-		*
-		* @param queueFlags Queue flags to find a queue family index for
-		*
-		* @return Index of the queue family index that matches the flags
-		*
-		* @throw Throws an exception if no queue family index could be found that supports the requested flags
-		*/
-		uint32_t GetQueueFamilyIndex(VkQueueFlagBits queueFlags)
-		{
-			// Dedicated queue for compute
-			// Try to find a queue family index that supports compute but not graphics
-			const uint32_t queueFamilyPropsCount = static_cast<uint32_t>(_queueFamilyProperties.size());
-			if (queueFlags & VK_QUEUE_COMPUTE_BIT)
-			{
-				for (uint32_t i = 0; i < queueFamilyPropsCount; i++)
-				{
-					if ((_queueFamilyProperties[i].queueFlags & queueFlags) && ((_queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0)) {
-						return i;
-						break;
-					}
-				}
-			}
-
-			// For other queue types or if no separate compute queue is present, return the first one to support the requested flags
-			for (uint32_t i = 0; i < queueFamilyPropsCount; i++)
-			{
-				if (_queueFamilyProperties[i].queueFlags & queueFlags) {
-					return i;
-					break;
-				}
-			}
-
-			ALIMER_LOGCRITICAL("Vulkan - Could not find a matching queue family index");
-		}
 
 		VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
 		void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
@@ -108,10 +72,11 @@ namespace Alimer
 
 		VkRenderPass GetVkRenderPass(const RenderPassDescriptor& descriptor, uint64_t hash);
 		VulkanFramebuffer* GetFramebuffer(VkRenderPass renderPass, const RenderPassDescriptor& descriptor, uint64_t hash);
+        uint32_t GetQueueFamilyIndex(VkQueueFlagBits queueFlags);
+        VkCommandPool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags);
 
 	private:
-		void Finalize() override;
-
+        void Finalize() override;
 		bool PrepareDraw(PrimitiveTopology topology);
 
 		VkInstance _instance = VK_NULL_HANDLE;
@@ -140,7 +105,7 @@ namespace Alimer
 		uint32_t _swapchainImageIndex = 0;
 
 		// CommandPools
-		VkCommandPool _graphicsCommandPool = VK_NULL_HANDLE;
+		VkCommandPool _commandPool = VK_NULL_HANDLE;
 		std::vector<SharedPtr<VulkanCommandBuffer>> _commandBuffers;
 
 		// Sync semaphores

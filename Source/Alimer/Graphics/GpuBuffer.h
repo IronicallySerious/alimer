@@ -22,21 +22,21 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
+#include "../Graphics/GpuResource.h"
 #include <memory>
 
 namespace Alimer
 {
-	class Graphics;
-
 	/// Defines a GPU Buffer class.
-	class GpuBuffer
+	class GpuBuffer : public GpuResource, public RefCounted
 	{
 	protected:
 		/// Constructor.
-		GpuBuffer(Graphics* graphics, BufferUsage bufferUsage, uint32_t elementCount, uint32_t elementSize);
+		GpuBuffer(BufferUsage bufferUsage, uint32_t elementCount, uint32_t elementSize);
 
 	public:
+        explicit GpuBuffer();
+
 		/// Destructor.
 		virtual ~GpuBuffer() = default;
 
@@ -46,15 +46,10 @@ namespace Alimer
 		inline uint64_t GetSize() const { return _size; }
 
 	protected:
-		Graphics* _graphics;
+
 		BufferUsage _bufferUsage;
 		uint32_t _elementCount;
 		uint32_t _elementSize;
 		uint64_t _size;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuBuffer);
 	};
-
-	using GpuBufferPtr = std::shared_ptr<GpuBuffer>;
 }
