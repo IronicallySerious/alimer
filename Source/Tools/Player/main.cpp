@@ -24,7 +24,16 @@
 using namespace Alimer;
 
 SharedPtr<GpuBuffer> vertexBuffer;
-PipelineStatePtr renderPipeline;
+SharedPtr<GpuBuffer> uboBuffer;
+SharedPtr<PipelineState> renderPipeline;
+
+struct PerCameraCBuffer
+{
+    Matrix4x4 viewMatrix;
+    Matrix4x4 projectionMatrix;
+};
+
+PerCameraCBuffer _camera;
 
 void AlimerMain(const std::vector<std::string>& args)
 {
@@ -45,6 +54,10 @@ void AlimerMain(const std::vector<std::string>& args)
 
 	vertexBuffer = graphics->CreateBuffer(BufferUsage::Vertex, 3, sizeof(Vertex), triangleVertices);
 
+    _camera.viewMatrix = Matrix4x4::Identity;
+    _camera.projectionMatrix = Matrix4x4::Identity;
+    uboBuffer = graphics->CreateBuffer(BufferUsage::Uniform, 1, sizeof(PerCameraCBuffer), &_camera);
+
 	RenderPipelineDescriptor renderPipelineDescriptor;
 	renderPipelineDescriptor.shader = graphics->CreateShader("color.vert", "color.frag");
 	renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
@@ -56,7 +69,7 @@ void AlimerMain(const std::vector<std::string>& args)
 void AlimerShutdown()
 {
 	vertexBuffer.Reset();
-	renderPipeline.reset();
+	renderPipeline.Reset();
 }
 
 void AlimerRender(const SharedPtr<Texture>& frameTexture)
@@ -66,9 +79,10 @@ void AlimerRender(const SharedPtr<Texture>& frameTexture)
 	passDescriptor.colorAttachments[0].texture = frameTexture;
 	passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
 	commandBuffer->BeginRenderPass(passDescriptor);
-	/*commandBuffer->SetVertexBuffer(vertexBuffer.get(), 0);
+	commandBuffer->SetVertexBuffer(vertexBuffer.Get(), 0);
 	commandBuffer->SetPipeline(renderPipeline);
-	commandBuffer->Draw(PrimitiveTopology::Triangles, 3);*/
+    commandBuffer->SetUniformBuffer(0, 0, uboBuffer.Get());
+	commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
 	commandBuffer->EndRenderPass();
 	//commandBuffer->Commit();
 }

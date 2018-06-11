@@ -26,41 +26,59 @@
 
 namespace Alimer
 {
-	D3D12DescriptorAllocator::D3D12DescriptorAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type)
-		: _graphics(nullptr)
-		, _type(type)
-		, _currentHeap(nullptr)
-		, _currentHandle{}
-		, _descriptorSize(0)
-		, _remainingFreeHandles(0)
-	{
-	}
+    D3D12DescriptorAllocator::D3D12DescriptorAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type)
+        : _graphics(nullptr)
+        , _type(type)
+        , _currentHeap(nullptr)
+        , _currentCpuHandle{}
+        , _currentGpuHandle{}
+        , _descriptorSize(0)
+        , _remainingFreeHandles(0)
+    {
+    }
 
-	D3D12DescriptorAllocator::~D3D12DescriptorAllocator()
-	{
-	}
+    D3D12DescriptorAllocator::~D3D12DescriptorAllocator()
+    {
+    }
 
-	void D3D12DescriptorAllocator::Initialize(D3D12Graphics* graphics)
-	{
-		_graphics = graphics;
-	}
+    void D3D12DescriptorAllocator::Initialize(D3D12Graphics* graphics)
+    {
+        _graphics = graphics;
+    }
 
-	D3D12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorAllocator::Allocate(uint32_t count)
-	{
-		if (_currentHeap == nullptr
-			|| _remainingFreeHandles < count)
-		{
-			_currentHeap = _graphics->RequestNewHeap(_type, NumDescriptorsPerHeap);
-			_currentHandle = _currentHeap->GetCPUDescriptorHandleForHeapStart();
-			_remainingFreeHandles = NumDescriptorsPerHeap;
+    D3D12DescriptorHandle D3D12DescriptorAllocator::Allocate(uint32_t count)
+    {
+        if (_currentHeap == nullptr
+            || _remainingFreeHandles < count)
+        {
+            _currentHeap = _graphics->RequestNewHeap(_type, NumDescriptorsPerHeap);
+            _currentCpuHandle = _currentHeap->GetCPUDescriptorHandleForHeapStart();
+            if (_type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+                || _type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+            {
+                _currentGpuHandle = _currentHeap->GetGPUDescriptorHandleForHeapStart();
+            }
 
-			if (_descriptorSize == 0)
-				_descriptorSize = _graphics->GetD3DDevice()->GetDescriptorHandleIncrementSize(_type);
-		}
+            _remainingFreeHandles = NumDescriptorsPerHeap;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE ret = _currentHandle;
-		_currentHandle.ptr += count * _descriptorSize;
-		_remainingFreeHandles -= count;
-		return ret;
-	}
+            if (_descriptorSize == 0)
+            {
+                _descriptorSize = _graphics->GetD3DDevice()->GetDescriptorHandleIncrementSize(_type);
+            }
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE ret = _currentCpuHandle;
+        _currentCpuHandle.ptr += count * _descriptorSize;
+        _remainingFreeHandles -= count;
+
+        if (_type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+            || _type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+        {
+            D3D12_GPU_DESCRIPTOR_HANDLE retGpuHandle = _currentGpuHandle;
+            _currentGpuHandle.ptr += count * _descriptorSize;
+            return D3D12DescriptorHandle(_currentHeap, ret, retGpuHandle);
+        }
+
+        return D3D12DescriptorHandle(_currentHeap, ret);
+    }
 }

@@ -23,7 +23,7 @@
 #pragma once
 
 #include "Graphics/Texture.h"
-#include "D3D12Helpers.h"
+#include "D3D12DescriptorAllocator.h"
 
 namespace Alimer
 {
@@ -39,9 +39,9 @@ namespace Alimer
 		/// Destructor.
 		~D3D12Texture() override;
 
-		const D3D12_CPU_DESCRIPTOR_HANDLE& GetRTV() const { return _rtvHandle; }
+		const D3D12_CPU_DESCRIPTOR_HANDLE& GetRTV() const { return _rtvHandle.GetCpuHandle(); }
 
 	private:
-		D3D12_CPU_DESCRIPTOR_HANDLE _rtvHandle;
+        D3D12DescriptorHandle _rtvHandle;
 	};
 }

@@ -29,6 +29,46 @@
 namespace Alimer
 {
 	class D3D12Graphics;
+
+    class D3D12DescriptorHandle
+    {
+    public:
+        D3D12DescriptorHandle()
+        {
+            _cpuHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
+            _gpuHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
+        }
+
+        D3D12DescriptorHandle(ID3D12DescriptorHeap* heap, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle)
+            : _heap(heap)
+            , _cpuHandle(cpuHandle)
+        {
+            _gpuHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
+        }
+
+        D3D12DescriptorHandle(
+            ID3D12DescriptorHeap* heap,
+            D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
+            D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle)
+            : _heap(heap)
+            , _cpuHandle(cpuHandle)
+            , _gpuHandle(gpuHandle)
+        {
+        }
+
+        ID3D12DescriptorHeap* GetHeap() const { return _heap; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const { return _cpuHandle; }
+        D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const { return _gpuHandle; }
+
+        bool IsNull() const { return _cpuHandle.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN; }
+        bool IsShaderVisible() const { return _gpuHandle.ptr != D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN; }
+
+    private:
+        ID3D12DescriptorHeap * _heap;
+        D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle;
+        D3D12_GPU_DESCRIPTOR_HANDLE _gpuHandle;
+    };
+
 	class D3D12DescriptorAllocator final
 	{
 	public:
@@ -36,7 +76,7 @@ namespace Alimer
 		~D3D12DescriptorAllocator();
 		void Initialize(D3D12Graphics* graphics);
 
-		D3D12_CPU_DESCRIPTOR_HANDLE Allocate(uint32_t count);
+        D3D12DescriptorHandle Allocate(uint32_t count);
 
 	protected:
 		static constexpr uint32_t NumDescriptorsPerHeap = 256;
@@ -44,7 +84,8 @@ namespace Alimer
 		D3D12Graphics* _graphics;
 		D3D12_DESCRIPTOR_HEAP_TYPE _type;
 		ID3D12DescriptorHeap* _currentHeap;
-		D3D12_CPU_DESCRIPTOR_HANDLE _currentHandle;
+		D3D12_CPU_DESCRIPTOR_HANDLE _currentCpuHandle;
+        D3D12_GPU_DESCRIPTOR_HANDLE _currentGpuHandle;
 		uint32_t _descriptorSize;
 		uint32_t _remainingFreeHandles;
 	};

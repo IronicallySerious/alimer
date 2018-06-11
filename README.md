@@ -31,7 +31,7 @@ Alimer development, contributions and bugfixes by:
 - Amer Koleci
 
 Alimer is greatly inspired by [Urho3D](https://github.com/urho3d/Urho3D) and [Ogre3D](http://www.ogre3d.org), some code has been take from Urho3D library and adopted
-by the engine needs, Urho3D is licensed under the [MIT](https://github.com/urho3d/Urho3D/blob/master/LICENSE). 
+by the engine needs, Urho3D is licensed under the [MIT](https://github.com/urho3d/Urho3D/blob/master/LICENSE).
 
 The engine uses the following third-party libraries:
 
@@ -42,6 +42,7 @@ The engine uses the following third-party libraries:
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [glslang](https://github.com/KhronosGroup/glslang)
 - [volk Metaloader for Vulkan](https://github.com/zeux/volk)
+- [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 
 Additional inspiration, research or code used:
 

@@ -97,7 +97,14 @@ namespace Alimer
 		*/
 		bool IsEof() const { return _position >= _size; }
 
+        /// Gets the name of this object.
+        std::string GetName() const { return _name; }
+
+        /// Sets the name of this object.
+        void SetName(const std::string& name);
+
 	protected:
+        std::string _name;
 		StreamMode _mode;
 		size_t _position = 0;
 		size_t _size = 0;

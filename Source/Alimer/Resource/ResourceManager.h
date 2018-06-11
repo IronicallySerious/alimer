@@ -24,12 +24,17 @@
 
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceLoader.h"
-#include <string>
+#include <mutex>
 #include <atomic>
+#include <string>
+#include <vector>
 #include <map>
 
 namespace Alimer
 {
+    /// Sets to priority so that a package or file is pushed to the end of the vector.
+    static constexpr uint32_t PRIORITY_LAST = 0xffffffff;
+
 	/// Resource cache subsystem. Loads resources on demand and stores them for later access.
 	class ResourceManager final
 	{
@@ -40,6 +45,11 @@ namespace Alimer
 		/// Destructor.
 		~ResourceManager();
 
+        /// Add a resource load directory. Optional priority parameter which will control search order.
+        bool AddResourceDir(const std::string& assetName, uint32_t priority = PRIORITY_LAST);
+
+        std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+
 		SharedPtr<Resource> LoadResource(const std::string& assetName);
 
 		template <class T> SharedPtr<T> Load(const std::string& assetName)
@@ -47,9 +57,28 @@ namespace Alimer
 			return StaticCast<T>(LoadResource(assetName));
 		}
 
+        /// Remove unsupported constructs from the resource name to prevent ambiguity, and normalize absolute filename to resource path relative if possible.
+        std::string SanitateResourceName(const std::string& name) const;
+
+        /// Remove unnecessary constructs from a resource directory name and ensure it to be an absolute path.
+        std::string SanitateResourceDirName(const std::string& name) const;
+
 	private:
-		std::string _dataDirectory;
+        /// Search FileSystem for file.
+        std::unique_ptr<Stream> SearchResourceDirs(const std::string& name);
+        /// Search resource packages for file.
+        std::unique_ptr<Stream> SearchPackages(const std::string& name);
+
+        /// Mutex for thread-safe access to the resource directories, resource packages and resource dependencies.
+        mutable std::mutex _resourceMutex;
+
+        /// Resource load directories.
+        std::vector<std::string> _resourceDirs;
+
 		std::map<std::string, SharedPtr<Resource>> _resources;
+
+        /// Search priority flag.
+        bool _searchPackagesFirst{ true };
 
 		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceManager);
 	};

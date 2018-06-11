@@ -29,41 +29,190 @@ using namespace std;
 
 namespace Alimer
 {
-	Alimer::ResourceManager* resources = nullptr;
+    Alimer::ResourceManager* resources = nullptr;
+    static const std::string AssetsFolderName = "assets";
+    static const std::string ShadersFolderName = "shaders";
 
-	ResourceManager::ResourceManager()
-	{
-#ifdef ALIMER_ASSET_PIPELINE
-		_dataDirectory = FileSystem::Get().GetProtocol("assets")->GetPath();
-		_dataDirectory += '_';
-		_dataDirectory += "windows";
-#else
-		_dataDirectory = FileSystem::Get().GetProtocol("assets")->GetPath();
-#endif
+    ResourceManager::ResourceManager()
+    {
+        string executablePath = GetExecutableFolder();
+        string assetsDirectory = Path::Join(GetParentPath(executablePath), AssetsFolderName);
+        string shadersDirectory = Path::Join(assetsDirectory, ShadersFolderName);
 
-		resources = this;
-	}
+        if (DirectoryExists(assetsDirectory))
+        {
+            AddResourceDir(assetsDirectory);
+            if (DirectoryExists(shadersDirectory))
+                AddResourceDir(shadersDirectory);
+        }
+        else
+        {
+            assetsDirectory = Path::Join(executablePath, AssetsFolderName);
+            shadersDirectory = Path::Join(assetsDirectory, ShadersFolderName);
 
-	ResourceManager::~ResourceManager()
-	{
-		resources = nullptr;
-	}
+            if (DirectoryExists(assetsDirectory))
+            {
+                AddResourceDir(assetsDirectory);
 
-	SharedPtr<Resource> ResourceManager::LoadResource(const std::string& assetName)
-	{
-		auto paths = Path::ProtocolSplit(assetName);
-		string fullPath = Path::Join(_dataDirectory, paths.second);
-		string compiledAssetName = fullPath + ".alb";
+                if (DirectoryExists(shadersDirectory))
+                    AddResourceDir(shadersDirectory);
+            }
+        }
 
-		if (!FileSystem::Get().FileExists(compiledAssetName))
-		{
-			if (!FileSystem::Get().FileExists(assetName))
-			{
-				return nullptr;
-			}
-		}
+        resources = this;
+    }
 
-		auto b = FileSystem::Get().FileExists(assetName);
-		return nullptr;
-	}
+    ResourceManager::~ResourceManager()
+    {
+        resources = nullptr;
+    }
+
+    bool ResourceManager::AddResourceDir(const string& path, uint32_t priority)
+    {
+        lock_guard<mutex> guard(_resourceMutex);
+
+        if (!DirectoryExists(path))
+        {
+            ALIMER_LOGERROR("Directory '%s' does not exists", path.c_str());
+            return false;
+        }
+
+        // Convert path to absolute
+        string fixedPath = SanitateResourceDirName(path);
+
+        // Check that the same path does not already exist
+        for (size_t i = 0; i < _resourceDirs.size(); ++i)
+        {
+            if (!_resourceDirs[i].compare(fixedPath))
+                return true;
+        }
+
+        if (priority < _resourceDirs.size())
+            _resourceDirs.insert(_resourceDirs.begin() + priority, fixedPath);
+        else
+            _resourceDirs.push_back(fixedPath);
+
+        // If resource auto-reloading active, create a file watcher for the directory
+       /* if (_autoReloadResources)
+        {
+            SharedPtr<FileWatcher> watcher(new FileWatcher(context_));
+            watcher->StartWatching(fixedPath, true);
+            fileWatchers_.Push(watcher);
+        }*/
+
+        ALIMER_LOGINFO("Added resource path '%s'", fixedPath.c_str());
+        return true;
+    }
+
+    unique_ptr<Stream> ResourceManager::Open(const string &assetName, StreamMode mode)
+    {
+        lock_guard<mutex> guard(_resourceMutex);
+
+        string sanitatedName = SanitateResourceName(assetName);
+
+        if (sanitatedName.length())
+        {
+            unique_ptr<Stream> stream = {};
+
+            if (_searchPackagesFirst)
+            {
+                stream = SearchPackages(sanitatedName);
+                if (!stream)
+                    stream = SearchResourceDirs(sanitatedName);
+            }
+            else
+            {
+                stream = SearchResourceDirs(sanitatedName);
+                if (!stream)
+                    stream = SearchPackages(sanitatedName);
+            }
+
+            return stream;
+        }
+
+        return {};
+    }
+
+    SharedPtr<Resource> ResourceManager::LoadResource(const string& assetName)
+    {
+        /*auto paths = Path::ProtocolSplit(assetName);
+        string fullPath = Path::Join(_dataDirectory, paths.second);
+        string compiledAssetName = fullPath + ".alb";
+
+        if (!FileSystem::Get().FileExists(compiledAssetName))
+        {
+            if (!FileSystem::Get().FileExists(assetName))
+            {
+                return nullptr;
+            }
+        }
+
+        auto b = FileSystem::Get().FileExists(assetName);*/
+        return nullptr;
+    }
+
+    string ResourceManager::SanitateResourceName(const string& name) const
+    {
+        // Sanitate unsupported constructs from the resource name
+        string sanitatedName = Util::Replace(name, "../", "");
+        sanitatedName = Util::Replace(sanitatedName, "./", "");
+
+        // If the path refers to one of the resource directories, normalize the resource name
+        if (_resourceDirs.size())
+        {
+            string namePath = GetPath(sanitatedName);
+            string exePath = Util::Replace(GetExecutableFolder(), "/./", "/");
+            for (size_t i = 0; i < _resourceDirs.size(); ++i)
+            {
+                string relativeResourcePath = _resourceDirs[i];
+                if (Util::StartsWith(relativeResourcePath, exePath))
+                    relativeResourcePath = relativeResourcePath.substr(exePath.length());
+
+                if (Util::StartsWith(namePath, _resourceDirs[i], false))
+                    namePath = namePath.substr(_resourceDirs[i].length());
+                else if (Util::StartsWith(namePath, relativeResourcePath, false))
+                    namePath = namePath.substr(relativeResourcePath.length());
+            }
+
+            sanitatedName = namePath + GetFileNameAndExtension(sanitatedName);
+        }
+
+        Util::Trim(sanitatedName);
+        return sanitatedName;
+    }
+
+    string ResourceManager::SanitateResourceDirName(const string& name) const
+    {
+        string cleanName = AddTrailingSlash(name);
+        if (!IsAbsolutePath(name))
+            cleanName = Path::Join(GetCurrentDir(), name);
+
+        // Sanitate away /./ construct
+        Util::Replace(cleanName, "/./", "/");
+        Util::Trim(cleanName);
+        return cleanName;
+    }
+
+    unique_ptr<Stream> ResourceManager::SearchResourceDirs(const string& name)
+    {
+        for (size_t i = 0; i < _resourceDirs.size(); ++i)
+        {
+            if (FileExists(_resourceDirs[i] + name))
+            {
+                return OpenStream(_resourceDirs[i] + name);
+            }
+        }
+
+        // Fallback using absolute path
+        if (FileExists(name))
+            return OpenStream(name);
+
+        return {};
+    }
+
+    std::unique_ptr<Stream> ResourceManager::SearchPackages(const string& name)
+    {
+        // TODO:
+        return {};
+    }
 }

@@ -70,7 +70,7 @@ namespace Alimer
 		// Acquire frame texture first.
 		SharedPtr<Texture> frameTexture = graphics->AcquireNextImage();
 		// TODO: Render Scene.
-		//AlimerRender(frameTexture);
+		AlimerRender(frameTexture);
 		_graphics->Present();
 	}
 

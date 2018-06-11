@@ -38,6 +38,7 @@ namespace Alimer
 {
 	class D3D12Graphics;
 	class D3D12Texture;
+    class D3D12PipelineState;
 	class D3D12CommandListManager;
 
 	/// D3D12 CommandBuffer implementation.
@@ -51,7 +52,9 @@ namespace Alimer
 		~D3D12CommandBuffer() override;
 
 		void Reset();
-		uint64_t Commit(bool waitForCompletion) override;
+
+        /// Commit for execution and optionally wait for completion.
+		uint64_t Commit(bool waitForCompletion);
 
 		void TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
 		void BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
@@ -61,7 +64,7 @@ namespace Alimer
 		void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
 		void EndRenderPass() override;
 
-		void SetPipeline(const PipelineStatePtr& pipeline) override;
+		void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
 		void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
 		void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
@@ -69,6 +72,8 @@ namespace Alimer
 	private:
 		void FlushGraphicsPipelineState();
 		bool PrepareDraw(PrimitiveTopology topology);
+        void FlushDescriptorSets();
+        void FlushDescriptorSet(uint32_t set);
 
 	private:
 		ID3D12Device* _d3dDevice;
@@ -84,7 +89,8 @@ namespace Alimer
 		D3D12Resource* _boundRTVResources[MaxColorAttachments];
 		D3D12_CPU_DESCRIPTOR_HANDLE _boundRTV[MaxColorAttachments];
 
-		ID3D12PipelineState* _currentPipeline = nullptr;
+        SharedPtr<D3D12PipelineState> _currentPipeline;
+		ID3D12PipelineState* _currentD3DPipeline = nullptr;
 		PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
 	};
 }

@@ -120,4 +120,19 @@ namespace Util
     void LeftTrim(std::string& s);
     void RightTrim(std::string& s);
     void Trim(std::string& s);
+
+    void ToLower(std::string& s);
+    void ToUpper(std::string& s);
+
+    bool StartsWith(const std::string& str, const std::string& pattern, bool lowerCase = true);
+    bool EndsWith(const std::string& str, const std::string& pattern, bool lowerCase = true);
+
+    /// Convert a char to uppercase.
+    inline char ToUpper(char c) { return (c >= 'a' && c <= 'z') ? c - 0x20 : c; }
+    /// Convert a char to lowercase.
+    inline char ToLower(char c) { return (c >= 'A' && c <= 'Z') ? c + 0x20 : c; }
+    /// Return whether a char is an alphabet letter.
+    inline bool IsAlpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
+    /// Return whether a char is a digit.
+    inline bool IsDigit(char c) { return c >= '0' && c <= '9'; }
 }

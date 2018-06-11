@@ -39,12 +39,11 @@ namespace Alimer
 
 		void Begin();
 		void End();
-		uint64_t Commit(bool waitForCompletion) override;
 
 		void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
 		void EndRenderPass() override;
 
-		void SetPipeline(const PipelineStatePtr& pipeline) override;
+		void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
 		void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
 		void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;

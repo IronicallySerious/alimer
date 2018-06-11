@@ -22,8 +22,7 @@
 
 #include "Graphics.h"
 #include "ShaderCompiler.h"
-#include "../IO/FileSystem.h"
-#include "../IO/Path.h"
+#include "../Resource/ResourceManager.h"
 #include "../Core/Log.h"
 
 #if ALIMER_VULKAN
@@ -57,14 +56,14 @@ namespace Alimer
     {
         if (_gpuResources.size())
         {
-           lock_guard<mutex> lock(_gpuResourceMutex);
+            lock_guard<mutex> lock(_gpuResourceMutex);
 
             // Release all GPU objects that still exist
             std::sort(_gpuResources.begin(), _gpuResources.end(),
                 [](const GpuResource* x, const GpuResource* y)
-                {
-                    return x->GetResourceType() < y->GetResourceType();
-                });
+            {
+                return x->GetResourceType() < y->GetResourceType();
+            });
 
             for (size_t i = 0; i < _gpuResources.size(); ++i)
             {
@@ -174,27 +173,30 @@ namespace Alimer
         return true;
     }
 
-    SharedPtr<Shader> Graphics::CreateShader(const std::string& vertexShaderFile, const std::string& fragmentShaderFile)
+    SharedPtr<Shader> Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
     {
-        string baseShaderUrl = "assets://shaders/";
+        auto vertexShaderStream = resources->Open(vertexShaderFile + ".glsl");
+        auto fragmentShaderStream = resources->Open(fragmentShaderFile + ".glsl");
 
         // Lookup for GLSL shader.
-        if (!FileSystem::Get().FileExists(baseShaderUrl + vertexShaderFile + ".glsl"))
+        if (!vertexShaderStream)
         {
             ALIMER_LOGERROR("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
             return nullptr;
         }
 
-        if (!FileSystem::Get().FileExists(baseShaderUrl + fragmentShaderFile + ".glsl"))
+        if (!fragmentShaderStream)
         {
             ALIMER_LOGERROR("GLSL shader does not exists '%s'", fragmentShaderFile.c_str());
             return nullptr;
         }
 
         // Compile GLSL.
+        string vertexShader = vertexShaderStream->ReadAllText();
+        string fragmentShader = fragmentShaderStream->ReadAllText();
         string errorLog;
-        vector<uint32_t> vertexByteCode = ShaderCompiler::Compile(baseShaderUrl + vertexShaderFile + ".glsl", errorLog);
-        vector<uint32_t> fragmentByteCode = ShaderCompiler::Compile(baseShaderUrl + fragmentShaderFile + ".glsl", errorLog);
+        vector<uint32_t> vertexByteCode = ShaderCompiler::Compile(vertexShader, vertexShaderStream->GetName(), ShaderStage::Vertex, errorLog);
+        vector<uint32_t> fragmentByteCode = ShaderCompiler::Compile(fragmentShader, fragmentShaderStream->GetName(), ShaderStage::Fragment, errorLog);
 
         ShaderStageDescription vertex = {};
         vertex.byteCode = vertexByteCode.data();

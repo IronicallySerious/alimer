@@ -26,48 +26,48 @@
 
 namespace Alimer
 {
-	D3D12GpuBuffer::D3D12GpuBuffer(D3D12Graphics* graphics, BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
-		: GpuBuffer(usage, elementCount, elementSize)
-	{
-		// TODO: Property initialize using CommandList.
-		_usageState = D3D12_RESOURCE_STATE_GENERIC_READ;
+    D3D12GpuBuffer::D3D12GpuBuffer(D3D12Graphics* graphics, BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
+        : GpuBuffer(usage, elementCount, elementSize)
+    {
+        // TODO: Property initialize using CommandList.
+        _usageState = D3D12_RESOURCE_STATE_GENERIC_READ;
 
         CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
         CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(_size);
 
-		HRESULT hr =  graphics->GetD3DDevice()->CreateCommittedResource(
-				&heapProps,
-				D3D12_HEAP_FLAG_NONE,
-				&resourceDesc,
-				_usageState,
-				nullptr,
-				IID_PPV_ARGS(&_resource)
-		);
+        HRESULT hr = graphics->GetD3DDevice()->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &resourceDesc,
+            _usageState,
+            nullptr,
+            IID_PPV_ARGS(&_resource)
+        );
 
-		if (initialData)
-		{
-			// Create staging buffer for copy data.
-			//ComPtr<ID3D12Resource> stagingBuffer;
+        if (initialData)
+        {
+            // Create staging buffer for copy data.
+            //ComPtr<ID3D12Resource> stagingBuffer;
 
-			//ThrowIfFailed(graphics->GetD3DDevice()->CreateCommittedResource(
-			//	&HeapProperties(D3D12_HEAP_TYPE_UPLOAD),
-			//	D3D12_HEAP_FLAG_NONE,
-			//	&BufferResourceDesc(_size),
-			//	D3D12_RESOURCE_STATE_GENERIC_READ,
-			//	nullptr,
-			//	IID_PPV_ARGS(&stagingBuffer)));
+            //ThrowIfFailed(graphics->GetD3DDevice()->CreateCommittedResource(
+            //	&HeapProperties(D3D12_HEAP_TYPE_UPLOAD),
+            //	D3D12_HEAP_FLAG_NONE,
+            //	&BufferResourceDesc(_size),
+            //	D3D12_RESOURCE_STATE_GENERIC_READ,
+            //	nullptr,
+            //	IID_PPV_ARGS(&stagingBuffer)));
 
-			UINT8* pDataBegin;
-			D3D12_RANGE readRange = {};
-			hr = _resource->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin));
-			memcpy(pDataBegin, initialData, _size);
-			_resource->Unmap(0, nullptr);
-		}
+            UINT8* pDataBegin;
+            D3D12_RANGE readRange = {};
+            hr = _resource->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin));
+            memcpy(pDataBegin, initialData, _size);
+            _resource->Unmap(0, nullptr);
+        }
 
-		_gpuVirtualAddress = _resource->GetGPUVirtualAddress();
-	}
+        _gpuVirtualAddress = _resource->GetGPUVirtualAddress();
+    }
 
-	D3D12GpuBuffer::~D3D12GpuBuffer()
-	{
-	}
+    D3D12GpuBuffer::~D3D12GpuBuffer()
+    {
+    }
 }

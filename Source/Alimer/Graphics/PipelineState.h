@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Foundation/Ptr.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/Shader.h"
 
@@ -36,7 +37,7 @@ namespace Alimer
 	};
 
 	/// Defines a PipelineState class.
-	class PipelineState
+	class PipelineState : public RefCounted
 	{
 	protected:
 		/// Constructor.
@@ -55,6 +56,4 @@ namespace Alimer
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(PipelineState);
 	};
-
-	using PipelineStatePtr = std::shared_ptr<PipelineState>;
 }

@@ -34,6 +34,7 @@
 
 #define VK_NO_PROTOTYPES 0
 #include "volk/volk.h"
+#include "vk_mem_alloc.h"
 
 inline const char* vkGetVulkanResultString(VkResult result)
 {

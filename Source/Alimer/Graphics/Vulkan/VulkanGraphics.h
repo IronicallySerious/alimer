@@ -58,11 +58,12 @@ namespace Alimer
         SharedPtr<GpuBuffer> CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
 		SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
-		PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
+        SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
 
 		VkInstance GetInstance() const { return _instance; }
 		VkPhysicalDevice GetPhysicalDevice() const { return _vkPhysicalDevice; }
 		VkDevice GetLogicalDevice() const { return _logicalDevice; }
+        VmaAllocator GetAllocator() const { return _allocator; }
 
 		VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
 		void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
@@ -77,6 +78,7 @@ namespace Alimer
 
 	private:
         void Finalize() override;
+        void CreateAllocator();
 		bool PrepareDraw(PrimitiveTopology topology);
 
 		VkInstance _instance = VK_NULL_HANDLE;
@@ -96,6 +98,7 @@ namespace Alimer
 		} _queueFamilyIndices;
 
 		VkDevice _logicalDevice = VK_NULL_HANDLE;
+        VmaAllocator _allocator = VK_NULL_HANDLE;
 
 		// Queue's.
 		VkQueue _graphicsQueue = VK_NULL_HANDLE;

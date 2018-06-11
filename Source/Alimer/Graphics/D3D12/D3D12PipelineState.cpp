@@ -135,6 +135,7 @@ namespace Alimer
         psoDesc.NumRenderTargets = 1;
         psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         psoDesc.SampleDesc.Count = 1;
+        psoDesc.NodeMask = 1;
 
         if (FAILED(graphics->GetD3DDevice()->CreateGraphicsPipelineState(
             &psoDesc, IID_PPV_ARGS(&_pipelineState))))
@@ -142,6 +143,9 @@ namespace Alimer
             ALIMER_LOGERROR("CreateGraphicsPipelineState failed");
             return;
         }
+
+        _cbvDescriptorHandle = graphics->AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
+        _cbvHeap = _cbvDescriptorHandle.GetHeap();
     }
 
     D3D12PipelineState::~D3D12PipelineState() = default;
@@ -158,5 +162,12 @@ namespace Alimer
         }
 
         commandList->SetPipelineState(_pipelineState.Get());
+
+        std::array<ID3D12DescriptorHeap *const, 2> heaps{
+            _cbvHeap,
+            _samplerHeap
+        };
+
+        commandList->SetDescriptorHeaps(_samplerHeap ? 2 : 1, heaps.data());
     }
 }

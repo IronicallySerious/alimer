@@ -20,13 +20,34 @@
 // THE SOFTWARE.
 //
 
-#include "../Math/MathUtil.h"
-#include <cstdio>
+#include "VulkanBuffer.h"
+#include "VulkanGraphics.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {
-	float MathUtil::Lerp(float from, float to, float amount)
-	{
-		return from + (to - from) * amount;
-	}
+    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
+        : GpuBuffer(usage, elementCount, elementSize)
+        , _logicalDevice(graphics->GetLogicalDevice())
+    {
+        VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+        createInfo.pNext = nullptr;
+        createInfo.size = _size;
+        createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        VkResult result = vmaCreateBuffer(
+            graphics->GetAllocator(),
+            &createInfo,
+            &allocInfo,
+            &_vkHandle,
+            &_allocation,
+            nullptr);
+    }
+
+    VulkanBuffer::~VulkanBuffer()
+    {
+    }
 }

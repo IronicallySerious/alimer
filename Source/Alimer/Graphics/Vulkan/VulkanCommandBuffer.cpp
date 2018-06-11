@@ -56,14 +56,6 @@ namespace Alimer
 		vkThrowIfFailed(vkEndCommandBuffer(_vkCommandBuffer));
 	}
 
-	uint64_t VulkanCommandBuffer::Commit(bool waitForCompletion)
-	{
-		End();
-
-		static_cast<VulkanGraphics*>(_graphics)->SubmitCommandBuffer(this);
-		return _fenceValue;
-	}
-
 	void VulkanCommandBuffer::BeginRenderPass(const RenderPassDescriptor& descriptor)
 	{
 		Util::Hasher renderPassHasher;
@@ -125,7 +117,7 @@ namespace Alimer
 		vkCmdEndRenderPass(_vkCommandBuffer);
 	}
 
-	void VulkanCommandBuffer::SetPipeline(const PipelineStatePtr& pipeline)
+	void VulkanCommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)
 	{
 
 	}

@@ -43,15 +43,14 @@ namespace Alimer
 		/// Destructor.
 		virtual ~CommandBuffer();
 
-		/// Commit for execution and optionally wait for completion.
-		virtual uint64_t Commit(bool waitForCompletion = false) = 0;
-
 		virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
 		virtual void EndRenderPass() = 0;
 
 		virtual void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
 
-		virtual void SetPipeline(const PipelineStatePtr& pipeline) = 0;
+		virtual void SetPipeline(const SharedPtr<PipelineState>& pipeline) = 0;
+
+        void SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer);
 
 		void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
 		void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
@@ -89,9 +88,30 @@ namespace Alimer
 			VertexInputRate inputRates[MaxVertexBufferBindings];
 		};
 
+        struct ResourceBindingBufferInfo {
+            const GpuBuffer*  buffer;
+            uint64_t    offset;
+            uint64_t    range;
+        };
+
+        struct ResourceBinding
+        {
+            union {
+                ResourceBindingBufferInfo buffer;
+            };
+        };
+
+        struct ResourceBindings
+        {
+            ResourceBinding bindings[MaxDescriptorSets][MaxBindingsPerSet];
+            uint8_t push_constant_data[MaxDescriptorSets];
+        };
+
 		VertexBindingState _vbo = {};
+        ResourceBindings _bindings;
 
 		CommandBufferDirtyFlags _dirty = ~0u;
+        uint32_t _dirtySets = 0;
 		uint32_t _dirtyVbos = 0;
 		uint32_t _activeVbos = 0;
 

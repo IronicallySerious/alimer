@@ -23,7 +23,7 @@
 #pragma once
 
 #include "Graphics/PipelineState.h"
-#include "D3D12Helpers.h"
+#include "D3D12DescriptorAllocator.h"
 
 namespace Alimer
 {
@@ -43,8 +43,13 @@ namespace Alimer
         void Bind(ID3D12GraphicsCommandList* commandList);
 
 		ID3D12PipelineState* GetD3DPipelineState() const { return _pipelineState.Get(); }
+        ID3D12DescriptorHeap* GetCBVHeap() const { return _cbvHeap; }
 	private:
 		ComPtr<ID3D12PipelineState> _pipelineState;
         SharedPtr<D3D12Shader> _shader;
+
+        D3D12DescriptorHandle _cbvDescriptorHandle;
+        ID3D12DescriptorHeap* _cbvHeap = nullptr;
+        ID3D12DescriptorHeap* _samplerHeap = nullptr;
 	};
 }

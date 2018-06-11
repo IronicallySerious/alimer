@@ -29,68 +29,35 @@
 
 namespace Alimer
 {
+    /// Add a slash at the end of the path if missing and convert to internal format (use slashes.)
+    ALIMER_API std::string AddTrailingSlash(const std::string& path);
+    /// Remove the slash from the end of a path if exists and convert to internal format (use slashes.)
+    ALIMER_API std::string RemoveTrailingSlash(const std::string& path);
+
+    /// Split a full path to path, filename and extension. The extension will be converted to lowercase by default.
+    ALIMER_API void SplitPath(const std::string& fullPath, std::string& pathName, std::string& fileName, std::string& extension, bool lowerCaseExtension = true);
+
+    /// Return the path from a full path.
+    ALIMER_API std::string GetPath(const std::string& fullPath);
+    /// Return the filename from a full path.
+    ALIMER_API std::string GetFileName(const std::string& fullPath);
+    /// Return the extension from a full path, converted to lowercase by default.
+    ALIMER_API std::string GetExtension(const std::string& fullPath, bool lowercaseExtension = true);
+    /// Return the filename and extension from a full path. The case of the extension is preserved by default, so that the file can be opened in case-sensitive operating systems.
+    ALIMER_API std::string GetFileNameAndExtension(const std::string& fileName, bool lowercaseExtension = false);
     /// Return the parent path, or the path itself if not available.
     ALIMER_API std::string GetParentPath(const std::string& path);
+    /// Return whether a path is absolute.
+    ALIMER_API bool IsAbsolutePath(const std::string& pathName);
 
-	class FileSystemProtocol
-	{
-	public:
-		virtual ~FileSystemProtocol() = default;
-
-		virtual bool FileExists(const std::string &path) = 0;
-		virtual bool DirectoryExists(const std::string &path) = 0;
-
-		virtual std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly) = 0;
-
-		/// Return optional resolve full path.
-		const std::string& GetPath() const { return _path; }
-
-		void SetProtocol(const std::string &proto)
-		{
-			_protocol = proto;
-		}
-
-	protected:
-		std::string _protocol;
-		std::string _path;
-	};
-
-	/// FileSystem subsystem. 
-	class ALIMER_API FileSystem final
-	{
-	public:
-		static FileSystem &Get();
-
-		/// Register file system protocol.
-		void RegisterProtocol(const std::string &proto, std::unique_ptr<FileSystemProtocol> protocol);
-
-		/// Get a registered protocol
-		FileSystemProtocol *GetProtocol(const std::string &proto) const;
-
-		/// Check if a file exists.
-		bool FileExists(const std::string& path) const;
-
-		/// Check if a directory exists.
-		bool DirectoryExists(const std::string& path) const;
-
-		std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
-
-		/// Read entire file as text.
-		std::string ReadAllText(const std::string &path);
-
-		/// Read entire file as vector bytes.
-		std::vector<uint8_t> ReadAllBytes(const std::string& path);
-
-        /// Return the executable application folder.
-        static std::string GetExecutableFolder();
-
-	private:
-		/// Constructor.
-		FileSystem();
-
-		std::unordered_map<std::string, std::unique_ptr<FileSystemProtocol>> _protocols;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(FileSystem);
-	};
+    /// Check if a file exists.
+    ALIMER_API bool FileExists(const std::string& fileName);
+    /// Check if a directory exists.
+    ALIMER_API bool DirectoryExists(const std::string& path);
+    /// Return the absolute current working directory.
+    ALIMER_API std::string GetCurrentDir();
+    /// Return the executable application folder.
+    ALIMER_API std::string GetExecutableFolder();
+    /// Open stream from given path with given access mode.
+    ALIMER_API std::unique_ptr<Stream> OpenStream(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
 }

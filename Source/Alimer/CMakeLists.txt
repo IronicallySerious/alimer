@@ -76,12 +76,10 @@ define_engine_source_files (Resource Serialization Scene)
 
 if (PLATFORM_WINDOWS)
 	define_engine_source_files(Core/Windows)
-	define_engine_source_files(IO/Windows)
 	define_engine_source_files(Input/Windows)
 	define_engine_source_files(Audio/WASAPI)
 elseif (PLATFORM_UWP)
 	define_engine_source_files(Application/UWP)
-	define_engine_source_files(IO/Windows)
 	define_engine_source_files(Audio/WASAPI)
 endif ()
 

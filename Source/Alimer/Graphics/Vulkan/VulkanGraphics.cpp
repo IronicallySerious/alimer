@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#define VMA_IMPLEMENTATION
 #include "../../Core/Log.h"
 #include "../../Core/Window.h"
 #include "VulkanGraphics.h"
@@ -342,6 +343,9 @@ namespace Alimer
         }
         _waitFences.clear();
 
+        // Destroy memory allocator.
+        vmaDestroyAllocator(_allocator);
+
         // Destroy logical device.
         if (_logicalDevice != VK_NULL_HANDLE)
         {
@@ -478,6 +482,8 @@ namespace Alimer
         result = vkCreateDevice(_vkPhysicalDevice, &deviceCreateInfo, nullptr, &_logicalDevice);
         vkThrowIfFailed(result);
 
+        CreateAllocator();
+
         // Get queue's.
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.graphics, 0, &_graphicsQueue);
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.compute, 0, &_computeQueue);
@@ -519,6 +525,19 @@ namespace Alimer
         }
 
         return Graphics::Initialize(window);
+    }
+
+    void VulkanGraphics::CreateAllocator()
+    {
+        VmaAllocatorCreateInfo createInfo = {};
+        createInfo.physicalDevice = _vkPhysicalDevice;
+        createInfo.device = _logicalDevice;
+
+        VkResult result = vmaCreateAllocator(&createInfo, &_allocator);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("Vulkan - Failed to create allocator.");
+        }
     }
 
     SharedPtr<Texture> VulkanGraphics::AcquireNextImage()
@@ -576,7 +595,7 @@ namespace Alimer
         return nullptr;
     }
 
-    PipelineStatePtr VulkanGraphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
+    SharedPtr<PipelineState> VulkanGraphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
     {
         return nullptr;
     }

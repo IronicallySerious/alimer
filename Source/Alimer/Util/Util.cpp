@@ -95,4 +95,41 @@ namespace Util
         LeftTrim(s);
         RightTrim(s);
     }
+
+    void ToLower(std::string& s)
+    {
+        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+    }
+
+    void ToUpper(std::string& s)
+    {
+        std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+    }
+
+    bool StartsWith(const string& str, const string& pattern, bool lowerCase)
+    {
+        if (pattern.empty())
+            return false;
+
+        if (lowerCase)
+        {
+            return strnicmp(str.c_str(), pattern.c_str(), pattern.size()) == 0;
+        }
+
+        return strncmp(str.c_str(), pattern.c_str(), pattern.size()) == 0;
+    }
+
+    bool EndsWith(const string& str, const string& pattern, bool lowerCase)
+    {
+        return false;
+
+        size_t offset = str.size() - pattern.size();
+
+        if (lowerCase)
+        {
+            return strnicmp(str.c_str() + offset, pattern.c_str(), pattern.size()) == 0;
+        }
+
+        return strncmp(str.c_str() + offset, pattern.c_str(), pattern.size()) == 0;
+    }
 }

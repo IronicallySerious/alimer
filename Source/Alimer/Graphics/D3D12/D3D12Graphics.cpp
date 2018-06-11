@@ -80,7 +80,7 @@ HRESULT D3D12LoadLibraries()
     if (!D3D12GetDebugInterfaceFn)
         return S_FALSE;
     if (!D3D12SerializeRootSignatureFn)
-       return S_FALSE;
+        return S_FALSE;
 
     // Done.
     s_d3d12Initialized = true;
@@ -128,7 +128,7 @@ HRESULT privateD3D12SerializeRootSignature(
     _Always_(_Outptr_opt_result_maybenull_) ID3DBlob** ppErrorBlob)
 {
 #ifdef VK_D3D_UWP
-    return D3D12SerializeRootSignature(pRootSignature, Version, ppBlob, ppErrorBlob); 
+    return D3D12SerializeRootSignature(pRootSignature, Version, ppBlob, ppErrorBlob);
 #else
     return D3D12SerializeRootSignatureFn(pRootSignature, Version, ppBlob, ppErrorBlob);
 #endif
@@ -362,6 +362,10 @@ namespace Alimer
 
     bool D3D12Graphics::Present()
     {
+        // Submit frame command buffer.
+        _frameCommandBuffer->Commit(true);
+        RecycleCommandBuffer(_frameCommandBuffer);
+
         // Present the frame.
         HRESULT hr = _swapChain->Present(1, 0);
         if (hr == DXGI_ERROR_DEVICE_REMOVED
@@ -485,17 +489,17 @@ namespace Alimer
 
     SharedPtr<CommandBuffer> D3D12Graphics::GetCommandBuffer()
     {
-        SharedPtr<D3D12CommandBuffer> d3dCommandBuffer = RetrieveCommandBuffer();
-        if (d3dCommandBuffer == nullptr)
+        _frameCommandBuffer = RetrieveCommandBuffer();
+        if (_frameCommandBuffer == nullptr)
         {
-            d3dCommandBuffer = MakeShared<D3D12CommandBuffer>(this);
+            _frameCommandBuffer = MakeShared<D3D12CommandBuffer>(this);
         }
         else
         {
-            d3dCommandBuffer->Reset();
+            _frameCommandBuffer->Reset();
         }
 
-        return d3dCommandBuffer;
+        return _frameCommandBuffer;
     }
 
     SharedPtr<GpuBuffer> D3D12Graphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
@@ -513,9 +517,9 @@ namespace Alimer
         return MakeShared<D3D12Shader>(this, vertex, fragment);
     }
 
-    PipelineStatePtr D3D12Graphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
+    SharedPtr<PipelineState> D3D12Graphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
     {
-        return std::make_shared<D3D12PipelineState>(this, descriptor);
+        return MakeShared<D3D12PipelineState>(this, descriptor);
     }
 
     SharedPtr<D3D12CommandBuffer> D3D12Graphics::RetrieveCommandBuffer()
@@ -538,14 +542,24 @@ namespace Alimer
         }
     }
 
-    ID3D12DescriptorHeap* D3D12Graphics::RequestNewHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
+    ID3D12DescriptorHeap* D3D12Graphics::RequestNewHeap(
+        D3D12_DESCRIPTOR_HEAP_TYPE type,
+        uint32_t numDescriptors)
     {
         std::lock_guard<std::mutex> guard(_heapAllocationMutex);
 
         D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
         heapDesc.Type = type;
         heapDesc.NumDescriptors = numDescriptors;
-        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        if (type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+            || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+        {
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        }
+        else
+        {
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        }
         heapDesc.NodeMask = 1;
 
         ComPtr<ID3D12DescriptorHeap> heap;

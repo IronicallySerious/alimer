@@ -34,6 +34,8 @@ namespace Alimer
 	class D3D12CommandListManager;
 	class D3D12Texture;
 
+    
+
 	/// D3D12 Low-level 3D graphics API class.
 	class D3D12Graphics final : public Graphics
 	{
@@ -61,15 +63,15 @@ namespace Alimer
 
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
 		SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
-		PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
+        SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
 
 		inline IDXGIFactory4* GetDXGIFactory() const { return _factory.Get(); }
 		inline ID3D12Device* GetD3DDevice() const { return _d3dDevice.Get(); }
 		inline D3D12CommandListManager* GetCommandListManager() const { return _commandListManager; }
 
-		inline D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT Count = 1)
+		inline D3D12DescriptorHandle AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT count = 1)
 		{
-			return _descriptorAllocator[type].Allocate(Count);
+			return _descriptorAllocator[type].Allocate(count);
 		}
 
         D3D12_FEATURE_DATA_ROOT_SIGNATURE GetFeatureDataRootSignature() const { return _featureDataRootSignature; }
@@ -102,6 +104,7 @@ namespace Alimer
 		std::mutex _commandBufferMutex;
 		std::array<SharedPtr<D3D12CommandBuffer>, CommandBufferRecycleCount> _recycledCommandBuffers;
 		size_t _commandBufferObjectId = 0;
+        SharedPtr<D3D12CommandBuffer> _frameCommandBuffer;
 
 		std::vector<SharedPtr<D3D12Texture>> _textures;
 	};

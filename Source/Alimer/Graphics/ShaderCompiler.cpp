@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/ShaderCompiler.h"
+#include "../Graphics/ShaderCompiler.h"
 
 #if !ALIMER_SHADER_COMPILER
 namespace Alimer
@@ -36,13 +36,11 @@ namespace Alimer
     }
 }
 #else
-#include "../Core/Log.h"
-#include "../IO/FileSystem.h"
+#include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
+#include "../Core/Log.h"
 #include "glslang/Public/ShaderLang.h"
 #include "SPIRV/GlslangToSpv.h"
-#include <sstream>
-#include <fstream>
 using namespace std;
 
 namespace Alimer
@@ -164,7 +162,15 @@ namespace Alimer
             //ALIMER_UNUSED(inclusionDepth);
 
             std::string fullPath = Path::Join(dir, headerName);
-            std::string fileContent = FileSystem::Get().ReadAllText(fullPath);
+            auto includeFile = resources->Open(fullPath);
+            if (!includeFile)
+            {
+                includeFile = resources->Open(headerName);
+                if (!includeFile)
+                    return false;
+            }
+
+            std::string fileContent = includeFile->ReadAllText();
             char* heapcontent = new char[fileContent.size() + 1];
             strcpy(heapcontent, fileContent.c_str());
             return new IncludeResult(fullPath, heapcontent, fileContent.size(), heapcontent);
@@ -187,15 +193,24 @@ namespace Alimer
 
     GlslangInitializer s_glslangInitializer;
 
-    std::vector<uint32_t> ShaderCompiler::Compile(const std::string& filePath, std::string& errorLog)
+    vector<uint32_t> ShaderCompiler::Compile(
+        const string& filePath,
+        string& errorLog)
     {
-        if (!FileSystem::Get().FileExists(filePath))
+        if (!FileExists(filePath))
         {
             ALIMER_LOGERROR("Shader file '%s' does not exists", filePath.c_str());
             return {};
         }
 
-        string shaderSource = FileSystem::Get().ReadAllText(filePath);
+        auto stream = resources->Open(filePath);
+        if (!stream)
+        {
+            ALIMER_LOGERROR("Cannot open shader file '%s'", filePath.c_str());
+            return {};
+        }
+
+        string shaderSource = stream->ReadAllText();
         size_t firstExtStart = filePath.find_last_of(".");
         bool hasFirstExt = firstExtStart != string::npos;
         size_t secondExtStart = hasFirstExt ? filePath.find_last_of(".", firstExtStart - 1) : string::npos;
@@ -244,26 +259,26 @@ namespace Alimer
         EShLanguage language = EShLangCount;
         switch (stage)
         {
-            case ShaderStage::Vertex:
-                language = EShLangVertex;
-                break;
-            case ShaderStage::TessControl:
-                language = EShLangTessControl;
-                break;
-            case ShaderStage::TessEvaluation:
-                language = EShLangTessEvaluation;
-                break;
-            case ShaderStage::Geometry:
-                language = EShLangGeometry;
-                break;
-            case ShaderStage::Fragment:
-                language = EShLangFragment;
-                break;
-            case ShaderStage::Compute:
-                language = EShLangCompute;
-                break;
-            default:
-                break;
+        case ShaderStage::Vertex:
+            language = EShLangVertex;
+            break;
+        case ShaderStage::TessControl:
+            language = EShLangTessControl;
+            break;
+        case ShaderStage::TessEvaluation:
+            language = EShLangTessEvaluation;
+            break;
+        case ShaderStage::Geometry:
+            language = EShLangGeometry;
+            break;
+        case ShaderStage::Fragment:
+            language = EShLangFragment;
+            break;
+        case ShaderStage::Compute:
+            language = EShLangCompute;
+            break;
+        default:
+            break;
         }
         glslang::TProgram program;
         glslang::TShader shader(language);
@@ -280,7 +295,7 @@ namespace Alimer
         //shader.setInvertY(true);
 
         EShMessages messages = static_cast<EShMessages>(EShMsgCascadingErrors | EShMsgSpvRules | EShMsgVulkanRules);
-        AlimerIncluder includer(Path::GetBaseDir(filePath));
+        AlimerIncluder includer(GetPath(filePath));
 
         const EProfile DefaultProfile = ENoProfile;
         const bool ForceVersionProfile = false;

@@ -80,7 +80,7 @@ namespace Alimer
 			const ShaderStageDescription& fragment) = 0;
 
 		// PipelineState
-		virtual PipelineStatePtr CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
+		virtual SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
 
         inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
 

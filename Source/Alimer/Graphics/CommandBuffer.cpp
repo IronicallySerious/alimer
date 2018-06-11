@@ -38,8 +38,10 @@ namespace Alimer
 	void CommandBuffer::ResetState()
 	{
 		_dirty = ~0u;
+        _dirtySets = ~0u;
 		_dirtyVbos = ~0u;
 		memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
+        memset(&_bindings, 0, sizeof(_bindings));
 	}
 
 	void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding,uint64_t offset, VertexInputRate inputRate)
@@ -66,6 +68,23 @@ namespace Alimer
 		_vbo.strides[binding] = stride;
 		_vbo.inputRates[binding] = inputRate;
 	}
+
+    void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer)
+    {
+        ALIMER_ASSERT(set < MaxDescriptorSets);
+        ALIMER_ASSERT(binding < MaxBindingsPerSet);
+        ALIMER_ASSERT(any(buffer->GetBufferUsage() & BufferUsage::Uniform));
+        auto &b = _bindings.bindings[set][binding];
+
+        uint64_t range = buffer->GetSize();
+        if (buffer == b.buffer.buffer
+            && b.buffer.offset == 0
+            && b.buffer.range == range)
+            return;
+
+        b.buffer = { buffer, 0, range };
+        _dirtySets |= 1u << set;
+    }
 
 	void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
 	{

@@ -28,9 +28,8 @@ namespace Alimer
 {
 	D3D12Texture::D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource)
 		: Texture()
+        , _rtvHandle{}
 	{
-		_rtvHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
-
 		if (resource)
 		{
 			_resource = resource;
@@ -86,11 +85,11 @@ namespace Alimer
 
 			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
 			{
-				_rtvHandle = graphics->AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+                _rtvHandle = graphics->AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 				graphics->GetD3DDevice()->CreateRenderTargetView(
 					resource,
 					nullptr,
-					_rtvHandle);
+					_rtvHandle.GetCpuHandle());
 			}
 		}
 	}

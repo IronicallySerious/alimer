@@ -22,29 +22,26 @@
 
 #pragma once
 
-#include "../FileSystem.h"
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#	define NOMINMAX
-#endif
-
-#include <Windows.h>
+#include "../GpuBuffer.h"
+#include "VulkanPrerequisites.h"
+#include <vector>
 
 namespace Alimer
 {
-	class OSFileSystem final : public FileSystemProtocol
+	class VulkanGraphics;
+
+	/// Vulkan Buffer.
+	class VulkanBuffer final : public GpuBuffer
 	{
 	public:
-		OSFileSystem(const std::string &basePath);
-		~OSFileSystem();
+        VulkanBuffer(VulkanGraphics* graphics, BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData);
+		~VulkanBuffer() override;
 
-		bool FileExists(const std::string &path) override;
-		bool DirectoryExists(const std::string &path) override;
-		std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode) override;
+		inline VkBuffer GetVkHandle() const { return _vkHandle; }
 
 	private:
-		std::string _basePath;
+		VkDevice _logicalDevice;
+        VkBuffer _vkHandle = VK_NULL_HANDLE;
+        VmaAllocation _allocation = VK_NULL_HANDLE;
 	};
 }
