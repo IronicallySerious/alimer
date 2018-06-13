@@ -30,7 +30,9 @@
 #include <vector>
 #include <string>
 #include <atomic>
+#include "../Core/Log.h"
 #include "../Core/Window.h"
+#include "../Serialization/Serializable.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
@@ -38,14 +40,11 @@
 #include "../Graphics/Graphics.h"
 #include "../Scene/Scene.h"
 
-void AlimerMain(const std::vector<std::string>& args);
-void AlimerShutdown();
-void AlimerRender(const Alimer::SharedPtr<Alimer::Texture>& frameTexture);
-
 namespace Alimer
 {
-    struct EngineSettings
+    class ApplicationSettings : public Serializable
     {
+    public:
         GraphicsDeviceType graphicsDeviceType = GraphicsDeviceType::Default;
 
 #ifdef _DEBUG
@@ -55,19 +54,22 @@ namespace Alimer
 #endif
     };
 
-	/// Engine for main loop and all modules and OS setup.
-	class Engine : public RefCounted
+	/// Application for main loop and all modules and OS setup.
+	class ALIMER_API Application : public RefCounted
 	{
 	protected:
 		/// Constructor.
-		Engine();
+        Application();
 
 	public:
 		/// Destructor.
-		virtual ~Engine();
+		virtual ~Application();
+
+        /// Return the single instance of the Application.
+        static Application* GetInstance();
 
 		/// Runs main loop.
-		virtual int Run();
+		int Run();
 
 		/// Tick/Run one frame.
 		void Tick();
@@ -81,7 +83,7 @@ namespace Alimer
 		/// Resume the main execution loop.
 		void Resume();
 
-		virtual SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false) = 0;
+		SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
 
 		inline ResourceManager* GetResources() { return &_resources; }
 		inline Window* GetMainWindow() const { return _window.Get(); }
@@ -93,15 +95,25 @@ namespace Alimer
 		void SetScene(Scene* scene);
 		Scene* GetScene() const { return _scene; }
 
+    private:
+        void PlatformConstruct();
+        bool InitializeBeforeRun();
+
 	protected:
-		virtual bool Initialize();
-		virtual void RunMain();
+        /// Perform setup before initialize the engine and entering main loop.
+        virtual bool Setup() { return true; }
+
+        /// Called after setup and engine initialization with all modules initialized.
+		virtual void Initialize() { }
+
+        /// Cleanup after the main loop. 
+        virtual void OnExiting() { }
 
 		/// Render after frame update.
 		void Render();
 
-		virtual Input* CreateInput() = 0;
-		virtual Audio* CreateAudio() = 0;
+		virtual Input* CreateInput();
+		virtual Audio* CreateAudio();
 
 		static bool SetCurrentThreadName(const std::string& name);
 
@@ -109,8 +121,9 @@ namespace Alimer
 		std::atomic<bool> _running;
 		std::atomic<bool> _paused;
 		std::atomic<bool> _headless;
-        EngineSettings _settings{};
+        ApplicationSettings _settings;
 
+        UniquePtr<Logger> _log;
 		ResourceManager _resources;
 		SharedPtr<Window> _window;
 		UniquePtr<Graphics> _graphics;
@@ -121,8 +134,9 @@ namespace Alimer
 		Scene* _scene = nullptr;
 
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Engine);
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Application);
 	};
 
-	extern Engine* engine;
+    /// Access to current application instance.
+    ALIMER_API Application& gApplication();
 }

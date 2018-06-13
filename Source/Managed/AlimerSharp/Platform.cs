@@ -1,0 +1,54 @@
+// Copyright (c) Amer Koleci and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Runtime.InteropServices;
+
+namespace Alimer
+{
+    /// <summary>
+	/// Class describing the current running platform.
+	/// </summary>
+	public static class Platform
+    {
+        /// <summary>
+		/// Gets the running platform type.
+		/// </summary>
+		public static PlatformType PlatformType { get; }
+
+        /// <summary>
+        /// Gets the running platform family.
+        /// </summary>
+        public static PlatformFamily PlatformFamily { get; }
+
+        static Platform()
+        {
+#if WINDOWS_UWP
+			IsUnix = false;
+			IsWindows = true;
+#elif NET_STANDARD
+			IsUnix = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+			IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+#else
+
+            switch (Environment.OSVersion.Platform)
+            {
+                case PlatformID.Unix:
+                    PlatformType = PlatformType.Linux;
+                    PlatformFamily = PlatformFamily.Desktop;
+                    break;
+
+                case PlatformID.MacOSX:
+                    PlatformType = PlatformType.macOS;
+                    PlatformFamily = PlatformFamily.Desktop;
+                    break;
+
+                default:
+                    PlatformType = PlatformType.Windows;
+                    PlatformFamily = PlatformFamily.Desktop;
+                    break;
+            }
+#endif
+        }
+    }
+}

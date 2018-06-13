@@ -20,16 +20,11 @@
 # THE SOFTWARE.
 #
 
-# ThirdParty
-add_subdirectory(ThirdParty)
+# Native .NET bindings
+add_subdirectory(libAlimerSharp)
 
-# Engine
-add_subdirectory (Alimer)
+add_subdirectory(AlimerSharp)
 
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_CSHARP)
-	add_subdirectory (Managed)
-endif ()
-
-if (NOT CMAKE_CROSS_COMPILING)
-    add_subdirectory (Tools)
-endif ()
+if (PLATFORM_DESKTOP)
+    add_subdirectory(Editor)
+endif (PLATFORM_DESKTOP)

@@ -22,15 +22,14 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
-#include <memory>
+#include "../AlimerConfig.h"
 #include <string>
 #include <atomic>
 
 namespace Alimer
 {
 	/// Audio system class.
-	class Audio
+	class ALIMER_API Audio
 	{
 	protected:
 		/// Constructor.
@@ -44,6 +43,6 @@ namespace Alimer
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Audio);
 	};
 
-	// Direct access to audio module.
-	extern Audio* audio;
+    /// Access to Audio module.
+    ALIMER_API Audio& gAudio();
 }

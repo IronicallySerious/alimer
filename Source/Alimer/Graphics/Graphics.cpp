@@ -37,19 +37,24 @@ using namespace std;
 
 namespace Alimer
 {
-    Alimer::Graphics* graphics = nullptr;
+    static Graphics* __graphicsInstance = nullptr;
 
     Graphics::Graphics(GraphicsDeviceType deviceType, bool validation)
         : _deviceType(deviceType)
         , _validation(validation)
     {
-        graphics = this;
+        __graphicsInstance = this;
     }
 
     Graphics::~Graphics()
     {
         Finalize();
-        graphics = nullptr;
+        __graphicsInstance = nullptr;
+    }
+
+    Graphics* Graphics::GetInstance()
+    {
+        return __graphicsInstance;
     }
 
     void Graphics::Finalize()
@@ -225,5 +230,10 @@ namespace Alimer
         {
             _gpuResources.erase(it);
         }
+    }
+
+    Graphics& gGraphics()
+    {
+        return *__graphicsInstance;
     }
 }

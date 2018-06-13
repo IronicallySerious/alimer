@@ -20,16 +20,5 @@
 # THE SOFTWARE.
 #
 
-# ThirdParty
-add_subdirectory(ThirdParty)
-
-# Engine
-add_subdirectory (Alimer)
-
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_CSHARP)
-	add_subdirectory (Managed)
-endif ()
-
-if (NOT CMAKE_CROSS_COMPILING)
-    add_subdirectory (Tools)
-endif ()
+add_target_csharp(Alimer.Studio.Core ${CMAKE_CURRENT_SOURCE_DIR}/Alimer.Studio.Core.csproj)
+set_target_properties(Alimer.Studio.Core PROPERTIES FOLDER Managed)

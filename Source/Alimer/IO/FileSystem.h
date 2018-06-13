@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Foundation/Ptr.h"
 #include "../IO/Stream.h"
 #include <memory>
 #include <string>
@@ -59,5 +60,5 @@ namespace Alimer
     /// Return the executable application folder.
     ALIMER_API std::string GetExecutableFolder();
     /// Open stream from given path with given access mode.
-    ALIMER_API std::unique_ptr<Stream> OpenStream(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+    ALIMER_API UniquePtr<Stream> OpenStream(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
 }

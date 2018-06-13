@@ -21,12 +21,13 @@
 //
 
 #include "WindowWindows.h"
-#include "EngineWindows.h"
+#include "../Application.h"
 #include "../../Input/Windows/InputWindows.h"
 #include "../../Core/Log.h"
 
 // Dropfile support.
 #include <shellapi.h>
+#include <VersionHelpers.h>
 
 #include <Ole2.h>
 #include <oleidl.h>
@@ -99,15 +100,16 @@ namespace Alimer
 
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
+        
 		if (msg == WM_ACTIVATEAPP)
 		{
 			if (wParam)
 			{
-				engine->Resume();
+				gApplication().Resume();
 			}
 			else
 			{
-				engine->Pause();
+                gApplication().Pause();
 			}
 
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -178,16 +180,11 @@ namespace Alimer
 		LONG _oleRefCount = 0;
 	};
 
-	WindowWindows::WindowWindows(HINSTANCE hInstance, const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
+	WindowWindows::WindowWindows(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
 		: _dropTarget(new OleDropTarget())
 		, _cursor(LoadCursorW(nullptr, IDC_ARROW))
 	{
-		_hInstance = hInstance;
-		if (_hInstance)
-		{
-			// If not hInstance sent, use main module one.
-			_hInstance = GetModuleHandleW(nullptr);
-		}
+		_hInstance = GetModuleHandleW(nullptr);
 
 		if (_windowCount == 0)
 		{
@@ -413,7 +410,7 @@ namespace Alimer
 			{
 				if (LOWORD(lParam) == HTCLIENT)
 				{
-					static_cast<InputWindows*>(input)->UpdateCursor();
+					static_cast<InputWindows*>(Input::GetInstance())->UpdateCursor();
 					return TRUE;
 				}
 				break;

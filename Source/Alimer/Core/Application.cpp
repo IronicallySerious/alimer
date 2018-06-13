@@ -20,62 +20,69 @@
 // THE SOFTWARE.
 //
 
-#include "../Core/Engine.h"
+#include "../Core/Application.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-	Alimer::Engine* engine = nullptr;
+    static Application* __appInstance = nullptr;
 
-	Engine::Engine()
+    Application::Application()
 		: _running(false)
 		, _paused(false)
 		, _headless(false)
+        , _settings{}
+        , _log(new Logger())
 	{
-		engine = this;
+        PlatformConstruct();
+        __appInstance = this;
 	}
 
-	Engine::~Engine()
+    Application::~Application()
 	{
-		AlimerShutdown();
 		_paused = true;
 		_running = false;
-		engine = nullptr;
+        __appInstance = nullptr;
 	}
 
-	int Engine::Run()
-	{
-		return EXIT_SUCCESS;
-	}
+    Application* Application::GetInstance()
+    {
+        return __appInstance;
+    }
 
-	void Engine::Tick()
+	void Application::Tick()
 	{
 		if (_paused)
 		{
 			// When paused still update input logic.
-			//_input->Update();
-			return;
+			_input->Update();
 		}
-
-		//_time->Update();
-		Render();
-		//_input->Update();
+        else
+        {
+            //_time->Update();
+            Render();
+            _input->Update();
+        }
 	}
 
-	void Engine::Render()
+	void Application::Render()
 	{
 		if (_headless)
 			return;
 
 		// Acquire frame texture first.
-		SharedPtr<Texture> frameTexture = graphics->AcquireNextImage();
+		SharedPtr<Texture> frameTexture = _graphics->AcquireNextImage();
 		// TODO: Render Scene.
-		AlimerRender(frameTexture);
 		_graphics->Present();
 	}
 
-	bool Engine::Initialize()
+	bool Application::InitializeBeforeRun()
 	{
+        if (!Setup())
+        {
+            return false;
+        }
+
 		SetCurrentThreadName("Main");
 
 		if (!_headless)
@@ -100,20 +107,21 @@ namespace Alimer
 		// Create per platform Audio module.
 		_audio = CreateAudio();
 
+        // Initialize this instance and all systems.
+        Initialize();
+
 		ALIMER_LOGINFO("Engine initialized with success.");
 		_running = true;
+        //BeginRun();
 
-		// TODO: Multithreading main
-		RunMain();
+        //_time.Reset();
+
+        // Run the first time an update
+        //InternalUpdate();
 		return true;
 	}
 
-	void Engine::RunMain()
-	{
-		AlimerMain(_args);
-	}
-
-	void Engine::Exit()
+	void Application::Exit()
 	{
 		_paused = true;
 
@@ -124,7 +132,7 @@ namespace Alimer
 		}
 	}
 
-	void Engine::Pause()
+	void Application::Pause()
 	{
 		if (_running && !_paused)
 		{
@@ -133,7 +141,7 @@ namespace Alimer
 		}
 	}
 
-	void Engine::Resume()
+	void Application::Resume()
 	{
 		if (_running && _paused)
 		{
@@ -142,8 +150,13 @@ namespace Alimer
 		}
 	}
 
-	void Engine::SetScene(Scene* scene)
+	void Application::SetScene(Scene* scene)
 	{
 		_scene = scene;
 	}
+
+    Application& gApplication()
+    {
+        return *__appInstance;
+    }
 }

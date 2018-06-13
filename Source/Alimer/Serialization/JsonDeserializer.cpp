@@ -20,45 +20,23 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#	define NOMINMAX
-#endif
-
-#include <windows.h>
-#include <string>
-
-#include "../Log.h"
+#include "../Serialization/JsonDeserializer.h"
+#include "../Core/Log.h"
+#include <vector>
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/prettywriter.h>
 
 namespace Alimer
 {
-	inline void ThrowIfFailed(HRESULT hr)
-	{
-		if (FAILED(hr))
-		{
-			ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
-		}
-	}
-}
+    JsonDeserializer::JsonDeserializer(Stream& stream)
+        : Deserializer(stream)
+        
+    {
+    }
 
-#include "../Engine.h"
-
-namespace Alimer
-{
-	class EngineWindows final : public Engine
-	{
-	public:
-		EngineWindows(LPWSTR commandLine);
-		~EngineWindows() override;
-
-		int Run() override;
-		SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen) override;
-		Input* CreateInput() override;
-		Audio* CreateAudio() override;
-	};
+    JsonDeserializer::~JsonDeserializer()
+    {
+        
+    }
 }

@@ -22,30 +22,34 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
+#include "../AlimerConfig.h"
 #include <memory>
 #include <string>
 
 namespace Alimer
 {
-	class Serializer;
+    class Serializer;
+    class Deserializer;
 
-	/// Base class that supports serialization.
-	class Serializable
-	{
-	protected:
-		/// Constructor.
-		Serializable();
+    /// Base class that supports serialization.
+    class ALIMER_API Serializable
+    {
+    protected:
+        /// Constructor.
+        Serializable();
 
-	public:
-		/// Destructor.
-		virtual ~Serializable();
+    public:
+        /// Destructor.
+        virtual ~Serializable();
 
-		/// Serialize. 
-		//virtual void Serialize(Serializer& serializer) = 0;
-	protected:
+        /// Serialize. 
+        virtual void Serialize(Serializer& serializer) { }
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Serializable);
-	};
+        /// Serialize. 
+        virtual void Deserialize(Deserializer& serializer) { }
+    protected:
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Serializable);
+    };
 }

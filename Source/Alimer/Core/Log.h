@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
+#include "../AlimerConfig.h"
 
 namespace Alimer
 {
@@ -38,7 +38,7 @@ namespace Alimer
 	};
 
 	/// Class for logging functionalities.
-	class Logger final
+	class ALIMER_API Logger final
 	{
 	public:
 		/// Construcor.
@@ -61,7 +61,8 @@ namespace Alimer
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Logger);
 	};
 
-	extern Logger* log;
+    /// Access to Logger module.
+    ALIMER_API Logger& gLog();
 }
 
 #ifndef ALIMER_DISABLE_LOGGING
@@ -82,14 +83,14 @@ extern "C" __declspec(dllimport) void __stdcall DebugBreak();
 #	define __current__func__ __func__
 #endif
 
-#	define ALIMER_LOGTRACE(...) Alimer::log->Log(Alimer::LogLevel::Trace, __VA_ARGS__)
-#	define ALIMER_LOGDEBUG(...) Alimer::log->Log(Alimer::LogLevel::Debug, __VA_ARGS__)
-#	define ALIMER_LOGINFO(...) Alimer::log->Log(Alimer::LogLevel::Info, __VA_ARGS__)
-#	define ALIMER_LOGWARN(...) Alimer::log->Log(Alimer::LogLevel::Warn, __VA_ARGS__)
-#	define ALIMER_LOGERROR(...) Alimer::log->Log(Alimer::LogLevel::Error, __VA_ARGS__)
+#	define ALIMER_LOGTRACE(...) Alimer::gLog().Log(Alimer::LogLevel::Trace, __VA_ARGS__)
+#	define ALIMER_LOGDEBUG(...) Alimer::gLog().Log(Alimer::LogLevel::Debug, __VA_ARGS__)
+#	define ALIMER_LOGINFO(...) Alimer::gLog().Log(Alimer::LogLevel::Info, __VA_ARGS__)
+#	define ALIMER_LOGWARN(...) Alimer::gLog().Log(Alimer::LogLevel::Warn, __VA_ARGS__)
+#	define ALIMER_LOGERROR(...) Alimer::gLog().Log(Alimer::LogLevel::Error, __VA_ARGS__)
 #	define ALIMER_LOGCRITICAL(...) do \
 { \
-	Alimer::log->Log(Alimer::LogLevel::Critical, "%s -- %s", __current__func__, __VA_ARGS__); \
+	Alimer::gLog().Log(Alimer::LogLevel::Critical, "%s -- %s", __current__func__, __VA_ARGS__); \
 	ALIMER_DEBUG_BREAK(); \
 	ALIMER_ASSERT(0); \
 	std::exit(-1); \

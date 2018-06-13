@@ -38,7 +38,7 @@
 namespace Alimer
 {
 	/// Low-level 3D graphics API class.
-	class Graphics : public RefCounted
+	class ALIMER_API Graphics : public RefCounted
 	{
     protected:
 		/// Constructor.
@@ -47,6 +47,9 @@ namespace Alimer
 	public:
 		/// Destructor.
 		virtual ~Graphics();
+
+        /// Return the single instance of the Graphics.
+        static Graphics* GetInstance();
 
         /// Get supported graphics backends.
         static std::set<GraphicsDeviceType> GetAvailableBackends();
@@ -106,6 +109,6 @@ namespace Alimer
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);
 	};
 
-	// Direct access to Graphics module.
-	extern Graphics* graphics;
+    /// Access to current Graphics module.
+    ALIMER_API Graphics& gGraphics();
 }

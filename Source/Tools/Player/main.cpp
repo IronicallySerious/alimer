@@ -35,54 +35,85 @@ struct PerCameraCBuffer
 
 PerCameraCBuffer _camera;
 
+namespace Alimer
+{
+    class RuntimeApplication final : public Application
+    {
+    public:
+        RuntimeApplication();
+        ~RuntimeApplication() override;
+    };
+
+    RuntimeApplication::RuntimeApplication()
+    {
+        {
+            auto stream = OpenStream("Test.json", StreamMode::WriteOnly);
+            Serializer* serializer = new JsonSerializer(*stream.Get());
+
+            Color color;
+            serializer->Serialize("color", color);
+            delete serializer;
+        }
+    }
+
+    RuntimeApplication::~RuntimeApplication()
+    {
+    }
+}
+
+ALIMER_APPLICATION(Alimer::RuntimeApplication);
+
+#if TODO
 void AlimerMain(const std::vector<std::string>& args)
 {
-	struct Vertex
-	{
-		Vector3 position;
-		Color color;
-	};
+    struct Vertex
+    {
+        Vector3 position;
+        Color color;
+    };
 
-	const float aspectRatio = static_cast<float>(engine->GetMainWindow()->GetWidth()) / engine->GetMainWindow()->GetHeight();
+    const float aspectRatio = static_cast<float>(engine->GetMainWindow()->GetWidth()) / engine->GetMainWindow()->GetHeight();
 
-	Vertex triangleVertices[] =
-	{
-		{ Vector3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f)},
-		{ Vector3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
-	};
+    Vertex triangleVertices[] =
+    {
+        { Vector3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f)},
+        { Vector3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
+        { Vector3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
+    };
 
-	vertexBuffer = graphics->CreateBuffer(BufferUsage::Vertex, 3, sizeof(Vertex), triangleVertices);
+    vertexBuffer = graphics->CreateBuffer(BufferUsage::Vertex, 3, sizeof(Vertex), triangleVertices);
 
     _camera.viewMatrix = Matrix4x4::Identity;
     _camera.projectionMatrix = Matrix4x4::Identity;
     uboBuffer = graphics->CreateBuffer(BufferUsage::Uniform, 1, sizeof(PerCameraCBuffer), &_camera);
 
-	RenderPipelineDescriptor renderPipelineDescriptor;
-	renderPipelineDescriptor.shader = graphics->CreateShader("color.vert", "color.frag");
-	renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
-	renderPipelineDescriptor.vertexElements[1].format = VertexFormat::Float4;
-	renderPipelineDescriptor.vertexElements[1].offset = 12;
-	renderPipeline = graphics->CreateRenderPipelineState(renderPipelineDescriptor);
+    RenderPipelineDescriptor renderPipelineDescriptor;
+    renderPipelineDescriptor.shader = graphics->CreateShader("color.vert", "color.frag");
+    renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
+    renderPipelineDescriptor.vertexElements[1].format = VertexFormat::Float4;
+    renderPipelineDescriptor.vertexElements[1].offset = 12;
+    renderPipeline = graphics->CreateRenderPipelineState(renderPipelineDescriptor);
 }
 
 void AlimerShutdown()
 {
-	vertexBuffer.Reset();
-	renderPipeline.Reset();
+    vertexBuffer.Reset();
+    renderPipeline.Reset();
 }
 
 void AlimerRender(const SharedPtr<Texture>& frameTexture)
 {
-	SharedPtr<CommandBuffer> commandBuffer = graphics->GetCommandBuffer();
-	RenderPassDescriptor passDescriptor;
-	passDescriptor.colorAttachments[0].texture = frameTexture;
-	passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
-	commandBuffer->BeginRenderPass(passDescriptor);
-	commandBuffer->SetVertexBuffer(vertexBuffer.Get(), 0);
-	commandBuffer->SetPipeline(renderPipeline);
+    SharedPtr<CommandBuffer> commandBuffer = graphics->GetCommandBuffer();
+    RenderPassDescriptor passDescriptor;
+    passDescriptor.colorAttachments[0].texture = frameTexture;
+    passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
+    commandBuffer->BeginRenderPass(passDescriptor);
+    commandBuffer->SetVertexBuffer(vertexBuffer.Get(), 0);
+    commandBuffer->SetPipeline(renderPipeline);
     commandBuffer->SetUniformBuffer(0, 0, uboBuffer.Get());
-	commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
-	commandBuffer->EndRenderPass();
-	//commandBuffer->Commit();
+    commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
+    commandBuffer->EndRenderPass();
+    //commandBuffer->Commit();
 }
+#endif // TODO
+

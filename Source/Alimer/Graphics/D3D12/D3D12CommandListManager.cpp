@@ -23,7 +23,6 @@
 #include "D3D12CommandListManager.h"
 #include "D3D12Graphics.h"
 #include "../../Core/Log.h"
-#include "../../Core/Windows/EngineWindows.h"
 
 namespace Alimer
 {

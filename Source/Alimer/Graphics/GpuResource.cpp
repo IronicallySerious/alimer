@@ -23,13 +23,12 @@
 #include "GpuResource.h"
 #include "Graphics.h"
 #include "../Core/Log.h"
-#include "../Core/Engine.h"
 
 namespace Alimer
 {
     GpuResource::GpuResource(GpuResourceType resourceType)
         : _resourceType(resourceType)
-        , _graphics(engine->GetGraphics())
+        , _graphics(Graphics::GetInstance())
     {
         if (_graphics)
             _graphics->AddGpuResource(this);

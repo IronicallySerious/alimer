@@ -25,18 +25,27 @@
 
 namespace Alimer
 {
-	Alimer::Input* input = nullptr;
+    static Input* __inputInstance = nullptr;
 
 	Input::Input()
 	{
-		input = this;
+        __inputInstance = this;
 	}
-
 
 	Input::~Input()
 	{
-		input = nullptr;
+        __inputInstance = nullptr;
 	}
+
+    Input* Input::GetInstance()
+    {
+        return __inputInstance;
+    }
+
+    void Input::Update()
+    {
+
+    }
 
 	bool Input::IsCursorVisible() const
 	{
@@ -47,4 +56,9 @@ namespace Alimer
 	{
 		// Do nothing by default
 	}
+
+    Input& gInput()
+    {
+        return *__inputInstance;
+    }
 }

@@ -37,7 +37,7 @@ namespace Alimer
 	class WindowWindows final : public Window
 	{
 	public:
-		WindowWindows(HINSTANCE hInstance, const std::string& title, uint32_t width, uint32_t height, bool fullscreen);
+		WindowWindows(const std::string& title, uint32_t width, uint32_t height, bool fullscreen);
 		~WindowWindows() override;
 		void Destroy();
 		void Activate(bool focused);

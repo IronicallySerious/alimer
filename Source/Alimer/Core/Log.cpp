@@ -176,7 +176,7 @@ namespace Alimer
 #endif
 	}
 
-	Alimer::Logger* log = new Logger();
+	static Alimer::Logger* __logInstance = nullptr;
 
 	Logger::Logger()
 	{
@@ -190,12 +190,12 @@ namespace Alimer
 		AllocConsole();
 #endif
 
-		log = this;
+        __logInstance = this;
 	}
 
 	Logger::~Logger()
 	{
-		log = nullptr;
+        __logInstance = nullptr;
 	}
 
 	void Logger::SetLevel(LogLevel newLevel)
@@ -242,4 +242,9 @@ namespace Alimer
 		// Log to the default output
 		LogOutput(level, str);
 	}
+
+    Logger& gLog()
+    {
+        return *__logInstance;
+    }
 }

@@ -20,43 +20,22 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include <new>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <array>
+#include "../Serialization/Deserializer.h"
+#include "../Core/Log.h"
 #include <vector>
-#include <string>
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/prettywriter.h>
 
-// Core
-#include "Core/Log.h"
-#include "Core/Application.h"
-#include "Core/Window.h"
-#include "Core/Main.h"
+namespace Alimer
+{
+    Deserializer::Deserializer(Stream& stream)
+    {
+        ALIMER_ASSERT(stream.CanRead());
+    }
 
-// Math
-#include "Math/MathUtil.h"
-#include "Math/Color.h"
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Quaternion.h"
-#include "Math/Matrix4x4.h"
+    Deserializer::~Deserializer()
+    {
 
-// Graphics
-#include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
-
-// Resource
-#include "Resource/Resource.h"
-#include "Resource/ResourceManager.h"
-
-// Serialization
-#include "Serialization/Serializable.h"
-#include "Serialization/JsonSerializer.h"
-#include "Serialization/JsonDeserializer.h"
+    }
+}

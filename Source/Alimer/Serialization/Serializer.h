@@ -31,32 +31,18 @@
 
 namespace Alimer
 {
-	enum class SerializerMode 
-	{
-		Read,
-		Write
-	};
-
-	class SerializerImpl;
 	/// Serializer class.
-	class Serializer final
+	class Serializer
 	{
-	public:
-		enum class Type : uint8_t
-		{
-			JSON
-		};
-
+	protected:
 		/// Constructor.
-		Serializer(Stream& stream, SerializerMode mode, Type type);
+		Serializer();
 
+    public:
 		/// Destructor.
-		virtual ~Serializer();
+		virtual ~Serializer() = default;
 
-		bool IsReading() const { return _mode == SerializerMode::Read; }
-		bool IsWriting() const { return _mode == SerializerMode::Write; }
-
-		bool Serialize(const std::string& key, bool& value);
+		/*bool Serialize(const std::string& key, bool& value);
 		bool Serialize(const std::string& key, int16_t& value);
 		bool Serialize(const std::string& key, uint16_t& value);
 		bool Serialize(const std::string& key, int32_t& value);
@@ -66,14 +52,9 @@ namespace Alimer
 		bool Serialize(const std::string& key, Vector2& value);
 		bool Serialize(const std::string& key, Vector3& value);
 		bool Serialize(const std::string& key, Vector4& value);
-		bool Serialize(const std::string& key, Quaternion& value);
-		bool Serialize(const std::string& key, Color& value);
-
-	private:
-		Type _type;
-		SerializerMode _mode;
-
-		SerializerImpl* _impl;
+		bool Serialize(const std::string& key, Quaternion& value);*/
+        void Serialize(const char* key, const Color& value);
+        virtual void Serialize(const char* key, const float* values, uint32_t count) = 0;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Serializer);

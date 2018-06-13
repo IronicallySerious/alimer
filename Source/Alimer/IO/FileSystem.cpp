@@ -379,7 +379,7 @@ namespace Alimer
             _size = _position;
     }
 
-    unique_ptr<Stream> OpenStream(const string &path, StreamMode mode)
+    UniquePtr<Stream> OpenStream(const string &path, StreamMode mode)
     {
         if (mode == StreamMode::ReadOnly
             && !FileExists(path))
@@ -389,7 +389,7 @@ namespace Alimer
 
         try
         {
-            unique_ptr<Win32FileStream> file(new Win32FileStream(path, mode));
+            UniquePtr<Stream> file(new Win32FileStream(path, mode));
             return file;
         }
         catch (const std::exception &e)

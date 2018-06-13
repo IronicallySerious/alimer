@@ -22,41 +22,25 @@
 
 #pragma once
 
-#include <new>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <array>
-#include <vector>
-#include <string>
+#include "../Serialization/Serializer.h"
 
-// Core
-#include "Core/Log.h"
-#include "Core/Application.h"
-#include "Core/Window.h"
-#include "Core/Main.h"
+namespace Alimer
+{
+    class JsonSerializerImpl;
 
-// Math
-#include "Math/MathUtil.h"
-#include "Math/Color.h"
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Quaternion.h"
-#include "Math/Matrix4x4.h"
+	/// Json Serializer class.
+	class ALIMER_API JsonSerializer final : public Serializer
+	{
+	public:
+		/// Constructor.
+        JsonSerializer(Stream& outStream);
 
-// Graphics
-#include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
+		/// Destructor.
+		~JsonSerializer() override;
 
-// Resource
-#include "Resource/Resource.h"
-#include "Resource/ResourceManager.h"
+        void Serialize(const char* key, const float* values, uint32_t count) override;
 
-// Serialization
-#include "Serialization/Serializable.h"
-#include "Serialization/JsonSerializer.h"
-#include "Serialization/JsonDeserializer.h"
+	private:
+        JsonSerializerImpl* _impl;
+	};
+}

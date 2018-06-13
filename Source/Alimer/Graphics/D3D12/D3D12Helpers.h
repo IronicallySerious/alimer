@@ -34,6 +34,7 @@
 using namespace Microsoft::WRL;
 
 #include <vector>
+#include "../../Core/Log.h"
 #include "../Types.h"
 #include "../PixelFormat.h"
 
@@ -186,6 +187,14 @@ inline HRESULT AlimerD3DX12SerializeVersionedRootSignature(
 
 namespace Alimer
 {
+    inline void ThrowIfFailed(HRESULT hr)
+    {
+        if (FAILED(hr))
+        {
+            ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
+        }
+    }
+
 	inline void D3D12SetObjectName(ID3D12Object* object, _In_z_  LPCWSTR name)
 	{
 #if defined(ALIMER_DEV)

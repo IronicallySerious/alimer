@@ -1,4 +1,5 @@
 //
+// Alimer is based on the Turso3D codebase.
 // Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,43 +21,58 @@
 // THE SOFTWARE.
 //
 
-#pragma once
 
-#include <new>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <array>
-#include <vector>
-#include <string>
+#include "Application.h"
 
-// Core
-#include "Core/Log.h"
-#include "Core/Application.h"
-#include "Core/Window.h"
-#include "Core/Main.h"
+ApplicationProxy::ApplicationProxy(
+    ApplicationCallbackB_T setup,
+    ApplicationCallback_T initialize,
+    ApplicationCallback_T exit)
+    : _setupCallback(setup)
+    , _initializeCallback(initialize)
+    , _exitCallback(exit)
+{
 
-// Math
-#include "Math/MathUtil.h"
-#include "Math/Color.h"
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Quaternion.h"
-#include "Math/Matrix4x4.h"
+}
 
-// Graphics
-#include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
+bool ApplicationProxy::Setup()
+{
+    return _setupCallback() == 1;
+}
 
-// Resource
-#include "Resource/Resource.h"
-#include "Resource/ResourceManager.h"
+void ApplicationProxy::Initialize()
+{
+    _initializeCallback();
+}
 
-// Serialization
-#include "Serialization/Serializable.h"
-#include "Serialization/JsonSerializer.h"
-#include "Serialization/JsonDeserializer.h"
+void ApplicationProxy::OnExiting()
+{
+    _exitCallback();
+}
+
+extern "C"
+{
+    ALIMER_DLL_EXPORT ApplicationProxy* Application_new(
+        ApplicationCallbackB_T setup,
+        ApplicationCallback_T initialize,
+        ApplicationCallback_T exit)
+    {
+        return new ApplicationProxy(setup, initialize, exit);
+    }
+
+    ALIMER_DLL_EXPORT int Application_Run(ApplicationProxy* _this)
+    {
+        return _this->Run();
+    }
+
+    ALIMER_DLL_EXPORT void Application_Tick(ApplicationProxy* _this)
+    {
+        _this->Tick();
+    }
+
+    ALIMER_DLL_EXPORT void Application_Exit(ApplicationProxy* _this)
+    {
+        _this->Exit();
+    }
+}
+

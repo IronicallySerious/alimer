@@ -29,7 +29,6 @@
 #include "D3D12PipelineState.h"
 #include "../ShaderCompiler.h"
 #include "../../Core/Log.h"
-#include "../../Core/Windows/EngineWindows.h"
 #include "../../Core/Windows/WindowWindows.h"
 
 #define COMPILED_SHADER_EXT ".cso"
@@ -363,8 +362,11 @@ namespace Alimer
     bool D3D12Graphics::Present()
     {
         // Submit frame command buffer.
-        _frameCommandBuffer->Commit(true);
-        RecycleCommandBuffer(_frameCommandBuffer);
+        if (_frameCommandBuffer)
+        {
+            _frameCommandBuffer->Commit(true);
+            RecycleCommandBuffer(_frameCommandBuffer);
+        }
 
         // Present the frame.
         HRESULT hr = _swapChain->Present(1, 0);

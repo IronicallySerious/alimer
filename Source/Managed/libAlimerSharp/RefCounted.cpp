@@ -1,4 +1,5 @@
 //
+// Alimer is based on the Turso3D codebase.
 // Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,43 +21,26 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#include "Alimer.h"
+using namespace Alimer;
 
-#include <new>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <array>
-#include <vector>
-#include <string>
+extern "C"
+{
+	ALIMER_DLL_EXPORT uint32_t RefCounted_Refs(RefCounted* _this)
+	{
+		return _this->Refs();
+	}
 
-// Core
-#include "Core/Log.h"
-#include "Core/Application.h"
-#include "Core/Window.h"
-#include "Core/Main.h"
+	ALIMER_DLL_EXPORT uint32_t RefCounted_WeakRefs(RefCounted* _this)
+	{
+		return _this->WeakRefs();
+	}
 
-// Math
-#include "Math/MathUtil.h"
-#include "Math/Color.h"
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Quaternion.h"
-#include "Math/Matrix4x4.h"
+	ALIMER_DLL_EXPORT void Ref_TryDelete(RefCounted* _this)
+	{
+		if (_this && _this->RefCountPtr() && !_this->Refs()) {
+			delete _this;
+		}
+	}
+}
 
-// Graphics
-#include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Texture.h"
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
-
-// Resource
-#include "Resource/Resource.h"
-#include "Resource/ResourceManager.h"
-
-// Serialization
-#include "Serialization/Serializable.h"
-#include "Serialization/JsonSerializer.h"
-#include "Serialization/JsonDeserializer.h"

@@ -20,16 +20,14 @@
 # THE SOFTWARE.
 #
 
-# ThirdParty
-add_subdirectory(ThirdParty)
+# Define source files
+file (GLOB SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+source_group ("" FILES ${SOURCE_FILES})
 
-# Engine
-add_subdirectory (Alimer)
+add_library (libAlimerSharp SHARED ${SOURCE_FILES})
+target_link_libraries (libAlimerSharp libAlimer)
 
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_CSHARP)
-	add_subdirectory (Managed)
-endif ()
+# Set Solution folder.
+set_target_properties(libAlimerSharp PROPERTIES FOLDER Managed)
 
-if (NOT CMAKE_CROSS_COMPILING)
-    add_subdirectory (Tools)
-endif ()
+install(TARGETS libAlimerSharp RUNTIME DESTINATION ${DEST_BIN_DIR})

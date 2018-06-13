@@ -22,42 +22,47 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
-#include <memory>
+#include "../AlimerConfig.h"
 #include <string>
 #include <atomic>
 
 namespace Alimer
 {
-	enum class CursorType : uint32_t
-	{
-		Arrow = 0,
-		Cross,
-		Hand,
-		Count
-	};
+    enum class CursorType : uint32_t
+    {
+        Arrow = 0,
+        Cross,
+        Hand,
+        Count
+    };
 
-	/// Input system class.
-	class Input
-	{
-	protected:
-		/// Constructor.
-		Input();
+    /// Input system class.
+    class ALIMER_API Input
+    {
+    protected:
+        /// Constructor.
+        Input();
 
-	public:
-		/// Destructor.
-		virtual ~Input();
+    public:
+        /// Destructor.
+        virtual ~Input();
 
-		/// Is cursor visible.
-		virtual bool IsCursorVisible() const;
+        /// Return the single instance of the Input.
+        static Input* GetInstance();
 
-		/// Set cursor visibility.
-		virtual void SetCursorVisible(bool visible);
+        /// Update input state and poll devices.
+        virtual void Update();
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Input);
-	};
+        /// Is cursor visible.
+        virtual bool IsCursorVisible() const;
 
-	// Direct access to Input module.
-	extern Input* input;
+        /// Set cursor visibility.
+        virtual void SetCursorVisible(bool visible);
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Input);
+    };
+
+    /// Access to Input module.
+    ALIMER_API Input& gInput();
 }
