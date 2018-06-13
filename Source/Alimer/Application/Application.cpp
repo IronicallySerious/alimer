@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../Core/Application.h"
+#include "../Application/Application.h"
 #include "../Core/Log.h"
 
 namespace Alimer
