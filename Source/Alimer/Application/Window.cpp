@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../Core/Window.h"
+#include "../Application/Window.h"
 
 namespace Alimer
 {
