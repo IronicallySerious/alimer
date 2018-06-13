@@ -854,17 +854,18 @@ Id Builder::makeFpConstant(Id type, double d, bool specConstant)
 
         switch (getScalarTypeWidth(type)) {
         case 16:
-                return makeFloat16Constant(d, specConstant);
+                return makeFloat16Constant((float)d, specConstant);
         case 32:
-                return makeFloatConstant(d, specConstant);
+                return makeFloatConstant((float)d, specConstant);
         case 64:
                 return makeDoubleConstant(d, specConstant);
+        default:
+                break;
         }
 
         assert(false);
-        return 0;
+        return NoResult;
 }
-
 
 Id Builder::findCompositeConstant(Op typeClass, const std::vector<Id>& comps)
 {
@@ -1569,7 +1570,8 @@ Id Builder::createBuiltinCall(Id resultType, Id builtins, int entryPoint, const 
 
 // Accept all parameters needed to create a texture instruction.
 // Create the correct instruction based on the inputs, and make the call.
-Id Builder::createTextureCall(Decoration precision, Id resultType, bool sparse, bool fetch, bool proj, bool gather, bool noImplicitLod, const TextureParameters& parameters)
+Id Builder::createTextureCall(Decoration precision, Id resultType, bool sparse, bool fetch, bool proj, bool gather,
+    bool noImplicitLod, const TextureParameters& parameters)
 {
     static const int maxTextureArgs = 10;
     Id texArgs[maxTextureArgs] = {};
@@ -1622,6 +1624,7 @@ Id Builder::createTextureCall(Decoration precision, Id resultType, bool sparse, 
         texArgs[numArgs++] = parameters.offset;
     }
     if (parameters.offsets) {
+        addCapability(CapabilityImageGatherExtended);
         mask = (ImageOperandsMask)(mask | ImageOperandsConstOffsetsMask);
         texArgs[numArgs++] = parameters.offsets;
     }
@@ -2330,7 +2333,7 @@ void Builder::accessChainStore(Id rvalue)
 }
 
 // Comments in header
-Id Builder::accessChainLoad(Decoration precision, Id resultType)
+Id Builder::accessChainLoad(Decoration precision, Decoration nonUniform, Id resultType)
 {
     Id id;
 
@@ -2376,6 +2379,7 @@ Id Builder::accessChainLoad(Decoration precision, Id resultType)
         // load through the access chain
         id = createLoad(collapseAccessChain());
         setPrecision(id, precision);
+        addDecoration(id, nonUniform);
     }
 
     // Done, unless there are swizzles to do
@@ -2396,6 +2400,7 @@ Id Builder::accessChainLoad(Decoration precision, Id resultType)
     if (accessChain.component != NoResult)
         id = setPrecision(createVectorExtractDynamic(id, resultType, accessChain.component), precision);
 
+    addDecoration(id, nonUniform);
     return id;
 }
 

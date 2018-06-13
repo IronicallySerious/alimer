@@ -157,6 +157,7 @@ const char* const E_GL_EXT_device_group                 = "GL_EXT_device_group";
 const char* const E_GL_EXT_multiview                    = "GL_EXT_multiview";
 const char* const E_GL_EXT_post_depth_coverage          = "GL_EXT_post_depth_coverage";
 const char* const E_GL_EXT_control_flow_attributes      = "GL_EXT_control_flow_attributes";
+const char* const E_GL_EXT_nonuniform_qualifier         = "GL_EXT_nonuniform_qualifier";
 
 // Arrays of extensions for the above viewportEXTs duplications
 
@@ -197,6 +198,7 @@ const char* const E_GL_NVX_multiview_per_view_attributes        = "GL_NVX_multiv
 const char* const E_GL_NV_shader_atomic_int64                   = "GL_NV_shader_atomic_int64";
 const char* const E_GL_NV_conservative_raster_underestimation   = "GL_NV_conservative_raster_underestimation";
 const char* const E_GL_NV_shader_noperspective_interpolation    = "GL_NV_shader_noperspective_interpolation";
+const char* const E_GL_NV_shader_subgroup_partitioned           = "GL_NV_shader_subgroup_partitioned";
 
 // Arrays of extensions for the above viewportEXTs duplications
 

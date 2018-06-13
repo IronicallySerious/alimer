@@ -47,6 +47,7 @@
 
 #include <cfloat>
 #include <utility>
+#include <tuple>
 
 namespace glslang {
 
@@ -157,6 +158,11 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
     // specialization-constant operation, make a spec-constant.
     if (specConstantPropagates(*node->getLeft(), *node->getRight()) && isSpecializationOperation(*node))
         node->getWritableType().getQualifier().makeSpecConstant();
+
+    // If must propagate nonuniform, make a nonuniform.
+    if ((node->getLeft()->getQualifier().nonUniform || node->getRight()->getQualifier().nonUniform) &&
+            isNonuniformPropagating(node->getOp()))
+        node->getWritableType().getQualifier().nonUniform = true;
 
     return node;
 }
@@ -365,6 +371,10 @@ TIntermTyped* TIntermediate::addUnaryMath(TOperator op, TIntermTyped* child, TSo
     // if the operation is allowed for specialization constants.
     if (node->getOperand()->getType().getQualifier().isSpecConstant() && isSpecializationOperation(*node))
         node->getWritableType().getQualifier().makeSpecConstant();
+
+    // If must propagate nonuniform, make a nonuniform.
+    if (node->getOperand()->getQualifier().nonUniform && isNonuniformPropagating(node->getOp()))
+        node->getWritableType().getQualifier().nonUniform = true;
 
     return node;
 }
@@ -698,12 +708,6 @@ TIntermUnary* TIntermediate::createConversion(TBasicType convertTo, TIntermTyped
 
     TType newType(convertTo, EvqTemporary, node->getVectorSize(), node->getMatrixCols(), node->getMatrixRows());
     newNode = addUnaryNode(newOp, node, node->getLoc(), newType);
-
-    // TODO: it seems that some unary folding operations should occur here, but are not
-
-    // Propagate specialization-constant-ness, if allowed
-    if (node->getType().getQualifier().isSpecConstant() && isSpecializationOperation(*newNode))
-        newNode->getWritableType().getQualifier().makeSpecConstant();
 
     // TODO: it seems that some unary folding operations should occur here, but are not
 
@@ -1425,7 +1429,7 @@ bool TIntermediate::canImplicitlyPromote(TBasicType from, TBasicType to, TOperat
                                 extensionRequested(E_GL_KHX_shader_explicit_arithmetic_types_float32) ||
                                 extensionRequested(E_GL_KHX_shader_explicit_arithmetic_types_float64);
 
-    if(explicitTypesEnabled) {
+    if (explicitTypesEnabled) {
         // integral promotions
         if (isIntegralPromotion(from, to)) {
             return true;
@@ -1753,6 +1757,9 @@ std::tuple<TBasicType, TBasicType> TIntermediate::getConversionDestinatonType(TB
 TOperator TIntermediate::mapTypeToConstructorOp(const TType& type) const
 {
     TOperator op = EOpNull;
+
+    if (type.getQualifier().nonUniform)
+        return EOpConstructNonuniform;
 
     switch (type.getBasicType()) {
     case EbtStruct:
@@ -2806,6 +2813,64 @@ bool TIntermediate::isSpecializationOperation(const TIntermOperator& node) const
     }
 }
 
+// Is the operation one that must propagate nonuniform?
+bool TIntermediate::isNonuniformPropagating(TOperator op) const
+{
+    // "* All Operators in Section 5.1 (Operators), except for assignment,
+    //    arithmetic assignment, and sequence
+    //  * Component selection in Section 5.5
+    //  * Matrix components in Section 5.6
+    //  * Structure and Array Operations in Section 5.7, except for the length
+    //    method."
+    switch (op) {
+    case EOpPostIncrement:
+    case EOpPostDecrement:
+    case EOpPreIncrement:
+    case EOpPreDecrement:
+
+    case EOpNegative:
+    case EOpLogicalNot:
+    case EOpVectorLogicalNot:
+    case EOpBitwiseNot:
+
+    case EOpAdd:
+    case EOpSub:
+    case EOpMul:
+    case EOpDiv:
+    case EOpMod:
+    case EOpRightShift:
+    case EOpLeftShift:
+    case EOpAnd:
+    case EOpInclusiveOr:
+    case EOpExclusiveOr:
+    case EOpEqual:
+    case EOpNotEqual:
+    case EOpLessThan:
+    case EOpGreaterThan:
+    case EOpLessThanEqual:
+    case EOpGreaterThanEqual:
+    case EOpVectorTimesScalar:
+    case EOpVectorTimesMatrix:
+    case EOpMatrixTimesVector:
+    case EOpMatrixTimesScalar:
+
+    case EOpLogicalOr:
+    case EOpLogicalXor:
+    case EOpLogicalAnd:
+
+    case EOpIndexDirect:
+    case EOpIndexIndirect:
+    case EOpIndexDirectStruct:
+    case EOpVectorSwizzle:
+        return true;
+
+    default:
+        break;
+    }
+
+    return false;
+}
+
 ////////////////////////////////////////////////////////////////
 //
 // Member functions of the nodes used for building the tree.
@@ -3704,23 +3769,39 @@ struct TextureUpgradeAndSamplerRemovalTransform : public TIntermTraverser {
     bool visitAggregate(TVisit, TIntermAggregate* ag) override {
         using namespace std;
         TIntermSequence& seq = ag->getSequence();
-        // remove pure sampler variables
-        TIntermSequence::iterator newEnd = remove_if(seq.begin(), seq.end(), [](TIntermNode* node) {
-            TIntermSymbol* symbol = node->getAsSymbolNode();
-            if (!symbol)
-                return false;
+        TQualifierList& qual = ag->getQualifierList();
 
-            return (symbol->getBasicType() == EbtSampler && symbol->getType().getSampler().isPureSampler());
-        });
-        seq.erase(newEnd, seq.end());
-        // replace constructors with sampler/textures
-        for_each(seq.begin(), seq.end(), [](TIntermNode*& node) {
-            TIntermAggregate *constructor = node->getAsAggregate();
+        // qual and seq are indexed using the same indices, so we have to modify both in lock-step
+        assert(seq.size() == qual.size() || qual.empty());
+
+        size_t write = 0;
+        for (size_t i = 0; i < seq.size(); ++i) {
+            TIntermSymbol* symbol = seq[i]->getAsSymbolNode();
+            if (symbol && symbol->getBasicType() == EbtSampler && symbol->getType().getSampler().isPureSampler()) {
+                // remove pure sampler variables
+                continue;
+            }
+
+            TIntermNode* result = seq[i];
+
+            // replace constructors with sampler/textures
+            TIntermAggregate *constructor = seq[i]->getAsAggregate();
             if (constructor && constructor->getOp() == EOpConstructTextureSampler) {
                 if (!constructor->getSequence().empty())
-                    node = constructor->getSequence()[0];
+                    result = constructor->getSequence()[0];
             }
-        });
+
+            // write new node & qualifier
+            seq[write] = result;
+            if (!qual.empty())
+                qual[write] = qual[i];
+            write++;
+        }
+
+        seq.resize(write);
+        if (!qual.empty())
+            qual.resize(write);
+
         return true;
     }
 };

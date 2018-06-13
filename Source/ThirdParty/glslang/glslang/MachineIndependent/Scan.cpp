@@ -341,6 +341,7 @@ void TScanContext::fillInKeywordMap()
 
     (*KeywordMap)["const"] =                   CONST;
     (*KeywordMap)["uniform"] =                 UNIFORM;
+    (*KeywordMap)["nonuniformEXT"] =           NONUNIFORM;
     (*KeywordMap)["in"] =                      IN;
     (*KeywordMap)["out"] =                     OUT;
     (*KeywordMap)["inout"] =                   INOUT;
@@ -777,7 +778,7 @@ int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
         case '?':                       return QUESTION;
         case '[':                       return LEFT_BRACKET;
         case ']':                       return RIGHT_BRACKET;
-        case '{':                       return LEFT_BRACE;
+        case '{':  afterStruct = false; return LEFT_BRACE;
         case '}':                       return RIGHT_BRACE;
         case '\\':
             parseContext.error(loc, "illegal use of escape character", "\\", "");
@@ -860,7 +861,6 @@ int TScanContext::tokenizeIdentifier()
     case IN:
     case OUT:
     case INOUT:
-    case STRUCT:
     case BREAK:
     case CONTINUE:
     case DO:
@@ -872,6 +872,16 @@ int TScanContext::tokenizeIdentifier()
     case RETURN:
     case CASE:
         return keyword;
+
+    case STRUCT:
+        afterStruct = true;
+        return keyword;
+
+    case NONUNIFORM:
+        if (parseContext.extensionTurnedOn(E_GL_EXT_nonuniform_qualifier))
+            return keyword;
+        else
+            return identifierOrType();
 
     case SWITCH:
     case DEFAULT:
@@ -1530,7 +1540,7 @@ int TScanContext::identifierOrType()
         return IDENTIFIER;
 
     parserToken->sType.lex.symbol = parseContext.symbolTable.find(*parserToken->sType.lex.string);
-    if (afterType == false && parserToken->sType.lex.symbol) {
+    if ((afterType == false && afterStruct == false) && parserToken->sType.lex.symbol != nullptr) {
         if (const TVariable* variable = parserToken->sType.lex.symbol->getAsVariable()) {
             if (variable->isUserType()) {
                 afterType = true;

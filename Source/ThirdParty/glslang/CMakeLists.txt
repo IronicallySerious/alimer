@@ -9,6 +9,14 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Adhere to GNU filesystem layout conventions
 include(GNUInstallDirs)
 
+option(BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
+
+set(LIB_TYPE STATIC)
+
+if(BUILD_SHARED_LIBS)
+    set(LIB_TYPE SHARED)
+endif()
+
 option(SKIP_GLSLANG_INSTALL "Skip installation" ${SKIP_GLSLANG_INSTALL})
 if(NOT ${SKIP_GLSLANG_INSTALL})
   set(ENABLE_GLSLANG_INSTALL ON)
@@ -29,8 +37,7 @@ endif()
 
 project(glslang)
 # make testing optional
-# Alimer: Disable tests.
-# include(CTest)
+include(CTest)
 
 if(ENABLE_AMD_EXTENSIONS)
     add_definitions(-DAMD_EXTENSIONS)
@@ -95,9 +102,12 @@ endif()
 
 if(ENABLE_OPT)
     message(STATUS "optimizer enabled")
-    add_definitions(-DENABLE_OPT)
-elseif(ENABLE_HLSL)
-    message(STATUS "spirv-tools not linked - illegal SPIRV may be generated for HLSL")
+    add_definitions(-DENABLE_OPT=1)
+else()
+    if(ENABLE_HLSL)
+        message(STATUS "spirv-tools not linked - illegal SPIRV may be generated for HLSL")
+    endif()
+    add_definitions(-DENABLE_OPT=0)
 endif()
 
 add_subdirectory(glslang)
@@ -109,5 +119,4 @@ add_subdirectory(SPIRV)
 if(ENABLE_HLSL)
     add_subdirectory(hlsl)
 endif(ENABLE_HLSL)
-# Alimer: Disable tests.
-#add_subdirectory(gtests)
+add_subdirectory(gtests)
