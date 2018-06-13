@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../Foundation/Ptr.h"
+#include "../Core/Ptr.h"
 
 #if ALIMER_CSHARP
 #ifdef _MSC_VER

@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Util/Util.h"
 #include "../Math/Color.h"
 #include <array>
 
@@ -207,4 +208,19 @@ namespace Alimer
 
 		RenderPassDescriptor();
 	};
+
+    template <>
+    struct EnumNames<ShaderStage>
+    {
+        constexpr std::array<const char*, 6> operator()() const {
+            return { {
+                    "vertex",
+                    "tesscontrol",
+                    "tesseval",
+                    "geometry",
+                    "fragment",
+                    "compute",
+                } };
+        }
+    };
 }

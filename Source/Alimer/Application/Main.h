@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include "../Core/Application.h"
-
+#include "../Application/Application.h"
 
 #if defined(_WIN32) && !defined(ALIMER_WIN32_CONSOLE)
 #   include <windows.h>

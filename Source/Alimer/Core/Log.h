@@ -77,12 +77,6 @@ extern "C" __declspec(dllimport) void __stdcall DebugBreak();
 #define ALIMER_DEBUG_BREAK()
 #endif
 
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-#	define __current__func__ __FUNCTION__
-#else
-#	define __current__func__ __func__
-#endif
-
 #	define ALIMER_LOGTRACE(...) Alimer::gLog().Log(Alimer::LogLevel::Trace, __VA_ARGS__)
 #	define ALIMER_LOGDEBUG(...) Alimer::gLog().Log(Alimer::LogLevel::Debug, __VA_ARGS__)
 #	define ALIMER_LOGINFO(...) Alimer::gLog().Log(Alimer::LogLevel::Info, __VA_ARGS__)
@@ -90,7 +84,7 @@ extern "C" __declspec(dllimport) void __stdcall DebugBreak();
 #	define ALIMER_LOGERROR(...) Alimer::gLog().Log(Alimer::LogLevel::Error, __VA_ARGS__)
 #	define ALIMER_LOGCRITICAL(...) do \
 { \
-	Alimer::gLog().Log(Alimer::LogLevel::Critical, "%s -- %s", __current__func__, __VA_ARGS__); \
+	Alimer::gLog().Log(Alimer::LogLevel::Critical, __VA_ARGS__); \
 	ALIMER_DEBUG_BREAK(); \
 	ALIMER_ASSERT(0); \
 	std::exit(-1); \

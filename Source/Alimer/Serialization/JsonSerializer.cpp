@@ -29,6 +29,14 @@
 
 namespace Alimer
 {
+    using rapidjson::Document;
+    using rapidjson::Value;
+    using rapidjson::StringBuffer;
+    using rapidjson::PrettyWriter;
+    using rapidjson::Writer;
+    using rapidjson::StringRef;
+    using namespace std;
+
     class JsonSerializerImpl final
     {
     public:
@@ -43,14 +51,14 @@ namespace Alimer
         {
             ALIMER_ASSERT(_objectStack.size() == 1);
 
-            rapidjson::StringBuffer buffer;
-            rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+            StringBuffer buffer;
+            PrettyWriter<StringBuffer> writer(buffer);
             //writer.SetIndent(!indendation.Empty() ? indendation.Front() : '\0', indendation.Length());
             _document.Accept(writer);
             _outStream.Write(buffer.GetString(), buffer.GetSize());
         }
 
-        rapidjson::Value& GetObject(int index = -1)
+        Value& GetObject(int index = -1)
         {
             if (index < 0)
                 return *_objectStack.back();
@@ -58,13 +66,44 @@ namespace Alimer
             return _objectStack.back()[index];
         }
 
+        template<typename T, typename = typename std::enable_if<std::is_fundamental<T>::value>::type>
+        bool SerializePrimitive(const char* key, T value)
+        {
+            Value& object = GetObject();
+            if (key && strlen(key))
+            {
+                object.AddMember(StringRef(key), value, _document.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, _document.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool SerializeString(const char* key, const char* value)
+        {
+            Value& object = GetObject();
+            if (key && strlen(key))
+            {
+                object.AddMember(StringRef(key), Value(value, _document.GetAllocator()), _document.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(Value(value, _document.GetAllocator()), _document.GetAllocator());
+            }
+
+            return true;
+        }
+
         void Serialize(
             const char* key,
             const float* values,
             uint32_t count)
         {
-            rapidjson::Value& object = GetObject();
-            rapidjson::Value jValue(rapidjson::kArrayType);
+            Value& object = GetObject();
+            Value jValue(rapidjson::kArrayType);
 
             for (uint32_t i = 0; i < count; ++i)
             {
@@ -73,8 +112,7 @@ namespace Alimer
 
             if (key && strlen(key))
             {
-                rapidjson::Value jKey(key, _document.GetAllocator());
-                object.AddMember(jKey, jValue, _document.GetAllocator());
+                object.AddMember(StringRef(key), jValue, _document.GetAllocator());
             }
             else
             {
@@ -84,8 +122,8 @@ namespace Alimer
 
     private:
         Stream & _outStream;
-        rapidjson::Document _document;
-        std::vector<rapidjson::Value*> _objectStack;
+        Document _document;
+        vector<Value*> _objectStack;
     };
 
     JsonSerializer::JsonSerializer(Stream& outStream)
@@ -96,6 +134,56 @@ namespace Alimer
     JsonSerializer::~JsonSerializer()
     {
         SafeDelete(_impl);
+    }
+
+    void JsonSerializer::Serialize(const char* key, bool value)
+    {
+        _impl->SerializePrimitive(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, int16_t value)
+    {
+        _impl->SerializePrimitive(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, uint16_t value)
+    {
+        _impl->SerializePrimitive(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, int32_t value)
+    {
+        _impl->SerializePrimitive(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, uint32_t value)
+    {
+        _impl->SerializePrimitive(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, int64_t value)
+    {
+        _impl->SerializePrimitive(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, uint64_t value)
+    {
+        _impl->SerializePrimitive(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, float value)
+    {
+        _impl->SerializePrimitive(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, double value)
+    {
+        _impl->SerializePrimitive(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, const char* value)
+    {
+        _impl->SerializeString(key, value);
     }
 
     void JsonSerializer::Serialize(const char* key, const float* values, uint32_t count)

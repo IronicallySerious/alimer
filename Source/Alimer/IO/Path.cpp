@@ -89,7 +89,7 @@ namespace Alimer
 
 			size_t index = FindLastSlash(base);
 			bool needSlash = index != base.size() - 1;
-			return Util::Join(base, needSlash ? "/" : "", path);
+			return str::Join(base, needSlash ? "/" : "", path);
 		}
 
 		string GetBaseDir(const string &path)

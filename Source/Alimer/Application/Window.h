@@ -22,38 +22,36 @@
 
 #pragma once
 
-#include "../Serialization/Serializer.h"
+#include "../Core/Ptr.h"
+#include <string>
 
 namespace Alimer
 {
-    class JsonSerializerImpl;
-
-	/// Json Serializer class.
-	class ALIMER_API JsonSerializer final : public Serializer
+	/// OS Window class.
+	class Window : public RefCounted
 	{
-	public:
+	protected:
 		/// Constructor.
-        JsonSerializer(Stream& outStream);
+		Window();
 
+	public:
 		/// Destructor.
-		~JsonSerializer() override;
+		virtual ~Window();
 
-        void Serialize(const char* key, bool value) override;
-        void Serialize(const char* key, int16_t value) override;
-        void Serialize(const char* key, uint16_t value) override;
-        void Serialize(const char* key, int32_t value) override;
-        void Serialize(const char* key, uint32_t value) override;
-        void Serialize(const char* key, int64_t value) override;
-        void Serialize(const char* key, uint64_t value) override;
-        void Serialize(const char* key, float value) override;
-        void Serialize(const char* key, double value) override;
-        void Serialize(const char* key, const char* value) override;
+		inline uint32_t GetWidth() const { return _width; }
+		inline uint32_t GetHeight() const { return _height; }
 
-        void Serialize(const char* key, const float* values, uint32_t count) override;
-
-        using Serializer::Serialize;
+	protected:
+		/// Window title.
+		std::string _title;
+		/// Window width.
+		uint32_t _width;
+		/// Window height.
+		uint32_t _height;
+		/// Resizable flag.
+		bool _resizable;
 
 	private:
-        JsonSerializerImpl* _impl;
+		DISALLOW_COPY_MOVE_AND_ASSIGN(Window);
 	};
 }

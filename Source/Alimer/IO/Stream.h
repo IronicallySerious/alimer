@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../AlimerConfig.h"
-#include <memory>
 #include <string>
 #include <vector>
 

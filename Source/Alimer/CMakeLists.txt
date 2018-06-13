@@ -71,11 +71,11 @@ macro (define_engine_source_files)
 endmacro()
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . Foundation Core Util IO Math Graphics Input Audio)
+define_engine_source_files (NORECURSE . Core Util IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene)
 
 if (PLATFORM_WINDOWS)
-	define_engine_source_files(Core/Windows)
+	define_engine_source_files(Application/Windows)
 	define_engine_source_files(Input/Windows)
 	define_engine_source_files(Audio/WASAPI)
 elseif (PLATFORM_UWP)

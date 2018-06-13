@@ -22,43 +22,26 @@
 
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#	define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <windows.h>
-#include "Core/Window.h"
+#include "../AlimerConfig.h"
+#include "../Core/Vector.h"
+#include <cstdarg>
+#include <cstring>
+#include <cctype>
+#include <string>
 
 namespace Alimer
 {
-	class OleDropTarget;
-
-	/// Win32 OS window implementation.
-	class WindowWindows final : public Window
+	/// String class.
+	class ALIMER_API String final
 	{
 	public:
-		WindowWindows(const std::string& title, uint32_t width, uint32_t height, bool fullscreen);
-		~WindowWindows() override;
-		void Destroy();
-		void Activate(bool focused);
+        using StorageType = Alimer::Vector<char>;
 
-		void Show();
-		void Close();
-		LRESULT OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
+        String() {}
 
-		inline HINSTANCE GetHInstance() const { return _hInstance; }
-		inline HWND GetHandle() const { return _hwnd; }
+        ~String() {}
 
 	private:
-		void InitAfterCreation();
-
-		HINSTANCE _hInstance = nullptr;
-		HWND _hwnd = nullptr;
-		HMONITOR _monitor = nullptr;
-		bool _visible = false;
-		bool _focused = false;
-		int _showCommand = SW_SHOW;
-		OleDropTarget* _dropTarget;
-		HCURSOR _cursor;
+        StorageType data_;
 	};
 }

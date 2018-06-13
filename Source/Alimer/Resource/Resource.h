@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Foundation/Ptr.h"
+#include "../Core/Ptr.h"
 #include <memory>
 #include <string>
 #include <atomic>

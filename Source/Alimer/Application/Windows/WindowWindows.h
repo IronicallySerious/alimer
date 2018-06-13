@@ -22,36 +22,43 @@
 
 #pragma once
 
-#include "../Foundation/Ptr.h"
-#include <string>
+#ifndef WIN32_LEAN_AND_MEAN
+#	define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <windows.h>
+#include "../Window.h"
 
 namespace Alimer
 {
-	/// OS Window class.
-	class Window : public RefCounted
+	class OleDropTarget;
+
+	/// Win32 OS window implementation.
+	class WindowWindows final : public Window
 	{
-	protected:
-		/// Constructor.
-		Window();
-
 	public:
-		/// Destructor.
-		virtual ~Window();
+		WindowWindows(const std::string& title, uint32_t width, uint32_t height, bool fullscreen);
+		~WindowWindows() override;
+		void Destroy();
+		void Activate(bool focused);
 
-		inline uint32_t GetWidth() const { return _width; }
-		inline uint32_t GetHeight() const { return _height; }
+		void Show();
+		void Close();
+		LRESULT OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
 
-	protected:
-		/// Window title.
-		std::string _title;
-		/// Window width.
-		uint32_t _width;
-		/// Window height.
-		uint32_t _height;
-		/// Resizable flag.
-		bool _resizable;
+		inline HINSTANCE GetHInstance() const { return _hInstance; }
+		inline HWND GetHandle() const { return _hwnd; }
 
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Window);
+		void InitAfterCreation();
+
+		HINSTANCE _hInstance = nullptr;
+		HWND _hwnd = nullptr;
+		HMONITOR _monitor = nullptr;
+		bool _visible = false;
+		bool _focused = false;
+		int _showCommand = SW_SHOW;
+		OleDropTarget* _dropTarget;
+		HCURSOR _cursor;
 	};
 }

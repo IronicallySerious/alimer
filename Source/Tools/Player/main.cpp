@@ -46,14 +46,23 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
+        auto s = str::ToString(ShaderStage::Geometry);
+        ShaderStage stage = str::FromString<ShaderStage>(s);
+
         {
             auto stream = OpenStream("Test.json", StreamMode::WriteOnly);
-            Serializer* serializer = new JsonSerializer(*stream.Get());
+            JsonSerializer serializer(*stream.Get());
 
             Color color;
-            serializer->Serialize("color", color);
-            delete serializer;
+            serializer.Serialize("color", Color::Green);
+            serializer.Serialize("str", "Hello World");
+            serializer.Serialize("stage", ShaderStage::Compute);
         }
+
+        Vector<char> c = { 'c','i','a','o' };
+        auto b = c.size();
+        auto t = c[0];
+        auto t2 = c[1];
     }
 
     RuntimeApplication::~RuntimeApplication()

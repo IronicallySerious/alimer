@@ -31,10 +31,11 @@
 #include <string>
 
 // Core
+#include "Core/String.h"
 #include "Core/Log.h"
-#include "Core/Application.h"
-#include "Core/Window.h"
-#include "Core/Main.h"
+
+// Util
+#include "Util/Util.h"
 
 // Math
 #include "Math/MathUtil.h"
@@ -60,3 +61,8 @@
 #include "Serialization/Serializable.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonDeserializer.h"
+
+// Application
+#include "Application/Application.h"
+#include "Application/Window.h"
+#include "Application/Main.h"

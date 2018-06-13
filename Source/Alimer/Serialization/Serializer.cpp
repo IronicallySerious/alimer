@@ -47,200 +47,6 @@ namespace Alimer
         virtual bool Serialize(const char* key, Color& value) = 0;
     };
 
-    class SerializerImplWriteJson : public SerializerImpl
-    {
-    public:
-        SerializerImplWriteJson(Stream& stream)
-            : _outStream(stream)
-        {
-            _document.SetObject();
-            _objectStack.push_back(&_document);
-        }
-
-        ~SerializerImplWriteJson()
-        {
-            ALIMER_ASSERT(_objectStack.size() == 1);
-
-            rapidjson::StringBuffer buffer;
-            rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-            //writer.SetIndent(!indendation.Empty() ? indendation.Front() : '\0', indendation.Length());
-            _document.Accept(writer);
-            _outStream.Write(buffer.GetString(), buffer.GetSize());
-        }
-
-        rapidjson::Value& GetObject(int index = -1)
-        {
-            if (index < 0)
-                return *_objectStack.back();
-
-            return _objectStack.back()[index];
-        }
-
-        template<typename T, typename = typename std::enable_if<std::is_fundamental<T>::value>::type>
-        bool SerializePrimitive(const char* key, T& value)
-        {
-            rapidjson::Value& object = GetObject();
-            if (key && strlen(key))
-            {
-                rapidjson::Value jKey(key, _document.GetAllocator());
-                object.AddMember(jKey, value, _document.GetAllocator());
-            }
-            else
-            {
-                object.PushBack(value, _document.GetAllocator());
-            }
-
-            return true;
-        }
-
-        bool Serialize(const char* key, bool& value) override
-        {
-            return SerializePrimitive(key, value);
-        }
-
-        bool Serialize(const char* key, int16_t& value) override
-        {
-            return SerializePrimitive(key, value);
-        }
-
-        bool Serialize(const char* key, uint16_t& value) override
-        {
-            return SerializePrimitive(key, value);
-        }
-
-        bool Serialize(const char* key, int32_t& value)  override
-        {
-            return SerializePrimitive(key, value);
-        }
-
-        bool Serialize(const char* key, uint32_t& value) override
-        {
-            return SerializePrimitive(key, value);
-        }
-
-        bool Serialize(const char* key, float& value) override
-        {
-            return SerializePrimitive(key, value);
-        }
-
-        bool Serialize(const char* key, double& value)  override
-        {
-            return SerializePrimitive(key, value);
-        }
-
-        bool Serialize(const char* key, Vector2& value) override
-        {
-            rapidjson::Value& object = GetObject();
-            rapidjson::Value jValue(rapidjson::kArrayType);
-            jValue.PushBack(value.x, _document.GetAllocator());
-            jValue.PushBack(value.y, _document.GetAllocator());
-
-            if (key && strlen(key))
-            {
-                rapidjson::Value jKey(key, _document.GetAllocator());
-                object.AddMember(jKey, jValue, _document.GetAllocator());
-            }
-            else
-            {
-                object.PushBack(jValue, _document.GetAllocator());
-            }
-
-            return true;
-        }
-
-        bool Serialize(const char* key, Vector3& value)  override
-        {
-            rapidjson::Value& object = GetObject();
-            rapidjson::Value jValue(rapidjson::kArrayType);
-            jValue.PushBack(value.x, _document.GetAllocator());
-            jValue.PushBack(value.y, _document.GetAllocator());
-            jValue.PushBack(value.z, _document.GetAllocator());
-
-            if (key && strlen(key))
-            {
-                rapidjson::Value jKey(key, _document.GetAllocator());
-                object.AddMember(jKey, jValue, _document.GetAllocator());
-            }
-            else
-            {
-                object.PushBack(jValue, _document.GetAllocator());
-            }
-
-            return true;
-        }
-
-        bool Serialize(const char* key, Vector4& value) override
-        {
-            rapidjson::Value& object = GetObject();
-            rapidjson::Value jValue(rapidjson::kArrayType);
-            jValue.PushBack(value.x, _document.GetAllocator());
-            jValue.PushBack(value.y, _document.GetAllocator());
-            jValue.PushBack(value.z, _document.GetAllocator());
-            jValue.PushBack(value.w, _document.GetAllocator());
-
-            if (key && strlen(key))
-            {
-                rapidjson::Value jKey(key, _document.GetAllocator());
-                object.AddMember(jKey, jValue, _document.GetAllocator());
-            }
-            else
-            {
-                object.PushBack(jValue, _document.GetAllocator());
-            }
-
-            return true;
-        }
-
-        bool Serialize(const char* key, Quaternion& value) override
-        {
-            rapidjson::Value& object = GetObject();
-            rapidjson::Value jValue(rapidjson::kArrayType);
-            jValue.PushBack(value.x, _document.GetAllocator());
-            jValue.PushBack(value.y, _document.GetAllocator());
-            jValue.PushBack(value.z, _document.GetAllocator());
-            jValue.PushBack(value.w, _document.GetAllocator());
-
-            if (key && strlen(key))
-            {
-                rapidjson::Value jKey(key, _document.GetAllocator());
-                object.AddMember(jKey, jValue, _document.GetAllocator());
-            }
-            else
-            {
-                object.PushBack(jValue, _document.GetAllocator());
-            }
-
-            return true;
-        }
-
-        bool Serialize(const char* key, Color& value) override
-        {
-            rapidjson::Value& object = GetObject();
-            rapidjson::Value jValue(rapidjson::kArrayType);
-            jValue.PushBack(value.r, _document.GetAllocator());
-            jValue.PushBack(value.g, _document.GetAllocator());
-            jValue.PushBack(value.b, _document.GetAllocator());
-            jValue.PushBack(value.a, _document.GetAllocator());
-
-            if (key && strlen(key))
-            {
-                rapidjson::Value jKey(key, _document.GetAllocator());
-                object.AddMember(jKey, jValue, _document.GetAllocator());
-            }
-            else
-            {
-                object.PushBack(jValue, _document.GetAllocator());
-            }
-
-            return true;
-        }
-
-    private:
-        Stream & _outStream;
-        rapidjson::Document _document;
-        std::vector<rapidjson::Value*> _objectStack;
-    };
-
     class SerializerImplReadJson : public SerializerImpl
     {
     public:
@@ -440,71 +246,30 @@ namespace Alimer
 
     }
 
-    /*bool Serializer::Serialize(const std::string& key, bool& value)
+    void Serializer::Serialize(const char* key, const std::string& value)
     {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
+        Serialize(key, value.c_str());
     }
 
-    bool Serializer::Serialize(const std::string& key, int16_t& value)
+    void Serializer::Serialize(const char* key, Vector2& value)
     {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
+        Serialize(key, &value.x, 2);
     }
 
-    bool Serializer::Serialize(const std::string& key, uint16_t& value)
+    void Serializer::Serialize(const char* key, Vector3& value)
     {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
+        Serialize(key, &value.x, 3);
     }
 
-    bool Serializer::Serialize(const std::string& key, int32_t& value)
+    void Serializer::Serialize(const char* key, Vector4& value)
     {
-        return false;
-        // return _impl->Serialize(key.c_str(), value);
+        Serialize(key, &value.x, 4);
     }
 
-    bool Serializer::Serialize(const std::string& key, uint32_t& value)
+    void Serializer::Serialize(const char* key, Quaternion& value)
     {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
+        Serialize(key, &value.x, 4);
     }
-
-    bool Serializer::Serialize(const std::string& key, float& value)
-    {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
-    }
-
-    bool Serializer::Serialize(const std::string& key, double& value)
-    {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
-    }
-
-    bool Serializer::Serialize(const std::string& key, Vector2& value)
-    {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
-    }
-
-    bool Serializer::Serialize(const std::string& key, Vector3& value)
-    {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
-    }
-
-    bool Serializer::Serialize(const std::string& key, Vector4& value)
-    {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
-    }
-
-    bool Serializer::Serialize(const std::string& key, Quaternion& value)
-    {
-        return false;
-        //return _impl->Serialize(key.c_str(), value);
-    }*/
 
     void Serializer::Serialize(const char* key, const Color& value)
     {

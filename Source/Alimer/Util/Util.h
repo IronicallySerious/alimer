@@ -28,12 +28,15 @@
 #include <sstream>
 #include <vector>
 #include <type_traits>
+#include <algorithm>
 
 #ifdef _MSC_VER
 #	include <intrin.h>
 #endif
 
-namespace Util
+#include "../Core/Log.h"
+
+namespace Alimer
 {
 #ifdef __GNUC__
 #	define leading_zeroes(x) ((x) == 0 ? 32 : __builtin_clz(x))
@@ -61,9 +64,9 @@ namespace Util
         }
     }
 
-#define leading_zeroes(x) ::Util::Internal::clz(x)
-#define trailing_zeroes(x) ::Util::Internal::ctz(x)
-#define trailing_ones(x) ::Util::Internal::ctz(~(x))
+#define leading_zeroes(x) ::Alimer::Internal::clz(x)
+#define trailing_zeroes(x) ::Alimer::Internal::ctz(x)
+#define trailing_ones(x) ::Alimer::Internal::ctz(~(x))
 #endif
 
     template<typename T>
@@ -89,44 +92,6 @@ namespace Util
         }
     }
 
-    namespace inner
-    {
-        template<typename T>
-        void JoinHelper(std::ostringstream &stream, T &&t)
-        {
-            stream << std::forward<T>(t);
-        }
-
-        template<typename T, typename... Ts>
-        void JoinHelper(std::ostringstream &stream, T &&t, Ts &&... ts)
-        {
-            stream << std::forward<T>(t);
-            JoinHelper(stream, std::forward<Ts>(ts)...);
-        }
-    }
-
-    template<typename... Ts>
-    std::string Join(Ts &&... ts)
-    {
-        std::ostringstream stream;
-        inner::JoinHelper(stream, std::forward<Ts>(ts)...);
-        return stream.str();
-    }
-
-    std::vector<std::string> Split(const std::string &str, const char *delim, bool allowEmpty = false);
-    std::string Replace(const std::string& str, const std::string& find, const std::string& replace,
-        uint32_t maxReplacements = std::numeric_limits<uint32_t>::max());
-
-    void LeftTrim(std::string& s);
-    void RightTrim(std::string& s);
-    void Trim(std::string& s);
-
-    void ToLower(std::string& s);
-    void ToUpper(std::string& s);
-
-    bool StartsWith(const std::string& str, const std::string& pattern, bool lowerCase = true);
-    bool EndsWith(const std::string& str, const std::string& pattern, bool lowerCase = true);
-
     /// Convert a char to uppercase.
     inline char ToUpper(char c) { return (c >= 'a' && c <= 'z') ? c - 0x20 : c; }
     /// Convert a char to lowercase.
@@ -135,4 +100,81 @@ namespace Util
     inline bool IsAlpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
     /// Return whether a char is a digit.
     inline bool IsDigit(char c) { return c >= '0' && c <= '9'; }
+
+    template <typename T>
+    struct EnumNames {
+    };
+  
+    namespace str
+    {
+        namespace inner
+        {
+            template<typename T>
+            void JoinHelper(std::ostringstream &stream, T &&t)
+            {
+                stream << std::forward<T>(t);
+            }
+
+            template<typename T, typename... Ts>
+            void JoinHelper(std::ostringstream &stream, T &&t, Ts &&... ts)
+            {
+                stream << std::forward<T>(t);
+                JoinHelper(stream, std::forward<Ts>(ts)...);
+            }
+        }
+
+        template<typename... Ts>
+        std::string Join(Ts &&... ts)
+        {
+            std::ostringstream stream;
+            inner::JoinHelper(stream, std::forward<Ts>(ts)...);
+            return stream.str();
+        }
+
+        std::vector<std::string> Split(const std::string &str, const char *delim, bool allowEmpty = false);
+        std::string Replace(
+            const std::string& str,
+            const std::string& find,
+            const std::string& replace,
+            uint32_t maxReplacements = UINT_MAX);
+
+        void LeftTrim(std::string& s);
+        void RightTrim(std::string& s);
+        void Trim(std::string& s);
+
+        void ToLower(std::string& s);
+        void ToUpper(std::string& s);
+
+        bool StartsWith(const std::string& str, const std::string& pattern, bool lowerCase = true);
+        bool EndsWith(const std::string& str, const std::string& pattern, bool lowerCase = true);
+
+        template <typename T>
+        constexpr typename std::underlying_type<T>::type ECast(T x)
+        {
+            return static_cast<typename std::underlying_type<T>::type>(x);
+        }
+
+        template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
+        static std::string ToString(const T& v)
+        {
+            return EnumNames<T>()()[ECast(v)];
+        }
+
+        template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
+        static T FromString(const std::string& str)
+        {
+            EnumNames<T> n;
+            auto names = n();
+            auto res = std::find_if(std::begin(names), std::end(names), [&](const char* v) { return str == v; });
+            if (res == std::end(names))
+            {
+                ALIMER_LOGCRITICAL(
+                    "String '%s' does not exist in enum '%s'.",
+                    str.c_str(),
+                    typeid(T).name());
+            }
+
+            return T(res - std::begin(names));
+        }
+    }
 }

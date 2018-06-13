@@ -29,7 +29,7 @@
 #include "D3D12PipelineState.h"
 #include "../ShaderCompiler.h"
 #include "../../Core/Log.h"
-#include "../../Core/Windows/WindowWindows.h"
+#include "../../Application/Windows/WindowWindows.h"
 
 #define COMPILED_SHADER_EXT ".cso"
 

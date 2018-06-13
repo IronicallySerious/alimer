@@ -201,8 +201,10 @@
 #	ifdef _DEBUG
 #	include <cassert>
 #	define ALIMER_ASSERT(expression) assert(expression)
+#	define ALIMER_ASSERT_MSG(expression, msg) assert(expression && msg)
 #	else
 #	define ALIMER_ASSERT(expression) ((void)0)
+#	define ALIMER_ASSERT_MSG(expression, msg) ((void)0)
 #	endif
 
 #endif

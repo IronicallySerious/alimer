@@ -22,9 +22,9 @@
 
 #pragma once
 
-#include "../Foundation/Ptr.h"
+#include "../Core/Ptr.h"
 #include "../Graphics/Types.h"
-#include "../Core/Window.h"
+#include "../Application/Window.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Shader.h"

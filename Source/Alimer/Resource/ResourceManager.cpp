@@ -154,30 +154,30 @@ namespace Alimer
     string ResourceManager::SanitateResourceName(const string& name) const
     {
         // Sanitate unsupported constructs from the resource name
-        string sanitatedName = Util::Replace(name, "../", "");
-        sanitatedName = Util::Replace(sanitatedName, "./", "");
+        string sanitatedName = str::Replace(name, "../", "");
+        sanitatedName = str::Replace(sanitatedName, "./", "");
 
         // If the path refers to one of the resource directories, normalize the resource name
         if (_resourceDirs.size())
         {
             string namePath = GetPath(sanitatedName);
-            string exePath = Util::Replace(GetExecutableFolder(), "/./", "/");
+            string exePath = str::Replace(GetExecutableFolder(), "/./", "/");
             for (size_t i = 0; i < _resourceDirs.size(); ++i)
             {
                 string relativeResourcePath = _resourceDirs[i];
-                if (Util::StartsWith(relativeResourcePath, exePath))
+                if (str::StartsWith(relativeResourcePath, exePath))
                     relativeResourcePath = relativeResourcePath.substr(exePath.length());
 
-                if (Util::StartsWith(namePath, _resourceDirs[i], false))
+                if (str::StartsWith(namePath, _resourceDirs[i], false))
                     namePath = namePath.substr(_resourceDirs[i].length());
-                else if (Util::StartsWith(namePath, relativeResourcePath, false))
+                else if (str::StartsWith(namePath, relativeResourcePath, false))
                     namePath = namePath.substr(relativeResourcePath.length());
             }
 
             sanitatedName = namePath + GetFileNameAndExtension(sanitatedName);
         }
 
-        Util::Trim(sanitatedName);
+        str::Trim(sanitatedName);
         return sanitatedName;
     }
 
@@ -188,8 +188,8 @@ namespace Alimer
             cleanName = Path::Join(GetCurrentDir(), name);
 
         // Sanitate away /./ construct
-        Util::Replace(cleanName, "/./", "/");
-        Util::Trim(cleanName);
+        str::Replace(cleanName, "/./", "/");
+        str::Trim(cleanName);
         return cleanName;
     }
 

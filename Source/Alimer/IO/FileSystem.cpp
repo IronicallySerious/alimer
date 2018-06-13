@@ -34,35 +34,6 @@
 #endif
 
 #include <windows.h>
-
-inline std::wstring ToWide(const std::string& str)
-{
-    int len;
-    int slength = (int)str.length() + 1;
-    len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), slength, nullptr, 0);
-    wchar_t* buf = new wchar_t[len];
-    MultiByteToWideChar(CP_ACP, 0, str.c_str(), slength, buf, len);
-    std::wstring r(buf);
-    delete[] buf;
-    return r;
-}
-
-inline std::string ToMultibyte(const std::wstring& str)
-{
-    int len;
-    int slength = (int)str.length() + 1;
-    len = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), slength, nullptr, 0, nullptr, nullptr);
-    char* buf = new char[len];
-    WideCharToMultiByte(CP_UTF8, 0, str.c_str(), slength, buf, len, nullptr, nullptr);
-    std::string r(buf);
-    delete[] buf;
-    return r;
-}
-
-std::string ToUniversalPath(const std::string& path)
-{
-    return Util::Replace(path, "\\", "/");
-}
 #endif
 
 
@@ -72,13 +43,13 @@ namespace Alimer
 {
     string GetInternalPath(const string& path)
     {
-        return Util::Replace(path, "\\", "/");
+        return str::Replace(path, "\\", "/");
     }
 
     string GetNativePath(const string& path)
     {
 #ifdef _WIN32
-        return Util::Replace(path, "/", "\\");
+        return str::Replace(path, "/", "\\");
 #else
         return pathName;
 #endif
@@ -87,8 +58,8 @@ namespace Alimer
     string AddTrailingSlash(const string& path)
     {
         string ret = path;
-        Util::Trim(ret);
-        ret = Util::Replace(ret, "\\", "/");
+        str::Trim(ret);
+        ret = str::Replace(ret, "\\", "/");
         if (!ret.empty() && ret.back() != '/')
         {
             ret += '/';
@@ -100,8 +71,8 @@ namespace Alimer
     string RemoveTrailingSlash(const string& path)
     {
         string ret = path;
-        Util::Trim(ret);
-        ret = Util::Replace(ret, "\\", "/");
+        str::Trim(ret);
+        ret = str::Replace(ret, "\\", "/");
         if (!ret.empty() && ret.back() == '/')
         {
             ret.resize(ret.length() - 1);
@@ -123,7 +94,7 @@ namespace Alimer
             extension = fullPathCopy.substr(extPos);
             if (lowerCaseExtension)
             {
-                Util::ToLower(extension);
+                str::ToLower(extension);
             }
 
             fullPathCopy = fullPathCopy.substr(0, extPos);
@@ -193,7 +164,7 @@ namespace Alimer
             return true;
 
 #ifdef _WIN32
-        if (path.length() > 1 && Util::IsAlpha(path[0]) && path[1] == ':')
+        if (path.length() > 1 && IsAlpha(path[0]) && path[1] == ':')
             return true;
 #endif
 
@@ -201,6 +172,35 @@ namespace Alimer
     }
 
 #ifdef _WIN32
+    static inline std::wstring ToWide(const std::string& str)
+    {
+        int len;
+        int slength = (int)str.length() + 1;
+        len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), slength, nullptr, 0);
+        wchar_t* buf = new wchar_t[len];
+        MultiByteToWideChar(CP_ACP, 0, str.c_str(), slength, buf, len);
+        std::wstring r(buf);
+        delete[] buf;
+        return r;
+    }
+
+    static inline std::string ToMultibyte(const std::wstring& str)
+    {
+        int len;
+        int slength = (int)str.length() + 1;
+        len = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), slength, nullptr, 0, nullptr, nullptr);
+        char* buf = new char[len];
+        WideCharToMultiByte(CP_UTF8, 0, str.c_str(), slength, buf, len, nullptr, nullptr);
+        std::string r(buf);
+        delete[] buf;
+        return r;
+    }
+
+    static std::string ToUniversalPath(const std::string& path)
+    {
+        return str::Replace(path, "\\", "/");
+    }
+
     string GetCurrentDir()
     {
         wchar_t path[MAX_PATH];

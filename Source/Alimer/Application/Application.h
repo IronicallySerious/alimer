@@ -31,7 +31,7 @@
 #include <string>
 #include <atomic>
 #include "../Core/Log.h"
-#include "../Core/Window.h"
+#include "../Application/Window.h"
 #include "../Serialization/Serializable.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceManager.h"
@@ -100,9 +100,6 @@ namespace Alimer
         bool InitializeBeforeRun();
 
 	protected:
-        /// Perform setup before initialize the engine and entering main loop.
-        virtual bool Setup() { return true; }
-
         /// Called after setup and engine initialization with all modules initialized.
 		virtual void Initialize() { }
 

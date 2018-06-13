@@ -78,11 +78,6 @@ namespace Alimer
 
 	bool Application::InitializeBeforeRun()
 	{
-        if (!Setup())
-        {
-            return false;
-        }
-
 		SetCurrentThreadName("Main");
 
 		if (!_headless)
@@ -90,7 +85,7 @@ namespace Alimer
 			_window = MakeWindow("Alimer", 800, 600);
 
 			// Create and init graphics.
-            _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
+            //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
 			//_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
 
 			_graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../../Core/Window.h"
+#include "../../Application/Window.h"
 #include "VulkanPrerequisites.h"
 #include <vector>
 

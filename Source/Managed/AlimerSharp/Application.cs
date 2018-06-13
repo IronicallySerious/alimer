@@ -12,7 +12,6 @@ namespace Alimer
     {
         private static Application _current;
         // references needed to prevent GC from collecting callbacks passed to native code
-        private static ActionVoidWithReturnInt setupCallback;
         private static ActionVoid startCallback;
         private static ActionVoid exitCallback;
 
@@ -38,11 +37,10 @@ namespace Alimer
         [Preserve]
         public Application()
         {
-            setupCallback = ProxySetup;
             startCallback = ProxyStart;
             exitCallback = ProxyExit;
 
-            _handle = Application_new(setupCallback, startCallback, exitCallback);
+            _handle = Application_new(startCallback, exitCallback);
             _current = this;
         }
 
@@ -56,22 +54,8 @@ namespace Alimer
             return Application_Run(_handle);
         }
 
-        protected virtual bool Setup()
-        {
-            return true;
-        }
-
         protected virtual void Initialize()
         {
-        }
-
-        [MonoPInvokeCallback(typeof(ActionVoidWithReturnInt))]
-        private static int ProxySetup()
-        {
-            if (_current.Setup())
-                return 1;
-
-            return 0;
         }
 
         [MonoPInvokeCallback(typeof(ActionVoid))]

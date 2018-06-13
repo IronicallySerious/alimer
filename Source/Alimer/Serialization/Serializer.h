@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Util/Util.h"
 #include "../IO/Stream.h"
 #include "../Math/Vector2.h"
 #include "../Math/Vector3.h"
@@ -42,19 +43,31 @@ namespace Alimer
 		/// Destructor.
 		virtual ~Serializer() = default;
 
-		/*bool Serialize(const std::string& key, bool& value);
-		bool Serialize(const std::string& key, int16_t& value);
-		bool Serialize(const std::string& key, uint16_t& value);
-		bool Serialize(const std::string& key, int32_t& value);
-		bool Serialize(const std::string& key, uint32_t& value);
-		bool Serialize(const std::string& key, float& value);
-		bool Serialize(const std::string& key, double& value);
-		bool Serialize(const std::string& key, Vector2& value);
-		bool Serialize(const std::string& key, Vector3& value);
-		bool Serialize(const std::string& key, Vector4& value);
-		bool Serialize(const std::string& key, Quaternion& value);*/
-        void Serialize(const char* key, const Color& value);
+        virtual void Serialize(const char* key, bool value) = 0;
+        virtual void Serialize(const char* key, int16_t value) = 0;
+        virtual void Serialize(const char* key, uint16_t value) = 0;
+        virtual void Serialize(const char* key, int32_t value) = 0;
+        virtual void Serialize(const char* key, uint32_t value) = 0;
+        virtual void Serialize(const char* key, int64_t value) = 0;
+        virtual void Serialize(const char* key, uint64_t value) = 0;
+        virtual void Serialize(const char* key, float value) = 0;
+        virtual void Serialize(const char* key, double value) = 0;
+        virtual void Serialize(const char* key, const char* value) = 0;
+        virtual void Serialize(const char* key, const std::string& value);
+
+        virtual void Serialize(const char* key, Vector2& value);
+        virtual void Serialize(const char* key, Vector3& value);
+        virtual void Serialize(const char* key, Vector4& value);
+        virtual void Serialize(const char* key, Quaternion& value);
+        virtual void Serialize(const char* key, const Color& value);
         virtual void Serialize(const char* key, const float* values, uint32_t count) = 0;
+
+        template<typename ENUM, typename = typename std::enable_if<std::is_enum<ENUM>::value>::type>
+        bool Serialize(const char* key, ENUM value)
+        {
+            std::string valueStr = str::ToString(value);
+            Serialize(key, valueStr);
+        }
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Serializer);

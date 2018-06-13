@@ -20,40 +20,9 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Serialization/Serializer.h"
+#include "../Core/String.h"
 
 namespace Alimer
 {
-    class JsonSerializerImpl;
-
-	/// Json Serializer class.
-	class ALIMER_API JsonSerializer final : public Serializer
-	{
-	public:
-		/// Constructor.
-        JsonSerializer(Stream& outStream);
-
-		/// Destructor.
-		~JsonSerializer() override;
-
-        void Serialize(const char* key, bool value) override;
-        void Serialize(const char* key, int16_t value) override;
-        void Serialize(const char* key, uint16_t value) override;
-        void Serialize(const char* key, int32_t value) override;
-        void Serialize(const char* key, uint32_t value) override;
-        void Serialize(const char* key, int64_t value) override;
-        void Serialize(const char* key, uint64_t value) override;
-        void Serialize(const char* key, float value) override;
-        void Serialize(const char* key, double value) override;
-        void Serialize(const char* key, const char* value) override;
-
-        void Serialize(const char* key, const float* values, uint32_t count) override;
-
-        using Serializer::Serialize;
-
-	private:
-        JsonSerializerImpl* _impl;
-	};
+    
 }

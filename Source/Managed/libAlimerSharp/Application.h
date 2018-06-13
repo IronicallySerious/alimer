@@ -27,23 +27,19 @@
 using namespace Alimer;
 
 class ApplicationProxy;
-typedef int(*ApplicationCallbackB_T)();
 typedef void(*ApplicationCallback_T)();
 
 class ApplicationProxy : public Application
 {
 public:
     ApplicationProxy(
-        ApplicationCallbackB_T setup,
         ApplicationCallback_T initialize,
         ApplicationCallback_T exit);
 
 private:
-    bool Setup() override;
     void Initialize() override;
     void OnExiting() override;
 
-    ApplicationCallbackB_T _setupCallback;
     ApplicationCallback_T _initializeCallback;
     ApplicationCallback_T _exitCallback;
 };

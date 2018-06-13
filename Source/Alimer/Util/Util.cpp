@@ -28,9 +28,9 @@
 
 using namespace std;
 
-namespace Util
+namespace Alimer
 {
-	vector<string> Split(
+	vector<string> str::Split(
 		const string &str,
 		const char *delim,
 		bool allowEmpty)
@@ -56,7 +56,7 @@ namespace Util
 		return ret;
 	}
 
-	string Replace(
+	string str::Replace(
 		const string& str,
 		const string& find,
 		const string& replace,
@@ -76,37 +76,37 @@ namespace Util
 		return dest;
 	}
 
-    void LeftTrim(string& s)
+    void str::LeftTrim(string& s)
     {
         s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
             return !std::isspace(ch);
         }));
     }
 
-    void RightTrim(string& s)
+    void str::RightTrim(string& s)
     {
         s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
             return !std::isspace(ch);
         }).base(), s.end());
     }
 
-    void Trim(string& s)
+    void str::Trim(string& s)
     {
         LeftTrim(s);
         RightTrim(s);
     }
 
-    void ToLower(std::string& s)
+    void str::ToLower(std::string& s)
     {
         std::transform(s.begin(), s.end(), s.begin(), ::tolower);
     }
 
-    void ToUpper(std::string& s)
+    void str::ToUpper(std::string& s)
     {
         std::transform(s.begin(), s.end(), s.begin(), ::toupper);
     }
 
-    bool StartsWith(const string& str, const string& pattern, bool lowerCase)
+    bool str::StartsWith(const string& str, const string& pattern, bool lowerCase)
     {
         if (pattern.empty())
             return false;
@@ -119,7 +119,7 @@ namespace Util
         return strncmp(str.c_str(), pattern.c_str(), pattern.size()) == 0;
     }
 
-    bool EndsWith(const string& str, const string& pattern, bool lowerCase)
+    bool str::EndsWith(const string& str, const string& pattern, bool lowerCase)
     {
         return false;
 

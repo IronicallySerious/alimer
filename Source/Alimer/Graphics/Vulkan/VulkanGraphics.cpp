@@ -22,14 +22,14 @@
 
 #define VMA_IMPLEMENTATION
 #include "../../Core/Log.h"
-#include "../../Core/Window.h"
+#include "../../Application/Window.h"
 #include "VulkanGraphics.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanTexture.h"
 #include "VulkanConvert.h"
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-#	include "../../Core/Windows/WindowWindows.h"
+#	include "../../Application/Windows/WindowWindows.h"
 #endif
 
 #include <map>
@@ -37,7 +37,6 @@ using namespace std;
 
 namespace Alimer
 {
-
     /*
     * A layer can expose extensions, keep track of those
     * extensions here.

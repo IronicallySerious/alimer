@@ -25,19 +25,12 @@
 #include "Application.h"
 
 ApplicationProxy::ApplicationProxy(
-    ApplicationCallbackB_T setup,
     ApplicationCallback_T initialize,
     ApplicationCallback_T exit)
-    : _setupCallback(setup)
-    , _initializeCallback(initialize)
+    : _initializeCallback(initialize)
     , _exitCallback(exit)
 {
 
-}
-
-bool ApplicationProxy::Setup()
-{
-    return _setupCallback() == 1;
 }
 
 void ApplicationProxy::Initialize()
@@ -53,11 +46,10 @@ void ApplicationProxy::OnExiting()
 extern "C"
 {
     ALIMER_DLL_EXPORT ApplicationProxy* Application_new(
-        ApplicationCallbackB_T setup,
         ApplicationCallback_T initialize,
         ApplicationCallback_T exit)
     {
-        return new ApplicationProxy(setup, initialize, exit);
+        return new ApplicationProxy(initialize, exit);
     }
 
     ALIMER_DLL_EXPORT int Application_Run(ApplicationProxy* _this)

@@ -21,6 +21,7 @@
 //
 
 #include "../Graphics/Types.h"
+#include "../Util/Util.h"
 
 namespace Alimer
 {

@@ -36,8 +36,9 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND WIN32)
 endif()
 
 project(glslang)
+# Alimer: Disable tests
 # make testing optional
-include(CTest)
+# include(CTest)
 
 if(ENABLE_AMD_EXTENSIONS)
     add_definitions(-DAMD_EXTENSIONS)
@@ -119,4 +120,6 @@ add_subdirectory(SPIRV)
 if(ENABLE_HLSL)
     add_subdirectory(hlsl)
 endif(ENABLE_HLSL)
-add_subdirectory(gtests)
+
+# Alimer: Disable tests
+# add_subdirectory(gtests)

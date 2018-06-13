@@ -28,7 +28,7 @@
 #include "../../Core/Log.h"
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-#	include "../../Core/Windows/WindowWindows.h"
+#	include "../../Application/Windows/WindowWindows.h"
 #endif
 
 namespace Alimer
