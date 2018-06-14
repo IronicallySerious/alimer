@@ -38,7 +38,7 @@ The engine uses the following third-party libraries:
 - [Nothings](https://github.com/nothings/stb) single file libs.
   - [stb_image.h 2.19](https://github.com/nothings/stb/blob/master/stb_image.h)
   - [stb_image_write.h 1.09](https://github.com/nothings/stb/blob/master/stb_image_write.h)
-- [rapidjson](https://github.com/Tencent/rapidjson)
+- [JSON for Modern C++](https://github.com/nlohmann/json)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [glslang](https://github.com/KhronosGroup/glslang)
 - [volk Metaloader for Vulkan](https://github.com/zeux/volk)

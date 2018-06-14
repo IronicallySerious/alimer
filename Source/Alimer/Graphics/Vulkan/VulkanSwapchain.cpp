@@ -39,6 +39,9 @@ namespace Alimer
 		, _instance(graphics->GetInstance())
 		, _physicalDevice(graphics->GetPhysicalDevice())
 		, _logicalDevice(graphics->GetLogicalDevice())
+        , _imageCount(0)
+        , _currentSemaphoreIndex(0)
+        , _currentBackBufferIndex(0)
 	{
 		VkResult result = VK_SUCCESS;
 
@@ -163,6 +166,14 @@ namespace Alimer
 
 	VulkanSwapchain::~VulkanSwapchain()
 	{
+        for (uint32_t i = 0; i < _imageCount; i++)
+        {
+            vkDestroySemaphore(_logicalDevice, _semaphores[i], nullptr);
+            //vkDestroyImageView(_logicalDevice, buffers[i].view, nullptr);
+        }
+
+        _semaphores.clear();
+
 		if (_swapchain != VK_NULL_HANDLE)
 		{
 			vkDestroySwapchainKHR(_logicalDevice, _swapchain, nullptr);
@@ -175,6 +186,7 @@ namespace Alimer
 
 		_swapchain = VK_NULL_HANDLE;
 		_surface = VK_NULL_HANDLE;
+        _imageCount = 0;
 	}
 
 	void VulkanSwapchain::Resize(uint32_t width, uint32_t height, bool force)
@@ -316,9 +328,12 @@ namespace Alimer
 		{
 			for (uint32_t i = 0; i < _imageCount; i++)
 			{
-				//vkDestroyImageView(device, buffers[i].view, nullptr);
+                vkDestroySemaphore(_logicalDevice, _semaphores[i], nullptr);
+				//vkDestroyImageView(_logicalDevice, buffers[i].view, nullptr);
 			}
+
 			vkDestroySwapchainKHR(_logicalDevice, oldSwapchain, nullptr);
+            _semaphores.clear();
 		}
 		vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _swapchain, &_imageCount, nullptr));
 
@@ -326,6 +341,12 @@ namespace Alimer
 		_images.resize(_imageCount);
 		_textures.resize(_imageCount);
 		vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _swapchain, &_imageCount, _images.data()));
+
+        // Create the semaphores
+        VkSemaphoreCreateInfo semaphoreCreateInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+        _semaphores.resize(_imageCount, VK_NULL_HANDLE);
+        _currentSemaphoreIndex = 0;
+        _currentBackBufferIndex = 0;
 
 		TextureDescription textureDesc = {};
 		textureDesc.type = TextureType::Type2D;
@@ -336,6 +357,8 @@ namespace Alimer
 
 		for (uint32_t i = 0; i < _imageCount; i++)
 		{
+            vkCreateSemaphore(_logicalDevice, &semaphoreCreateInfo, nullptr, &_semaphores[i]);
+
 			_textures[i] = MakeShared<VulkanTexture>(
 				_graphics.Get(),
 				textureDesc,
@@ -372,40 +395,42 @@ namespace Alimer
 		}
 	}
 
-	SharedPtr<VulkanTexture> VulkanSwapchain::AcquireNextImage(VkSemaphore acquireSemaphore, uint32_t *imageIndex)
+	SharedPtr<VulkanTexture> VulkanSwapchain::GetNextTexture()
 	{
+        VkSemaphore semaphore = _semaphores[_currentSemaphoreIndex];
+        _currentSemaphoreIndex = (_currentSemaphoreIndex + 1) % _imageCount;
+
 		VkResult result =  vkAcquireNextImageKHR(
 			_logicalDevice,
 			_swapchain,
 			UINT64_MAX,
-			acquireSemaphore,
+            semaphore,
 			(VkFence)nullptr,
-			imageIndex);
+            &_currentBackBufferIndex);
 
-		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
+        {
 			Resize(_width, _height, true);
-			return AcquireNextImage(acquireSemaphore, imageIndex);
+			return GetNextTexture();
 		}
 		else {
 			vkThrowIfFailed(result);
 		}
 
-		return _textures[*imageIndex];
+        _graphics->AddWaitSemaphore(semaphore);
+		return _textures[_currentBackBufferIndex];
 	}
 
-	VkResult VulkanSwapchain::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
+	VkResult VulkanSwapchain::QueuePresent(VkQueue queue)
 	{
 		VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-		presentInfo.pNext = NULL;
+		presentInfo.pNext = nullptr;
+        presentInfo.waitSemaphoreCount = 0;
+        presentInfo.pWaitSemaphores = nullptr;
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &_swapchain;
-		presentInfo.pImageIndices = &imageIndex;
-		// Check if a wait semaphore has been specified to wait for before presenting the image
-		if (waitSemaphore != VK_NULL_HANDLE)
-		{
-			presentInfo.pWaitSemaphores = &waitSemaphore;
-			presentInfo.waitSemaphoreCount = 1;
-		}
+		presentInfo.pImageIndices = &_currentBackBufferIndex;
+
 		return vkQueuePresentKHR(queue, &presentInfo);
 	}
 }

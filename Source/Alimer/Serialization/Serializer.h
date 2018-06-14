@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Core/String.h"
 #include "../Util/Util.h"
 #include "../IO/Stream.h"
 #include "../Math/Vector2.h"
@@ -29,19 +30,20 @@
 #include "../Math/Vector4.h"
 #include "../Math/Quaternion.h"
 #include "../Math/Color.h"
+#include <map>
 
 namespace Alimer
 {
-	/// Serializer class.
-	class Serializer
-	{
-	protected:
-		/// Constructor.
-		Serializer();
+    /// Serializer class.
+    class Serializer
+    {
+    protected:
+        /// Constructor.
+        Serializer();
 
     public:
-		/// Destructor.
-		virtual ~Serializer() = default;
+        /// Destructor.
+        virtual ~Serializer() = default;
 
         virtual void Serialize(const char* key, bool value) = 0;
         virtual void Serialize(const char* key, int16_t value) = 0;
@@ -52,8 +54,11 @@ namespace Alimer
         virtual void Serialize(const char* key, uint64_t value) = 0;
         virtual void Serialize(const char* key, float value) = 0;
         virtual void Serialize(const char* key, double value) = 0;
+
+        virtual void Serialize(const char* key, char value) = 0;
         virtual void Serialize(const char* key, const char* value) = 0;
         virtual void Serialize(const char* key, const std::string& value);
+        virtual void Serialize(const char* key, const String& value);
 
         virtual void Serialize(const char* key, Vector2& value);
         virtual void Serialize(const char* key, Vector3& value);
@@ -62,14 +67,51 @@ namespace Alimer
         virtual void Serialize(const char* key, const Color& value);
         virtual void Serialize(const char* key, const float* values, uint32_t count) = 0;
 
+        virtual void BeginObject(const char* key, bool isArray = false) = 0;
+        virtual void EndObject() = 0;
+
         template<typename ENUM, typename = typename std::enable_if<std::is_enum<ENUM>::value>::type>
-        bool Serialize(const char* key, ENUM value)
+        void Serialize(const char* key, ENUM value)
         {
-            std::string valueStr = str::ToString(value);
+            String valueStr = str::ToString(value);
             Serialize(key, valueStr);
         }
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Serializer);
-	};
+        template<typename TYPE,
+            typename = typename std::enable_if<std::is_object<TYPE>::value>::type,
+            typename = typename std::enable_if<!std::is_enum<TYPE>::value>::type>
+            void Serialize(const char* key, TYPE type)
+        {
+            BeginObject(key);
+            type.Serialize(*this);
+            EndObject();
+        }
+
+        /// Vector serialization.
+        template<typename T>
+        void Serialize(const char* key, const std::vector<T>& type)
+        {
+            BeginObject(key, true);
+            for (auto& val : type)
+            {
+                Serialize(nullptr, val);
+            }
+            EndObject();
+        }
+
+        /// Map serialization.
+        template<typename T>
+        void Serialize(const char* key, std::map<Alimer::String, T> type)
+        {
+            BeginObject(key, false);
+            for (const auto& pair : type)
+            {
+                Serialize(pair.first.c_str(), pair.second);
+            }
+            EndObject();
+        }
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Serializer);
+    };
 }

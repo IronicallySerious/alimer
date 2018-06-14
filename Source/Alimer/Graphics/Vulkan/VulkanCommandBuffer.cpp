@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#include "VulkanCommandQueue.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanGraphics.h"
 #include "../../Core/Log.h"
@@ -27,108 +28,137 @@
 
 namespace Alimer
 {
-	VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, VkCommandBuffer vkCommandBuffer)
-		: CommandBuffer(graphics)
-		, _logicalDevice(graphics->GetLogicalDevice())
-		, _commandPool(commandPool)
-		, _vkCommandBuffer(vkCommandBuffer)
-	{
-		
-	}
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandQueue* queue)
+        : CommandBuffer(queue->GetGraphics())
+        , _vkGraphics(static_cast<VulkanGraphics*>(queue->GetGraphics()))
+        , _logicalDevice(_vkGraphics->GetLogicalDevice())
+        , _queue(queue)
+        , _enqueued(false)
+    {
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+        cmdBufAllocateInfo.pNext = nullptr;
+        cmdBufAllocateInfo.commandPool = queue->GetVkHandle();
+        cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdBufAllocateInfo.commandBufferCount = 1;
+        vkThrowIfFailed(vkAllocateCommandBuffers(
+            _logicalDevice,
+            &cmdBufAllocateInfo,
+            &_vkHandle));
+    }
 
-	VulkanCommandBuffer::~VulkanCommandBuffer()
-	{
-		vkFreeCommandBuffers(_logicalDevice, _commandPool, 1, &_vkCommandBuffer);
-	}
+    VulkanCommandBuffer::~VulkanCommandBuffer()
+    {
+        vkFreeCommandBuffers(_logicalDevice, _queue->GetVkHandle(), 1, &_vkHandle);
+    }
 
-	void VulkanCommandBuffer::Begin()
-	{
-		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-		beginInfo.pNext = nullptr;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-		beginInfo.pInheritanceInfo = nullptr;
+    void VulkanCommandBuffer::Enqueue()
+    {
+        if (_enqueued)
+            return;
 
-		vkThrowIfFailed(vkBeginCommandBuffer(_vkCommandBuffer, &beginInfo));
-	}
+        _queue->Enqueue(_vkHandle);
+        _enqueued = true;
+    }
 
-	void VulkanCommandBuffer::End()
-	{
-		vkThrowIfFailed(vkEndCommandBuffer(_vkCommandBuffer));
-	}
+    void VulkanCommandBuffer::Commit()
+    {
+        Enqueue();
+        End();
+        _queue->Commit(this);
+    }
 
-	void VulkanCommandBuffer::BeginRenderPass(const RenderPassDescriptor& descriptor)
-	{
-		Util::Hasher renderPassHasher;
-		Util::Hasher framebufferHasher;
-		uint64_t renderPassHash = 0;
-		uint64_t framebufferHash = 0;
+    void VulkanCommandBuffer::Begin()
+    {
+        VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        beginInfo.pNext = nullptr;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        beginInfo.pInheritanceInfo = nullptr;
 
-		VkClearValue clearValues[MaxColorAttachments + 1];
-		uint32_t numClearValues = 0;
+        vkThrowIfFailed(vkBeginCommandBuffer(_vkHandle, &beginInfo));
+    }
 
-		for (uint32_t i = 0; i < MaxColorAttachments; i++)
-		{
-			const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor.colorAttachments[i];
-			Texture* texture = colorAttachment.texture;
-			if (!texture)
-				continue;
+    void VulkanCommandBuffer::End()
+    {
+        vkThrowIfFailed(vkEndCommandBuffer(_vkHandle));
+    }
 
-			renderPassHasher.u32(static_cast<uint32_t>(texture->GetFormat()));
-			renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.loadAction));
-			renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.storeAction));
+    void VulkanCommandBuffer::Reset()
+    {
+        vkThrowIfFailed(vkResetCommandBuffer(_vkHandle, 0));
+    }
 
-			framebufferHasher.pointer(texture);
+    void VulkanCommandBuffer::BeginRenderPass(const RenderPassDescriptor& descriptor)
+    {
+        Util::Hasher renderPassHasher;
+        Util::Hasher framebufferHasher;
+        uint64_t renderPassHash = 0;
+        uint64_t framebufferHash = 0;
 
-			if (colorAttachment.loadAction == LoadAction::Clear)
-			{
-				clearValues[i].color = { colorAttachment.clearColor.r, colorAttachment.clearColor.g, colorAttachment.clearColor.b, colorAttachment.clearColor.a };
-				numClearValues = i + 1;
-			}
-		}
+        VkClearValue clearValues[MaxColorAttachments + 1];
+        uint32_t numClearValues = 0;
 
-		if (descriptor.depthAttachment.texture != nullptr
-			&& descriptor.depthAttachment.loadAction == LoadAction::Clear)
-		{
-			clearValues[numClearValues + 1].depthStencil = { descriptor.depthAttachment.clearDepth, descriptor.stencilAttachment.clearStencil };
-			numClearValues++;
-		}
+        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        {
+            const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor.colorAttachments[i];
+            Texture* texture = colorAttachment.texture;
+            if (!texture)
+                continue;
 
-		renderPassHash = renderPassHasher.get();
-		framebufferHash = framebufferHasher.get();
+            renderPassHasher.u32(static_cast<uint32_t>(texture->GetFormat()));
+            renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.loadAction));
+            renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.storeAction));
 
-		auto vulkanGraphics = static_cast<VulkanGraphics*>(_graphics);
-		VkRenderPass renderPass = vulkanGraphics->GetVkRenderPass(descriptor, renderPassHash);
-		VulkanFramebuffer* framebuffer = vulkanGraphics->GetFramebuffer(renderPass, descriptor, framebufferHash);
+            framebufferHasher.pointer(texture);
 
-		VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.framebuffer = framebuffer->framebuffer;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent = framebuffer->size;
-		renderPassBeginInfo.clearValueCount = numClearValues;
-		renderPassBeginInfo.pClearValues = clearValues;
+            if (colorAttachment.loadAction == LoadAction::Clear)
+            {
+                clearValues[i].color = { colorAttachment.clearColor.r, colorAttachment.clearColor.g, colorAttachment.clearColor.b, colorAttachment.clearColor.a };
+                numClearValues = i + 1;
+            }
+        }
 
-		vkCmdBeginRenderPass(_vkCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-	}
+        if (descriptor.depthAttachment.texture != nullptr
+            && descriptor.depthAttachment.loadAction == LoadAction::Clear)
+        {
+            clearValues[numClearValues + 1].depthStencil = { descriptor.depthAttachment.clearDepth, descriptor.stencilAttachment.clearStencil };
+            numClearValues++;
+        }
 
-	void VulkanCommandBuffer::EndRenderPass()
-	{
-		vkCmdEndRenderPass(_vkCommandBuffer);
-	}
+        renderPassHash = renderPassHasher.get();
+        framebufferHash = framebufferHasher.get();
 
-	void VulkanCommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)
-	{
+        VkRenderPass renderPass = _vkGraphics->GetVkRenderPass(descriptor, renderPassHash);
+        VulkanFramebuffer* framebuffer = _vkGraphics->GetFramebuffer(renderPass, descriptor, framebufferHash);
 
-	}
+        VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+        renderPassBeginInfo.renderPass = renderPass;
+        renderPassBeginInfo.framebuffer = framebuffer->framebuffer;
+        renderPassBeginInfo.renderArea.offset.x = 0;
+        renderPassBeginInfo.renderArea.offset.y = 0;
+        renderPassBeginInfo.renderArea.extent = framebuffer->size;
+        renderPassBeginInfo.clearValueCount = numClearValues;
+        renderPassBeginInfo.pClearValues = clearValues;
 
-	void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-	{
+        vkCmdBeginRenderPass(_vkHandle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    }
 
-	}
+    void VulkanCommandBuffer::EndRenderPass()
+    {
+        vkCmdEndRenderPass(_vkHandle);
+    }
 
-	void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
-	{
+    void VulkanCommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)
+    {
 
-	}
+    }
+
+    void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+
+    }
+
+    void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    {
+
+    }
 }

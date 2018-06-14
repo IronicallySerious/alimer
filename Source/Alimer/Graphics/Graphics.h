@@ -29,7 +29,7 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/PipelineState.h"
-#include "../Graphics/CommandBuffer.h"
+#include "../Graphics/CommandQueue.h"
 #include <vector>
 #include <set>
 #include <mutex>
@@ -40,6 +40,8 @@ namespace Alimer
 	/// Low-level 3D graphics API class.
 	class ALIMER_API Graphics : public RefCounted
 	{
+        friend class GpuResource;
+
     protected:
 		/// Constructor.
 		Graphics(GraphicsDeviceType deviceType, bool validation = false);
@@ -69,8 +71,7 @@ namespace Alimer
 		/// Present frame.
 		virtual bool Present() = 0;
 
-		/// Get current frame CommandBuffer
-		virtual SharedPtr<CommandBuffer> GetCommandBuffer() = 0;
+        virtual void Frame() = 0;
 
 		// Buffer
 		virtual SharedPtr<GpuBuffer> CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr) = 0;
@@ -87,6 +88,10 @@ namespace Alimer
 
         inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
 
+        /// Get default command queue.
+        CommandQueue* GetCommandQueue() const { return _commandQueue.Get(); }
+
+    private:
         /// Add a GpuResource to keep track of. 
         void AddGpuResource(GpuResource* resource);
 
@@ -100,6 +105,7 @@ namespace Alimer
         GraphicsDeviceType _deviceType;
         bool _validation;
         SharedPtr<Window> _window{};
+        SharedPtr<CommandQueue> _commandQueue;
 
     private:
         std::mutex _gpuResourceMutex;

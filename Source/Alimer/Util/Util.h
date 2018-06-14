@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Core/String.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string>
@@ -155,13 +156,13 @@ namespace Alimer
         }
 
         template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
-        static std::string ToString(const T& v)
+        static String ToString(const T& v)
         {
             return EnumNames<T>()()[ECast(v)];
         }
 
         template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
-        static T FromString(const std::string& str)
+        static T FromString(const String& str)
         {
             EnumNames<T> n;
             auto names = n();

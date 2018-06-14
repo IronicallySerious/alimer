@@ -38,6 +38,8 @@ namespace Alimer
 		/// Destructor.
 		~JsonSerializer() override;
 
+        using Serializer::Serialize;
+
         void Serialize(const char* key, bool value) override;
         void Serialize(const char* key, int16_t value) override;
         void Serialize(const char* key, uint16_t value) override;
@@ -47,11 +49,14 @@ namespace Alimer
         void Serialize(const char* key, uint64_t value) override;
         void Serialize(const char* key, float value) override;
         void Serialize(const char* key, double value) override;
+
+        void Serialize(const char* key, char value) override;
         void Serialize(const char* key, const char* value) override;
 
         void Serialize(const char* key, const float* values, uint32_t count) override;
 
-        using Serializer::Serialize;
+        void BeginObject(const char* key, bool isArray) override;
+        void EndObject() override;
 
 	private:
         JsonSerializerImpl* _impl;

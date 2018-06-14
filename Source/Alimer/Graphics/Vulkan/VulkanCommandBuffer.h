@@ -28,17 +28,22 @@
 
 namespace Alimer
 {
-	class VulkanGraphics;
+    class VulkanGraphics;
+	class VulkanCommandQueue;
 
 	/// Vulkan CommandBuffer.
 	class VulkanCommandBuffer final : public CommandBuffer
 	{
 	public:
-		VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, VkCommandBuffer vkCommandBuffer);
+		VulkanCommandBuffer(VulkanCommandQueue* queue);
 		~VulkanCommandBuffer() override;
+
+        void Enqueue() override;
+        void Commit() override;
 
 		void Begin();
 		void End();
+        void Reset();
 
 		void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
 		void EndRenderPass() override;
@@ -48,12 +53,13 @@ namespace Alimer
 		void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
 		void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
-		inline VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
+		VkCommandBuffer GetVkHandle() const { return _vkHandle; }
 
 	private:
+        VulkanGraphics* _vkGraphics;
+        VulkanCommandQueue* _queue;
 		VkDevice _logicalDevice;
-		VkCommandPool _commandPool;
-		VkCommandBuffer _vkCommandBuffer;
-		uint64_t _fenceValue{};
+		VkCommandBuffer _vkHandle;
+        bool _enqueued;
 	};
 }

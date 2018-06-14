@@ -22,50 +22,24 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
-#include "../Graphics/Types.h"
+#include "../Graphics/CommandBuffer.h"
 
 namespace Alimer
 {
 	class Graphics;
 
-    enum class GpuResourceType : uint32_t
-    {
-        Unknown,
-        Buffer,
-        Texture,
-        CommandBuffer,
-        CommandQueue
-    };
-
-	/// Defines a base GPU Resource.
-	class ALIMER_API GpuResource //: public RefCounted
+	/// Defines a GPU command queue that organizes the order in which command buffers are executed by the GPU.
+	class ALIMER_API CommandQueue : public GpuResource, public RefCounted
 	{
 	protected:
-        /// Constructor.
-        GpuResource(Graphics* graphics, GpuResourceType resourceType);
-
 		/// Constructor.
-        GpuResource(GpuResourceType resourceType);
+        CommandQueue(Graphics* graphics);
 
 	public:
 		/// Destructor.
-		virtual ~GpuResource();
+		virtual ~CommandQueue() = default;
 
-        /// Unconditionally destroy the GPU resource.
-        virtual void Destroy() {}
-
-        /// Return the graphics subsystem associated with this GPU object.
-        Graphics* GetGraphics() const;
-
-        inline GpuResourceType GetResourceType() const { return _resourceType; }
-
-    protected:
-        /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
-        GpuResourceType _resourceType;
-		
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);
+        /// Creates a command buffer.
+        virtual SharedPtr<CommandBuffer> CreateCommandBuffer() = 0;
 	};
 }

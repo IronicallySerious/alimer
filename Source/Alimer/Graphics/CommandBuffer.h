@@ -33,7 +33,7 @@ namespace Alimer
 	class Graphics;
 
 	/// Defines a command buffer for storing recorded gpu commands.
-	class ALIMER_API CommandBuffer : public RefCounted
+	class ALIMER_API CommandBuffer : public GpuResource, public RefCounted
 	{
 	protected:
 		/// Constructor.
@@ -42,6 +42,12 @@ namespace Alimer
 	public:
 		/// Destructor.
 		virtual ~CommandBuffer();
+
+        /// Reserves a place for this command buffer on its associated command queue.
+        virtual void Enqueue() = 0;
+
+        /// Commits this command buffer for execution as soon as possible.
+        virtual void Commit() = 0;
 
 		virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
 		virtual void EndRenderPass() = 0;
@@ -59,8 +65,6 @@ namespace Alimer
 		virtual void ResetState();
 		virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
 		virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
-
-		Graphics* _graphics;
 
 		enum CommandBufferDirtyBits
 		{

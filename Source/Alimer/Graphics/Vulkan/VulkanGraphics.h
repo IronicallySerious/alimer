@@ -52,8 +52,7 @@ namespace Alimer
         bool Initialize(const SharedPtr<Window>& window) override;
 		SharedPtr<Texture> AcquireNextImage() override;
 		bool Present() override;
-
-		SharedPtr<CommandBuffer> GetCommandBuffer() override;
+        void Frame() override;
 
         SharedPtr<GpuBuffer> CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
@@ -69,12 +68,13 @@ namespace Alimer
 		void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
 		void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
 		void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkAccessFlagBits srcAccessMask, VkClearColorValue *clearValue);
-		void SubmitCommandBuffer(VulkanCommandBuffer* commandBuffer);
 
 		VkRenderPass GetVkRenderPass(const RenderPassDescriptor& descriptor, uint64_t hash);
 		VulkanFramebuffer* GetFramebuffer(VkRenderPass renderPass, const RenderPassDescriptor& descriptor, uint64_t hash);
         uint32_t GetQueueFamilyIndex(VkQueueFlagBits queueFlags);
         VkCommandPool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags);
+
+        void AddWaitSemaphore(VkSemaphore semaphore);
 
 	private:
         void Finalize() override;
@@ -105,16 +105,12 @@ namespace Alimer
 		VkQueue _computeQueue = VK_NULL_HANDLE;
 
 		UniquePtr<VulkanSwapchain> _swapchain;
-		uint32_t _swapchainImageIndex = 0;
 
 		// CommandPools
-		VkCommandPool _commandPool = VK_NULL_HANDLE;
-		std::vector<SharedPtr<VulkanCommandBuffer>> _commandBuffers;
+		VkCommandPool _setupCommandPool = VK_NULL_HANDLE;
 
-		// Sync semaphores
-		VkSemaphore _imageAcquiredSemaphore = VK_NULL_HANDLE;
-		VkSemaphore	_renderCompleteSemaphore = VK_NULL_HANDLE;
-		std::vector<VkFence> _waitFences;
+        std::vector<VkSemaphore> _waitSemaphores;
+        uint64_t _frameIndex = 1;
 
 		// Cache
 		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;

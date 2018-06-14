@@ -23,9 +23,9 @@
 #include "../Serialization/JsonDeserializer.h"
 #include "../Core/Log.h"
 #include <vector>
-#include <rapidjson/document.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/prettywriter.h>
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+using namespace std;
 
 namespace Alimer
 {

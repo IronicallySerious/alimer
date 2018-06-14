@@ -10,10 +10,7 @@ trim_trailing_whitespace = true
 charset = utf-8
 
 # Solution Files
-[*.{sln]
-indent_style = tab
-
-[*.xml]
+[*.sln,xml]
 indent_style = tab
 
 # Xml project files
@@ -21,10 +18,7 @@ indent_style = tab
 indent_size = 2
 
 # Configuration Files
-[*.{json,xml,yml,config,props,targets,nuspec,resx,ruleset}]
-indent_size = 2
-
-[*.xaml]
+[*.{json,xml,yml,config,props,targets,nuspec,resx,ruleset,xaml}]
 indent_size = 2
 
 # Avoid "this." and "Me." if not necessary

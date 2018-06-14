@@ -106,6 +106,8 @@ namespace Alimer
         /// Cleanup after the main loop. 
         virtual void OnExiting() { }
 
+        virtual void OnRender() {}
+
 		/// Render after frame update.
 		void Render();
 

@@ -26,7 +26,7 @@
 namespace Alimer
 {
 	CommandBuffer::CommandBuffer(Graphics* graphics)
-		: _graphics(graphics)
+		: GpuResource(graphics, GpuResourceType::CommandBuffer)
 	{
 		ResetState();
 	}

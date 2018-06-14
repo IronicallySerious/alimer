@@ -42,8 +42,8 @@ namespace Alimer
 
 		void Resize(uint32_t width, uint32_t height, bool force = false);
 
-		SharedPtr<VulkanTexture> AcquireNextImage(VkSemaphore acquireSemaphore, uint32_t *imageIndex);
-		VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
+		SharedPtr<VulkanTexture> GetNextTexture();
+		VkResult QueuePresent(VkQueue queue);
 
 		uint32_t GetImageCount() const { return _imageCount; }
 		VkImage GetImage(uint32_t index) const { return _images[index]; }
@@ -61,9 +61,14 @@ namespace Alimer
 		VkSurfaceKHR _surface;
 		VkSurfaceFormatKHR _swapchainFormat{};
 		VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
-		uint32_t _imageCount{};
+		
 		std::vector<VkImage> _images;
 		std::vector<SharedPtr<VulkanTexture>> _textures;
+        std::vector<VkSemaphore> _semaphores;
+
+        uint32_t _imageCount;
+        uint32_t _currentSemaphoreIndex;
+        uint32_t _currentBackBufferIndex;
 
 		uint32_t _width{};
 		uint32_t _height{};

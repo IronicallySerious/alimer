@@ -380,6 +380,11 @@ namespace Alimer
         return true;
     }
 
+    void D3D12Graphics::Frame()
+    {
+
+    }
+
     bool D3D12Graphics::InitializeCaps()
     {
         // https://github.com/Microsoft/DirectX-Graphics-Samples/blob/master/TechniqueDemos/D3D12MemoryManagement/src/Framework.cpp
@@ -489,7 +494,7 @@ namespace Alimer
         }
     }
 
-    SharedPtr<CommandBuffer> D3D12Graphics::GetCommandBuffer()
+    /*SharedPtr<CommandBuffer> D3D12Graphics::GetCommandBuffer()
     {
         _frameCommandBuffer = RetrieveCommandBuffer();
         if (_frameCommandBuffer == nullptr)
@@ -502,7 +507,7 @@ namespace Alimer
         }
 
         return _frameCommandBuffer;
-    }
+    }*/
 
     SharedPtr<GpuBuffer> D3D12Graphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
     {

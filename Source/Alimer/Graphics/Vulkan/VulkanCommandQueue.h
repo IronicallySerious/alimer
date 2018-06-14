@@ -22,50 +22,38 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
-#include "../Graphics/Types.h"
+#include "../CommandQueue.h"
+#include "VulkanPrerequisites.h"
+#include "../../Core/RecycleArray.h"
+#include <vector>
 
 namespace Alimer
 {
-	class Graphics;
+	class VulkanGraphics;
+    class VulkanCommandBuffer;
 
-    enum class GpuResourceType : uint32_t
-    {
-        Unknown,
-        Buffer,
-        Texture,
-        CommandBuffer,
-        CommandQueue
-    };
-
-	/// Defines a base GPU Resource.
-	class ALIMER_API GpuResource //: public RefCounted
+	/// Vulkan CommandQueue.
+	class VulkanCommandQueue final : public CommandQueue
 	{
-	protected:
-        /// Constructor.
-        GpuResource(Graphics* graphics, GpuResourceType resourceType);
-
-		/// Constructor.
-        GpuResource(GpuResourceType resourceType);
-
 	public:
-		/// Destructor.
-		virtual ~GpuResource();
+        VulkanCommandQueue(VulkanGraphics* graphics, VkQueue vkQueue, uint32_t queueFamilyIndex);
+		~VulkanCommandQueue() override;
 
-        /// Unconditionally destroy the GPU resource.
-        virtual void Destroy() {}
+        SharedPtr<CommandBuffer> CreateCommandBuffer() override;
 
-        /// Return the graphics subsystem associated with this GPU object.
-        Graphics* GetGraphics() const;
+        void Enqueue(VkCommandBuffer vkCommandBuffer);
+        void Commit(VulkanCommandBuffer* commandBuffer);
+        void Submit(const std::vector<VkSemaphore>& waitSemaphores);
 
-        inline GpuResourceType GetResourceType() const { return _resourceType; }
+        uint32_t GetQueyeFamilyIndex() const { return _queueFamilyIndex; }
+		VkCommandPool GetVkHandle() const { return _vkHandle; }
 
-    protected:
-        /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
-        GpuResourceType _resourceType;
-		
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);
+		VkDevice _logicalDevice;
+        VkQueue _vkQueue;
+        uint32_t _queueFamilyIndex;
+		VkCommandPool _vkHandle;
+        RecycleArray<VulkanCommandBuffer, 16> _commandBuffers;
+        std::vector<VkCommandBuffer> _queuedCommandBuffers;
 	};
 }

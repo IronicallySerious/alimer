@@ -23,17 +23,7 @@
 #include "Alimer.h"
 using namespace Alimer;
 
-SharedPtr<GpuBuffer> vertexBuffer;
-SharedPtr<GpuBuffer> uboBuffer;
-SharedPtr<PipelineState> renderPipeline;
 
-struct PerCameraCBuffer
-{
-    Matrix4x4 viewMatrix;
-    Matrix4x4 projectionMatrix;
-};
-
-PerCameraCBuffer _camera;
 
 namespace Alimer
 {
@@ -42,31 +32,108 @@ namespace Alimer
     public:
         RuntimeApplication();
         ~RuntimeApplication() override;
+
+    private:
+        void Initialize() override;
+        void OnRender() override;
+
+    private:
+        SharedPtr<GpuBuffer> _vertexBuffer;
+        SharedPtr<GpuBuffer> _uboBuffer;
+        SharedPtr<PipelineState> _renderPipeline;
+
+        struct PerCameraCBuffer
+        {
+            Matrix4x4 viewMatrix;
+            Matrix4x4 projectionMatrix;
+        };
+
+        PerCameraCBuffer _camera;
+    };
+
+    class Settings
+    {
+    public:
+        void Serialize(Serializer& serializer)
+        {
+            serializer.Serialize("width", 800);
+            serializer.Serialize("height", 600);
+            serializer.Serialize("fullscreen", false);
+        }
     };
 
     RuntimeApplication::RuntimeApplication()
     {
+        std::vector<char> c = { 'c','i','a','o' };
         auto s = str::ToString(ShaderStage::Geometry);
         ShaderStage stage = str::FromString<ShaderStage>(s);
+        std::map<String, ShaderStage> map;
+        map["CIAO"] = ShaderStage::Vertex;
+        map["CIAO2"] = ShaderStage::Compute;
+        Color color;
+        Settings settings;
 
         {
             auto stream = OpenStream("Test.json", StreamMode::WriteOnly);
             JsonSerializer serializer(*stream.Get());
+            settings.Serialize(serializer);
 
-            Color color;
-            serializer.Serialize("color", Color::Green);
-            serializer.Serialize("str", "Hello World");
-            serializer.Serialize("stage", ShaderStage::Compute);
+            //serializer.Serialize("color", Color::Green);
+           // serializer.Serialize("str", "Hello World");
+           // serializer.Serialize("stage", ShaderStage::Compute);
+           // serializer.Serialize("settings", settings);
+
+            serializer.BeginObject("testArray", true);
+            serializer.Serialize(nullptr, 450);
+            serializer.Serialize(nullptr, 420);
+            serializer.EndObject();
+
+            //serializer.Serialize("vector", c);
+            //serializer.Serialize("map", map);
         }
-
-        Vector<char> c = { 'c','i','a','o' };
-        auto b = c.size();
-        auto t = c[0];
-        auto t2 = c[1];
     }
 
     RuntimeApplication::~RuntimeApplication()
     {
+        _vertexBuffer.Reset();
+        _renderPipeline.Reset();
+    }
+
+    void RuntimeApplication::Initialize()
+    {
+        struct Vertex
+        {
+            Vector3 position;
+            Color color;
+        };
+
+        const float aspectRatio = _window->GetAspectRatio();
+
+        Vertex triangleVertices[] =
+        {
+            { Vector3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f) },
+            { Vector3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
+            { Vector3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
+        };
+
+        _vertexBuffer = _graphics->CreateBuffer(BufferUsage::Vertex, 3, sizeof(Vertex), triangleVertices);
+
+        _camera.viewMatrix = Matrix4x4::Identity;
+        _camera.projectionMatrix = Matrix4x4::Identity;
+        _uboBuffer = _graphics->CreateBuffer(BufferUsage::Uniform, 1, sizeof(PerCameraCBuffer), &_camera);
+
+        RenderPipelineDescriptor renderPipelineDescriptor;
+        renderPipelineDescriptor.shader = _graphics->CreateShader("color.vert", "color.frag");
+        renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
+        renderPipelineDescriptor.vertexElements[1].format = VertexFormat::Float4;
+        renderPipelineDescriptor.vertexElements[1].offset = 12;
+        _renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);
+    }
+
+    void RuntimeApplication::OnRender()
+    {
+        SharedPtr<CommandBuffer> commandBuffer = _graphics->GetCommandQueue()->CreateCommandBuffer();
+        commandBuffer->Commit();
     }
 }
 
@@ -75,33 +142,7 @@ ALIMER_APPLICATION(Alimer::RuntimeApplication);
 #if TODO
 void AlimerMain(const std::vector<std::string>& args)
 {
-    struct Vertex
-    {
-        Vector3 position;
-        Color color;
-    };
-
-    const float aspectRatio = static_cast<float>(engine->GetMainWindow()->GetWidth()) / engine->GetMainWindow()->GetHeight();
-
-    Vertex triangleVertices[] =
-    {
-        { Vector3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f)},
-        { Vector3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
-        { Vector3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
-    };
-
-    vertexBuffer = graphics->CreateBuffer(BufferUsage::Vertex, 3, sizeof(Vertex), triangleVertices);
-
-    _camera.viewMatrix = Matrix4x4::Identity;
-    _camera.projectionMatrix = Matrix4x4::Identity;
-    uboBuffer = graphics->CreateBuffer(BufferUsage::Uniform, 1, sizeof(PerCameraCBuffer), &_camera);
-
-    RenderPipelineDescriptor renderPipelineDescriptor;
-    renderPipelineDescriptor.shader = graphics->CreateShader("color.vert", "color.frag");
-    renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
-    renderPipelineDescriptor.vertexElements[1].format = VertexFormat::Float4;
-    renderPipelineDescriptor.vertexElements[1].offset = 12;
-    renderPipeline = graphics->CreateRenderPipelineState(renderPipelineDescriptor);
+    
 }
 
 void AlimerShutdown()
@@ -112,7 +153,7 @@ void AlimerShutdown()
 
 void AlimerRender(const SharedPtr<Texture>& frameTexture)
 {
-    SharedPtr<CommandBuffer> commandBuffer = graphics->GetCommandBuffer();
+    
     RenderPassDescriptor passDescriptor;
     passDescriptor.colorAttachments[0].texture = frameTexture;
     passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };

@@ -21,8 +21,54 @@
 //
 
 #include "../Core/String.h"
+#include <nlohmann/json.hpp>
 
 namespace Alimer
 {
-    
+    const String String::EMPTY;
+
+    String& String::SetData(const char* begin, const char* end)
+    {
+        if (begin)
+        {
+            if (!end)
+            {
+                size_t length = strlen(begin) + 1;
+                _data.reserve(length);
+                _data.clear();
+                _data.insert(_data.begin(), begin, begin + length);
+            }
+            else
+            {
+                _data.clear();
+                _data.insert(_data.begin(), begin, end);
+                _data.emplace_back('\0');
+            }
+        }
+        else
+        {
+            _data.clear();
+        }
+
+        return *this;
+    }
+}
+
+namespace nlohmann {
+    template <>
+    struct adl_serializer<Alimer::String>
+    {
+        static void to_json(json& j, const Alimer::String& str) {
+            j = str.c_str();
+        }
+
+        static void from_json(const json& j, Alimer::String& str) {
+            if (j.is_null()) {
+                str = Alimer::String::EMPTY;
+            }
+            else {
+                str = j.get<std::string>().c_str();
+            }
+        }
+    };
 }

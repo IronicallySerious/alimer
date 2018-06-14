@@ -40,6 +40,7 @@ namespace Alimer
 
 		inline uint32_t GetWidth() const { return _width; }
 		inline uint32_t GetHeight() const { return _height; }
+        inline float GetAspectRatio() const { return static_cast<float>(_width) / _height; }
 
 	protected:
 		/// Window title.

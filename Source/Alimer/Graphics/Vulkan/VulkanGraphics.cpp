@@ -24,6 +24,7 @@
 #include "../../Core/Log.h"
 #include "../../Application/Window.h"
 #include "VulkanGraphics.h"
+#include "VulkanCommandQueue.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanTexture.h"
 #include "VulkanConvert.h"
@@ -44,7 +45,6 @@ namespace Alimer
     struct LayerProperties {
         VkLayerProperties properties;
         std::vector<VkExtensionProperties> instanceExtensions;
-        std::vector<VkExtensionProperties> deviceExtensions;
     };
 
     static inline VkResult InitGlobalExtensionProperties(LayerProperties &layerProps)
@@ -117,25 +117,32 @@ namespace Alimer
         return res;
     }
 
-    VkBool32 CheckLayers(
-        const std::vector<LayerProperties> &layer_props,
-        const std::vector<const char *> &layer_names)
+    bool CheckLayers(
+        const std::vector<LayerProperties> &layerProps,
+        const std::vector<const char *> &layerNames)
     {
-        size_t checkCount = layer_names.size();
-        size_t layerCount = layer_props.size();
-        for (size_t i = 0; i < checkCount; i++) {
-            VkBool32 found = 0;
-            for (size_t j = 0; j < layerCount; j++) {
-                if (!strcmp(layer_names[i], layer_props[j].properties.layerName)) {
-                    found = 1;
+        size_t checkCount = layerNames.size();
+        size_t layerCount = layerProps.size();
+        for (size_t i = 0; i < checkCount; i++)
+        {
+            bool found = false;
+            for (size_t j = 0; j < layerCount; j++)
+            {
+                if (!strcmp(layerNames[i], layerProps[j].properties.layerName))
+                {
+                    found = true;
+                    break;
                 }
             }
-            if (!found) {
-                ALIMER_LOGDEBUG("[Vulkan] - Cannot find layer: %s", layer_names[i]);
-                return 0;
+
+            if (!found)
+            {
+                ALIMER_LOGDEBUG("[Vulkan] - Cannot find layer: %s", layerNames[i]);
+                return false;
             }
         }
-        return 1;
+
+        return true;
     }
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
@@ -230,7 +237,7 @@ namespace Alimer
         appInfo.engineVersion = VK_MAKE_VERSION(0, 9, 0);
         appInfo.apiVersion = apiVersion;
 
-        std::vector<const char*> instanceExtensionNames = { VK_KHR_SURFACE_EXTENSION_NAME };
+        vector<const char*> instanceExtensionNames = { VK_KHR_SURFACE_EXTENSION_NAME };
 
         // Enable surface extensions depending on os.
 #if ALIMER_PLATFORM_WINDOWS
@@ -247,7 +254,7 @@ namespace Alimer
         instanceExtensionNames.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #endif
 
-        std::vector<const char*> instanceLayerNames;
+        vector<const char*> instanceLayerNames;
         bool hasValidationLayer = false;
         if (validation)
         {
@@ -314,10 +321,10 @@ namespace Alimer
     void VulkanGraphics::Finalize()
     {
         WaitIdle();
+        Graphics::Finalize();
 
         // Destroy main swap chain.
         _swapchain.Reset();
-        _commandBuffers.clear();
 
         for (auto& it : _renderPassCache)
         {
@@ -333,14 +340,12 @@ namespace Alimer
         _renderPassCache.clear();
 
         //vkDestroyPipelineCache(_logicalDevice, pipelineCache, nullptr);
-        vkDestroyCommandPool(_logicalDevice, _commandPool, nullptr);
-        vkDestroySemaphore(_logicalDevice, _imageAcquiredSemaphore, nullptr);
-        vkDestroySemaphore(_logicalDevice, _renderCompleteSemaphore, nullptr);
 
-        for (auto& fence : _waitFences) {
-            vkDestroyFence(_logicalDevice, fence, nullptr);
+        if (_setupCommandPool != VK_NULL_HANDLE)
+        {
+            vkDestroyCommandPool(_logicalDevice, _setupCommandPool, nullptr);
+            _setupCommandPool = VK_NULL_HANDLE;
         }
-        _waitFences.clear();
 
         // Destroy memory allocator.
         vmaDestroyAllocator(_allocator);
@@ -423,7 +428,7 @@ namespace Alimer
         vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, _queueFamilyProperties.data());
 
         // Now create logical device.
-        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+        vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
         const float defaultQueuePriority(0.0f);
 
@@ -459,7 +464,7 @@ namespace Alimer
         }
 
         // Create the logical device representation
-        std::vector<const char*> deviceExtensions;
+        vector<const char*> deviceExtensions;
         deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
         VkPhysicalDeviceFeatures enabledFeatures{};
@@ -487,41 +492,11 @@ namespace Alimer
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.graphics, 0, &_graphicsQueue);
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.compute, 0, &_computeQueue);
 
-        // Create default command pool.
-        _commandPool = CreateCommandPool(_queueFamilyIndices.graphics, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+        // Create default command queue.
+        _commandQueue = new VulkanCommandQueue(this, _graphicsQueue, _queueFamilyIndices.graphics);
 
         // Create the main swap chain.
         _swapchain.Reset(new VulkanSwapchain(this, window));
-
-        // Allocate vulkan command buffers.
-        const uint32_t imageCount = _swapchain->GetImageCount();
-        std::vector<VkCommandBuffer> vkCommandBuffers(imageCount);
-        VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-        cmdBufAllocateInfo.pNext = nullptr;
-        cmdBufAllocateInfo.commandPool = _commandPool;
-        cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cmdBufAllocateInfo.commandBufferCount = imageCount;
-        vkThrowIfFailed(vkAllocateCommandBuffers(_logicalDevice, &cmdBufAllocateInfo, vkCommandBuffers.data()));
-        _commandBuffers.resize(imageCount);
-
-        for (uint32_t i = 0; i < imageCount; ++i)
-        {
-            _commandBuffers[i] = MakeShared<VulkanCommandBuffer>(this, _commandPool, vkCommandBuffers[i]);
-        }
-
-        // Create sync primitives.
-        VkSemaphoreCreateInfo semaphoreCreateInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, nullptr, 0 };
-        vkThrowIfFailed(vkCreateSemaphore(_logicalDevice, &semaphoreCreateInfo, nullptr, &_imageAcquiredSemaphore));
-        vkThrowIfFailed(vkCreateSemaphore(_logicalDevice, &semaphoreCreateInfo, nullptr, &_renderCompleteSemaphore));
-
-        VkFenceCreateInfo fenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-        // Create in signaled state so we don't wait on first render of each command buffer
-        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        _waitFences.resize(_swapchain->GetImageCount());
-        for (auto& fence : _waitFences)
-        {
-            vkThrowIfFailed(vkCreateFence(_logicalDevice, &fenceCreateInfo, nullptr, &fence));
-        }
 
         return Graphics::Initialize(window);
     }
@@ -559,14 +534,15 @@ namespace Alimer
         }
     }
 
+    void VulkanGraphics::AddWaitSemaphore(VkSemaphore semaphore)
+    {
+        _waitSemaphores.push_back(semaphore);
+    }
+
     SharedPtr<Texture> VulkanGraphics::AcquireNextImage()
     {
         // Acquire the next image from the swap chain
-        SharedPtr<Texture> texture = _swapchain->AcquireNextImage(_imageAcquiredSemaphore, &_swapchainImageIndex);
-
-        // Wait for frame fence.
-        vkThrowIfFailed(vkWaitForFences(_logicalDevice, 1, &_waitFences[_swapchainImageIndex], VK_TRUE, UINT64_MAX));
-        vkThrowIfFailed(vkResetFences(_logicalDevice, 1, &_waitFences[_swapchainImageIndex]));
+        SharedPtr<Texture> texture = _swapchain->GetNextTexture();
 
         //DestroyPendingResources();
 
@@ -575,14 +551,7 @@ namespace Alimer
 
     bool VulkanGraphics::Present()
     {
-        // Submit frame command buffer.
-        _commandBuffers[_swapchainImageIndex]->End();
-        SubmitCommandBuffer(_commandBuffers[_swapchainImageIndex]);
-
-        VkResult result = _swapchain->QueuePresent(
-            _graphicsQueue,
-            _swapchainImageIndex,
-            _renderCompleteSemaphore);
+        VkResult result = _swapchain->QueuePresent(_graphicsQueue);
         if (result < VK_SUCCESS)
         {
             return false;
@@ -591,12 +560,15 @@ namespace Alimer
         return true;
     }
 
-    SharedPtr<CommandBuffer> VulkanGraphics::GetCommandBuffer()
+    void VulkanGraphics::Frame()
     {
-        // Init current command buffer.
-        _commandBuffers[_swapchainImageIndex]->Begin();
+        // TODO: Multiple command queue's
+        StaticCast<VulkanCommandQueue>(_commandQueue)->Submit(_waitSemaphores);
 
-        return _commandBuffers[_swapchainImageIndex];
+        // Clear wait semaphores.
+        _waitSemaphores.clear();
+
+        _frameIndex++;
     }
 
     SharedPtr<GpuBuffer> VulkanGraphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
@@ -664,8 +636,16 @@ namespace Alimer
 
     VkCommandBuffer VulkanGraphics::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
     {
+        if (_setupCommandPool == VK_NULL_HANDLE)
+        {
+            _setupCommandPool = CreateCommandPool(
+                _queueFamilyIndices.graphics,
+                VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
+            );
+        }
+
         VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-        info.commandPool = _commandPool;
+        info.commandPool = _setupCommandPool;
         info.level = level;
         info.commandBufferCount = 1;
 
@@ -694,8 +674,7 @@ namespace Alimer
 
         vkThrowIfFailed(vkEndCommandBuffer(commandBuffer));
 
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
@@ -714,7 +693,7 @@ namespace Alimer
 
         if (free)
         {
-            vkFreeCommandBuffers(_logicalDevice, _commandPool, 1, &commandBuffer);
+            vkFreeCommandBuffers(_logicalDevice, _setupCommandPool, 1, &commandBuffer);
         }
     }
 
@@ -736,22 +715,6 @@ namespace Alimer
 
         // Transition back to source layout.
         vk::SetImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
-    }
-
-    void VulkanGraphics::SubmitCommandBuffer(VulkanCommandBuffer* commandBuffer)
-    {
-        auto vkCommandBuffer = commandBuffer->GetVkCommandBuffer();
-        const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-        submitInfo.pWaitDstStageMask = &waitDstStageMask;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &_imageAcquiredSemaphore;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &_renderCompleteSemaphore;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &vkCommandBuffer;
-        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _waitFences[_swapchainImageIndex]));
     }
 
     VkRenderPass VulkanGraphics::GetVkRenderPass(const RenderPassDescriptor& descriptor, uint64_t hash)

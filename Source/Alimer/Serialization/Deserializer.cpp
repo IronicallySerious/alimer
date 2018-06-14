@@ -22,10 +22,6 @@
 
 #include "../Serialization/Deserializer.h"
 #include "../Core/Log.h"
-#include <vector>
-#include <rapidjson/document.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/prettywriter.h>
 
 namespace Alimer
 {

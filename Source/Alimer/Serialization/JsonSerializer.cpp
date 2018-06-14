@@ -23,78 +23,84 @@
 #include "../Serialization/JsonSerializer.h"
 #include "../Core/Log.h"
 #include <vector>
-#include <rapidjson/document.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/prettywriter.h>
+#include <unordered_map>
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+using namespace std;
 
 namespace Alimer
 {
-    using rapidjson::Document;
-    using rapidjson::Value;
-    using rapidjson::StringBuffer;
-    using rapidjson::PrettyWriter;
-    using rapidjson::Writer;
-    using rapidjson::StringRef;
-    using namespace std;
-
     class JsonSerializerImpl final
     {
     public:
         JsonSerializerImpl(Stream& stream)
             : _outStream(stream)
         {
-            _document.SetObject();
-            _objectStack.push_back(&_document);
+            _root.object();
+            _objectStack.push_back(&_root);
         }
 
         ~JsonSerializerImpl()
         {
             ALIMER_ASSERT(_objectStack.size() == 1);
 
-            StringBuffer buffer;
-            PrettyWriter<StringBuffer> writer(buffer);
-            //writer.SetIndent(!indendation.Empty() ? indendation.Front() : '\0', indendation.Length());
-            _document.Accept(writer);
-            _outStream.Write(buffer.GetString(), buffer.GetSize());
+            std::ostringstream ss;
+            ss << std::setw(4) << _root << std::endl;
+            std::string str = ss.str();
+            _outStream.Write(str.c_str(), str.size());
         }
 
-        Value& GetObject(int index = -1)
+        json& GetObject()
         {
-            if (index < 0)
-                return *_objectStack.back();
+            return *_objectStack.back();
+        }
 
-            return _objectStack.back()[index];
+        json& InsertValue(const char* key, json& value)
+        {
+            assert(_objectStack.size() > 0);
+
+            json& currentValue = *_objectStack.back();
+
+            if (_objectStack.back()->is_object())
+            {
+                currentValue[key] =  value;
+                return currentValue[key];
+            }
+            else
+            {
+                size_t newIndex = currentValue.size();
+                currentValue.push_back(value);
+                return currentValue[newIndex];
+            }
         }
 
         template<typename T, typename = typename std::enable_if<std::is_fundamental<T>::value>::type>
         bool SerializePrimitive(const char* key, T value)
         {
-            Value& object = GetObject();
+            json& object = GetObject();
             if (key && strlen(key))
             {
-                object.AddMember(StringRef(key), value, _document.GetAllocator());
+                object[key] = value;
             }
             else
             {
-                object.PushBack(value, _document.GetAllocator());
+                object.push_back(value);
             }
 
             return true;
         }
 
-        bool SerializeString(const char* key, const char* value)
+        void SerializeString(const char* key, const char* value)
         {
-            Value& object = GetObject();
+            json& object = GetObject();
             if (key && strlen(key))
             {
-                object.AddMember(StringRef(key), Value(value, _document.GetAllocator()), _document.GetAllocator());
+                object[key] = value;
             }
             else
             {
-                object.PushBack(Value(value, _document.GetAllocator()), _document.GetAllocator());
+                object.push_back(value);
             }
-
-            return true;
         }
 
         void Serialize(
@@ -102,28 +108,50 @@ namespace Alimer
             const float* values,
             uint32_t count)
         {
-            Value& object = GetObject();
-            Value jValue(rapidjson::kArrayType);
+            json& object = GetObject();
+            json jValue;
 
             for (uint32_t i = 0; i < count; ++i)
             {
-                jValue.PushBack(values[i], _document.GetAllocator());
+                jValue.push_back(values[i]);
             }
 
             if (key && strlen(key))
             {
-                object.AddMember(StringRef(key), jValue, _document.GetAllocator());
+                object[key] = jValue;
             }
             else
             {
-                object.PushBack(jValue, _document.GetAllocator());
+                object.push_back(jValue);
             }
         }
 
+        void BeginObject(const char* key, bool isArray)
+        {
+            json& object = GetObject();
+            json newObject;
+            if (isArray)
+            {
+                newObject.array();
+                _objectStack.push_back(&InsertValue(key, newObject));
+            }
+            else
+            {
+                newObject.object();
+                _objectStack.push_back(&InsertValue(key, newObject));
+            }
+        }
+
+        void EndObject()
+        {
+            _objectStack.pop_back();
+        }
+
     private:
-        Stream & _outStream;
-        Document _document;
-        vector<Value*> _objectStack;
+        Stream& _outStream;
+        json _root;
+        vector<json*> _objectStack;
+        std::unordered_map<const char*, double> c_umap;
     };
 
     JsonSerializer::JsonSerializer(Stream& outStream)
@@ -181,6 +209,13 @@ namespace Alimer
         _impl->SerializePrimitive(key, value);
     }
 
+    void JsonSerializer::Serialize(const char* key, char value)
+    {
+        std::string str;
+        str += value;
+        _impl->SerializeString(key, str.c_str());
+    }
+
     void JsonSerializer::Serialize(const char* key, const char* value)
     {
         _impl->SerializeString(key, value);
@@ -189,5 +224,15 @@ namespace Alimer
     void JsonSerializer::Serialize(const char* key, const float* values, uint32_t count)
     {
         _impl->Serialize(key, values, count);
+    }
+
+    void JsonSerializer::BeginObject(const char* key, bool isArray)
+    {
+        _impl->BeginObject(key, isArray);
+    }
+
+    void JsonSerializer::EndObject()
+    {
+        _impl->EndObject();
     }
 }

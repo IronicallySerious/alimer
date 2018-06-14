@@ -59,6 +59,9 @@ namespace Alimer
 
     void Graphics::Finalize()
     {
+        // Destroy default command queue.
+        _commandQueue.Reset();
+
         if (_gpuResources.size())
         {
             lock_guard<mutex> lock(_gpuResourceMutex);

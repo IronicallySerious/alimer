@@ -56,8 +56,7 @@ namespace Alimer
 		bool WaitIdle() override;
 		SharedPtr<Texture> AcquireNextImage() override;
 		bool Present() override;
-
-		SharedPtr<CommandBuffer> GetCommandBuffer() override;
+        void Frame() override;
 
         SharedPtr<GpuBuffer> CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData) override;
 
