@@ -64,6 +64,18 @@ namespace Alimer
         Count32 = 32,
     };
 
+    enum class MemoryUsage : uint32_t
+    {
+        /// Memory will be used on device only, so fast access from the device is preferred.
+        GpuOnly,
+        /// Memory will be mappable on host.
+        CpuOnly,
+        /// Memory that is both mappable on host and preferably fast to access by GPU.
+        CpuToGpu,
+        /// Memory mappable on host and cached.
+        GpuToCpu
+    };
+
     /// Texture types.
     enum class TextureType : uint32_t
     {
@@ -88,6 +100,8 @@ namespace Alimer
         Vertex = 1 << 0,
         Index = 1 << 1,
         Uniform = 1 << 2,
+        Storage = 1 << 3,
+        Indirect = 1 << 4,
     };
     ALIMER_BITMASK(BufferUsage);
 

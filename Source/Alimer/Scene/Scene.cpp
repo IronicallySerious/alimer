@@ -26,11 +26,18 @@
 namespace Alimer
 {
 	Scene::Scene()
+        : entities(events)
 	{
-        _root._isRoot = true;
 	}
 
 	Scene::~Scene()
 	{
 	}
+
+    Entity Scene::CreateEntity()
+    {
+        Entity entity =  entities.CreateEntity();
+        _pendingEntities.push_back(entities.CreateEntity());
+        return entity;
+    }
 }

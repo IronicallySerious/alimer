@@ -56,9 +56,9 @@ namespace Alimer
         virtual void Serialize(const char* key, double value) = 0;
 
         virtual void Serialize(const char* key, char value) = 0;
-        virtual void Serialize(const char* key, const char* value) = 0;
+        virtual void Serialize(const char* key, const char* value);
         virtual void Serialize(const char* key, const std::string& value);
-        virtual void Serialize(const char* key, const String& value);
+        virtual void Serialize(const char* key, const String& value) = 0;
 
         virtual void Serialize(const char* key, Vector2& value);
         virtual void Serialize(const char* key, Vector3& value);

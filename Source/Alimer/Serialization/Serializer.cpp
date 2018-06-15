@@ -31,14 +31,14 @@ namespace Alimer
 
     }
 
-    void Serializer::Serialize(const char* key, const std::string& value)
+    void Serializer::Serialize(const char* key, const char* value)
     {
-        Serialize(key, value.c_str());
+        Serialize(key, String(value));
     }
 
-    void Serializer::Serialize(const char* key, const String& value)
+    void Serializer::Serialize(const char* key, const std::string& value)
     {
-        Serialize(key, value.c_str());
+        Serialize(key, String(value));
     }
 
     void Serializer::Serialize(const char* key, Vector2& value)

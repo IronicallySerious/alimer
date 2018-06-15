@@ -20,38 +20,34 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+// Adopted from EntityX: https://github.com/alecthomas/entityx
+// Licensed under MIT: https://github.com/alecthomas/entityx/blob/master/COPYING
 
-#include "../Math/Vector3.h"
-#include "../Math/Quaternion.h"
-#include "../Math/Matrix4x4.h"
-#include "../Scene/SceneComponent.h"
+#include "../Scene/Entity.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
-    /// Defines a scene object class.
-    class SceneObject final : public Serializable
+    const Entity::Id Entity::INVALID;
+
+	void Entity::SetName(const std::string& name)
+	{
+		_name = name;
+	}
+
+    EntityManager::EntityManager(EventManager &eventManager)
+        : _eventManager(eventManager)
+        , _indexCounter(0)
     {
-        friend class Scene;
+    }
 
-    public:
-        /// Constructor.
-        SceneObject();
+    EntityManager::~EntityManager()
+    {
+        Reset();
+    }
 
-        /// Destructor.
-        ~SceneObject();
+    void EntityManager::Reset()
+    {
 
-        /// Gets the name of this object.
-        std::string GetName() const { return _name; }
-
-        /// Sets the name of this object.
-        void SetName(const std::string& name);
-
-    private:
-        std::string _name;
-        bool _isRoot{ false };
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(SceneObject);
-    };
+    }
 }

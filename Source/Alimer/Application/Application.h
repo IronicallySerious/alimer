@@ -106,7 +106,7 @@ namespace Alimer
         /// Cleanup after the main loop. 
         virtual void OnExiting() { }
 
-        virtual void OnRender() {}
+        virtual void OnRender(const SharedPtr<Texture>& frameTexture) {}
 
 		/// Render after frame update.
 		void Render();

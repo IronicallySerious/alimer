@@ -67,16 +67,6 @@ namespace Alimer
 
 #ifndef ALIMER_DISABLE_LOGGING
 
-#if defined(_MSC_VER)
-extern void __cdecl __debugbreak(void);
-#define ALIMER_DEBUG_BREAK() __debugbreak();
-#elif defined(__MINGW32__)
-extern "C" __declspec(dllimport) void __stdcall DebugBreak();
-#define ALIMER_DEBUG_BREAK() DebugBreak;
-#else
-#define ALIMER_DEBUG_BREAK()
-#endif
-
 #	define ALIMER_LOGTRACE(...) Alimer::gLog().Log(Alimer::LogLevel::Trace, __VA_ARGS__)
 #	define ALIMER_LOGDEBUG(...) Alimer::gLog().Log(Alimer::LogLevel::Debug, __VA_ARGS__)
 #	define ALIMER_LOGINFO(...) Alimer::gLog().Log(Alimer::LogLevel::Info, __VA_ARGS__)
@@ -85,9 +75,8 @@ extern "C" __declspec(dllimport) void __stdcall DebugBreak();
 #	define ALIMER_LOGCRITICAL(...) do \
 { \
 	Alimer::gLog().Log(Alimer::LogLevel::Critical, __VA_ARGS__); \
-	ALIMER_DEBUG_BREAK(); \
-	ALIMER_ASSERT(0); \
-	std::exit(-1); \
+	ALIMER_BREAKPOINT(); \
+	ALIMER_UNREACHABLE(); \
 } while (0)
 
 #else

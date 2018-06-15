@@ -20,21 +20,18 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/SceneObject.h"
-#include "../Core/Log.h"
+#include "../Scene/Component.h"
 
 namespace Alimer
 {
-	SceneObject::SceneObject()
-	{
-	}
+    Component::Component()
+        : _object(nullptr)
+        , _enabled(true)
+    {
+    }
 
-	SceneObject::~SceneObject()
-	{
-	}
-
-	void SceneObject::SetName(const std::string& name)
-	{
-		_name = name;
-	}
+    Component::~Component()
+    {
+        _object = nullptr;
+    }
 }

@@ -20,20 +20,19 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/SceneComponent.h"
-#include "../Scene/SceneObject.h"
-#include "../Core/Log.h"
+#include "../Core/Event.h"
 
 namespace Alimer
 {
-    SceneComponent::SceneComponent()
-        : _object(nullptr)
-        , _enabled(true)
+    size_t BaseEvent::_familyCounter = 0;
+
+    EventManager::EventManager()
     {
+
     }
 
-    SceneComponent::~SceneComponent()
+    EventManager::~EventManager()
     {
-        _object = nullptr;
+
     }
 }

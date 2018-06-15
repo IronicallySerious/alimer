@@ -74,7 +74,7 @@ namespace Alimer
         virtual void Frame() = 0;
 
 		// Buffer
-		virtual SharedPtr<GpuBuffer> CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr) = 0;
+		virtual SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;
 
 		// Shader
 		SharedPtr<Shader> CreateShader(const std::string& vertexShaderFile, const std::string& fragmentShaderFile);

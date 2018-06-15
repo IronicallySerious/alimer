@@ -22,24 +22,49 @@
 
 #include "VulkanBuffer.h"
 #include "VulkanGraphics.h"
+#include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
 {
-    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
-        : GpuBuffer(usage, elementCount, elementSize)
+    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const GpuBufferDescription& description, const void* initialData)
+        : GpuBuffer(description)
         , _logicalDevice(graphics->GetLogicalDevice())
+        , _allocator(graphics->GetAllocator())
     {
+        VkBufferUsageFlags vkUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+        if (description.memoryUsage == MemoryUsage::GpuOnly
+            || description.memoryUsage == MemoryUsage::GpuToCpu)
+        {
+            vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        }
+
+        if (any(description.usage & BufferUsage::Vertex))
+            vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+        if (any(description.usage & BufferUsage::Index))
+            vkUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+        if (any(description.usage & BufferUsage::Uniform))
+            vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+        if (any(description.usage & BufferUsage::Storage))
+            vkUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+
+        if (any(description.usage & BufferUsage::Indirect))
+            vkUsage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+
         VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         createInfo.pNext = nullptr;
         createInfo.size = _size;
-        createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        createInfo.usage = vkUsage;
 
         VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        allocInfo.usage = vk::Convert(description.memoryUsage);
 
         VkResult result = vmaCreateBuffer(
-            graphics->GetAllocator(),
+            _allocator,
             &createInfo,
             &allocInfo,
             &_vkHandle,
@@ -49,5 +74,6 @@ namespace Alimer
 
     VulkanBuffer::~VulkanBuffer()
     {
+        vmaDestroyBuffer(_allocator, _vkHandle, _allocation);
     }
 }

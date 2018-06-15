@@ -27,29 +27,33 @@
 
 namespace Alimer
 {
+    struct GpuBufferDescription
+    {
+        BufferUsage usage = BufferUsage::Unknown;
+        MemoryUsage memoryUsage = MemoryUsage::GpuOnly;
+        uint32_t elementCount = 1;
+        uint32_t elementSize = 0;
+    };
+
 	/// Defines a GPU Buffer class.
 	class GpuBuffer : public GpuResource, public RefCounted
 	{
 	protected:
 		/// Constructor.
-		GpuBuffer(BufferUsage bufferUsage, uint32_t elementCount, uint32_t elementSize);
+		GpuBuffer(const GpuBufferDescription& description);
 
 	public:
-        explicit GpuBuffer();
-
 		/// Destructor.
 		virtual ~GpuBuffer() = default;
 
-		inline BufferUsage GetBufferUsage() const { return _bufferUsage; }
-		inline uint32_t GetElementCount() const { return _elementCount; }
-		inline uint32_t GetElementSize() const { return _elementSize; }
+        const GpuBufferDescription &GetDescription() const { return _description; }
+		inline BufferUsage GetBufferUsage() const { return _description.usage; }
+		inline uint32_t GetElementCount() const { return _description.elementCount; }
+		inline uint32_t GetElementSize() const { return _description.elementSize; }
 		inline uint64_t GetSize() const { return _size; }
 
 	protected:
-
-		BufferUsage _bufferUsage;
-		uint32_t _elementCount;
-		uint32_t _elementSize;
+        GpuBufferDescription _description;
 		uint64_t _size;
 	};
 }

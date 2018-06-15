@@ -23,9 +23,9 @@
 #include "../Serialization/JsonSerializer.h"
 #include "../Core/Log.h"
 #include <vector>
-#include <unordered_map>
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/prettywriter.h>
 using namespace std;
 
 namespace Alimer
@@ -36,40 +36,43 @@ namespace Alimer
         JsonSerializerImpl(Stream& stream)
             : _outStream(stream)
         {
-            _root.object();
-            _objectStack.push_back(&_root);
+            _document.SetObject();
+            _objectStack.push_back(&_document);
         }
 
         ~JsonSerializerImpl()
         {
             ALIMER_ASSERT(_objectStack.size() == 1);
 
-            std::ostringstream ss;
-            ss << std::setw(4) << _root << std::endl;
-            std::string str = ss.str();
-            _outStream.Write(str.c_str(), str.size());
+            rapidjson::StringBuffer buffer;
+            rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+            //writer.SetIndent(!indendation.Empty() ? indendation.Front() : '\0', indendation.Length());
+            _document.Accept(writer);
+            _outStream.Write(buffer.GetString(), buffer.GetSize());
         }
 
-        json& GetObject()
+        rapidjson::Value& GetObject()
         {
             return *_objectStack.back();
         }
 
-        json& InsertValue(const char* key, json& value)
+        rapidjson::Value& InsertValue(const char* key, rapidjson::Value& value)
         {
             assert(_objectStack.size() > 0);
 
-            json& currentValue = *_objectStack.back();
+            rapidjson::Value& currentValue = *_objectStack.back();
 
-            if (_objectStack.back()->is_object())
+            if (_objectStack.back()->IsObject())
             {
-                currentValue[key] =  value;
+                rapidjson::Value keyValue;
+                keyValue.SetString(rapidjson::StringRef(key), _document.GetAllocator());
+                currentValue.AddMember(keyValue, value, _document.GetAllocator());
                 return currentValue[key];
             }
             else
             {
-                size_t newIndex = currentValue.size();
-                currentValue.push_back(value);
+                rapidjson::SizeType newIndex = currentValue.Size();
+                currentValue.PushBack(value, _document.GetAllocator());
                 return currentValue[newIndex];
             }
         }
@@ -77,14 +80,17 @@ namespace Alimer
         template<typename T, typename = typename std::enable_if<std::is_fundamental<T>::value>::type>
         bool SerializePrimitive(const char* key, T value)
         {
-            json& object = GetObject();
+            rapidjson::Value& object = GetObject();
             if (key && strlen(key))
             {
-                object[key] = value;
+                rapidjson::Value keyValue;
+                keyValue.SetString(rapidjson::StringRef(key), _document.GetAllocator());
+
+                object.AddMember(keyValue, value, _document.GetAllocator());
             }
             else
             {
-                object.push_back(value);
+                object.PushBack(value, _document.GetAllocator());
             }
 
             return true;
@@ -92,14 +98,23 @@ namespace Alimer
 
         void SerializeString(const char* key, const char* value)
         {
-            json& object = GetObject();
+            rapidjson::Value& object = GetObject();
+            rapidjson::Value stringValue;
+            stringValue.SetString(rapidjson::StringRef(value), _document.GetAllocator());
+
             if (key && strlen(key))
             {
-                object[key] = value;
+                rapidjson::Value keyValue;
+                keyValue.SetString(rapidjson::StringRef(key), _document.GetAllocator());
+
+                object.AddMember(
+                    keyValue,
+                    stringValue,
+                    _document.GetAllocator());
             }
             else
             {
-                object.push_back(value);
+                object.PushBack(stringValue, _document.GetAllocator());
             }
         }
 
@@ -108,36 +123,39 @@ namespace Alimer
             const float* values,
             uint32_t count)
         {
-            json& object = GetObject();
-            json jValue;
+            auto& object = GetObject();
+            rapidjson::Value jValue(rapidjson::kArrayType);
 
             for (uint32_t i = 0; i < count; ++i)
             {
-                jValue.push_back(values[i]);
+                jValue.PushBack(values[i], _document.GetAllocator());
             }
 
             if (key && strlen(key))
             {
-                object[key] = jValue;
+                rapidjson::Value keyValue;
+                keyValue.SetString(rapidjson::StringRef(key), _document.GetAllocator());
+
+                object.AddMember(keyValue, jValue, _document.GetAllocator());
             }
             else
             {
-                object.push_back(jValue);
+                object.PushBack(jValue, _document.GetAllocator());
             }
         }
 
         void BeginObject(const char* key, bool isArray)
         {
-            json& object = GetObject();
-            json newObject;
+            auto& object = GetObject();
+
             if (isArray)
             {
-                newObject.array();
+                rapidjson::Value newObject(rapidjson::kArrayType);
                 _objectStack.push_back(&InsertValue(key, newObject));
             }
             else
             {
-                newObject.object();
+                rapidjson::Value newObject(rapidjson::kObjectType);
                 _objectStack.push_back(&InsertValue(key, newObject));
             }
         }
@@ -148,10 +166,9 @@ namespace Alimer
         }
 
     private:
-        Stream& _outStream;
-        json _root;
-        vector<json*> _objectStack;
-        std::unordered_map<const char*, double> c_umap;
+        Stream & _outStream;
+        rapidjson::Document _document;
+        vector<rapidjson::Value*> _objectStack;
     };
 
     JsonSerializer::JsonSerializer(Stream& outStream)
@@ -219,6 +236,16 @@ namespace Alimer
     void JsonSerializer::Serialize(const char* key, const char* value)
     {
         _impl->SerializeString(key, value);
+    }
+
+    void JsonSerializer::Serialize(const char* key, const std::string& value)
+    {
+        _impl->SerializeString(key, value.c_str());
+    }
+
+    void JsonSerializer::Serialize(const char* key, const String& value)
+    {
+        _impl->SerializeString(key, value.c_str());
     }
 
     void JsonSerializer::Serialize(const char* key, const float* values, uint32_t count)

@@ -162,5 +162,26 @@ namespace Alimer
                     return VK_IMAGE_ASPECT_COLOR_BIT;
             }
         }
+
+        static inline VmaMemoryUsage Convert(MemoryUsage usage)
+        {
+            switch (usage)
+            {
+            case MemoryUsage::GpuOnly:
+                return VMA_MEMORY_USAGE_GPU_ONLY;
+
+            case MemoryUsage::CpuOnly:
+                return VMA_MEMORY_USAGE_CPU_ONLY;
+
+            case MemoryUsage::CpuToGpu:
+                return VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+            case MemoryUsage::GpuToCpu:
+                return VMA_MEMORY_USAGE_GPU_TO_CPU;
+
+            default:
+                return VMA_MEMORY_USAGE_UNKNOWN;
+            }
+        }
     }
 }

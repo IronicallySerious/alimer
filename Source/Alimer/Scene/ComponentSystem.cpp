@@ -20,32 +20,13 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Serialization/Serializable.h"
+#include "../Scene/ComponentSystem.h"
+#include "../Scene/Entity.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
-	class SceneObject;
-
-	/// Defines a base SceneObject component.
-	class SceneComponent : public Serializable, public std::enable_shared_from_this<SceneComponent>
-	{
-	protected:
-		/// Constructor.
-		SceneComponent();
-
-	public:
-		/// Destructor.
-		virtual ~SceneComponent();
-
-        SceneObject* GetSceneObject() const { return _object; }
-
-	protected:
-		SceneObject* _object;
-		bool _enabled;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(SceneComponent);
-	};
+    ComponentSystem::ComponentSystem()
+    {
+    }
 }

@@ -20,13 +20,16 @@
 // THE SOFTWARE.
 //
 
+#define VMA_STATS_STRING_ENABLED 0
 #define VMA_IMPLEMENTATION
+
 #include "../../Core/Log.h"
 #include "../../Application/Window.h"
 #include "VulkanGraphics.h"
 #include "VulkanCommandQueue.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanTexture.h"
+#include "VulkanBuffer.h"
 #include "VulkanConvert.h"
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -571,9 +574,9 @@ namespace Alimer
         _frameIndex++;
     }
 
-    SharedPtr<GpuBuffer> VulkanGraphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
+    SharedPtr<GpuBuffer> VulkanGraphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
     {
-        return nullptr;
+        return MakeShared<VulkanBuffer>(this, description, initialData);
     }
 
     SharedPtr<Shader> VulkanGraphics::CreateComputeShader(const ShaderStageDescription& desc)

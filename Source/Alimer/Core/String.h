@@ -46,6 +46,7 @@ namespace Alimer
         String(const char* begin, const char* end) { SetData(begin, end); }
         String(const String& str) { SetData(str.c_str()); }
         String(String&& str) { swap(str); }
+        String(const std::string& str) { SetData(str.c_str()); }
 
         ~String() {}
 

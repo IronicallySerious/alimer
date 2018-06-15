@@ -26,21 +26,12 @@
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer()
+    GpuBuffer::GpuBuffer(const GpuBufferDescription& description)
         : GpuResource(GpuResourceType::Buffer)
+        , _description(description)
     {
-
+        _size = description.elementCount * description.elementSize;
+        ALIMER_ASSERT(description.usage != BufferUsage::Unknown);
+        ALIMER_ASSERT(_size != 0);
     }
-
-	GpuBuffer::GpuBuffer(BufferUsage bufferUsage, uint32_t elementCount, uint32_t elementSize)
-        : GpuResource(GpuResourceType::Buffer)
-		, _bufferUsage(bufferUsage)
-	{
-		_elementCount = elementCount;
-		_elementSize = elementSize;
-		_size = _elementCount * elementSize;
-
-		ALIMER_ASSERT(bufferUsage != BufferUsage::Unknown);
-		ALIMER_ASSERT(_size != 0);
-	}
 }

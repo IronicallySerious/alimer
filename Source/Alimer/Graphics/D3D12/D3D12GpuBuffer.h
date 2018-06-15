@@ -34,7 +34,7 @@ namespace Alimer
 	{
 	public:
 		/// Constructor.
-		D3D12GpuBuffer(D3D12Graphics* graphics, BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData);
+		D3D12GpuBuffer(D3D12Graphics* graphics, const GpuBufferDescription& description, const void* initialData);
 
 		/// Destructor.
 		~D3D12GpuBuffer() override;

@@ -22,26 +22,31 @@
 
 #pragma once
 
-#include "../Scene/SceneObject.h"
+#include "../Scene/Entity.h"
+#include <vector>
 
 namespace Alimer
 {
-	/// Defines a scene, which is a container of SceneObject's.
-	class Scene final: public Serializable
-	{
-	public:
-		/// Constructor.
-		Scene();
+    /// Defines a scene, which is a container of SceneObject's.
+    class Scene final : public Serializable
+    {
+    public:
+        /// Constructor.
+        Scene();
 
-		/// Destructor.
-		~Scene();
+        /// Destructor.
+        ~Scene();
 
-        SceneObject* GetRoot() { return &_root; }
+        /// Creates a new entity in the Scene.
+        Entity CreateEntity();
 
-	private:
-        SceneObject _root;
+    private:
+        EventManager events;
+        EntityManager entities;
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);
-	};
+        std::vector<Entity> _pendingEntities;
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);
+    };
 }

@@ -509,9 +509,9 @@ namespace Alimer
         return _frameCommandBuffer;
     }*/
 
-    SharedPtr<GpuBuffer> D3D12Graphics::CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData)
+    SharedPtr<GpuBuffer> D3D12Graphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
     {
-        return MakeShared<D3D12GpuBuffer>(this, usage, elementCount, elementSize, initialData);
+        return MakeShared<D3D12GpuBuffer>(this, description, initialData);
     }
 
     SharedPtr<Shader> D3D12Graphics::CreateComputeShader(const ShaderStageDescription& desc)

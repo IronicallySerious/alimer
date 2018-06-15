@@ -197,6 +197,79 @@
 #	endif
 #endif
 
+/**
+* C++17 features
+* @see: https://infektor.net/posts/2017-01-19-using-cpp17-attributes-today.html
+*/
+#if defined(__GNUC__)
+#ifndef __has_cpp_attribute
+#   define __has_cpp_attribute(name) 0
+#endif
+
+#if __has_cpp_attribute(nodiscard)
+#   define NODISCARD [[nodiscard]]
+#elif __has_cpp_attribute(gnu::warn_unused_result)
+#   define NODISCARD [[gnu::warn_unused_result]]
+#else
+#   define NODISCARD
+#endif
+
+#if __has_cpp_attribute(fallthrough)
+#   define FALLTHROUGH [[fallthrough]]
+#elif __has_cpp_attribute(clang::fallthrough)
+#   define FALLTHROUGH [[clang::fallthrough]]
+#else
+#   define FALLTHROUGH
+#endif
+
+#if __has_cpp_attribute(maybe_unused)
+#   define MAYBE_UNUSED [[maybe_unused]]
+#elif __has_cpp_attribute(gnu::unused)
+#   define MAYBE_UNUSED [[gnu::unused]]
+#else
+#   define MAYBE_UNUSED
+#endif
+
+#elif defined(_MSC_VER)
+#if _MSC_VER >= 1911
+#   define NODISCARD [[nodiscard]]
+#   define FALLTHROUGH [[fallthrough]]
+#   define MAYBE_UNUSED [[maybe_unused]]
+#else
+#   define NODISCARD
+#   define FALLTHROUGH
+#   define MAYBE_UNUSED
+#endif
+
+#else
+#   define NODISCARD
+#   define FALLTHROUGH
+#   define MAYBE_UNUSED
+#endif
+
+#if defined(__GNUC__)
+
+#if defined(__i386__) || defined(__x86_64__)
+#   define ALIMER_BREAKPOINT() __asm__ __volatile__("int $3\n\t")
+#else
+#   define ALIMER_BREAKPOINT() ((void)0)
+#endif
+
+#   define ALIMER_UNREACHABLE() __builtin_unreachable()
+
+#elif defined(_MSC_VER)
+
+extern void __cdecl __debugbreak(void);
+#define ALIMER_BREAKPOINT() __debugbreak()
+#define ALIMER_UNREACHABLE() __assume(false)
+
+#else
+
+#define ALIMER_BREAKPOINT() ((void)0)
+#define ALIMER_UNREACHABLE()((void)0)
+
+#endif
+
 #ifndef ALIMER_ASSERT
 #	ifdef _DEBUG
 #	include <cassert>
@@ -206,7 +279,6 @@
 #	define ALIMER_ASSERT(expression) ((void)0)
 #	define ALIMER_ASSERT_MSG(expression, msg) ((void)0)
 #	endif
-
 #endif
 
 #if defined (__GNUC__)
@@ -242,22 +314,22 @@ ALIMER_INLINE void ALIMER_UNUSED(T const&)
 
 namespace Alimer
 {
-	template <typename T>
-	void SafeDelete(T *&resource)
-	{
-		delete resource;
-		resource = nullptr;
-	}
+    template <typename T>
+    void SafeDelete(T *&resource)
+    {
+        delete resource;
+        resource = nullptr;
+    }
 
-	template <typename T>
-	void SafeRelease(T& resource)
-	{
-		if (resource)
-		{
-			resource->Release();
-			resource = nullptr;
-		}
-	}
+    template <typename T>
+    void SafeRelease(T& resource)
+    {
+        if (resource)
+        {
+            resource->Release();
+            resource = nullptr;
+        }
+    }
 }
 
 // Put this in the declarations for a class to be uncopyable and unassignable.
