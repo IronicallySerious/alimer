@@ -21,8 +21,8 @@
 //
 
 #include "../Serialization/Serializer.h"
+#include <glm/gtc/type_ptr.hpp>
 #include "../Core/Log.h"
-#include <vector>
 
 namespace Alimer
 {
@@ -41,24 +41,24 @@ namespace Alimer
         Serialize(key, String(value));
     }
 
-    void Serializer::Serialize(const char* key, Vector2& value)
+    void Serializer::Serialize(const char* key, glm::vec2& value)
     {
-        Serialize(key, &value.x, 2);
+        Serialize(key, glm::value_ptr(value), 2);
     }
 
-    void Serializer::Serialize(const char* key, Vector3& value)
+    void Serializer::Serialize(const char* key, glm::vec3& value)
     {
-        Serialize(key, &value.x, 3);
+        Serialize(key, glm::value_ptr(value), 3);
     }
 
-    void Serializer::Serialize(const char* key, Vector4& value)
+    void Serializer::Serialize(const char* key, glm::vec4& value)
     {
-        Serialize(key, &value.x, 4);
+        Serialize(key, glm::value_ptr(value), 4);
     }
 
-    void Serializer::Serialize(const char* key, Quaternion& value)
+    void Serializer::Serialize(const char* key, glm::quat& value)
     {
-        Serialize(key, &value.x, 4);
+        Serialize(key, glm::value_ptr(value), 4);
     }
 
     void Serializer::Serialize(const char* key, const Color& value)

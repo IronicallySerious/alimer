@@ -24,30 +24,50 @@
 
 #include "../Graphics/Types.h"
 #include "../Resource/Resource.h"
+#include <vector>
 
 namespace Alimer
 {
-	class Graphics;
+    class Graphics;
 
-	struct ShaderStageDescription
-	{
-		size_t byteCodeSize;
-		const uint32_t* byteCode;
-		const char* entryPoint;
-	};
+    struct ShaderStageDescription
+    {
+        std::vector<uint32_t> code;
+        const char* entryPoint;
+    };
 
-	/// Defines a shader (module/function) class.
-	class Shader : public Resource
-	{
-	protected:
-		/// Constructor.
-		Shader();
+    struct ResourceLayout
+    {
+        uint32_t attributeMask = 0;
+        uint32_t renderTargetMask = 0;
+    };
 
-	public:
-		/// Destructor.
-		virtual ~Shader();
+    /// Defines a shader (module/function) class.
+    class Shader : public Resource
+    {
+    protected:
+        /// Constructor.
+        Shader();
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
-	};
+        /// Constructor.
+        Shader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
+
+    public:
+        /// Destructor.
+        virtual ~Shader();
+
+        const ResourceLayout &GetResourceLayout() const
+        {
+            return _layout;
+        }
+
+    protected:
+        void Reflect(ShaderStage stage, const uint32_t *data, size_t size);
+
+        ShaderStageDescription _shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
+        ResourceLayout _layout;
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
+    };
 }

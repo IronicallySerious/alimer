@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "Graphics/PipelineState.h"
+#include "../PipelineState.h"
 #include "D3D12DescriptorAllocator.h"
 
 namespace Alimer

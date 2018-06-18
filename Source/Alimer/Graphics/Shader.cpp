@@ -22,14 +22,54 @@
 
 #include "Graphics/Shader.h"
 #include "Graphics/Graphics.h"
+#include <spirv-cross/spirv_cross.hpp>
+#include <vector>
+using namespace std;
 
 namespace Alimer
 {
-	Shader::Shader()
-	{
-	}
+    Shader::Shader()
+    {
+    }
 
-	Shader::~Shader()
-	{
-	}
+    Shader::Shader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
+    {
+        Reflect(ShaderStage::Vertex, vertex.code.data(), vertex.code.size() * sizeof(uint32_t));
+        Reflect(ShaderStage::Fragment, fragment.code.data(), fragment.code.size() * sizeof(uint32_t));
+    }
+
+    Shader::~Shader()
+    {
+    }
+
+    void Shader::Reflect(ShaderStage stage, const uint32_t *data, size_t size)
+    {
+        vector<uint32_t> code(data, data + size / sizeof(uint32_t));
+        spirv_cross::Compiler compiler(move(code));
+        auto resources = compiler.get_shader_resources();
+
+        if (stage == ShaderStage::Vertex)
+        {
+            for (auto &attrib : resources.stage_inputs)
+            {
+                uint32_t location = compiler.get_decoration(attrib.id, spv::DecorationLocation);
+
+                if (location >= MaxVertexAttributes)
+                {
+                    ALIMER_LOGERROR("SPIRV attribute location higher than allowed one");
+                    return;
+                }
+
+                _layout.attributeMask |= 1u << location;
+            }
+        }
+        else if (stage == ShaderStage::Fragment)
+        {
+            for (auto &attrib : resources.stage_outputs)
+            {
+                uint32_t location = compiler.get_decoration(attrib.id, spv::DecorationLocation);
+                _layout.renderTargetMask |= 1u << location;
+            }
+        }
+    }
 }

@@ -115,7 +115,7 @@ namespace Alimer
         //options_glsl.vertex.fixup_clipspace = true;
         //options_glsl.vertex.flip_vert_y = true;
 
-        spirv_cross::CompilerHLSL compiler(desc.byteCode, desc.byteCodeSize);
+        spirv_cross::CompilerHLSL compiler(desc.code.data(), desc.code.size());
         compiler.set_common_options(options_glsl);
 
         spirv_cross::CompilerHLSL::Options options_hlsl;

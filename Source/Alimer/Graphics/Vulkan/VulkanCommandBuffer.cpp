@@ -22,6 +22,9 @@
 
 #include "VulkanCommandQueue.h"
 #include "VulkanCommandBuffer.h"
+#include "VulkanBuffer.h"
+#include "VulkanShader.h"
+#include "VulkanPipelineState.h"
 #include "VulkanGraphics.h"
 #include "../../Core/Log.h"
 #include "../../Util/HashMap.h"
@@ -75,6 +78,8 @@ namespace Alimer
         beginInfo.pInheritanceInfo = nullptr;
 
         vkThrowIfFailed(vkBeginCommandBuffer(_vkHandle, &beginInfo));
+
+        ResetState();
     }
 
     void VulkanCommandBuffer::End()
@@ -128,18 +133,26 @@ namespace Alimer
         framebufferHash = framebufferHasher.get();
 
         VkRenderPass renderPass = _vkGraphics->GetVkRenderPass(descriptor, renderPassHash);
-        VulkanFramebuffer* framebuffer = _vkGraphics->GetFramebuffer(renderPass, descriptor, framebufferHash);
+        _currentFramebuffer = _vkGraphics->GetFramebuffer(renderPass, descriptor, framebufferHash);
 
         VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-        renderPassBeginInfo.renderPass = renderPass;
-        renderPassBeginInfo.framebuffer = framebuffer->framebuffer;
+        renderPassBeginInfo.renderPass = _currentFramebuffer->renderPass;
+        renderPassBeginInfo.framebuffer = _currentFramebuffer->framebuffer;
         renderPassBeginInfo.renderArea.offset.x = 0;
         renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent = framebuffer->size;
+        renderPassBeginInfo.renderArea.extent = _currentFramebuffer->size;
         renderPassBeginInfo.clearValueCount = numClearValues;
         renderPassBeginInfo.pClearValues = clearValues;
 
         vkCmdBeginRenderPass(_vkHandle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        // TODO: Set later
+        VkViewport viewport = { 0.0f, 0.0f, _currentFramebuffer->size.width, _currentFramebuffer->size.height, 0.0f, 1.0f};
+        VkRect2D scissor = {};
+        scissor.extent = _currentFramebuffer->size;
+
+        vkCmdSetViewport(_vkHandle, 0, 1, &viewport);
+        vkCmdSetScissor(_vkHandle, 0, 1, &scissor);
     }
 
     void VulkanCommandBuffer::EndRenderPass()
@@ -149,16 +162,53 @@ namespace Alimer
 
     void VulkanCommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)
     {
-
+        _currentPipeline = StaticCast<VulkanPipelineState>(pipeline);
     }
 
     void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
     {
+        if (!PrepareDraw(topology))
+            return;
 
+        vkCmdDraw(_vkHandle, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
     void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
 
+    }
+
+    bool VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)
+    {
+        if (_currentPipeline.IsNull())
+            return false;
+
+        static VkBuffer buffers[MaxVertexBufferBindings] = {};
+        VulkanShader* shader = _currentPipeline->GetShader();
+        const ResourceLayout &layout = shader->GetResourceLayout();
+        VkPipeline pipeline = _currentPipeline->GetGraphicsPipeline(topology, _currentFramebuffer->renderPass);
+        vkCmdBindPipeline(_vkHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+        uint32_t updateVboMask = _dirtyVbos & _currentPipeline->GetBindingMask();
+        ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
+        {
+            for (uint32_t i = binding; i < binding + count; i++)
+            {
+#ifdef ALIMER_DEV
+                ALIMER_ASSERT(_vbo.buffers[i] != nullptr);
+#endif
+
+                buffers[i] = static_cast<VulkanBuffer*>(_vbo.buffers[i])->GetVkHandle();
+            }
+
+            vkCmdBindVertexBuffers(_vkHandle,
+                binding,
+                count,
+                buffers + binding,
+                _vbo.offsets + binding);
+        });
+        _dirtyVbos &= ~updateVboMask;
+
+        return true;
     }
 }

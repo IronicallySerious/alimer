@@ -30,6 +30,8 @@
 #include "VulkanCommandBuffer.h"
 #include "VulkanTexture.h"
 #include "VulkanBuffer.h"
+#include "VulkanShader.h"
+#include "VulkanPipelineState.h"
 #include "VulkanConvert.h"
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -342,7 +344,7 @@ namespace Alimer
         }
         _renderPassCache.clear();
 
-        //vkDestroyPipelineCache(_logicalDevice, pipelineCache, nullptr);
+        vkDestroyPipelineCache(_logicalDevice, _pipelineCache, nullptr);
 
         if (_setupCommandPool != VK_NULL_HANDLE)
         {
@@ -491,6 +493,12 @@ namespace Alimer
 
         CreateAllocator();
 
+        VkPipelineCacheCreateInfo pipelineCacheCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
+        pipelineCacheCreateInfo.pNext = nullptr;
+        pipelineCacheCreateInfo.flags = 0;
+        vkThrowIfFailed(vkCreatePipelineCache(_logicalDevice, &pipelineCacheCreateInfo, nullptr, &_pipelineCache));
+
+
         // Get queue's.
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.graphics, 0, &_graphicsQueue);
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.compute, 0, &_computeQueue);
@@ -581,22 +589,17 @@ namespace Alimer
 
     SharedPtr<Shader> VulkanGraphics::CreateComputeShader(const ShaderStageDescription& desc)
     {
-        return nullptr;
+        return MakeShared<VulkanShader>(this, desc);
     }
 
     SharedPtr<Shader> VulkanGraphics::CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
     {
-        return nullptr;
+        return MakeShared<VulkanShader>(this, vertex, fragment);
     }
 
     SharedPtr<PipelineState> VulkanGraphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
     {
-        return nullptr;
-    }
-
-    bool VulkanGraphics::PrepareDraw(PrimitiveTopology topology)
-    {
-        return true;
+        return MakeShared<VulkanPipelineState>(this, descriptor);
     }
 
     uint32_t VulkanGraphics::GetQueueFamilyIndex(VkQueueFlagBits queueFlags)
@@ -885,5 +888,30 @@ namespace Alimer
         fbo->size = { width, height };
         _framebufferCache[hash] = fbo;
         return fbo;
+    }
+
+    VkPipelineLayout VulkanGraphics::RequestPipelineLayout(const ResourceLayout &layout)
+    {
+        Util::Hasher h;
+        //h.data(reinterpret_cast<const uint32_t *>(layout.sets), sizeof(layout.sets));
+        //h.data(reinterpret_cast<const uint32_t *>(layout.ranges), sizeof(layout.ranges));
+        h.u32(layout.attributeMask);
+
+        auto hash = h.get();
+
+        auto it = _pipelineLayouts.find(hash);
+        if (it != _pipelineLayouts.end())
+            return it->second;
+
+        VkPipelineLayoutCreateInfo createInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+
+        VkPipelineLayout pipelineLayout;
+        if (vkCreatePipelineLayout(_logicalDevice, &createInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+        {
+            ALIMER_LOGCRITICAL("Failed to create pipeline layout.\n");
+        }
+
+        _pipelineLayouts.insert(make_pair(hash, pipelineLayout));
+        return pipelineLayout;
     }
 }

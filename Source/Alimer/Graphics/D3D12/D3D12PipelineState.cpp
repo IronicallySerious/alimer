@@ -70,16 +70,17 @@ namespace Alimer
         D3D12_INPUT_ELEMENT_DESC elements[MaxVertexAttributes];
         for (uint32_t i = 0; i < MaxVertexAttributes; ++i)
         {
-            if (descriptor.vertexElements[i].format == VertexFormat::Invalid)
+            const VertexAttributeDescriptor& attribute = descriptor.vertexDescriptor.attributes[i];
+            if (descriptor.vertexDescriptor.attributes[i].format == VertexFormat::Invalid)
                 continue;
 
             // If the HLSL semantic is TEXCOORDN the SemanticName should be "TEXCOORD" and the
             // SemanticIndex N
             elements[i].SemanticName = "TEXCOORD";
             elements[i].SemanticIndex = static_cast<uint32_t>(i);
-            elements[i].Format = VertexFormatType(descriptor.vertexElements[i].format);
-            elements[i].InputSlot = descriptor.vertexElements[i].binding;
-            elements[i].AlignedByteOffset = descriptor.vertexElements[i].offset;
+            elements[i].Format = VertexFormatType(attribute.format);
+            elements[i].InputSlot = attribute.binding;
+            elements[i].AlignedByteOffset = attribute.offset;
             elements[i].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
             elements[i].InstanceDataStepRate = 0;
             elementsCount++;

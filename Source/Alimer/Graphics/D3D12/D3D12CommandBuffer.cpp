@@ -264,10 +264,9 @@ namespace Alimer
     {
         using namespace Util;
         Hasher h;
-        _activeVbos = 0;
 
         // TODO:
-        _activeVbos |= 1u << 0;
+        uint32_t activeVbos = 1u << 0;
         //auto &layout = current_layout->get_resource_layout();
         //ForEachBit(layout.attribute_mask, [&](uint32_t bit) {
         //	h.u32(bit);
@@ -277,7 +276,7 @@ namespace Alimer
         //	h.u32(attribs[bit].offset);
         //});
 
-        ForEachBit(_activeVbos, [&](uint32_t bit) {
+        ForEachBit(activeVbos, [&](uint32_t bit) {
             h.u32(static_cast<uint32_t>(_vbo.inputRates[bit]));
             h.u32(_vbo.strides[bit]);
         });
@@ -310,7 +309,8 @@ namespace Alimer
 
         FlushDescriptorSets();
 
-        uint32_t updateVboMask = _dirtyVbos & _activeVbos;
+        const uint32_t activeVbos = 1u << 0;
+        uint32_t updateVboMask = _dirtyVbos & activeVbos;
         ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
         {
             static D3D12_VERTEX_BUFFER_VIEW views[MaxVertexBufferBindings] = {};

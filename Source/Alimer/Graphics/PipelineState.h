@@ -30,10 +30,30 @@ namespace Alimer
 {
 	class Graphics;
 
+    struct VertexBufferLayoutDescriptor
+    {
+        uint32_t stride;
+        VertexInputRate inputRate;
+    };
+
+    struct VertexAttributeDescriptor
+    {
+        uint32_t binding;
+        VertexFormat format;
+        uint32_t offset;
+    };
+
+    struct VertexDescriptor
+    {
+        VertexBufferLayoutDescriptor layouts[MaxVertexBufferBindings] = {};
+        VertexAttributeDescriptor attributes[MaxVertexAttributes] = {};
+    };
+
 	struct RenderPipelineDescriptor
 	{
 		SharedPtr<Shader> shader;
-		VertexElement vertexElements[MaxVertexAttributes] = {};
+        VertexDescriptor vertexDescriptor;
+		
 	};
 
 	/// Defines a PipelineState class.

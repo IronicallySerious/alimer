@@ -31,7 +31,7 @@ namespace Alimer
 	VulkanTexture::VulkanTexture(VulkanGraphics* graphics, const TextureDescription& description, VkImage vkImage, VkImageUsageFlags usage)
 		: Texture()
 		, _logicalDevice(graphics->GetLogicalDevice())
-		, _vkImage(vkImage)
+		, _vkHandle(vkImage)
 	{
 		_description = description;
 
@@ -54,7 +54,7 @@ namespace Alimer
 
 			if (vkCreateImageView(_logicalDevice, &viewCreateInfo, nullptr, &_defaultImageView) != VK_SUCCESS)
 			{
-				vkDestroyImage(_logicalDevice, _vkImage, nullptr);
+				vkDestroyImage(_logicalDevice, _vkHandle, nullptr);
 				return;
 			}
 		}

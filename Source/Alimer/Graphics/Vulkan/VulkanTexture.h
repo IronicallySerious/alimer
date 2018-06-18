@@ -37,12 +37,12 @@ namespace Alimer
 		VulkanTexture(VulkanGraphics* graphics, const TextureDescription& description, VkImage vkImage, VkImageUsageFlags usage);
 		~VulkanTexture() override;
 
-		inline VkImage GetImage() const { return _vkImage; }
+		inline VkImage GetVkHandle() const { return _vkHandle; }
 		inline VkImageView GetDefaultImageView() const { return _defaultImageView; }
 
 	private:
 		VkDevice _logicalDevice;
-		VkImage _vkImage;
+		VkImage _vkHandle;
 		VkImageView _defaultImageView;
 	};
 }

@@ -57,11 +57,12 @@ macro (define_engine_source_files)
 	endif ()
 	foreach (path ${DEFINE_SRC_FILES_UNPARSED_ARGUMENTS})
 		# Get header files
-		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h)
+		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.hpp)
 		list (REMOVE_ITEM _files
 			Graphics/GraphicsImpl.h
 		)
 		list (APPEND HEADER_FILES ${_files})
+        message("PATH ${path}")
 		# Install them
 		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
 		# Get source files
@@ -72,6 +73,7 @@ endmacro()
 
 # Add source files from subdirectories
 define_engine_source_files (NORECURSE . Core Util IO Math Graphics Input Audio Application)
+define_engine_source_files (NORECURSE glm glm/detail glm/ext glm/gtc glm/gtx glm/simd)
 define_engine_source_files (Resource Serialization Scene)
 
 if (PLATFORM_WINDOWS)

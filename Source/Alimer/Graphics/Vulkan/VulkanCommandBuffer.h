@@ -29,37 +29,44 @@
 namespace Alimer
 {
     class VulkanGraphics;
-	class VulkanCommandQueue;
+    class VulkanCommandQueue;
+    class VulkanPipelineState;
+    struct VulkanFramebuffer;
 
-	/// Vulkan CommandBuffer.
-	class VulkanCommandBuffer final : public CommandBuffer
-	{
-	public:
-		VulkanCommandBuffer(VulkanCommandQueue* queue);
-		~VulkanCommandBuffer() override;
+    /// Vulkan CommandBuffer.
+    class VulkanCommandBuffer final : public CommandBuffer
+    {
+    public:
+        VulkanCommandBuffer(VulkanCommandQueue* queue);
+        ~VulkanCommandBuffer() override;
 
         void Enqueue() override;
         void Commit() override;
 
-		void Begin();
-		void End();
+        void Begin();
+        void End();
         void Reset();
 
-		void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
-		void EndRenderPass() override;
+        void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
+        void EndRenderPass() override;
 
-		void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
+        void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
-		void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
-		void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
+        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
+        void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
-		VkCommandBuffer GetVkHandle() const { return _vkHandle; }
+        VkCommandBuffer GetVkHandle() const { return _vkHandle; }
 
-	private:
-        VulkanGraphics* _vkGraphics;
+    private:
+        bool PrepareDraw(PrimitiveTopology topology);
+
+    private:
+        VulkanGraphics * _vkGraphics;
         VulkanCommandQueue* _queue;
-		VkDevice _logicalDevice;
-		VkCommandBuffer _vkHandle;
+        VkDevice _logicalDevice;
+        VkCommandBuffer _vkHandle;
         bool _enqueued;
-	};
+        VulkanFramebuffer* _currentFramebuffer = nullptr;
+        SharedPtr<VulkanPipelineState> _currentPipeline;
+    };
 }

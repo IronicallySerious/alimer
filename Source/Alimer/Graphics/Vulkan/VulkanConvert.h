@@ -183,5 +183,37 @@ namespace Alimer
                 return VMA_MEMORY_USAGE_UNKNOWN;
             }
         }
+
+        static inline VkFormat Convert(VertexFormat format)
+        {
+            switch (format)
+            {
+            case VertexFormat::Float:		return VK_FORMAT_R32_SFLOAT;
+            case VertexFormat::Float2:		return VK_FORMAT_R32G32_SFLOAT;
+            case VertexFormat::Float3:		return VK_FORMAT_R32G32B32_SFLOAT;
+            case VertexFormat::Float4:		return VK_FORMAT_R32G32B32A32_SFLOAT;
+            case VertexFormat::Byte4:       return VK_FORMAT_R8G8B8A8_SINT;
+            case VertexFormat::Byte4N:      return VK_FORMAT_R8G8B8A8_SNORM;
+            case VertexFormat::UByte4:      return VK_FORMAT_R8G8B8A8_UINT;
+            case VertexFormat::UByte4N:     return VK_FORMAT_R8G8B8A8_UNORM;
+            case VertexFormat::Short2:      return VK_FORMAT_R16G16_SINT;
+            case VertexFormat::Short2N:     return VK_FORMAT_R16G16_SNORM;
+            case VertexFormat::Short4:      return VK_FORMAT_R16G16B16A16_SINT;
+            case VertexFormat::Short4N:     return VK_FORMAT_R16G16B16A16_SNORM;
+            default:
+                return VK_FORMAT_UNDEFINED;
+            }
+        }
+
+        static inline VkVertexInputRate Convert(VertexInputRate rate)
+        {
+            switch (rate)
+            {
+            case VertexInputRate::Vertex:		return VK_VERTEX_INPUT_RATE_VERTEX;
+            case VertexInputRate::Instance:		return VK_VERTEX_INPUT_RATE_INSTANCE;
+            default:
+                return VK_VERTEX_INPUT_RATE_VERTEX;
+            }
+        }
     }
 }

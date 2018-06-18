@@ -117,7 +117,6 @@ namespace Alimer
 		CommandBufferDirtyFlags _dirty = ~0u;
         uint32_t _dirtySets = 0;
 		uint32_t _dirtyVbos = 0;
-		uint32_t _activeVbos = 0;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);

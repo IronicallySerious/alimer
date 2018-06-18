@@ -43,6 +43,7 @@ The engine uses the following third-party libraries:
 - [glslang](https://github.com/KhronosGroup/glslang)
 - [volk Metaloader for Vulkan](https://github.com/zeux/volk)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+- [glm](https://github.com/g-truc/glm)
 
 Additional inspiration, research or code used:
 

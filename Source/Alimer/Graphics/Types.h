@@ -166,13 +166,6 @@ namespace Alimer
         Count
     };
 
-    struct VertexElement
-    {
-        uint32_t binding;
-        VertexFormat format;
-        uint32_t offset;
-    };
-
     class Texture;
     class RenderPassAttachmentDescriptor
     {

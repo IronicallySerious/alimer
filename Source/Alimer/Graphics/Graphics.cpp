@@ -207,13 +207,11 @@ namespace Alimer
         vector<uint32_t> fragmentByteCode = ShaderCompiler::Compile(fragmentShader, fragmentShaderStream->GetName(), ShaderStage::Fragment, errorLog);
 
         ShaderStageDescription vertex = {};
-        vertex.byteCode = vertexByteCode.data();
-        vertex.byteCodeSize = vertexByteCode.size();
+        vertex.code = vertexByteCode;
         vertex.entryPoint = "main";
 
         ShaderStageDescription fragment = {};
-        fragment.byteCode = fragmentByteCode.data();
-        fragment.byteCodeSize = fragmentByteCode.size();
+        fragment.code = fragmentByteCode;
         fragment.entryPoint = "main";
 
         return CreateShader(vertex, fragment);

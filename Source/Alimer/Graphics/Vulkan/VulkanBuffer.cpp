@@ -62,14 +62,21 @@ namespace Alimer
 
         VmaAllocationCreateInfo allocInfo = {};
         allocInfo.usage = vk::Convert(description.memoryUsage);
+        allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
+        VmaAllocationInfo vmaAllocInfo = {};
         VkResult result = vmaCreateBuffer(
             _allocator,
             &createInfo,
             &allocInfo,
             &_vkHandle,
             &_allocation,
-            nullptr);
+            &vmaAllocInfo);
+
+        if (initialData != nullptr)
+        {
+            memcpy(vmaAllocInfo.pMappedData, initialData, vmaAllocInfo.size);
+        }
     }
 
     VulkanBuffer::~VulkanBuffer()

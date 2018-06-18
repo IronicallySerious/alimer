@@ -63,6 +63,7 @@ namespace Alimer
 		VkPhysicalDevice GetPhysicalDevice() const { return _vkPhysicalDevice; }
 		VkDevice GetLogicalDevice() const { return _logicalDevice; }
         VmaAllocator GetAllocator() const { return _allocator; }
+        VkPipelineCache GetPipelineCache() const { return _pipelineCache; }
 
 		VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
 		void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
@@ -71,6 +72,8 @@ namespace Alimer
 
 		VkRenderPass GetVkRenderPass(const RenderPassDescriptor& descriptor, uint64_t hash);
 		VulkanFramebuffer* GetFramebuffer(VkRenderPass renderPass, const RenderPassDescriptor& descriptor, uint64_t hash);
+        VkPipelineLayout RequestPipelineLayout(const ResourceLayout &layout);
+
         uint32_t GetQueueFamilyIndex(VkQueueFlagBits queueFlags);
         VkCommandPool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags);
 
@@ -79,7 +82,6 @@ namespace Alimer
 	private:
         void Finalize() override;
         void CreateAllocator();
-		bool PrepareDraw(PrimitiveTopology topology);
 
 		VkInstance _instance = VK_NULL_HANDLE;
 		VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
@@ -106,6 +108,8 @@ namespace Alimer
 
 		UniquePtr<VulkanSwapchain> _swapchain;
 
+        VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
+
 		// CommandPools
 		VkCommandPool _setupCommandPool = VK_NULL_HANDLE;
 
@@ -115,5 +119,7 @@ namespace Alimer
 		// Cache
 		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
 		std::unordered_map<uint64_t, VulkanFramebuffer*> _framebufferCache;
+
+        Util::HashMap<VkPipelineLayout> _pipelineLayouts;
 	};
 }

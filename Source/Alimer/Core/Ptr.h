@@ -244,10 +244,10 @@ namespace Alimer
 		}
 
 		/// Check if the pointer is null.
-		bool Null() const { return ptr_ == nullptr; }
+		bool IsNull() const { return ptr_ == nullptr; }
 
 		/// Check if the pointer is not null.
-		bool NotNull() const { return ptr_ != nullptr; }
+		bool IsNotNull() const { return ptr_ != nullptr; }
 
 		/// Return the raw pointer.
 		T* Get() const { return ptr_; }

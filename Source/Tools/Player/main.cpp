@@ -44,8 +44,8 @@ namespace Alimer
 
         struct PerCameraCBuffer
         {
-            Matrix4x4 viewMatrix;
-            Matrix4x4 projectionMatrix;
+            glm::mat4 viewMatrix;
+            glm::mat4 projectionMatrix;
         };
 
         PerCameraCBuffer _camera;
@@ -102,7 +102,7 @@ namespace Alimer
     {
         struct Vertex
         {
-            Vector3 position;
+            glm::vec3 position;
             Color color;
         };
 
@@ -110,9 +110,9 @@ namespace Alimer
 
         Vertex triangleVertices[] =
         {
-            { Vector3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f) },
-            { Vector3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
-            { Vector3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
+            { glm::vec3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f) },
+            { glm::vec3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
+            { glm::vec3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
         };
 
         GpuBufferDescription vertexBufferDesc = {};
@@ -121,8 +121,8 @@ namespace Alimer
         vertexBufferDesc.elementSize = sizeof(Vertex);
         _vertexBuffer = _graphics->CreateBuffer(vertexBufferDesc, triangleVertices);
 
-        _camera.viewMatrix = Matrix4x4::Identity;
-        _camera.projectionMatrix = Matrix4x4::Identity;
+        _camera.viewMatrix = glm::mat4(1.0f);
+        _camera.projectionMatrix = glm::mat4(1.0f);
 
         GpuBufferDescription uboBufferDesc = {};
         uboBufferDesc.usage = BufferUsage::Uniform;
@@ -132,9 +132,10 @@ namespace Alimer
 
         RenderPipelineDescriptor renderPipelineDescriptor;
         renderPipelineDescriptor.shader = _graphics->CreateShader("color.vert", "color.frag");
-        renderPipelineDescriptor.vertexElements[0].format = VertexFormat::Float3;
-        renderPipelineDescriptor.vertexElements[1].format = VertexFormat::Float4;
-        renderPipelineDescriptor.vertexElements[1].offset = 12;
+        renderPipelineDescriptor.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
+        renderPipelineDescriptor.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
+        renderPipelineDescriptor.vertexDescriptor.attributes[1].offset = 12;
+        renderPipelineDescriptor.vertexDescriptor.layouts[0].stride = _vertexBuffer->GetElementSize();
         _renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);
     }
 
@@ -146,10 +147,10 @@ namespace Alimer
         passDescriptor.colorAttachments[0].texture = frameTexture;
         passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
         commandBuffer->BeginRenderPass(passDescriptor);
-        //commandBuffer->SetVertexBuffer(vertexBuffer.Get(), 0);
-        //commandBuffer->SetPipeline(renderPipeline);
+        commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
+        commandBuffer->SetPipeline(_renderPipeline);
         //commandBuffer->SetUniformBuffer(0, 0, uboBuffer.Get());
-        //commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
+        commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
         commandBuffer->EndRenderPass();
 
         commandBuffer->Commit();
