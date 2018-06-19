@@ -36,6 +36,12 @@ namespace Alimer
     {
         Reflect(ShaderStage::Vertex, vertex.code.data(), vertex.code.size() * sizeof(uint32_t));
         Reflect(ShaderStage::Fragment, fragment.code.data(), fragment.code.size() * sizeof(uint32_t));
+
+        for (uint32_t i = 0; i < MaxDescriptorSets; i++)
+        {
+            if (_layout.sets[i].stages != 0)
+                _layout.descriptorSetMask |= 1u << i;
+        }
     }
 
     Shader::~Shader()
@@ -71,5 +77,46 @@ namespace Alimer
                 _layout.renderTargetMask |= 1u << location;
             }
         }
+
+        auto ExtractResourcesBinding = [this](
+            const ShaderStage& stage,
+            const std::vector<spirv_cross::Resource>& resources,
+            const spirv_cross::Compiler& compiler,
+            BindingType bindingType) {
+
+            for (const auto& resource : resources) {
+                auto bitSet = compiler.get_decoration_bitset(resource.id);
+                ALIMER_ASSERT(bitSet.get(spv::DecorationBinding) && bitSet.get(spv::DecorationDescriptorSet));
+                uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+                uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+
+                if (binding >= MaxBindingsPerSet || set >= MaxDescriptorSets) {
+                    ALIMER_LOGERROR("SPIRV binding or set higher than allowed one");
+                    continue;
+                }
+
+                switch (bindingType)
+                {
+                case BindingType::UniformBuffer:
+                    _layout.sets[set].uniformBufferMask |= 1u << binding;
+                    break;
+                case BindingType::SampledTexture:
+                    break;
+                case BindingType::Sampler:
+                    break;
+                case BindingType::StorageBuffer:
+                    break;
+                default:
+                    break;
+                }
+               
+                _layout.sets[set].stages |= 1u << static_cast<unsigned>(stage);
+            }
+        };
+
+        ExtractResourcesBinding(stage, resources.uniform_buffers, compiler, BindingType::UniformBuffer);
+        ExtractResourcesBinding(stage, resources.separate_images, compiler, BindingType::SampledTexture);
+        ExtractResourcesBinding(stage, resources.separate_samplers, compiler, BindingType::Sampler);
+        ExtractResourcesBinding(stage, resources.storage_buffers, compiler, BindingType::StorageBuffer);
     }
 }

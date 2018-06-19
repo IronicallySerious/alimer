@@ -53,7 +53,6 @@ namespace Alimer
         void Serialize(const char* key, char value) override;
         void Serialize(const char* key, const char* value) override;
         void Serialize(const char* key, const std::string& value) override;
-        void Serialize(const char* key, const String& value) override;
 
         void Serialize(const char* key, const float* values, uint32_t count) override;
 

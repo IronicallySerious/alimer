@@ -55,7 +55,6 @@ namespace Alimer
 		bool Initialize(const SharedPtr<Window>& window) override;
 		bool WaitIdle() override;
 		SharedPtr<Texture> AcquireNextImage() override;
-		bool Present() override;
         void Frame() override;
 
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
@@ -77,6 +76,7 @@ namespace Alimer
 
 	private:
 		bool InitializeCaps();
+        void HandleDeviceLost();
 		void CreateSwapchain(const SharedPtr<Window>& window);
 		SharedPtr<D3D12CommandBuffer> RetrieveCommandBuffer();
 		void RecycleCommandBuffer(D3D12CommandBuffer* commandBuffer);

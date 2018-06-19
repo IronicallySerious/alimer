@@ -23,43 +23,72 @@
 #pragma once
 
 #include "../AlimerConfig.h"
+#include <string>
+#include <vector>
 
 namespace Alimer
 {
-	enum class LogLevel : uint8_t
-	{
-		Trace = 0,
-		Debug = 1,
-		Info = 2,
-		Warn = 3,
-		Error = 4,
-		Critical = 5,
-		Off = 6
-	};
+    enum class LogLevel : uint8_t
+    {
+        Trace = 0,
+        Debug = 1,
+        Info = 2,
+        Warn = 3,
+        Error = 4,
+        Critical = 5,
+        Off = 6
+    };
 
-	/// Class for logging functionalities.
-	class ALIMER_API Logger final
-	{
-	public:
-		/// Construcor.
-		Logger();
+    /// Listener interface for Log events.
+    class ALIMER_API LogListener
+    {
+    public:
+        virtual ~LogListener() { }
 
-		/// Destructor.
-		~Logger();
+        /// Called when message is being logged.
+        virtual void MessageLogged(LogLevel level, const std::string& message) = 0;
+    };
 
-		/// Set logging level.
-		void SetLevel(LogLevel newLevel);
+    /// Class for logging functionalities.
+    class ALIMER_API Logger final
+    {
+    public:
+        /// Construcor.
+        Logger();
 
-		/// Return logging level.
-		LogLevel GetLevel() const { return _level; }
+        /// Destructor.
+        ~Logger();
 
-		void Log(LogLevel level, const char* message, ...);
+        /// Set logging level.
+        void SetLevel(LogLevel newLevel);
 
-	private:
-		LogLevel _level;
+        /// Return logging level.
+        LogLevel GetLevel() const { return _level; }
 
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Logger);
-	};
+        void Log(LogLevel level, const char* message, ...);
+        void Trace(const std::string& message);
+        void Debug(const std::string& message);
+        void Info(const std::string& message);
+        void Warn(const std::string& message);
+        void Error(const std::string& message);
+
+        /// Adds a log listener.
+        void AddListener(LogListener* listener);
+
+        /// Removes a log listener.
+        void RemoveListener(LogListener* listener);
+
+    private:
+        void OnLog(LogLevel level, const char* message);
+
+    private:
+        LogLevel _level;
+
+        /// List of Listener's on the Log.
+        std::vector<LogListener*> _listeners;
+
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Logger);
+    };
 
     /// Access to Logger module.
     ALIMER_API Logger& gLog();

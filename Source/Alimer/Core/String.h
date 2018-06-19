@@ -22,111 +22,81 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "../Core/Log.h"
 #include <cstdarg>
 #include <cstring>
 #include <cctype>
+#include <locale>
+#include <codecvt>
 #include <string>
+#include <sstream>
 #include <vector>
+#include <type_traits>
+#include <algorithm>
 
 namespace Alimer
 {
-    /// String class.
-    class ALIMER_API String final
-    {
-    public:
-        using StorageType = std::vector<char>;
-        using IndexType = StorageType::size_type;
-        using Iterator = StorageType::iterator;
-        using ConstIterator = StorageType::const_iterator;
-        static constexpr IndexType npos = -1;
-
-        String() {}
-        String(const char* str) { SetData(str); }
-        String(const char* begin, const char* end) { SetData(begin, end); }
-        String(const String& str) { SetData(str.c_str()); }
-        String(String&& str) { swap(str); }
-        String(const std::string& str) { SetData(str.c_str()); }
-
-        ~String() {}
-
-        void clear() { _data.clear(); }
-        const char* c_str() const { return _data.data(); }
-        IndexType size() const { return _data.size() > 0 ? _data.size() - 1 : 0; }
-        IndexType length() const { return _data.size() > 0 ? _data.size() - 1 : 0; }
-        char* data() { return _data.data(); }
-        const char* data() const { return _data.data(); }
-        bool empty() const { return length() == 0; }
-
-        void reserve(IndexType capacity) { _data.reserve(capacity); }
-        void swap(String& other) { _data.swap(other._data); }
-        void resize(IndexType size)
-        {
-            _data.resize(size + 1);
-            _data.back() = '\0';
-        }
-
-        void shrink_to_fit() { _data.shrink_to_fit(); }
-
-        Iterator begin() { return _data.begin(); }
-        ConstIterator begin() const { return _data.begin(); }
-
-        Iterator end() { return _data.end() - 1; }
-        ConstIterator end() const { return _data.end() - 1; }
-
-        String& operator=(const char* str) { return SetData(str); }
-        String& operator=(const String& str) { return SetData(str.c_str()); }
-        String& operator=(String&& str)
-        {
-            swap(str);
-            return (*this);
-        }
-
-        bool operator==(const char* str) const { return strcmp(c_str(), str) == 0; }
-        bool operator!=(const char* str) const { return strcmp(c_str(), str) != 0; }
-        bool operator<(const char* str) const { return strcmp(c_str(), str) < 0; }
-        bool operator>(const char* str) const { return strcmp(c_str(), str) > 0; }
-        bool operator<=(const char* str) const { return strcmp(c_str(), str) <= 0; }
-        bool operator>=(const char* str) const { return strcmp(c_str(), str) >= 0; }
-
-        bool operator ==(const String& str) const { return strcmp(c_str(), str.c_str()) == 0; }
-        bool operator !=(const String& str) const { return strcmp(c_str(), str.c_str()) != 0; }
-        bool operator <(const String& str) const { return strcmp(c_str(), str.c_str()) < 0; }
-        bool operator >(const String& str) const { return strcmp(c_str(), str.c_str()) > 0; }
-        bool operator<=(const String& str) const { return strcmp(c_str(), str.c_str()) <= 0; }
-        bool operator>=(const String& str) const { return strcmp(c_str(), str.c_str()) >= 0; }
-
-        char& operator [](IndexType index)
-        {
-            assert(index < length());
-            return _data[index];
-        }
-
-        /// Return const char at index.
-        const char& operator [](IndexType index) const
-        {
-            assert(index < length());
-            return _data[index];
-        }
-
-        /// Empty string.
-        static const String EMPTY;
-
-    private:
-        String & SetData(const char* begin, const char* end = nullptr);
-
-        StorageType _data;
+    template <typename T>
+    struct EnumNames {
     };
-}
 
-
-namespace std
-{
-    template<> struct less<Alimer::String>
+    namespace str
     {
-        bool operator()(const Alimer::String& v1, const Alimer::String& v2) const
+        namespace inner
         {
-            return v1 < v2;
+            template<typename T>
+            void JoinHelper(std::ostringstream &stream, T &&t)
+            {
+                stream << std::forward<T>(t);
+            }
+
+            template<typename T, typename... Ts>
+            void JoinHelper(std::ostringstream &stream, T &&t, Ts &&... ts)
+            {
+                stream << std::forward<T>(t);
+                JoinHelper(stream, std::forward<Ts>(ts)...);
+            }
         }
-    };
+
+        template<typename... Ts>
+        std::string Join(Ts &&... ts)
+        {
+            std::ostringstream stream;
+            inner::JoinHelper(stream, std::forward<Ts>(ts)...);
+            return stream.str();
+        }
+
+        template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
+        static std::string ToString(const T& v)
+        {
+            return EnumNames<T>()()[ecast(v)];
+        }
+
+        template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
+        static T FromString(const std::string& str)
+        {
+            EnumNames<T> n;
+            auto names = n();
+            auto res = std::find_if(std::begin(names), std::end(names), [&](const char* v) { return str == v; });
+            if (res == std::end(names))
+            {
+                ALIMER_LOGCRITICAL(
+                    "String '%s' does not exist in enum '%s'.",
+                    str.c_str(),
+                    typeid(T).name());
+            }
+
+            return T(res - std::begin(names));
+        }
+
+        inline std::string FromWide(const std::wstring& ws)
+        {
+            return std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(ws);
+        }
+
+        inline std::wstring ToWide(const std::string& s)
+        {
+            return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(s);
+        }
+    }
 }

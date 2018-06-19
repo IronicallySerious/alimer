@@ -30,6 +30,7 @@ namespace Alimer
 {
     class VulkanGraphics;
     class VulkanCommandQueue;
+    class VulkanPipelineLayout;
     class VulkanPipelineState;
     struct VulkanFramebuffer;
 
@@ -58,7 +59,12 @@ namespace Alimer
         VkCommandBuffer GetVkHandle() const { return _vkHandle; }
 
     private:
+        void ResetState() override;
+        void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
         bool PrepareDraw(PrimitiveTopology topology);
+
+        void FlushDescriptorSet(uint32_t set);
+        void FlushDescriptorSets();
 
     private:
         VulkanGraphics * _vkGraphics;
@@ -68,5 +74,10 @@ namespace Alimer
         bool _enqueued;
         VulkanFramebuffer* _currentFramebuffer = nullptr;
         SharedPtr<VulkanPipelineState> _currentPipeline;
+        VulkanPipelineLayout* _currentPipelineLayout = nullptr;
+        VkPipeline _currentVkPipeline = VK_NULL_HANDLE;
+        VkPipelineLayout _currentVkPipelineLayout = VK_NULL_HANDLE;
+
+        VkBuffer _currentVkBuffers[MaxVertexBufferBindings] = {};
     };
 }

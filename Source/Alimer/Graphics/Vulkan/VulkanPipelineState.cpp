@@ -21,6 +21,7 @@
 //
 
 #include "VulkanPipelineState.h"
+#include "VulkanPipelineLayout.h"
 #include "VulkanGraphics.h"
 #include "VulkanShader.h"
 #include "VulkanConvert.h"
@@ -97,11 +98,12 @@ namespace Alimer
         VkPipelineViewportStateCreateInfo viewportState = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
         viewportState.viewportCount = 1;
         viewportState.scissorCount = 1;
-
+        
         // Rasterization state
         VkPipelineRasterizationStateCreateInfo rasterizationState = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
         rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        // Default clockwise as DirectX coordinate.
+        rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
         rasterizationState.lineWidth = 1.0f;
         rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizationState.depthBiasEnable = VK_FALSE;
@@ -154,7 +156,7 @@ namespace Alimer
         createInfo.pColorBlendState = &blendState;
         createInfo.pDynamicState = &dynamicState;
         createInfo.pInputAssemblyState = &inputAssemblyState;
-        createInfo.layout = _shader->GetVkPipelineLayout();
+        createInfo.layout = _shader->GetPipelineLayout()->GetVkHandle();
         createInfo.renderPass = renderPass;
         createInfo.subpass = 0;
         createInfo.basePipelineHandle = VK_NULL_HANDLE;

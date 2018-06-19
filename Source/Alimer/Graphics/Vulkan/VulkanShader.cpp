@@ -22,6 +22,7 @@
 
 #include "VulkanShader.h"
 #include "VulkanGraphics.h"
+#include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"
 
 namespace Alimer

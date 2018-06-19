@@ -24,6 +24,7 @@
 #define VMA_IMPLEMENTATION
 
 #include "../../Core/Log.h"
+#include "../../Core/String.h"
 #include "../../Application/Window.h"
 #include "VulkanGraphics.h"
 #include "VulkanCommandQueue.h"
@@ -31,6 +32,7 @@
 #include "VulkanTexture.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
+#include "VulkanPipelineLayout.h"
 #include "VulkanPipelineState.h"
 #include "VulkanConvert.h"
 
@@ -188,6 +190,19 @@ namespace Alimer
         return VK_FALSE;
     }
 
+    enum class VkExtensionType
+    {
+        Optional,
+        Required,
+        Desired
+    };
+
+    struct VkExtension {
+        const char* name;
+        VkExtensionType type;
+        bool supported;
+    };
+
 
     bool VulkanGraphics::IsSupported()
     {
@@ -344,6 +359,9 @@ namespace Alimer
         }
         _renderPassCache.clear();
 
+        _descriptorSetAllocators.clear();
+        _pipelineLayouts.clear();
+
         vkDestroyPipelineCache(_logicalDevice, _pipelineCache, nullptr);
 
         if (_setupCommandPool != VK_NULL_HANDLE)
@@ -432,6 +450,65 @@ namespace Alimer
         _queueFamilyProperties.resize(queueFamilyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, _queueFamilyProperties.data());
 
+        // Enumerate device extensions.
+        uint32_t extCount = 0;
+        if (vkEnumerateDeviceExtensionProperties(_vkPhysicalDevice, nullptr, &extCount, nullptr) != VK_SUCCESS)
+            ALIMER_LOGCRITICAL("Vulkan: Failed to query device extensions");
+
+        vector<VkExtensionProperties> extensions(extCount);
+        vkEnumerateDeviceExtensionProperties(_vkPhysicalDevice, nullptr, &extCount, extensions.data());
+
+        vector<VkExtension> queryDeviceExtensions = {
+            { VK_KHR_SWAPCHAIN_EXTENSION_NAME,VkExtensionType::Required, false},
+            { VK_KHR_MAINTENANCE1_EXTENSION_NAME, VkExtensionType::Required, false },
+            { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VkExtensionType::Required, false }
+        };
+
+        for (uint32_t i = 0; i < extCount; i++)
+        {
+            for (auto& queryDeviceExtension : queryDeviceExtensions)
+            {
+                if (strcmp(extensions[i].extensionName, queryDeviceExtension.name) == 0)
+                {
+                    queryDeviceExtension.supported = true;
+                    continue;
+                }
+            }
+        }
+
+        bool requiredExtensionsEnabled = true;
+        vector<const char*> deviceExtensions;
+        for (auto& queryDeviceExtension : queryDeviceExtensions)
+        {
+            if (!queryDeviceExtension.supported)
+            {
+                switch (queryDeviceExtension.type)
+                {
+                case VkExtensionType::Optional:
+                    gLog().Debug(str::Join("Optional Vulkan extension ", queryDeviceExtension.name, " not supported"));
+                    break;
+
+                case VkExtensionType::Desired:
+                    gLog().Warn(str::Join("Vulkan extension ", queryDeviceExtension.name, " not supported"));
+                    break;
+
+                case VkExtensionType::Required:
+                    requiredExtensionsEnabled = false;
+                    gLog().Error(str::Join("Required Vulkan extension ", queryDeviceExtension.name, " not supported"));
+                    break;
+                default:
+                    break;
+                }
+            }
+            else
+            {
+                deviceExtensions.push_back(queryDeviceExtension.name);
+            }
+        }
+
+        if (!requiredExtensionsEnabled)
+            return false;
+
         // Now create logical device.
         vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
@@ -469,11 +546,9 @@ namespace Alimer
         }
 
         // Create the logical device representation
-        vector<const char*> deviceExtensions;
-        deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
-        VkPhysicalDeviceFeatures enabledFeatures{};
-        if (_deviceFeatures.samplerAnisotropy) {
+        VkPhysicalDeviceFeatures enabledFeatures = {};
+        if (_deviceFeatures.samplerAnisotropy)
+        {
             enabledFeatures.samplerAnisotropy = VK_TRUE;
         }
 
@@ -553,22 +628,7 @@ namespace Alimer
     SharedPtr<Texture> VulkanGraphics::AcquireNextImage()
     {
         // Acquire the next image from the swap chain
-        SharedPtr<Texture> texture = _swapchain->GetNextTexture();
-
-        //DestroyPendingResources();
-
-        return texture;
-    }
-
-    bool VulkanGraphics::Present()
-    {
-        VkResult result = _swapchain->QueuePresent(_graphicsQueue);
-        if (result < VK_SUCCESS)
-        {
-            return false;
-        }
-
-        return true;
+        return _swapchain->GetNextTexture();
     }
 
     void VulkanGraphics::Frame()
@@ -579,6 +639,14 @@ namespace Alimer
         // Clear wait semaphores.
         _waitSemaphores.clear();
 
+        // Submit Swapchain.
+        VkResult result = _swapchain->QueuePresent(_graphicsQueue);
+        if (result < VK_SUCCESS)
+        {
+            return;
+        }
+
+        // DestroyPendingResources();
         _frameIndex++;
     }
 
@@ -890,10 +958,24 @@ namespace Alimer
         return fbo;
     }
 
-    VkPipelineLayout VulkanGraphics::RequestPipelineLayout(const ResourceLayout &layout)
+    VulkanDescriptorSetAllocator* VulkanGraphics::RequestDescriptorSetAllocator(const DescriptorSetLayout &layout)
     {
         Util::Hasher h;
-        //h.data(reinterpret_cast<const uint32_t *>(layout.sets), sizeof(layout.sets));
+        h.data(reinterpret_cast<const uint32_t *>(&layout), sizeof(layout));
+        auto hash = h.get();
+        auto itr = _descriptorSetAllocators.find(hash);
+        if (itr != _descriptorSetAllocators.end())
+            return itr->second.get();
+
+        auto *allocator = new VulkanDescriptorSetAllocator(this, layout);
+        _descriptorSetAllocators.insert(make_pair(hash, unique_ptr<VulkanDescriptorSetAllocator>(allocator)));
+        return allocator;
+    }
+
+    VulkanPipelineLayout* VulkanGraphics::RequestPipelineLayout(const ResourceLayout &layout)
+    {
+        Util::Hasher h;
+        h.data(reinterpret_cast<const uint32_t*>(layout.sets), sizeof(layout.sets));
         //h.data(reinterpret_cast<const uint32_t *>(layout.ranges), sizeof(layout.ranges));
         h.u32(layout.attributeMask);
 
@@ -901,17 +983,10 @@ namespace Alimer
 
         auto it = _pipelineLayouts.find(hash);
         if (it != _pipelineLayouts.end())
-            return it->second;
+            return it->second.get();
 
-        VkPipelineLayoutCreateInfo createInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-
-        VkPipelineLayout pipelineLayout;
-        if (vkCreatePipelineLayout(_logicalDevice, &createInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-        {
-            ALIMER_LOGCRITICAL("Failed to create pipeline layout.\n");
-        }
-
-        _pipelineLayouts.insert(make_pair(hash, pipelineLayout));
-        return pipelineLayout;
+        VulkanPipelineLayout *newPipelineLayout = new VulkanPipelineLayout(this, layout);
+        _pipelineLayouts.insert(make_pair(hash, unique_ptr<VulkanPipelineLayout>(newPipelineLayout)));
+        return newPipelineLayout;
     }
 }

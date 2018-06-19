@@ -305,11 +305,19 @@ extern void __cdecl __debugbreak(void);
 
 #ifdef __cplusplus
 
+#include <type_traits>
+
 // avoid unreferenced parameter warning
 // preferred solution: omit the parameter's name from the declaration
 template <class T>
 ALIMER_INLINE void ALIMER_UNUSED(T const&)
 {
+}
+
+template <typename T>
+constexpr typename std::underlying_type<T>::type ecast(T x)
+{
+    return static_cast<typename std::underlying_type<T>::type>(x);
 }
 
 namespace Alimer

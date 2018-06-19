@@ -102,36 +102,10 @@ namespace Alimer
     /// Return whether a char is a digit.
     inline bool IsDigit(char c) { return c >= '0' && c <= '9'; }
 
-    template <typename T>
-    struct EnumNames {
-    };
+    
   
     namespace str
     {
-        namespace inner
-        {
-            template<typename T>
-            void JoinHelper(std::ostringstream &stream, T &&t)
-            {
-                stream << std::forward<T>(t);
-            }
-
-            template<typename T, typename... Ts>
-            void JoinHelper(std::ostringstream &stream, T &&t, Ts &&... ts)
-            {
-                stream << std::forward<T>(t);
-                JoinHelper(stream, std::forward<Ts>(ts)...);
-            }
-        }
-
-        template<typename... Ts>
-        std::string Join(Ts &&... ts)
-        {
-            std::ostringstream stream;
-            inner::JoinHelper(stream, std::forward<Ts>(ts)...);
-            return stream.str();
-        }
-
         std::vector<std::string> Split(const std::string &str, const char *delim, bool allowEmpty = false);
         std::string Replace(
             const std::string& str,
@@ -148,34 +122,5 @@ namespace Alimer
 
         bool StartsWith(const std::string& str, const std::string& pattern, bool lowerCase = true);
         bool EndsWith(const std::string& str, const std::string& pattern, bool lowerCase = true);
-
-        template <typename T>
-        constexpr typename std::underlying_type<T>::type ECast(T x)
-        {
-            return static_cast<typename std::underlying_type<T>::type>(x);
-        }
-
-        template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
-        static String ToString(const T& v)
-        {
-            return EnumNames<T>()()[ECast(v)];
-        }
-
-        template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
-        static T FromString(const String& str)
-        {
-            EnumNames<T> n;
-            auto names = n();
-            auto res = std::find_if(std::begin(names), std::end(names), [&](const char* v) { return str == v; });
-            if (res == std::end(names))
-            {
-                ALIMER_LOGCRITICAL(
-                    "String '%s' does not exist in enum '%s'.",
-                    str.c_str(),
-                    typeid(T).name());
-            }
-
-            return T(res - std::begin(names));
-        }
     }
 }

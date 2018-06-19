@@ -25,49 +25,50 @@
 
 namespace Alimer
 {
-	CommandBuffer::CommandBuffer(Graphics* graphics)
-		: GpuResource(graphics, GpuResourceType::CommandBuffer)
-	{
-		ResetState();
-	}
+    CommandBuffer::CommandBuffer(Graphics* graphics)
+        : GpuResource(graphics, GpuResourceType::CommandBuffer)
+    {
+        ResetState();
+    }
 
-	CommandBuffer::~CommandBuffer()
-	{
-	}
+    CommandBuffer::~CommandBuffer()
+    {
+    }
 
-	void CommandBuffer::ResetState()
-	{
-		_dirty = ~0u;
+    void CommandBuffer::ResetState()
+    {
+        _dirty = ~0u;
         _dirtySets = ~0u;
-		_dirtyVbos = ~0u;
-		memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
+        _dirtyVbos = ~0u;
+        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
         memset(&_bindings, 0, sizeof(_bindings));
-	}
+    }
 
-	void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding,uint64_t offset, VertexInputRate inputRate)
-	{
-		ALIMER_ASSERT(binding < MaxVertexBufferBindings);
-		ALIMER_ASSERT(buffer);
-		ALIMER_ASSERT(any(buffer->GetBufferUsage() & BufferUsage::Vertex));
+    void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset, VertexInputRate inputRate)
+    {
+        ALIMER_ASSERT(binding < MaxVertexBufferBindings);
+        ALIMER_ASSERT(buffer);
+        ALIMER_ASSERT(any(buffer->GetBufferUsage() & BufferUsage::Vertex));
 
-		if (_vbo.buffers[binding] != buffer
-			|| _vbo.offsets[binding] != offset)
-		{
-			_dirtyVbos |= 1u << binding;
-		}
+        if (_vbo.buffers[binding] != buffer
+            || _vbo.offsets[binding] != offset)
+        {
+            _dirtyVbos |= 1u << binding;
+        }
 
-		uint64_t stride = buffer->GetElementSize();
-		if (_vbo.strides[binding] != stride
-			|| _vbo.inputRates[binding] != inputRate)
-		{
-			SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
-		}
+        uint64_t stride = buffer->GetElementSize();
+        if (_vbo.strides[binding] != stride
+            || _vbo.inputRates[binding] != inputRate)
+        {
+            SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
+        }
 
-		_vbo.buffers[binding] = buffer;
-		_vbo.offsets[binding] = offset;
-		_vbo.strides[binding] = stride;
-		_vbo.inputRates[binding] = inputRate;
-	}
+        _vbo.buffers[binding] = buffer;
+        _vbo.offsets[binding] = offset;
+        _vbo.strides[binding] = stride;
+        _vbo.inputRates[binding] = inputRate;
+        OnSetVertexBuffer(buffer, binding, offset);
+    }
 
     void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer)
     {
@@ -86,13 +87,13 @@ namespace Alimer
         _dirtySets |= 1u << set;
     }
 
-	void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-	{
-		DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
-	}
+    void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+        DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
+    }
 
-	void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
-	{
-		DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
-	}
+    void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    {
+        DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
+    }
 }

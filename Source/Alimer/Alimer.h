@@ -33,8 +33,6 @@
 // Core
 #include "Core/String.h"
 #include "Core/Log.h"
-
-// Util
 #include "Util/Util.h"
 
 // Math

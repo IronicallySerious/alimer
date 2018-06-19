@@ -68,9 +68,7 @@ namespace Alimer
 		/// Begin rendering frame and return current backbuffer texture.
 		virtual SharedPtr<Texture> AcquireNextImage() = 0;
 
-		/// Present frame.
-		virtual bool Present() = 0;
-
+        /// Advance to next frame and present.
         virtual void Frame() = 0;
 
 		// Buffer

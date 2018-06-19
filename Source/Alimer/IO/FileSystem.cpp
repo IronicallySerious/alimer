@@ -23,6 +23,7 @@
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
 #include "../Util/Util.h"
+#include "../Core/String.h"
 #include "../Core/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
@@ -35,7 +36,6 @@
 
 #include <windows.h>
 #endif
-
 
 using namespace std;
 
@@ -172,30 +172,6 @@ namespace Alimer
     }
 
 #ifdef _WIN32
-    static inline std::wstring ToWide(const std::string& str)
-    {
-        int len;
-        int slength = (int)str.length() + 1;
-        len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), slength, nullptr, 0);
-        wchar_t* buf = new wchar_t[len];
-        MultiByteToWideChar(CP_ACP, 0, str.c_str(), slength, buf, len);
-        std::wstring r(buf);
-        delete[] buf;
-        return r;
-    }
-
-    static inline std::string ToMultibyte(const std::wstring& str)
-    {
-        int len;
-        int slength = (int)str.length() + 1;
-        len = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), slength, nullptr, 0, nullptr, nullptr);
-        char* buf = new char[len];
-        WideCharToMultiByte(CP_UTF8, 0, str.c_str(), slength, buf, len, nullptr, nullptr);
-        std::string r(buf);
-        delete[] buf;
-        return r;
-    }
-
     static std::string ToUniversalPath(const std::string& path)
     {
         return str::Replace(path, "\\", "/");
@@ -206,7 +182,7 @@ namespace Alimer
         wchar_t path[MAX_PATH];
         path[0] = 0;
         GetCurrentDirectoryW(MAX_PATH, path);
-        return ToMultibyte(path);
+        return str::FromWide(path);
     }
 
     string GetExecutableFolder()
@@ -214,14 +190,14 @@ namespace Alimer
         wchar_t exeName[MAX_PATH];
         exeName[0] = 0;
         GetModuleFileNameW(nullptr, exeName, MAX_PATH);
-        return GetPath(ToUniversalPath(ToMultibyte(exeName)));
+        return GetPath(ToUniversalPath(str::FromWide(exeName)));
     }
 
     bool FileExists(const std::string& fileName)
     {
         string fixedName = GetNativePath(RemoveTrailingSlash(fileName));
 
-        DWORD attributes = GetFileAttributesW(ToWide(fixedName).c_str());
+        DWORD attributes = GetFileAttributesW(str::ToWide(fixedName).c_str());
         if (attributes == INVALID_FILE_ATTRIBUTES || attributes & FILE_ATTRIBUTE_DIRECTORY)
             return false;
 
@@ -232,7 +208,7 @@ namespace Alimer
     {
         string fixedName = GetNativePath(RemoveTrailingSlash(path));
 
-        DWORD attributes = GetFileAttributesW(ToWide(fixedName).c_str());
+        DWORD attributes = GetFileAttributesW(str::ToWide(fixedName).c_str());
         if (attributes == INVALID_FILE_ATTRIBUTES
             || !(attributes & FILE_ATTRIBUTE_DIRECTORY))
         {

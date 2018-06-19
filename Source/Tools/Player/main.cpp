@@ -67,7 +67,7 @@ namespace Alimer
         std::vector<char> c = { 'c','i','a','o' };
         auto s = str::ToString(ShaderStage::Geometry);
         ShaderStage stage = str::FromString<ShaderStage>(s);
-        std::map<String, ShaderStage> map;
+        std::map<std::string, ShaderStage> map;
         map["CIAO"] = ShaderStage::Vertex;
         map["CIAO2"] = ShaderStage::Compute;
         Color color;
@@ -149,7 +149,7 @@ namespace Alimer
         commandBuffer->BeginRenderPass(passDescriptor);
         commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
         commandBuffer->SetPipeline(_renderPipeline);
-        //commandBuffer->SetUniformBuffer(0, 0, uboBuffer.Get());
+        commandBuffer->SetUniformBuffer(0, 0, _uboBuffer.Get());
         commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
         commandBuffer->EndRenderPass();
 

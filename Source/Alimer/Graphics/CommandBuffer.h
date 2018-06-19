@@ -52,7 +52,7 @@ namespace Alimer
 		virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
 		virtual void EndRenderPass() = 0;
 
-		virtual void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+		void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
 
 		virtual void SetPipeline(const SharedPtr<PipelineState>& pipeline) = 0;
 
@@ -65,6 +65,7 @@ namespace Alimer
 		virtual void ResetState();
 		virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
 		virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
+        virtual void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) {}
 
 		enum CommandBufferDirtyBits
 		{

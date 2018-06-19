@@ -74,7 +74,6 @@ namespace Alimer
 		SharedPtr<Texture> frameTexture = _graphics->AcquireNextImage();
 		// TODO: Render Scene.
         OnRender(frameTexture);
-		_graphics->Present();
         _graphics->Frame();
 	}
 

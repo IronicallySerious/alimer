@@ -30,7 +30,7 @@ namespace Alimer
     struct GpuBufferDescription
     {
         BufferUsage usage = BufferUsage::Unknown;
-        MemoryUsage memoryUsage = MemoryUsage::GpuOnly;
+        MemoryUsage memoryUsage = MemoryUsage::CpuToGpu;
         uint32_t elementCount = 1;
         uint32_t elementSize = 0;
     };

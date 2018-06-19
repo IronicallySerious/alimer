@@ -24,6 +24,7 @@
 #include "VulkanCommandBuffer.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
+#include "VulkanPipelineLayout.h"
 #include "VulkanPipelineState.h"
 #include "VulkanGraphics.h"
 #include "../../Core/Log.h"
@@ -52,6 +53,16 @@ namespace Alimer
     VulkanCommandBuffer::~VulkanCommandBuffer()
     {
         vkFreeCommandBuffers(_logicalDevice, _queue->GetVkHandle(), 1, &_vkHandle);
+    }
+
+    void VulkanCommandBuffer::ResetState()
+    {
+        CommandBuffer::ResetState();
+
+        _currentVkPipeline = VK_NULL_HANDLE;
+        _currentVkPipelineLayout = VK_NULL_HANDLE;
+        _currentPipelineLayout = nullptr;
+        _currentPipeline.Reset();
     }
 
     void VulkanCommandBuffer::Enqueue()
@@ -147,7 +158,15 @@ namespace Alimer
         vkCmdBeginRenderPass(_vkHandle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // TODO: Set later
-        VkViewport viewport = { 0.0f, 0.0f, _currentFramebuffer->size.width, _currentFramebuffer->size.height, 0.0f, 1.0f};
+        VkViewport viewport = { 0.0f, 0.0f, _currentFramebuffer->size.width, _currentFramebuffer->size.height, 0.0f, 1.0f };
+
+        // Flip to match DirectX coordinate system.
+        viewport = VkViewport{
+            viewport.x, viewport.height + viewport.y,
+            viewport.width,   -viewport.height,
+            viewport.minDepth, viewport.maxDepth,
+        };
+
         VkRect2D scissor = {};
         scissor.extent = _currentFramebuffer->size;
 
@@ -163,6 +182,25 @@ namespace Alimer
     void VulkanCommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)
     {
         _currentPipeline = StaticCast<VulkanPipelineState>(pipeline);
+        _currentVkPipeline = VK_NULL_HANDLE;
+
+        auto newPipelineLayout = _currentPipeline->GetShader()->GetPipelineLayout();
+        if (_currentPipelineLayout == nullptr)
+        {
+            _dirtySets = ~0u;
+
+            _currentPipelineLayout = newPipelineLayout;
+            _currentVkPipelineLayout = newPipelineLayout->GetVkHandle();
+        }
+        else if (newPipelineLayout != _currentPipelineLayout)
+        {
+            const ResourceLayout &newLayout = newPipelineLayout->GetResourceLayout();
+            const ResourceLayout &oldLayout = _currentPipelineLayout->GetResourceLayout();
+
+            // TODO: Invalidate sets
+            _currentPipelineLayout = newPipelineLayout;
+            _currentVkPipelineLayout = newPipelineLayout->GetVkHandle();
+        }
     }
 
     void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
@@ -178,37 +216,111 @@ namespace Alimer
 
     }
 
+    void VulkanCommandBuffer::OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
+    {
+        _currentVkBuffers[binding] = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
+    }
+
     bool VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)
     {
         if (_currentPipeline.IsNull())
             return false;
 
-        static VkBuffer buffers[MaxVertexBufferBindings] = {};
-        VulkanShader* shader = _currentPipeline->GetShader();
-        const ResourceLayout &layout = shader->GetResourceLayout();
-        VkPipeline pipeline = _currentPipeline->GetGraphicsPipeline(topology, _currentFramebuffer->renderPass);
-        vkCmdBindPipeline(_vkHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        VkPipeline oldPipeline = _currentVkPipeline;
+        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(topology, _currentFramebuffer->renderPass);
+        if (oldPipeline != newPipeline)
+        {
+            vkCmdBindPipeline(_vkHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline);
+            _currentVkPipeline = newPipeline;
+        }
+
+        FlushDescriptorSets();
 
         uint32_t updateVboMask = _dirtyVbos & _currentPipeline->GetBindingMask();
         ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
         {
+#ifdef ALIMER_DEV
             for (uint32_t i = binding; i < binding + count; i++)
             {
-#ifdef ALIMER_DEV
-                ALIMER_ASSERT(_vbo.buffers[i] != nullptr);
-#endif
-
-                buffers[i] = static_cast<VulkanBuffer*>(_vbo.buffers[i])->GetVkHandle();
+                ALIMER_ASSERT(_currentVkBuffers[i] != VK_NULL_HANDLE);
             }
+#endif
 
             vkCmdBindVertexBuffers(_vkHandle,
                 binding,
                 count,
-                buffers + binding,
+                _currentVkBuffers + binding,
                 _vbo.offsets + binding);
         });
         _dirtyVbos &= ~updateVboMask;
 
         return true;
+    }
+
+    void VulkanCommandBuffer::FlushDescriptorSet(uint32_t set)
+    {
+        auto &layout = _currentPipelineLayout->GetResourceLayout();
+        auto &setLayout = layout.sets[set];
+        uint32_t numDynamicOffsets = 0;
+        uint32_t dynamicOffsets[MaxBindingsPerSet];
+
+        Util::Hasher h;
+
+        // UBOs
+        ForEachBit(setLayout.uniformBufferMask, [&](uint32_t binding) {
+            h.pointer(_bindings.bindings[set][binding].buffer.buffer);
+            h.u32(_bindings.bindings[set][binding].buffer.range);
+            ALIMER_ASSERT(_bindings.bindings[set][binding].buffer.buffer != nullptr);
+
+            dynamicOffsets[numDynamicOffsets++] = _bindings.bindings[set][binding].buffer.offset;
+        });
+
+        auto hash = h.get();
+        std::pair<VkDescriptorSet, bool> allocated = _currentPipelineLayout->GetAllocator(set)->Find(hash);
+        if (!allocated.second)
+        {
+            uint32_t writeCount = 0;
+            uint32_t bufferInfoCount = 0;
+
+            VkWriteDescriptorSet writes[MaxBindingsPerSet];
+            VkDescriptorBufferInfo bufferInfo[MaxBindingsPerSet];
+
+            ForEachBit(setLayout.uniformBufferMask, [&](uint32_t binding) {
+                auto &write = writes[writeCount++];
+                write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                write.pNext = nullptr;
+                write.descriptorCount = 1;
+                write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+                write.dstArrayElement = 0;
+                write.dstBinding = binding;
+                write.dstSet = allocated.first;
+
+                // Offsets are applied dynamically.
+                auto &buffer = bufferInfo[bufferInfoCount++];
+                buffer.buffer = static_cast<const VulkanBuffer*>(_bindings.bindings[set][binding].buffer.buffer)->GetVkHandle();
+                buffer.range = _bindings.bindings[set][binding].buffer.range;
+                buffer.offset = 0;
+                write.pBufferInfo = &buffer;
+            });
+
+            vkUpdateDescriptorSets(_logicalDevice, writeCount, writes, 0, nullptr);
+        }
+
+        vkCmdBindDescriptorSets(
+            _vkHandle,
+            _currentFramebuffer ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE,
+            _currentVkPipelineLayout,
+            set,
+            1, &allocated.first,
+            numDynamicOffsets,
+            dynamicOffsets);
+    }
+
+    void VulkanCommandBuffer::FlushDescriptorSets()
+    {
+        auto &layout = _currentPipelineLayout->GetResourceLayout();
+        uint32_t updateSet = layout.descriptorSetMask & _dirtySets;
+        ForEachBit(updateSet, [&](uint32_t set) { FlushDescriptorSet(set); });
+        _dirtySets &= ~updateSet;
     }
 }

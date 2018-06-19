@@ -21,6 +21,7 @@
 //
 
 #include "../IO/Path.h"
+#include "../Core/String.h"
 #include "../Util/Util.h"
 #include <algorithm>
 using namespace std;

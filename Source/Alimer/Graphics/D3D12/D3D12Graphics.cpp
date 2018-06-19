@@ -31,8 +31,6 @@
 #include "../../Core/Log.h"
 #include "../../Application/Windows/WindowWindows.h"
 
-#define COMPILED_SHADER_EXT ".cso"
-
 #if ALIMER_DEV && ( defined(_DEBUG) || defined(PROFILE) )
 #	if !defined(_XBOX_ONE) || !defined(_TITLE)
 #		pragma comment(lib,"dxguid.lib")
@@ -58,7 +56,6 @@ HRESULT D3D12LoadLibraries()
     DXGIDebugHandle = LoadLibraryW(L"dxgidebug.dll");
     DXGIHandle = LoadLibraryW(L"dxgi.dll");
     D3D12Handle = LoadLibraryW(L"d3d12.dll");
-
     if (!DXGIHandle)
         return S_FALSE;
     if (!D3D12Handle)
@@ -359,7 +356,7 @@ namespace Alimer
         return _textures[index];
     }
 
-    bool D3D12Graphics::Present()
+    void D3D12Graphics::Frame()
     {
         // Submit frame command buffer.
         if (_frameCommandBuffer)
@@ -374,15 +371,14 @@ namespace Alimer
             || hr == DXGI_ERROR_DEVICE_RESET
             || hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
         {
-            return false;
+#ifdef _DEBUG
+            char buff[64] = {};
+            sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n", (hr == DXGI_ERROR_DEVICE_REMOVED) ? _d3dDevice->GetDeviceRemovedReason() : hr);
+            OutputDebugStringA(buff);
+#endif
+
+            HandleDeviceLost();
         }
-
-        return true;
-    }
-
-    void D3D12Graphics::Frame()
-    {
-
     }
 
     bool D3D12Graphics::InitializeCaps()
@@ -436,6 +432,11 @@ namespace Alimer
         }
 
         return true;
+    }
+
+    void D3D12Graphics::HandleDeviceLost()
+    {
+        // TODO
     }
 
     void D3D12Graphics::CreateSwapchain(const SharedPtr<Window>& window)

@@ -29,24 +29,43 @@
 namespace Alimer
 {
     class VulkanGraphics;
-    class VulkanPipelineLayout;
 
-    /// D3D12 Shader implementation.
-    class VulkanShader final : public Shader
+    static constexpr uint32_t MaxSetsPerDescriptorPool = 16;
+
+    class VulkanDescriptorSetAllocator final
     {
     public:
-        /// Constructor.
-        VulkanShader(VulkanGraphics* graphics, const ShaderStageDescription& desc);
-        /// Constructor.
-        VulkanShader(VulkanGraphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
+        VulkanDescriptorSetAllocator(VulkanGraphics* graphics, const DescriptorSetLayout &layout);
+        ~VulkanDescriptorSetAllocator();
 
-        ~VulkanShader() override;
+        std::pair<VkDescriptorSet, bool> Find(uint64_t hash);
 
-        VkShaderModule GetVkShaderModule(ShaderStage stage) const;
-        VulkanPipelineLayout* GetPipelineLayout() const { return _pipelineLayout; }
+        VkDescriptorSetLayout GetVkHandle() const { return _vkHandle; }
+
     private:
         VkDevice _logicalDevice;
-        VkShaderModule _shaderModules[static_cast<unsigned>(ShaderStage::Count)] = {};
-        VulkanPipelineLayout* _pipelineLayout = nullptr;
+        VkDescriptorSetLayout _vkHandle = VK_NULL_HANDLE;
+        std::vector<VkDescriptorPoolSize> _poolSize;
+        std::vector<VkDescriptorPool> _pools;
+    };
+
+    class VulkanPipelineLayout final
+    {
+    public:
+        VulkanPipelineLayout(VulkanGraphics* graphics, const ResourceLayout &layout);
+        ~VulkanPipelineLayout();
+
+        const ResourceLayout& GetResourceLayout() const { return _layout; }
+        VkPipelineLayout GetVkHandle() const { return _vkHandle; }
+        VulkanDescriptorSetAllocator* GetAllocator(uint32_t set) const
+        {
+            return _setAllocators[set];
+        }
+
+    private:
+        VkDevice _logicalDevice;
+        VkPipelineLayout _vkHandle = VK_NULL_HANDLE;
+        ResourceLayout _layout;
+        VulkanDescriptorSetAllocator* _setAllocators[MaxDescriptorSets] = {};
     };
 }

@@ -29,6 +29,8 @@
 namespace Alimer
 {
 	class VulkanCommandBuffer;
+    class VulkanDescriptorSetAllocator;
+    class VulkanPipelineLayout;
 
 	struct VulkanFramebuffer
 	{
@@ -51,7 +53,6 @@ namespace Alimer
         bool WaitIdle() override;
         bool Initialize(const SharedPtr<Window>& window) override;
 		SharedPtr<Texture> AcquireNextImage() override;
-		bool Present() override;
         void Frame() override;
 
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
@@ -72,7 +73,9 @@ namespace Alimer
 
 		VkRenderPass GetVkRenderPass(const RenderPassDescriptor& descriptor, uint64_t hash);
 		VulkanFramebuffer* GetFramebuffer(VkRenderPass renderPass, const RenderPassDescriptor& descriptor, uint64_t hash);
-        VkPipelineLayout RequestPipelineLayout(const ResourceLayout &layout);
+
+        VulkanDescriptorSetAllocator* RequestDescriptorSetAllocator(const DescriptorSetLayout &layout);
+        VulkanPipelineLayout* RequestPipelineLayout(const ResourceLayout &layout);
 
         uint32_t GetQueueFamilyIndex(VkQueueFlagBits queueFlags);
         VkCommandPool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags);
@@ -120,6 +123,7 @@ namespace Alimer
 		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
 		std::unordered_map<uint64_t, VulkanFramebuffer*> _framebufferCache;
 
-        Util::HashMap<VkPipelineLayout> _pipelineLayouts;
+        Util::HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
+        Util::HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;
 	};
 }

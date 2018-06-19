@@ -24,7 +24,9 @@
 
 #include "../Graphics/Types.h"
 #include "../Resource/Resource.h"
+#include <string>
 #include <vector>
+#include <map>
 
 namespace Alimer
 {
@@ -36,10 +38,35 @@ namespace Alimer
         const char* entryPoint;
     };
 
+    enum class BindingType
+    {
+        UniformBuffer,
+        SampledTexture,
+        Sampler,
+        StorageBuffer
+    };
+
+    /*struct ShaderResourceParameter
+    {
+        uint32_t set;
+        uint32_t binding;
+        BindingType type;
+        std::string name;
+    };*/
+
+    struct DescriptorSetLayout
+    {
+        uint32_t uniformBufferMask = 0;
+        uint32_t stages = 0;
+    };
+
     struct ResourceLayout
     {
         uint32_t attributeMask = 0;
         uint32_t renderTargetMask = 0;
+        DescriptorSetLayout sets[MaxDescriptorSets] = {};
+        uint32_t descriptorSetMask = 0;
+        //std::map<std::string, ShaderResourceParameter> resources;
     };
 
     /// Defines a shader (module/function) class.
