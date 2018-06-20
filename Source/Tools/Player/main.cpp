@@ -35,14 +35,6 @@ namespace Alimer
 
     private:
         void Initialize() override;
-        void OnRender(const SharedPtr<Texture>& frameTexture) override;
-
-    private:
-       
-        SharedPtr<GpuBuffer> _uboBuffer;
-        SharedPtr<PipelineState> _renderPipeline;
-
-        
     };
 
     class Settings
@@ -88,51 +80,18 @@ namespace Alimer
 
     RuntimeApplication::~RuntimeApplication()
     {
-        _vertexBuffer.Reset();
-        _renderPipeline.Reset();
     }
+
+    RenderableHandle _triange;
 
     void RuntimeApplication::Initialize()
     {
-        const float aspectRatio = _window->GetAspectRatio();
-        _camera.viewMatrix = glm::mat4(1.0f);
-        _camera.projectionMatrix = glm::mat4(1.0f);
-
-        GpuBufferDescription uboBufferDesc = {};
-        uboBufferDesc.usage = BufferUsage::Uniform;
-        uboBufferDesc.elementCount = 3;
-        uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
-        _uboBuffer = _graphics->CreateBuffer(uboBufferDesc, &_camera);
-
-        RenderPipelineDescriptor renderPipelineDescriptor;
-        renderPipelineDescriptor.shader = _graphics->CreateShader("color.vert", "color.frag");
-        renderPipelineDescriptor.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
-        renderPipelineDescriptor.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
-        renderPipelineDescriptor.vertexDescriptor.attributes[1].offset = 12;
-        renderPipelineDescriptor.vertexDescriptor.layouts[0].stride = _vertexBuffer->GetElementSize();
-        _renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);
+        _triange = MakeAbstractHandle<Renderable, TriangleRenderable>();
 
         // Create scene
         auto triangleEntity = _scene->CreateEntity();
         triangleEntity->AddComponent<TransformComponent>();
-        triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
-    }
-
-    void RuntimeApplication::OnRender(const SharedPtr<Texture>& frameTexture)
-    {
-        /*SharedPtr<CommandBuffer> commandBuffer = _graphics->GetCommandQueue()->CreateCommandBuffer();
-
-        RenderPassDescriptor passDescriptor = {};
-        passDescriptor.colorAttachments[0].texture = frameTexture;
-        passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
-        commandBuffer->BeginRenderPass(passDescriptor);
-        commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
-        commandBuffer->SetPipeline(_renderPipeline);
-        commandBuffer->SetUniformBuffer(0, 0, _uboBuffer.Get());
-        commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
-        commandBuffer->EndRenderPass();
-
-        commandBuffer->Commit();*/
+        triangleEntity->AddComponent<RenderableComponent>()->renderable = _triange;
     }
 }
 

@@ -46,6 +46,7 @@ namespace Alimer
 
 	Scene::~Scene()
 	{
+        _perCameraUboBuffer.Reset();
         _entityManager.ResetGroups();
 	}
 
@@ -114,11 +115,28 @@ namespace Alimer
 
     void Scene::Render(CommandBuffer* commandBuffer)
     {
+        _camera.viewMatrix = glm::mat4(1.0f);
+        _camera.projectionMatrix = glm::mat4(1.0f);
+
+        if (_perCameraUboBuffer.IsNull())
+        {
+            GpuBufferDescription uboBufferDesc = {};
+            uboBufferDesc.usage = BufferUsage::Uniform;
+            uboBufferDesc.elementCount = 3;
+            uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
+            _perCameraUboBuffer = gGraphics().CreateBuffer(uboBufferDesc, &_camera);
+        }
+
+        // Gather visibles.
         _visibleSet.clear();
         GatherVisibleRenderables(_visibleSet, _renderables);
 
+        // Bind per camera UBO
+        commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
+
         for (auto &visible : _visibleSet)
         {
+            visible.renderable->Render(commandBuffer);
             //visible.renderable->Render(context, vis.transform, queue);
         }
     }

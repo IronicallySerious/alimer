@@ -33,6 +33,8 @@ namespace Alimer
     {
     public:
         virtual ~Renderable() = default;
+
+        virtual void Render(CommandBuffer* commandBuffer) = 0;
     };
 
     using RenderableHandle = IntrusivePtr<Renderable>;
@@ -42,12 +44,15 @@ namespace Alimer
         RenderableHandle renderable;
     };
 
-    class TriangleRenderable : public Renderable
+    class TriangleRenderable final : public Renderable
     {
     public:
         TriangleRenderable();
         virtual ~TriangleRenderable() = default;
+
+        void Render(CommandBuffer* commandBuffer) override;
     private:
         SharedPtr<GpuBuffer> _vertexBuffer;
+        SharedPtr<PipelineState> _renderPipeline;
     };
 }

@@ -33,6 +33,8 @@ namespace Alimer
             Color color;
         };
 
+        const float aspectRatio = 800.0f / 600.0f;
+
         Vertex triangleVertices[] =
         {
             { glm::vec3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f) },
@@ -44,6 +46,21 @@ namespace Alimer
         vertexBufferDesc.usage = BufferUsage::Vertex;
         vertexBufferDesc.elementCount = 3;
         vertexBufferDesc.elementSize = sizeof(Vertex);
-        _vertexBuffer = _graphics->CreateBuffer(vertexBufferDesc, triangleVertices);
+        _vertexBuffer = gGraphics().CreateBuffer(vertexBufferDesc, triangleVertices);
+
+        RenderPipelineDescriptor renderPipelineDescriptor;
+        renderPipelineDescriptor.shader = gGraphics().CreateShader("color.vert", "color.frag");
+        renderPipelineDescriptor.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
+        renderPipelineDescriptor.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
+        renderPipelineDescriptor.vertexDescriptor.attributes[1].offset = 12;
+        renderPipelineDescriptor.vertexDescriptor.layouts[0].stride = _vertexBuffer->GetElementSize();
+        _renderPipeline = gGraphics().CreateRenderPipelineState(renderPipelineDescriptor);
+    }
+
+    void TriangleRenderable::Render(CommandBuffer* commandBuffer)
+    {
+        commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
+        commandBuffer->SetPipeline(_renderPipeline);
+        commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
     }
 }

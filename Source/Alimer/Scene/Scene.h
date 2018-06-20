@@ -85,6 +85,7 @@ namespace Alimer
         };
 
         PerCameraCBuffer _camera;
+        SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
         VisibilitySet _visibleSet;
 
