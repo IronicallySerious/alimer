@@ -20,13 +20,30 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/ComponentSystem.h"
-#include "../Scene/Entity.h"
-#include "../Core/Log.h"
-
+#include "../Scene/Scene.h"
+#include "../Scene/TransformComponent.h"
+#include "../Scene/Renderable.h"
 namespace Alimer
 {
-    ComponentSystem::ComponentSystem()
+    TriangleRenderable::TriangleRenderable()
     {
+        struct Vertex
+        {
+            glm::vec3 position;
+            Color color;
+        };
+
+        Vertex triangleVertices[] =
+        {
+            { glm::vec3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f) },
+            { glm::vec3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
+            { glm::vec3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
+        };
+
+        GpuBufferDescription vertexBufferDesc = {};
+        vertexBufferDesc.usage = BufferUsage::Vertex;
+        vertexBufferDesc.elementCount = 3;
+        vertexBufferDesc.elementSize = sizeof(Vertex);
+        _vertexBuffer = _graphics->CreateBuffer(vertexBufferDesc, triangleVertices);
     }
 }

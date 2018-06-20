@@ -20,34 +20,74 @@
 // THE SOFTWARE.
 //
 
-// Adopted from EntityX: https://github.com/alecthomas/entityx
-// Licensed under MIT: https://github.com/alecthomas/entityx/blob/master/COPYING
-
 #include "../Scene/Entity.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    const Entity::Id Entity::INVALID;
+    uint32_t ComponentIDMapping::_ids;
+    uint32_t ComponentIDMapping::_groupIds;
 
-	void Entity::SetName(const std::string& name)
-	{
-		_name = name;
-	}
+    void EntityDeleter::operator()(Entity *entity)
+    {
+        entity->GetManager()->DeleteEntity(entity);
+    }
+
+    void Entity::SetName(const std::string& name)
+    {
+        _name = name;
+    }
 
     EntityManager::EntityManager(EventManager &eventManager)
         : _eventManager(eventManager)
-        , _indexCounter(0)
     {
     }
 
     EntityManager::~EntityManager()
     {
-        Reset();
     }
 
-    void EntityManager::Reset()
+    EntityHandle EntityManager::CreateEntity()
     {
+        EntityHandle entity = EntityHandle(_pool.Allocate(this));
+        _entities.push_back(entity.Get());
+        _eventManager.Emit<EntityCreatedEvent>(entity);
+        return entity;
+    }
 
+    void EntityManager::DeleteEntity(Entity *entity)
+    {
+        auto &components = entity->GetComponents();
+        for (auto &component : components)
+        {
+            if (component.second)
+                FreeComponent(component.first, component.second);
+        }
+
+        _pool.Free(entity);
+
+        auto itr = std::find(std::begin(_entities), std::end(_entities), entity);
+        auto offset = size_t(itr - std::begin(_entities));
+        if (offset != _entities.size() - 1)
+        {
+            std::swap(_entities[offset], _entities.back());
+        }
+        _entities.pop_back();
+    }
+
+
+    void EntityManager::FreeComponent(uint32_t id, ComponentBase *component)
+    {
+        _components[id]->FreeComponent(component);
+        for (auto &groupId : _componentToGroups[id])
+        {
+            _groups[groupId]->RemoveComponent(component);
+        }
+    }
+
+    void EntityManager::ResetGroups()
+    {
+        _componentToGroups.clear();
+        _groups.clear();
     }
 }

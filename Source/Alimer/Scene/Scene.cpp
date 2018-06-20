@@ -21,23 +21,105 @@
 //
 
 #include "../Scene/Scene.h"
-#include "../Core/Log.h"
+#include "../Scene/TransformComponent.h"
+#include "../Scene/CameraComponent.h"
+#include "../Scene/Renderable.h"
 
+#include "../Core/Log.h"
+using namespace std;
 namespace Alimer
 {
 	Scene::Scene()
-        : entities(events)
+        : _entityManager(events)
+        , _spatials(_entityManager.GetComponentGroup<TransformComponent>())
+        , _cameras(_entityManager.GetComponentGroup<CameraComponent, TransformComponent>())
+        , _renderables(_entityManager.GetComponentGroup<TransformComponent, RenderableComponent>())
 	{
+        _defaultCamera = CreateEntity();
+        _defaultCamera->AddComponent<TransformComponent>();
+        _defaultCamera->AddComponent<CameraComponent>();
+        //_defaultCamera->GetComponent<CameraComponent>().setViewport(getDefaultViewport());
+        //_defaultCamera->AddComponent<AudioListener>();
+
+        _activeCamera = _defaultCamera;
 	}
 
 	Scene::~Scene()
 	{
+        _entityManager.ResetGroups();
 	}
 
-    Entity Scene::CreateEntity()
+    EntityHandle Scene::CreateEntity()
     {
-        Entity entity =  entities.CreateEntity();
-        _pendingEntities.push_back(entities.CreateEntity());
+        EntityHandle entity = _entityManager.CreateEntity();
+        _pendingEntities.push_back(_entityManager.CreateEntity());
         return entity;
+    }
+
+    EntityManager &Scene::GetEntityManager()
+    {
+        return _entityManager;
+    }
+
+    void Scene::UpdateCachedTransforms()
+    {
+        const glm::mat4 &parentTransform = glm::mat4(1.0f);
+
+        for (auto &s : _spatials)
+        {
+            TransformComponent *transform;
+            tie(transform) = s;
+            ComputeTransform(
+                transform->transform.translation, transform->transform.rotation, transform->transform.scale,
+                transform->worldTransform,
+                parentTransform);
+            //std::tie(aabb, cached_transform, timestamp) = s;
+            //if (transform->lastTimestamp != *transform->currentTimestamp)
+            //{
+            //    transform->lastTimestamp = *transform->currentTimestamp;
+            //}
+        }
+
+        // Update camera transforms.
+        for (auto &c : _cameras)
+        {
+            CameraComponent *camera;
+            TransformComponent *transform;
+            tie(camera, transform) = c;
+            camera->view = glm::inverse(transform->worldTransform);
+            camera->projection = glm::perspective(camera->fovy, camera->aspect, camera->znear, camera->zfar);
+        }
+    }
+
+    // TODO: Add frustum
+    template <typename T>
+    static void GatherVisibleRenderables(VisibilitySet &list, const T &objects)
+    {
+        for (auto &o : objects)
+        {
+            TransformComponent *transform = get<0>(o);
+            RenderableComponent *renderable = get<1>(o);
+
+            if (transform)
+            {
+               // if (frustum.intersects_fast(transform->world_aabb))
+                    list.push_back({ renderable->renderable.Get(), transform });
+            }
+            else
+            {
+                list.push_back({ renderable->renderable.Get(), nullptr });
+            }
+        }
+    }
+
+    void Scene::Render(CommandBuffer* commandBuffer)
+    {
+        _visibleSet.clear();
+        GatherVisibleRenderables(_visibleSet, _renderables);
+
+        for (auto &visible : _visibleSet)
+        {
+            //visible.renderable->Render(context, vis.transform, queue);
+        }
     }
 }

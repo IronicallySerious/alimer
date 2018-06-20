@@ -27,8 +27,21 @@ namespace Alimer
 			IsUnix = false;
 			IsWindows = true;
 #elif NET_STANDARD
-			IsUnix = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-			IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                PlatformType = PlatformType.Windows;
+                PlatformFamily = PlatformFamily.Desktop;
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                PlatformType = PlatformType.Linux;
+                PlatformFamily = PlatformFamily.Desktop;
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                PlatformType = PlatformType.MacOS;
+                PlatformFamily = PlatformFamily.Desktop;
+            }
 #else
 
             switch (Environment.OSVersion.Platform)

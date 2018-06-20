@@ -20,16 +20,18 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Component.h"
+#include "../Math/MathUtil.h"
+using namespace glm;
 
 namespace Alimer
 {
-    Component::Component()
-        : _enabled(true)
+    void ComputeTransform(vec3 translation, quat rotation, vec3 scale, mat4 &world, const mat4 &parent)
     {
-    }
+        mat4 S = glm::scale(scale);
+        mat4 R = glm::mat4_cast(rotation);
+        mat4 T = glm::translate(translation);
 
-    Component::~Component()
-    {
+        mat4 model = R * S;
+        world = parent * T * model;
     }
 }

@@ -62,7 +62,6 @@ macro (define_engine_source_files)
 			Graphics/GraphicsImpl.h
 		)
 		list (APPEND HEADER_FILES ${_files})
-        message("PATH ${path}")
 		# Install them
 		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
 		# Get source files

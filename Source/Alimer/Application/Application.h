@@ -83,6 +83,8 @@ namespace Alimer
 		/// Resume the main execution loop.
 		void Resume();
 
+        void RenderFrame(const SharedPtr<Texture>& frameTexture, double frameTime, double elapsedTime);
+
 		SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
 
 		inline ResourceManager* GetResources() { return &_resources; }
@@ -98,6 +100,8 @@ namespace Alimer
     private:
         void PlatformConstruct();
         bool InitializeBeforeRun();
+        void UpdateScene(double frameTime, double elapsedTime);
+        void RenderScene(const SharedPtr<Texture>& frameTexture);
 
 	protected:
         /// Called after setup and engine initialization with all modules initialized.
@@ -130,7 +134,7 @@ namespace Alimer
 		UniquePtr<Audio> _audio;
 
 		/// Current scene.
-		Scene* _scene = nullptr;
+		Scene* _scene;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

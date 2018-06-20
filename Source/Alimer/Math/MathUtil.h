@@ -23,7 +23,11 @@
 #pragma once
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
+#include "glm/gtc/quaternion.hpp"
+#include "glm/gtx/transform.hpp"
+#include "glm/gtc/packing.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../AlimerConfig.h"
@@ -182,6 +186,8 @@ namespace Alimer
 
     /// Round value up.
     template <class T> inline int CeilToInt(T x) { return static_cast<int>(ceil(x)); }
+
+    void ComputeTransform(glm::vec3 translation, glm::quat rotation, glm::vec3 scale, glm::mat4 &world, const glm::mat4 &parent);
 }
 
 #ifdef _MSC_VER

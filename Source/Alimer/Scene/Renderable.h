@@ -20,16 +20,34 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Component.h"
+#pragma once
+
+#include "../Math/MathUtil.h"
+#include "../Util/Intrusive.h"
+#include "../Scene/Entity.h"
+#include "../Graphics/Graphics.h"
 
 namespace Alimer
 {
-    Component::Component()
-        : _enabled(true)
+    class Renderable : public IntrusivePtrEnabled<Renderable>
     {
-    }
+    public:
+        virtual ~Renderable() = default;
+    };
 
-    Component::~Component()
+    using RenderableHandle = IntrusivePtr<Renderable>;
+
+    struct RenderableComponent : ComponentBase
     {
-    }
+        RenderableHandle renderable;
+    };
+
+    class TriangleRenderable : public Renderable
+    {
+    public:
+        TriangleRenderable();
+        virtual ~TriangleRenderable() = default;
+    private:
+        SharedPtr<GpuBuffer> _vertexBuffer;
+    };
 }

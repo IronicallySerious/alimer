@@ -55,7 +55,14 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonDeserializer.h"
 
+// Scene
+#include "Scene/Entity.h"
+#include "Scene/TransformComponent.h"
+#include "Scene/CameraComponent.h"
+#include "Scene/Renderable.h"
+
 // Application
 #include "Application/Application.h"
 #include "Application/Window.h"
 #include "Application/Main.h"
+

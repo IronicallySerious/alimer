@@ -20,161 +20,206 @@
 // THE SOFTWARE.
 //
 
-// Adopted from EntityX: https://github.com/alecthomas/entityx
-// Licensed under MIT: https://github.com/alecthomas/entityx/blob/master/COPYING
-
 #pragma once
 
+#include <tuple>
+#include <vector>
+#include <memory>
+#include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
 #include "../Core/Event.h"
 #include "../Scene/Component.h"
-#include <bitset>
-#include <vector>
+#include "../Util/Intrusive.h"
+#include "../Util/ObjectPool.h"
+#include <assert.h>
 
 namespace Alimer
 {
-    class EntityManager;
-
-    namespace Detail
+    struct ComponentBase
     {
-        /**
-        * Provides a resizable, semi-contiguous pool of memory for constructing
-        * objects in. Pointers into the pool will be invalided only when the pool is
-        * destroyed.
-        *
-        * The semi-contiguous nature aims to provide cache-friendly iteration.
-        *
-        * Lookups are O(1).
-        * Appends are amortized O(1).
-        */
-        class BasePool {
-        public:
-            explicit BasePool(std::size_t element_size, std::size_t chunk_size = 8192)
-                : element_size_(element_size), chunk_size_(chunk_size), capacity_(0) {}
-            virtual ~BasePool();
+    };
 
-            std::size_t size() const { return size_; }
-            std::size_t capacity() const { return capacity_; }
-            std::size_t chunks() const { return blocks_.size(); }
-
-            /// Ensure at least n elements will fit in the pool.
-            inline void expand(std::size_t n) {
-                if (n >= size_) {
-                    if (n >= capacity_) reserve(n);
-                    size_ = n;
-                }
-            }
-
-            inline void reserve(std::size_t n) {
-                while (capacity_ < n) {
-                    char *chunk = new char[element_size_ * chunk_size_];
-                    blocks_.push_back(chunk);
-                    capacity_ += chunk_size_;
-                }
-            }
-
-            inline void *get(std::size_t n) {
-                assert(n < size_);
-                return blocks_[n / chunk_size_] + (n % chunk_size_) * element_size_;
-            }
-
-            inline const void *get(std::size_t n) const {
-                assert(n < size_);
-                return blocks_[n / chunk_size_] + (n % chunk_size_) * element_size_;
-            }
-
-            virtual void destroy(std::size_t n) = 0;
-
-        protected:
-            std::vector<char *> blocks_;
-            std::size_t element_size_;
-            std::size_t chunk_size_;
-            std::size_t size_ = 0;
-            std::size_t capacity_;
-        };
-
-
-        /**
-        * Implementation of BasePool that provides type-"safe" deconstruction of
-        * elements in the pool.
-        */
-        template <typename T, std::size_t ChunkSize = 8192>
-        class Pool : public BasePool {
-        public:
-            Pool() : BasePool(sizeof(T), ChunkSize) {}
-            virtual ~Pool() {
-                // Component destructors *must* be called by owner.
-            }
-
-            virtual void destroy(std::size_t n) override {
-                assert(n < size_);
-                T *ptr = static_cast<T*>(get(n));
-                ptr->~T();
-            }
-        };
-    }
-
-    static constexpr uint32_t MaxComponents = 64u;
-
-    /// Defines a Entity class.
-    class ALIMER_API Entity final 
+    struct ComponentIDMapping
     {
     public:
-        struct Id {
-            Id() : _id(0) {}
-            explicit Id(uint64_t id) : _id(id) {}
-            Id(uint32_t index, uint32_t version) : _id(uint64_t(index) | uint64_t(version) << 32UL) {}
+        template <typename T>
+        static uint32_t GetId()
+        {
+            static uint32_t id = _ids++;
+            return id;
+        }
 
-            uint64_t id() const { return _id; }
+        template <typename... Ts>
+        static uint32_t GetGroupId()
+        {
+            static uint32_t id = _groupIds++;
+            return id;
+        }
 
-            bool operator == (const Id &other) const { return _id == other._id; }
-            bool operator != (const Id &other) const { return _id != other._id; }
-            bool operator < (const Id &other) const { return _id < other._id; }
+    private:
+        static uint32_t _ids;
+        static uint32_t _groupIds;
+    };
 
-            uint32_t index() const { return _id & 0xffffffffUL; }
-            uint32_t version() const { return _id >> 32; }
+    class Entity;
 
-        private:
-            friend class EntityManager;
+    /// Defines a base ComponentSystem.
+    class EntityGroupBase
+    {
+    public:
+        /// Destructor.
+        virtual ~EntityGroupBase() = default;
 
-            uint64_t _id;
+        virtual void AddEntity(Entity &entity) = 0;
+        virtual void RemoveComponent(ComponentBase *component) = 0;
+    };
+
+    template <typename... T>
+    class EntityGroup : public EntityGroupBase
+    {
+    public:
+        void AddEntity(Entity &entity) override final
+        {
+            if (HasAllComponents<T...>(entity))
+            {
+                _entities.push_back(&entity);
+                _groups.push_back(std::make_tuple(entity.GetComponent<T>()...));
+            }
+        }
+
+        void RemoveComponent(ComponentBase *component) override final
+        {
+        }
+
+        std::vector<std::tuple<T *...>> &GetGroups()
+        {
+            return _groups;
+        }
+
+    private:
+        std::vector<std::tuple<T *...>> _groups;
+        std::vector<Entity *> _entities;
+
+        template <size_t Index>
+        struct HasComponentTraits
+        {
+            template <typename T>
+            static bool HasComponent(const T &t, const ComponentBase *component)
+            {
+                return static_cast<ComponentBase *>(std::get<Index>(t)) == component
+                    || HasComponentTraits<Index - 1>::HasComponent(t, component);
+            }
         };
 
-        /// Id of an invalid Entity.
-        static const Id INVALID;
+        template <>
+        struct HasComponentTraits<0>
+        {
+            template <typename T>
+            static bool HasComponent(const T &t, const ComponentBase *component)
+            {
+                return static_cast<ComponentBase *>(std::get<0>(t)) == component;
+            }
+        };
 
+        template <typename... Us>
+        struct HasAllComponentsTraits;
+
+        template <typename U, typename... Us>
+        struct HasAllComponentsTraits<U, Us...>
+        {
+            static bool HasComponent(const Entity &entity)
+            {
+                return entity.HasComponent(ComponentIDMapping::GetId<U>())
+                    && HasAllComponentsTraits<Us...>::HasComponent(entity);
+            }
+        };
+
+        template <typename U>
+        struct HasAllComponentsTraits<U>
+        {
+            static bool HasComponent(const Entity &entity)
+            {
+                return entity.HasComponent(ComponentIDMapping::GetId<U>());
+            }
+        };
+
+        template <typename... Us>
+        bool HasAllComponents(const Entity &entity)
+        {
+            return HasAllComponentsTraits<Us...>::HasComponent(entity);
+        }
+
+        template <typename... Us>
+        static bool HasComponent(const std::tuple<Us *...> &t, const ComponentBase *component)
+        {
+            return HasComponentTraits<sizeof...(Us) - 1>::HasComponent(t, component);
+        }
+    };
+
+    class EntityManager;
+    struct EntityDeleter
+    {
+        void operator()(Entity *entity);
+    };
+
+    /// Defines a Entity class.
+    class ALIMER_API Entity final : public IntrusivePtrEnabled<Entity, EntityDeleter>
+    {
+    public:
         Entity() = default;
-        Entity(EntityManager *manager, Entity::Id id) : _manager(manager), _id(id) {}
+        Entity(EntityManager *manager) : _manager(manager) {}
         Entity(const Entity &other) = default;
         Entity &operator = (const Entity &other) = default;
 
-        /**
-        * Check if Entity handle is invalid.
-        */
-        operator bool() const {
-            return IsValid();
+        bool HasComponent(uint32_t id) const
+        {
+            auto it = _components.find(id);
+            return it != std::end(_components) && it->second;
         }
 
-        bool operator == (const Entity &other) const {
-            return other._manager == _manager && other._id == _id;
+        template <typename T>
+        bool HasComponent() const
+        {
+            auto it = _components.find(ComponentIDMapping::GetId<T>());
+            return it != std::end(_components);
         }
 
-        bool operator != (const Entity &other) const {
-            return !(other == *this);
+        template <typename T>
+        T *GetComponent()
+        {
+            auto it = _components.find(ComponentIDMapping::GetId<T>());
+            if (it == std::end(_components))
+                return nullptr;
+
+            return static_cast<T *>(it->second);
         }
 
-        bool operator < (const Entity &other) const {
-            return other._id < _id;
+        template <typename T>
+        const T *GetComponent() const
+        {
+            auto it = _components.find(ComponentIDMapping::GetId<T>());
+            if (it == std::end(_components))
+                return nullptr;
+
+            return static_cast<T *>(it->second);
         }
 
-        /**
-        * Is this Entity handle valid?
-        *
-        * In older versions of EntityX, there were no guarantees around entity
-        * validity if a previously allocated entity slot was reassigned. That is no
-        * longer the case: if a slot is reassigned, old Entity::Id's will be
-        * invalid.
-        */
-        bool IsValid() const;
+        template <typename T, typename... Args>
+        T *AddComponent(Args&&...);
+
+        template <typename T>
+        void RemoveComponent();
+
+        std::unordered_map<uint32_t, ComponentBase*> &GetComponents()
+        {
+            return _components;
+        }
+
+        EntityManager *GetManager() const
+        {
+            return _manager;
+        }
 
         /// Gets the name of this object.
         std::string GetName() const { return _name; }
@@ -184,110 +229,172 @@ namespace Alimer
 
     private:
         EntityManager* _manager = nullptr;
-        Entity::Id _id = INVALID;
         std::string _name;
+        std::unordered_map<uint32_t, ComponentBase*> _components;
     };
+
+    using EntityHandle = IntrusivePtr<Entity, EntityDeleter>;
 
     /**
     * Emitted when an entity is added to the system.
     */
     struct EntityCreatedEvent : public Event<EntityCreatedEvent>
     {
-        explicit EntityCreatedEvent(Entity entity) : entity(entity) {}
+        explicit EntityCreatedEvent(EntityHandle entity) : entity(entity) {}
         virtual ~EntityCreatedEvent() = default;
 
-        Entity entity;
+        EntityHandle entity;
+    };
+
+    class ComponentAllocatorBase
+    {
+    public:
+        virtual ~ComponentAllocatorBase() = default;
+        virtual void FreeComponent(ComponentBase *component) = 0;
+    };
+
+    template <typename T>
+    struct ComponentAllocator final : public ComponentAllocatorBase
+    {
+        ObjectPool<T> pool;
+
+        void FreeComponent(ComponentBase *component) override
+        {
+            pool.Free(static_cast<T*>(component));
+        }
     };
 
     class ALIMER_API EntityManager final
     {
     public:
-        using ComponentMask = std::bitset<MaxComponents>;
-
         explicit EntityManager(EventManager &eventManager);
         virtual ~EntityManager();
-
-        /// Destroy all entities and reset the EntityManager.
-        void Reset();
 
         /**
         * Create a new Entity.
         *
         * Emits EntityCreatedEvent.
         */
-        Entity CreateEntity()
+        EntityHandle CreateEntity();
+
+        void DeleteEntity(Entity *entity);
+
+        template <typename... T>
+        std::vector<std::tuple<T*...>> &GetComponentGroup()
         {
-            uint32_t index, version;
-            if (_freeList.empty())
+            uint32_t groupId = ComponentIDMapping::GetGroupId<T...>();
+            auto itr = _groups.find(groupId);
+            if (itr == std::end(_groups))
             {
-                index = _indexCounter++;
-                AccomodateEntity(index);
-                version = _entityVersion[index] = 1;
-            }
-            else {
-                index = _freeList.back();
-                _freeList.pop_back();
-                version = _entityVersion[index];
-            }
+                RegisterGroup<T...>(groupId);
+                auto tmp = _groups.insert(std::make_pair(groupId, std::unique_ptr<EntityGroupBase>(new EntityGroup<T...>())));
+                itr = tmp.first;
 
-            Entity entity(this, Entity::Id(index, version));
-            _eventManager.Emit<EntityCreatedEvent>(entity);
-            return entity;
-        }
-
-        /// Number of managed entities.
-        size_t Size() const { return _entityComponentMask.size() - _freeList.size(); }
-
-        /// Current entity capacity.
-        size_t Capacity() const { return _entityComponentMask.size(); }
-
-        /**
-        * Return true if the given entity ID is still valid.
-        */
-        bool IsValid(Entity::Id id) const {
-            return
-                id.index() < _entityVersion.size()
-                && _entityVersion[id.index()] == id.version();
-        }
-
-
-    private:
-        inline void AccomodateEntity(uint32_t index)
-        {
-            if (_entityComponentMask.size() <= index)
-            {
-                _entityComponentMask.resize(index + 1);
-                _entityVersion.resize(index + 1);
-                for (Detail::BasePool *pool : _componentPools)
+                auto *group = static_cast<EntityGroup<T...> *>(itr->second.get());
+                for (auto &entity : _entities)
                 {
-                    if (pool) pool->expand(index + 1);
+                    group->AddEntity(*entity);
                 }
             }
+
+            auto *group = static_cast<EntityGroup<T...> *>(itr->second.get());
+            return group->GetGroups();
         }
+
+        template <typename T, typename... Args>
+        T *AllocateComponent(Entity &entity, Args&&... args)
+        {
+            uint32_t id = ComponentIDMapping::GetId<T>();
+            auto itr = _components.find(id);
+            if (itr == _components.end())
+            {
+                auto tmp = _components.insert(std::make_pair(id, std::unique_ptr<ComponentAllocatorBase>(new ComponentAllocator<T>)));
+                itr = tmp.first;
+            }
+
+            auto *allocator = static_cast<ComponentAllocator<T> *>(itr->second.get());
+            auto &component = entity.GetComponents()[id];
+            if (component)
+            {
+                allocator->FreeComponent(component);
+                component = allocator->pool.Allocate(std::forward<Args>(args)...);
+                for (auto &groupId : _componentToGroups[id])
+                    _groups[groupId]->AddEntity(entity);
+            }
+            else
+            {
+                component = allocator->pool.Allocate(std::forward<Args>(args)...);
+                for (auto &groupId : _componentToGroups[id])
+                    _groups[groupId]->AddEntity(entity);
+            }
+            return static_cast<T *>(component);
+        }
+
+        void FreeComponent(uint32_t id, ComponentBase *component);
+
+        void ResetGroups();
 
     private:
         EventManager& _eventManager;
 
-        uint32_t _indexCounter;
+        ObjectPool<Entity> _pool;
+        std::vector<Entity *> _entities;
+        std::unordered_map<uint32_t, std::unique_ptr<EntityGroupBase>> _groups;
+        std::unordered_map<uint32_t, std::unique_ptr<ComponentAllocatorBase>> _components;
+        std::unordered_map<uint32_t, std::unordered_set<uint32_t>> _componentToGroups;
 
-        // Each element in component_pools_ corresponds to a Pool for a Component.
-        // The index into the vector is the Component::family().
-        std::vector<Detail::BasePool*> _componentPools;
-        // Each element in component_helpers_ corresponds to a ComponentHelper for a Component type.
-        // The index into the vector is the Component::family().
-        //std::vector<BaseComponentHelper*> component_helpers_;
-        // Bitmask of components associated with each entity. Index into the vector is the Entity::Id.
-        std::vector<ComponentMask> _entityComponentMask;
-        // Vector of entity version numbers. Incremented each time an entity is destroyed
-        std::vector<uint32_t> _entityVersion;
-        // List of available entity slots.
-        std::vector<uint32_t> _freeList;
+        template <typename... Us>
+        struct GroupRegisters;
+
+        template <typename U, typename... Us>
+        struct GroupRegisters<U, Us...>
+        {
+            static void RegisterGroup(
+                std::unordered_map<uint32_t, std::unordered_set<uint32_t>> &groups,
+                uint32_t groupId)
+            {
+                groups[ComponentIDMapping::GetId<U>()].insert(groupId);
+                GroupRegisters<Us...>::RegisterGroup(groups, groupId);
+            }
+        };
+
+        template <typename U>
+        struct GroupRegisters<U>
+        {
+            static void RegisterGroup(
+                std::unordered_map<uint32_t, std::unordered_set<uint32_t>> &groups,
+                uint32_t groupId)
+            {
+                groups[ComponentIDMapping::GetId<U>()].insert(groupId);
+            }
+        };
+
+        template <typename U, typename... Us>
+        void RegisterGroup(uint32_t groupId)
+        {
+            GroupRegisters<U, Us...>::RegisterGroup(_componentToGroups, groupId);
+        }
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(EntityManager);
     };
 
-    inline bool Entity::IsValid() const {
-        return _manager && _manager->IsValid(_id);
+    template <typename T, typename... Args>
+    T *Entity::AddComponent(Args&&... args)
+    {
+        return _manager->AllocateComponent<T>(*this, std::forward<Args>(args)...);
+    }
+
+    template <typename T>
+    void Entity::RemoveComponent()
+    {
+        auto id = ComponentIDMapping::GetId<T>();
+        auto itr = components.find(id);
+        if (itr != std::end(components))
+        {
+            assert(itr->second);
+            pool->free_component(id, itr->second);
+            components.erase(itr);
+        }
     }
 }

@@ -20,16 +20,28 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Component.h"
+#pragma once
+
+#include "../Math/MathUtil.h"
+#include "../Scene/Entity.h"
 
 namespace Alimer
 {
-    Component::Component()
-        : _enabled(true)
+    struct Transform
     {
-    }
+        glm::vec3 scale = glm::vec3(1.0f);
+        glm::vec3 translation = glm::vec3(0.0f);
+        glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+    };
 
-    Component::~Component()
-    {
-    }
+	/// Defines a Transform Component.
+    struct TransformComponent : ComponentBase
+	{
+        Transform transform;
+
+        glm::mat4 worldTransform;
+
+        uint32_t lastTimestamp = ~0u;
+        const uint32_t *currentTimestamp = nullptr;
+	};
 }

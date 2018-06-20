@@ -25,82 +25,61 @@
 
 #pragma once
 #include <memory>
-#include <stdint.h>
-#include <unordered_map>
+#include <vector>
+#include <stdlib.h>
 
 namespace Alimer
 {
-	using Hash = uint64_t;
-
-	struct UnityHasher
-	{
-		inline size_t operator()(uint64_t hash) const
-		{
-			return hash;
-		}
-	};
-
-	template <typename T>
-	using HashMap = std::unordered_map<Hash, T, UnityHasher>;
-
-	class Hasher
-	{
-	public:
-		template <typename T>
-		inline void data(const T *data, size_t size)
-		{
-			size /= sizeof(*data);
-            for (size_t i = 0; i < size; i++)
+    template <typename T>
+    class ObjectPool
+    {
+    public:
+        template <typename... P>
+        T *Allocate(P &&... p)
+        {
+            if (_vacants.empty())
             {
-                _value = (_value * 0x100000001b3ull) ^ data[i];
+                size_t num_objects = 64u << _memory.size();
+                T *ptr = static_cast<T *>(malloc(num_objects * sizeof(T)));
+                if (!ptr)
+                    return nullptr;
+
+                for (size_t i = 0; i < num_objects; i++)
+                {
+                    _vacants.push_back(&ptr[i]);
+                }
+
+                _memory.emplace_back(ptr);
             }
-		}
 
-		inline void u32(uint32_t value)
-		{
-            _value = (_value * 0x100000001b3ull) ^ value;
-		}
+            T *ptr = _vacants.back();
+            _vacants.pop_back();
+            new (ptr) T(std::forward<P>(p)...);
+            return ptr;
+        }
 
-		inline void s32(int32_t value)
-		{
-			u32(uint32_t(value));
-		}
+        void Free(T *ptr)
+        {
+            ptr->~T();
+            _vacants.push_back(ptr);
+        }
 
-		inline void f32(float value)
-		{
-			union
-			{
-				float f32;
-				uint32_t u32;
-			} u;
-			u.f32 = value;
-			u32(u.u32);
-		}
+        void Clear()
+        {
+            _vacants.clear();
+            _memory.clear();
+        }
 
-		inline void u64(uint64_t value)
-		{
-			u32(value & 0xffffffffu);
-			u32(value >> 32);
-		}
+    private:
+        struct MallocDeleter
+        {
+            void operator()(T *ptr)
+            {
+                ::free(ptr);
+            }
+        };
 
-		inline void pointer(const void *ptr)
-		{
-			u64(reinterpret_cast<uintptr_t>(ptr));
-		}
-
-		inline void string(const char *str)
-		{
-			char c;
-			while ((c = *str++) != '\0')
-				u32(uint8_t(c));
-		}
-
-		inline Hash get() const
-		{
-			return _value;
-		}
-
-	private:
-		Hash _value = 0xcbf29ce484222325ull;
-	};
+        std::vector<T *> _vacants;
+        std::vector<std::unique_ptr<T, MallocDeleter>> _memory;
+    };
 }

@@ -22,26 +22,21 @@
 
 #pragma once
 
-#include "../Scene/Component.h"
+#include "../Math/MathUtil.h"
+#include "../Scene/Entity.h"
 
 namespace Alimer
 {
-	class SceneObject;
-
-	/// Defines a ComponentSystem.
-	class ComponentSystem 
+	/// Defines a Camera Component class.
+	struct CameraComponent : ComponentBase
 	{
-	protected:
-		/// Constructor.
-        ComponentSystem();
+        float fovy = (0.5f * glm::half_pi<float>());
+        float aspect = 16.0f / 9.0f;
+        float znear = 1.0f;
+        float zfar = 1000.0f;
 
-	public:
-		/// Destructor.
-		virtual ~ComponentSystem() = default;
-
-	protected:
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(ComponentSystem);
+        // Calculated values.
+        glm::mat4 view;
+        glm::mat4 projection;
 	};
 }

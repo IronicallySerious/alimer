@@ -53,7 +53,7 @@ namespace Alimer
         bool WaitIdle() override;
         bool Initialize(const SharedPtr<Window>& window) override;
 		SharedPtr<Texture> AcquireNextImage() override;
-        void Frame() override;
+        void EndFrame() override;
 
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
@@ -123,7 +123,7 @@ namespace Alimer
 		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
 		std::unordered_map<uint64_t, VulkanFramebuffer*> _framebufferCache;
 
-        Util::HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
-        Util::HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;
+        HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
+        HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;
 	};
 }

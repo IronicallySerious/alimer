@@ -28,128 +28,155 @@ namespace Alimer
     static Application* __appInstance = nullptr;
 
     Application::Application()
-		: _running(false)
-		, _paused(false)
-		, _headless(false)
+        : _running(false)
+        , _paused(false)
+        , _headless(false)
         , _settings{}
         , _log(new Logger())
-	{
+        , _scene(new Scene())
+    {
         PlatformConstruct();
         __appInstance = this;
-	}
+    }
 
     Application::~Application()
-	{
-		_paused = true;
-		_running = false;
+    {
+        _paused = true;
+        _running = false;
         __appInstance = nullptr;
-	}
+    }
 
     Application* Application::GetInstance()
     {
         return __appInstance;
     }
 
-	void Application::Tick()
-	{
-		if (_paused)
-		{
-			// When paused still update input logic.
-			_input->Update();
-		}
+    void Application::Tick()
+    {
+        if (_paused)
+        {
+            // When paused still update input logic.
+            _input->Update();
+        }
         else
         {
             //_time->Update();
             Render();
             _input->Update();
         }
-	}
+    }
 
-	void Application::Render()
-	{
-		if (_headless)
-			return;
+    void Application::Render()
+    {
+        if (_headless)
+            return;
 
-		// Acquire frame texture first.
-		SharedPtr<Texture> frameTexture = _graphics->AcquireNextImage();
-		// TODO: Render Scene.
+        // Acquire frame texture first.
+        SharedPtr<Texture> frameTexture = _graphics->AcquireNextImage();
+        RenderFrame(frameTexture, 0.0, 0.0);
+        // TODO: Render Scene.
         OnRender(frameTexture);
-        _graphics->Frame();
-	}
+        _graphics->EndFrame();
+    }
 
-	bool Application::InitializeBeforeRun()
-	{
-		SetCurrentThreadName("Main");
+    void Application::UpdateScene(double frameTime, double elapsedTime)
+    {
+        _scene->UpdateCachedTransforms();
+    }
 
-		if (!_headless)
-		{
-			_window = MakeWindow("Alimer", 800, 600);
+    void Application::RenderScene(const SharedPtr<Texture>& frameTexture)
+    {
+        // TODO: Add Scene renderer.
+        SharedPtr<CommandBuffer> commandBuffer = _graphics->GetCommandQueue()->CreateCommandBuffer();
+        RenderPassDescriptor passDescriptor = {};
+        passDescriptor.colorAttachments[0].texture = frameTexture;
+        passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
+        commandBuffer->BeginRenderPass(passDescriptor);
 
-			// Create and init graphics.
+        _scene->Render(commandBuffer.Get());
+        commandBuffer->EndRenderPass();
+        commandBuffer->Commit();
+    }
+
+    void Application::RenderFrame(const SharedPtr<Texture>& frameTexture, double frameTime, double elapsedTime)
+    {
+        UpdateScene(frameTime, elapsedTime);
+        RenderScene(frameTexture);
+    }
+
+    bool Application::InitializeBeforeRun()
+    {
+        SetCurrentThreadName("Main");
+
+        if (!_headless)
+        {
+            _window = MakeWindow("Alimer", 800, 600);
+
+            // Create and init graphics.
             //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
-			//_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
+            //_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
 
-			_graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
-			if (!_graphics->Initialize(_window))
-			{
-				ALIMER_LOGERROR("Failed to initialize Graphics.");
-				return false;
-			}
-		}
+            _graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
+            if (!_graphics->Initialize(_window))
+            {
+                ALIMER_LOGERROR("Failed to initialize Graphics.");
+                return false;
+            }
+        }
 
-		// Create per platform Input module.
-		_input = CreateInput();
+        // Create per platform Input module.
+        _input = CreateInput();
 
-		// Create per platform Audio module.
-		_audio = CreateAudio();
+        // Create per platform Audio module.
+        _audio = CreateAudio();
 
         // Initialize this instance and all systems.
         Initialize();
 
-		ALIMER_LOGINFO("Engine initialized with success.");
-		_running = true;
+        ALIMER_LOGINFO("Engine initialized with success.");
+        _running = true;
         //BeginRun();
 
         //_time.Reset();
 
         // Run the first time an update
         //InternalUpdate();
-		return true;
-	}
+        return true;
+    }
 
-	void Application::Exit()
-	{
-		_paused = true;
+    void Application::Exit()
+    {
+        _paused = true;
 
-		if (_running)
-		{
-			// TODO: Fire event.
-			_running = false;
-		}
-	}
+        if (_running)
+        {
+            // TODO: Fire event.
+            _running = false;
+        }
+    }
 
-	void Application::Pause()
-	{
-		if (_running && !_paused)
-		{
-			// TODO: Fire event.
-			_paused = true;
-		}
-	}
+    void Application::Pause()
+    {
+        if (_running && !_paused)
+        {
+            // TODO: Fire event.
+            _paused = true;
+        }
+    }
 
-	void Application::Resume()
-	{
-		if (_running && _paused)
-		{
-			// TODO: Fire event.
-			_paused = false;
-		}
-	}
+    void Application::Resume()
+    {
+        if (_running && _paused)
+        {
+            // TODO: Fire event.
+            _paused = false;
+        }
+    }
 
-	void Application::SetScene(Scene* scene)
-	{
-		_scene = scene;
-	}
+    void Application::SetScene(Scene* scene)
+    {
+        _scene = scene;
+    }
 
     Application& gApplication()
     {

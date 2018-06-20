@@ -628,10 +628,18 @@ namespace Alimer
     SharedPtr<Texture> VulkanGraphics::AcquireNextImage()
     {
         // Acquire the next image from the swap chain
-        return _swapchain->GetNextTexture();
+        SharedPtr<Texture> texture = _swapchain->GetNextTexture();
+
+
+        for (auto &allocator : _descriptorSetAllocators)
+        {
+            allocator.second->BeginFrame();
+        }
+
+        return texture;
     }
 
-    void VulkanGraphics::Frame()
+    void VulkanGraphics::EndFrame()
     {
         // TODO: Multiple command queue's
         StaticCast<VulkanCommandQueue>(_commandQueue)->Submit(_waitSemaphores);
@@ -960,7 +968,7 @@ namespace Alimer
 
     VulkanDescriptorSetAllocator* VulkanGraphics::RequestDescriptorSetAllocator(const DescriptorSetLayout &layout)
     {
-        Util::Hasher h;
+        Hasher h;
         h.data(reinterpret_cast<const uint32_t *>(&layout), sizeof(layout));
         auto hash = h.get();
         auto itr = _descriptorSetAllocators.find(hash);
@@ -974,7 +982,7 @@ namespace Alimer
 
     VulkanPipelineLayout* VulkanGraphics::RequestPipelineLayout(const ResourceLayout &layout)
     {
-        Util::Hasher h;
+        Hasher h;
         h.data(reinterpret_cast<const uint32_t*>(layout.sets), sizeof(layout.sets));
         //h.data(reinterpret_cast<const uint32_t *>(layout.ranges), sizeof(layout.ranges));
         h.u32(layout.attributeMask);

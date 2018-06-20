@@ -55,6 +55,6 @@ namespace Alimer
         VkPipelineShaderStageCreateInfo _stages[static_cast<uint32_t>(ShaderStage::Count)] = {};
         VkVertexInputBindingDescription _vkBindings[MaxVertexBufferBindings] = {};
         VkVertexInputAttributeDescription _vkAttribs[MaxVertexAttributes] = {};
-        Util::HashMap<VkPipeline> _graphicsPipelineCache;
+        HashMap<VkPipeline> _graphicsPipelineCache;
 	};
 }

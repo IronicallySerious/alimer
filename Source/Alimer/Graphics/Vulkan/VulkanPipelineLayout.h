@@ -24,13 +24,17 @@
 
 #include "../Shader.h"
 #include "VulkanPrerequisites.h"
+#include "../../Util/HashMap.h"
+#include "../../Util/ObjectPool.h"
+#include "../../Util/TemporaryHashmap.h"
 #include <vector>
 
 namespace Alimer
 {
     class VulkanGraphics;
 
-    static constexpr uint32_t MaxSetsPerDescriptorPool = 16;
+    static constexpr unsigned VulkanSetsCountPerPool = 16;
+    static constexpr unsigned VulkanDescriptorRingSize = 8;
 
     class VulkanDescriptorSetAllocator final
     {
@@ -38,15 +42,28 @@ namespace Alimer
         VulkanDescriptorSetAllocator(VulkanGraphics* graphics, const DescriptorSetLayout &layout);
         ~VulkanDescriptorSetAllocator();
 
+        void Clear();
+        void BeginFrame();
         std::pair<VkDescriptorSet, bool> Find(uint64_t hash);
 
         VkDescriptorSetLayout GetVkHandle() const { return _vkHandle; }
 
     private:
+        struct DescriptorSetNode : TemporaryHashmapEnabled<DescriptorSetNode>, IntrusiveListEnabled<DescriptorSetNode>
+        {
+            DescriptorSetNode(VkDescriptorSet set)
+                : set(set)
+            {
+            }
+
+            VkDescriptorSet set;
+        };
+
         VkDevice _logicalDevice;
         VkDescriptorSetLayout _vkHandle = VK_NULL_HANDLE;
         std::vector<VkDescriptorPoolSize> _poolSize;
         std::vector<VkDescriptorPool> _pools;
+        TemporaryHashmap<DescriptorSetNode, VulkanDescriptorRingSize, true> _setNodes;
     };
 
     class VulkanPipelineLayout final

@@ -356,7 +356,7 @@ namespace Alimer
         return _textures[index];
     }
 
-    void D3D12Graphics::Frame()
+    void D3D12Graphics::EndFrame()
     {
         // Submit frame command buffer.
         if (_frameCommandBuffer)

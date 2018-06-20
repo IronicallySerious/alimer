@@ -21,4 +21,4 @@
 #
 
 add_target_csharp(Alimer.Studio.Core ${CMAKE_CURRENT_SOURCE_DIR}/Alimer.Studio.Core.csproj)
-set_target_properties(Alimer.Studio.Core PROPERTIES FOLDER Managed)
+set_target_properties(Alimer.Studio.Core PROPERTIES FOLDER Managed/Editor)

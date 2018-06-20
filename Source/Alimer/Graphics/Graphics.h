@@ -69,7 +69,7 @@ namespace Alimer
 		virtual SharedPtr<Texture> AcquireNextImage() = 0;
 
         /// Advance to next frame and present.
-        virtual void Frame() = 0;
+        virtual void EndFrame() = 0;
 
 		// Buffer
 		virtual SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;

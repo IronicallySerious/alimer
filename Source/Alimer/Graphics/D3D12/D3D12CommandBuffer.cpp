@@ -262,7 +262,6 @@ namespace Alimer
 
     void D3D12CommandBuffer::FlushGraphicsPipelineState()
     {
-        using namespace Util;
         Hasher h;
 
         // TODO:
@@ -284,8 +283,6 @@ namespace Alimer
 
     bool D3D12CommandBuffer::PrepareDraw(PrimitiveTopology topology)
     {
-        using namespace Util;
-
         // We've invalidated pipeline state, update the VkPipeline.
         if (GetAndClear(
             /*COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT
@@ -335,8 +332,6 @@ namespace Alimer
 
     void D3D12CommandBuffer::FlushDescriptorSets()
     {
-        using namespace Util;
-
         //auto &layout = current_layout->get_resource_layout();
         uint32_t setUpdate = 1; // layout.descriptor_set_mask & _dirtySets;
         ForEachBit(setUpdate, [&](uint32_t set) { FlushDescriptorSet(set); });

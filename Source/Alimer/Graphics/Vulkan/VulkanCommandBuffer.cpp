@@ -105,8 +105,8 @@ namespace Alimer
 
     void VulkanCommandBuffer::BeginRenderPass(const RenderPassDescriptor& descriptor)
     {
-        Util::Hasher renderPassHasher;
-        Util::Hasher framebufferHasher;
+        Hasher renderPassHasher;
+        Hasher framebufferHasher;
         uint64_t renderPassHash = 0;
         uint64_t framebufferHash = 0;
 
@@ -264,7 +264,7 @@ namespace Alimer
         uint32_t numDynamicOffsets = 0;
         uint32_t dynamicOffsets[MaxBindingsPerSet];
 
-        Util::Hasher h;
+        Hasher h;
 
         // UBOs
         ForEachBit(setLayout.uniformBufferMask, [&](uint32_t binding) {

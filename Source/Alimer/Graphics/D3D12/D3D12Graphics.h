@@ -55,7 +55,7 @@ namespace Alimer
 		bool Initialize(const SharedPtr<Window>& window) override;
 		bool WaitIdle() override;
 		SharedPtr<Texture> AcquireNextImage() override;
-        void Frame() override;
+        void EndFrame() override;
 
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 

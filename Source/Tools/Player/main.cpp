@@ -38,17 +38,11 @@ namespace Alimer
         void OnRender(const SharedPtr<Texture>& frameTexture) override;
 
     private:
-        SharedPtr<GpuBuffer> _vertexBuffer;
+       
         SharedPtr<GpuBuffer> _uboBuffer;
         SharedPtr<PipelineState> _renderPipeline;
 
-        struct PerCameraCBuffer
-        {
-            glm::mat4 viewMatrix;
-            glm::mat4 projectionMatrix;
-        };
-
-        PerCameraCBuffer _camera;
+        
     };
 
     class Settings
@@ -100,27 +94,7 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        struct Vertex
-        {
-            glm::vec3 position;
-            Color color;
-        };
-
         const float aspectRatio = _window->GetAspectRatio();
-
-        Vertex triangleVertices[] =
-        {
-            { glm::vec3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f) },
-            { glm::vec3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
-            { glm::vec3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
-        };
-
-        GpuBufferDescription vertexBufferDesc = {};
-        vertexBufferDesc.usage = BufferUsage::Vertex;
-        vertexBufferDesc.elementCount = 3;
-        vertexBufferDesc.elementSize = sizeof(Vertex);
-        _vertexBuffer = _graphics->CreateBuffer(vertexBufferDesc, triangleVertices);
-
         _camera.viewMatrix = glm::mat4(1.0f);
         _camera.projectionMatrix = glm::mat4(1.0f);
 
@@ -137,11 +111,16 @@ namespace Alimer
         renderPipelineDescriptor.vertexDescriptor.attributes[1].offset = 12;
         renderPipelineDescriptor.vertexDescriptor.layouts[0].stride = _vertexBuffer->GetElementSize();
         _renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);
+
+        // Create scene
+        auto triangleEntity = _scene->CreateEntity();
+        triangleEntity->AddComponent<TransformComponent>();
+        triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
     }
 
     void RuntimeApplication::OnRender(const SharedPtr<Texture>& frameTexture)
     {
-        SharedPtr<CommandBuffer> commandBuffer = _graphics->GetCommandQueue()->CreateCommandBuffer();
+        /*SharedPtr<CommandBuffer> commandBuffer = _graphics->GetCommandQueue()->CreateCommandBuffer();
 
         RenderPassDescriptor passDescriptor = {};
         passDescriptor.colorAttachments[0].texture = frameTexture;
@@ -153,7 +132,7 @@ namespace Alimer
         commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
         commandBuffer->EndRenderPass();
 
-        commandBuffer->Commit();
+        commandBuffer->Commit();*/
     }
 }
 

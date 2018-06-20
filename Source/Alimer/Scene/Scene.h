@@ -23,10 +23,24 @@
 #pragma once
 
 #include "../Scene/Entity.h"
+#include "../Math/MathUtil.h"
+#include "../Graphics/Graphics.h"
 #include <vector>
 
 namespace Alimer
 {
+    struct TransformComponent;
+    struct CameraComponent;
+    class Renderable;
+    struct RenderableComponent;
+
+    struct RenderableInfo
+    {
+        Renderable *renderable;
+        const TransformComponent *transform;
+    };
+    using VisibilitySet = std::vector<RenderableInfo>;
+
     /// Defines a scene, which is a container of SceneObject's.
     class Scene final : public Serializable
     {
@@ -38,13 +52,41 @@ namespace Alimer
         ~Scene();
 
         /// Creates a new entity in the Scene.
-        Entity CreateEntity();
+        EntityHandle CreateEntity();
+
+        /// Return the Entity containing the default camera.
+        EntityHandle GetDefaultCamera() const { return _defaultCamera; }
+
+        /// Return the Entity containing the active camera.
+        EntityHandle GetActiveCamera() const { return _activeCamera; }
+
+        EntityManager &GetEntityManager();
+
+        void UpdateCachedTransforms();
+        void Render(CommandBuffer* commandBuffer);
 
     private:
         EventManager events;
-        EntityManager entities;
+        EntityManager _entityManager;
 
-        std::vector<Entity> _pendingEntities;
+        EntityHandle _defaultCamera;
+        EntityHandle _activeCamera;
+
+        std::vector<EntityHandle> _pendingEntities;
+
+        std::vector<std::tuple<TransformComponent*>> &_spatials;
+        std::vector<std::tuple<CameraComponent*, TransformComponent*>> &_cameras;
+        std::vector<std::tuple<TransformComponent*, RenderableComponent*>> &_renderables;
+
+        struct PerCameraCBuffer
+        {
+            glm::mat4 viewMatrix;
+            glm::mat4 projectionMatrix;
+        };
+
+        PerCameraCBuffer _camera;
+
+        VisibilitySet _visibleSet;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);

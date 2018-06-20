@@ -26,10 +26,8 @@
 
 namespace Alimer
 {
-	class SceneObject;
-
 	/// Defines a base Component class.
-	class ALIMER_API Component : public Serializable
+	class ALIMER_API Component 
 	{
 	protected:
 		/// Constructor.
@@ -39,10 +37,7 @@ namespace Alimer
 		/// Destructor.
 		virtual ~Component();
 
-        SceneObject* GetSceneObject() const { return _object; }
-
 	protected:
-		SceneObject* _object;
 		bool _enabled;
 
 	private:

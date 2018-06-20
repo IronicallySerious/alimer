@@ -23,7 +23,7 @@ namespace Alimer
 		/// <summary>
 		/// macOS platform.
 		/// </summary>
-		macOS,
+		MacOS,
 		/// <summary>
 		/// Android platform.
 		/// </summary>

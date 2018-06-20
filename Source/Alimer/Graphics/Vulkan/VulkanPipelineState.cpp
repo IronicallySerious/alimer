@@ -79,7 +79,7 @@ namespace Alimer
 
     VkPipeline VulkanPipelineState::GetGraphicsPipeline(PrimitiveTopology topology, VkRenderPass renderPass)
     {
-        Util::Hasher hasher;
+        Hasher hasher;
         hasher.u32(static_cast<uint32_t>(topology));
         hasher.pointer(renderPass);
 

@@ -20,5 +20,10 @@
 # THE SOFTWARE.
 #
 
-add_target_csharp(AlimerSharp ${CMAKE_CURRENT_SOURCE_DIR}/AlimerSharp.csproj)
-set_target_properties(AlimerSharp PROPERTIES FOLDER Managed)
+if (NOT DEFINED ENV{APPVEYOR})
+    execute_process(COMMAND ${DOTNET_BINARY} restore ${CMAKE_CURRENT_SOURCE_DIR}/Alimer.Assets/Alimer.Assets.csproj)
+
+    add_target_csharp(Alimer.Assets ${CMAKE_CURRENT_SOURCE_DIR}/Alimer.Assets/Alimer.Assets.csproj)
+    set_target_properties(Alimer.Assets PROPERTIES FOLDER Managed/Assets)
+
+endif()
