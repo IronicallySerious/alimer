@@ -29,7 +29,7 @@
 
 namespace Alimer
 {
-    class Renderable : public IntrusivePtrEnabled<Renderable>
+    class ALIMER_API Renderable : public IntrusivePtrEnabled<Renderable>
     {
     public:
         virtual ~Renderable() = default;
@@ -39,16 +39,17 @@ namespace Alimer
 
     using RenderableHandle = IntrusivePtr<Renderable>;
 
-    struct RenderableComponent : ComponentBase
+    class ALIMER_API RenderableComponent : public Component
     {
+    public:
         RenderableHandle renderable;
     };
 
-    class TriangleRenderable final : public Renderable
+    class ALIMER_API TriangleRenderable final : public Renderable
     {
     public:
         TriangleRenderable();
-        virtual ~TriangleRenderable() = default;
+        virtual ~TriangleRenderable();
 
         void Render(CommandBuffer* commandBuffer) override;
     private:

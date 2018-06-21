@@ -20,16 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Component.h"
+#include "../Scene/TransformComponent.h"
 
 namespace Alimer
 {
-    Component::Component()
-        : _enabled(true)
+    TransformComponent::TransformComponent()
     {
-    }
-
-    Component::~Component()
-    {
+        
     }
 }

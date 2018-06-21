@@ -64,46 +64,13 @@ namespace Alimer
         Count32 = 32,
     };
 
-    enum class MemoryUsage : uint32_t
+    enum class ResourceUsage : uint32_t
     {
-        /// Memory will be used on device only, so fast access from the device is preferred.
-        GpuOnly,
-        /// Memory will be mappable on host.
-        CpuOnly,
-        /// Memory that is both mappable on host and preferably fast to access by GPU.
-        CpuToGpu,
-        /// Memory mappable on host and cached.
-        GpuToCpu
+        Default,
+        Immutable,
+        Dynamic,
+        Staging
     };
-
-    /// Texture types.
-    enum class TextureType : uint32_t
-    {
-        Type1D = 0,
-        Type2D,
-        Type3D,
-        TypeCube,
-    };
-
-    enum class TextureUsage : uint32_t
-    {
-        Unknown = 0,
-        ShaderRead = 1 << 0,
-        ShaderWrite = 1 << 1,
-        RenderTarget = 1 << 2,
-    };
-    ALIMER_BITMASK(TextureUsage);
-
-    enum class BufferUsage
-    {
-        Unknown = 0,
-        Vertex = 1 << 0,
-        Index = 1 << 1,
-        Uniform = 1 << 2,
-        Storage = 1 << 3,
-        Indirect = 1 << 4,
-    };
-    ALIMER_BITMASK(BufferUsage);
 
     /// Shader stage.
     enum class ShaderStage

@@ -35,8 +35,12 @@ namespace Alimer
     };
 
 	/// Defines a Transform Component.
-    struct TransformComponent : ComponentBase
+    class ALIMER_API TransformComponent : public Component
 	{
+    public:
+        TransformComponent();
+        virtual ~TransformComponent() = default;
+
         Transform transform;
 
         glm::mat4 worldTransform;

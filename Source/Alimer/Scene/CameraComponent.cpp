@@ -20,27 +20,33 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Serialization/Serializable.h"
+#include "../Scene/CameraComponent.h"
+#include "../Scene/TransformComponent.h"
 
 namespace Alimer
 {
-	/// Defines a base Component class.
-	class ALIMER_API Component 
-	{
-	protected:
-		/// Constructor.
-        Component();
+    CameraComponent::CameraComponent()
+        : _fovy(0.5f * glm::half_pi<float>())
+        , _aspect(16.0f / 9.0f)
+        , _znear(1.0f)
+        , _zfar(1000.0f)
+    {
+        
+    }
 
-	public:
-		/// Destructor.
-		virtual ~Component();
+    void CameraComponent::Update(const glm::mat4& worldTransform)
+    {
+        _view = glm::inverse(worldTransform);
+        _projection = glm::perspective(_fovy, _aspect, _znear, _zfar);
+    }
 
-	protected:
-		bool _enabled;
+    glm::mat4 CameraComponent::GetView() const
+    {
+        return _view;
+    }
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Component);
-	};
+    glm::mat4 CameraComponent::GetProjection() const
+    {
+        return _projection;
+    }
 }

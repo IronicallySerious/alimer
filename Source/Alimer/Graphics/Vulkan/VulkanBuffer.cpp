@@ -34,34 +34,38 @@ namespace Alimer
     {
         VkBufferUsageFlags vkUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-        if (description.memoryUsage == MemoryUsage::GpuOnly
-            || description.memoryUsage == MemoryUsage::GpuToCpu)
+        if (description.resourceUsage == ResourceUsage::Dynamic)
         {
             vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         }
 
-        if (any(description.usage & BufferUsage::Vertex))
+        if (description.usage & BufferUsage::Vertex)
             vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-        if (any(description.usage & BufferUsage::Index))
+        if (description.usage & BufferUsage::Index)
             vkUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-        if (any(description.usage & BufferUsage::Uniform))
+        if (description.usage & BufferUsage::Uniform)
             vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-        if (any(description.usage & BufferUsage::Storage))
+        if (description.usage & BufferUsage::Storage)
             vkUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
-        if (any(description.usage & BufferUsage::Indirect))
+        if (description.usage & BufferUsage::Indirect)
             vkUsage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
         VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         createInfo.pNext = nullptr;
+        createInfo.flags = 0;
         createInfo.size = _size;
         createInfo.usage = vkUsage;
+        createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0;
+        createInfo.pQueueFamilyIndices = nullptr;
 
+        // TODO:
         VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = vk::Convert(description.memoryUsage);
+        allocInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
         allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         VmaAllocationInfo vmaAllocInfo = {};

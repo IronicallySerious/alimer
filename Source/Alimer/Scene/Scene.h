@@ -29,10 +29,10 @@
 
 namespace Alimer
 {
-    struct TransformComponent;
-    struct CameraComponent;
+    class TransformComponent;
+    class CameraComponent;
     class Renderable;
-    struct RenderableComponent;
+    class RenderableComponent;
 
     struct RenderableInfo
     {
@@ -42,7 +42,7 @@ namespace Alimer
     using VisibilitySet = std::vector<RenderableInfo>;
 
     /// Defines a scene, which is a container of SceneObject's.
-    class Scene final : public Serializable
+    class Scene final 
     {
     public:
         /// Constructor.
@@ -72,11 +72,11 @@ namespace Alimer
         EntityHandle _defaultCamera;
         EntityHandle _activeCamera;
 
-        std::vector<EntityHandle> _pendingEntities;
 
         std::vector<std::tuple<TransformComponent*>> &_spatials;
         std::vector<std::tuple<CameraComponent*, TransformComponent*>> &_cameras;
         std::vector<std::tuple<TransformComponent*, RenderableComponent*>> &_renderables;
+        std::vector<EntityHandle> _entities;
 
         struct PerCameraCBuffer
         {

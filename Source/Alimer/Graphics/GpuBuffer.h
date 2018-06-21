@@ -22,17 +22,45 @@
 
 #pragma once
 
+#include "../Core/Flags.h"
 #include "../Graphics/GpuResource.h"
 #include <memory>
 
 namespace Alimer
 {
+    enum class BufferUsage : uint32_t
+    {
+        Unknown = 0,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        Uniform = 1 << 2,
+        Storage = 1 << 3,
+        Indirect = 1 << 4,
+    };
+
+    using BufferUsageFlags = Flags<BufferUsage, uint32_t>;
+    ALIMER_FORCE_INLINE BufferUsageFlags operator|(BufferUsage bit0, BufferUsage bit1)
+    {
+        return BufferUsageFlags(bit0) | bit1;
+    }
+
+    ALIMER_FORCE_INLINE BufferUsageFlags operator~(BufferUsage bits)
+    {
+        return ~(BufferUsageFlags(bits));
+    }
+
     struct GpuBufferDescription
     {
-        BufferUsage usage = BufferUsage::Unknown;
-        MemoryUsage memoryUsage = MemoryUsage::CpuToGpu;
+        /// Number of elements in the buffer.
         uint32_t elementCount = 1;
+        /// Size of each individual element in the buffer, in bytes. 
         uint32_t elementSize = 0;
+
+        /// Buffer usage.
+        BufferUsageFlags usage = BufferUsage::Unknown;
+
+        /// Buffer resource usage.
+        ResourceUsage resourceUsage = ResourceUsage::Default;
     };
 
 	/// Defines a GPU Buffer class.
@@ -47,7 +75,7 @@ namespace Alimer
 		virtual ~GpuBuffer() = default;
 
         const GpuBufferDescription &GetDescription() const { return _description; }
-		inline BufferUsage GetBufferUsage() const { return _description.usage; }
+		inline BufferUsageFlags GetBufferUsage() const { return _description.usage; }
 		inline uint32_t GetElementCount() const { return _description.elementCount; }
 		inline uint32_t GetElementSize() const { return _description.elementSize; }
 		inline uint64_t GetSize() const { return _size; }

@@ -29,15 +29,36 @@
 #include <unordered_map>
 #include <algorithm>
 #include "../Core/Event.h"
-#include "../Scene/Component.h"
 #include "../Util/Intrusive.h"
 #include "../Util/ObjectPool.h"
 #include <assert.h>
 
 namespace Alimer
 {
-    struct ComponentBase
+    class Entity;
+    class EntityManager;
+
+    /// Defines a base Component class.
+    class ALIMER_API Component
     {
+        friend class EntityManager;
+
+    protected:
+        /// Constructor
+        Component() {}
+
+    public:
+        /// Destructor.
+        virtual ~Component() = default;
+
+        Entity* GetEntity() const { return _entity; }
+
+    protected:
+        Entity * _entity = nullptr;
+        bool _enabled = true;
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Component);
     };
 
     struct ComponentIDMapping
@@ -62,8 +83,6 @@ namespace Alimer
         static uint32_t _groupIds;
     };
 
-    class Entity;
-
     /// Defines a base ComponentSystem.
     class EntityGroupBase
     {
@@ -72,7 +91,7 @@ namespace Alimer
         virtual ~EntityGroupBase() = default;
 
         virtual void AddEntity(Entity &entity) = 0;
-        virtual void RemoveComponent(ComponentBase *component) = 0;
+        virtual void RemoveComponent(Component *component) = 0;
     };
 
     template <typename... T>
@@ -88,8 +107,23 @@ namespace Alimer
             }
         }
 
-        void RemoveComponent(ComponentBase *component) override final
+        void RemoveComponent(Component *component) override final
         {
+            auto itr = std::find_if(std::begin(_groups), std::end(_groups), [&](const std::tuple<T*...> &t) {
+                return HasComponent(t, component);
+            });
+
+            if (itr == std::end(_groups))
+                return;
+
+            auto offset = size_t(itr - begin(_groups));
+            if (offset != _groups.size() - 1)
+            {
+                std::swap(_groups[offset], _groups.back());
+                std::swap(_entities[offset], _entities.back());
+            }
+            _groups.pop_back();
+            _entities.pop_back();
         }
 
         std::vector<std::tuple<T *...>> &GetGroups()
@@ -99,15 +133,15 @@ namespace Alimer
 
     private:
         std::vector<std::tuple<T *...>> _groups;
-        std::vector<Entity *> _entities;
+        std::vector<Entity*> _entities;
 
         template <size_t Index>
         struct HasComponentTraits
         {
             template <typename T>
-            static bool HasComponent(const T &t, const ComponentBase *component)
+            static bool HasComponent(const T &t, const Component *component)
             {
-                return static_cast<ComponentBase *>(std::get<Index>(t)) == component
+                return static_cast<Component*>(std::get<Index>(t)) == component
                     || HasComponentTraits<Index - 1>::HasComponent(t, component);
             }
         };
@@ -116,9 +150,9 @@ namespace Alimer
         struct HasComponentTraits<0>
         {
             template <typename T>
-            static bool HasComponent(const T &t, const ComponentBase *component)
+            static bool HasComponent(const T &t, const Component *component)
             {
-                return static_cast<ComponentBase *>(std::get<0>(t)) == component;
+                return static_cast<Component*>(std::get<0>(t)) == component;
             }
         };
 
@@ -151,13 +185,13 @@ namespace Alimer
         }
 
         template <typename... Us>
-        static bool HasComponent(const std::tuple<Us *...> &t, const ComponentBase *component)
+        static bool HasComponent(const std::tuple<Us *...> &t, const Component *component)
         {
             return HasComponentTraits<sizeof...(Us) - 1>::HasComponent(t, component);
         }
     };
 
-    class EntityManager;
+
     struct EntityDeleter
     {
         void operator()(Entity *entity);
@@ -211,7 +245,7 @@ namespace Alimer
         template <typename T>
         void RemoveComponent();
 
-        std::unordered_map<uint32_t, ComponentBase*> &GetComponents()
+        std::unordered_map<uint32_t, Component*> &GetComponents()
         {
             return _components;
         }
@@ -228,9 +262,9 @@ namespace Alimer
         void SetName(const std::string& name);
 
     private:
-        EntityManager* _manager = nullptr;
+        EntityManager * _manager = nullptr;
         std::string _name;
-        std::unordered_map<uint32_t, ComponentBase*> _components;
+        std::unordered_map<uint32_t, Component*> _components;
     };
 
     using EntityHandle = IntrusivePtr<Entity, EntityDeleter>;
@@ -250,7 +284,7 @@ namespace Alimer
     {
     public:
         virtual ~ComponentAllocatorBase() = default;
-        virtual void FreeComponent(ComponentBase *component) = 0;
+        virtual void FreeComponent(Component *component) = 0;
     };
 
     template <typename T>
@@ -258,7 +292,7 @@ namespace Alimer
     {
         ObjectPool<T> pool;
 
-        void FreeComponent(ComponentBase *component) override
+        void FreeComponent(Component *component) override
         {
             pool.Free(static_cast<T*>(component));
         }
@@ -318,24 +352,31 @@ namespace Alimer
             {
                 allocator->FreeComponent(component);
                 component = allocator->pool.Allocate(std::forward<Args>(args)...);
+                component->_entity = &entity;
                 for (auto &groupId : _componentToGroups[id])
+                {
                     _groups[groupId]->AddEntity(entity);
+                }
             }
             else
             {
                 component = allocator->pool.Allocate(std::forward<Args>(args)...);
+                component->_entity = &entity;
                 for (auto &groupId : _componentToGroups[id])
+                {
                     _groups[groupId]->AddEntity(entity);
+                }
             }
+
             return static_cast<T *>(component);
         }
 
-        void FreeComponent(uint32_t id, ComponentBase *component);
+        void FreeComponent(uint32_t id, Component *component);
 
         void ResetGroups();
 
     private:
-        EventManager& _eventManager;
+        EventManager & _eventManager;
 
         ObjectPool<Entity> _pool;
         std::vector<Entity *> _entities;

@@ -57,6 +57,11 @@ namespace Alimer
         _renderPipeline = gGraphics().CreateRenderPipelineState(renderPipelineDescriptor);
     }
 
+    TriangleRenderable::~TriangleRenderable()
+    {
+
+    }
+
     void TriangleRenderable::Render(CommandBuffer* commandBuffer)
     {
         commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);

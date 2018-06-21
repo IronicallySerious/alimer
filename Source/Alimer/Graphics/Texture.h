@@ -22,16 +22,45 @@
 
 #pragma once
 
+#include "../Core/Flags.h"
 #include "../Graphics/GpuResource.h"
 #include "../Graphics/PixelFormat.h"
 #include "../Resource/Resource.h"
 
 namespace Alimer
 {
+    /// Texture types.
+    enum class TextureType : uint32_t
+    {
+        Type1D = 0,
+        Type2D,
+        Type3D,
+        TypeCube,
+    };
+
+    enum class TextureUsage : uint32_t
+    {
+        Unknown = 0,
+        ShaderRead = 1 << 0,
+        ShaderWrite = 1 << 1,
+        RenderTarget = 1 << 2,
+    };
+
+    using TextureUsageFlags = Flags<TextureUsage, uint32_t>;
+    ALIMER_FORCE_INLINE TextureUsageFlags operator|(TextureUsage bit0, TextureUsage bit1)
+    {
+        return TextureUsageFlags(bit0) | bit1;
+    }
+
+    ALIMER_FORCE_INLINE TextureUsageFlags operator~(TextureUsage bits)
+    {
+        return ~(TextureUsageFlags(bits));
+    }
+
     struct TextureDescription
     {
         TextureType type = TextureType::Type2D;
-        TextureUsage usage = TextureUsage::ShaderRead;
+        TextureUsageFlags usage = TextureUsage::ShaderRead;
         PixelFormat format = PixelFormat::RGBA8UNorm;
         uint32_t width = 1;
         uint32_t height = 1;
@@ -55,7 +84,7 @@ namespace Alimer
         const TextureDescription &GetDescription() const { return _description; }
 
         inline TextureType GetTextureType() const { return _description.type; }
-        inline TextureUsage GetUsage() const { return _description.usage; }
+        inline TextureUsageFlags GetUsage() const { return _description.usage; }
         inline PixelFormat GetFormat() const { return _description.format; }
         inline uint32_t GetWidth() const { return _description.width; }
         inline uint32_t GetHeight() const { return _description.height; }

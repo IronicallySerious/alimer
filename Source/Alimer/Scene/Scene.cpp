@@ -38,7 +38,6 @@ namespace Alimer
         _defaultCamera = CreateEntity();
         _defaultCamera->AddComponent<TransformComponent>();
         _defaultCamera->AddComponent<CameraComponent>();
-        //_defaultCamera->GetComponent<CameraComponent>().setViewport(getDefaultViewport());
         //_defaultCamera->AddComponent<AudioListener>();
 
         _activeCamera = _defaultCamera;
@@ -53,7 +52,7 @@ namespace Alimer
     EntityHandle Scene::CreateEntity()
     {
         EntityHandle entity = _entityManager.CreateEntity();
-        _pendingEntities.push_back(_entityManager.CreateEntity());
+        _entities.push_back(entity);
         return entity;
     }
 
@@ -70,6 +69,7 @@ namespace Alimer
         {
             TransformComponent *transform;
             tie(transform) = s;
+            //transform->Update();
             ComputeTransform(
                 transform->transform.translation, transform->transform.rotation, transform->transform.scale,
                 transform->worldTransform,
@@ -86,9 +86,8 @@ namespace Alimer
         {
             CameraComponent *camera;
             TransformComponent *transform;
-            tie(camera, transform) = c;
-            camera->view = glm::inverse(transform->worldTransform);
-            camera->projection = glm::perspective(camera->fovy, camera->aspect, camera->znear, camera->zfar);
+            std::tie(camera, transform) = c;
+            camera->Update(transform->worldTransform);
         }
     }
 
@@ -98,8 +97,8 @@ namespace Alimer
     {
         for (auto &o : objects)
         {
-            TransformComponent *transform = get<0>(o);
-            RenderableComponent *renderable = get<1>(o);
+            TransformComponent *transform = std::get<0>(o);
+            RenderableComponent *renderable = std::get<1>(o);
 
             if (transform)
             {

@@ -1,6 +1,6 @@
 # Credits
 
-Alimer uses the following open-source libraries:
+Alimer uses the following open-source and third-party libraries:
 
 - [Nothings](https://github.com/nothings/stb) single file libs.
   - [stb_image.h 2.19](https://github.com/nothings/stb/blob/master/stb_image.h)

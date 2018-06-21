@@ -76,7 +76,7 @@ namespace Alimer
     }
 
 
-    void EntityManager::FreeComponent(uint32_t id, ComponentBase *component)
+    void EntityManager::FreeComponent(uint32_t id, Component *component)
     {
         _components[id]->FreeComponent(component);
         for (auto &groupId : _componentToGroups[id])

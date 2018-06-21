@@ -48,7 +48,7 @@ namespace Alimer
     {
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
         ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT(any(buffer->GetBufferUsage() & BufferUsage::Vertex));
+        ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Vertex);
 
         if (_vbo.buffers[binding] != buffer
             || _vbo.offsets[binding] != offset)
@@ -74,7 +74,7 @@ namespace Alimer
     {
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
-        ALIMER_ASSERT(any(buffer->GetBufferUsage() & BufferUsage::Uniform));
+        ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Uniform);
         auto &b = _bindings.bindings[set][binding];
 
         uint64_t range = buffer->GetSize();

@@ -82,16 +82,12 @@ namespace Alimer
     {
     }
 
-    RenderableHandle _triange;
-
     void RuntimeApplication::Initialize()
     {
-        _triange = MakeAbstractHandle<Renderable, TriangleRenderable>();
-
         // Create scene
         auto triangleEntity = _scene->CreateEntity();
         triangleEntity->AddComponent<TransformComponent>();
-        triangleEntity->AddComponent<RenderableComponent>()->renderable = _triange;
+        triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
     }
 }
 

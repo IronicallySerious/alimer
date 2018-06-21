@@ -28,15 +28,25 @@
 namespace Alimer
 {
 	/// Defines a Camera Component class.
-	struct CameraComponent : ComponentBase
+    class ALIMER_API CameraComponent final : public Component
 	{
-        float fovy = (0.5f * glm::half_pi<float>());
-        float aspect = 16.0f / 9.0f;
-        float znear = 1.0f;
-        float zfar = 1000.0f;
+    public:
+        CameraComponent();
+        ~CameraComponent() = default;
+
+        void Update(const glm::mat4& worldTransform);
+
+        glm::mat4 GetView() const;
+        glm::mat4 GetProjection() const;
+
+    private:
+        float _fovy;
+        float _aspect;
+        float _znear;
+        float _zfar;
 
         // Calculated values.
-        glm::mat4 view;
-        glm::mat4 projection;
+        glm::mat4 _view;
+        glm::mat4 _projection;
 	};
 }
