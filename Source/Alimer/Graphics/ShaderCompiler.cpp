@@ -162,10 +162,10 @@ namespace Alimer
             //ALIMER_UNUSED(inclusionDepth);
 
             std::string fullPath = Path::Join(dir, headerName);
-            auto includeFile = resources->Open(fullPath);
+            auto includeFile = gResources()->Open(fullPath);
             if (!includeFile)
             {
-                includeFile = resources->Open(headerName);
+                includeFile = gResources()->Open(headerName);
                 if (!includeFile)
                     return false;
             }
@@ -203,7 +203,7 @@ namespace Alimer
             return {};
         }
 
-        auto stream = resources->Open(filePath);
+        auto stream = gResources()->Open(filePath);
         if (!stream)
         {
             ALIMER_LOGERROR("Cannot open shader file '%s'", filePath.c_str());

@@ -20,17 +20,32 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#pragma once
+
+#include "../GpuAdapter.h"
+#include "VulkanPrerequisites.h"
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
+	class VulkanGpuAdapter final : public GpuAdapter
 	{
-	}
+    public:
+		/// Constructor.
+        VulkanGpuAdapter(VkPhysicalDevice handle);
 
-	Texture::~Texture()
-	{
-	}
+		/// Destructor.
+		~VulkanGpuAdapter() override;
+
+        VkPhysicalDevice GetVkHandle() const { return _vkHandle; }
+        inline const VkPhysicalDeviceProperties& GetProperties() const { return _properties; }
+        inline const VkPhysicalDeviceLimits& GetLimits() const { return _properties.limits; }
+        inline const VkPhysicalDeviceFeatures& GetFeatures() const { return _features; }
+
+    protected:
+        VkPhysicalDevice _vkHandle;
+        VkPhysicalDeviceProperties _properties;
+        VkPhysicalDeviceFeatures _features;
+        VkPhysicalDeviceMemoryProperties _memoryProperties;
+        std::vector<VkQueueFamilyProperties> _queueFamilyProperties;
+	};
 }

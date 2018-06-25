@@ -22,24 +22,8 @@
 
 #pragma once
 
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <d3dcompiler.h>
-#include "d3dx12.h"
 
-#pragma warning(push)
-#pragma warning(disable : 4467)
-#include <wrl.h>
-#pragma warning(pop)
-using namespace Microsoft::WRL;
-
-#include <vector>
-#include "../../Core/Log.h"
-#include "../Types.h"
-#include "../PixelFormat.h"
-
-#define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
-#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
+#include "D3D12Prerequisites.h"
 
 #if !ALIMER_PLATFORM_UWP
 extern decltype(CreateDXGIFactory2)* CreateDXGIFactory2Fn;

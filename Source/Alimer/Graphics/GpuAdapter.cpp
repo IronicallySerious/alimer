@@ -20,17 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GpuAdapter.h"
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
-	{
-	}
+    GpuAdapter::GpuAdapter()
+    {
 
-	Texture::~Texture()
-	{
-	}
+    }
 }

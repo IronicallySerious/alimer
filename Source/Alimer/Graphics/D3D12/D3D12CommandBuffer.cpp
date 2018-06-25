@@ -33,6 +33,21 @@
 
 namespace Alimer
 {
+    namespace d3d12
+    {
+        DXGI_FORMAT Convert(IndexType type)
+        {
+            switch (type) {
+            case IndexType::UInt16:
+                return DXGI_FORMAT_R16_UINT;
+            case IndexType::UInt32:
+                return DXGI_FORMAT_R32_UINT;
+            default:
+                ALIMER_UNREACHABLE();
+            }
+        }
+    }
+
     D3D12CommandBuffer::D3D12CommandBuffer(D3D12Graphics* graphics)
         : CommandBuffer(graphics)
         , _d3dDevice(graphics->GetD3DDevice())
@@ -328,6 +343,17 @@ namespace Alimer
         _dirtyVbos &= ~updateVboMask;
 
         return true;
+    }
+
+    void D3D12CommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    {
+        D3D12GpuBuffer* d3d12Buffer = static_cast<D3D12GpuBuffer*>(buffer);
+
+        D3D12_INDEX_BUFFER_VIEW bufferView;
+        bufferView.BufferLocation = d3d12Buffer->GetGpuVirtualAddress() + offset;
+        bufferView.SizeInBytes = d3d12Buffer->GetSize() - offset;
+        bufferView.Format = d3d12::Convert(indexType);
+        _commandList->IASetIndexBuffer(&bufferView);
     }
 
     void D3D12CommandBuffer::FlushDescriptorSets()

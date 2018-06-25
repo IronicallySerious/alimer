@@ -23,6 +23,30 @@
 # Set CMake minimum version
 cmake_minimum_required (VERSION 3.5)
 
+# Alimer Version
+set (PRODUCT_NAME "Alimer")
+set (PRODUCT_COMPANY "Amer Koleci")
+set (PRODUCT_COPYRIGHT "Copyright (C) 22018 ${PRODUCT_COMPANY}")
+set (PRODUCT_VERSION_MAJOR "0")
+set (PRODUCT_VERSION_MINOR "9")
+set (PRODUCT_VERSION_REVISION "0")
+
+# Get the current working branch
+execute_process(
+    COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Get the latest abbreviated commit hash of the working branch
+execute_process(
+    COMMAND git log -1 --format=%h
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 # Set project name
 project (Alimer)
 

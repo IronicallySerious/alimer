@@ -36,7 +36,7 @@ namespace Alimer
     static constexpr uint32_t PRIORITY_LAST = 0xffffffff;
 
 	/// Resource cache subsystem. Loads resources on demand and stores them for later access.
-	class ResourceManager final
+	class ALIMER_API ResourceManager final
 	{
 	public:
 		/// Constructor.
@@ -80,9 +80,10 @@ namespace Alimer
         /// Search priority flag.
         bool _searchPackagesFirst{ true };
 
+    private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceManager);
 	};
 
-	// Direct access to ResourceManager module.
-	extern ResourceManager* resources;
+    /// Access to current resource manager instance.
+    ALIMER_API ResourceManager* gResources();
 }

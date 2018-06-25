@@ -20,17 +20,23 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#pragma once
+
+#include "../GpuAdapter.h"
+#include "D3D12Prerequisites.h"
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
+	class D3D12GpuAdapter final : public GpuAdapter
 	{
-	}
+    public:
+		/// Constructor.
+        D3D12GpuAdapter(const ComPtr<IDXGIAdapter1>& adapter);
 
-	Texture::~Texture()
-	{
-	}
+		/// Destructor.
+		~D3D12GpuAdapter() override;
+
+    protected:
+        ComPtr<IDXGIAdapter1> _adapter;
+	};
 }

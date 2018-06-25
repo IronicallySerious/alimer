@@ -20,17 +20,90 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#pragma once
+
+#include "../AlimerConfig.h"
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
+	/**
+	* Identifiers the running platform type.
+	*/
+	enum class PlatformId : uint32_t
 	{
-	}
+		/**
+		* Unknown platform.
+		*/
+		Unknown = 0,
+		/**
+		* Windows platform.
+		*/
+		Windows,
+		/**
+		* Windows universal platform (UWP).
+		*/
+		WindowsUniversal,
+		/**
+		* Linux platform.
+		*/
+		Linux,
+		/**
+		* Apple OSX platform.
+		*/
+		MacOS,
+		/**
+		* Android platform.
+		*/
+		Android,
+		/**
+		* Apple iOS platform.
+		*/
+		iOS,
+		/**
+		* Apple TV platform.
+		*/
+		AppleTV,
+		/**
+		* Web (Emscripten/WASM) platform.
+		*/
+		Web,
+	};
 
-	Texture::~Texture()
+	/**
+	* Identifiers the running platform family.
+	*/
+	enum class PlatformFamily : uint32_t
 	{
-	}
+		/**
+		* Unknown platform family.
+		*/
+		Unknown = 0,
+		/**
+		* Desktop family.
+		*/
+		Desktop,
+		/**
+		* Mobile family.
+		*/
+		Mobile,
+		/**
+		* Console family.
+		*/
+		Console
+	};
+
+	/**
+	* Get the running platform type.
+	*/
+	ALIMER_API PlatformId GetPlatformId();
+
+	/**
+	* Get the running platform family.
+	*/
+    ALIMER_API PlatformFamily GetPlatformFamily();
+
+	/**
+	* Get the running platform name.
+	*/
+    ALIMER_API const char* GetPlatformName();
 }

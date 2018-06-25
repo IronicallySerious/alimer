@@ -27,6 +27,7 @@
 #include "../../Core/String.h"
 #include "../../Application/Window.h"
 #include "VulkanGraphics.h"
+#include "VulkanGpuAdapter.h"
 #include "VulkanCommandQueue.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanTexture.h"
@@ -40,6 +41,7 @@
 #	include "../../Application/Windows/WindowWindows.h"
 #endif
 
+#include "AlimerVersion.h"
 #include <map>
 using namespace std;
 
@@ -253,8 +255,7 @@ namespace Alimer
         appInfo.pApplicationName = applicationName.c_str();
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Alimer Engine";
-        //appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
-        appInfo.engineVersion = VK_MAKE_VERSION(0, 9, 0);
+       appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
         appInfo.apiVersion = apiVersion;
 
         vector<const char*> instanceExtensionNames = { VK_KHR_SURFACE_EXTENSION_NAME };
@@ -321,6 +322,41 @@ namespace Alimer
 
         // Now load vk symbols.
         volkLoadInstance(_instance);
+
+        // Enumerate physical devices.
+        uint32_t gpuCount = 0;
+        vkThrowIfFailed(vkEnumeratePhysicalDevices(_instance, &gpuCount, nullptr));
+        ALIMER_ASSERT(gpuCount > 0);
+
+        vector<VkPhysicalDevice> physicalDevices(gpuCount);
+        vkEnumeratePhysicalDevices(_instance, &gpuCount, physicalDevices.data());
+
+        std::map<int, VkPhysicalDevice> physicalDevicesRated;
+        for (const VkPhysicalDevice& physicalDevice : physicalDevices)
+        {
+            VkPhysicalDeviceProperties properties;
+            vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+            VkPhysicalDeviceFeatures features;
+            vkGetPhysicalDeviceFeatures(physicalDevice, &features);
+            int score = 0;
+            if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+            {
+                score += 1000;
+            }
+            score += properties.limits.maxImageDimension2D;
+            if (!features.geometryShader)
+            {
+                score = 0;
+            }
+            physicalDevicesRated[score] = physicalDevice;
+        }
+
+        // Take the first device from rated devices that support our queue requirements
+        for (const auto& physicalDeviceRated : physicalDevicesRated)
+        {
+            VkPhysicalDevice physicalDevice = physicalDeviceRated.second;
+            _adapters.push_back(new VulkanGpuAdapter(physicalDevice));
+        }
 
         // Setup debug callback
         if (validation && hasValidationLayer)
@@ -399,49 +435,11 @@ namespace Alimer
         return true;
     }
 
-    bool VulkanGraphics::Initialize(const SharedPtr<Window>& window)
+    bool VulkanGraphics::BackendInitialize()
     {
-        VkResult result = VK_SUCCESS;
+        auto vkGpuAdapter = static_cast<VulkanGpuAdapter*>(_adapter);
+        _vkPhysicalDevice = vkGpuAdapter->GetVkHandle();
 
-        // Enumerate physical devices.
-        uint32_t gpuCount = 0;
-        vkThrowIfFailed(vkEnumeratePhysicalDevices(_instance, &gpuCount, nullptr));
-        ALIMER_ASSERT(gpuCount > 0);
-
-        std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
-        result = vkEnumeratePhysicalDevices(_instance, &gpuCount, physicalDevices.data());
-
-        // Rate the physical devices based on  important properties and features
-        std::map<int, VkPhysicalDevice> physicalDevicesRated;
-        for (const auto& physicalDevice : physicalDevices)
-        {
-            VkPhysicalDeviceProperties properties;
-            vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-            VkPhysicalDeviceFeatures features;
-            vkGetPhysicalDeviceFeatures(physicalDevice, &features);
-            int score = 0;
-            if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-            {
-                score += 1000;
-            }
-            score += properties.limits.maxImageDimension2D;
-            if (!features.geometryShader)
-            {
-                score = 0;
-            }
-            physicalDevicesRated[score] = physicalDevice;
-        }
-
-        // Take the first device from rated devices that support our queue requirements
-        for (const auto& physicalDeviceRated : physicalDevicesRated)
-        {
-            VkPhysicalDevice physicalDevice = physicalDeviceRated.second;
-            _vkPhysicalDevice = physicalDevice;
-            break;
-        }
-
-        vkGetPhysicalDeviceProperties(_vkPhysicalDevice, &_deviceProperties);
-        vkGetPhysicalDeviceFeatures(_vkPhysicalDevice, &_deviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(_vkPhysicalDevice, &_deviceMemoryProperties);
 
         // Queue props.
@@ -546,8 +544,9 @@ namespace Alimer
         }
 
         // Create the logical device representation
+        VkPhysicalDeviceFeatures gpuFeatures = vkGpuAdapter->GetFeatures();
         VkPhysicalDeviceFeatures enabledFeatures = {};
-        if (_deviceFeatures.samplerAnisotropy)
+        if (gpuFeatures.samplerAnisotropy)
         {
             enabledFeatures.samplerAnisotropy = VK_TRUE;
         }
@@ -563,7 +562,7 @@ namespace Alimer
             deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
         }
 
-        result = vkCreateDevice(_vkPhysicalDevice, &deviceCreateInfo, nullptr, &_logicalDevice);
+        VkResult result = vkCreateDevice(_vkPhysicalDevice, &deviceCreateInfo, nullptr, &_logicalDevice);
         vkThrowIfFailed(result);
 
         CreateAllocator();
@@ -578,13 +577,19 @@ namespace Alimer
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.graphics, 0, &_graphicsQueue);
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.compute, 0, &_computeQueue);
 
-        // Create default command queue.
-        _commandQueue = new VulkanCommandQueue(this, _graphicsQueue, _queueFamilyIndices.graphics);
-
         // Create the main swap chain.
-        _swapchain.Reset(new VulkanSwapchain(this, window));
+        _swapchain.Reset(new VulkanSwapchain(this, _window.Get()));
 
-        return Graphics::Initialize(window);
+        // Create default command queue.
+        _defaultCommandQueue = new VulkanCommandQueue(this, _graphicsQueue, _queueFamilyIndices.graphics);
+        _defaultCommandBuffer = _defaultCommandQueue->CreateCommandBuffer();
+
+        return true;
+    }
+
+    CommandBuffer* VulkanGraphics::GetDefaultContext() const
+    {
+        return _defaultCommandBuffer.Get();
     }
 
     void VulkanGraphics::CreateAllocator()
@@ -630,7 +635,6 @@ namespace Alimer
         // Acquire the next image from the swap chain
         SharedPtr<Texture> texture = _swapchain->GetNextTexture();
 
-
         for (auto &allocator : _descriptorSetAllocators)
         {
             allocator.second->BeginFrame();
@@ -641,8 +645,10 @@ namespace Alimer
 
     void VulkanGraphics::EndFrame()
     {
+        //_defaultCommandBuffer->Commit();
+
         // TODO: Multiple command queue's
-        StaticCast<VulkanCommandQueue>(_commandQueue)->Submit(_waitSemaphores);
+        _defaultCommandQueue->Submit(_waitSemaphores);
 
         // Clear wait semaphores.
         _waitSemaphores.clear();
@@ -656,6 +662,9 @@ namespace Alimer
 
         // DestroyPendingResources();
         _frameIndex++;
+
+        // Get new command buffer.
+        _defaultCommandBuffer = _defaultCommandQueue->CreateCommandBuffer();
     }
 
     SharedPtr<GpuBuffer> VulkanGraphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)

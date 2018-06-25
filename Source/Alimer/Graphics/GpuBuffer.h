@@ -38,6 +38,12 @@ namespace Alimer
         Indirect = 1 << 4,
     };
 
+    enum class IndexType : uint32_t
+    {
+        UInt16,
+        UInt32,
+    };
+
     using BufferUsageFlags = Flags<BufferUsage, uint32_t>;
     ALIMER_FORCE_INLINE BufferUsageFlags operator|(BufferUsage bit0, BufferUsage bit1)
     {

@@ -20,17 +20,59 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+
+#include "../Core/Timer.h"
+#include <chrono>
+using namespace std;
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
-	{
-	}
+    Timer::Timer()
+        : _idleTime(0)
+    {
+        Reset();
+    }
 
-	Texture::~Texture()
-	{
-	}
+    void Timer::Reset()
+    {
+        _start = GetTime();
+        _last = _start;
+        _lastPeriod = 0;
+    }
+
+    double Timer::Frame()
+    {
+        int64_t newTime = GetTime() - _idleTime;
+        _lastPeriod = newTime - _last;
+        _last = newTime;
+        return double(newTime) * 1e-9;
+    }
+
+    void Timer::EnterIdle()
+    {
+        _idleStart = GetTime();
+    }
+
+    void Timer::LeaveIdle()
+    {
+        int64_t idleEnd = GetTime();
+        _idleTime += idleEnd - _idleStart;
+    }
+
+    double Timer::GetElapsed() const
+    {
+        return double(_last - _start) * 1e-9;
+    }
+
+    double Timer::GetFrameTime() const
+    {
+        return double(_lastPeriod) * 1e-9;
+    }
+
+    int64_t Timer::GetTime()
+    {
+        auto current = chrono::steady_clock::now().time_since_epoch();
+        auto nsecs = chrono::duration_cast<chrono::nanoseconds>(current);
+        return nsecs.count();
+    }
 }

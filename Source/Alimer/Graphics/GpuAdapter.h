@@ -20,17 +20,44 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#pragma once
+
+#include "../AlimerConfig.h"
+#include <string>
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
-	{
-	}
+    enum class GpuVendor : uint8_t
+    {
+        Unknown,
+        Arm,
+        Nvidia,
+        Amd,
+        Intel,
+        Warp,
+        Count
+    };
 
-	Texture::~Texture()
+	/// Defines a physical GPU device.
+	class ALIMER_API GpuAdapter
 	{
-	}
+	protected:
+		/// Constructor.
+        GpuAdapter();
+
+	public:
+		/// Destructor.
+		virtual ~GpuAdapter() = default;
+
+        uint32_t GetVendorID() const { return _vendorID; }
+        GpuVendor GetVendor() const { return _vendor; }
+        uint32_t GetDeviceID() const { return _deviceID; }
+        std::string GetDeviceName() const { return _deviceName; }
+
+    protected:
+        uint32_t _vendorID = 0;
+        GpuVendor _vendor = GpuVendor::Unknown;
+        uint32_t _deviceID = 0;
+        std::string _deviceName;
+	};
 }

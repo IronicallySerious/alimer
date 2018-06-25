@@ -34,8 +34,6 @@ namespace Alimer
 	class D3D12CommandListManager;
 	class D3D12Texture;
 
-    
-
 	/// D3D12 Low-level 3D graphics API class.
 	class D3D12Graphics final : public Graphics
 	{
@@ -52,8 +50,10 @@ namespace Alimer
 		/// Destructor.
 		virtual ~D3D12Graphics() override;
 
-		bool Initialize(const SharedPtr<Window>& window) override;
+		bool BackendInitialize() override;
 		bool WaitIdle() override;
+        CommandBuffer* GetDefaultContext() const override;
+
 		SharedPtr<Texture> AcquireNextImage() override;
         void EndFrame() override;
 
@@ -77,7 +77,7 @@ namespace Alimer
 	private:
 		bool InitializeCaps();
         void HandleDeviceLost();
-		void CreateSwapchain(const SharedPtr<Window>& window);
+		void CreateSwapchain();
 		SharedPtr<D3D12CommandBuffer> RetrieveCommandBuffer();
 		void RecycleCommandBuffer(D3D12CommandBuffer* commandBuffer);
 

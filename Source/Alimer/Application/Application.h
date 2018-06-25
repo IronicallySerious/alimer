@@ -31,6 +31,7 @@
 #include <string>
 #include <atomic>
 #include "../Core/Log.h"
+#include "../Core/Timer.h"
 #include "../Application/Window.h"
 #include "../Serialization/Serializable.h"
 #include "../IO/FileSystem.h"
@@ -54,48 +55,50 @@ namespace Alimer
 #endif
     };
 
-	/// Application for main loop and all modules and OS setup.
-	class ALIMER_API Application : public RefCounted
-	{
-	protected:
-		/// Constructor.
+    /// Application for main loop and all modules and OS setup.
+    class ALIMER_API Application : public RefCounted
+    {
+    protected:
+        /// Constructor.
         Application();
 
-	public:
-		/// Destructor.
-		virtual ~Application();
+    public:
+        /// Destructor.
+        virtual ~Application();
 
         /// Return the single instance of the Application.
         static Application* GetInstance();
 
-		/// Runs main loop.
-		int Run();
+        /// Runs main loop.
+        int Run();
 
-		/// Tick/Run one frame.
-		void Tick();
+        /// Tick/Run one frame.
+        void Tick();
 
-		/// Request application to exit.
-		void Exit();
+        /// Request application to exit.
+        void Exit();
 
-		/// Pause the main execution loop.
-		void Pause();
+        /// Pause the main execution loop.
+        void Pause();
 
-		/// Resume the main execution loop.
-		void Resume();
+        /// Resume the main execution loop.
+        void Resume();
 
         void RenderFrame(const SharedPtr<Texture>& frameTexture, double frameTime, double elapsedTime);
 
-		SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
+        SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
 
-		inline ResourceManager* GetResources() { return &_resources; }
-		inline Window* GetMainWindow() const { return _window.Get(); }
-		inline Graphics* GetGraphics() const { return _graphics.Get(); }
-		inline Input* GetInput() const { return _input.Get(); }
-		inline Audio* GetAudio() const { return _audio.Get(); }
+        Timer &GetFrameTimer() { return _timer; }
 
-		/// Sets the current scene to be active and rendered.
-		void SetScene(Scene* scene);
-		Scene* GetScene() const { return _scene; }
+        inline ResourceManager* GetResources() { return &_resources; }
+        inline Window* GetMainWindow() const { return _window.Get(); }
+        inline Graphics* GetGraphics() const { return _graphics.Get(); }
+        inline Input* GetInput() const { return _input.Get(); }
+        inline Audio* GetAudio() const { return _audio.Get(); }
+
+        /// Sets the current scene to be active and rendered.
+        void SetScene(Scene* scene);
+        Scene* GetScene() const { return _scene; }
 
     private:
         void PlatformConstruct();
@@ -103,42 +106,42 @@ namespace Alimer
         void UpdateScene(double frameTime, double elapsedTime);
         void RenderScene(const SharedPtr<Texture>& frameTexture);
 
-	protected:
+    protected:
         /// Called after setup and engine initialization with all modules initialized.
-		virtual void Initialize() { }
+        virtual void Initialize() { }
 
         /// Cleanup after the main loop. 
         virtual void OnExiting() { }
 
-        virtual void OnRender(const SharedPtr<Texture>& frameTexture) {}
+        /// Render after frame update.
+        void Render();
 
-		/// Render after frame update.
-		void Render();
+        virtual Input* CreateInput();
+        virtual Audio* CreateAudio();
 
-		virtual Input* CreateInput();
-		virtual Audio* CreateAudio();
+        static bool SetCurrentThreadName(const std::string& name);
 
-		static bool SetCurrentThreadName(const std::string& name);
-
-		std::vector<std::string> _args;
-		std::atomic<bool> _running;
-		std::atomic<bool> _paused;
-		std::atomic<bool> _headless;
+        std::vector<std::string> _args;
+        std::atomic<bool> _running;
+        std::atomic<bool> _paused;
+        std::atomic<bool> _headless;
         ApplicationSettings _settings;
 
         UniquePtr<Logger> _log;
-		ResourceManager _resources;
-		SharedPtr<Window> _window;
-		UniquePtr<Graphics> _graphics;
-		UniquePtr<Input> _input;
-		UniquePtr<Audio> _audio;
+        Timer _timer;
+        ResourceManager _resources;
+        SharedPtr<Window> _window;
+        UniquePtr<Graphics> _graphics;
+        UniquePtr<Input> _input;
+        UniquePtr<Audio> _audio;
 
-		/// Current scene.
-		Scene* _scene;
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Application);
-	};
+        /// Current scene.
+        Scene* _scene;
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Application);
+    };
 
     /// Access to current application instance.
     ALIMER_API Application& gApplication();

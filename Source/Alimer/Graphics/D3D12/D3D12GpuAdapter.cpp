@@ -20,17 +20,48 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#include "D3D12GpuAdapter.h"
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
-	{
-	}
+    D3D12GpuAdapter::D3D12GpuAdapter(const ComPtr<IDXGIAdapter1>& adapter)
+        : _adapter(adapter)
+    {
+        DXGI_ADAPTER_DESC1 desc;
+        adapter->GetDesc1(&desc);
 
-	Texture::~Texture()
-	{
-	}
+        switch (desc.VendorId)
+        {
+        case 0x13B5:
+            _vendor = GpuVendor::Arm;
+            break;
+        case 0x10DE:
+            _vendor = GpuVendor::Nvidia;
+            break;
+        case 0x1002:
+        case 0x1022:
+            _vendor = GpuVendor::Amd;
+            break;
+        case 0x8086:
+            _vendor = GpuVendor::Intel;
+            break;
+
+        case 0x1414:
+            _vendor = GpuVendor::Warp;
+            break;
+
+        default:
+            _vendor = GpuVendor::Unknown;
+            break;
+        }
+
+        _vendorID = desc.VendorId;
+        _deviceID = desc.DeviceId;
+        _deviceName = str::FromWide(desc.Description);
+    }
+
+    D3D12GpuAdapter::~D3D12GpuAdapter()
+    {
+
+    }
 }

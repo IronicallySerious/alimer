@@ -20,17 +20,50 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+
+#pragma once
+
+#include "../AlimerConfig.h"
+
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
-	{
-	}
+    /// Cross platform Timer class with high precision.
+    class ALIMER_API Timer
+    {
+    public:
+        /// Constructor.
+        Timer();
+        virtual ~Timer() = default;
 
-	Texture::~Texture()
-	{
-	}
+        /// Reset the timer
+        void Reset();
+
+        /// Tick one frame.
+        double Frame();
+
+        /// Enter in idle (pause) state.
+        void EnterIdle();
+
+        /// Exits from idle (pause) state.
+        void LeaveIdle();
+
+        /// Get elapsed time.
+        double GetElapsed() const;
+
+        /// Get Frame time.
+        double GetFrameTime() const;
+
+    private:
+        int64_t GetTime();
+
+        int64_t _start;
+        int64_t _last;
+        int64_t _lastPeriod;
+        int64_t _idleStart;
+        int64_t _idleTime;
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Timer);
+    };
 }

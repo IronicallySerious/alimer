@@ -33,7 +33,7 @@
 
 namespace Alimer
 {
-	VulkanSwapchain::VulkanSwapchain(VulkanGraphics* graphics, const SharedPtr<Window>& window)
+	VulkanSwapchain::VulkanSwapchain(VulkanGraphics* graphics, Window* window)
 		: _graphics(graphics)
 		, _window(window)
 		, _instance(graphics->GetInstance())
@@ -47,7 +47,7 @@ namespace Alimer
 
 		// Create the os-specific surface.
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-		SharedPtr<WindowWindows> win32Window = StaticCast<WindowWindows>(window);
+		auto win32Window = static_cast<WindowWindows*>(window);
 
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 		surfaceCreateInfo.hinstance = win32Window->GetHInstance();

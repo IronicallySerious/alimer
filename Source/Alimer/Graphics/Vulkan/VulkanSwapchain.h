@@ -36,7 +36,7 @@ namespace Alimer
 	{
 	public:
 		/// Construct. Set parent shader and defines but do not compile yet.
-		VulkanSwapchain(VulkanGraphics* graphics, const SharedPtr<Window>& window);
+		VulkanSwapchain(VulkanGraphics* graphics, Window* window);
 		/// Destruct.
 		~VulkanSwapchain();
 
@@ -52,7 +52,7 @@ namespace Alimer
 		WeakPtr<VulkanGraphics> _graphics;
 
 		/// Swapchain window.
-		SharedPtr<Window> _window;
+		Window* _window;
 
 		VkInstance _instance;
 		VkPhysicalDevice _physicalDevice;

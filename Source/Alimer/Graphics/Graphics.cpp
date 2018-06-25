@@ -42,6 +42,7 @@ namespace Alimer
     Graphics::Graphics(GraphicsDeviceType deviceType, bool validation)
         : _deviceType(deviceType)
         , _validation(validation)
+        , _adapter(nullptr)
     {
         __graphicsInstance = this;
     }
@@ -49,6 +50,14 @@ namespace Alimer
     Graphics::~Graphics()
     {
         Finalize();
+
+        // Clear adapters.
+        for (auto &adapter : _adapters)
+        {
+            SafeDelete(adapter);
+        }
+        _adapters.clear();
+
         __graphicsInstance = nullptr;
     }
 
@@ -59,9 +68,7 @@ namespace Alimer
 
     void Graphics::Finalize()
     {
-        // Destroy default command queue.
-        _commandQueue.Reset();
-
+        // Destroy undestroyed resources.
         if (_gpuResources.size())
         {
             lock_guard<mutex> lock(_gpuResourceMutex);
@@ -175,16 +182,26 @@ namespace Alimer
         return graphics;
     }
 
-    bool Graphics::Initialize(const SharedPtr<Window>& window)
+    bool Graphics::Initialize(GpuAdapter* adapter, const SharedPtr<Window>& window)
     {
+        if (!adapter)
+        {
+            _adapter = GetDefaultAdapter();
+        }
+        else
+        {
+            _adapter = adapter;
+        }
+
+        ALIMER_ASSERT_MSG(window.Get(), "Invalid window for graphics creation");
         _window = window;
-        return true;
+        return BackendInitialize();
     }
 
     SharedPtr<Shader> Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
     {
-        auto vertexShaderStream = resources->Open(vertexShaderFile + ".glsl");
-        auto fragmentShaderStream = resources->Open(fragmentShaderFile + ".glsl");
+        auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".glsl");
+        auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".glsl");
 
         // Lookup for GLSL shader.
         if (!vertexShaderStream)

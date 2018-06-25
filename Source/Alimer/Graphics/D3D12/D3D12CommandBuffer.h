@@ -75,6 +75,8 @@ namespace Alimer
         void FlushDescriptorSets();
         void FlushDescriptorSet(uint32_t set);
 
+        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+
 	private:
 		ID3D12Device* _d3dDevice;
 		D3D12CommandListManager* _manager;

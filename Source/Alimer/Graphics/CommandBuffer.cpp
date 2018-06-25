@@ -70,6 +70,14 @@ namespace Alimer
         OnSetVertexBuffer(buffer, binding, offset);
     }
 
+    void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    {
+        ALIMER_ASSERT(buffer);
+        ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Index);
+
+        SetIndexBufferCore(buffer, offset, indexType);
+    }
+
     void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer)
     {
         ALIMER_ASSERT(set < MaxDescriptorSets);

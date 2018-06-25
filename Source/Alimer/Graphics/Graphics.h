@@ -23,8 +23,9 @@
 #pragma once
 
 #include "../Core/Ptr.h"
-#include "../Graphics/Types.h"
 #include "../Application/Window.h"
+#include "../Graphics/Types.h"
+#include "../Graphics/GpuAdapter.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Shader.h"
@@ -37,18 +38,18 @@
 
 namespace Alimer
 {
-	/// Low-level 3D graphics API class.
-	class ALIMER_API Graphics : public RefCounted
-	{
+    /// Low-level 3D graphics API class.
+    class ALIMER_API Graphics : public RefCounted
+    {
         friend class GpuResource;
 
     protected:
-		/// Constructor.
-		Graphics(GraphicsDeviceType deviceType, bool validation = false);
+        /// Constructor.
+        Graphics(GraphicsDeviceType deviceType, bool validation = false);
 
-	public:
-		/// Destructor.
-		virtual ~Graphics();
+    public:
+        /// Destructor.
+        virtual ~Graphics();
 
         /// Return the single instance of the Graphics.
         static Graphics* GetInstance();
@@ -59,38 +60,41 @@ namespace Alimer
         /// Factory method for Graphics creation.
         static Graphics* Create(GraphicsDeviceType deviceType, bool validation = false, const std::string& applicationName = "Alimer");
 
-        /// Initialize graphics with given window.
-		virtual bool Initialize(const SharedPtr<Window>& window);
+        /// Initialize graphics with given adapter and window.
+        bool Initialize(GpuAdapter* adapter, const SharedPtr<Window>& window);
 
-		/// Wait for a device to become idle
-		virtual bool WaitIdle() = 0;
+        /// Wait for a device to become idle
+        virtual bool WaitIdle() = 0;
 
-		/// Begin rendering frame and return current backbuffer texture.
-		virtual SharedPtr<Texture> AcquireNextImage() = 0;
+        /// Begin rendering frame and return current backbuffer texture.
+        virtual SharedPtr<Texture> AcquireNextImage() = 0;
 
         /// Advance to next frame and present.
         virtual void EndFrame() = 0;
 
-		// Buffer
-		virtual SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;
+        // Buffer
+        virtual SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;
 
-		// Shader
-		SharedPtr<Shader> CreateShader(
+        // Shader
+        SharedPtr<Shader> CreateShader(
             const std::string& vertexShaderFile,
             const std::string& fragmentShaderFile);
 
-		virtual SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) = 0;
-		virtual SharedPtr<Shader> CreateShader(
-			const ShaderStageDescription& vertex,
-			const ShaderStageDescription& fragment) = 0;
+        virtual SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) = 0;
+        virtual SharedPtr<Shader> CreateShader(
+            const ShaderStageDescription& vertex,
+            const ShaderStageDescription& fragment) = 0;
 
-		// PipelineState
-		virtual SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
+        // PipelineState
+        virtual SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
 
         inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
 
-        /// Get default command queue.
-        CommandQueue* GetCommandQueue() const { return _commandQueue.Get(); }
+        const std::vector<GpuAdapter*>& GetAdapters() const { return _adapters; }
+        GpuAdapter* GetDefaultAdapter() const { return _adapters[0]; }
+
+        /// Get default command context.
+        virtual CommandBuffer* GetDefaultContext() const = 0;
 
     private:
         /// Add a GpuResource to keep track of. 
@@ -99,22 +103,26 @@ namespace Alimer
         /// Remove a GpuResource.
         void RemoveGpuResource(GpuResource* resource);
 
-	protected:
-		virtual void Finalize();
+    protected:
+        virtual void Finalize();
+        virtual bool BackendInitialize() = 0;
 
-	protected:
+    protected:
         GraphicsDeviceType _deviceType;
         bool _validation;
+        std::vector<GpuAdapter*> _adapters;
+
         SharedPtr<Window> _window{};
-        SharedPtr<CommandQueue> _commandQueue;
+        GpuAdapter* _adapter;
+        
 
     private:
         std::mutex _gpuResourceMutex;
         std::vector<GpuResource*> _gpuResources;
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);
-	};
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);
+    };
 
     /// Access to current Graphics module.
     ALIMER_API Graphics& gGraphics();

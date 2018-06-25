@@ -21,6 +21,7 @@
 //
 
 #include "../Resource/ResourceManager.h"
+#include "../Application/Application.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
 #include "../Util/Util.h"
@@ -29,42 +30,17 @@ using namespace std;
 
 namespace Alimer
 {
-    Alimer::ResourceManager* resources = nullptr;
-    static const std::string AssetsFolderName = "assets";
-    static const std::string ShadersFolderName = "shaders";
-
     ResourceManager::ResourceManager()
     {
-        string executablePath = GetExecutableFolder();
-        string assetsDirectory = Path::Join(GetParentPath(executablePath), AssetsFolderName);
-        string shadersDirectory = Path::Join(assetsDirectory, ShadersFolderName);
-
-        if (DirectoryExists(assetsDirectory))
-        {
-            AddResourceDir(assetsDirectory);
-            if (DirectoryExists(shadersDirectory))
-                AddResourceDir(shadersDirectory);
-        }
-        else
-        {
-            assetsDirectory = Path::Join(executablePath, AssetsFolderName);
-            shadersDirectory = Path::Join(assetsDirectory, ShadersFolderName);
-
-            if (DirectoryExists(assetsDirectory))
-            {
-                AddResourceDir(assetsDirectory);
-
-                if (DirectoryExists(shadersDirectory))
-                    AddResourceDir(shadersDirectory);
-            }
-        }
-
-        resources = this;
     }
 
     ResourceManager::~ResourceManager()
     {
-        resources = nullptr;
+    }
+
+    ResourceManager* gResources()
+    {
+        return gApplication().GetResources();
     }
 
     bool ResourceManager::AddResourceDir(const string& path, uint32_t priority)

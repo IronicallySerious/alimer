@@ -20,17 +20,26 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#pragma once
 
-namespace Alimer
-{
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
-	{
-	}
+#include "../../Core/Log.h"
 
-	Texture::~Texture()
-	{
-	}
-}
+
+#include <d3d12.h>
+#include <dxgi1_4.h>
+#include <d3dcompiler.h>
+#include "d3dx12.h"
+
+#pragma warning(push)
+#pragma warning(disable : 4467)
+#include <wrl.h>
+#pragma warning(pop)
+using namespace Microsoft::WRL;
+
+#include <vector>
+#include "../../Core/Log.h"
+#include "../Types.h"
+#include "../PixelFormat.h"
+
+#define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
+#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)

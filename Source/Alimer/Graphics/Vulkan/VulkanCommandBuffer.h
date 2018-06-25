@@ -61,6 +61,7 @@ namespace Alimer
     private:
         void ResetState() override;
         void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
+        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
         bool PrepareDraw(PrimitiveTopology topology);
 
         void FlushDescriptorSet(uint32_t set);
@@ -79,5 +80,14 @@ namespace Alimer
         VkPipelineLayout _currentVkPipelineLayout = VK_NULL_HANDLE;
 
         VkBuffer _currentVkBuffers[MaxVertexBufferBindings] = {};
+
+        struct IndexState
+        {
+            GpuBuffer* buffer;
+            uint32_t offset;
+            IndexType indexType;
+        };
+
+        IndexState _indexState = {};
     };
 }

@@ -27,6 +27,7 @@
 #include "D3D12GpuBuffer.h"
 #include "D3D12Shader.h"
 #include "D3D12PipelineState.h"
+#include "D3D12GpuAdapter.h"
 #include "../ShaderCompiler.h"
 #include "../../Core/Log.h"
 #include "../../Application/Windows/WindowWindows.h"
@@ -144,7 +145,8 @@ HRESULT privateD3D12SerializeVersionedRootSignature(
 
 namespace Alimer
 {
-    _Use_decl_annotations_ static void GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
+    _Use_decl_annotations_
+    static void GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
     {
         ComPtr<IDXGIAdapter1> adapter;
         *ppAdapter = nullptr;
@@ -210,32 +212,11 @@ namespace Alimer
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
         D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV }
     {
-
-    }
-
-    D3D12Graphics::~D3D12Graphics()
-    {
-        // Ensure that the GPU is no longer referencing resources that are about to be
-        // cleaned up by the destructor.
-        WaitIdle();
-
-        // Delete command list manager.
-        SafeDelete(_commandListManager);
-
-        // Clear DescriptorHeap Pools.
-        {
-            std::lock_guard<std::mutex> guard(_heapAllocationMutex);
-            _descriptorHeapPool.clear();
-        }
-    }
-
-    bool D3D12Graphics::Initialize(const SharedPtr<Window>& window)
-    {
 #if !ALIMER_PLATFORM_UWP
         if (FAILED(D3D12LoadLibraries()))
         {
             ALIMER_LOGERROR("Failed to load D3D12 libraries.");
-            return false;
+            return;
         }
 #endif
 
@@ -259,9 +240,51 @@ namespace Alimer
         HRESULT hr = privateCreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&_factory));
         if (FAILED(hr))
         {
-            return false;
+            return;
         }
 
+        // Enumerate adapters.
+        ComPtr<IDXGIAdapter1> adapter;
+        for (UINT adapterIndex = 0;
+            _factory->EnumAdapters1(adapterIndex, &adapter) != DXGI_ERROR_NOT_FOUND; ++adapterIndex)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            adapter->GetDesc1(&desc);
+
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+            {
+                // Don't select the Basic Render Driver adapter.
+                // If you want a software adapter, pass in "/warp" on the command line.
+                continue;
+            }
+
+            // Check to see if the adapter supports Direct3D 12, but don't create the
+            // actual device yet.
+            if (SUCCEEDED(privateD3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+            {
+                _adapters.push_back(new D3D12GpuAdapter(adapter));
+            }
+        }
+    }
+
+    D3D12Graphics::~D3D12Graphics()
+    {
+        // Ensure that the GPU is no longer referencing resources that are about to be
+        // cleaned up by the destructor.
+        WaitIdle();
+
+        // Delete command list manager.
+        SafeDelete(_commandListManager);
+
+        // Clear DescriptorHeap Pools.
+        {
+            std::lock_guard<std::mutex> guard(_heapAllocationMutex);
+            _descriptorHeapPool.clear();
+        }
+    }
+
+    bool D3D12Graphics::BackendInitialize()
+    {
         if (_useWarpDevice)
         {
             ComPtr<IDXGIAdapter1> warpAdapter;
@@ -275,30 +298,13 @@ namespace Alimer
         }
         else
         {
-            ComPtr<IDXGIAdapter1> adapter;
-            for (UINT adapterIndex = 0;
-                _factory->EnumAdapters1(adapterIndex, &adapter) != DXGI_ERROR_NOT_FOUND; ++adapterIndex)
-            {
-                DXGI_ADAPTER_DESC1 desc;
-                adapter->GetDesc1(&desc);
+            ComPtr<IDXGIAdapter1> hardwareAdapter;
+            GetHardwareAdapter(_factory.Get(), &hardwareAdapter);
 
-                if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                {
-                    // Don't select the Basic Render Driver adapter.
-                    // If you want a software adapter, pass in "/warp" on the command line.
-                    continue;
-                }
-
-                // Check to see if the adapter supports Direct3D 12, but don't create the
-                // actual device yet.
-                if (SUCCEEDED(privateD3D12CreateDevice(
-                    adapter.Get(),
-                    D3D_FEATURE_LEVEL_11_0,
-                    IID_PPV_ARGS(&_d3dDevice))))
-                {
-                    break;
-                }
-            }
+            privateD3D12CreateDevice(hardwareAdapter.Get(),
+                D3D_FEATURE_LEVEL_11_0,
+                IID_PPV_ARGS(&_d3dDevice)
+            );
         }
 
         if (!InitializeCaps())
@@ -340,14 +346,19 @@ namespace Alimer
         }
 
         // Create Swapchain.
-        CreateSwapchain(window);
+        CreateSwapchain();
 
-        return Graphics::Initialize(window);
+        return true;
     }
 
     bool D3D12Graphics::WaitIdle()
     {
         return _commandListManager->WaitIdle();
+    }
+
+    CommandBuffer* D3D12Graphics::GetDefaultContext() const
+    {
+        return nullptr;
     }
 
     SharedPtr<Texture> D3D12Graphics::AcquireNextImage()
@@ -439,15 +450,15 @@ namespace Alimer
         // TODO
     }
 
-    void D3D12Graphics::CreateSwapchain(const SharedPtr<Window>& window)
+    void D3D12Graphics::CreateSwapchain()
     {
         // Describe and create the swap chain.
         // TODO: Add VSync support.
         // TODO: Add Tearing support.
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
         swapChainDesc.BufferCount = FrameCount;
-        swapChainDesc.Width = window->GetWidth();
-        swapChainDesc.Height = window->GetHeight();
+        swapChainDesc.Width = _window->GetWidth();
+        swapChainDesc.Height = _window->GetHeight();
         swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -456,7 +467,7 @@ namespace Alimer
         ComPtr<IDXGISwapChain1> swapChain;
 
 #if !ALIMER_PLATFORM_UWP
-        SharedPtr<WindowWindows> win32Window = StaticCast<WindowWindows>(window);
+        auto win32Window = static_cast<WindowWindows*>(_window.Get());
 
         HWND handle = win32Window->GetHandle();
         ThrowIfFailed(_factory->CreateSwapChainForHwnd(

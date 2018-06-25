@@ -70,10 +70,13 @@ macro (define_engine_source_files)
 	endforeach ()
 endmacro()
 
+# Generate the AlimerVersion.h file
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerVersion.h)
+
 # Add source files from subdirectories
 define_engine_source_files (NORECURSE . Core Util IO Math Graphics Input Audio Application)
 define_engine_source_files (NORECURSE glm glm/detail glm/ext glm/gtc glm/gtx glm/simd)
-define_engine_source_files (Resource Serialization Scene)
+define_engine_source_files (Resource Serialization Scene Renderer)
 
 if (PLATFORM_WINDOWS)
 	define_engine_source_files(Application/Windows)

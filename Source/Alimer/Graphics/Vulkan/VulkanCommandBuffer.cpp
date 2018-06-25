@@ -27,6 +27,7 @@
 #include "VulkanPipelineLayout.h"
 #include "VulkanPipelineState.h"
 #include "VulkanGraphics.h"
+#include "VulkanConvert.h"
 #include "../../Core/Log.h"
 #include "../../Util/HashMap.h"
 
@@ -58,6 +59,7 @@ namespace Alimer
     void VulkanCommandBuffer::ResetState()
     {
         CommandBuffer::ResetState();
+        memset(&_indexState, 0, sizeof(_indexState));
 
         _currentVkPipeline = VK_NULL_HANDLE;
         _currentVkPipelineLayout = VK_NULL_HANDLE;
@@ -76,8 +78,8 @@ namespace Alimer
 
     void VulkanCommandBuffer::Commit()
     {
-        Enqueue();
         End();
+        Enqueue();
         _queue->Commit(this);
     }
 
@@ -219,6 +221,24 @@ namespace Alimer
     void VulkanCommandBuffer::OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
     {
         _currentVkBuffers[binding] = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
+    }
+
+    void VulkanCommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    {
+        if (_indexState.buffer == buffer
+            && _indexState.offset == offset
+            && _indexState.indexType == indexType)
+        {
+            return;
+        }
+
+        _indexState.buffer = buffer;
+        _indexState.offset = offset;
+        _indexState.indexType = indexType;
+
+        VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();;
+        VkIndexType vkIndexType = vk::Convert(indexType);
+        vkCmdBindIndexBuffer(_vkHandle, vkBuffer, offset, vkIndexType);
     }
 
     bool VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)

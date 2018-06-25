@@ -28,6 +28,7 @@
 
 namespace Alimer
 {
+    class VulkanCommandQueue;
 	class VulkanCommandBuffer;
     class VulkanDescriptorSetAllocator;
     class VulkanPipelineLayout;
@@ -51,9 +52,10 @@ namespace Alimer
 		~VulkanGraphics() override;
 
         bool WaitIdle() override;
-        bool Initialize(const SharedPtr<Window>& window) override;
+        bool BackendInitialize() override;
 		SharedPtr<Texture> AcquireNextImage() override;
         void EndFrame() override;
+        CommandBuffer* GetDefaultContext() const override;
 
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
@@ -91,8 +93,6 @@ namespace Alimer
 
 		// PhysicalDevice
 		VkPhysicalDevice _vkPhysicalDevice = VK_NULL_HANDLE;
-		VkPhysicalDeviceProperties _deviceProperties;
-		VkPhysicalDeviceFeatures _deviceFeatures;
 		VkPhysicalDeviceMemoryProperties _deviceMemoryProperties;
 		std::vector<VkQueueFamilyProperties> _queueFamilyProperties;
 
@@ -114,6 +114,8 @@ namespace Alimer
         VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
 
 		// CommandPools
+        SharedPtr<VulkanCommandQueue> _defaultCommandQueue;
+        SharedPtr<CommandBuffer> _defaultCommandBuffer;
 		VkCommandPool _setupCommandPool = VK_NULL_HANDLE;
 
         std::vector<VkSemaphore> _waitSemaphores;

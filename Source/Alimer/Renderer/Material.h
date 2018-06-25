@@ -20,17 +20,19 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#pragma once
+
+#include "../AlimerConfig.h"
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
+	/// Defines a Material.
+    class ALIMER_API Material
 	{
-	}
+    public:
+        Material();
+        ~Material() = default;
 
-	Texture::~Texture()
-	{
-	}
+    private:
+	};
 }
