@@ -40,10 +40,11 @@ namespace Alimer
         glm::mat4 GetProjection() const;
 
     private:
-        float _fovy;
-        float _aspect;
-        float _znear;
-        float _zfar;
+        // Field of view (in degrees)
+        float _fovy = 60.0f;
+        float _aspect = 16.0f / 9.0f;
+        float _znear = 1.0f;
+        float _zfar  = 1000.0f;
 
         // Calculated values.
         glm::mat4 _view;

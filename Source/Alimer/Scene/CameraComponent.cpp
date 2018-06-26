@@ -26,18 +26,13 @@
 namespace Alimer
 {
     CameraComponent::CameraComponent()
-        : _fovy(0.5f * glm::half_pi<float>())
-        , _aspect(16.0f / 9.0f)
-        , _znear(1.0f)
-        , _zfar(1000.0f)
     {
-        
     }
 
     void CameraComponent::Update(const glm::mat4& worldTransform)
     {
+        _projection = glm::perspective(glm::radians(_fovy), _aspect, _znear, _zfar);
         _view = glm::inverse(worldTransform);
-        _projection = glm::perspective(_fovy, _aspect, _znear, _zfar);
     }
 
     glm::mat4 CameraComponent::GetView() const

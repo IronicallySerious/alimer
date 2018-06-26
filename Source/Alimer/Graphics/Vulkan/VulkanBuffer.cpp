@@ -85,6 +85,11 @@ namespace Alimer
 
     VulkanBuffer::~VulkanBuffer()
     {
+        Destroy();
+    }
+
+    void VulkanBuffer::Destroy()
+    {
         vmaDestroyBuffer(_allocator, _vkHandle, _allocation);
     }
 }

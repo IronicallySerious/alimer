@@ -36,6 +36,7 @@ namespace Alimer
 	public:
         VulkanBuffer(VulkanGraphics* graphics, const GpuBufferDescription& description, const void* initialData);
 		~VulkanBuffer() override;
+        void Destroy() override;
 
 		inline VkBuffer GetVkHandle() const { return _vkHandle; }
 
