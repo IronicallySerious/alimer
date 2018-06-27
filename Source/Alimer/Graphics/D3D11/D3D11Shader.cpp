@@ -20,11 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "D3D12Shader.h"
-#include "D3D12Graphics.h"
+#include "D3D11Shader.h"
+#include "D3D11Graphics.h"
 #include "../../Core/Log.h"
-#include <spirv-cross/spirv_hlsl.hpp>
 #include <d3dcompiler.h>
+#include <spirv-cross/spirv_hlsl.hpp>
+using namespace Microsoft::WRL;
 
 namespace Alimer
 {
@@ -127,80 +128,31 @@ namespace Alimer
         return CompileHLSL(hlslSource, stage);
     }
 
-    D3D12Shader::D3D12Shader(D3D12Graphics* graphics, const ShaderStageDescription& desc)
+    D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& desc)
         : Shader()
         , _graphics(graphics)
     {
         _shaders[static_cast<unsigned>(ShaderStage::Compute)] = ConvertAndCompileHLSL(desc, ShaderStage::Compute);
-        InitializeRootSignature();
     }
 
-    D3D12Shader::D3D12Shader(D3D12Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
+    D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
         : Shader()
         , _graphics(graphics)
     {
         _shaders[static_cast<unsigned>(ShaderStage::Vertex)] = ConvertAndCompileHLSL(vertex, ShaderStage::Vertex);
         _shaders[static_cast<unsigned>(ShaderStage::Fragment)] = ConvertAndCompileHLSL(fragment, ShaderStage::Fragment);
-        InitializeRootSignature();
     }
 
-    D3D12Shader::~D3D12Shader()
+    D3D11Shader::~D3D11Shader()
     {
     }
 
-    void D3D12Shader::InitializeRootSignature()
-    {
-        // TODO: Cache root signature.
-        // Allow input layout and deny uneccessary access to certain pipeline stages.
-        D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
-
-        CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-        CD3DX12_ROOT_PARAMETER1 rootParameters[1];
-
-        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
-        rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
-
-        CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-        rootSignatureDesc.Init_1_1(
-            1,
-            rootParameters,
-            0, nullptr,
-            rootSignatureFlags);
-
-        ComPtr<ID3DBlob> signature;
-        ComPtr<ID3DBlob> error;
-        if (FAILED(AlimerD3DX12SerializeVersionedRootSignature(
-            &rootSignatureDesc,
-            _graphics->GetFeatureDataRootSignature().HighestVersion,
-            &signature, &error)))
-        {
-            ALIMER_LOGERROR("D3D12SerializeRootSignature failed");
-            return;
-        }
-
-        if (FAILED(
-            _graphics->GetD3DDevice()->CreateRootSignature(
-                0,
-                signature->GetBufferPointer(),
-                signature->GetBufferSize(),
-                IID_PPV_ARGS(&_rootSignature))))
-        {
-            ALIMER_LOGERROR("CreateRootSignature failed");
-            return;
-        }
-    }
-
-    bool D3D12Shader::HasBytecode(ShaderStage stage)
+    bool D3D11Shader::HasBytecode(ShaderStage stage)
     {
         return _shaders[static_cast<unsigned>(stage)].size() > 0;
     }
 
-    std::vector<uint8_t> D3D12Shader::AcquireBytecode(ShaderStage stage)
+    std::vector<uint8_t> D3D11Shader::AcquireBytecode(ShaderStage stage)
     {
         return std::move(_shaders[static_cast<unsigned>(stage)]);
     }

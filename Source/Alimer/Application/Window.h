@@ -25,34 +25,88 @@
 #include "../Core/Ptr.h"
 #include <string>
 
+#if ALIMER_PLATFORM_WINDOWS
+struct HWND__;
+struct HDC__;
+struct HINSTANCE__;
+#elif ALIMER_PLATFORM_UWP
+struct IUnknown;
+#elif ALIMER_PLATFORM_ANDROID
+typedef struct ANativeWindow ANativeWindow;
+#endif
+
 namespace Alimer
 {
-	/// OS Window class.
-	class Window : public RefCounted
-	{
-	protected:
-		/// Constructor.
-		Window();
+    enum WindowHandleType
+    {
+        WINDOW_HANDLE_UNKNOWN,
+        WINDOW_HANDLE_WINDOWS,
+        WINDOW_HANDLE_UWP,
+        WINDOW_HANDLE_Android,
+    };
 
-	public:
-		/// Destructor.
-		virtual ~Window();
+    struct WindowHandle
+    {
+        WindowHandleType type;
+        union
+        {
+#if ALIMER_PLATFORM_WINDOWS
+            struct
+            {
+                /// The window handle
+                HWND__* window;
+                /// The window device context
+                HDC__* hdc;
 
-		inline uint32_t GetWidth() const { return _width; }
-		inline uint32_t GetHeight() const { return _height; }
+                /// The instance handle
+                HINSTANCE__* hInstance;
+            } win;
+
+#elif ALIMER_PLATFORM_UWP
+            struct
+            {
+                /// UWP CoreWindow
+                IUnknown* window;
+            } uwp;
+#elif ALIMER_PLATFORM_ANDROID
+            struct
+            {
+                ANativeWindow *window;
+            } android;
+#endif
+            // Make sure this union is always 64 bytes (8 64-bit pointers)
+            unsigned char dummy[64];
+        } info;
+    };
+
+    /// OS Window class.
+    class Window : public RefCounted
+    {
+    protected:
+        /// Constructor.
+        Window();
+
+    public:
+        /// Destructor.
+        virtual ~Window();
+
+        inline uint32_t GetWidth() const { return _width; }
+        inline uint32_t GetHeight() const { return _height; }
         inline float GetAspectRatio() const { return static_cast<float>(_width) / _height; }
+        inline const WindowHandle& GetHandle() const { return _handle; }
 
-	protected:
-		/// Window title.
-		std::string _title;
-		/// Window width.
-		uint32_t _width;
-		/// Window height.
-		uint32_t _height;
-		/// Resizable flag.
-		bool _resizable;
+    protected:
+        WindowHandle _handle;
+        /// Window title.
+        std::string _title;
+        /// Window width.
+        uint32_t _width;
+        /// Window height.
+        uint32_t _height;
+        /// Resizable flag.
+        bool _resizable;
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Window);
-	};
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Window);
+    };
 }

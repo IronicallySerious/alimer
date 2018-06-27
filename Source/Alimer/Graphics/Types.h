@@ -43,8 +43,10 @@ namespace Alimer
         Empty,
         /// Vulkan backend.
         Vulkan,
-        /// DirectX12 backend.
-        Direct3D12
+        /// DirectX 11.1+ backend.
+        Direct3D11,
+        /// DirectX 12 backend.
+        Direct3D12,
     };
 
     /// Enum describing the number of samples.

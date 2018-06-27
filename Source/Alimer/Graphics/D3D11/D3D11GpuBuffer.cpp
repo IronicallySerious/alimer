@@ -20,20 +20,19 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#include "D3D11GpuBuffer.h"
+#include "D3D11Graphics.h"
+#include "../../Core/Log.h"
+using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
+    D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
+        : GpuBuffer(description)
+    {
+    }
 
-	Window::~Window()
-	{
-	}
+    D3D11GpuBuffer::~D3D11GpuBuffer()
+    {
+    }
 }

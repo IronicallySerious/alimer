@@ -20,20 +20,6 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#pragma once
 
-namespace Alimer
-{
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
-
-	Window::~Window()
-	{
-	}
-}
+#include "../D3D/D3DPrerequisites.h"

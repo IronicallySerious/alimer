@@ -20,20 +20,28 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#pragma once
+
+#include "Graphics/GpuBuffer.h"
+#include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
+	class D3D11Graphics;
 
-	Window::~Window()
+	/// D3D11 GpuBuffer implementation.
+	class D3D11GpuBuffer final : public GpuBuffer
 	{
-	}
+	public:
+		/// Constructor.
+		D3D11GpuBuffer(D3D11Graphics* graphics, const GpuBufferDescription& description, const void* initialData);
+
+		/// Destructor.
+		~D3D11GpuBuffer() override;
+
+        ID3D11Buffer* GetResource() const { return _resource.Get(); }
+
+	private:
+        Microsoft::WRL::ComPtr<ID3D11Buffer> _resource;
+	};
 }

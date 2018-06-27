@@ -20,20 +20,30 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#pragma once
+
+#include "Graphics/Texture.h"
+#include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
+	class D3D11Graphics;
 
-	Window::~Window()
+	/// D3D11 Texture implementation.
+	class D3D11Texture final : public Texture
 	{
-	}
+	public:
+		/// Constructor.
+        D3D11Texture(D3D11Graphics* graphics);
+
+		/// Destructor.
+		~D3D11Texture() override;
+
+        void Destroy() override;
+
+        ID3D11Resource* GetResource() const { return _resource.Get(); }
+
+	private:
+        Microsoft::WRL::ComPtr<ID3D11Resource> _resource;
+	};
 }

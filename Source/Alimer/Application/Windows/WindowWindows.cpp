@@ -302,10 +302,14 @@ namespace Alimer
 			return;
 		}
 
+        _handle.type = WINDOW_HANDLE_WINDOWS;
+        _handle.info.win.window = _hwnd;
+        _handle.info.win.hdc = GetDC(_hwnd);
+        _handle.info.win.hInstance = _hInstance;
+
 		//_created = true;
 		_windowCount++;
 		_hwnd = _hwnd;
-		//_platformData.hdc = GetDC(_hwnd);
 
 		InitAfterCreation();
 		Show();
@@ -370,6 +374,7 @@ namespace Alimer
 
 		HWND destroyHandle = _hwnd;
 		_hwnd = nullptr;
+        ::ReleaseDC(destroyHandle, _handle.info.win.hdc);
 		::DestroyWindow(destroyHandle);
 	}
 

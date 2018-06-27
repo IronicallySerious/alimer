@@ -255,7 +255,7 @@ namespace Alimer
         appInfo.pApplicationName = applicationName.c_str();
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Alimer Engine";
-       appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
+        appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
         appInfo.apiVersion = apiVersion;
 
         vector<const char*> instanceExtensionNames = { VK_KHR_SURFACE_EXTENSION_NAME };
@@ -426,13 +426,13 @@ namespace Alimer
         _instance = VK_NULL_HANDLE;
     }
 
-    bool VulkanGraphics::WaitIdle()
+    void VulkanGraphics::WaitIdle()
     {
         VkResult result = vkDeviceWaitIdle(_logicalDevice);
         if (result < VK_SUCCESS)
-            return false;
-
-        return true;
+        {
+            ALIMER_LOGERROR("vkDeviceWaitIdle failed");
+        }
     }
 
     bool VulkanGraphics::BackendInitialize()
@@ -587,7 +587,7 @@ namespace Alimer
         return true;
     }
 
-    CommandBuffer* VulkanGraphics::GetDefaultContext() const
+    CommandBuffer* VulkanGraphics::GetDefaultCommandBuffer() const
     {
         return _defaultCommandBuffer.Get();
     }
@@ -643,7 +643,13 @@ namespace Alimer
         return texture;
     }
 
-    void VulkanGraphics::EndFrame()
+    bool VulkanGraphics::BeginFrameCore()
+    {
+        // TODO:
+        return true;
+    }
+
+    void VulkanGraphics::EndFrameCore()
     {
         //_defaultCommandBuffer->Commit();
 

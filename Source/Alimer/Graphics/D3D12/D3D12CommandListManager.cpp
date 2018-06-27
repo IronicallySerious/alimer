@@ -226,12 +226,11 @@ namespace Alimer
 
 	}
 
-	bool D3D12CommandListManager::WaitIdle()
+    void D3D12CommandListManager::WaitIdle()
 	{
 		_graphicsQueue.WaitForIdle();
 		_computeQueue.WaitForIdle();
 		_copyQueue.WaitForIdle();
-		return true;
 	}
 
 	void D3D12CommandListManager::WaitForFence(uint64_t fenceValue)

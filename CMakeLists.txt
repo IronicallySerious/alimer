@@ -128,6 +128,7 @@ else ()
 endif ()
 
 message(STATUS "  Library         ${ALIMER_LIBRARY_TYPE}")
-message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
+message(STATUS "  D3D11           ${ALIMER_D3D11}")
 message(STATUS "  D3D12           ${ALIMER_D3D12}")
+message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")

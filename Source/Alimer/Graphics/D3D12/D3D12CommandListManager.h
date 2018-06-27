@@ -95,7 +95,7 @@ namespace Alimer
 		D3D12CommandListManager(ID3D12Device* device);
 		~D3D12CommandListManager();
 
-		bool WaitIdle();
+        void WaitIdle();
 		inline ID3D12Device* GetDevice() const { return _device; }
 		D3D12CommandQueue& GetGraphicsQueue() { return _graphicsQueue; }
 		D3D12CommandQueue& GetComputeQueue() { return _computeQueue; }

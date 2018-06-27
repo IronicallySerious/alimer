@@ -32,19 +32,10 @@
 #include "../../Core/Log.h"
 #include "../../Application/Windows/WindowWindows.h"
 
-#if ALIMER_DEV && ( defined(_DEBUG) || defined(PROFILE) )
-#	if !defined(_XBOX_ONE) || !defined(_TITLE)
-#		pragma comment(lib,"dxguid.lib")
-#	endif
-#endif
-
 #if !ALIMER_PLATFORM_UWP
 static bool s_d3d12Initialized = false;
-static HMODULE DXGIDebugHandle = nullptr;
-static HMODULE DXGIHandle = nullptr;
 static HMODULE D3D12Handle = nullptr;
 
-decltype(CreateDXGIFactory2)* CreateDXGIFactory2Fn = nullptr;
 PFN_D3D12_GET_DEBUG_INTERFACE D3D12GetDebugInterfaceFn = nullptr;
 PFN_D3D12_CREATE_DEVICE D3D12CreateDeviceFn = nullptr;
 PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignatureFn = nullptr;
@@ -54,24 +45,17 @@ HRESULT D3D12LoadLibraries()
     if (s_d3d12Initialized)
         return S_OK;
 
-    DXGIDebugHandle = LoadLibraryW(L"dxgidebug.dll");
-    DXGIHandle = LoadLibraryW(L"dxgi.dll");
     D3D12Handle = LoadLibraryW(L"d3d12.dll");
-    if (!DXGIHandle)
-        return S_FALSE;
     if (!D3D12Handle)
         return S_FALSE;
 
     // Load symbols.
     //DXGIGetDebugInterface1Fn = (PFN_GET_DXGI_DEBUG_INTERFACE)::GetProcAddress(DXGIHandle, "DXGIGetDebugInterface1");
-    CreateDXGIFactory2Fn = (decltype(CreateDXGIFactory2Fn))::GetProcAddress(DXGIHandle, "CreateDXGIFactory2");
     D3D12CreateDeviceFn = (PFN_D3D12_CREATE_DEVICE)::GetProcAddress(D3D12Handle, "D3D12CreateDevice");
     D3D12GetDebugInterfaceFn = (PFN_D3D12_GET_DEBUG_INTERFACE)::GetProcAddress(D3D12Handle, "D3D12GetDebugInterface");
     D3D12SerializeRootSignatureFn = (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)::GetProcAddress(D3D12Handle, "D3D12SerializeRootSignature");
     D3D12SerializeVersionedRootSignatureFn = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)::GetProcAddress(D3D12Handle, "D3D12SerializeVersionedRootSignature");
 
-    if (!CreateDXGIFactory2Fn)
-        return S_FALSE;
     if (!D3D12CreateDeviceFn)
         return S_FALSE;
     if (!D3D12GetDebugInterfaceFn)
@@ -96,14 +80,6 @@ HRESULT privateD3D12GetDebugInterface(
 #endif
 }
 
-HRESULT privateCreateDXGIFactory2(UINT Flags, REFIID riid, _COM_Outptr_ void **ppFactory)
-{
-#ifdef VK_D3D_UWP
-    return CreateDXGIFactory2(Flags, riid, ppFactory);
-#else
-    return CreateDXGIFactory2Fn(Flags, riid, ppFactory);
-#endif
-}
 
 HRESULT privateD3D12CreateDevice(
     _In_opt_ IUnknown* pAdapter,
@@ -192,7 +168,7 @@ namespace Alimer
 #endif
         // Create temp dxgi factory for check support.
         ComPtr<IDXGIFactory2> factory;
-        HRESULT hr = privateCreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
+        HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
         if (FAILED(hr))
         {
             isAvailable = false;
@@ -237,7 +213,7 @@ namespace Alimer
         }
 #endif
 
-        HRESULT hr = privateCreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&_factory));
+        HRESULT hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&_factory));
         if (FAILED(hr))
         {
             return;
@@ -269,9 +245,16 @@ namespace Alimer
 
     D3D12Graphics::~D3D12Graphics()
     {
+        Finalize();
+    }
+
+    void D3D12Graphics::Finalize()
+    {
         // Ensure that the GPU is no longer referencing resources that are about to be
         // cleaned up by the destructor.
         WaitIdle();
+
+        Graphics::Finalize();
 
         // Delete command list manager.
         SafeDelete(_commandListManager);
@@ -351,12 +334,12 @@ namespace Alimer
         return true;
     }
 
-    bool D3D12Graphics::WaitIdle()
+    void D3D12Graphics::WaitIdle()
     {
-        return _commandListManager->WaitIdle();
+        _commandListManager->WaitIdle();
     }
 
-    CommandBuffer* D3D12Graphics::GetDefaultContext() const
+    CommandBuffer* D3D12Graphics::GetDefaultCommandBuffer() const
     {
         return nullptr;
     }
@@ -367,7 +350,12 @@ namespace Alimer
         return _textures[index];
     }
 
-    void D3D12Graphics::EndFrame()
+    bool D3D12Graphics::BeginFrameCore()
+    {
+        return true;
+    }
+
+    void D3D12Graphics::EndFrameCore()
     {
         // Submit frame command buffer.
         if (_frameCommandBuffer)

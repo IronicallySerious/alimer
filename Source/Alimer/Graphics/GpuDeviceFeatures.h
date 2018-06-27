@@ -20,20 +20,23 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#pragma once
+
+#include "../AlimerConfig.h"
+#include <string>
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
+	/// Describes features supported by given instance of GpuDevice.
+	class ALIMER_API GpuDeviceFeatures final
 	{
-	}
+    public:
+		/// Constructor.
+        GpuDeviceFeatures();
 
-	Window::~Window()
-	{
-	}
+		/// Destructor.
+		~GpuDeviceFeatures() = default;
+
+    protected:
+	};
 }

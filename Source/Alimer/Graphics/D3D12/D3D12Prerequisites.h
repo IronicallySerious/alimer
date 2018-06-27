@@ -23,11 +23,8 @@
 #pragma once
 
 #include "../../Core/Log.h"
+#include "../D3D/D3DPrerequisites.h"
 
-
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <d3dcompiler.h>
 #include "d3dx12.h"
 
 #pragma warning(push)

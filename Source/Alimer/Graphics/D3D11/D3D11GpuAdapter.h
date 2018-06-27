@@ -20,20 +20,25 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#pragma once
+
+#include "../GpuAdapter.h"
+#include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
+	class D3D11GpuAdapter final : public GpuAdapter
 	{
-	}
+    public:
+		/// Constructor.
+        D3D11GpuAdapter(const Microsoft::WRL::ComPtr<IDXGIAdapter1>& adapter);
 
-	Window::~Window()
-	{
-	}
+		/// Destructor.
+		~D3D11GpuAdapter() override;
+
+        IDXGIAdapter1* GetDXGIAdapter() const { return _adapter.Get(); }
+
+    protected:
+        Microsoft::WRL::ComPtr<IDXGIAdapter1> _adapter;
+	};
 }

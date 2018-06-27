@@ -25,6 +25,7 @@
 #include "../Core/Ptr.h"
 #include "../Application/Window.h"
 #include "../Graphics/Types.h"
+#include "../Graphics/GpuDeviceFeatures.h"
 #include "../Graphics/GpuAdapter.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
@@ -63,14 +64,17 @@ namespace Alimer
         /// Initialize graphics with given adapter and window.
         bool Initialize(GpuAdapter* adapter, const SharedPtr<Window>& window);
 
-        /// Wait for a device to become idle
-        virtual bool WaitIdle() = 0;
+        /// Wait for a device to become idle.
+        virtual void WaitIdle() = 0;
 
         /// Begin rendering frame and return current backbuffer texture.
         virtual SharedPtr<Texture> AcquireNextImage() = 0;
 
-        /// Advance to next frame and present.
-        virtual void EndFrame() = 0;
+        /// Begins frame rendering. 
+        bool BeginFrame();
+
+        /// End and present current frame and advance to next frame. 
+        void EndFrame();
 
         // Buffer
         virtual SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;
@@ -90,11 +94,17 @@ namespace Alimer
 
         inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
 
+        /// Get supported adapters.
         const std::vector<GpuAdapter*>& GetAdapters() const { return _adapters; }
+
+        /// Get the default and best adapter.
         GpuAdapter* GetDefaultAdapter() const { return _adapters[0]; }
 
-        /// Get default command context.
-        virtual CommandBuffer* GetDefaultContext() const = 0;
+        /// Get the device features.
+        inline const GpuDeviceFeatures& GetFeatures() const { return _features; }
+
+        /// Get default command buffer.
+        virtual CommandBuffer* GetDefaultCommandBuffer() const = 0;
 
     private:
         /// Add a GpuResource to keep track of. 
@@ -106,19 +116,22 @@ namespace Alimer
     protected:
         virtual void Finalize();
         virtual bool BackendInitialize() = 0;
+        virtual bool BeginFrameCore() = 0;
+        virtual void EndFrameCore() = 0;
 
     protected:
         GraphicsDeviceType _deviceType;
         bool _validation;
         std::vector<GpuAdapter*> _adapters;
+        GpuDeviceFeatures _features;
 
         SharedPtr<Window> _window{};
         GpuAdapter* _adapter;
-        
 
     private:
         std::mutex _gpuResourceMutex;
         std::vector<GpuResource*> _gpuResources;
+        bool _inBeginFrame;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

@@ -48,14 +48,12 @@ namespace Alimer
 		D3D12Graphics(bool validation);
 
 		/// Destructor.
-		virtual ~D3D12Graphics() override;
+		~D3D12Graphics() override;
 
-		bool BackendInitialize() override;
-		bool WaitIdle() override;
-        CommandBuffer* GetDefaultContext() const override;
+		void WaitIdle() override;
+        CommandBuffer* GetDefaultCommandBuffer() const override;
 
 		SharedPtr<Texture> AcquireNextImage() override;
-        void EndFrame() override;
 
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 
@@ -75,6 +73,10 @@ namespace Alimer
         D3D12_FEATURE_DATA_ROOT_SIGNATURE GetFeatureDataRootSignature() const { return _featureDataRootSignature; }
 
 	private:
+        void Finalize() override;
+        bool BackendInitialize() override;
+        bool BeginFrameCore() override;
+        void EndFrameCore() override;
 		bool InitializeCaps();
         void HandleDeviceLost();
 		void CreateSwapchain();

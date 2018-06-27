@@ -20,20 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#include "../Graphics/GpuDeviceFeatures.h"
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
+    GpuDeviceFeatures::GpuDeviceFeatures()
+    {
 
-	Window::~Window()
-	{
-	}
+    }
 }

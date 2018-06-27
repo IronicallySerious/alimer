@@ -20,20 +20,29 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#pragma once
+
+#include "../PipelineState.h"
+#include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
+	class D3D11Graphics;
+    class D3D11Shader;
 
-	Window::~Window()
+	/// D3D11 PipelineState implementation.
+	class D3D11PipelineState final : public PipelineState
 	{
-	}
+	public:
+		/// Constructor.
+        D3D11PipelineState(D3D11Graphics* graphics, const RenderPipelineDescriptor& descriptor);
+
+		/// Destructor.
+		~D3D11PipelineState() override;
+
+        void Bind(ID3D11DeviceContext1* context);
+
+	private:
+        SharedPtr<D3D11Shader> _shader;
+	};
 }

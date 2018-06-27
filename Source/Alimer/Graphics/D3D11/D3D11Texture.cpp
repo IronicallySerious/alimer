@@ -20,20 +20,26 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#include "D3D11Texture.h"
+#include "D3D11Graphics.h"
+#include "../../Core/Log.h"
+using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
+    D3D11Texture::D3D11Texture(D3D11Graphics* graphics)
+		: Texture()
 	{
+		
 	}
 
-	Window::~Window()
+    D3D11Texture::~D3D11Texture()
 	{
+        Destroy();
 	}
+
+    void D3D11Texture::Destroy()
+    {
+
+    }
 }

@@ -35,7 +35,6 @@ HRESULT D3D12LoadLibraries();
 #endif
 
 HRESULT privateD3D12GetDebugInterface(_In_ REFIID riid, _COM_Outptr_opt_ void** ppvDebug);
-HRESULT privateCreateDXGIFactory2(UINT Flags, REFIID riid, _COM_Outptr_ void **ppFactory);
 HRESULT privateD3D12CreateDevice(_In_opt_ IUnknown* pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, _In_ REFIID riid, _COM_Outptr_opt_ void** ppDevice);
 HRESULT privateD3D12SerializeRootSignature(
     _In_ const D3D12_ROOT_SIGNATURE_DESC* pRootSignature,
@@ -171,14 +170,6 @@ inline HRESULT AlimerD3DX12SerializeVersionedRootSignature(
 
 namespace Alimer
 {
-    inline void ThrowIfFailed(HRESULT hr)
-    {
-        if (FAILED(hr))
-        {
-            ALIMER_LOGCRITICAL("HRESULT of 0x%08X", static_cast<UINT>(hr));
-        }
-    }
-
 	inline void D3D12SetObjectName(ID3D12Object* object, _In_z_  LPCWSTR name)
 	{
 #if defined(ALIMER_DEV)

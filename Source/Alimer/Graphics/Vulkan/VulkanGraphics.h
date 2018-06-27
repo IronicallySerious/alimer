@@ -51,11 +51,10 @@ namespace Alimer
 		/// Destruct.
 		~VulkanGraphics() override;
 
-        bool WaitIdle() override;
-        bool BackendInitialize() override;
+        void WaitIdle() override;
+       
 		SharedPtr<Texture> AcquireNextImage() override;
-        void EndFrame() override;
-        CommandBuffer* GetDefaultContext() const override;
+        CommandBuffer* GetDefaultCommandBuffer() const override;
 
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
@@ -86,6 +85,9 @@ namespace Alimer
 
 	private:
         void Finalize() override;
+        bool BackendInitialize() override;
+        bool BeginFrameCore() override;
+        void EndFrameCore() override;
         void CreateAllocator();
 
 		VkInstance _instance = VK_NULL_HANDLE;

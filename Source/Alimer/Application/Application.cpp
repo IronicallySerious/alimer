@@ -95,6 +95,7 @@ namespace Alimer
 
             // Create and init graphics.
             //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
+            _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
             //_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
 
             _graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
@@ -147,18 +148,21 @@ namespace Alimer
         if (_headless)
             return;
 
-        // Acquire frame texture first.
-        SharedPtr<Texture> frameTexture = _graphics->AcquireNextImage();
+        if (_graphics->BeginFrame())
+        {
+            // Acquire frame texture first.
+            SharedPtr<Texture> frameTexture = _graphics->AcquireNextImage();
 
-        // Tick timer.
-        double frameTime = _timer.Frame();
-        double elapsedTime = _timer.GetElapsed();
+            // Tick timer.
+            double frameTime = _timer.Frame();
+            double elapsedTime = _timer.GetElapsed();
 
-        // Render single frame.
-        RenderFrame(frameTexture, frameTime, elapsedTime);
+            // Render single frame.
+            RenderFrame(frameTexture, frameTime, elapsedTime);
 
-        // End frame.
-        _graphics->EndFrame();
+            // End frame.
+            _graphics->EndFrame();
+        }
     }
 
     void Application::UpdateScene(double frameTime, double elapsedTime)
@@ -169,7 +173,7 @@ namespace Alimer
     void Application::RenderScene(const SharedPtr<Texture>& frameTexture)
     {
         // TODO: Add Scene renderer.
-        CommandBuffer* commandBuffer = _graphics->GetDefaultContext();
+        CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
         RenderPassDescriptor passDescriptor = {};
         passDescriptor.colorAttachments[0].texture = frameTexture;
         passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };

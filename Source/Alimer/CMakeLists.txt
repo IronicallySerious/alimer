@@ -93,9 +93,17 @@ if (ALIMER_VULKAN)
 	list (APPEND SOURCE_FILES ${ALIMER_THIRD_PARTY_DIR}/volk/volk.c)
 endif (ALIMER_VULKAN)
 
+if (ALIMER_D3D11 OR ALIMER_D3D12)
+    define_engine_source_files(Graphics/D3D)
+endif()
+
+if (ALIMER_D3D11)
+	define_engine_source_files(Graphics/D3D11)
+endif ()
+
 if (ALIMER_D3D12)
 	define_engine_source_files(Graphics/D3D12)
-endif (ALIMER_D3D12)
+endif ()
 
 # SPIRV-Cross
 set(SPIRV_CROSS_HEADER_FILES
@@ -140,6 +148,73 @@ install (FILES ${SPIRV_CROSS_HEADER_FILES} DESTINATION ${DEST_INCLUDE_DIR}/Third
 # Group source code in VS solution
 group_sources()
 
+if (ALIMER_D3D11 OR ALIMER_D3D12)
+    # WIN10_SDK_PATH will be something like C:\Program Files (x86)\Windows Kits\10
+    get_filename_component(WIN10_SDK_PATH "[HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0;InstallationFolder]" ABSOLUTE CACHE)
+
+    # TEMP_WIN10_SDK_VERSION will be something like ${CMAKE_CURRENT_SOURCE_DIR}\10.0.14393 or ${CMAKE_CURRENT_SOURCE_DIR}\10.0.14393.0
+    get_filename_component(TEMP_WIN10_SDK_VERSION "[HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0;ProductVersion]" ABSOLUTE CACHE)
+
+    # strip off ${CMAKE_CURRENT_SOURCE_DIR} to get just the version number
+    get_filename_component(WIN10_SDK_VERSION ${TEMP_WIN10_SDK_VERSION} NAME)
+    # WIN10_SDK_VERSION will be something like 10.0.14393 or 10.0.14393.0; we need the one that matches the directory name.
+    if (IS_DIRECTORY "${WIN10_SDK_PATH}/Include/${WIN10_SDK_VERSION}.0")
+        set(WIN10_SDK_VERSION "${WIN10_SDK_VERSION}.0")
+    endif()
+
+    # Find the dxgi, d3d11 and d3d12 include path, it will typically look something like this.
+    # C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\shared\dxgi1_4.h
+    # C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\um\d3d11_4.h
+    # C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\um\d3d12.h
+    find_path(DXGI_INCLUDE_DIR      # Set variable DXGI_INCLUDE_DIR
+        dxgi1_4.h                   # Find a path with dxgi1_4.h
+        HINTS "${WIN10_SDK_PATH}/Include/${WIN10_SDK_VERSION}/shared"
+        DOC "path to WIN10 SDK header files"
+        HINTS
+    )
+
+    find_path(D3D11_INCLUDE_DIR     # Set variable D3D12_INCLUDE_DIR
+        d3d11_4.h                   # Find a path with d3d11_4.h
+        HINTS "${WIN10_SDK_PATH}/Include/${WIN10_SDK_VERSION}/um"
+        DOC "path to WIN10 SDK header files"
+        HINTS
+    )
+
+    find_path(D3D12_INCLUDE_DIR     # Set variable D3D12_INCLUDE_DIR
+        d3d12.h                     # Find a path with d3d12.h
+        HINTS "${WIN10_SDK_PATH}/Include/${WIN10_SDK_VERSION}/um"
+        DOC "path to WIN10 SDK header files"
+        HINTS
+    )
+
+    if (CMAKE_GENERATOR MATCHES "Visual Studio.*ARM" )
+        set(WIN10_SDK_LIB_PATH ${WIN10_SDK_PATH}/Lib/${WIN10_SDK_VERSION}/um/arm)
+    elseif (CMAKE_GENERATOR MATCHES "Visual Studio.*ARM64" )
+        set(WIN10_SDK_LIB_PATH ${WIN10_SDK_PATH}/Lib/${WIN10_SDK_VERSION}/um/arm64)
+    elseif (CMAKE_GENERATOR MATCHES "Visual Studio.*Win64" )
+        set(WIN10_SDK_LIB_PATH ${WIN10_SDK_PATH}/Lib/${WIN10_SDK_VERSION}/um/x64)
+    else()
+        set(WIN10_SDK_LIB_PATH ${WIN10_SDK_PATH}/Lib/${WIN10_SDK_VERSION}/um/x86)
+    endif()
+
+    find_library(D3D11_LIBRARY NAMES d3d11.lib HINTS ${WIN10_SDK_LIB_PATH})
+    find_library(D3D12_LIBRARY NAMES d3d12.lib HINTS ${WIN10_SDK_LIB_PATH})
+    find_library(DXGI_LIBRARY NAMES dxgi.lib HINTS ${WIN10_SDK_LIB_PATH})
+    find_library(D3DCOMPILER_LIBRARY NAMES d3dcompiler.lib HINTS ${WIN10_SDK_LIB_PATH})
+
+    list(APPEND D3D11_LIBRARIES
+        ${D3D11_LIBRARY}
+        ${DXGI_LIBRARY}
+        ${D3DCOMPILER_LIBRARY}
+    )
+
+    list(APPEND D3D12_LIBRARIES
+        ${D3D12_LIBRARY}
+        ${DXGI_LIBRARY}
+        ${D3DCOMPILER_LIBRARY}
+    )
+endif()
+
 # Define the library target.
 add_library(libAlimer ${ALIMER_LIBRARY_TYPE} ${SOURCE_FILES} ${HEADER_FILES})
 
@@ -154,13 +229,23 @@ target_include_directories(libAlimer
     $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}/glfw/include>
 )
 
+if (ALIMER_D3D11 OR ALIMER_D3D12)
+    target_include_directories(libAlimer SYSTEM PRIVATE ${D3D12_INCLUDE_DIR} ${D3D11_INCLUDE_DIR} ${DXGI_INCLUDE_DIR})
+
+    if (ALIMER_D3D11)
+        target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D11)
+        target_link_libraries (libAlimer ${D3D11_LIBRARIES})
+    endif()
+
+    if (ALIMER_D3D12)
+        target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D12)
+        # target_link_libraries (libAlimer ${D3D12_LIBRARIES})
+    endif()
+endif()
+
 if (BUILD_SHARED_LIBS)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_SHARED=1)
 endif ()
-
-if (ALIMER_D3D12)
-	target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D12)
-endif (ALIMER_D3D12)
 
 if (ALIMER_VULKAN)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_VULKAN)
@@ -175,7 +260,6 @@ if (ALIMER_VULKAN)
 	elseif (PLATFORM_ANDROID)
 		target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
 	endif()
-
 endif (ALIMER_VULKAN)
 
 if (ALIMER_SHADER_COMPILER)
@@ -190,7 +274,7 @@ if (PLATFORM_WINDOWS)
 elseif (PLATFORM_UWP)
 	set_target_properties(libAlimer PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${PLATFORM_UWP_VERSION_MIN}")
 	target_compile_definitions (libAlimer PRIVATE -D_UNICODE -DNOMINMAX)
-	target_link_libraries (libAlimer mincore d3d12.lib dxgi.lib d3dcompiler.lib)
+	target_link_libraries (libAlimer mincore ${D3D12_LIBRARIES} ${D3D11_LIBRARIES})
 else ()
 	target_link_libraries (libAlimer pthread)
 endif ()

@@ -20,20 +20,50 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#include "D3D11GpuAdapter.h"
+#include "../../Core/String.h"
+using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
+    D3D11GpuAdapter::D3D11GpuAdapter(const ComPtr<IDXGIAdapter1>& adapter)
+        : _adapter(adapter)
+    {
+        DXGI_ADAPTER_DESC1 desc;
+        adapter->GetDesc1(&desc);
 
-	Window::~Window()
-	{
-	}
+        switch (desc.VendorId)
+        {
+        case 0x13B5:
+            _vendor = GpuVendor::Arm;
+            break;
+        case 0x10DE:
+            _vendor = GpuVendor::Nvidia;
+            break;
+        case 0x1002:
+        case 0x1022:
+            _vendor = GpuVendor::Amd;
+            break;
+        case 0x8086:
+            _vendor = GpuVendor::Intel;
+            break;
+
+        case 0x1414:
+            _vendor = GpuVendor::Warp;
+            break;
+
+        default:
+            _vendor = GpuVendor::Unknown;
+            break;
+        }
+
+        _vendorID = desc.VendorId;
+        _deviceID = desc.DeviceId;
+        _deviceName = str::FromWide(desc.Description);
+    }
+
+    D3D11GpuAdapter::~D3D11GpuAdapter()
+    {
+
+    }
 }

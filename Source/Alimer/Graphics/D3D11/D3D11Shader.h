@@ -20,20 +20,32 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#pragma once
+
+#include "Graphics/Shader.h"
+#include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
+	class D3D11Graphics;
 
-	Window::~Window()
+	/// D3D11 Shader implementation.
+	class D3D11Shader final : public Shader
 	{
-	}
+	public:
+		/// Constructor.
+        D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& desc);
+		/// Constructor.
+        D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
+
+		/// Destructor.
+		~D3D11Shader() override;
+
+		bool HasBytecode(ShaderStage stage);
+		std::vector<uint8_t> AcquireBytecode(ShaderStage stage);
+
+	private:
+        D3D11Graphics* _graphics;
+		std::vector<uint8_t> _shaders[static_cast<unsigned>(ShaderStage::Count)];
+	};
 }

@@ -29,6 +29,10 @@
 #include "Graphics/Vulkan/VulkanGraphics.h"
 #endif
 
+#if ALIMER_D3D11
+#include "Graphics/D3D11/D3D11Graphics.h"
+#endif
+
 #if ALIMER_D3D12
 #include "Graphics/D3D12/D3D12Graphics.h"
 #endif
@@ -43,6 +47,8 @@ namespace Alimer
         : _deviceType(deviceType)
         , _validation(validation)
         , _adapter(nullptr)
+        , _features{}
+        , _inBeginFrame(false)
     {
         __graphicsInstance = this;
     }
@@ -113,6 +119,13 @@ namespace Alimer
             }
 #endif
 
+#if ALIMER_D3D11
+            if (D3D11Graphics::IsSupported())
+            {
+                availableBackends.insert(GraphicsDeviceType::Direct3D11);
+            }
+#endif
+
         }
 
         return availableBackends;
@@ -171,6 +184,21 @@ namespace Alimer
 
             break;
 
+        case GraphicsDeviceType::Direct3D11:
+#if ALIMER_D3D11
+            if (D3D11Graphics::IsSupported())
+            {
+                ALIMER_LOGINFO("Using Direct3D 11 graphics backend");
+                graphics = new D3D11Graphics(validation);
+            }
+            else
+#endif
+            {
+                ALIMER_LOGERROR("Direct3D 11 graphics backend not supported");
+            }
+
+            break;
+
         case GraphicsDeviceType::Default:
             break;
 
@@ -196,6 +224,24 @@ namespace Alimer
         ALIMER_ASSERT_MSG(window.Get(), "Invalid window for graphics creation");
         _window = window;
         return BackendInitialize();
+    }
+
+    bool Graphics::BeginFrame()
+    {
+        if (_inBeginFrame)
+            ALIMER_LOGCRITICAL("Cannot call BeginFrame while already inside frame.");
+
+        _inBeginFrame = true;
+        return BeginFrameCore();
+    }
+
+    void Graphics::EndFrame()
+    {
+        if (!_inBeginFrame)
+            ALIMER_LOGCRITICAL("BeginFrame must be called before EndFrame.");
+
+        EndFrameCore();
+        _inBeginFrame = false;
     }
 
     SharedPtr<Shader> Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
