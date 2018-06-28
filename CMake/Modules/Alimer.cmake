@@ -122,6 +122,7 @@ else ()
 endif ()
 
 set (DEST_BASE_INCLUDE_DIR include)
+set (DEST_INCLUDE_DIR ${DEST_BASE_INCLUDE_DIR}/Alimer)
 set (DEST_ARCHIVE_DIR lib)
 set (DEST_BIN_DIR bin)
 set (DEST_SHARE_DIR share)

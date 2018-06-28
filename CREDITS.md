@@ -12,6 +12,7 @@ Alimer uses the following open-source and third-party libraries:
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [glm](https://github.com/g-truc/glm)
 - [rapidjson](https://github.com/Tencent/rapidjson)
+- [enkiTS](https://github.com/dougbinks/enkiTS)
 
 Additional inspiration, research or code used:
 
