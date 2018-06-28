@@ -578,6 +578,15 @@ struct SPIRBlock : IVariant
 		MergeSelection
 	};
 
+	enum Hints
+	{
+		HintNone,
+		HintUnroll,
+		HintDontUnroll,
+		HintFlatten,
+		HintDontFlatten
+	};
+
 	enum Method
 	{
 		MergeToSelectForLoop,
@@ -610,6 +619,7 @@ struct SPIRBlock : IVariant
 
 	Terminator terminator = Unknown;
 	Merge merge = MergeNone;
+	Hints hint = HintNone;
 	uint32_t next_block = 0;
 	uint32_t merge_block = 0;
 	uint32_t continue_block = 0;
@@ -745,7 +755,11 @@ struct SPIRFunction : IVariant
 
 	// Statements to be emitted when the function returns.
 	// Mostly used for lowering internal data structures onto flattened structures.
-	std::vector<std::string> fixup_statements;
+	std::vector<std::string> fixup_statements_out;
+
+	// Statements to be emitted when the function begins.
+	// Mostly used for populating internal data structures from flattened structures.
+	std::vector<std::string> fixup_statements_in;
 
 	bool active = false;
 	bool flush_undeclared = true;
