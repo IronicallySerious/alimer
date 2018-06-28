@@ -22,6 +22,7 @@
 
 #include "D3D11Graphics.h"
 #include "D3D11SwapChain.h"
+#include "D3D11RenderPass.h"
 #include "D3D11Texture.h"
 #include "D3D11CommandBuffer.h"
 #include "D3D11GpuBuffer.h"
@@ -283,6 +284,11 @@ namespace Alimer
     void D3D11Graphics::HandleDeviceLost()
     {
         // TODO
+    }
+
+    SharedPtr<RenderPass> D3D11Graphics::CreateRenderPass(const RenderPassDescription& description)
+    {
+        return MakeShared<D3D11RenderPass>(this, description);
     }
 
     SharedPtr<GpuBuffer> D3D11Graphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)

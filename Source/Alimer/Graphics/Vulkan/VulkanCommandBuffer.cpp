@@ -26,6 +26,7 @@
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanPipelineState.h"
+#include "VulkanRenderPass.h"
 #include "VulkanGraphics.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
@@ -105,62 +106,36 @@ namespace Alimer
         vkThrowIfFailed(vkResetCommandBuffer(_vkHandle, 0));
     }
 
-    void VulkanCommandBuffer::BeginRenderPass(const RenderPassDescriptor& descriptor)
+    void VulkanCommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
-        Hasher renderPassHasher;
-        Hasher framebufferHasher;
-        uint64_t renderPassHash = 0;
-        uint64_t framebufferHash = 0;
-
-        VkClearValue clearValues[MaxColorAttachments + 1];
-        uint32_t numClearValues = 0;
-
-        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        std::vector<VkClearValue> clearValues(numClearColors + 1);
+        uint32_t i = 0;
+        for (; i < numClearColors; ++i)
         {
-            const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor.colorAttachments[i];
-            Texture* texture = colorAttachment.texture;
-            if (!texture)
-                continue;
-
-            renderPassHasher.u32(static_cast<uint32_t>(texture->GetFormat()));
-            renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.loadAction));
-            renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.storeAction));
-
-            framebufferHasher.pointer(texture);
-
-            if (colorAttachment.loadAction == LoadAction::Clear)
-            {
-                clearValues[i].color = { colorAttachment.clearColor.r, colorAttachment.clearColor.g, colorAttachment.clearColor.b, colorAttachment.clearColor.a };
-                numClearValues = i + 1;
-            }
+            clearValues[i].color.float32[0] = clearColors[i].r;
+            clearValues[i].color.float32[1] = clearColors[i].g;
+            clearValues[i].color.float32[2] = clearColors[i].b;
+            clearValues[i].color.float32[3] = clearColors[i].a;
         }
+        clearValues[i].depthStencil.depth = clearDepth;
+        clearValues[i].depthStencil.stencil = clearStencil;
 
-        if (descriptor.depthAttachment.texture != nullptr
-            && descriptor.depthAttachment.loadAction == LoadAction::Clear)
-        {
-            clearValues[numClearValues + 1].depthStencil = { descriptor.depthAttachment.clearDepth, descriptor.stencilAttachment.clearStencil };
-            numClearValues++;
-        }
-
-        renderPassHash = renderPassHasher.get();
-        framebufferHash = framebufferHasher.get();
-
-        VkRenderPass renderPass = _vkGraphics->GetVkRenderPass(descriptor, renderPassHash);
-        _currentFramebuffer = _vkGraphics->GetFramebuffer(renderPass, descriptor, framebufferHash);
+        _currentRenderPass = static_cast<VulkanRenderPass*>(renderPass);
 
         VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-        renderPassBeginInfo.renderPass = _currentFramebuffer->renderPass;
-        renderPassBeginInfo.framebuffer = _currentFramebuffer->framebuffer;
+        renderPassBeginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
+        renderPassBeginInfo.framebuffer = _currentRenderPass->GetVkFramebuffer();
         renderPassBeginInfo.renderArea.offset.x = 0;
         renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent = _currentFramebuffer->size;
-        renderPassBeginInfo.clearValueCount = numClearValues;
-        renderPassBeginInfo.pClearValues = clearValues;
+        renderPassBeginInfo.renderArea.extent.width = _currentRenderPass->GetWidth();
+        renderPassBeginInfo.renderArea.extent.height = _currentRenderPass->GetHeight();
+        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassBeginInfo.pClearValues = clearValues.data();
 
         vkCmdBeginRenderPass(_vkHandle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // TODO: Set later
-        VkViewport viewport = { 0.0f, 0.0f, _currentFramebuffer->size.width, _currentFramebuffer->size.height, 0.0f, 1.0f };
+        VkViewport viewport = { 0.0f, 0.0f, renderPassBeginInfo.renderArea.extent.width, renderPassBeginInfo.renderArea.extent.height, 0.0f, 1.0f };
 
         // Flip to match DirectX coordinate system.
         viewport = VkViewport{
@@ -170,7 +145,7 @@ namespace Alimer
         };
 
         VkRect2D scissor = {};
-        scissor.extent = _currentFramebuffer->size;
+        scissor.extent = renderPassBeginInfo.renderArea.extent;
 
         vkCmdSetViewport(_vkHandle, 0, 1, &viewport);
         vkCmdSetScissor(_vkHandle, 0, 1, &scissor);
@@ -247,7 +222,10 @@ namespace Alimer
             return false;
 
         VkPipeline oldPipeline = _currentVkPipeline;
-        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(topology, _currentFramebuffer->renderPass);
+        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(
+            topology,
+            _currentRenderPass->GetVkRenderPass()
+        );
         if (oldPipeline != newPipeline)
         {
             vkCmdBindPipeline(_vkHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline);
@@ -328,7 +306,7 @@ namespace Alimer
 
         vkCmdBindDescriptorSets(
             _vkHandle,
-            _currentFramebuffer ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE,
+            _currentRenderPass ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE,
             _currentVkPipelineLayout,
             set,
             1, &allocated.first,

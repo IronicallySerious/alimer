@@ -34,14 +34,6 @@ namespace Alimer
             _graphics->AddGpuResource(this);
     }
 
-    GpuResource::GpuResource(GpuResourceType resourceType)
-        : _resourceType(resourceType)
-        , _graphics(Graphics::GetInstance())
-    {
-        if (_graphics)
-            _graphics->AddGpuResource(this);
-    }
-
     GpuResource::~GpuResource()
     {
         if (_graphics)

@@ -75,7 +75,7 @@ namespace Alimer
     {
     protected:
         /// Constructor.
-        Texture();
+        Texture(Graphics* graphics);
 
     public:
         /// Destructor.

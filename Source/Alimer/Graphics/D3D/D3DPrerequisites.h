@@ -110,4 +110,20 @@ namespace Alimer
             throw com_exception(hr);
         }
     }
+
+    inline ULONG GetRefCount(IUnknown* _interface)
+    {
+        _interface->AddRef();
+        return _interface->Release();
+    }
+
+    template <typename T>
+    void SafeRelease(T& resource)
+    {
+        if (resource)
+        {
+            resource->Release();
+            resource = nullptr;
+        }
+    }
 }

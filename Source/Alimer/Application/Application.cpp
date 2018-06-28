@@ -24,6 +24,7 @@
 #include "../IO/Path.h"
 #include "../Core/Log.h"
 #include "AlimerVersion.h"
+#include "enkiTS/src/TaskScheduler_c.h"
 using namespace std;
 
 namespace Alimer
@@ -39,6 +40,11 @@ namespace Alimer
         , _scene(new Scene())
     {
         PlatformConstruct();
+
+        // Init enkiTS
+        _taskScheduler = enkiNewTaskScheduler();
+        enkiInitTaskScheduler(_taskScheduler);
+
         __appInstance = this;
     }
 
@@ -46,6 +52,10 @@ namespace Alimer
     {
         _paused = true;
         _running = false;
+
+        // Delete enkiTS
+        enkiDeleteTaskScheduler(_taskScheduler);
+
         __appInstance = nullptr;
     }
 
@@ -174,13 +184,12 @@ namespace Alimer
     {
         // TODO: Add Scene renderer.
         CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
-        RenderPassDescriptor passDescriptor = {};
-        passDescriptor.colorAttachments[0].texture = frameTexture;
-        passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
-        commandBuffer->BeginRenderPass(passDescriptor);
-
-        _scene->Render(commandBuffer);
-        commandBuffer->EndRenderPass();
+        //RenderPassDescriptor passDescriptor = {};
+        //passDescriptor.colorAttachments[0].texture = frameTexture;
+        //passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
+        //commandBuffer->BeginRenderPass(passDescriptor);
+        //_scene->Render(commandBuffer);
+        //commandBuffer->EndRenderPass();
         commandBuffer->Commit();
     }
 

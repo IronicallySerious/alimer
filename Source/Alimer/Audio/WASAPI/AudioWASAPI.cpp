@@ -22,6 +22,7 @@
 
 #include "AudioWASAPI.h"
 #include "../../Core/Log.h"
+#include "../../Graphics/D3D/D3DPrerequisites.h"
 #include <functiondiscoverykeys_devpkey.h>
 
 namespace Alimer

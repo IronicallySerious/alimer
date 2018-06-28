@@ -27,7 +27,7 @@
 namespace Alimer
 {
 	D3D12Texture::D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource)
-		: Texture()
+		: Texture(graphics)
         , _rtvHandle{}
 	{
 		if (resource)

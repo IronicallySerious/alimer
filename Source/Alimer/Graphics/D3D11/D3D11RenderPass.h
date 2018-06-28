@@ -22,48 +22,50 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
-#include "../Graphics/Types.h"
+#include "Graphics/RenderPass.h"
+#include "D3D11Prerequisites.h"
+#include <map>
 
 namespace Alimer
 {
-	class Graphics;
+    class D3D11Graphics;
 
-    enum class GpuResourceType : uint32_t
+    /// D3D11 RenderPass implementation.
+    class D3D11RenderPass final : public RenderPass
     {
-        Unknown,
-        Buffer,
-        Texture,
-        RenderPass,
-        CommandBuffer,
-        CommandQueue
-    };
-
-	/// Defines a base GPU Resource.
-	class ALIMER_API GpuResource //: public RefCounted
-	{
-	protected:
+    public:
         /// Constructor.
-        GpuResource(Graphics* graphics, GpuResourceType resourceType);
+        D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription& descriptor);
 
-	public:
-		/// Destructor.
-		virtual ~GpuResource();
+        /// Destructor.
+        ~D3D11RenderPass() override;
 
-        /// Unconditionally destroy the GPU resource.
-        virtual void Destroy() {}
+        void Destroy() override;
 
-        /// Return the graphics subsystem associated with this GPU object.
-        Graphics* GetGraphics() const;
+    private:
+        ID3D11Device1* _d3dDevice;
 
-        inline GpuResourceType GetResourceType() const { return _resourceType; }
+        union {
+            ID3D11Resource* _resource;
+            ID3D11Texture1D* _texture1D;
+            ID3D11Texture2D* _texture2D;
+            ID3D11Texture3D* _texture3D;
+        };
 
-    protected:
-        /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
-        GpuResourceType _resourceType;
-		
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);
-	};
+        DXGI_FORMAT _dxgiFormat;
+        D3D11_RTV_DIMENSION _viewDimension;
+
+        struct ViewDesc
+        {
+            uint32_t level;
+            uint32_t slice;
+
+            bool operator<(const ViewDesc& other) const
+            {
+                return std::tie(level, slice) < std::tie(other.level, other.slice);
+            }
+        };
+
+        std::map<ViewDesc, ID3D11RenderTargetView*> _views;
+    };
 }

@@ -26,6 +26,7 @@
 #include "D3D12GpuBuffer.h"
 #include "D3D12Graphics.h"
 #include "D3D12PipelineState.h"
+#include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
 #include "../../Math/MathUtil.h"
 #include "../../Util/Util.h"
@@ -33,21 +34,6 @@
 
 namespace Alimer
 {
-    namespace d3d12
-    {
-        DXGI_FORMAT Convert(IndexType type)
-        {
-            switch (type) {
-            case IndexType::UInt16:
-                return DXGI_FORMAT_R16_UINT;
-            case IndexType::UInt32:
-                return DXGI_FORMAT_R32_UINT;
-            default:
-                ALIMER_UNREACHABLE();
-            }
-        }
-    }
-
     D3D12CommandBuffer::D3D12CommandBuffer(D3D12Graphics* graphics)
         : CommandBuffer(graphics)
         , _d3dDevice(graphics->GetD3DDevice())
@@ -194,10 +180,10 @@ namespace Alimer
         }
     }
 
-    void D3D12CommandBuffer::BeginRenderPass(const RenderPassDescriptor& descriptor)
+    void D3D12CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         _boundRTVCount = 0;
-        for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+        /*for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
             const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor.colorAttachments[i];
             Texture* texture = colorAttachment.texture;
@@ -243,7 +229,7 @@ namespace Alimer
         _commandList->RSSetViewports(1, &viewport);
         _commandList->RSSetScissorRects(1, &scissorRect);
 
-        _commandList->OMSetRenderTargets(_boundRTVCount, _boundRTV, FALSE, nullptr);
+        _commandList->OMSetRenderTargets(_boundRTVCount, _boundRTV, FALSE, nullptr);*/
     }
 
     void D3D12CommandBuffer::EndRenderPass()
@@ -352,7 +338,7 @@ namespace Alimer
         D3D12_INDEX_BUFFER_VIEW bufferView;
         bufferView.BufferLocation = d3d12Buffer->GetGpuVirtualAddress() + offset;
         bufferView.SizeInBytes = d3d12Buffer->GetSize() - offset;
-        bufferView.Format = d3d12::Convert(indexType);
+        bufferView.Format = d3d::Convert(indexType);
         _commandList->IASetIndexBuffer(&bufferView);
     }
 

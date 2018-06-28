@@ -22,6 +22,7 @@
 
 #include "D3D11SwapChain.h"
 #include "D3D11Graphics.h"
+#include "D3D11Texture.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
@@ -74,7 +75,7 @@ namespace Alimer
 
     D3D11SwapChain::~D3D11SwapChain()
     {
-        _d3dBackbufferTexture.Reset();
+        _backbufferTexture.Reset();
         _swapChain.Reset();
     }
 
@@ -179,7 +180,9 @@ namespace Alimer
             }
         }
 
-        ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(_d3dBackbufferTexture.ReleaseAndGetAddressOf())));
+        ID3D11Texture2D* d3dBackbufferTexture;
+        ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&d3dBackbufferTexture)));
+        _backbufferTexture = MakeShared<D3D11Texture>(_graphics, d3dBackbufferTexture);
 
         // Set new size.
         _width = width;

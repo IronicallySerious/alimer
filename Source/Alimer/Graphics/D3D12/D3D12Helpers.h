@@ -177,12 +177,6 @@ namespace Alimer
 #endif
 	}
 
-    inline int GetRefCount(IUnknown* _interface)
-    {
-        _interface->AddRef();
-        return _interface->Release();
-    }
-
 	class D3D12Resource
 	{
 	public:

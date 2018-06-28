@@ -56,6 +56,7 @@ namespace Alimer
 		SharedPtr<Texture> AcquireNextImage() override;
         CommandBuffer* GetDefaultCommandBuffer() const override;
 
+        SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
 		SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
@@ -72,7 +73,7 @@ namespace Alimer
 		void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
 		void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkAccessFlagBits srcAccessMask, VkClearColorValue *clearValue);
 
-		VkRenderPass GetVkRenderPass(const RenderPassDescriptor& descriptor, uint64_t hash);
+		VkRenderPass GetVkRenderPass(const RenderPassDescription& description);
 		VulkanFramebuffer* GetFramebuffer(VkRenderPass renderPass, const RenderPassDescriptor& descriptor, uint64_t hash);
 
         VulkanDescriptorSetAllocator* RequestDescriptorSetAllocator(const DescriptorSetLayout &layout);

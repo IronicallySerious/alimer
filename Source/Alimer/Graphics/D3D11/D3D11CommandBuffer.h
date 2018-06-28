@@ -46,7 +46,7 @@ namespace Alimer
         void Enqueue() override;
         void Commit() override;
 
-        void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
+        void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPass() override;
 
         void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
@@ -64,5 +64,6 @@ namespace Alimer
         Microsoft::WRL::ComPtr<ID3D11DeviceContext1> _context;
         bool _isImmediate;
         uint32_t _boundRTVCount;
+        ID3D11RenderTargetView* _boundRTV[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
 	};
 }

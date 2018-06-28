@@ -509,6 +509,11 @@ namespace Alimer
         return _frameCommandBuffer;
     }*/
 
+    SharedPtr<RenderPass> D3D12Graphics::CreateRenderPass(const RenderPassDescription& description)
+    {
+        return nullptr;
+    }
+
     SharedPtr<GpuBuffer> D3D12Graphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
     {
         return MakeShared<D3D12GpuBuffer>(this, description, initialData);

@@ -25,8 +25,9 @@
 #include "../Core/Ptr.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/GpuBuffer.h"
-#include "../Graphics/Texture.h"
+#include "../Graphics/RenderPass.h"
 #include "../Graphics/PipelineState.h"
+#include "../Math/Color.h"
 
 namespace Alimer
 {
@@ -49,7 +50,14 @@ namespace Alimer
         /// Commits this command buffer for execution as soon as possible.
         virtual void Commit() = 0;
 
-		virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
+		virtual void BeginRenderPass(RenderPass* renderPass,
+            const Color& clearColor = Color::Black,
+            float clearDepth = 1.0f, uint8_t clearStencil = 0);
+
+        virtual void BeginRenderPass(RenderPass* renderPass,
+            const Color* clearColors, uint32_t numClearColors,
+            float clearDepth = 1.0f, uint8_t clearStencil = 0) = 0;
+
 		virtual void EndRenderPass() = 0;
 
 		void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);

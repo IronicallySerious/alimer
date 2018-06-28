@@ -22,48 +22,35 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
-#include "../Graphics/Types.h"
+#include "../Graphics/Texture.h"
 
 namespace Alimer
 {
-	class Graphics;
-
-    enum class GpuResourceType : uint32_t
+    struct RenderPassAttachment
     {
-        Unknown,
-        Buffer,
-        Texture,
-        RenderPass,
-        CommandBuffer,
-        CommandQueue
+        Texture* texture = nullptr;
+        uint32_t mipLevel = 0;
+        uint32_t slice = 0;
+        uint32_t depthPlane = 0;
+        LoadAction loadAction = LoadAction::Clear;
+        StoreAction storeAction = StoreAction::Store;
     };
 
-	/// Defines a base GPU Resource.
-	class ALIMER_API GpuResource //: public RefCounted
-	{
-	protected:
-        /// Constructor.
-        GpuResource(Graphics* graphics, GpuResourceType resourceType);
+    struct RenderPassDescription
+    {
+        RenderPassAttachment colorAttachments[MaxColorAttachments];
+        RenderPassAttachment depthStencilAttachment;
+    };
 
-	public:
-		/// Destructor.
-		virtual ~GpuResource();
-
-        /// Unconditionally destroy the GPU resource.
-        virtual void Destroy() {}
-
-        /// Return the graphics subsystem associated with this GPU object.
-        Graphics* GetGraphics() const;
-
-        inline GpuResourceType GetResourceType() const { return _resourceType; }
-
+    /// Defines a RenderPass class.
+    class ALIMER_API RenderPass : public GpuResource, public RefCounted
+    {
     protected:
-        /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
-        GpuResourceType _resourceType;
-		
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);
-	};
+        /// Constructor.
+        RenderPass(Graphics* graphics, const RenderPassDescription& description);
+
+    public:
+        /// Destructor.
+        virtual ~RenderPass();
+    };
 }

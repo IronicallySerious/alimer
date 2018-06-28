@@ -29,7 +29,7 @@
 namespace Alimer
 {
     VulkanTexture::VulkanTexture(VulkanGraphics* graphics, const TextureDescription& description, VkImage vkImage, VkImageUsageFlags usage)
-        : Texture()
+        : Texture(graphics)
         , _logicalDevice(graphics->GetLogicalDevice())
         , _vkHandle(vkImage)
     {

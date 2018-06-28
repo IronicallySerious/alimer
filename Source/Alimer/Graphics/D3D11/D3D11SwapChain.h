@@ -28,6 +28,7 @@
 
 namespace Alimer
 {
+    class D3D11Texture;
     class D3D11Graphics;
 
     enum class SwapchainFlagBits : uint32_t
@@ -75,6 +76,6 @@ namespace Alimer
         SwapchainFlags _swapchainFlags = SwapchainFlagBits::FlipPresent;
 
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D> _d3dBackbufferTexture;
+        SharedPtr<D3D11Texture> _backbufferTexture;
     };
 }

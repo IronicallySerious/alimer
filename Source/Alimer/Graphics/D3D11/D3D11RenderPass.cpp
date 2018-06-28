@@ -20,19 +20,50 @@
 // THE SOFTWARE.
 //
 
-#include "D3D11GpuBuffer.h"
+#include "D3D11RenderPass.h"
 #include "D3D11Graphics.h"
+#include "D3D11Texture.h"
+#include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
-using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
-        : GpuBuffer(graphics, description)
+    D3D11RenderPass::D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription& description)
+        : RenderPass(graphics, description)
+        , _d3dDevice(graphics->GetD3DDevice())
+        , _resource(nullptr)
+        , _dxgiFormat(DXGI_FORMAT_UNKNOWN)
+        , _viewDimension(D3D11_RTV_DIMENSION_UNKNOWN)
     {
+        for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+        {
+            const RenderPassAttachment& colorAttachment = description.colorAttachments[i];
+            Texture* texture = colorAttachment.texture;
+            if (!texture)
+                continue;
+
+            D3D11Texture* d3dTexture = static_cast<D3D11Texture*>(texture);
+        }
     }
 
-    D3D11GpuBuffer::~D3D11GpuBuffer()
+    D3D11RenderPass::~D3D11RenderPass()
     {
+        Destroy();
+    }
+
+    void D3D11RenderPass::Destroy()
+    {
+#if defined(_DEBUG)
+        ULONG refCount = GetRefCount(_resource);
+        ALIMER_ASSERT_MSG(refCount == 1, "D3D11Texture leakage");
+#endif
+
+        for (const auto& viewsIt : _views)
+        {
+            viewsIt.second->Release();
+        }
+
+        _views.clear();
+        SafeRelease(_resource);
     }
 }

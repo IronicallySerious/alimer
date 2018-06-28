@@ -29,6 +29,7 @@
 #include "../Graphics/GpuAdapter.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
+#include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/PipelineState.h"
 #include "../Graphics/CommandQueue.h"
@@ -75,6 +76,9 @@ namespace Alimer
 
         /// End and present current frame and advance to next frame. 
         void EndFrame();
+
+        // RenderPass
+        virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
 
         // Buffer
         virtual SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;

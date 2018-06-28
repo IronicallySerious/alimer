@@ -25,8 +25,8 @@
 
 namespace Alimer
 {
-	Texture::Texture()
-		: GpuResource(GpuResourceType::Texture)
+	Texture::Texture(Graphics* graphics)
+		: GpuResource(graphics, GpuResourceType::Texture)
 	{
 	}
 

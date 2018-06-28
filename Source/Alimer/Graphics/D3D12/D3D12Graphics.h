@@ -55,6 +55,7 @@ namespace Alimer
 
 		SharedPtr<Texture> AcquireNextImage() override;
 
+        SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 
 		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;

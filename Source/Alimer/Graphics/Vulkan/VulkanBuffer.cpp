@@ -28,7 +28,7 @@
 namespace Alimer
 {
     VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const GpuBufferDescription& description, const void* initialData)
-        : GpuBuffer(description)
+        : GpuBuffer(graphics, description)
         , _logicalDevice(graphics->GetLogicalDevice())
         , _allocator(graphics->GetAllocator())
     {

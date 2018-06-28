@@ -74,7 +74,7 @@ namespace Alimer
 	{
 	protected:
 		/// Constructor.
-		GpuBuffer(const GpuBufferDescription& description);
+		GpuBuffer(Graphics* graphics, const GpuBufferDescription& description);
 
 	public:
 		/// Destructor.

@@ -328,16 +328,6 @@ namespace Alimer
         delete resource;
         resource = nullptr;
     }
-
-    template <typename T>
-    void SafeRelease(T& resource)
-    {
-        if (resource)
-        {
-            resource->Release();
-            resource = nullptr;
-        }
-    }
 }
 
 // Put this in the declarations for a class to be uncopyable and unassignable.

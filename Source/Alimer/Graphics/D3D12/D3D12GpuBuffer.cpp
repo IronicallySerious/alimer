@@ -27,7 +27,7 @@
 namespace Alimer
 {
     D3D12GpuBuffer::D3D12GpuBuffer(D3D12Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
-        : GpuBuffer(description)
+        : GpuBuffer(graphics, description)
     {
         // TODO: Property initialize using CommandList.
         _usageState = D3D12_RESOURCE_STATE_GENERIC_READ;

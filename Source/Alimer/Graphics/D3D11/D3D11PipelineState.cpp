@@ -23,44 +23,12 @@
 #include "D3D11PipelineState.h"
 #include "D3D11Shader.h"
 #include "D3D11Graphics.h"
+#include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    static DXGI_FORMAT VertexFormatType(VertexFormat format)
-    {
-        switch (format)
-        {
-        case VertexFormat::Float:
-            return DXGI_FORMAT_R32_FLOAT;
-        case VertexFormat::Float2:
-            return DXGI_FORMAT_R32G32_FLOAT;
-        case VertexFormat::Float3:
-            return DXGI_FORMAT_R32G32B32_FLOAT;
-        case VertexFormat::Float4:
-            return DXGI_FORMAT_R32G32B32A32_FLOAT;
-        case VertexFormat::Byte4:
-            return DXGI_FORMAT_R8G8B8A8_SINT;
-        case VertexFormat::Byte4N:
-            return DXGI_FORMAT_R8G8B8A8_SNORM;
-        case VertexFormat::UByte4:
-            return DXGI_FORMAT_R8G8B8A8_UINT;
-        case VertexFormat::UByte4N:
-            return DXGI_FORMAT_R8G8B8A8_UNORM;
-        case VertexFormat::Short2:
-            return DXGI_FORMAT_R16G16_SINT;
-        case VertexFormat::Short2N:
-            return DXGI_FORMAT_R16G16_SNORM;
-        case VertexFormat::Short4:
-            return DXGI_FORMAT_R16G16B16A16_SINT;
-        case VertexFormat::Short4N:
-            return DXGI_FORMAT_R16G16B16A16_SNORM;
-        default:
-            return DXGI_FORMAT_UNKNOWN;
-        }
-    }
-
     D3D11PipelineState::D3D11PipelineState(D3D11Graphics* graphics, const RenderPipelineDescriptor& descriptor)
         : PipelineState(graphics, true)
     {
@@ -78,7 +46,7 @@ namespace Alimer
             // SemanticIndex N
             elements[i].SemanticName = "TEXCOORD";
             elements[i].SemanticIndex = static_cast<uint32_t>(i);
-            elements[i].Format = VertexFormatType(attribute.format);
+            elements[i].Format = d3d::Convert(attribute.format);
             elements[i].InputSlot = attribute.binding;
             elements[i].AlignedByteOffset = attribute.offset;
             elements[i].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;

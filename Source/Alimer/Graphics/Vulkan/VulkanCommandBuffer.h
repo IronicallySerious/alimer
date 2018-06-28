@@ -32,7 +32,7 @@ namespace Alimer
     class VulkanCommandQueue;
     class VulkanPipelineLayout;
     class VulkanPipelineState;
-    struct VulkanFramebuffer;
+    class VulkanRenderPass;
 
     /// Vulkan CommandBuffer.
     class VulkanCommandBuffer final : public CommandBuffer
@@ -48,7 +48,7 @@ namespace Alimer
         void End();
         void Reset();
 
-        void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
+        void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPass() override;
 
         void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
@@ -73,7 +73,7 @@ namespace Alimer
         VkDevice _logicalDevice;
         VkCommandBuffer _vkHandle;
         bool _enqueued;
-        VulkanFramebuffer* _currentFramebuffer = nullptr;
+        VulkanRenderPass* _currentRenderPass = nullptr;
         SharedPtr<VulkanPipelineState> _currentPipeline;
         VulkanPipelineLayout* _currentPipelineLayout = nullptr;
         VkPipeline _currentVkPipeline = VK_NULL_HANDLE;

@@ -79,10 +79,10 @@ namespace Alimer
         _context->FinishCommandList(FALSE, commandList.ReleaseAndGetAddressOf());
     }
 
-    void D3D11CommandBuffer::BeginRenderPass(const RenderPassDescriptor& descriptor)
+    void D3D11CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         _boundRTVCount = 0;
-        for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+        /*for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
             const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor.colorAttachments[i];
             Texture* texture = colorAttachment.texture;
@@ -90,8 +90,7 @@ namespace Alimer
                 continue;
 
             D3D11Texture* d3dTexture = static_cast<D3D11Texture*>(texture);
-            //_boundRTV[_boundRTVCount] = d3dTexture->GetRTV();
-            //_boundRTVResources[_boundRTVCount++] = d3dTexture;
+            _boundRTV[_boundRTVCount] = d3dTexture->GetRenderTargetView(colorAttachment.level, colorAttachment.slice);
 
             switch (colorAttachment.loadAction)
             {
@@ -104,7 +103,7 @@ namespace Alimer
             default:
                 break;
             }
-        }
+        }*/
 
         D3D11_VIEWPORT viewport;
         viewport.TopLeftX = 0;
@@ -122,7 +121,7 @@ namespace Alimer
         _context->RSSetViewports(1, &viewport);
         _context->RSSetScissorRects(1, &scissorRect);
 
-        //_context->OMSetRenderTargets(_boundRTVCount, _boundRTV, nullptr);
+        _context->OMSetRenderTargets(_boundRTVCount, _boundRTV, nullptr);
     }
 
     void D3D11CommandBuffer::EndRenderPass()

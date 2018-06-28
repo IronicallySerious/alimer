@@ -26,8 +26,8 @@
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(const GpuBufferDescription& description)
-        : GpuResource(GpuResourceType::Buffer)
+    GpuBuffer::GpuBuffer(Graphics* graphics, const GpuBufferDescription& description)
+        : GpuResource(graphics, GpuResourceType::Buffer)
         , _description(description)
     {
         _size = description.elementCount * description.elementSize;

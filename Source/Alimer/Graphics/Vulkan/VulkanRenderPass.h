@@ -22,48 +22,33 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
-#include "../Graphics/Types.h"
+#include "../RenderPass.h"
+#include "VulkanPrerequisites.h"
 
 namespace Alimer
 {
-	class Graphics;
+    class VulkanGraphics;
 
-    enum class GpuResourceType : uint32_t
+    /// Vulkan RenderPass implementation.
+    class VulkanRenderPass final : public RenderPass
     {
-        Unknown,
-        Buffer,
-        Texture,
-        RenderPass,
-        CommandBuffer,
-        CommandQueue
+    public:
+        VulkanRenderPass(VulkanGraphics* graphics, const RenderPassDescription& description);
+        ~VulkanRenderPass() override;
+        void Destroy() override;
+
+        VkRenderPass GetVkRenderPass() const { return _renderPass; }
+        VkFramebuffer GetVkFramebuffer() const { return _framebuffer; }
+
+        uint32_t GetWidth() const { return _width; }
+        uint32_t GetHeight() const { return _height; }
+
+    private:
+        VkDevice _logicalDevice;
+        VkRenderPass _renderPass;
+        VkFramebuffer _framebuffer;
+
+        uint32_t _width;
+        uint32_t _height;
     };
-
-	/// Defines a base GPU Resource.
-	class ALIMER_API GpuResource //: public RefCounted
-	{
-	protected:
-        /// Constructor.
-        GpuResource(Graphics* graphics, GpuResourceType resourceType);
-
-	public:
-		/// Destructor.
-		virtual ~GpuResource();
-
-        /// Unconditionally destroy the GPU resource.
-        virtual void Destroy() {}
-
-        /// Return the graphics subsystem associated with this GPU object.
-        Graphics* GetGraphics() const;
-
-        inline GpuResourceType GetResourceType() const { return _resourceType; }
-
-    protected:
-        /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
-        GpuResourceType _resourceType;
-		
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);
-	};
 }

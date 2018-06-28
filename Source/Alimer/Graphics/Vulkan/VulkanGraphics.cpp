@@ -30,6 +30,7 @@
 #include "VulkanGpuAdapter.h"
 #include "VulkanCommandQueue.h"
 #include "VulkanCommandBuffer.h"
+#include "VulkanRenderPass.h"
 #include "VulkanTexture.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
@@ -673,6 +674,11 @@ namespace Alimer
         _defaultCommandBuffer = _defaultCommandQueue->CreateCommandBuffer();
     }
 
+    SharedPtr<RenderPass> VulkanGraphics::CreateRenderPass(const RenderPassDescription& description)
+    {
+        return MakeShared<VulkanRenderPass>(this, description);
+    }
+
     SharedPtr<GpuBuffer> VulkanGraphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
     {
         return MakeShared<VulkanBuffer>(this, description, initialData);
@@ -814,8 +820,23 @@ namespace Alimer
         vk::SetImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
     }
 
-    VkRenderPass VulkanGraphics::GetVkRenderPass(const RenderPassDescriptor& descriptor, uint64_t hash)
+    VkRenderPass VulkanGraphics::GetVkRenderPass(const RenderPassDescription& description)
     {
+        Hasher renderPassHasher;
+
+        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        {
+            const RenderPassAttachment& colorAttachment = description.colorAttachments[i];
+            Texture* texture = colorAttachment.texture;
+            if (!texture)
+                continue;
+
+            renderPassHasher.u32(static_cast<uint32_t>(texture->GetFormat()));
+            renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.loadAction));
+            renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.storeAction));
+        }
+
+        uint64_t hash = renderPassHasher.get();
         auto it = _renderPassCache.find(hash);
         if (it != end(_renderPassCache))
             return it->second;
@@ -828,15 +849,15 @@ namespace Alimer
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            const RenderPassColorAttachmentDescriptor& attachment = descriptor.colorAttachments[i];
-            Texture* texture = attachment.texture;
+            const RenderPassAttachment& colorAttachment = description.colorAttachments[i];
+            Texture* texture = colorAttachment.texture;
             if (!texture)
                 continue;
 
             attachments[attachmentCount].format = vk::Convert(texture->GetFormat());
             attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[attachmentCount].loadOp = vk::Convert(attachment.loadAction);
-            attachments[attachmentCount].storeOp = vk::Convert(attachment.storeAction);
+            attachments[attachmentCount].loadOp = vk::Convert(colorAttachment.loadAction);
+            attachments[attachmentCount].storeOp = vk::Convert(colorAttachment.storeAction);
             attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -847,15 +868,14 @@ namespace Alimer
             attachmentCount++;
         }
 
-        if (descriptor.depthAttachment.texture
-            || descriptor.stencilAttachment.texture)
+        if (description.depthStencilAttachment.texture)
         {
-            attachments[attachmentCount].format = vk::Convert(descriptor.depthAttachment.texture->GetFormat());
+            attachments[attachmentCount].format = vk::Convert(description.depthStencilAttachment.texture->GetFormat());
             attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[attachmentCount].loadOp = vk::Convert(descriptor.depthAttachment.loadAction);
-            attachments[attachmentCount].storeOp = vk::Convert(descriptor.depthAttachment.storeAction);
-            attachments[attachmentCount].stencilLoadOp = vk::Convert(descriptor.stencilAttachment.loadAction);
-            attachments[attachmentCount].stencilStoreOp = vk::Convert(descriptor.stencilAttachment.storeAction);
+            attachments[attachmentCount].loadOp = vk::Convert(description.depthStencilAttachment.loadAction);
+            attachments[attachmentCount].storeOp = vk::Convert(description.depthStencilAttachment.storeAction);
+            attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; // vk::Convert(descriptor.stencilAttachment.loadAction);
+            attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;// vk::Convert(descriptor.stencilAttachment.storeAction);
             attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 

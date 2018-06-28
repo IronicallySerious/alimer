@@ -40,6 +40,7 @@
 #include "../Audio/Audio.h"
 #include "../Graphics/Graphics.h"
 #include "../Scene/Scene.h"
+struct enkiTaskScheduler;
 
 namespace Alimer
 {
@@ -134,7 +135,7 @@ namespace Alimer
         UniquePtr<Graphics> _graphics;
         UniquePtr<Input> _input;
         UniquePtr<Audio> _audio;
-
+        enkiTaskScheduler* _taskScheduler;
 
         /// Current scene.
         Scene* _scene;
