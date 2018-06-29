@@ -23,6 +23,7 @@
 #include "D3D11CommandBuffer.h"
 #include "D3D11Graphics.h"
 #include "D3D11Texture.h"
+#include "D3D11RenderPass.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
@@ -59,7 +60,7 @@ namespace Alimer
     {
         CommandBuffer::ResetState();
 
-        _boundRTVCount = 0;
+        _currentRenderPass = nullptr;
     }
 
     void D3D11CommandBuffer::Enqueue()
@@ -81,7 +82,9 @@ namespace Alimer
 
     void D3D11CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
-        _boundRTVCount = 0;
+        _currentRenderPass = static_cast<D3D11RenderPass*>(renderPass);
+        _currentRenderPass->Bind(_context.Get());
+
         /*for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
             const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor.colorAttachments[i];
@@ -120,8 +123,6 @@ namespace Alimer
 
         _context->RSSetViewports(1, &viewport);
         _context->RSSetScissorRects(1, &scissorRect);
-
-        _context->OMSetRenderTargets(_boundRTVCount, _boundRTV, nullptr);
     }
 
     void D3D11CommandBuffer::EndRenderPass()

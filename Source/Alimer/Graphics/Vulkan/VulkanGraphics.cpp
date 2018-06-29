@@ -389,13 +389,6 @@ namespace Alimer
         }
         _renderPassCache.clear();
 
-        for (auto& it : _framebufferCache)
-        {
-            vkDestroyFramebuffer(_logicalDevice, it.second->framebuffer, nullptr);
-            SafeDelete(it.second);
-        }
-        _renderPassCache.clear();
-
         _descriptorSetAllocators.clear();
         _pipelineLayouts.clear();
 
@@ -945,60 +938,6 @@ namespace Alimer
 
         _renderPassCache[hash] = renderPass;
         return renderPass;
-    }
-
-    VulkanFramebuffer* VulkanGraphics::GetFramebuffer(VkRenderPass renderPass, const RenderPassDescriptor& descriptor, uint64_t hash)
-    {
-        auto it = _framebufferCache.find(hash);
-        if (it != end(_framebufferCache))
-            return it->second;
-
-        VkImageView views[MaxColorAttachments + 1];
-        uint32_t numViews = 0;
-        uint32_t width = UINT32_MAX;
-        uint32_t height = UINT32_MAX;
-
-        for (uint32_t i = 0; i < MaxColorAttachments; i++)
-        {
-            const RenderPassColorAttachmentDescriptor& attachment = descriptor.colorAttachments[i];
-            Texture* texture = attachment.texture;
-            if (!texture)
-                continue;
-
-            width = std::min(width, texture->GetLevelWidth(attachment.level));
-            height = std::min(height, texture->GetLevelHeight(attachment.level));
-            views[numViews++] = static_cast<VulkanTexture*>(texture)->GetDefaultImageView();
-        }
-
-        if (descriptor.depthAttachment.texture
-            || descriptor.stencilAttachment.texture)
-        {
-        }
-
-        VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-        createInfo.pNext = nullptr;
-        createInfo.flags = 0;
-        createInfo.renderPass = renderPass;
-        createInfo.attachmentCount = numViews;
-        createInfo.pAttachments = views;
-        createInfo.width = width;
-        createInfo.height = height;
-        createInfo.layers = 1;
-
-        VkFramebuffer framebuffer;
-        VkResult result = vkCreateFramebuffer(_logicalDevice, &createInfo, nullptr, &framebuffer);
-        if (result != VK_SUCCESS)
-        {
-            ALIMER_LOGERROR("Vulkan - Failed to create framebuffer.");
-            return nullptr;
-        }
-
-        VulkanFramebuffer* fbo = new VulkanFramebuffer();
-        fbo->renderPass = renderPass;
-        fbo->framebuffer = framebuffer;
-        fbo->size = { width, height };
-        _framebufferCache[hash] = fbo;
-        return fbo;
     }
 
     VulkanDescriptorSetAllocator* VulkanGraphics::RequestDescriptorSetAllocator(const DescriptorSetLayout &layout)

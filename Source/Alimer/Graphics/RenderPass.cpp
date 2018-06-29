@@ -22,12 +22,47 @@
 
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Graphics.h"
+#include "../Math/MathUtil.h"
 
 namespace Alimer
 {
     RenderPass::RenderPass(Graphics* graphics, const RenderPassDescription& description)
 		: GpuResource(graphics, GpuResourceType::RenderPass)
+        , _colorAttachmentsCount(0)
 	{
+        _width = description.width;
+        _height = description.height;
+        _layers =  Max(description.layers, 1u);
+
+        for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+        {
+            const RenderPassAttachment& colorAttachment = description.colorAttachments[i];
+            Texture* texture = colorAttachment.texture;
+            if (!texture)
+                continue;
+
+            if (!(texture->GetUsage() & TextureUsage::RenderTarget))
+            {
+                ALIMER_LOGERROR("RenderPass color attachment at index %d must be created with RenderTarget usage", i);
+            }
+
+            if(!_width)
+                _width = Min(_width, texture->GetLevelWidth(colorAttachment.mipLevel));
+
+            if (!_height)
+                _height = Min(_height, texture->GetLevelHeight(colorAttachment.mipLevel));
+
+            _colorAttachments[_colorAttachmentsCount++] = colorAttachment;
+        }
+
+        _depthStencilAttachment = description.depthStencilAttachment;
+        if (_depthStencilAttachment.texture)
+        {
+            if (!(_depthStencilAttachment.texture->GetUsage() & TextureUsage::RenderTarget))
+            {
+                ALIMER_LOGERROR("RenderPass depthstencil attachment must be created with RenderTarget usage");
+            }
+        }
 	}
 
     RenderPass::~RenderPass()

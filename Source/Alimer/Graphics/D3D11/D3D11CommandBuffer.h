@@ -28,6 +28,7 @@
 namespace Alimer
 {
 	class D3D11Graphics;
+    class D3D11RenderPass;
 
 	/// D3D11 CommandBuffer implementation.
 	class D3D11CommandBuffer final : public CommandBuffer
@@ -63,7 +64,6 @@ namespace Alimer
 	private:
         Microsoft::WRL::ComPtr<ID3D11DeviceContext1> _context;
         bool _isImmediate;
-        uint32_t _boundRTVCount;
-        ID3D11RenderTargetView* _boundRTV[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
+        D3D11RenderPass* _currentRenderPass = nullptr;
 	};
 }

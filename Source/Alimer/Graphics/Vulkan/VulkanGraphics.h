@@ -33,13 +33,6 @@ namespace Alimer
     class VulkanDescriptorSetAllocator;
     class VulkanPipelineLayout;
 
-	struct VulkanFramebuffer
-	{
-		VkRenderPass renderPass;
-		VkFramebuffer framebuffer;
-		VkExtent2D size;
-	};
-
 	/// Vulkan graphics backend.
 	class VulkanGraphics final : public Graphics
 	{
@@ -74,7 +67,6 @@ namespace Alimer
 		void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkAccessFlagBits srcAccessMask, VkClearColorValue *clearValue);
 
 		VkRenderPass GetVkRenderPass(const RenderPassDescription& description);
-		VulkanFramebuffer* GetFramebuffer(VkRenderPass renderPass, const RenderPassDescriptor& descriptor, uint64_t hash);
 
         VulkanDescriptorSetAllocator* RequestDescriptorSetAllocator(const DescriptorSetLayout &layout);
         VulkanPipelineLayout* RequestPipelineLayout(const ResourceLayout &layout);
@@ -126,7 +118,6 @@ namespace Alimer
 
 		// Cache
 		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
-		std::unordered_map<uint64_t, VulkanFramebuffer*> _framebufferCache;
 
         HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
         HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;

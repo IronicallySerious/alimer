@@ -32,7 +32,6 @@ namespace Alimer
         , _d3dDevice(graphics->GetD3DDevice())
         , _resource(nullptr)
         , _dxgiFormat(DXGI_FORMAT_UNKNOWN)
-        , _viewDimension(D3D11_RTV_DIMENSION_UNKNOWN)
     {
 
     }
@@ -46,7 +45,6 @@ namespace Alimer
         nativeTexture->GetDesc(&desc);
 
         _description.type = TextureType::Type2D;
-        _viewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
         _dxgiFormat = desc.Format;
         _description.format = d3d::Convert(_dxgiFormat);
 
@@ -94,37 +92,6 @@ namespace Alimer
         ALIMER_ASSERT_MSG(refCount == 1, "D3D11Texture leakage");
 #endif
 
-        for (const auto& viewsIt : _views)
-        {
-            viewsIt.second->Release();
-        }
-
-        _views.clear();
         SafeRelease(_resource);
-    }
-
-    ID3D11RenderTargetView* D3D11Texture::GetRenderTargetView(uint32_t level, uint32_t slice)
-    {
-        ViewDesc desc = { level, slice };
-        auto it = _views.find(desc);
-
-        if (it != _views.end())
-        {
-            return it->second;
-        }
-        else
-        {
-            D3D11_RENDER_TARGET_VIEW_DESC viewDesc = {};
-            viewDesc.Format = _dxgiFormat;
-            viewDesc.ViewDimension = _viewDimension;
-
-            ID3D11RenderTargetView* view;
-            ThrowIfFailed(
-                _d3dDevice->CreateRenderTargetView(_resource, &viewDesc, &view)
-                );
-
-            _views[desc] = view;
-            return view;
-        }
     }
 }

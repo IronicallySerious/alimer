@@ -104,19 +104,6 @@ namespace Alimer
         Instance
     };
 
-    enum class LoadAction
-    {
-        DontCare,
-        Load,
-        Clear
-    };
-
-    enum class StoreAction
-    {
-        DontCare,
-        Store
-    };
-
     enum class VertexFormat
     {
         Invalid,
@@ -133,49 +120,6 @@ namespace Alimer
         Short4,
         Short4N,
         Count
-    };
-
-    class Texture;
-    class RenderPassAttachmentDescriptor
-    {
-    public:
-        Texture * texture = nullptr;
-        uint32_t level = 0;
-        uint32_t slice = 0;
-    };
-
-    class RenderPassColorAttachmentDescriptor : public RenderPassAttachmentDescriptor
-    {
-    public:
-        LoadAction loadAction = LoadAction::Clear;
-        StoreAction storeAction = StoreAction::Store;
-        Color clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-    };
-
-    class RenderPassDepthAttachmentDescriptor : public RenderPassAttachmentDescriptor
-    {
-    public:
-        LoadAction loadAction = LoadAction::Clear;
-        StoreAction storeAction = StoreAction::DontCare;
-        float clearDepth = 1.0f;
-    };
-
-    class RenderPassStencilAttachmentDescriptor : public RenderPassAttachmentDescriptor
-    {
-    public:
-        LoadAction loadAction = LoadAction::DontCare;
-        StoreAction storeAction = StoreAction::DontCare;
-        uint8_t clearStencil = 0;
-    };
-
-    class RenderPassDescriptor
-    {
-    public:
-        std::array<RenderPassColorAttachmentDescriptor, MaxColorAttachments> colorAttachments;
-        RenderPassDepthAttachmentDescriptor depthAttachment;
-        RenderPassStencilAttachmentDescriptor stencilAttachment;
-
-        RenderPassDescriptor();
     };
 
     template <>

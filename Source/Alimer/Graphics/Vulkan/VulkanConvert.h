@@ -26,6 +26,7 @@
 #include "../Types.h"
 #include "../PixelFormat.h"
 #include "../GpuBuffer.h"
+#include "../RenderPass.h"
 
 namespace Alimer
 {

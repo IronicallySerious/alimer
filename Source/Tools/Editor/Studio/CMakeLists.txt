@@ -20,12 +20,12 @@
 # THE SOFTWARE.
 #
 
-# Player
-add_subdirectory(Player)
+file (GLOB_RECURSE HEADER_FILES *.h *.hpp)
+file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
 
-if (ALIMER_TOOLS)
-    add_subdirectory(ShaderCompiler)
+# Define the target.
+add_alimer_executable(AlimerStudio ${SOURCE_FILES} ${HEADER_FILES})
+set_target_properties(AlimerStudio PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+set_target_properties(AlimerStudio PROPERTIES FOLDER "Tools")
 
-    # Editor
-    add_subdirectory(Editor)
-endif (ALIMER_TOOLS)
+install(TARGETS AlimerStudio RUNTIME DESTINATION ${DEST_TOOLS_DIR})

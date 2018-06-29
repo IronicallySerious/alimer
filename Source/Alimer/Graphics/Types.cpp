@@ -25,7 +25,4 @@
 
 namespace Alimer
 {
-	RenderPassDescriptor::RenderPassDescriptor()
-	{
-	}
 }

@@ -22,6 +22,5 @@
 
 if (ALIMER_SHADER_COMPILER)
 	set (SKIP_GLSLANG_INSTALL FALSE CACHE BOOL "Skip glslang installation")
-	set (ENABLE_HLSL FALSE CACHE BOOL "Disable glslang HLSL support")
 	add_subdirectory (glslang EXCLUDE_FROM_ALL)
 endif(ALIMER_SHADER_COMPILER)

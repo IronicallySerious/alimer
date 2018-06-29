@@ -45,7 +45,8 @@ namespace Alimer
 
         void Destroy() override;
 
-        ID3D11RenderTargetView* GetRenderTargetView(uint32_t level, uint32_t slice);
+        ID3D11Resource* GetResource() const { return _resource; }
+        inline DXGI_FORMAT GetDXGIFormat() const { return _dxgiFormat; }
 
     private:
         ID3D11Device1* _d3dDevice;
@@ -58,19 +59,5 @@ namespace Alimer
         };
 
         DXGI_FORMAT _dxgiFormat;
-        D3D11_RTV_DIMENSION _viewDimension;
-
-        struct ViewDesc
-        {
-            uint32_t level;
-            uint32_t slice;
-
-            bool operator<(const ViewDesc& other) const
-            {
-                return std::tie(level, slice) < std::tie(other.level, other.slice);
-            }
-        };
-
-        std::map<ViewDesc, ID3D11RenderTargetView*> _views;
     };
 }

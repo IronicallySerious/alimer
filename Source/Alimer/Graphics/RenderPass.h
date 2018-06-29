@@ -23,9 +23,23 @@
 #pragma once
 
 #include "../Graphics/Texture.h"
+#include <array>
 
 namespace Alimer
 {
+    enum class LoadAction
+    {
+        DontCare,
+        Load,
+        Clear
+    };
+
+    enum class StoreAction
+    {
+        DontCare,
+        Store
+    };
+
     struct RenderPassAttachment
     {
         Texture* texture = nullptr;
@@ -40,6 +54,12 @@ namespace Alimer
     {
         RenderPassAttachment colorAttachments[MaxColorAttachments];
         RenderPassAttachment depthStencilAttachment;
+        /// The width, in pixels, to constain the render target to.
+        uint32_t width = 0;
+        /// The height, in pixels, to constain the render target to.
+        uint32_t height = 0;
+        /// The number of active layers that all attachments must have for layered rendering.
+        uint32_t layers = 1;
     };
 
     /// Defines a RenderPass class.
@@ -52,5 +72,17 @@ namespace Alimer
     public:
         /// Destructor.
         virtual ~RenderPass();
+
+        uint32_t GetWidth() const { return _width; }
+        uint32_t GetHeight() const { return _height; }
+        uint32_t GetLayers() const { return _layers; }
+
+    protected:
+        uint32_t _width;
+        uint32_t _height;
+        uint32_t _layers;
+        uint32_t _colorAttachmentsCount;
+        std::array<RenderPassAttachment, MaxColorAttachments> _colorAttachments;
+        RenderPassAttachment _depthStencilAttachment;
     };
 }

@@ -23,6 +23,7 @@
 #include "D3D11SwapChain.h"
 #include "D3D11Graphics.h"
 #include "D3D11Texture.h"
+#include "D3D11RenderPass.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
@@ -75,7 +76,8 @@ namespace Alimer
 
     D3D11SwapChain::~D3D11SwapChain()
     {
-        _backbufferTexture.Reset();
+        SafeDelete(_backbufferTexture);
+        SafeDelete(_renderPass);
         _swapChain.Reset();
     }
 
@@ -182,7 +184,14 @@ namespace Alimer
 
         ID3D11Texture2D* d3dBackbufferTexture;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&d3dBackbufferTexture)));
-        _backbufferTexture = MakeShared<D3D11Texture>(_graphics, d3dBackbufferTexture);
+        _backbufferTexture = new D3D11Texture(_graphics, d3dBackbufferTexture);
+
+
+        RenderPassDescription passDescription = {};
+        passDescription.colorAttachments[0].texture = _backbufferTexture;
+        passDescription.colorAttachments[0].loadAction = LoadAction::Clear;
+        passDescription.colorAttachments[0].storeAction = StoreAction::Store;
+        _renderPass = new D3D11RenderPass(_graphics, passDescription);
 
         // Set new size.
         _width = width;

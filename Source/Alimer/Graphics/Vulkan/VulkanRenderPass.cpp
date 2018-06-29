@@ -36,8 +36,6 @@ namespace Alimer
     {
         VkImageView views[MaxColorAttachments + 1];
         uint32_t numViews = 0;
-        _width = UINT32_MAX;
-        _height = UINT32_MAX;
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {

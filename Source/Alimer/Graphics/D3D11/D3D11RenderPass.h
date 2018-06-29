@@ -42,30 +42,13 @@ namespace Alimer
 
         void Destroy() override;
 
+        void Bind(ID3D11DeviceContext1* context);
+
     private:
         ID3D11Device1* _d3dDevice;
 
-        union {
-            ID3D11Resource* _resource;
-            ID3D11Texture1D* _texture1D;
-            ID3D11Texture2D* _texture2D;
-            ID3D11Texture3D* _texture3D;
-        };
-
-        DXGI_FORMAT _dxgiFormat;
-        D3D11_RTV_DIMENSION _viewDimension;
-
-        struct ViewDesc
-        {
-            uint32_t level;
-            uint32_t slice;
-
-            bool operator<(const ViewDesc& other) const
-            {
-                return std::tie(level, slice) < std::tie(other.level, other.slice);
-            }
-        };
-
-        std::map<ViewDesc, ID3D11RenderTargetView*> _views;
+        uint32_t _viewsCount = 0;
+        std::vector<ID3D11RenderTargetView*> _views;
+        ID3D11DepthStencilView* _depthStencilView;
     };
 }
