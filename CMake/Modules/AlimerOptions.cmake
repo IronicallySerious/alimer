@@ -5,8 +5,8 @@ if( _SETTINGS_GUARD )
 endif()
 set(_SETTINGS_GUARD 1)
 
-include(CMakePlatforms)
-include(CMakeMacros)
+include(AlimerPlatforms)
+include(AlimerMacros)
 
 # Source environment
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -83,11 +83,11 @@ if (NOT ALIMER_DISABLE_CSHARP)
 endif ()
 
 # Tools
-if (NOT ALIMER_DISABLE_ASSET_PIPELINE)
+if (NOT ALIMER_DISABLE_TOOLS)
 	if (PLATFORM_DESKTOP)
-		set (ALIMER_ASSET_PIPELINE_DEFAULT ON)
+		set (ALIMER_TOOLS_DEFAULT ON)
 	else ()
-		set (ALIMER_ASSET_PIPELINE_DEFAULT OFF)
+		set (ALIMER_TOOLS_DEFAULT OFF)
 	endif()
 endif ()
 
@@ -97,4 +97,4 @@ option (ALIMER_D3D11 "Enable D3D11 backend" ${ALIMER_D3D11_DEFAULT})
 option (ALIMER_D3D12 "Enable D3D12 backend" ${ALIMER_D3D12_DEFAULT})
 option (ALIMER_SHADER_COMPILER "Enable ShaderCompiler" ${ALIMER_SHADER_COMPILER_DEFAULT})
 option (ALIMER_CSHARP "Enable C# support" ${ALIMER_CSHARP_DEFAULT})
-option (ALIMER_ASSET_PIPELINE "Enable AssetPipeline" ${ALIMER_ASSET_PIPELINE_DEFAULT})
+option (ALIMER_TOOLS "Enable Tools" ${ALIMER_TOOLS_DEFAULT})

@@ -5,7 +5,7 @@ if( PLATFORM_WINDOWS OR PLATFORM_UWP )
     add_compile_options(-D_CRT_NONSTDC_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
     add_compile_options($<$<CONFIG:DEBUG>:-D_SECURE_SCL_THROWS=0> $<$<CONFIG:DEBUG>:-D_SILENCE_DEPRECATION_OF_SECURE_SCL_THROWS>)
     add_compile_options(-D_HAS_ITERATOR_DEBUGGING=$<CONFIG:DEBUG> -D_SECURE_SCL=$<CONFIG:DEBUG>)
-    add_compile_options(-D_HAS_EXCEPTIONS=0)
+    #add_compile_options(-D_HAS_EXCEPTIONS=0)
 
     # Enable full optimization in dev/release
     add_compile_options($<$<CONFIG:DEBUG>:/Od> $<$<NOT:$<CONFIG:DEBUG>>:/Ox>)
@@ -62,7 +62,7 @@ if( PLATFORM_WINDOWS OR PLATFORM_UWP )
 	add_compile_options(/fp:fast)
 
 	# Disable run-time type information (RTTI)
-	replace_compile_flags("/GR" "/GR-")
+	# replace_compile_flags("/GR" "/GR-")
 
 	# Enable multi-processor compilation for Visual Studio 2012 and above
 	add_compile_options(/MP)
@@ -125,6 +125,7 @@ set (DEST_BASE_INCLUDE_DIR include)
 set (DEST_INCLUDE_DIR ${DEST_BASE_INCLUDE_DIR}/Alimer)
 set (DEST_ARCHIVE_DIR lib)
 set (DEST_BIN_DIR bin)
+set (DEST_TOOLS_DIR ${DEST_BIN_DIR})
 set (DEST_SHARE_DIR share)
 set (DEST_ASSETS_DIR ${DEST_BIN_DIR})
 
