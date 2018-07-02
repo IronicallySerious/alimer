@@ -25,12 +25,12 @@
 #if !ALIMER_SHADER_COMPILER
 namespace Alimer
 {
-    std::vector<uint32_t> ShaderCompiler::Compile(const std::string& filePath, ShaderStage stage, std::string& errorLog)
+    std::vector<uint32_t> ShaderCompiler::Compile(const std::string& filePath, std::string& errorLog)
     {
         return {};
     }
 
-    std::vector<uint32_t> ShaderCompiler::Compile(const std::string& shaderSource, ShaderStage stage, std::string& errorLog)
+    std::vector<uint32_t> ShaderCompiler::Compile(const std::string& shaderSource, const std::string& filePath, ShaderStage stage, std::string& errorLog)
     {
         return {};
     }

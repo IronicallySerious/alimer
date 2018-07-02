@@ -236,16 +236,25 @@ endif()
 # Define the library target.
 add_library(libAlimer ${ALIMER_LIBRARY_TYPE} ${SOURCE_FILES} ${HEADER_FILES})
 
+set_target_properties(libAlimer PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
+)
+
 target_include_directories(libAlimer 
 	PUBLIC  
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${DEST_BASE_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}/fmt/include>
 	PRIVATE 
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
     $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
     $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}/glfw/include>
 )
+
+target_link_libraries (libAlimer fmt-header-only)
 
 if (ALIMER_D3D11 OR ALIMER_D3D12)
     target_include_directories(libAlimer SYSTEM PRIVATE ${D3D12_INCLUDE_DIR} ${D3D11_INCLUDE_DIR} ${DXGI_INCLUDE_DIR})
@@ -279,12 +288,6 @@ if (ALIMER_VULKAN)
 		target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
 	endif()
 endif (ALIMER_VULKAN)
-
-if (ALIMER_SHADER_COMPILER)
-	target_include_directories(libAlimer PRIVATE ${ALIMER_THIRD_PARTY_DIR}/glslang)
-	target_compile_definitions(libAlimer PRIVATE -DALIMER_SHADER_COMPILER)
-	target_link_libraries (libAlimer glslang SPIRV)
-endif (ALIMER_SHADER_COMPILER)
 
 # Add OS-specific library dependencies
 if (PLATFORM_WINDOWS)

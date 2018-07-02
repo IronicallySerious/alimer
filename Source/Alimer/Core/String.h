@@ -33,6 +33,8 @@
 #include <vector>
 #include <type_traits>
 #include <algorithm>
+#define FMT_NO_FMT_STRING_ALIAS
+#include <fmt/format.h>
 
 namespace Alimer
 {

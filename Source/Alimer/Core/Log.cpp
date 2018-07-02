@@ -32,10 +32,9 @@
 #		define WIN32_LEAN_AND_MEAN
 #	endif
 
-#include <windows.h>
-#include <mmsystem.h>
+#   include <windows.h>
+#   include <mmsystem.h>
 #endif
-
 
 namespace Alimer
 {
@@ -100,44 +99,13 @@ namespace Alimer
         _level = newLevel;
     }
 
-    void Logger::Log(LogLevel level, const char* message, ...)
+    void Logger::Log(LogLevel level, const std::string& message)
     {
         if (level == LogLevel::Off || _level > level)
             return;
 
-        // Declare a moderately sized buffer on the stack that should be
-        // large enough to accommodate most log requests.
-        int size = 1024;
-        char stackBuffer[1024];
-        std::vector<char> dynamicBuffer;
-        char* str = stackBuffer;
-        for (; ; )
-        {
-            va_list args;
-            va_start(args, message);
-
-            // Pass one less than size to leave room for nullptr terminator
-            int needed = vsnprintf(str, size - 1, message, args);
-
-            // Some platforms return -1 when vsnprintf runs out of room, while others return
-            // the number of characters actually needed to fill the buffer.
-            if (needed >= 0 && needed < size)
-            {
-                // Successfully wrote buffer. Added a nullptr terminator in case it wasn't written.
-                str[needed] = '\0';
-                va_end(args);
-                break;
-            }
-
-            size = needed > 0 ? (needed + 1) : (size * 2);
-            dynamicBuffer.resize(size);
-            str = &dynamicBuffer[0];
-
-            va_end(args);
-        }
-
         // Log to the default output
-        OnLog(level, str);
+        OnLog(level, message);
     }
 
     void Logger::Trace(const std::string& message)
@@ -145,7 +113,7 @@ namespace Alimer
         if (_level > LogLevel::Trace)
             return;
 
-        OnLog(LogLevel::Trace, message.c_str());
+        OnLog(LogLevel::Trace, message);
     }
 
     void Logger::Debug(const std::string& message)
@@ -153,7 +121,7 @@ namespace Alimer
         if (_level > LogLevel::Debug)
             return;
 
-        OnLog(LogLevel::Debug, message.c_str());
+        OnLog(LogLevel::Debug, message);
     }
 
     void Logger::Info(const std::string& message)
@@ -169,7 +137,7 @@ namespace Alimer
         if (_level > LogLevel::Warn)
             return;
 
-        OnLog(LogLevel::Warn, message.c_str());
+        OnLog(LogLevel::Warn, message);
     }
 
     void Logger::Error(const std::string& message)
@@ -177,7 +145,7 @@ namespace Alimer
         if (_level > LogLevel::Error)
             return;
 
-        OnLog(LogLevel::Error, message.c_str());
+        OnLog(LogLevel::Error, message);
     }
 
     void Logger::AddListener(LogListener* listener)
@@ -202,12 +170,12 @@ namespace Alimer
         }
     }
 
-    void Logger::OnLog(LogLevel level, const char* message)
+    void Logger::OnLog(LogLevel level, const std::string& message)
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        size_t length = strlen(LogLevelPrefix[static_cast<unsigned>(level)]) + 2 + strlen(message) + 1 + 1 + 1;
+        size_t length = strlen(LogLevelPrefix[static_cast<unsigned>(level)]) + 2 + message.length() + 1 + 1 + 1;
         char* output = new char[length];
-        snprintf(output, length, "%s: %s\r\n", LogLevelPrefix[static_cast<unsigned>(level)], message);
+        snprintf(output, length, "%s: %s\r\n", LogLevelPrefix[static_cast<unsigned>(level)], message.c_str());
 
         std::vector<wchar_t> szBuffer(length);
         if (MultiByteToWideChar(CP_UTF8, 0, output, -1, szBuffer.data(), static_cast<int>(szBuffer.size())) == 0)

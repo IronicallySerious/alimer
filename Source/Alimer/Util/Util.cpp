@@ -121,8 +121,6 @@ namespace Alimer
 
     bool str::EndsWith(const string& str, const string& pattern, bool lowerCase)
     {
-        return false;
-
         size_t offset = str.size() - pattern.size();
 
         if (lowerCase)

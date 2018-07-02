@@ -22,6 +22,8 @@
 
 # Set CMake minimum version
 cmake_minimum_required (VERSION 3.5)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
 
 # Alimer Version
 set (PRODUCT_NAME "Alimer")
@@ -49,18 +51,6 @@ execute_process(
 
 # Set project name
 project (Alimer)
-
-# Enable common build options
-if (NOT DEFINED CMAKE_CXX_STANDARD)
-	set (CMAKE_CXX_STANDARD 11)
-endif ()
-# Workarounds
-if (EMSCRIPTEN OR APPLE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++${CMAKE_CXX_STANDARD}")
-endif ()
-if (APPLE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-endif ()
 
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set (CMAKE_INCLUDE_CURRENT_DIR ON)
