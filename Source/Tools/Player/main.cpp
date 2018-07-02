@@ -61,7 +61,7 @@ namespace Alimer
 
         {
             auto stream = OpenStream("Test.json", StreamMode::WriteOnly);
-            JsonSerializer serializer(*stream.Get());
+            JsonSerializer serializer(*stream.get());
 
             serializer.Serialize("color", Color::Green);
             serializer.Serialize("str", "Hello World");

@@ -20,37 +20,30 @@
 // THE SOFTWARE.
 //
 
+
 #pragma once
 
-#include "Graphics/RenderPass.h"
-#include "D3D11Prerequisites.h"
-#include <map>
+#include "../AlimerConfig.h"
+#include "../AlimerPluginApi.h"
+#include <string>
+#include <unordered_map>
 
 namespace Alimer
 {
-    class D3D11Graphics;
-
-    /// D3D11 RenderPass implementation.
-    class D3D11RenderPass final : public RenderPass
+    /// Class that manages runtime plugins.
+    class ALIMER_API PluginManager
     {
     public:
         /// Constructor.
-        D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription& descriptor);
+        PluginManager();
+        virtual ~PluginManager() = default;
 
-        /// Destructor.
-        ~D3D11RenderPass() override;
-
-        void Destroy() override;
-
-        void Bind(ID3D11DeviceContext1* context);
-
-        ID3D11RenderTargetView* GetRTV(uint32_t index) const { return _views[index]; }
+        bool Initialize(const std::string& pluginPath);
+        void Update();
+    private:
+        std::unordered_map<std::string, PluginDesc> _plugins;
 
     private:
-        ID3D11Device1* _d3dDevice;
-
-        uint32_t _viewsCount = 0;
-        std::vector<ID3D11RenderTargetView*> _views;
-        ID3D11DepthStencilView* _depthStencilView;
+        DISALLOW_COPY_MOVE_AND_ASSIGN(PluginManager);
     };
 }

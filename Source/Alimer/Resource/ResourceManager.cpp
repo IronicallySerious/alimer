@@ -76,11 +76,11 @@ namespace Alimer
             fileWatchers_.Push(watcher);
         }*/
 
-        ALIMER_LOGINFO("Added resource path '%s'", fixedPath.c_str());
+        ALIMER_LOGINFO("Added resource path '{}'", fixedPath);
         return true;
     }
 
-    UniquePtr<Stream> ResourceManager::Open(const string &assetName, StreamMode mode)
+    unique_ptr<Stream> ResourceManager::Open(const string &assetName, StreamMode mode)
     {
         lock_guard<mutex> guard(_resourceMutex);
 
@@ -88,7 +88,7 @@ namespace Alimer
 
         if (sanitatedName.length())
         {
-            UniquePtr<Stream> stream = {};
+            unique_ptr<Stream> stream = {};
 
             if (_searchPackagesFirst)
             {
@@ -169,7 +169,7 @@ namespace Alimer
         return cleanName;
     }
 
-    UniquePtr<Stream> ResourceManager::SearchResourceDirs(const string& name)
+    unique_ptr<Stream> ResourceManager::SearchResourceDirs(const string& name)
     {
         for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
@@ -186,7 +186,7 @@ namespace Alimer
         return {};
     }
 
-    UniquePtr<Stream> ResourceManager::SearchPackages(const string& name)
+    unique_ptr<Stream> ResourceManager::SearchPackages(const string& name)
     {
         // TODO:
         return {};

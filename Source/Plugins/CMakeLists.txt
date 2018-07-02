@@ -20,9 +20,5 @@
 # THE SOFTWARE.
 #
 
-add_subdirectory(fmt EXCLUDE_FROM_ALL)
-
-if (ALIMER_TOOLS)
-	set (SKIP_GLSLANG_INSTALL FALSE CACHE BOOL "Skip glslang installation")
-	add_subdirectory (glslang EXCLUDE_FROM_ALL)
-endif ()
+# TestPlugin
+add_subdirectory(TestPlugin)

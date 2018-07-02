@@ -53,8 +53,6 @@ namespace Alimer
 		void WaitIdle() override;
         CommandBuffer* GetDefaultCommandBuffer() const override;
 
-		SharedPtr<Texture> AcquireNextImage() override;
-
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 
@@ -76,7 +74,7 @@ namespace Alimer
 	private:
         void Finalize() override;
         bool BackendInitialize() override;
-        bool BeginFrameCore() override;
+        SharedPtr<RenderPass> BeginFrameCore() override;
         void EndFrameCore() override;
 		bool InitializeCaps();
         void HandleDeviceLost();

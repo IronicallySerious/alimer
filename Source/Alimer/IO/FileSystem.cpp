@@ -254,7 +254,7 @@ namespace Alimer
 
     static bool Win32EnsureDirectory(const std::string &path)
     {
-       string basedir = Path::GetBaseDir(path);
+        string basedir = Path::GetBaseDir(path);
         return Win32EnsureDirectoryInner(basedir);
     }
 
@@ -355,7 +355,7 @@ namespace Alimer
             _size = _position;
     }
 
-    UniquePtr<Stream> OpenStream(const string &path, StreamMode mode)
+    unique_ptr<Stream> OpenStream(const string &path, StreamMode mode)
     {
         if (mode == StreamMode::ReadOnly
             && !FileExists(path))
@@ -365,7 +365,7 @@ namespace Alimer
 
         try
         {
-            UniquePtr<Stream> file(new Win32FileStream(path, mode));
+            unique_ptr<Stream> file(new Win32FileStream(path, mode));
             return file;
         }
         catch (const std::exception &e)
@@ -373,6 +373,61 @@ namespace Alimer
             ALIMER_LOGERROR("OSFileSystem::Open(): %s", e.what());
             return {};
         }
+    }
+
+    void ScanDirInternal(
+        vector<string>& result, string path, const string& startPath,
+        const string& filter, ScanDirFlags flags, bool recursive)
+    {
+        path = AddTrailingSlash(path);
+        string deltaPath;
+        if (path.length() > startPath.length())
+            deltaPath = path.substr(startPath.length());
+
+        string filterExtension = filter.substr(filter.find_last_of('.'));
+        if (filterExtension.find('*') != string::npos)
+            filterExtension.clear();
+
+        WIN32_FIND_DATAW info;
+        HANDLE handle = FindFirstFileW(str::ToWide(path + "*").c_str(), &info);
+        if (handle != INVALID_HANDLE_VALUE)
+        {
+            do
+            {
+                string fileName(str::FromWide(info.cFileName));
+                if (!fileName.empty())
+                {
+                    if (info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN && !(flags & ScanDirMask::Hidden))
+                        continue;
+                    if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                    {
+                        if (flags & ScanDirMask::Directories)
+                            result.push_back(deltaPath + fileName);
+                        if (recursive && fileName != "." && fileName != "..")
+                        {
+                            ScanDirInternal(result, path + fileName, startPath, filter, flags, recursive);
+                        }
+                    }
+                    else if (flags & ScanDirMask::Files)
+                    {
+                        if (filterExtension.empty() || str::EndsWith(fileName, filterExtension))
+                        {
+                            result.push_back(deltaPath + fileName);
+                        }
+                    }
+                }
+            } while (FindNextFileW(handle, &info));
+
+            FindClose(handle);
+        }
+    }
+
+    void ScanDirectory(vector<string>& result, const string& pathName, const string& filter, ScanDirFlags flags, bool recursive)
+    {
+        result.clear();
+
+        string initialPath = AddTrailingSlash(pathName);
+        ScanDirInternal(result, initialPath, initialPath, filter, flags, recursive);
     }
 
 #else
@@ -429,6 +484,6 @@ namespace Alimer
         return true;
     }
 
-    
+
 #endif
 }

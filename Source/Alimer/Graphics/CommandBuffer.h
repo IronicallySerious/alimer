@@ -22,8 +22,9 @@
 
 #pragma once
 
+#include "../Core/Flags.h"
 #include "../Core/Ptr.h"
-#include "../Graphics/Types.h"
+#include "../Graphics/CommandEncoder.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/PipelineState.h"
@@ -42,7 +43,7 @@ namespace Alimer
 
 	public:
 		/// Destructor.
-		virtual ~CommandBuffer();
+		virtual ~CommandBuffer() = default;
 
         /// Reserves a place for this command buffer on its associated command queue.
         virtual void Enqueue() = 0;
@@ -50,15 +51,13 @@ namespace Alimer
         /// Commits this command buffer for execution as soon as possible.
         virtual void Commit() = 0;
 
-		virtual void BeginRenderPass(RenderPass* renderPass,
+		virtual RenderPassCommandEncoder* GetRenderPassCommandEncoder(RenderPass* renderPass,
             const Color& clearColor = Color::Black,
             float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
-        virtual void BeginRenderPass(RenderPass* renderPass,
+        virtual RenderPassCommandEncoder* GetRenderPassCommandEncoder(RenderPass* renderPass,
             const Color* clearColors, uint32_t numClearColors,
             float clearDepth = 1.0f, uint8_t clearStencil = 0) = 0;
-
-		virtual void EndRenderPass() = 0;
 
 		void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);

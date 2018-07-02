@@ -344,15 +344,11 @@ namespace Alimer
         return nullptr;
     }
 
-    SharedPtr<Texture> D3D12Graphics::AcquireNextImage()
+    SharedPtr<RenderPass> D3D12Graphics::BeginFrameCore()
     {
         uint32_t index = _swapChain->GetCurrentBackBufferIndex();
-        return _textures[index];
-    }
-
-    bool D3D12Graphics::BeginFrameCore()
-    {
-        return true;
+        //return _textures[index];
+        return nullptr;
     }
 
     void D3D12Graphics::EndFrameCore()
@@ -387,7 +383,7 @@ namespace Alimer
         HRESULT hr = _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
         if (FAILED(hr))
         {
-            ALIMER_LOGERROR("Failed to acquire D3D12 options for ID3D12Device 0x%p, hr=0x%.8x", _d3dDevice.Get(), hr);
+            //ALIMER_LOGERROR("Failed to acquire D3D12 options for ID3D12Device 0x%p, hr=0x%.8x", _d3dDevice.Get(), hr);
             return false;
         }
 
@@ -395,7 +391,7 @@ namespace Alimer
         hr = _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &gpuVaSupport, sizeof(gpuVaSupport));
         if (FAILED(hr))
         {
-            ALIMER_LOGERROR("Failed to acquire GPU virtual address support for ID3D12Device 0x%p, hr=0x%.8x", _d3dDevice.Get(), hr);
+            //ALIMER_LOGERROR("Failed to acquire GPU virtual address support for ID3D12Device 0x%p, hr=0x%.8x", _d3dDevice.Get(), hr);
             return false;
         }
 

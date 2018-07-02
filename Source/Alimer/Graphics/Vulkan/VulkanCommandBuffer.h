@@ -29,10 +29,29 @@
 namespace Alimer
 {
     class VulkanGraphics;
+    class VulkanCommandBuffer;
     class VulkanCommandQueue;
     class VulkanPipelineLayout;
     class VulkanPipelineState;
     class VulkanRenderPass;
+
+    class VulkanRenderPassCommandEncoder final : public RenderPassCommandEncoder
+    {
+    public:
+        /// Constructor.
+        explicit VulkanRenderPassCommandEncoder(VulkanCommandBuffer* commandBuffer);
+
+        /// Destructor.
+        ~VulkanRenderPassCommandEncoder() override;
+
+        void SetVkCommandBuffer(VkCommandBuffer commandBuffer);
+
+        void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil);
+        void Close() override;
+
+    private:
+        VkCommandBuffer _commandBuffer;
+    };
 
     /// Vulkan CommandBuffer.
     class VulkanCommandBuffer final : public CommandBuffer
@@ -48,8 +67,7 @@ namespace Alimer
         void End();
         void Reset();
 
-        void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
-        void EndRenderPass() override;
+        RenderPassCommandEncoder* GetRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
 
         void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
@@ -73,6 +91,7 @@ namespace Alimer
         VkDevice _logicalDevice;
         VkCommandBuffer _vkHandle;
         bool _enqueued;
+        VulkanRenderPassCommandEncoder _renderPassEncoder;
         VulkanRenderPass* _currentRenderPass = nullptr;
         SharedPtr<VulkanPipelineState> _currentPipeline;
         VulkanPipelineLayout* _currentPipelineLayout = nullptr;

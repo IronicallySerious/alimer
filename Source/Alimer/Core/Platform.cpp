@@ -22,6 +22,11 @@
 
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
+#include "../Core/String.h"
+
+#if !ALIMER_WINDOWS_FAMILY
+#   include <dlfcn.h>
+#endif
 
 namespace Alimer
 {
@@ -103,4 +108,37 @@ namespace Alimer
 				return "Unknown";
 		}
 	}
+
+    void* LoadNativeLibrary(const char* name)
+    {
+#if ALIMER_PLATFORM_WINDOWS
+        auto wideName = str::ToWide(name);
+        HMODULE handle = LoadLibraryW(wideName.c_str());
+        return handle;
+#elif ALIMER_PLATFORM_UWP
+        auto wideName = str::ToWide(name);
+        HMODULE handle = LoadPackagedLibrary(wideName.c_str(), 0);
+        return handle;
+#else
+        return ::dlopen(name, RTLD_LOCAL | RTLD_LAZY);
+#endif
+    }
+
+    void UnloadNativeLibrary(void* handle)
+    {
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+        ::FreeLibrary((HMODULE)handle);
+#else
+        ::dlclose(handle);
+#endif
+    }
+
+    void* GetSymbol(void* handle, const char* name)
+    {
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+        return (void*)::GetProcAddress((HMODULE)handle, name);
+#else
+        return ::dlsym(handle, name);
+#endif
+    }
 }

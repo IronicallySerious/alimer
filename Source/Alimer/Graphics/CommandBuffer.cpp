@@ -31,10 +31,6 @@ namespace Alimer
         ResetState();
     }
 
-    CommandBuffer::~CommandBuffer()
-    {
-    }
-
     void CommandBuffer::ResetState()
     {
         _dirty = ~0u;
@@ -44,9 +40,9 @@ namespace Alimer
         memset(&_bindings, 0, sizeof(_bindings));
     }
 
-    void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
+    RenderPassCommandEncoder* CommandBuffer::GetRenderPassCommandEncoder(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
     {
-        BeginRenderPass(renderPass, &clearColor, 1, clearDepth, clearStencil);
+        return GetRenderPassCommandEncoder(renderPass, &clearColor, 1, clearDepth, clearStencil);
     }
 
     void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset, VertexInputRate inputRate)

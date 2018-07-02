@@ -226,7 +226,7 @@ namespace Alimer
         return BackendInitialize();
     }
 
-    bool Graphics::BeginFrame()
+    SharedPtr<RenderPass> Graphics::BeginFrame()
     {
         if (_inBeginFrame)
             ALIMER_LOGCRITICAL("Cannot call BeginFrame while already inside frame.");

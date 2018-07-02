@@ -477,16 +477,16 @@ namespace Alimer
                 switch (queryDeviceExtension.type)
                 {
                 case VkExtensionType::Optional:
-                    gLog().Debug(str::Join("Optional Vulkan extension ", queryDeviceExtension.name, " not supported"));
+                    ALIMER_LOGDEBUG("Optional Vulkan extension {} not supported", queryDeviceExtension.name);
                     break;
 
                 case VkExtensionType::Desired:
-                    gLog().Warn(str::Join("Vulkan extension ", queryDeviceExtension.name, " not supported"));
+                    ALIMER_LOGWARN("Vulkan extension {} not supported", queryDeviceExtension.name);
                     break;
 
                 case VkExtensionType::Required:
                     requiredExtensionsEnabled = false;
-                    gLog().Error(str::Join("Required Vulkan extension ", queryDeviceExtension.name, " not supported"));
+                    ALIMER_LOGERROR("Required Vulkan extension {} not supported", queryDeviceExtension.name);
                     break;
                 default:
                     break;
@@ -624,23 +624,17 @@ namespace Alimer
         _waitSemaphores.push_back(semaphore);
     }
 
-    SharedPtr<Texture> VulkanGraphics::AcquireNextImage()
+    SharedPtr<RenderPass> VulkanGraphics::BeginFrameCore()
     {
         // Acquire the next image from the swap chain
-        SharedPtr<Texture> texture = _swapchain->GetNextTexture();
+        SharedPtr<VulkanRenderPass> renderPass = _swapchain->GetNextDrawable();
 
         for (auto &allocator : _descriptorSetAllocators)
         {
             allocator.second->BeginFrame();
         }
 
-        return texture;
-    }
-
-    bool VulkanGraphics::BeginFrameCore()
-    {
-        // TODO:
-        return true;
+        return renderPass;
     }
 
     void VulkanGraphics::EndFrameCore()

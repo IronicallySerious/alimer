@@ -32,6 +32,7 @@
 #include <atomic>
 #include "../Core/Log.h"
 #include "../Core/Timer.h"
+#include "../Core/PluginManager.h"
 #include "../Application/Window.h"
 #include "../Serialization/Serializable.h"
 #include "../IO/FileSystem.h"
@@ -85,7 +86,7 @@ namespace Alimer
         /// Resume the main execution loop.
         void Resume();
 
-        void RenderFrame(const SharedPtr<Texture>& frameTexture, double frameTime, double elapsedTime);
+        void RenderFrame(RenderPass* frameRenderPass, double frameTime, double elapsedTime);
 
         SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
 
@@ -104,8 +105,9 @@ namespace Alimer
     private:
         void PlatformConstruct();
         bool InitializeBeforeRun();
+        void LoadPlugins();
         void UpdateScene(double frameTime, double elapsedTime);
-        void RenderScene(const SharedPtr<Texture>& frameTexture);
+        void RenderScene(RenderPass* frameRenderPass);
 
     protected:
         /// Called after setup and engine initialization with all modules initialized.
@@ -130,6 +132,7 @@ namespace Alimer
 
         UniquePtr<Logger> _log;
         Timer _timer;
+        PluginManager _pluginManager;
         ResourceManager _resources;
         SharedPtr<Window> _window;
         UniquePtr<Graphics> _graphics;

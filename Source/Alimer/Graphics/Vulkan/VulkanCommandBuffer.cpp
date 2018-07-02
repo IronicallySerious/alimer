@@ -34,12 +34,36 @@
 
 namespace Alimer
 {
+    VulkanRenderPassCommandEncoder::VulkanRenderPassCommandEncoder(VulkanCommandBuffer* commandBuffer)
+        : RenderPassCommandEncoder(commandBuffer)
+    {
+
+    }
+
+    VulkanRenderPassCommandEncoder::~VulkanRenderPassCommandEncoder() = default;
+
+    void VulkanRenderPassCommandEncoder::SetVkCommandBuffer(VkCommandBuffer commandBuffer)
+    {
+        _commandBuffer = commandBuffer;
+    }
+
+    void VulkanRenderPassCommandEncoder::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    {
+
+    }
+
+    void VulkanRenderPassCommandEncoder::Close()
+    {
+        vkCmdEndRenderPass(_commandBuffer);
+    }
+
     VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandQueue* queue)
         : CommandBuffer(queue->GetGraphics())
         , _vkGraphics(static_cast<VulkanGraphics*>(queue->GetGraphics()))
         , _logicalDevice(_vkGraphics->GetLogicalDevice())
         , _queue(queue)
         , _enqueued(false)
+        , _renderPassEncoder(this)
     {
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         cmdBufAllocateInfo.pNext = nullptr;
@@ -106,7 +130,7 @@ namespace Alimer
         vkThrowIfFailed(vkResetCommandBuffer(_vkHandle, 0));
     }
 
-    void VulkanCommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    RenderPassCommandEncoder* VulkanCommandBuffer::GetRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         std::vector<VkClearValue> clearValues(numClearColors + 1);
         uint32_t i = 0;
@@ -149,11 +173,8 @@ namespace Alimer
 
         vkCmdSetViewport(_vkHandle, 0, 1, &viewport);
         vkCmdSetScissor(_vkHandle, 0, 1, &scissor);
-    }
-
-    void VulkanCommandBuffer::EndRenderPass()
-    {
-        vkCmdEndRenderPass(_vkHandle);
+        _renderPassEncoder.BeginRenderPass(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
+        return &_renderPassEncoder;
     }
 
     void VulkanCommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)

@@ -61,8 +61,8 @@ namespace Alimer
 		void InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate = false);
 		void FlushResourceBarriers();
 
-		void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
-		void EndRenderPass() override;
+        RenderPassCommandEncoderPtr BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+		void EndRenderPass(RenderPassCommandEncoderPtr encoder) override;
 
 		void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 

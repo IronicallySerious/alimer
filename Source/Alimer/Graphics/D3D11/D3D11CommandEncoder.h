@@ -22,35 +22,28 @@
 
 #pragma once
 
-#include "Graphics/RenderPass.h"
+#include "Graphics/CommandBuffer.h"
+#include "Graphics/CommandEncoder.h"
 #include "D3D11Prerequisites.h"
-#include <map>
 
 namespace Alimer
 {
-    class D3D11Graphics;
+    class D3D11RenderPass;
+	/// D3D11 CommandBuffer implementation.
+	class D3D11RenderPassCommandEncoder final : public RenderPassCommandEncoder
+	{
+	public:
+		/// Constructor.
+        explicit D3D11RenderPassCommandEncoder(CommandBuffer* commandBuffer, ID3D11DeviceContext1* context);
 
-    /// D3D11 RenderPass implementation.
-    class D3D11RenderPass final : public RenderPass
-    {
-    public:
-        /// Constructor.
-        D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription& descriptor);
+		/// Destructor.
+		~D3D11RenderPassCommandEncoder() override;
 
-        /// Destructor.
-        ~D3D11RenderPass() override;
+        void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil);
+        void Close() override;
 
-        void Destroy() override;
-
-        void Bind(ID3D11DeviceContext1* context);
-
-        ID3D11RenderTargetView* GetRTV(uint32_t index) const { return _views[index]; }
-
-    private:
-        ID3D11Device1* _d3dDevice;
-
-        uint32_t _viewsCount = 0;
-        std::vector<ID3D11RenderTargetView*> _views;
-        ID3D11DepthStencilView* _depthStencilView;
-    };
+	private:
+        ID3D11DeviceContext1 * _context;
+        D3D11RenderPass* _currentRenderPass = nullptr;
+	};
 }

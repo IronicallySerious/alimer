@@ -68,7 +68,7 @@ namespace Alimer
     {
         SetCurrentThreadName("Main");
 
-        ALIMER_LOGINFO("Initializing engine %s...", ALIMER_VERSION_STR);
+        ALIMER_LOGINFO("Initializing engine {}...", ALIMER_VERSION_STR);
 
         // Init resource paths.
         static const string AssetsFolderName = "assets";
@@ -123,6 +123,9 @@ namespace Alimer
         // Create per platform Audio module.
         _audio = CreateAudio();
 
+        // Load plugins
+        LoadPlugins();
+
         // Initialize this instance and all systems.
         Initialize();
 
@@ -135,7 +138,14 @@ namespace Alimer
 
         // Run the first time an update
         //InternalUpdate();
+        _pluginManager.Update();
+
         return true;
+    }
+
+    void Application::LoadPlugins()
+    {
+        _pluginManager.Initialize(GetExecutableFolder());
     }
 
     void Application::Tick()
@@ -147,7 +157,6 @@ namespace Alimer
         }
         else
         {
-            //_time->Update();
             Render();
             _input->Update();
         }
@@ -158,17 +167,16 @@ namespace Alimer
         if (_headless)
             return;
 
-        if (_graphics->BeginFrame())
+        // Acquire frame texture first.
+        SharedPtr<RenderPass> frameRenderPass = _graphics->BeginFrame();
+        if (frameRenderPass.IsNotNull())
         {
-            // Acquire frame texture first.
-            SharedPtr<Texture> frameTexture = _graphics->AcquireNextImage();
-
             // Tick timer.
             double frameTime = _timer.Frame();
             double elapsedTime = _timer.GetElapsed();
 
             // Render single frame.
-            RenderFrame(frameTexture, frameTime, elapsedTime);
+            RenderFrame(frameRenderPass.Get(), frameTime, elapsedTime);
 
             // End frame.
             _graphics->EndFrame();
@@ -180,23 +188,23 @@ namespace Alimer
         _scene->UpdateCachedTransforms();
     }
 
-    void Application::RenderScene(const SharedPtr<Texture>& frameTexture)
+    void Application::RenderScene(RenderPass* frameRenderPass)
     {
         // TODO: Add Scene renderer.
         CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
         //RenderPassDescriptor passDescriptor = {};
         //passDescriptor.colorAttachments[0].texture = frameTexture;
         //passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
-        //commandBuffer->BeginRenderPass(passDescriptor);
-        //_scene->Render(commandBuffer);
-        //commandBuffer->EndRenderPass();
+        auto encoder = commandBuffer->GetRenderPassCommandEncoder(frameRenderPass);
+        _scene->Render(commandBuffer);
+        encoder->Close();
         commandBuffer->Commit();
     }
 
-    void Application::RenderFrame(const SharedPtr<Texture>& frameTexture, double frameTime, double elapsedTime)
+    void Application::RenderFrame(RenderPass* frameRenderPass, double frameTime, double elapsedTime)
     {
         UpdateScene(frameTime, elapsedTime);
-        RenderScene(frameTexture);
+        RenderScene(frameRenderPass);
     }
 
     void Application::Exit()

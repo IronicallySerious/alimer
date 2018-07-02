@@ -32,19 +32,14 @@ namespace Alimer
     D3D11CommandBuffer::D3D11CommandBuffer(D3D11Graphics* graphics, ID3D11DeviceContext1* context)
         : CommandBuffer(graphics)
         , _context(context)
+        , _renderPassEncoder(this, context)
         , _isImmediate(true)
     {
     }
 
-    D3D11CommandBuffer::D3D11CommandBuffer(D3D11Graphics* graphics)
-        : CommandBuffer(graphics)
-        , _isImmediate(false)
-    {
-        graphics->GetD3DDevice()->CreateDeferredContext1(0, _context.ReleaseAndGetAddressOf());
-    }
-
     D3D11CommandBuffer::~D3D11CommandBuffer()
     {
+        Reset();
         Destroy();
     }
 
@@ -56,11 +51,13 @@ namespace Alimer
         }
     }
 
+    void D3D11CommandBuffer::Reset()
+    {
+    }
+
     void D3D11CommandBuffer::ResetState()
     {
         CommandBuffer::ResetState();
-
-        _currentRenderPass = nullptr;
     }
 
     void D3D11CommandBuffer::Enqueue()
@@ -80,33 +77,9 @@ namespace Alimer
         _context->FinishCommandList(FALSE, commandList.ReleaseAndGetAddressOf());
     }
 
-    void D3D11CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    RenderPassCommandEncoder* D3D11CommandBuffer::GetRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
-        _currentRenderPass = static_cast<D3D11RenderPass*>(renderPass);
-        _currentRenderPass->Bind(_context.Get());
-
-        /*for (uint32_t i = 0; i < MaxColorAttachments; ++i)
-        {
-            const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor.colorAttachments[i];
-            Texture* texture = colorAttachment.texture;
-            if (!texture)
-                continue;
-
-            D3D11Texture* d3dTexture = static_cast<D3D11Texture*>(texture);
-            _boundRTV[_boundRTVCount] = d3dTexture->GetRenderTargetView(colorAttachment.level, colorAttachment.slice);
-
-            switch (colorAttachment.loadAction)
-            {
-            case LoadAction::Clear:
-                //_context->ClearRenderTargetView(
-                //    d3dTexture->GetRTV(),
-                //    colorAttachment.clearColor);
-                break;
-
-            default:
-                break;
-            }
-        }*/
+        _renderPassEncoder.BeginRenderPass(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
 
         D3D11_VIEWPORT viewport;
         viewport.TopLeftX = 0;
@@ -123,12 +96,8 @@ namespace Alimer
 
         _context->RSSetViewports(1, &viewport);
         _context->RSSetScissorRects(1, &scissorRect);
-    }
-
-    void D3D11CommandBuffer::EndRenderPass()
-    {
-        ID3D11RenderTargetView* nullViews[] = { nullptr };
-        _context->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
+        
+        return &_renderPassEncoder;
     }
 
     void D3D11CommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)

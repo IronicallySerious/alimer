@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
+#include "../Core/Flags.h"
 #include "../IO/Stream.h"
 #include <memory>
 #include <string>
@@ -30,6 +30,29 @@
 
 namespace Alimer
 {
+    /// Return files.
+    enum class ScanDirMask : uint32_t
+    {
+        None = 0,
+        /// Scan files.
+        Files = 0x1,
+        /// Scan directories.
+        Directories = 0x2,
+        /// Scan also hidden files.
+        Hidden = 0x4
+    };
+
+    using ScanDirFlags = Flags<ScanDirMask, uint32_t>;
+    ALIMER_FORCE_INLINE ScanDirFlags operator|(ScanDirMask bit0, ScanDirMask bit1)
+    {
+        return ScanDirFlags(bit0) | bit1;
+    }
+
+    ALIMER_FORCE_INLINE ScanDirFlags operator~(ScanDirMask bits)
+    {
+        return ~(ScanDirFlags(bits));
+    }
+
     /// Add a slash at the end of the path if missing and convert to internal format (use slashes.)
     ALIMER_API std::string AddTrailingSlash(const std::string& path);
     /// Remove the slash from the end of a path if exists and convert to internal format (use slashes.)
@@ -60,5 +83,7 @@ namespace Alimer
     /// Return the executable application folder.
     ALIMER_API std::string GetExecutableFolder();
     /// Open stream from given path with given access mode.
-    ALIMER_API UniquePtr<Stream> OpenStream(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+    ALIMER_API std::unique_ptr<Stream> OpenStream(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+    /// Scan a directory for specified files.
+    ALIMER_API void ScanDirectory(std::vector<std::string>& result, const std::string& pathName, const std::string& filter, ScanDirFlags flags, bool recursive);
 }

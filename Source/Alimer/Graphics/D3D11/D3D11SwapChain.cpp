@@ -77,7 +77,7 @@ namespace Alimer
     D3D11SwapChain::~D3D11SwapChain()
     {
         SafeDelete(_backbufferTexture);
-        SafeDelete(_renderPass);
+        _renderPass.Reset();
         _swapChain.Reset();
     }
 

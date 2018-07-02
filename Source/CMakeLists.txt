@@ -26,6 +26,9 @@ add_subdirectory(ThirdParty)
 # Engine
 add_subdirectory (Alimer)
 
+# Plugins
+add_subdirectory (Plugins)
+
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_CSHARP)
 	add_subdirectory (Managed)
 endif ()

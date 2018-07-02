@@ -46,7 +46,6 @@ namespace Alimer
 
         void WaitIdle() override;
        
-		SharedPtr<Texture> AcquireNextImage() override;
         CommandBuffer* GetDefaultCommandBuffer() const override;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
@@ -79,7 +78,7 @@ namespace Alimer
 	private:
         void Finalize() override;
         bool BackendInitialize() override;
-        bool BeginFrameCore() override;
+        SharedPtr<RenderPass> BeginFrameCore() override;
         void EndFrameCore() override;
         void CreateAllocator();
 

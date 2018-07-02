@@ -24,18 +24,14 @@
 #include "VulkanGraphics.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanTexture.h"
+#include "VulkanRenderPass.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
-
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-#	include "../../Application/Windows/WindowWindows.h"
-#endif
 
 namespace Alimer
 {
 	VulkanSwapchain::VulkanSwapchain(VulkanGraphics* graphics, Window* window)
 		: _graphics(graphics)
-		, _window(window)
 		, _instance(graphics->GetInstance())
 		, _physicalDevice(graphics->GetPhysicalDevice())
 		, _logicalDevice(graphics->GetLogicalDevice())
@@ -46,12 +42,11 @@ namespace Alimer
 		VkResult result = VK_SUCCESS;
 
 		// Create the os-specific surface.
+        const WindowHandle& handle = window->GetHandle();
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-		auto win32Window = static_cast<WindowWindows*>(window);
-
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-		surfaceCreateInfo.hinstance = win32Window->GetHInstance();
-		surfaceCreateInfo.hwnd = win32Window->GetHandle();
+		surfaceCreateInfo.hinstance = handle.info.win.hInstance;
+		surfaceCreateInfo.hwnd = handle.info.win.window;
 		result = vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
 		VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR };
@@ -339,7 +334,8 @@ namespace Alimer
 
 		// Get the swap chain images
 		_images.resize(_imageCount);
-		_textures.resize(_imageCount);
+        _textures.resize(_imageCount);
+        _renderPasses.resize(_imageCount);
 		vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _swapchain, &_imageCount, _images.data()));
 
         // Create the semaphores
@@ -395,7 +391,7 @@ namespace Alimer
 		}
 	}
 
-	SharedPtr<VulkanTexture> VulkanSwapchain::GetNextTexture()
+	SharedPtr<VulkanRenderPass> VulkanSwapchain::GetNextDrawable()
 	{
         VkSemaphore semaphore = _semaphores[_currentSemaphoreIndex];
         _currentSemaphoreIndex = (_currentSemaphoreIndex + 1) % _imageCount;
@@ -411,14 +407,14 @@ namespace Alimer
 		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
         {
 			Resize(_width, _height, true);
-			return GetNextTexture();
+			return GetNextDrawable();
 		}
 		else {
 			vkThrowIfFailed(result);
 		}
 
         _graphics->AddWaitSemaphore(semaphore);
-		return _textures[_currentBackBufferIndex];
+		return _renderPasses[_currentBackBufferIndex];
 	}
 
 	VkResult VulkanSwapchain::QueuePresent(VkQueue queue)

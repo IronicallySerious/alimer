@@ -23,7 +23,7 @@
 #pragma once
 
 #include "Graphics/CommandBuffer.h"
-#include "D3D11Prerequisites.h"
+#include "D3D11CommandEncoder.h"
 
 namespace Alimer
 {
@@ -37,18 +37,16 @@ namespace Alimer
 		/// Constructor.
         D3D11CommandBuffer(D3D11Graphics* graphics, ID3D11DeviceContext1* context);
 
-        /// Constructor.
-        D3D11CommandBuffer(D3D11Graphics* graphics);
-
 		/// Destructor.
 		~D3D11CommandBuffer() override;
+
+        void Reset();
 
         void Destroy() override;
         void Enqueue() override;
         void Commit() override;
 
-        void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
-        void EndRenderPass() override;
+        RenderPassCommandEncoder* GetRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
 
         void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
@@ -64,6 +62,6 @@ namespace Alimer
 	private:
         Microsoft::WRL::ComPtr<ID3D11DeviceContext1> _context;
         bool _isImmediate;
-        D3D11RenderPass* _currentRenderPass = nullptr;
+        D3D11RenderPassCommandEncoder _renderPassEncoder;
 	};
 }

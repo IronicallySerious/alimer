@@ -48,13 +48,13 @@ namespace Alimer
         vertexBufferDesc.elementSize = sizeof(Vertex);
         _vertexBuffer = gGraphics().CreateBuffer(vertexBufferDesc, triangleVertices);
 
-        RenderPipelineDescriptor renderPipelineDescriptor;
+        /*RenderPipelineDescriptor renderPipelineDescriptor;
         renderPipelineDescriptor.shader = gGraphics().CreateShader("color.vert", "color.frag");
         renderPipelineDescriptor.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
         renderPipelineDescriptor.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
         renderPipelineDescriptor.vertexDescriptor.attributes[1].offset = 12;
         renderPipelineDescriptor.vertexDescriptor.layouts[0].stride = _vertexBuffer->GetElementSize();
-        _renderPipeline = gGraphics().CreateRenderPipelineState(renderPipelineDescriptor);
+        _renderPipeline = gGraphics().CreateRenderPipelineState(renderPipelineDescriptor);*/
     }
 
     TriangleRenderable::~TriangleRenderable()
@@ -64,8 +64,8 @@ namespace Alimer
 
     void TriangleRenderable::Render(CommandBuffer* commandBuffer)
     {
-        commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
+        /*commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
         commandBuffer->SetPipeline(_renderPipeline);
-        commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
+        commandBuffer->Draw(PrimitiveTopology::Triangles, 3);*/
     }
 }

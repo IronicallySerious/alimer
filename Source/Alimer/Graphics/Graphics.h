@@ -68,11 +68,8 @@ namespace Alimer
         /// Wait for a device to become idle.
         virtual void WaitIdle() = 0;
 
-        /// Begin rendering frame and return current backbuffer texture.
-        virtual SharedPtr<Texture> AcquireNextImage() = 0;
-
-        /// Begins frame rendering. 
-        bool BeginFrame();
+        /// Begin frame rendering and return current backbuffer render pass.
+        SharedPtr<RenderPass> BeginFrame();
 
         /// End and present current frame and advance to next frame. 
         void EndFrame();
@@ -120,7 +117,7 @@ namespace Alimer
     protected:
         virtual void Finalize();
         virtual bool BackendInitialize() = 0;
-        virtual bool BeginFrameCore() = 0;
+        virtual SharedPtr<RenderPass> BeginFrameCore() = 0;
         virtual void EndFrameCore() = 0;
 
     protected:

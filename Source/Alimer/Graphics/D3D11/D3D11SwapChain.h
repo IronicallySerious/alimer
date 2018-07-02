@@ -65,6 +65,8 @@ namespace Alimer
         void Resize(uint32_t width, uint32_t height, bool force = false);
         void Present();
 
+        SharedPtr<RenderPass> GetRenderPass() const { return _renderPass; }
+
     private:
         D3D11Graphics * _graphics;
         uint32_t _backBufferCount = 2u;
@@ -78,6 +80,6 @@ namespace Alimer
 
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain;
         D3D11Texture* _backbufferTexture = nullptr;
-        D3D11RenderPass* _renderPass = nullptr;
+        SharedPtr<D3D11RenderPass> _renderPass;
     };
 }

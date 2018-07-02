@@ -180,7 +180,7 @@ namespace Alimer
         }
     }
 
-    void D3D12CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    RenderPassCommandEncoderPtr D3D12CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         _boundRTVCount = 0;
         /*for (uint32_t i = 0; i < MaxColorAttachments; ++i)
@@ -230,9 +230,10 @@ namespace Alimer
         _commandList->RSSetScissorRects(1, &scissorRect);
 
         _commandList->OMSetRenderTargets(_boundRTVCount, _boundRTV, FALSE, nullptr);*/
+        return std::make_unique<RenderPassCommandEncoder>();
     }
 
-    void D3D12CommandBuffer::EndRenderPass()
+    void D3D12CommandBuffer::EndRenderPass(RenderPassCommandEncoderPtr encoder)
     {
         for (uint32_t i = 0; i < _boundRTVCount; ++i)
         {

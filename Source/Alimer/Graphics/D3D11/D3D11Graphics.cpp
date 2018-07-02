@@ -254,15 +254,10 @@ namespace Alimer
         return _immediateCommandBuffer;
     }
 
-    SharedPtr<Texture> D3D11Graphics::AcquireNextImage()
-    {
-        return nullptr;
-    }
-
-    bool D3D11Graphics::BeginFrameCore()
+    SharedPtr<RenderPass> D3D11Graphics::BeginFrameCore()
     {
         // TODO: Add check for swap chain resize.
-        return true;
+        return _swapChain->GetRenderPass();
     }
 
     void D3D11Graphics::EndFrameCore()

@@ -102,8 +102,15 @@ namespace Alimer
 	*/
     ALIMER_API PlatformFamily GetPlatformFamily();
 
-	/**
-	* Get the running platform name.
-	*/
+	/// Get the running platform name.
     ALIMER_API const char* GetPlatformName();
+
+    /// Load native library
+    ALIMER_API void* LoadNativeLibrary(const char* name);
+
+    /// Unload native library
+    ALIMER_API void UnloadNativeLibrary(void* handle);
+
+    /// Get native library symbol
+    ALIMER_API void* GetSymbol(void* handle, const char* name);
 }

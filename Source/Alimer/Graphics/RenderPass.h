@@ -76,6 +76,8 @@ namespace Alimer
         uint32_t GetWidth() const { return _width; }
         uint32_t GetHeight() const { return _height; }
         uint32_t GetLayers() const { return _layers; }
+        uint32_t GetColorAttachmentsCount() const { return _colorAttachmentsCount; }
+        const RenderPassAttachment& GetColorAttachment(uint32_t index) const { return _colorAttachments[index]; }
 
     protected:
         uint32_t _width;
