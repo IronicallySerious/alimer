@@ -49,21 +49,13 @@ namespace Alimer
         {
             _context.Reset();
         }
+
+        
     }
 
     void D3D11CommandBuffer::Reset()
     {
-    }
-
-    void D3D11CommandBuffer::ResetState()
-    {
-        CommandBuffer::ResetState();
-    }
-
-    void D3D11CommandBuffer::Enqueue()
-    {
-        if (_isImmediate)
-            return;
+        _context->ClearState();
     }
 
     void D3D11CommandBuffer::Commit()
@@ -71,13 +63,11 @@ namespace Alimer
         if (_isImmediate)
             return;
 
-        Enqueue();
-
         ComPtr<ID3D11CommandList> commandList;
         _context->FinishCommandList(FALSE, commandList.ReleaseAndGetAddressOf());
     }
 
-    RenderPassCommandEncoder* D3D11CommandBuffer::GetRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    RenderPassCommandEncoder* D3D11CommandBuffer::CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         _renderPassEncoder.BeginRenderPass(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
 

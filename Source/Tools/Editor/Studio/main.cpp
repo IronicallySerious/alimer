@@ -23,72 +23,31 @@
 #include "Alimer.h"
 using namespace Alimer;
 
-
-
 namespace Alimer
 {
-    class RuntimeApplication final : public Application
+    class Editor final : public Application
     {
     public:
-        RuntimeApplication();
-        ~RuntimeApplication() override;
+        Editor();
+        ~Editor() override;
 
     private:
         void Initialize() override;
     };
 
-    class Settings
+    Editor::Editor()
     {
-    public:
-        void Serialize(Serializer& serializer)
-        {
-            serializer.Serialize("width", 800);
-            serializer.Serialize("height", 600);
-            serializer.Serialize("fullscreen", false);
-        }
-    };
-
-    RuntimeApplication::RuntimeApplication()
-    {
-        std::vector<char> c = { 'c','i','a','o' };
-        auto s = str::ToString(ShaderStage::Geometry);
-        ShaderStage stage = str::FromString<ShaderStage>(s);
-        std::map<std::string, ShaderStage> map;
-        map["CIAO"] = ShaderStage::Vertex;
-        map["CIAO2"] = ShaderStage::Compute;
-        Color color;
-        Settings settings;
-
-        {
-            auto stream = OpenStream("Test.json", StreamMode::WriteOnly);
-            JsonSerializer serializer(*stream.get());
-
-            serializer.Serialize("color", Color::Green);
-            serializer.Serialize("str", "Hello World");
-            serializer.Serialize("stage", ShaderStage::Compute);
-            serializer.Serialize("settings", settings);
-
-            serializer.BeginObject("testArray", true);
-            serializer.Serialize(nullptr, 450);
-            serializer.Serialize(nullptr, 420);
-            serializer.EndObject();
-
-            serializer.Serialize("vector", c);
-            serializer.Serialize("map", map);
-        }
+        
     }
 
-    RuntimeApplication::~RuntimeApplication()
+    Editor::~Editor()
     {
     }
 
-    void RuntimeApplication::Initialize()
+    void Editor::Initialize()
     {
-        // Create scene
-        auto triangleEntity = _scene->CreateEntity();
-        triangleEntity->AddComponent<TransformComponent>();
-        triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
+        
     }
 }
 
-ALIMER_APPLICATION(Alimer::RuntimeApplication);
+ALIMER_APPLICATION(Alimer::Editor);

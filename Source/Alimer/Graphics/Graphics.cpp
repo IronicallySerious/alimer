@@ -47,6 +47,7 @@ namespace Alimer
         : _deviceType(deviceType)
         , _validation(validation)
         , _adapter(nullptr)
+        , _defaultCommandBuffer(nullptr)
         , _features{}
         , _inBeginFrame(false)
     {
@@ -74,6 +75,9 @@ namespace Alimer
 
     void Graphics::Finalize()
     {
+        // Destroy default command buffer
+        SafeDelete(_defaultCommandBuffer);
+
         // Destroy undestroyed resources.
         if (_gpuResources.size())
         {

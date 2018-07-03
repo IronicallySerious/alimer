@@ -36,7 +36,6 @@ namespace Alimer
         Texture,
         RenderPass,
         CommandBuffer,
-        CommandQueue
     };
 
 	/// Defines a base GPU Resource.

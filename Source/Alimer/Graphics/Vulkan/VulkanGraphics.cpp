@@ -581,11 +581,6 @@ namespace Alimer
         return true;
     }
 
-    CommandBuffer* VulkanGraphics::GetDefaultCommandBuffer() const
-    {
-        return _defaultCommandBuffer.Get();
-    }
-
     void VulkanGraphics::CreateAllocator()
     {
         VmaAllocatorCreateInfo createInfo = {};

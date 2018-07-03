@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Core/Flags.h"
-#include "../Core/Ptr.h"
 #include "../Graphics/CommandEncoder.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
@@ -35,7 +34,7 @@ namespace Alimer
 	class Graphics;
 
 	/// Defines a command buffer for storing recorded gpu commands.
-	class ALIMER_API CommandBuffer : public GpuResource, public RefCounted
+	class ALIMER_API CommandBuffer : public GpuResource
 	{
 	protected:
 		/// Constructor.
@@ -45,17 +44,14 @@ namespace Alimer
 		/// Destructor.
 		virtual ~CommandBuffer() = default;
 
-        /// Reserves a place for this command buffer on its associated command queue.
-        virtual void Enqueue() = 0;
-
         /// Commits this command buffer for execution as soon as possible.
         virtual void Commit() = 0;
 
-		virtual RenderPassCommandEncoder* GetRenderPassCommandEncoder(RenderPass* renderPass,
+		virtual RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass,
             const Color& clearColor = Color::Black,
             float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
-        virtual RenderPassCommandEncoder* GetRenderPassCommandEncoder(RenderPass* renderPass,
+        virtual RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass,
             const Color* clearColors, uint32_t numClearColors,
             float clearDepth = 1.0f, uint8_t clearStencil = 0) = 0;
 
@@ -69,7 +65,7 @@ namespace Alimer
 		void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
 
 	protected:
-		virtual void ResetState();
+		
 		virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
 		virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
         virtual void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) {}

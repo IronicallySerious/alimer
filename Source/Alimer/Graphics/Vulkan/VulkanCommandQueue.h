@@ -22,9 +22,10 @@
 
 #pragma once
 
-#include "../CommandQueue.h"
+#include "../CommandBuffer.h"
 #include "VulkanPrerequisites.h"
-#include "../../Core/RecycleArray.h"
+#include <mutex>
+#include <array>
 #include <vector>
 
 namespace Alimer
@@ -32,14 +33,16 @@ namespace Alimer
 	class VulkanGraphics;
     class VulkanCommandBuffer;
 
+    static constexpr size_t MaxCommandBuffersPerQueue = 16u;
+
 	/// Vulkan CommandQueue.
-	class VulkanCommandQueue final : public CommandQueue
+	class VulkanCommandQueue final
 	{
 	public:
         VulkanCommandQueue(VulkanGraphics* graphics, VkQueue vkQueue, uint32_t queueFamilyIndex);
-		~VulkanCommandQueue() override;
+		~VulkanCommandQueue();
 
-        SharedPtr<CommandBuffer> CreateCommandBuffer() override;
+        CommandBuffer* CreateCommandBuffer();
 
         void Enqueue(VkCommandBuffer vkCommandBuffer);
         void Commit(VulkanCommandBuffer* commandBuffer);
@@ -48,12 +51,19 @@ namespace Alimer
         uint32_t GetQueyeFamilyIndex() const { return _queueFamilyIndex; }
 		VkCommandPool GetVkHandle() const { return _vkHandle; }
 
+    private:
+        VulkanCommandBuffer* GetCommandBuffer();
+        void RecycleCommandBuffer(VulkanCommandBuffer* commandBuffer);
+
 	private:
+        VulkanGraphics * _graphics;
 		VkDevice _logicalDevice;
         VkQueue _vkQueue;
         uint32_t _queueFamilyIndex;
 		VkCommandPool _vkHandle;
-        RecycleArray<VulkanCommandBuffer, 16> _commandBuffers;
+        std::mutex _commandBufferMutex;
+        std::array<VulkanCommandBuffer*, MaxCommandBuffersPerQueue> _recycleCommandBuffers;
+        size_t _commandBufferId = 0;
         std::vector<VkCommandBuffer> _queuedCommandBuffers;
 	};
 }

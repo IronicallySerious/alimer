@@ -57,12 +57,11 @@ namespace Alimer
         vkCmdEndRenderPass(_commandBuffer);
     }
 
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandQueue* queue)
-        : CommandBuffer(queue->GetGraphics())
-        , _vkGraphics(static_cast<VulkanGraphics*>(queue->GetGraphics()))
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VulkanCommandQueue* queue)
+        : CommandBuffer(graphics)
+        , _vkGraphics(graphics)
         , _logicalDevice(_vkGraphics->GetLogicalDevice())
         , _queue(queue)
-        , _enqueued(false)
         , _renderPassEncoder(this)
     {
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -83,8 +82,12 @@ namespace Alimer
 
     void VulkanCommandBuffer::ResetState()
     {
-        CommandBuffer::ResetState();
+        _dirty = ~0u;
+        _dirtySets = ~0u;
+        _dirtyVbos = ~0u;
+        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
         memset(&_indexState, 0, sizeof(_indexState));
+        memset(&_bindings, 0, sizeof(_bindings));
 
         _currentVkPipeline = VK_NULL_HANDLE;
         _currentVkPipelineLayout = VK_NULL_HANDLE;
@@ -92,19 +95,10 @@ namespace Alimer
         _currentPipeline.Reset();
     }
 
-    void VulkanCommandBuffer::Enqueue()
-    {
-        if (_enqueued)
-            return;
-
-        _queue->Enqueue(_vkHandle);
-        _enqueued = true;
-    }
-
     void VulkanCommandBuffer::Commit()
     {
         End();
-        Enqueue();
+        _queue->Enqueue(_vkHandle);
         _queue->Commit(this);
     }
 
@@ -130,7 +124,7 @@ namespace Alimer
         vkThrowIfFailed(vkResetCommandBuffer(_vkHandle, 0));
     }
 
-    RenderPassCommandEncoder* VulkanCommandBuffer::GetRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    RenderPassCommandEncoder* VulkanCommandBuffer::CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         std::vector<VkClearValue> clearValues(numClearColors + 1);
         uint32_t i = 0;

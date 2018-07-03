@@ -30,7 +30,7 @@
 
 namespace Alimer
 {
-	class D3D11CommandBuffer;
+	class D3D11CommandQueue;
 	class D3D11Texture;
     class D3D11SwapChain;
 
@@ -48,7 +48,6 @@ namespace Alimer
 		~D3D11Graphics() override;
 
         void WaitIdle() override;
-        CommandBuffer* GetDefaultCommandBuffer() const override;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
@@ -80,6 +79,5 @@ namespace Alimer
         Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
         D3D11SwapChain* _swapChain = nullptr;
-        D3D11CommandBuffer* _immediateCommandBuffer = nullptr;
 	};
 }

@@ -27,8 +27,7 @@
 
 namespace Alimer
 {
-	class D3D11Graphics;
-    class D3D11RenderPass;
+    class D3D11Graphics;
 
 	/// D3D11 CommandBuffer implementation.
 	class D3D11CommandBuffer final : public CommandBuffer
@@ -43,10 +42,9 @@ namespace Alimer
         void Reset();
 
         void Destroy() override;
-        void Enqueue() override;
         void Commit() override;
 
-        RenderPassCommandEncoder* GetRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
 
         void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
@@ -54,7 +52,6 @@ namespace Alimer
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
     private:
-        void ResetState() override;
         void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
         void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
         bool PrepareDraw(PrimitiveTopology topology);

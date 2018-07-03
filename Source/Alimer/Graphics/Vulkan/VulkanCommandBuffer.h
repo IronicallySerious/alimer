@@ -57,17 +57,16 @@ namespace Alimer
     class VulkanCommandBuffer final : public CommandBuffer
     {
     public:
-        VulkanCommandBuffer(VulkanCommandQueue* queue);
+        VulkanCommandBuffer(VulkanGraphics* graphics, VulkanCommandQueue* queue);
         ~VulkanCommandBuffer() override;
 
-        void Enqueue() override;
         void Commit() override;
 
         void Begin();
         void End();
         void Reset();
 
-        RenderPassCommandEncoder* GetRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
 
         void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
@@ -77,7 +76,7 @@ namespace Alimer
         VkCommandBuffer GetVkHandle() const { return _vkHandle; }
 
     private:
-        void ResetState() override;
+        void ResetState();
         void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
         void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
         bool PrepareDraw(PrimitiveTopology topology);
@@ -90,7 +89,6 @@ namespace Alimer
         VulkanCommandQueue* _queue;
         VkDevice _logicalDevice;
         VkCommandBuffer _vkHandle;
-        bool _enqueued;
         VulkanRenderPassCommandEncoder _renderPassEncoder;
         VulkanRenderPass* _currentRenderPass = nullptr;
         SharedPtr<VulkanPipelineState> _currentPipeline;

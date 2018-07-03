@@ -192,10 +192,8 @@ namespace Alimer
     {
         // TODO: Add Scene renderer.
         CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
-        //RenderPassDescriptor passDescriptor = {};
-        //passDescriptor.colorAttachments[0].texture = frameTexture;
-        //passDescriptor.colorAttachments[0].clearColor = { 0.0f, 0.2f, 0.4f, 1.0f };
-        auto encoder = commandBuffer->GetRenderPassCommandEncoder(frameRenderPass);
+        //commandBuffer->Enqueue();
+        auto encoder = commandBuffer->CreateRenderPassCommandEncoder(frameRenderPass, { 0.0f, 0.2f, 0.4f, 1.0f });
         _scene->Render(commandBuffer);
         encoder->Close();
         commandBuffer->Commit();

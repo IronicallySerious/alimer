@@ -35,7 +35,6 @@ if (NOT DEFINED ENV{APPVEYOR})
     set_target_properties(AlimerSharp PROPERTIES FOLDER Managed)
 
     if (PLATFORM_DESKTOP)
-        add_subdirectory(Assets)
         add_subdirectory(Editor)
     endif (PLATFORM_DESKTOP)
 endif()

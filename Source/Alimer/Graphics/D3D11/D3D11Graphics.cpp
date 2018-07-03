@@ -101,7 +101,8 @@ namespace Alimer
         WaitIdle();
 
         SafeDelete(_swapChain);
-        SafeDelete(_immediateCommandBuffer);
+
+        Graphics::Finalize();
     }
 
     bool D3D11Graphics::BackendInitialize()
@@ -238,8 +239,8 @@ namespace Alimer
         _swapChain->SetWindow(handle.info.win.window, _window->GetWidth(), _window->GetHeight());
 #endif
 
-        // Immediate/default command buffer.
-        _immediateCommandBuffer = new D3D11CommandBuffer(this, _d3dContext.Get());
+        // Immediate/default command queue.
+        _defaultCommandBuffer = new D3D11CommandBuffer(this, _d3dContext.Get());
 
         return true;
     }
@@ -247,11 +248,6 @@ namespace Alimer
     void D3D11Graphics::WaitIdle()
     {
         _d3dContext->Flush();
-    }
-
-    CommandBuffer* D3D11Graphics::GetDefaultCommandBuffer() const
-    {
-        return _immediateCommandBuffer;
     }
 
     SharedPtr<RenderPass> D3D11Graphics::BeginFrameCore()

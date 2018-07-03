@@ -32,7 +32,7 @@
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/PipelineState.h"
-#include "../Graphics/CommandQueue.h"
+#include "../Graphics/CommandBuffer.h"
 #include <vector>
 #include <set>
 #include <mutex>
@@ -105,7 +105,7 @@ namespace Alimer
         inline const GpuDeviceFeatures& GetFeatures() const { return _features; }
 
         /// Get default command buffer.
-        virtual CommandBuffer* GetDefaultCommandBuffer() const = 0;
+        CommandBuffer* GetDefaultCommandBuffer() const { return _defaultCommandBuffer; }
 
     private:
         /// Add a GpuResource to keep track of. 
@@ -128,6 +128,7 @@ namespace Alimer
 
         SharedPtr<Window> _window{};
         GpuAdapter* _adapter;
+        CommandBuffer* _defaultCommandBuffer;
 
     private:
         std::mutex _gpuResourceMutex;

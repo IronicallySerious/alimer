@@ -45,8 +45,6 @@ namespace Alimer
 		~VulkanGraphics() override;
 
         void WaitIdle() override;
-       
-        CommandBuffer* GetDefaultCommandBuffer() const override;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
@@ -108,8 +106,7 @@ namespace Alimer
         VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
 
 		// CommandPools
-        SharedPtr<VulkanCommandQueue> _defaultCommandQueue;
-        SharedPtr<CommandBuffer> _defaultCommandBuffer;
+        VulkanCommandQueue* _defaultCommandQueue = nullptr;
 		VkCommandPool _setupCommandPool = VK_NULL_HANDLE;
 
         std::vector<VkSemaphore> _waitSemaphores;

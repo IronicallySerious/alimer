@@ -30,7 +30,7 @@ using namespace std;
 namespace Alimer
 {
     VulkanCommandQueue::VulkanCommandQueue(VulkanGraphics* graphics, VkQueue vkQueue, uint32_t queueFamilyIndex)
-        : CommandQueue(graphics)
+        : _graphics(graphics)
         , _vkQueue(vkQueue)
         , _queueFamilyIndex(queueFamilyIndex)
         , _logicalDevice(graphics->GetLogicalDevice())
@@ -50,19 +50,25 @@ namespace Alimer
     VulkanCommandQueue::~VulkanCommandQueue()
     {
         // Finalize.
-        _commandBuffers.~RecycleArray();
+        for (size_t i = 0; i < MaxCommandBuffersPerQueue; i++)
+        {
+            if (_recycleCommandBuffers[i])
+            {
+                SafeDelete(_recycleCommandBuffers[i]);
+            }
+        }
 
         // Destroy command pool.
         vkDestroyCommandPool(_logicalDevice, _vkHandle, nullptr);
     }
 
-    SharedPtr<CommandBuffer> VulkanCommandQueue::CreateCommandBuffer()
+    CommandBuffer* VulkanCommandQueue::CreateCommandBuffer()
     {
-        SharedPtr<VulkanCommandBuffer> commandBuffer = _commandBuffers.Get();
+        VulkanCommandBuffer* commandBuffer = GetCommandBuffer();
 
         if (commandBuffer == nullptr)
         {
-            commandBuffer = new VulkanCommandBuffer(this);
+            commandBuffer = new VulkanCommandBuffer(_graphics, this);
         }
 
         // Begin implicitly reset the command buffer.
@@ -79,8 +85,7 @@ namespace Alimer
     void VulkanCommandQueue::Commit(VulkanCommandBuffer* commandBuffer)
     {
         // Recycle command buffer.
-        SharedPtr<VulkanCommandBuffer> shared(commandBuffer);
-        _commandBuffers.Store(shared);
+        RecycleCommandBuffer(commandBuffer);
     }
 
     void VulkanCommandQueue::Submit(const std::vector<VkSemaphore>& waitSemaphores)
@@ -105,5 +110,25 @@ namespace Alimer
 
         vkThrowIfFailed(vkWaitForFences(_logicalDevice, 1, &fence, VK_TRUE, UINT64_MAX));
         vkDestroyFence(_logicalDevice, fence, nullptr);
+    }
+
+    VulkanCommandBuffer* VulkanCommandQueue::GetCommandBuffer()
+    {
+        lock_guard<mutex> lock(_commandBufferMutex);
+
+        if (_commandBufferId == 0)
+            return nullptr;
+
+        return _recycleCommandBuffers.at(--_commandBufferId);
+    }
+
+    void VulkanCommandQueue::RecycleCommandBuffer(VulkanCommandBuffer* commandBuffer)
+    {
+        lock_guard<mutex> lock(_commandBufferMutex);
+
+        if (_commandBufferId < 16)
+        {
+            _recycleCommandBuffers.at(_commandBufferId++) = commandBuffer;
+        }
     }
 }

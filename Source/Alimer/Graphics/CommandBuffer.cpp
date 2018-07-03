@@ -28,21 +28,11 @@ namespace Alimer
     CommandBuffer::CommandBuffer(Graphics* graphics)
         : GpuResource(graphics, GpuResourceType::CommandBuffer)
     {
-        ResetState();
     }
 
-    void CommandBuffer::ResetState()
+    RenderPassCommandEncoder* CommandBuffer::CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
     {
-        _dirty = ~0u;
-        _dirtySets = ~0u;
-        _dirtyVbos = ~0u;
-        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
-        memset(&_bindings, 0, sizeof(_bindings));
-    }
-
-    RenderPassCommandEncoder* CommandBuffer::GetRenderPassCommandEncoder(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
-    {
-        return GetRenderPassCommandEncoder(renderPass, &clearColor, 1, clearDepth, clearStencil);
+        return CreateRenderPassCommandEncoder(renderPass, &clearColor, 1, clearDepth, clearStencil);
     }
 
     void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset, VertexInputRate inputRate)
