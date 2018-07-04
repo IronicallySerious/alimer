@@ -102,10 +102,6 @@ namespace Alimer
             {
                 _plugins[pluginFile] = desc;
             }
-            else
-            {
-                ALIMER_LOGWARN("Failed loading native plugin \"{}\".", GetFileNameAndExtension(pluginFile));
-            }
         }
 
         // List enumerated plugins

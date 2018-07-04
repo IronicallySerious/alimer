@@ -20,8 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "GpuResource.h"
-#include "Graphics.h"
+#include "../Graphics/GpuResource.h"
+#include "../Graphics/Graphics.h"
 #include "../Core/Log.h"
 
 namespace Alimer

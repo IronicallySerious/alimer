@@ -24,16 +24,15 @@
 #include "../Scene/TransformComponent.h"
 #include "../Scene/CameraComponent.h"
 #include "../Scene/Renderable.h"
-
 #include "../Core/Log.h"
 using namespace std;
+
 namespace Alimer
 {
 	Scene::Scene()
         : _entityManager(events)
         , _spatials(_entityManager.GetComponentGroup<TransformComponent>())
         , _cameras(_entityManager.GetComponentGroup<CameraComponent, TransformComponent>())
-        , _renderables(_entityManager.GetComponentGroup<TransformComponent, RenderableComponent>())
 	{
         _defaultCamera = CreateEntity();
         _defaultCamera->AddComponent<TransformComponent>();
@@ -45,7 +44,6 @@ namespace Alimer
 
 	Scene::~Scene()
 	{
-        _perCameraUboBuffer.Reset();
         _entityManager.ResetGroups();
 	}
 
@@ -88,55 +86,6 @@ namespace Alimer
             TransformComponent *transform;
             std::tie(camera, transform) = c;
             camera->Update(transform->worldTransform);
-        }
-    }
-
-    // TODO: Add frustum
-    template <typename T>
-    static void GatherVisibleRenderables(VisibilitySet &list, const T &objects)
-    {
-        for (auto &o : objects)
-        {
-            TransformComponent *transform = std::get<0>(o);
-            RenderableComponent *renderable = std::get<1>(o);
-
-            if (transform)
-            {
-               // if (frustum.intersects_fast(transform->world_aabb))
-                    list.push_back({ renderable->renderable.Get(), transform });
-            }
-            else
-            {
-                list.push_back({ renderable->renderable.Get(), nullptr });
-            }
-        }
-    }
-
-    void Scene::Render(CommandBuffer* commandBuffer)
-    {
-        _camera.viewMatrix = glm::mat4(1.0f);
-        _camera.projectionMatrix = glm::mat4(1.0f);
-
-        if (_perCameraUboBuffer.IsNull())
-        {
-            GpuBufferDescription uboBufferDesc = {};
-            uboBufferDesc.usage = BufferUsage::Uniform;
-            uboBufferDesc.elementCount = 3;
-            uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = gGraphics().CreateBuffer(uboBufferDesc, &_camera);
-        }
-
-        // Gather visibles.
-        _visibleSet.clear();
-        GatherVisibleRenderables(_visibleSet, _renderables);
-
-        // Bind per camera UBO
-        commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
-
-        for (auto &visible : _visibleSet)
-        {
-            visible.renderable->Render(commandBuffer);
-            //visible.renderable->Render(context, vis.transform, queue);
         }
     }
 }

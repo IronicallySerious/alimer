@@ -31,15 +31,7 @@ namespace Alimer
 {
     class TransformComponent;
     class CameraComponent;
-    class Renderable;
     class RenderableComponent;
-
-    struct RenderableInfo
-    {
-        Renderable *renderable;
-        const TransformComponent *transform;
-    };
-    using VisibilitySet = std::vector<RenderableInfo>;
 
     /// Defines a scene, which is a container of SceneObject's.
     class Scene final 
@@ -63,7 +55,6 @@ namespace Alimer
         EntityManager &GetEntityManager();
 
         void UpdateCachedTransforms();
-        void Render(CommandBuffer* commandBuffer);
 
     private:
         EventManager events;
@@ -72,22 +63,10 @@ namespace Alimer
         EntityHandle _defaultCamera;
         EntityHandle _activeCamera;
 
-
         std::vector<std::tuple<TransformComponent*>> &_spatials;
         std::vector<std::tuple<CameraComponent*, TransformComponent*>> &_cameras;
-        std::vector<std::tuple<TransformComponent*, RenderableComponent*>> &_renderables;
+        
         std::vector<EntityHandle> _entities;
-
-        struct PerCameraCBuffer
-        {
-            glm::mat4 viewMatrix;
-            glm::mat4 projectionMatrix;
-        };
-
-        PerCameraCBuffer _camera;
-        SharedPtr<GpuBuffer> _perCameraUboBuffer;
-
-        VisibilitySet _visibleSet;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);

@@ -38,10 +38,11 @@ namespace Alimer
 
 		/// Destructor.
 		~D3D11GpuBuffer() override;
+        void Destroy() override;
 
-        ID3D11Buffer* GetResource() const { return _resource.Get(); }
+        ID3D11Buffer* GetD3DBuffer() const { return _d3dBuffer; }
 
 	private:
-        Microsoft::WRL::ComPtr<ID3D11Buffer> _resource;
+        ID3D11Buffer* _d3dBuffer;
 	};
 }

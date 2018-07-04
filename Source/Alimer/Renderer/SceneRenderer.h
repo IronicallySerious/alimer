@@ -20,34 +20,48 @@
 // THE SOFTWARE.
 //
 
-#include "Alimer.h"
-using namespace Alimer;
+#pragma once
 
-
+#include "../Scene/Scene.h"
+#include "../Scene/CameraComponent.h"
 
 namespace Alimer
 {
-    class RuntimeApplication final : public Application
+    class RenderPass;
+    class Graphics;
+
+    class Renderable;
+    class RenderableComponent;
+
+    struct RenderableInfo
     {
+        Renderable *renderable;
+        const TransformComponent *transform;
+    };
+    using VisibilitySet = std::vector<RenderableInfo>;
+
+	/// Defines a scene renderer.
+    class ALIMER_API SceneRenderer
+	{
     public:
-        RuntimeApplication();
-        ~RuntimeApplication() override = default;
+        SceneRenderer(Graphics* graphics);
+        virtual ~SceneRenderer() = default;
+
+        void Render(Scene* scene, RenderPass* frameRenderPass);
 
     private:
-        void Initialize() override;
-    };
+        /// Graphics subsystem.
+        WeakPtr<Graphics> _graphics;
 
-    RuntimeApplication::RuntimeApplication()
-    {
-    }
+        struct PerCameraCBuffer
+        {
+            glm::mat4 viewMatrix;
+            glm::mat4 projectionMatrix;
+        };
 
-    void RuntimeApplication::Initialize()
-    {
-        // Create scene
-        auto triangleEntity = _scene->CreateEntity();
-        triangleEntity->AddComponent<TransformComponent>();
-        triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
-    }
+        PerCameraCBuffer _camera;
+        SharedPtr<GpuBuffer> _perCameraUboBuffer;
+
+        VisibilitySet _visibleSet;
+	};
 }
-
-ALIMER_APPLICATION(Alimer::RuntimeApplication);

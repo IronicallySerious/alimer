@@ -25,6 +25,7 @@
 #include "../AlimerConfig.h"
 #include <cassert>
 #include <cstddef>
+#include <memory>
 #include <utility>
 #include <atomic>
 

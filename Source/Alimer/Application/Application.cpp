@@ -23,6 +23,7 @@
 #include "../Application/Application.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
+#include "../Renderer/SceneRenderer.h"
 #include "AlimerVersion.h"
 #include "enkiTS/src/TaskScheduler_c.h"
 using namespace std;
@@ -106,7 +107,7 @@ namespace Alimer
             // Create and init graphics.
             //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
             _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
-            //_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
+            _settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
 
             _graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
             GpuAdapter* adapter = nullptr;
@@ -125,6 +126,9 @@ namespace Alimer
 
         // Load plugins
         LoadPlugins();
+
+        // Create renderer.
+        _renderer = new SceneRenderer(_graphics.Get());
 
         // Initialize this instance and all systems.
         Initialize();
@@ -191,12 +195,7 @@ namespace Alimer
     void Application::RenderScene(RenderPass* frameRenderPass)
     {
         // TODO: Add Scene renderer.
-        CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
-        //commandBuffer->Enqueue();
-        auto encoder = commandBuffer->CreateRenderPassCommandEncoder(frameRenderPass, { 0.0f, 0.2f, 0.4f, 1.0f });
-        _scene->Render(commandBuffer);
-        encoder->Close();
-        commandBuffer->Commit();
+        _renderer->Render(_scene, frameRenderPass);
     }
 
     void Application::RenderFrame(RenderPass* frameRenderPass, double frameTime, double elapsedTime)

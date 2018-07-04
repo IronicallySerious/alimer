@@ -20,34 +20,23 @@
 // THE SOFTWARE.
 //
 
-#include "Alimer.h"
-using namespace Alimer;
+#pragma once
 
-
+#include "../Resource/Resource.h"
 
 namespace Alimer
 {
-    class RuntimeApplication final : public Application
-    {
+    class Graphics;
+
+	/// Defines a Mesh.
+    class ALIMER_API Mesh final : public Resource
+	{
     public:
-        RuntimeApplication();
-        ~RuntimeApplication() override = default;
+        Mesh(Graphics* graphics);
+        ~Mesh() = default;
 
     private:
-        void Initialize() override;
-    };
-
-    RuntimeApplication::RuntimeApplication()
-    {
-    }
-
-    void RuntimeApplication::Initialize()
-    {
-        // Create scene
-        auto triangleEntity = _scene->CreateEntity();
-        triangleEntity->AddComponent<TransformComponent>();
-        triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
-    }
+        /// Graphics subsystem.
+        WeakPtr<Graphics> _graphics;
+	};
 }
-
-ALIMER_APPLICATION(Alimer::RuntimeApplication);

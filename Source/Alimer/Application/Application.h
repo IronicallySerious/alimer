@@ -57,6 +57,8 @@ namespace Alimer
 #endif
     };
 
+    class SceneRenderer;
+
     /// Application for main loop and all modules and OS setup.
     class ALIMER_API Application : public RefCounted
     {
@@ -139,6 +141,7 @@ namespace Alimer
         UniquePtr<Input> _input;
         UniquePtr<Audio> _audio;
         enkiTaskScheduler* _taskScheduler;
+        UniquePtr<SceneRenderer> _renderer;
 
         /// Current scene.
         Scene* _scene;

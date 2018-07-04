@@ -87,11 +87,15 @@ namespace Alimer
 
     void D3D11Texture::Destroy()
     {
+        if (_resource)
+        {
 #if defined(_DEBUG)
-        ULONG refCount = GetRefCount(_resource);
-        ALIMER_ASSERT_MSG(refCount == 1, "D3D11Texture leakage");
+            ULONG refCount = GetRefCount(_resource);
+            ALIMER_ASSERT_MSG(refCount == 1, "D3D11Texture leakage");
 #endif
 
-        SafeRelease(_resource);
+            _resource->Release();
+            _resource = nullptr;
+        }
     }
 }

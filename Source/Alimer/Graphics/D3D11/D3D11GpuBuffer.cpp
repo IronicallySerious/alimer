@@ -22,17 +22,102 @@
 
 #include "D3D11GpuBuffer.h"
 #include "D3D11Graphics.h"
+#include "../../Math/MathUtil.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
+    namespace d3d11
+    {
+        static inline D3D11_USAGE Convert(ResourceUsage usage)
+        {
+            switch (usage)
+            {
+            case ResourceUsage::Default:
+                return D3D11_USAGE_DEFAULT;
+            case ResourceUsage::Immutable:
+                return D3D11_USAGE_IMMUTABLE;
+            case ResourceUsage::Dynamic:
+                return D3D11_USAGE_DYNAMIC;
+            case ResourceUsage::Staging:
+                return D3D11_USAGE_STAGING;
+            default:
+                ALIMER_UNREACHABLE();
+                return D3D11_USAGE_DEFAULT;
+            }
+        }
+    }
+
     D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
         : GpuBuffer(graphics, description)
     {
+        const bool dynamic = description.resourceUsage == ResourceUsage::Dynamic;
+        D3D11_BUFFER_DESC bufferDesc = {};
+        bufferDesc.ByteWidth = description.elementSize;
+        bufferDesc.StructureByteStride = description.elementSize;
+        bufferDesc.Usage = d3d11::Convert(description.resourceUsage);
+        bufferDesc.CPUAccessFlags = 0;
+        if (description.resourceUsage == ResourceUsage::Dynamic)
+            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        else if (description.resourceUsage == ResourceUsage::Staging)
+            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
+
+
+        if (description.usage & BufferUsage::Uniform)
+        {
+            // D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT
+            bufferDesc.ByteWidth = Align(bufferDesc.ByteWidth, 16u);
+            bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        }
+        else
+        {
+            if (description.usage & BufferUsage::Vertex)
+            {
+                bufferDesc.BindFlags |= D3D11_BIND_VERTEX_BUFFER;
+            }
+
+            if (description.usage & BufferUsage::Index)
+            {
+                bufferDesc.BindFlags |= D3D11_BIND_INDEX_BUFFER;
+            }
+
+            if (description.usage & BufferUsage::Storage)
+            {
+                bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+            }
+
+            if (description.usage & BufferUsage::Indirect)
+            {
+                bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
+            }
+        }
+
+        D3D11_SUBRESOURCE_DATA initData;
+        memset(&initData, 0, sizeof(initData));
+        initData.pSysMem = initialData;
+
+        ThrowIfFailed(
+            graphics->GetD3DDevice()->CreateBuffer(&bufferDesc, initialData ? &initData : nullptr, &_d3dBuffer)
+        );
     }
 
     D3D11GpuBuffer::~D3D11GpuBuffer()
     {
+        Destroy();
+    }
+
+    void D3D11GpuBuffer::Destroy()
+    {
+        if (_d3dBuffer)
+        {
+#if defined(_DEBUG)
+            ULONG refCount = GetRefCount(_d3dBuffer);
+            ALIMER_ASSERT_MSG(refCount == 1, "D3D11GpuBuffer leakage");
+#endif
+
+            _d3dBuffer->Release();
+            _d3dBuffer = nullptr;
+        }
     }
 }
