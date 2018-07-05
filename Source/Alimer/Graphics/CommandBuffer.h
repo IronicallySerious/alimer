@@ -36,6 +36,8 @@ namespace Alimer
 	/// Defines a command buffer for storing recorded gpu commands.
 	class ALIMER_API CommandBuffer : public GpuResource
 	{
+        friend class CommandEncoder;
+
 	protected:
 		/// Constructor.
 		CommandBuffer(Graphics* graphics);
@@ -45,15 +47,15 @@ namespace Alimer
 		virtual ~CommandBuffer() = default;
 
         /// Commits this command buffer for execution as soon as possible.
-        virtual void Commit() = 0;
+        void Commit();
 
-		virtual RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass,
+		RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass,
             const Color& clearColor = Color::Black,
             float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
-        virtual RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass,
+        RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass,
             const Color* clearColors, uint32_t numClearColors,
-            float clearDepth = 1.0f, uint8_t clearStencil = 0) = 0;
+            float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
 		void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
@@ -61,12 +63,14 @@ namespace Alimer
 
         void SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer);
 
-		void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
 		void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
 
 	protected:
-		
-		virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
+        virtual void CommitCore() = 0;
+
+        virtual RenderPassCommandEncoder* CreateRenderPassCommandEncoderCore(RenderPass* renderPass,
+            const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
+
 		virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
         virtual void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) {}
         virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
@@ -122,6 +126,11 @@ namespace Alimer
 		CommandBufferDirtyFlags _dirty = ~0u;
         uint32_t _dirtySets = 0;
 		uint32_t _dirtyVbos = 0;
+
+    private:
+        void EndEncoderEncoding();
+
+        bool _hasPendingEncoder;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);

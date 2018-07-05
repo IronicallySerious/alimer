@@ -42,19 +42,19 @@ namespace Alimer
         void Reset();
 
         void Destroy() override;
-        void Commit() override;
+        void CommitCore() override;
 
-        RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        RenderPassCommandEncoder* CreateRenderPassCommandEncoderCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
 
         void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
-        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
+        
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
     private:
         void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
         void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
-        bool PrepareDraw(PrimitiveTopology topology);
+        
 
 	private:
         Microsoft::WRL::ComPtr<ID3D11DeviceContext1> _context;

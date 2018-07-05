@@ -20,44 +20,33 @@
 // THE SOFTWARE.
 //
 
-#include "Alimer.h"
-using namespace Alimer;
+#pragma once
 
-
+#include "D3D11Prerequisites.h"
+#include "../Types.h"
+#include "../PixelFormat.h"
+#include "../GpuBuffer.h"
 
 namespace Alimer
 {
-    class RuntimeApplication final : public Application
+    namespace d3d11
     {
-    public:
-        RuntimeApplication();
-        ~RuntimeApplication() override = default;
-
-    private:
-        void Initialize() override;
-        void OnRender(RenderPass* frameRenderPass) override;
-    };
-
-    RuntimeApplication::RuntimeApplication()
-    {
-    }
-
-    void RuntimeApplication::Initialize()
-    {
-        // Create scene
-        auto triangleEntity = _scene->CreateEntity();
-        triangleEntity->AddComponent<TransformComponent>();
-        triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
-    }
-
-    void RuntimeApplication::OnRender(RenderPass* frameRenderPass)
-    {
-        CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
-        Color clearColor = Color::Green;
-        RenderPassCommandEncoder* encoder = commandBuffer->CreateRenderPassCommandEncoder(frameRenderPass, clearColor);
-        encoder->EndEncoding();
-        commandBuffer->Commit();
+        static inline D3D11_USAGE Convert(ResourceUsage usage)
+        {
+            switch (usage)
+            {
+            case ResourceUsage::Default:
+                return D3D11_USAGE_DEFAULT;
+            case ResourceUsage::Immutable:
+                return D3D11_USAGE_IMMUTABLE;
+            case ResourceUsage::Dynamic:
+                return D3D11_USAGE_DYNAMIC;
+            case ResourceUsage::Staging:
+                return D3D11_USAGE_STAGING;
+            default:
+                ALIMER_UNREACHABLE();
+                return D3D11_USAGE_DEFAULT;
+            }
+        }
     }
 }
-
-ALIMER_APPLICATION(Alimer::RuntimeApplication);

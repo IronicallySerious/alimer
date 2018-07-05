@@ -26,5 +26,14 @@
 
 namespace Alimer
 {
-    
+    void CommandEncoder::EndEncoding()
+    {
+        EndEncodingCore();
+        _commandBuffer->EndEncoderEncoding();
+    }
+
+    void RenderPassCommandEncoder::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+        DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
+    }
 }

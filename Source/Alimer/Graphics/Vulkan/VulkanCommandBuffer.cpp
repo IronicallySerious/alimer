@@ -52,9 +52,56 @@ namespace Alimer
 
     }
 
-    void VulkanRenderPassCommandEncoder::Close()
+    void VulkanRenderPassCommandEncoder::EndEncodingCore()
     {
         vkCmdEndRenderPass(_commandBuffer);
+    }
+
+    bool VulkanRenderPassCommandEncoder::PrepareDraw(PrimitiveTopology topology)
+    {
+        /*if (_currentPipeline.IsNull())
+            return false;
+
+        VkPipeline oldPipeline = _currentVkPipeline;
+        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(
+            topology,
+            _currentRenderPass->GetVkRenderPass()
+        );
+        if (oldPipeline != newPipeline)
+        {
+            vkCmdBindPipeline(_vkHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline);
+            _currentVkPipeline = newPipeline;
+        }
+
+        FlushDescriptorSets();
+
+        uint32_t updateVboMask = _dirtyVbos & _currentPipeline->GetBindingMask();
+        ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
+        {
+#ifdef ALIMER_DEV
+            for (uint32_t i = binding; i < binding + count; i++)
+            {
+                ALIMER_ASSERT(_currentVkBuffers[i] != VK_NULL_HANDLE);
+            }
+#endif
+
+            vkCmdBindVertexBuffers(_vkHandle,
+                binding,
+                count,
+                _currentVkBuffers + binding,
+                _vbo.offsets + binding);
+        });
+        _dirtyVbos &= ~updateVboMask;
+        */
+        return true;
+    }
+
+    void VulkanRenderPassCommandEncoder::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+        if (!PrepareDraw(topology))
+            return;
+
+        vkCmdDraw(_commandBuffer, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
     VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VulkanCommandQueue* queue)
@@ -95,7 +142,7 @@ namespace Alimer
         _currentPipeline.Reset();
     }
 
-    void VulkanCommandBuffer::Commit()
+    void VulkanCommandBuffer::CommitCore()
     {
         End();
         _queue->Enqueue(_vkHandle);
@@ -124,7 +171,7 @@ namespace Alimer
         vkThrowIfFailed(vkResetCommandBuffer(_vkHandle, 0));
     }
 
-    RenderPassCommandEncoder* VulkanCommandBuffer::CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    RenderPassCommandEncoder* VulkanCommandBuffer::CreateRenderPassCommandEncoderCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         std::vector<VkClearValue> clearValues(numClearColors + 1);
         uint32_t i = 0;
@@ -195,14 +242,6 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-    {
-        if (!PrepareDraw(topology))
-            return;
-
-        vkCmdDraw(_vkHandle, vertexCount, instanceCount, vertexStart, baseInstance);
-    }
-
     void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
 
@@ -231,44 +270,7 @@ namespace Alimer
         vkCmdBindIndexBuffer(_vkHandle, vkBuffer, offset, vkIndexType);
     }
 
-    bool VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)
-    {
-        if (_currentPipeline.IsNull())
-            return false;
-
-        VkPipeline oldPipeline = _currentVkPipeline;
-        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(
-            topology,
-            _currentRenderPass->GetVkRenderPass()
-        );
-        if (oldPipeline != newPipeline)
-        {
-            vkCmdBindPipeline(_vkHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline);
-            _currentVkPipeline = newPipeline;
-        }
-
-        FlushDescriptorSets();
-
-        uint32_t updateVboMask = _dirtyVbos & _currentPipeline->GetBindingMask();
-        ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
-        {
-#ifdef ALIMER_DEV
-            for (uint32_t i = binding; i < binding + count; i++)
-            {
-                ALIMER_ASSERT(_currentVkBuffers[i] != VK_NULL_HANDLE);
-            }
-#endif
-
-            vkCmdBindVertexBuffers(_vkHandle,
-                binding,
-                count,
-                _currentVkBuffers + binding,
-                _vbo.offsets + binding);
-        });
-        _dirtyVbos &= ~updateVboMask;
-
-        return true;
-    }
+    
 
     void VulkanCommandBuffer::FlushDescriptorSet(uint32_t set)
     {

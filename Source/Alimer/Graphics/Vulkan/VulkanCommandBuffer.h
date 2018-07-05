@@ -47,9 +47,13 @@ namespace Alimer
         void SetVkCommandBuffer(VkCommandBuffer commandBuffer);
 
         void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil);
-        void Close() override;
+        void EndEncodingCore() override;
+
+        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
 
     private:
+        bool PrepareDraw(PrimitiveTopology topology);
+
         VkCommandBuffer _commandBuffer;
     };
 
@@ -60,17 +64,16 @@ namespace Alimer
         VulkanCommandBuffer(VulkanGraphics* graphics, VulkanCommandQueue* queue);
         ~VulkanCommandBuffer() override;
 
-        void Commit() override;
+        void CommitCore() override;
 
         void Begin();
         void End();
         void Reset();
 
-        RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        RenderPassCommandEncoder* CreateRenderPassCommandEncoderCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
 
         void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
-        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
         VkCommandBuffer GetVkHandle() const { return _vkHandle; }
@@ -79,7 +82,7 @@ namespace Alimer
         void ResetState();
         void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
         void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
-        bool PrepareDraw(PrimitiveTopology topology);
+       
 
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();

@@ -107,7 +107,7 @@ namespace Alimer
             // Create and init graphics.
             //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
             _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
-            _settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
+            //_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
 
             _graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
             GpuAdapter* adapter = nullptr;
@@ -152,7 +152,7 @@ namespace Alimer
         _pluginManager.Initialize(GetExecutableFolder());
     }
 
-    void Application::Tick()
+    void Application::RunOneFrame()
     {
         if (_paused)
         {
@@ -181,6 +181,7 @@ namespace Alimer
 
             // Render single frame.
             RenderFrame(frameRenderPass.Get(), frameTime, elapsedTime);
+            OnRender(frameRenderPass.Get());
 
             // End frame.
             _graphics->EndFrame();

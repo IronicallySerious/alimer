@@ -176,7 +176,7 @@ namespace Alimer
                 }
 
                 // Tick handles pause state.
-                Tick();
+                RunOneFrame();
             }
             else
             {
@@ -199,7 +199,7 @@ namespace Alimer
                 }
 
                 // Tick handles pause state.
-                Tick();
+                RunOneFrame();
             }
         }
 

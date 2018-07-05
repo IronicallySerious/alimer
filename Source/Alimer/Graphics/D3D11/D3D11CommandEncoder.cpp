@@ -64,10 +64,21 @@ namespace Alimer
         }
     }
 
-    void D3D11RenderPassCommandEncoder::Close()
+    void D3D11RenderPassCommandEncoder::EndEncodingCore()
     {
         ID3D11RenderTargetView* nullViews[] = { nullptr };
         _context->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
         _currentRenderPass = nullptr;
+    }
+
+    void D3D11RenderPassCommandEncoder::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+        if (!PrepareDraw(topology))
+            return;
+    }
+
+    bool D3D11RenderPassCommandEncoder::PrepareDraw(PrimitiveTopology topology)
+    {
+        return true;
     }
 }

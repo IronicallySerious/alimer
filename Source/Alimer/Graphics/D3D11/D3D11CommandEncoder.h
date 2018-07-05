@@ -29,6 +29,7 @@
 namespace Alimer
 {
     class D3D11RenderPass;
+
 	/// D3D11 CommandBuffer implementation.
 	class D3D11RenderPassCommandEncoder final : public RenderPassCommandEncoder
 	{
@@ -40,7 +41,12 @@ namespace Alimer
 		~D3D11RenderPassCommandEncoder() override;
 
         void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil);
-        void Close() override;
+        void EndEncodingCore() override;
+
+        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
+
+    private:
+        bool PrepareDraw(PrimitiveTopology topology);
 
 	private:
         ID3D11DeviceContext1 * _context;

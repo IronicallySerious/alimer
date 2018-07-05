@@ -56,8 +56,11 @@ namespace Alimer
         CommandBuffer* GetCommandBuffer() const { return _commandBuffer; }
 
         /// Close command encoding
-        virtual void Close() = 0;
+        void EndEncoding();
 
+    protected:
+        virtual void EndEncodingCore() = 0;
+  
     protected:
         explicit CommandEncoder(CommandBuffer* commandBuffer)
             : _commandBuffer(commandBuffer) {}
@@ -74,5 +77,11 @@ namespace Alimer
     protected:
         explicit RenderPassCommandEncoder(CommandBuffer* commandBuffer)
             : CommandEncoder(commandBuffer) {}
+
+    public:
+        void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
+
+    protected:
+        virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
     };
 }

@@ -76,8 +76,8 @@ namespace Alimer
         /// Runs main loop.
         int Run();
 
-        /// Tick/Run one frame.
-        void Tick();
+        /// Run one frame.
+        void RunOneFrame();
 
         /// Request application to exit.
         void Exit();
@@ -87,8 +87,6 @@ namespace Alimer
 
         /// Resume the main execution loop.
         void Resume();
-
-        void RenderFrame(RenderPass* frameRenderPass, double frameTime, double elapsedTime);
 
         SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
 
@@ -108,6 +106,8 @@ namespace Alimer
         void PlatformConstruct();
         bool InitializeBeforeRun();
         void LoadPlugins();
+
+        void RenderFrame(RenderPass* frameRenderPass, double frameTime, double elapsedTime);
         void UpdateScene(double frameTime, double elapsedTime);
         void RenderScene(RenderPass* frameRenderPass);
 
@@ -120,6 +120,9 @@ namespace Alimer
 
         /// Render after frame update.
         void Render();
+
+        /// Calledn during rendering single frame.
+        virtual void OnRender(RenderPass* frameRenderPass) {}
 
         virtual Input* CreateInput();
         virtual Audio* CreateAudio();

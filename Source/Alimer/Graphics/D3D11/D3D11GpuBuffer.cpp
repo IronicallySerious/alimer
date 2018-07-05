@@ -22,33 +22,14 @@
 
 #include "D3D11GpuBuffer.h"
 #include "D3D11Graphics.h"
+#include "D3D11Convert.h"
 #include "../../Math/MathUtil.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    namespace d3d11
-    {
-        static inline D3D11_USAGE Convert(ResourceUsage usage)
-        {
-            switch (usage)
-            {
-            case ResourceUsage::Default:
-                return D3D11_USAGE_DEFAULT;
-            case ResourceUsage::Immutable:
-                return D3D11_USAGE_IMMUTABLE;
-            case ResourceUsage::Dynamic:
-                return D3D11_USAGE_DYNAMIC;
-            case ResourceUsage::Staging:
-                return D3D11_USAGE_STAGING;
-            default:
-                ALIMER_UNREACHABLE();
-                return D3D11_USAGE_DEFAULT;
-            }
-        }
-    }
-
+    
     D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
         : GpuBuffer(graphics, description)
     {

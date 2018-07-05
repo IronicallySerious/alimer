@@ -86,7 +86,7 @@ namespace Alimer
             //visible.renderable->Render(context, vis.transform, queue);
         }
 
-        encoder->Close();
+        encoder->EndEncoding();
         commandBuffer->Commit();
     }
 }

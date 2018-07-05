@@ -49,8 +49,6 @@ namespace Alimer
         {
             _context.Reset();
         }
-
-        
     }
 
     void D3D11CommandBuffer::Reset()
@@ -58,7 +56,7 @@ namespace Alimer
         _context->ClearState();
     }
 
-    void D3D11CommandBuffer::Commit()
+    void D3D11CommandBuffer::CommitCore()
     {
         if (_isImmediate)
             return;
@@ -67,7 +65,7 @@ namespace Alimer
         _context->FinishCommandList(FALSE, commandList.ReleaseAndGetAddressOf());
     }
 
-    RenderPassCommandEncoder* D3D11CommandBuffer::CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    RenderPassCommandEncoder* D3D11CommandBuffer::CreateRenderPassCommandEncoderCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         _renderPassEncoder.BeginRenderPass(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
 
@@ -101,21 +99,10 @@ namespace Alimer
     void D3D11CommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
     }
-
-    void D3D11CommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-    {
-        if (!PrepareDraw(topology))
-            return;
-    }
-
+    
     void D3D11CommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
-        if (!PrepareDraw(topology))
-            return;
-    }
-
-    bool D3D11CommandBuffer::PrepareDraw(PrimitiveTopology topology)
-    {
-        return true;
+        //if (!PrepareDraw(topology))
+        //    return;
     }
 }

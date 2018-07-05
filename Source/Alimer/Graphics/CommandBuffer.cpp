@@ -22,17 +22,53 @@
 
 #include "Graphics/CommandBuffer.h"
 #include "Graphics/Graphics.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
     CommandBuffer::CommandBuffer(Graphics* graphics)
         : GpuResource(graphics, GpuResourceType::CommandBuffer)
+        , _hasPendingEncoder(false)
     {
+    }
+
+    void CommandBuffer::Commit()
+    {
+        if (_hasPendingEncoder)
+        {
+            ALIMER_LOGCRITICAL("Cannot commit with pending command encoders.");
+        }
+
+        CommitCore();
+    }
+
+    void CommandBuffer::EndEncoderEncoding()
+    {
+        _hasPendingEncoder = false;
     }
 
     RenderPassCommandEncoder* CommandBuffer::CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
     {
-        return CreateRenderPassCommandEncoder(renderPass, &clearColor, 1, clearDepth, clearStencil);
+        if (_hasPendingEncoder)
+        {
+            ALIMER_LOGCRITICAL("Cannot create RenderPassCommandEncoder while other encoder is active");
+        }
+
+        _hasPendingEncoder = true;
+        return CreateRenderPassCommandEncoderCore(renderPass, &clearColor, 1, clearDepth, clearStencil);
+    }
+
+    RenderPassCommandEncoder* CommandBuffer::CreateRenderPassCommandEncoder(RenderPass* renderPass,
+        const Color* clearColors, uint32_t numClearColors,
+        float clearDepth, uint8_t clearStencil)
+    {
+        if (_hasPendingEncoder)
+        {
+            ALIMER_LOGCRITICAL("Cannot create RenderPassCommandEncoder while other encoder is active");
+        }
+
+        _hasPendingEncoder = true;
+        return CreateRenderPassCommandEncoderCore(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
     }
 
     void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset, VertexInputRate inputRate)
@@ -86,10 +122,7 @@ namespace Alimer
         _dirtySets |= 1u << set;
     }
 
-    void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-    {
-        DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
-    }
+    
 
     void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
