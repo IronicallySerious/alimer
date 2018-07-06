@@ -20,7 +20,7 @@ namespace Alimer
         public extern static int Application_Run(IntPtr handle);
 
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
-        public extern static void Application_Tick(IntPtr handle);
+        public extern static void Application_RunOneFrame(IntPtr handle);
 
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
         public extern static void Application_Exit(IntPtr handle);

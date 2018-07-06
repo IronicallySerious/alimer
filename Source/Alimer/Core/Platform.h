@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../AlimerConfig.h"
+#include <string>
 
 namespace Alimer
 {
@@ -92,18 +93,17 @@ namespace Alimer
 		Console
 	};
 
-	/**
-	* Get the running platform type.
-	*/
+	/// Get the running platform type.
 	ALIMER_API PlatformId GetPlatformId();
 
-	/**
-	* Get the running platform family.
-	*/
+	/// Get the running platform family.
     ALIMER_API PlatformFamily GetPlatformFamily();
 
 	/// Get the running platform name.
     ALIMER_API const char* GetPlatformName();
+
+    /// Get the operating system description.
+    ALIMER_API std::string GetOSDescription();
 
     /// Load native library
     ALIMER_API void* LoadNativeLibrary(const char* name);

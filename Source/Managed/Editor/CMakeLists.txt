@@ -20,5 +20,10 @@
 # THE SOFTWARE.
 #
 
-add_subdirectory(Alimer.Studio.Core)
-add_subdirectory(Alimer.Studio)
+# Alimer.Studio.Core
+add_target_csharp(Alimer.Studio.Core ${CMAKE_CURRENT_SOURCE_DIR}/Alimer.Studio.Core/Alimer.Studio.Core.csproj)
+set_target_properties(Alimer.Studio.Core PROPERTIES FOLDER Managed/Editor)
+
+# Alimer.Studio
+add_target_csharp(Alimer.Studio ${CMAKE_CURRENT_SOURCE_DIR}/Alimer.Studio/Alimer.Studio.csproj)
+set_target_properties(Alimer.Studio PROPERTIES FOLDER Managed/Editor)

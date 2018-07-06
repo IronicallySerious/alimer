@@ -31,6 +31,7 @@
 #include <string>
 
 // Core
+#include "Core/Platform.h"
 #include "Core/String.h"
 #include "Core/Log.h"
 #include "Util/Util.h"

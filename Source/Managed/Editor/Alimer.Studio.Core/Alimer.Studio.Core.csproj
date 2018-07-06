@@ -40,7 +40,7 @@
     <Compile Include="Editor.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\AlimerSharp\AlimerSharp.csproj">
+    <ProjectReference Include="..\..\AlimerSharp\AlimerSharp.Desktop.csproj">
       <Project>{373391d8-8bec-3fde-9a70-64a95c7c256e}</Project>
       <Name>AlimerSharp</Name>
     </ProjectReference>

@@ -54,6 +54,11 @@ namespace Alimer
             return Application_Run(_handle);
         }
 
+        public void RunOneFrame()
+        {
+            Application_RunOneFrame(_handle);
+        }
+
         protected virtual void Initialize()
         {
         }

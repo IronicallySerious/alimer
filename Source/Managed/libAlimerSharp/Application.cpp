@@ -57,9 +57,9 @@ extern "C"
         return _this->Run();
     }
 
-    ALIMER_DLL_EXPORT void Application_Tick(ApplicationProxy* _this)
+    ALIMER_DLL_EXPORT void Application_RunOneFrame(ApplicationProxy* _this)
     {
-        _this->Tick();
+        _this->RunOneFrame();
     }
 
     ALIMER_DLL_EXPORT void Application_Exit(ApplicationProxy* _this)

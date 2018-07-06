@@ -25,21 +25,12 @@
 
 namespace Alimer
 {
-	static Audio* __audioInstance = nullptr;
-
 	Audio::Audio()
 	{
-        __audioInstance = this;
 	}
 
 
 	Audio::~Audio()
 	{
-        __audioInstance = nullptr;
 	}
-
-    Audio& gAudio()
-    {
-        return *__audioInstance;
-    }
 }

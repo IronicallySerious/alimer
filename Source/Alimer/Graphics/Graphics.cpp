@@ -250,8 +250,8 @@ namespace Alimer
 
     SharedPtr<Shader> Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
     {
-        auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".glsl");
-        auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".glsl");
+        auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".spv");
+        auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".spv");
 
         // Lookup for GLSL shader.
         if (!vertexShaderStream)
@@ -266,19 +266,27 @@ namespace Alimer
             return nullptr;
         }
 
+        vector<uint8_t> vertexByteCode;
+        vector<uint8_t> fragmentByteCode;
+
+#if ALIMER_SHADER_COMPILER
         // Compile GLSL.
         string vertexShader = vertexShaderStream->ReadAllText();
         string fragmentShader = fragmentShaderStream->ReadAllText();
         string errorLog;
-        vector<uint32_t> vertexByteCode = ShaderCompiler::Compile(vertexShader, vertexShaderStream->GetName(), ShaderStage::Vertex, errorLog);
-        vector<uint32_t> fragmentByteCode = ShaderCompiler::Compile(fragmentShader, fragmentShaderStream->GetName(), ShaderStage::Fragment, errorLog);
+        vertexByteCode = ShaderCompiler::Compile(vertexShader, vertexShaderStream->GetName(), ShaderStage::Vertex, errorLog);
+        fragmentByteCode = ShaderCompiler::Compile(fragmentShader, fragmentShaderStream->GetName(), ShaderStage::Fragment, errorLog);
+#else
+        vertexByteCode = vertexShaderStream->ReadBytes();
+        fragmentByteCode = vertexShaderStream->ReadBytes();
+#endif
 
         ShaderStageDescription vertex = {};
-        vertex.code = vertexByteCode;
+        //vertex.code = vertexByteCode;
         vertex.entryPoint = "main";
 
         ShaderStageDescription fragment = {};
-        fragment.code = fragmentByteCode;
+        //fragment.code = fragmentByteCode;
         fragment.entryPoint = "main";
 
         return CreateShader(vertex, fragment);

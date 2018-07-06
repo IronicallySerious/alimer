@@ -43,7 +43,6 @@ namespace Alimer
                 PlatformFamily = PlatformFamily.Desktop;
             }
 #else
-
             switch (Environment.OSVersion.Platform)
             {
                 case PlatformID.Unix:
@@ -52,7 +51,7 @@ namespace Alimer
                     break;
 
                 case PlatformID.MacOSX:
-                    PlatformType = PlatformType.macOS;
+                    PlatformType = PlatformType.MacOS;
                     PlatformFamily = PlatformFamily.Desktop;
                     break;
 

@@ -23,8 +23,6 @@
 #include "Alimer.h"
 using namespace Alimer;
 
-
-
 namespace Alimer
 {
     class RuntimeApplication final : public Application
@@ -36,14 +34,46 @@ namespace Alimer
     private:
         void Initialize() override;
         void OnRender(RenderPass* frameRenderPass) override;
+
+    private:
+        SharedPtr<GpuBuffer> _vertexBuffer;
+        SharedPtr<PipelineState> _renderPipeline;
     };
 
     RuntimeApplication::RuntimeApplication()
     {
+        auto test = GetOSDescription();
     }
 
     void RuntimeApplication::Initialize()
     {
+        struct Vertex
+        {
+            glm::vec3 position;
+            Color color;
+        };
+
+        Vertex triangleVertices[] =
+        {
+            { glm::vec3(0.0f, 0.5f, 0.0f), Color(1.0f, 0.0f, 0.0f) },
+            { glm::vec3(0.5f, -0.5f, 0.0f), Color(0.0f, 1.0f, 0.0f) },
+            { glm::vec3(-0.5f, -0.5f, 0.0f),Color(0.0f, 0.0f, 1.0f) }
+        };
+
+        GpuBufferDescription vertexBufferDesc = {};
+        vertexBufferDesc.usage = BufferUsage::Vertex;
+        vertexBufferDesc.elementCount = 3;
+        vertexBufferDesc.elementSize = sizeof(Vertex);
+        _vertexBuffer = _graphics->CreateBuffer(vertexBufferDesc, triangleVertices);
+
+        RenderPipelineDescriptor renderPipelineDescriptor;
+        renderPipelineDescriptor.shader = _graphics->CreateShader("color.vert", "color.frag");
+        renderPipelineDescriptor.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
+        renderPipelineDescriptor.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
+        renderPipelineDescriptor.vertexDescriptor.attributes[1].offset = 12;
+        renderPipelineDescriptor.vertexDescriptor.layouts[0].stride = _vertexBuffer->GetElementSize();
+        _renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);
+
         // Create scene
         auto triangleEntity = _scene->CreateEntity();
         triangleEntity->AddComponent<TransformComponent>();

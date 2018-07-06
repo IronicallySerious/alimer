@@ -42,7 +42,4 @@ namespace Alimer
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Audio);
 	};
-
-    /// Access to Audio module.
-    ALIMER_API Audio& gAudio();
 }
