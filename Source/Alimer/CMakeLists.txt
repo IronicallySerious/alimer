@@ -247,14 +247,13 @@ target_include_directories(libAlimer
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${DEST_BASE_INCLUDE_DIR}>
-    $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}/fmt/include>
 	PRIVATE 
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
     $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
     $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}/glfw/include>
 )
 
-target_link_libraries (libAlimer fmt-header-only)
+target_link_libraries (libAlimer fmt)
 
 if (ALIMER_D3D11 OR ALIMER_D3D12)
     target_include_directories(libAlimer SYSTEM PRIVATE ${D3D12_INCLUDE_DIR} ${D3D11_INCLUDE_DIR} ${DXGI_INCLUDE_DIR})
