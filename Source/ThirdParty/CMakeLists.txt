@@ -23,6 +23,11 @@
 add_subdirectory(fmt EXCLUDE_FROM_ALL)
 
 if (ALIMER_TOOLS)
-	set (SKIP_GLSLANG_INSTALL FALSE CACHE BOOL "Skip glslang installation")
-	add_subdirectory (glslang EXCLUDE_FROM_ALL)
+    set (ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Enable glslang binaries")
+	set (SKIP_GLSLANG_INSTALL ON CACHE BOOL "Skip glslang installation")
+    add_subdirectory (glslang EXCLUDE_FROM_ALL)
+
+    set_target_properties(glslang OGLCompiler OSDependent SPIRV SPVRemapper HLSL PROPERTIES
+        FOLDER ThirdParty/glslang
+    )
 endif ()

@@ -280,6 +280,7 @@ string CompilerMSL::compile()
 
 	struct_member_padding.clear();
 
+	build_function_control_flow_graphs_and_analyze();
 	update_active_builtins();
 	analyze_image_and_sampler_usage();
 	build_implicit_builtins();
@@ -1543,16 +1544,16 @@ void CompilerMSL::emit_specialization_constants()
 void CompilerMSL::emit_instruction(const Instruction &instruction)
 {
 
-#define BOP(op) emit_binary_op(ops[0], ops[1], ops[2], ops[3], #op)
-#define BOP_CAST(op, type) \
+#define MSL_BOP(op) emit_binary_op(ops[0], ops[1], ops[2], ops[3], #op)
+#define MSL_BOP_CAST(op, type) \
 	emit_binary_op_cast(ops[0], ops[1], ops[2], ops[3], #op, type, opcode_is_sign_invariant(opcode))
-#define UOP(op) emit_unary_op(ops[0], ops[1], ops[2], #op)
-#define QFOP(op) emit_quaternary_func_op(ops[0], ops[1], ops[2], ops[3], ops[4], ops[5], #op)
-#define TFOP(op) emit_trinary_func_op(ops[0], ops[1], ops[2], ops[3], ops[4], #op)
-#define BFOP(op) emit_binary_func_op(ops[0], ops[1], ops[2], ops[3], #op)
-#define BFOP_CAST(op, type) \
+#define MSL_UOP(op) emit_unary_op(ops[0], ops[1], ops[2], #op)
+#define MSL_QFOP(op) emit_quaternary_func_op(ops[0], ops[1], ops[2], ops[3], ops[4], ops[5], #op)
+#define MSL_TFOP(op) emit_trinary_func_op(ops[0], ops[1], ops[2], ops[3], ops[4], #op)
+#define MSL_BFOP(op) emit_binary_func_op(ops[0], ops[1], ops[2], ops[3], #op)
+#define MSL_BFOP_CAST(op, type) \
 	emit_binary_func_op_cast(ops[0], ops[1], ops[2], ops[3], #op, type, opcode_is_sign_invariant(opcode))
-#define UFOP(op) emit_unary_func_op(ops[0], ops[1], ops[2], #op)
+#define MSL_UFOP(op) emit_unary_func_op(ops[0], ops[1], ops[2], #op)
 
 	auto ops = stream(instruction);
 	auto opcode = static_cast<Op>(instruction.op);
@@ -1564,81 +1565,81 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 	case OpIEqual:
 	case OpLogicalEqual:
 	case OpFOrdEqual:
-		BOP(==);
+		MSL_BOP(==);
 		break;
 
 	case OpINotEqual:
 	case OpLogicalNotEqual:
 	case OpFOrdNotEqual:
-		BOP(!=);
+		MSL_BOP(!=);
 		break;
 
 	case OpUGreaterThan:
 	case OpSGreaterThan:
 	case OpFOrdGreaterThan:
-		BOP(>);
+		MSL_BOP(>);
 		break;
 
 	case OpUGreaterThanEqual:
 	case OpSGreaterThanEqual:
 	case OpFOrdGreaterThanEqual:
-		BOP(>=);
+		MSL_BOP(>=);
 		break;
 
 	case OpULessThan:
 	case OpSLessThan:
 	case OpFOrdLessThan:
-		BOP(<);
+		MSL_BOP(<);
 		break;
 
 	case OpULessThanEqual:
 	case OpSLessThanEqual:
 	case OpFOrdLessThanEqual:
-		BOP(<=);
+		MSL_BOP(<=);
 		break;
 
 	// Derivatives
 	case OpDPdx:
 	case OpDPdxFine:
 	case OpDPdxCoarse:
-		UFOP(dfdx);
+		MSL_UFOP(dfdx);
 		register_control_dependent_expression(ops[1]);
 		break;
 
 	case OpDPdy:
 	case OpDPdyFine:
 	case OpDPdyCoarse:
-		UFOP(dfdy);
+		MSL_UFOP(dfdy);
 		register_control_dependent_expression(ops[1]);
 		break;
 
 	case OpFwidth:
 	case OpFwidthCoarse:
 	case OpFwidthFine:
-		UFOP(fwidth);
+		MSL_UFOP(fwidth);
 		register_control_dependent_expression(ops[1]);
 		break;
 
 	// Bitfield
 	case OpBitFieldInsert:
-		QFOP(insert_bits);
+		MSL_QFOP(insert_bits);
 		break;
 
 	case OpBitFieldSExtract:
 	case OpBitFieldUExtract:
-		TFOP(extract_bits);
+		MSL_TFOP(extract_bits);
 		break;
 
 	case OpBitReverse:
-		UFOP(reverse_bits);
+		MSL_UFOP(reverse_bits);
 		break;
 
 	case OpBitCount:
-		UFOP(popcount);
+		MSL_UFOP(popcount);
 		break;
 
 	case OpFRem:
-		BFOP(fmod);
+		MSL_BFOP(fmod);
 		break;
 
 	// Atomics
@@ -1691,7 +1692,7 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 		break;
 	}
 
-#define AFMOImpl(op, valsrc)                                                                                      \
+#define MSL_AFMO_IMPL(op, valsrc)                                                                                 \
 	do                                                                                                            \
 	{                                                                                                             \
 		uint32_t result_type = ops[0];                                                                            \
@@ -1702,45 +1703,45 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 		emit_atomic_func_op(result_type, id, "atomic_fetch_" #op "_explicit", mem_sem, mem_sem, false, ptr, val); \
 	} while (false)
 
-#define AFMO(op) AFMOImpl(op, ops[5])
-#define AFMIO(op) AFMOImpl(op, 1)
+#define MSL_AFMO(op) MSL_AFMO_IMPL(op, ops[5])
+#define MSL_AFMIO(op) MSL_AFMO_IMPL(op, 1)
 
 	case OpAtomicIIncrement:
-		AFMIO(add);
+		MSL_AFMIO(add);
 		break;
 
 	case OpAtomicIDecrement:
-		AFMIO(sub);
+		MSL_AFMIO(sub);
 		break;
 
 	case OpAtomicIAdd:
-		AFMO(add);
+		MSL_AFMO(add);
 		break;
 
 	case OpAtomicISub:
-		AFMO(sub);
+		MSL_AFMO(sub);
 		break;
 
 	case OpAtomicSMin:
 	case OpAtomicUMin:
-		AFMO(min);
+		MSL_AFMO(min);
 		break;
 
 	case OpAtomicSMax:
 	case OpAtomicUMax:
-		AFMO(max);
+		MSL_AFMO(max);
 		break;
 
 	case OpAtomicAnd:
-		AFMO(and);
+		MSL_AFMO(and);
 		break;
 
 	case OpAtomicOr:
-		AFMO(or);
+		MSL_AFMO(or);
 		break;
 
 	case OpAtomicXor:
-		AFMO(xor);
+		MSL_AFMO (xor);
 		break;
 
 	// Images
@@ -1864,7 +1865,7 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 		break;
 	}
 
-#define ImgQry(qrytype)                                                                     \
+#define MSL_ImgQry(qrytype)                                                                 \
 	do                                                                                      \
 	{                                                                                       \
 		uint32_t rslt_type_id = ops[0];                                                     \
@@ -1877,11 +1878,11 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 	} while (false)
 
 	case OpImageQueryLevels:
-		ImgQry(mip_levels);
+		MSL_ImgQry(mip_levels);
 		break;
 
 	case OpImageQuerySamples:
-		ImgQry(samples);
+		MSL_ImgQry(samples);
 		break;
 
 	// Casting
@@ -1963,7 +1964,7 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 			e->need_transpose = true;
 		}
 		else
-			BOP(*);
+			MSL_BOP(*);
 		break;
 	}
 
@@ -2109,6 +2110,11 @@ bool CompilerMSL::maybe_emit_array_assignment(uint32_t id_lhs, uint32_t id_rhs)
 		return false;
 
 	auto *var = maybe_get<SPIRVariable>(id_lhs);
+
+	// Is this a remapped, static constant? Don't do anything.
+	if (var->remapped_variable && var->statically_assigned)
+		return true;
+
 	if (ids[id_rhs].get_type() == TypeConstant && var && var->deferred_declaration)
 	{
 		// Special case, if we end up declaring a variable when assigning the constant array,
@@ -3633,9 +3639,7 @@ string CompilerMSL::image_type_glsl(const SPIRType &type, uint32_t id)
 
 	// Bypass pointers because we need the real image struct
 	auto &img_type = get<SPIRType>(type.self).image;
-	bool shadow_image = comparison_images.count(id) != 0;
-
-	if (img_type.depth || shadow_image)
+	if (image_is_comparison(type, id))
 	{
 		switch (img_type.dim)
 		{
@@ -4074,6 +4078,7 @@ CompilerMSL::SPVFuncImpl CompilerMSL::OpCodePreprocessor::get_spv_func_impl(Op o
 	{
 		// Get the result type of the RHS. Since this is run as a pre-processing stage,
 		// we must extract the result type directly from the Instruction, rather than the ID.
+		uint32_t id_lhs = args[0];
 		uint32_t id_rhs = args[1];
 
 		const SPIRType *type = nullptr;
@@ -4090,7 +4095,13 @@ CompilerMSL::SPVFuncImpl CompilerMSL::OpCodePreprocessor::get_spv_func_impl(Op o
 				type = &compiler.get<SPIRType>(tid);
 		}
 
-		if (type && compiler.is_array(*type))
+		auto *var = compiler.maybe_get<SPIRVariable>(id_lhs);
+
+		// Are we simply assigning to a statically assigned variable which takes a constant?
+		// Don't bother emitting this function.
+		bool static_expression_lhs =
+		    var && var->storage == StorageClassFunction && var->statically_assigned && var->remapped_variable;
+		if (type && compiler.is_array(*type) && !static_expression_lhs)
 			return SPVFuncImplArrayCopy;
 
 		break;
@@ -4211,7 +4222,7 @@ CompilerMSL::MemberSorter::MemberSorter(SPIRType &t, Meta &m, SortAspect sa)
 	meta.members.resize(max(type.member_types.size(), meta.members.size()));
 }
 
-void CompilerMSL::remap_constexpr_sampler(uint32_t id, const spirv_cross::MSLConstexprSampler &sampler)
+void CompilerMSL::remap_constexpr_sampler(uint32_t id, const MSLConstexprSampler &sampler)
 {
 	auto &type = get<SPIRType>(get<SPIRVariable>(id).basetype);
 	if (type.basetype != SPIRType::SampledImage && type.basetype != SPIRType::Sampler)
@@ -4222,10 +4233,22 @@ void CompilerMSL::remap_constexpr_sampler(uint32_t id, const spirv_cross::MSLCon
 }
 
 // MSL always declares builtins with their SPIR-V type.
-void CompilerMSL::bitcast_from_builtin_load(uint32_t, std::string &, const spirv_cross::SPIRType &)
+void CompilerMSL::bitcast_from_builtin_load(uint32_t, std::string &, const SPIRType &)
 {
 }
 
-void CompilerMSL::bitcast_to_builtin_store(uint32_t, std::string &, const spirv_cross::SPIRType &)
+void CompilerMSL::bitcast_to_builtin_store(uint32_t, std::string &, const SPIRType &)
 {
+}
+
+std::string CompilerMSL::to_initializer_expression(const SPIRVariable &var)
+{
+	// We risk getting an array initializer here with MSL. If we have an array.
+	// FIXME: We cannot handle non-constant arrays being initialized.
+	// We will need to inject spvArrayCopy here somehow ...
+	auto &type = get<SPIRType>(var.basetype);
+	if (ids[var.initializer].get_type() == TypeConstant && (!type.array.empty() || type.basetype == SPIRType::Struct))
+		return constant_expression(get<SPIRConstant>(var.initializer));
+	else
+		return CompilerGLSL::to_initializer_expression(var);
 }
