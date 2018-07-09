@@ -21,6 +21,7 @@
 //
 
 #include "../Scene/Scene.h"
+#include "../Scene/SceneManager.h"
 #include "../Scene/TransformComponent.h"
 #include "../Scene/CameraComponent.h"
 #include "../Scene/Renderable.h"

@@ -23,83 +23,114 @@
 #pragma once
 
 #include "../Core/Flags.h"
-#include "../Graphics/CommandEncoder.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/PipelineState.h"
+#include "../Math/Math.h"
 #include "../Math/Color.h"
 
 namespace Alimer
 {
-	class Graphics;
+    class Graphics;
 
-	/// Defines a command buffer for storing recorded gpu commands.
-	class ALIMER_API CommandBuffer : public GpuResource
-	{
-        friend class CommandEncoder;
+    /// Defines a command buffer for storing recorded gpu commands.
+    class ALIMER_API CommandBuffer : public GpuResource
+    {
+    protected:
+        /// Constructor.
+        CommandBuffer(Graphics* graphics);
 
-	protected:
-		/// Constructor.
-		CommandBuffer(Graphics* graphics);
-
-	public:
-		/// Destructor.
-		virtual ~CommandBuffer() = default;
+    public:
+        /// Destructor.
+        virtual ~CommandBuffer() = default;
 
         /// Commits this command buffer for execution as soon as possible.
         void Commit();
 
-		RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass,
-            const Color& clearColor = Color::Black,
-            float clearDepth = 1.0f, uint8_t clearStencil = 0);
+        void BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
+        void BeginRenderPass(RenderPass* renderPass, const Rectangle& renderArea, const Color& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
-        RenderPassCommandEncoder* CreateRenderPassCommandEncoder(RenderPass* renderPass,
+        void BeginRenderPass(RenderPass* renderPass,
             const Color* clearColors, uint32_t numClearColors,
             float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
-		void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+        void BeginRenderPass(RenderPass* renderPass,
+            const Rectangle& renderArea,
+            const Color* clearColors, uint32_t numClearColors,
+            float clearDepth = 1.0f, uint8_t clearStencil = 0);
+
+        void EndRenderPass();
+
+        virtual void SetViewport(const Viewport& viewport);
+        virtual void SetViewports(uint32_t numViewports, const Viewport* viewports) = 0;
+
+        virtual void SetScissor(const Rectangle& scissor);
+        virtual void SetScissors(uint32_t numScissors, const Rectangle* scissors) = 0;
+
+        void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
-		virtual void SetPipeline(const SharedPtr<PipelineState>& pipeline) = 0;
+        virtual void SetPipeline(const SharedPtr<PipelineState>& pipeline) = 0;
 
         void SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer);
 
-		void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
+        // Draw methods
+        void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
+        void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
 
-	protected:
+    protected:
+        virtual void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
+        virtual void EndRenderPassCore() = 0;
         virtual void CommitCore() = 0;
 
-        virtual RenderPassCommandEncoder* CreateRenderPassCommandEncoderCore(RenderPass* renderPass,
-            const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
-
-		virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
+        virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
+        virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
         virtual void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) {}
         virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
-		enum CommandBufferDirtyBits
-		{
-			COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT = 1 << 0,
-		};
-		using CommandBufferDirtyFlags = uint32_t;
-		void SetDirty(CommandBufferDirtyFlags flags)
-		{
-			_dirty |= flags;
-		}
+        inline bool IsInsideRenderPass() const
+        {
+            return _state == CommandBufferState::InRenderPass;
+        }
 
-		CommandBufferDirtyFlags GetAndClear(CommandBufferDirtyFlags flags)
-		{
-			auto mask = _dirty & flags;
-			_dirty &= ~flags;
-			return mask;
-		}
+        inline bool IsOutsideRenderPass() const
+        {
+            return _state == CommandBufferState::Ready;
+        }
+
+        enum class CommandBufferState
+        {
+            Ready,
+            InRenderPass,
+            Committed
+        };
+
+        CommandBufferState _state;
+
+        enum CommandBufferDirtyBits
+        {
+            COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT = 1 << 0,
+        };
+        using CommandBufferDirtyFlags = uint32_t;
+        void SetDirty(CommandBufferDirtyFlags flags)
+        {
+            _dirty |= flags;
+        }
+
+        CommandBufferDirtyFlags GetAndClear(CommandBufferDirtyFlags flags)
+        {
+            auto mask = _dirty & flags;
+            _dirty &= ~flags;
+            return mask;
+        }
 
 
-		struct VertexBindingState
-		{
-			GpuBuffer* buffers[MaxVertexBufferBindings];
-			uint64_t offsets[MaxVertexBufferBindings];
-			uint64_t strides[MaxVertexBufferBindings];
-			VertexInputRate inputRates[MaxVertexBufferBindings];
-		};
+        struct VertexBindingState
+        {
+            GpuBuffer* buffers[MaxVertexBufferBindings];
+            uint64_t offsets[MaxVertexBufferBindings];
+            uint64_t strides[MaxVertexBufferBindings];
+            VertexInputRate inputRates[MaxVertexBufferBindings];
+        };
 
         struct ResourceBindingBufferInfo {
             const GpuBuffer*  buffer;
@@ -120,19 +151,14 @@ namespace Alimer
             uint8_t push_constant_data[MaxDescriptorSets];
         };
 
-		VertexBindingState _vbo = {};
+        VertexBindingState _vbo = {};
         ResourceBindings _bindings;
 
-		CommandBufferDirtyFlags _dirty = ~0u;
+        CommandBufferDirtyFlags _dirty = ~0u;
         uint32_t _dirtySets = 0;
-		uint32_t _dirtyVbos = 0;
+        uint32_t _dirtyVbos = 0;
 
     private:
-        void EndEncoderEncoding();
-
-        bool _hasPendingEncoder;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);
-	};
+        DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);
+    };
 }

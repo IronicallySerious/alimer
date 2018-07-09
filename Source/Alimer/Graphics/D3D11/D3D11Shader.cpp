@@ -22,125 +22,58 @@
 
 #include "D3D11Shader.h"
 #include "D3D11Graphics.h"
+#include "../D3D/D3DShaderCompiler.h"
 #include "../../Core/Log.h"
-#include <d3dcompiler.h>
 #include <spirv-cross/spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    static std::vector<uint8_t> CompileHLSL(const std::string& hlslSource, ShaderStage stage)
-    {
-        UINT compileFlags = 0;
-#if defined(_DEBUG)
-        // Enable better shader debugging with the graphics debugging tools.
-        compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-        // Optimize.
-        compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
-#endif
-        // SPRIV-cross does matrix multiplication expecting row major matrices
-        compileFlags |= D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
-
-        const char* compileTarget = nullptr;
-        switch (stage)
-        {
-            case ShaderStage::Vertex:
-                compileTarget = "vs_5_1";
-                break;
-            case ShaderStage::TessControl:
-                compileTarget = "hs_5_1";
-                break;
-            case ShaderStage::TessEvaluation:
-                compileTarget = "ds_5_1";
-                break;
-            case ShaderStage::Geometry:
-                compileTarget = "gs_5_1";
-                break;
-            case ShaderStage::Fragment:
-                compileTarget = "ps_5_1";
-                break;
-            case ShaderStage::Compute:
-                compileTarget = "cs_5_1";
-                break;
-            default:
-                break;
-        }
-
-        static decltype(D3DCompile)* d3dCompile_;
-        static decltype(D3DStripShader)* d3dStripShader_;
-        static decltype(D3DReflect)* d3dReflect_;
-
-#if !ALIMER_PLATFORM_UWP
-        if (!d3dCompile_)
-        {
-            HMODULE d3dCompilerLib = LoadLibraryW(D3DCOMPILER_DLL_W);
-            d3dCompile_ = (decltype(d3dCompile_))::GetProcAddress(d3dCompilerLib, "D3DCompile");
-            ALIMER_ASSERT(d3dCompile_);
-            d3dStripShader_ = (decltype(d3dStripShader_))::GetProcAddress(d3dCompilerLib, "D3DStripShader");
-            ALIMER_ASSERT(d3dStripShader_);
-            d3dReflect_ = (decltype(d3dReflect_))::GetProcAddress(d3dCompilerLib, "D3DReflect");
-            ALIMER_ASSERT(d3dReflect_);
-        }
-#else
-        d3dCompile_ = D3DCompile;
-        d3dStripShader_ = D3DStripShader;
-        d3dReflect_ = D3DReflect;
-#endif
-
-        ComPtr<ID3DBlob> shaderBlob;
-        ComPtr<ID3DBlob> errors;
-        if (FAILED(d3dCompile_(
-            hlslSource.c_str(),
-            hlslSource.length(),
-            nullptr,
-            nullptr,
-            nullptr,
-            "main",
-            compileTarget,
-            compileFlags, 0,
-            shaderBlob.ReleaseAndGetAddressOf(),
-            errors.ReleaseAndGetAddressOf())))
-        {
-            ALIMER_LOGERROR("D3DCompile failed with error: %s", reinterpret_cast<char*>(errors->GetBufferPointer()));
-            return {};
-        }
-
-        std::vector<uint8_t> byteCode(shaderBlob->GetBufferSize());
-        memcpy(byteCode.data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
-        return byteCode;
-    }
-
-    static std::vector<uint8_t> ConvertAndCompileHLSL(const ShaderStageDescription& desc, ShaderStage stage)
+    static std::vector<uint8_t> ConvertAndCompileHLSL(
+        const ShaderStageDescription& desc,
+        ShaderStage stage,
+        uint32_t major, uint32_t minor)
     {
         spirv_cross::CompilerGLSL::Options options_glsl;
         //options_glsl.vertex.fixup_clipspace = true;
         //options_glsl.vertex.flip_vert_y = true;
 
-        spirv_cross::CompilerHLSL compiler(desc.code.data(), desc.code.size() / 4);
+        spirv_cross::CompilerHLSL compiler(desc.pCode, desc.codeSize);
         compiler.set_common_options(options_glsl);
 
         spirv_cross::CompilerHLSL::Options options_hlsl;
-        options_hlsl.shader_model = 51;
+        options_hlsl.shader_model = major * 10 + minor;
         compiler.set_hlsl_options(options_hlsl);
 
         std::string hlslSource = compiler.compile();
-        return CompileHLSL(hlslSource, stage);
+        return D3DShaderCompiler::Compile(hlslSource, stage, major, minor);
     }
 
     D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& desc)
         : Shader()
         , _graphics(graphics)
     {
-        _shaders[static_cast<unsigned>(ShaderStage::Compute)] = ConvertAndCompileHLSL(desc, ShaderStage::Compute);
+        _shaders[static_cast<unsigned>(ShaderStage::Compute)] = ConvertAndCompileHLSL(
+            desc,
+            ShaderStage::Compute,
+            graphics->GetShaderModerMajor(),
+            graphics->GetShaderModerMinor());
     }
 
     D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
-        : Shader()
+        : Shader(vertex, fragment)
         , _graphics(graphics)
     {
-        _shaders[static_cast<unsigned>(ShaderStage::Vertex)] = ConvertAndCompileHLSL(vertex, ShaderStage::Vertex);
-        _shaders[static_cast<unsigned>(ShaderStage::Fragment)] = ConvertAndCompileHLSL(fragment, ShaderStage::Fragment);
+        const D3D_FEATURE_LEVEL featureLevel = graphics->GetFeatureLevel();
+
+        _shaders[static_cast<unsigned>(ShaderStage::Vertex)] = ConvertAndCompileHLSL(
+            vertex, ShaderStage::Vertex,
+            graphics->GetShaderModerMajor(), graphics->GetShaderModerMinor()
+        );
+        _shaders[static_cast<unsigned>(ShaderStage::Fragment)] = ConvertAndCompileHLSL(
+            fragment, ShaderStage::Fragment,
+            graphics->GetShaderModerMajor(), graphics->GetShaderModerMinor()
+        );
     }
 
     D3D11Shader::~D3D11Shader()

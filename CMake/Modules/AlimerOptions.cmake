@@ -78,6 +78,13 @@ if (NOT ALIMER_DISABLE_CSHARP)
 	endif()
 endif ()
 
+# Threads are still experimental on emscripten.
+if (NOT EMSCRIPTEN)
+    set (ALIMER_THREADS_DEFAULT ON)
+else ()
+    set (ALIMER_THREADS_DEFAULT OFF)
+endif ()
+
 # Tools
 if (NOT ALIMER_DISABLE_TOOLS)
 	if (PLATFORM_DESKTOP)
@@ -92,4 +99,5 @@ option (ALIMER_VULKAN "Enable Vulkan backend" ${ALIMER_VULKAN_DEFAULT})
 option (ALIMER_D3D11 "Enable D3D11 backend" ${ALIMER_D3D11_DEFAULT})
 option (ALIMER_D3D12 "Enable D3D12 backend" ${ALIMER_D3D12_DEFAULT})
 option (ALIMER_CSHARP "Enable C# support" ${ALIMER_CSHARP_DEFAULT})
+option (ALIMER_THREADING "Enable multithreading" ${ALIMER_THREADS_DEFAULT})
 option (ALIMER_TOOLS "Enable Tools" ${ALIMER_TOOLS_DEFAULT})

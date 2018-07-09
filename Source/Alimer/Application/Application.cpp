@@ -20,11 +20,13 @@
 // THE SOFTWARE.
 //
 
+#include "AlimerVersion.h"
 #include "../Application/Application.h"
 #include "../IO/Path.h"
-#include "../Core/Log.h"
+#include "../Core/Platform.h"
 #include "../Renderer/SceneRenderer.h"
-#include "AlimerVersion.h"
+#include "../Core/Log.h"
+
 #include "enkiTS/src/TaskScheduler_c.h"
 using namespace std;
 
@@ -38,7 +40,7 @@ namespace Alimer
         , _headless(false)
         , _settings{}
         , _log(new Logger())
-        , _scene(new Scene())
+        , _sceneManager(new SceneManager())
     {
         PlatformConstruct();
 
@@ -144,6 +146,8 @@ namespace Alimer
         //InternalUpdate();
         _pluginManager.Update();
 
+        _graphics->SaveScreenshot("Test.png");
+
         return true;
     }
 
@@ -171,8 +175,15 @@ namespace Alimer
         if (_headless)
             return;
 
+        if (_graphics->CanAddCommands())
+        {
+            // Draw scenes.
+            //_sceneManager->Draw();
+            _graphics->FlushCommands();
+        }
+
         // Acquire frame texture first.
-        SharedPtr<RenderPass> frameRenderPass = _graphics->BeginFrame();
+        /*SharedPtr<RenderPass> frameRenderPass = _graphics->BeginFrame();
         if (frameRenderPass.IsNotNull())
         {
             // Tick timer.
@@ -185,18 +196,18 @@ namespace Alimer
 
             // End frame.
             _graphics->EndFrame();
-        }
+        }*/
     }
 
     void Application::UpdateScene(double frameTime, double elapsedTime)
     {
-        _scene->UpdateCachedTransforms();
+        //_scene->UpdateCachedTransforms();
     }
 
     void Application::RenderScene(RenderPass* frameRenderPass)
     {
         // TODO: Add Scene renderer.
-        _renderer->Render(_scene, frameRenderPass);
+        //_renderer->Render(_scene, frameRenderPass);
     }
 
     void Application::RenderFrame(RenderPass* frameRenderPass, double frameTime, double elapsedTime)
@@ -236,7 +247,7 @@ namespace Alimer
 
     void Application::SetScene(Scene* scene)
     {
-        _scene = scene;
+        _sceneManager->SetScene(scene);
     }
 
     Application& gApplication()

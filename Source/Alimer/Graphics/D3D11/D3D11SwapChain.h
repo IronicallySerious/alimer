@@ -65,6 +65,7 @@ namespace Alimer
         void Resize(uint32_t width, uint32_t height, bool force = false);
         void Present();
 
+        D3D11Texture* GetBackbufferTexture() const { return _backbufferTexture; }
         SharedPtr<RenderPass> GetRenderPass() const { return _renderPass; }
 
     private:

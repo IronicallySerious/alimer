@@ -26,7 +26,7 @@
 #include "../../Graphics/Graphics.h"
 #include "D3D11Prerequisites.h"
 #include <array>
-#include <mutex>
+#include <thread>
 
 namespace Alimer
 {
@@ -63,14 +63,16 @@ namespace Alimer
 		inline D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
 		inline ID3D11Device1* GetD3DDevice() const { return _d3dDevice.Get(); }
         inline ID3D11DeviceContext1* GetImmediateContext() const { return _d3dContext.Get(); }
+        inline uint32_t GetShaderModerMajor() const { return _shaderModelMajor; }
+        inline uint32_t GetShaderModerMinor() const { return _shaderModelMinor; }
 
 	private:
         void Finalize() override;
         bool BackendInitialize() override;
-        SharedPtr<RenderPass> BeginFrameCore() override;
-        void EndFrameCore() override;
 		bool InitializeCaps();
-        
+
+        void GenerateScreenshot(const std::string& fileName) override;
+        void RenderThread();
 
         Microsoft::WRL::ComPtr<IDXGIFactory2>               _dxgiFactory;
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
@@ -79,5 +81,11 @@ namespace Alimer
         Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
         D3D11SwapChain* _swapChain = nullptr;
+
+        uint32_t _shaderModelMajor = 4;
+        uint32_t _shaderModelMinor = 0;
+
+        std::atomic<bool> _renderThreadRunning;
+        std::thread _renderThread;
 	};
 }

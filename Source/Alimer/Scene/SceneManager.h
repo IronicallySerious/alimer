@@ -22,34 +22,36 @@
 
 #pragma once
 
-#include "Graphics/CommandBuffer.h"
-#include "Graphics/CommandEncoder.h"
-#include "D3D11Prerequisites.h"
+#include "../Scene/Entity.h"
+#include "../Math/MathUtil.h"
+#include "../Graphics/Graphics.h"
+#include <vector>
 
 namespace Alimer
 {
-    class D3D11RenderPass;
+    class Scene;
 
-	/// D3D11 CommandBuffer implementation.
-	class D3D11RenderPassCommandEncoder final : public RenderPassCommandEncoder
-	{
-	public:
-		/// Constructor.
-        explicit D3D11RenderPassCommandEncoder(CommandBuffer* commandBuffer, ID3D11DeviceContext1* context);
+    /// Defines class that manages Scene.
+    class SceneManager final
+    {
+        friend class Application;
 
-		/// Destructor.
-		~D3D11RenderPassCommandEncoder() override;
+    public:
+        /// Destructor.
+        ~SceneManager();
 
-        void BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil);
-        void EndEncodingCore() override;
+        SceneManager(const SceneManager&) = delete;
+        SceneManager& operator=(const SceneManager&) = delete;
 
-        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
+        SceneManager(SceneManager&&) = delete;
+        SceneManager& operator=(SceneManager&&) = delete;
+
+        void SetScene(Scene* scene);
+        bool RemoveScene(Scene* scene);
 
     private:
-        bool PrepareDraw(PrimitiveTopology topology);
+        SceneManager();
 
-	private:
-        ID3D11DeviceContext1 * _context;
-        D3D11RenderPass* _currentRenderPass = nullptr;
-	};
+        std::vector<Scene*> _scenes;
+    };
 }

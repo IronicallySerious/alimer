@@ -94,7 +94,18 @@ if( PLATFORM_WINDOWS OR PLATFORM_UWP )
 
 	# Clean-up linker flags case since VS IDE doesn't recognize them properly
 	replace_linker_flags("/debug" "/DEBUG" debug)
-	replace_linker_flags("/machine:x64" "/MACHINE:X64")
+    replace_linker_flags("/machine:x64" "/MACHINE:X64")
+
+elseif (PLATFORM_WEB)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-warn-absolute-paths -Wno-unknown-warning-option")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-warn-absolute-paths -Wno-unknown-warning-option")
+    if (ALIMER_THREADING)
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_PTHREADS=1")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_PTHREADS=1")
+    endif ()
+    set (CMAKE_C_FLAGS_RELEASE "-Oz -DNDEBUG")
+    set (CMAKE_CXX_FLAGS_RELEASE "-Oz -DNDEBUG")
+
 endif ()
 
 # Initialize the Dev configuration from release configuration.

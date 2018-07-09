@@ -198,7 +198,7 @@ namespace Alimer
 			wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
 			wc.hCursor = _cursor;
 			wc.hIconSm = nullptr;
-			wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));;
+            wc.hbrBackground = nullptr;
 			wc.lpszMenuName = nullptr;  // No default menu
 			wc.lpszClassName = AppWindowClass;
 			wc.hIconSm = LoadIcon(NULL, IDI_WINLOGO);
@@ -420,6 +420,11 @@ namespace Alimer
 				}
 				break;
 			}
+
+            case WM_ERASEBKGND:
+            {
+            }
+            break;
 
 			case WM_SYSCOMMAND:
 			{

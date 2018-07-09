@@ -40,7 +40,7 @@
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
 #include "../Graphics/Graphics.h"
-#include "../Scene/Scene.h"
+#include "../Scene/SceneManager.h"
 struct enkiTaskScheduler;
 
 namespace Alimer
@@ -100,7 +100,7 @@ namespace Alimer
 
         /// Sets the current scene to be active and rendered.
         void SetScene(Scene* scene);
-        Scene* GetScene() const { return _scene; }
+        SceneManager* GetSceneManager() const { return _sceneManager.Get(); }
 
     private:
         void PlatformConstruct();
@@ -127,8 +127,6 @@ namespace Alimer
         virtual Input* CreateInput();
         virtual Audio* CreateAudio();
 
-        static bool SetCurrentThreadName(const std::string& name);
-
         std::vector<std::string> _args;
         std::atomic<bool> _running;
         std::atomic<bool> _paused;
@@ -144,10 +142,9 @@ namespace Alimer
         UniquePtr<Input> _input;
         UniquePtr<Audio> _audio;
         enkiTaskScheduler* _taskScheduler;
-        UniquePtr<SceneRenderer> _renderer;
 
-        /// Current scene.
-        Scene* _scene;
+        UniquePtr<SceneManager> _sceneManager;
+        UniquePtr<SceneRenderer> _renderer;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

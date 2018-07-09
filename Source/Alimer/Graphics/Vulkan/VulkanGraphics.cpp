@@ -619,7 +619,7 @@ namespace Alimer
         _waitSemaphores.push_back(semaphore);
     }
 
-    SharedPtr<RenderPass> VulkanGraphics::BeginFrameCore()
+    /*SharedPtr<RenderPass> VulkanGraphics::BeginFrameCore()
     {
         // Acquire the next image from the swap chain
         SharedPtr<VulkanRenderPass> renderPass = _swapchain->GetNextDrawable();
@@ -654,7 +654,7 @@ namespace Alimer
 
         // Get new command buffer.
         _defaultCommandBuffer = _defaultCommandQueue->CreateCommandBuffer();
-    }
+    }*/
 
     SharedPtr<RenderPass> VulkanGraphics::CreateRenderPass(const RenderPassDescription& description)
     {

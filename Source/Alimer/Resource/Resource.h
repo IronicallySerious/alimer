@@ -45,7 +45,7 @@ namespace Alimer
 	};
 
 	/// Runtime resource class.
-	class Resource : public RefCounted
+	class ALIMER_API Resource : public RefCounted
 	{
 	protected:
 		/// Constructor.

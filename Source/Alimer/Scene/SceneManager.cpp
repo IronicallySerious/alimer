@@ -20,21 +20,52 @@
 // THE SOFTWARE.
 //
 
-#include "../Serialization/JsonDeserializer.h"
+#include "../Scene/SceneManager.h"
+#include "../Scene/Scene.h"
 #include "../Core/Log.h"
-#include <vector>
 using namespace std;
 
 namespace Alimer
 {
-    JsonDeserializer::JsonDeserializer(Stream& stream)
-        : Deserializer(stream)
-        
+    SceneManager::SceneManager()
     {
     }
 
-    JsonDeserializer::~JsonDeserializer()
+    SceneManager::~SceneManager()
     {
-        
+    }
+
+    void SceneManager::SetScene(Scene* scene)
+    {
+        assert(scene);
+
+        if (scene->_sceneManager) {
+            scene->_sceneManager->RemoveScene(scene);
+        }
+
+        scene->_sceneManager = this;
+
+        _scenes.push_back(scene);
+    }
+
+    bool SceneManager::RemoveScene(Scene* scene)
+    {
+        bool result = false;
+
+        // Lookup for scene.
+        auto it = std::find(_scenes.begin(), _scenes.end(), scene);
+
+        if (it != end(_scenes))
+        {
+            // TODO:
+            // if (scene->_isEntered)
+            //     scene->Leave();
+            scene->_sceneManager = nullptr;
+            _scenes.erase(it);
+
+            result = true;
+        }
+
+        return result;
     }
 }

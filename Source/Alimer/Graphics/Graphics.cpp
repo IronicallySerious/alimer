@@ -49,7 +49,7 @@ namespace Alimer
         , _adapter(nullptr)
         , _defaultCommandBuffer(nullptr)
         , _features{}
-        , _inBeginFrame(false)
+        , _canAddCommands(true)
     {
         __graphicsInstance = this;
     }
@@ -230,22 +230,69 @@ namespace Alimer
         return BackendInitialize();
     }
 
-    SharedPtr<RenderPass> Graphics::BeginFrame()
+    void Graphics::FlushCommands()
     {
-        if (_inBeginFrame)
-            ALIMER_LOGCRITICAL("Cannot call BeginFrame while already inside frame.");
+#if ALIMER_THREADING
+        lock_guard<mutex> lock(_commandQueueMutex);
+#endif
+        _canAddCommands = false;
+        _queueFinished = true;
 
-        _inBeginFrame = true;
-        return BeginFrameCore();
+#if ALIMER_THREADING
+        _commandQueueCondition.notify_all();
+#endif
     }
 
-    void Graphics::EndFrame()
+    void Graphics::ProcessCommands()
     {
-        if (!_inBeginFrame)
-            ALIMER_LOGCRITICAL("BeginFrame must be called before EndFrame.");
+#if ALIMER_THREADING
+        unique_lock<mutex> lock(_commandQueueMutex);
+        while (!_queueFinished)
+        {
+            _commandQueueCondition.wait(lock);
+        }
+#endif
 
-        EndFrameCore();
-        _inBeginFrame = false;
+        _queueFinished = false;
+
+        // Allow to add commands agian.
+        _canAddCommands = true;
+
+        SubmitQueueCommands();
+    }
+
+    void Graphics::QueueCommand(const std::function<void(void)>& commandCallback)
+    {
+        lock_guard<mutex> lock(_queueMutex);
+        _commandsQueue.push(commandCallback);
+    }
+
+
+    void Graphics::SubmitQueueCommands()
+    {
+        std::function<void(void)> func;
+
+        for (;;)
+        {
+            {
+                lock_guard<mutex> lock(_queueMutex);
+                if (_commandsQueue.empty()) break;
+
+                func = std::move(_commandsQueue.front());
+                _commandsQueue.pop();
+            }
+
+            if (func) func();
+        }
+    }
+
+    void Graphics::SaveScreenshot(const std::string& fileName)
+    {
+        QueueCommand(std::bind(&Graphics::GenerateScreenshot, this, fileName));
+    }
+
+    void Graphics::GenerateScreenshot(const std::string& fileName)
+    {
     }
 
     SharedPtr<Shader> Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
@@ -278,15 +325,17 @@ namespace Alimer
         fragmentByteCode = ShaderCompiler::Compile(fragmentShader, fragmentShaderStream->GetName(), ShaderStage::Fragment, errorLog);
 #else
         vertexByteCode = vertexShaderStream->ReadBytes();
-        fragmentByteCode = vertexShaderStream->ReadBytes();
+        fragmentByteCode = fragmentShaderStream->ReadBytes();
 #endif
 
         ShaderStageDescription vertex = {};
-        //vertex.code = vertexByteCode;
+        vertex.pCode = reinterpret_cast<const uint32_t*>(vertexByteCode.data());
+        vertex.codeSize = vertexByteCode.size() / sizeof(uint32_t);
         vertex.entryPoint = "main";
 
         ShaderStageDescription fragment = {};
-        //fragment.code = fragmentByteCode;
+        fragment.pCode = reinterpret_cast<const uint32_t*>(fragmentByteCode.data());
+        fragment.codeSize = fragmentByteCode.size() / sizeof(uint32_t);
         fragment.entryPoint = "main";
 
         return CreateShader(vertex, fragment);

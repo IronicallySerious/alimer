@@ -186,7 +186,6 @@ namespace Alimer
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&d3dBackbufferTexture)));
         _backbufferTexture = new D3D11Texture(_graphics, d3dBackbufferTexture);
 
-
         RenderPassDescription passDescription = {};
         passDescription.colorAttachments[0].texture = _backbufferTexture;
         passDescription.colorAttachments[0].loadAction = LoadAction::Clear;

@@ -32,84 +32,22 @@
 #include "../../Core/Log.h"
 #include "../../Util/HashMap.h"
 
+static_assert(sizeof(VkViewport) == sizeof(Alimer::Viewport), "VkViewport mismatch");
+static_assert(offsetof(Alimer::Viewport, x) == offsetof(VkViewport, x), "VkViewport x offset mismatch");
+static_assert(offsetof(Alimer::Viewport, y) == offsetof(VkViewport, y), "VkViewport y offset mismatch");
+static_assert(offsetof(Alimer::Viewport, width) == offsetof(VkViewport, width), "VkViewport width offset mismatch");
+static_assert(offsetof(Alimer::Viewport, height) == offsetof(VkViewport, height), "VkViewport height offset mismatch");
+static_assert(offsetof(Alimer::Viewport, minDepth) == offsetof(VkViewport, minDepth), "VkViewport minDepth offset mismatch");
+static_assert(offsetof(Alimer::Viewport, maxDepth) == offsetof(VkViewport, maxDepth), "VkViewport maxDepth offset mismatch");
+
+
 namespace Alimer
 {
-    VulkanRenderPassCommandEncoder::VulkanRenderPassCommandEncoder(VulkanCommandBuffer* commandBuffer)
-        : RenderPassCommandEncoder(commandBuffer)
-    {
-
-    }
-
-    VulkanRenderPassCommandEncoder::~VulkanRenderPassCommandEncoder() = default;
-
-    void VulkanRenderPassCommandEncoder::SetVkCommandBuffer(VkCommandBuffer commandBuffer)
-    {
-        _commandBuffer = commandBuffer;
-    }
-
-    void VulkanRenderPassCommandEncoder::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
-    {
-
-    }
-
-    void VulkanRenderPassCommandEncoder::EndEncodingCore()
-    {
-        vkCmdEndRenderPass(_commandBuffer);
-    }
-
-    bool VulkanRenderPassCommandEncoder::PrepareDraw(PrimitiveTopology topology)
-    {
-        /*if (_currentPipeline.IsNull())
-            return false;
-
-        VkPipeline oldPipeline = _currentVkPipeline;
-        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(
-            topology,
-            _currentRenderPass->GetVkRenderPass()
-        );
-        if (oldPipeline != newPipeline)
-        {
-            vkCmdBindPipeline(_vkHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline);
-            _currentVkPipeline = newPipeline;
-        }
-
-        FlushDescriptorSets();
-
-        uint32_t updateVboMask = _dirtyVbos & _currentPipeline->GetBindingMask();
-        ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
-        {
-#ifdef ALIMER_DEV
-            for (uint32_t i = binding; i < binding + count; i++)
-            {
-                ALIMER_ASSERT(_currentVkBuffers[i] != VK_NULL_HANDLE);
-            }
-#endif
-
-            vkCmdBindVertexBuffers(_vkHandle,
-                binding,
-                count,
-                _currentVkBuffers + binding,
-                _vbo.offsets + binding);
-        });
-        _dirtyVbos &= ~updateVboMask;
-        */
-        return true;
-    }
-
-    void VulkanRenderPassCommandEncoder::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-    {
-        if (!PrepareDraw(topology))
-            return;
-
-        vkCmdDraw(_commandBuffer, vertexCount, instanceCount, vertexStart, baseInstance);
-    }
-
     VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VulkanCommandQueue* queue)
         : CommandBuffer(graphics)
         , _vkGraphics(graphics)
         , _logicalDevice(_vkGraphics->GetLogicalDevice())
         , _queue(queue)
-        , _renderPassEncoder(this)
     {
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         cmdBufAllocateInfo.pNext = nullptr;
@@ -171,8 +109,16 @@ namespace Alimer
         vkThrowIfFailed(vkResetCommandBuffer(_vkHandle, 0));
     }
 
-    RenderPassCommandEncoder* VulkanCommandBuffer::CreateRenderPassCommandEncoderCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    void VulkanCommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
+        _currentRenderPass = static_cast<VulkanRenderPass*>(renderPass);
+
+        Rectangle setRenderArea = renderArea;
+        if (renderArea.IsEmpty())
+        {
+            setRenderArea = Rectangle((int32_t)renderPass->GetWidth(), (int32_t)renderPass->GetHeight());
+        }
+
         std::vector<VkClearValue> clearValues(numClearColors + 1);
         uint32_t i = 0;
         for (; i < numClearColors; ++i)
@@ -184,16 +130,14 @@ namespace Alimer
         }
         clearValues[i].depthStencil.depth = clearDepth;
         clearValues[i].depthStencil.stencil = clearStencil;
-
-        _currentRenderPass = static_cast<VulkanRenderPass*>(renderPass);
-
+       
         VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
         renderPassBeginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
         renderPassBeginInfo.framebuffer = _currentRenderPass->GetVkFramebuffer();
-        renderPassBeginInfo.renderArea.offset.x = 0;
-        renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent.width = _currentRenderPass->GetWidth();
-        renderPassBeginInfo.renderArea.extent.height = _currentRenderPass->GetHeight();
+        renderPassBeginInfo.renderArea.offset.x = setRenderArea.x;
+        renderPassBeginInfo.renderArea.offset.y = setRenderArea.y;
+        renderPassBeginInfo.renderArea.extent.width = setRenderArea.width;
+        renderPassBeginInfo.renderArea.extent.height = setRenderArea.height;
         renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
 
@@ -214,8 +158,31 @@ namespace Alimer
 
         vkCmdSetViewport(_vkHandle, 0, 1, &viewport);
         vkCmdSetScissor(_vkHandle, 0, 1, &scissor);
-        _renderPassEncoder.BeginRenderPass(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
-        return &_renderPassEncoder;
+    }
+
+    void VulkanCommandBuffer::EndRenderPassCore()
+    {
+        vkCmdEndRenderPass(_vkHandle);
+    }
+
+    void VulkanCommandBuffer::SetViewport(const Viewport& viewport)
+    {
+        vkCmdSetViewport(_vkHandle, 0, 1, (VkViewport*)&viewport);
+    }
+
+    void VulkanCommandBuffer::SetViewports(uint32_t numViewports, const Viewport* viewports)
+    {
+        vkCmdSetViewport(_vkHandle, 0, numViewports, (VkViewport*)viewports);
+    }
+
+    void VulkanCommandBuffer::SetScissor(const Rectangle& scissor)
+    {
+
+    }
+
+    void VulkanCommandBuffer::SetScissors(uint32_t numScissors, const Rectangle* scissors)
+    {
+
     }
 
     void VulkanCommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)
@@ -242,9 +209,56 @@ namespace Alimer
         }
     }
 
+    void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+        if (!PrepareDraw(topology))
+            return;
+
+        vkCmdDraw(_vkHandle, vertexCount, instanceCount, vertexStart, baseInstance);
+    }
+
     void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
 
+    }
+
+    bool VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)
+    {
+        /*if (_currentPipeline.IsNull())
+        return false;
+
+        VkPipeline oldPipeline = _currentVkPipeline;
+        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(
+        topology,
+        _currentRenderPass->GetVkRenderPass()
+        );
+        if (oldPipeline != newPipeline)
+        {
+        vkCmdBindPipeline(_vkHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline);
+        _currentVkPipeline = newPipeline;
+        }
+
+        FlushDescriptorSets();
+
+        uint32_t updateVboMask = _dirtyVbos & _currentPipeline->GetBindingMask();
+        ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
+        {
+        #ifdef ALIMER_DEV
+        for (uint32_t i = binding; i < binding + count; i++)
+        {
+        ALIMER_ASSERT(_currentVkBuffers[i] != VK_NULL_HANDLE);
+        }
+        #endif
+
+        vkCmdBindVertexBuffers(_vkHandle,
+        binding,
+        count,
+        _currentVkBuffers + binding,
+        _vbo.offsets + binding);
+        });
+        _dirtyVbos &= ~updateVboMask;
+        */
+        return true;
     }
 
     void VulkanCommandBuffer::OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset)

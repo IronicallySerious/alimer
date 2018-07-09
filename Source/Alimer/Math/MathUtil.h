@@ -187,29 +187,6 @@ namespace Alimer
     /// Round value up.
     template <class T> inline int CeilToInt(T x) { return static_cast<int>(ceil(x)); }
 
-    struct Vector2;
-    struct Vector4;
-    struct Matrix4x4;
-    struct Quaternion;
-    struct Plane;
-
-    struct Rectangle
-    {
-        int32_t x;
-        int32_t y;
-        uint32_t width;
-        uint32_t height;
-
-        Rectangle() noexcept : x(0), y(0), width(0), height(0) {}
-        constexpr Rectangle(int32_t x_, int32_t y_, uint32_t width_, uint32_t height_) : x(x_), y(y_), width(width_), height(height_) {}
-
-        Rectangle(const Rectangle&) = default;
-        Rectangle& operator=(const Rectangle&) = default;
-
-        Rectangle(Rectangle&&) = default;
-        Rectangle& operator=(Rectangle&&) = default;
-    };
-
     void ComputeTransform(glm::vec3 translation, glm::quat rotation, glm::vec3 scale, glm::mat4 &world, const glm::mat4 &parent);
 }
 

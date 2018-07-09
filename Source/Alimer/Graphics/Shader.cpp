@@ -34,8 +34,8 @@ namespace Alimer
 
     Shader::Shader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
     {
-        Reflect(ShaderStage::Vertex, vertex.code.data(), vertex.code.size() * sizeof(uint32_t));
-        Reflect(ShaderStage::Fragment, fragment.code.data(), fragment.code.size() * sizeof(uint32_t));
+        Reflect(ShaderStage::Vertex, vertex.pCode, vertex.codeSize);
+        Reflect(ShaderStage::Fragment, fragment.pCode, fragment.codeSize);
 
         for (uint32_t i = 0; i < MaxDescriptorSets; i++)
         {
@@ -50,8 +50,7 @@ namespace Alimer
 
     void Shader::Reflect(ShaderStage stage, const uint32_t *data, size_t size)
     {
-        vector<uint32_t> code(data, data + size / sizeof(uint32_t));
-        spirv_cross::Compiler compiler(move(code));
+        spirv_cross::Compiler compiler(data, size);
         auto resources = compiler.get_shader_resources();
 
         if (stage == ShaderStage::Vertex)

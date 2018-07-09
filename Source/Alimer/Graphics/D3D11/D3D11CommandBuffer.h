@@ -23,10 +23,12 @@
 #pragma once
 
 #include "Graphics/CommandBuffer.h"
-#include "D3D11CommandEncoder.h"
+#include "Graphics/CommandBuffer.h"
+#include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
+    class D3D11RenderPass;
     class D3D11Graphics;
 
 	/// D3D11 CommandBuffer implementation.
@@ -44,21 +46,30 @@ namespace Alimer
         void Destroy() override;
         void CommitCore() override;
 
-        RenderPassCommandEncoder* CreateRenderPassCommandEncoderCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        void EndRenderPassCore() override;
+
+        void SetViewport(const Viewport& viewport) override;
+        void SetViewports(std::uint32_t numViewports, const Viewport* viewports) override;
+
+        void SetScissor(const Rectangle& scissor) override;
+        void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
         void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
-        
+        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
     private:
+        bool PrepareDraw(PrimitiveTopology topology);
         void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
         void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
         
-
 	private:
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext1> _context;
+        ID3D11DeviceContext1* _context;
         bool _isImmediate;
-        D3D11RenderPassCommandEncoder _renderPassEncoder;
+
+        D3D11RenderPass* _currentRenderPass = nullptr;
+        PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
 	};
 }

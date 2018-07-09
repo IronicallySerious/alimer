@@ -49,7 +49,19 @@ bool GetRealOSVersion(RTL_OSVERSIONINFOW* osvi)
 
     return false;
 }
+#endif
 
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+static const DWORD MS_VC_EXCEPTION = 0x406D1388;
+#pragma pack(push,8)
+typedef struct tagTHREADNAME_INFO
+{
+    DWORD dwType; // Must be 0x1000.
+    LPCSTR szName; // Pointer to name (in user addr space).
+    DWORD dwThreadID; // Thread ID (-1=caller thread).
+    DWORD dwFlags; // Reserved for future use, must be zero.
+} THREADNAME_INFO;
+#pragma pack(pop)
 #endif
 
 namespace Alimer
@@ -190,4 +202,27 @@ namespace Alimer
         return ::dlsym(handle, name);
 #endif
     }
+
+    bool SetCurrentThreadName(const char* name)
+    {
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+        THREADNAME_INFO info;
+        info.dwType = 0x1000;
+        info.szName = name;
+        info.dwThreadID = static_cast<DWORD>(-1);
+        info.dwFlags = 0;
+
+        __try
+        {
+            RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), reinterpret_cast<ULONG_PTR*>(&info));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+        }
+        return true;
+
+#else
+        return false;
+#endif
     }
+}

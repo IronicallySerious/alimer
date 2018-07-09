@@ -76,8 +76,6 @@ namespace Alimer
 	private:
         void Finalize() override;
         bool BackendInitialize() override;
-        SharedPtr<RenderPass> BeginFrameCore() override;
-        void EndFrameCore() override;
         void CreateAllocator();
 
 		VkInstance _instance = VK_NULL_HANDLE;

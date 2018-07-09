@@ -20,20 +20,16 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/CommandEncoder.h"
-#include "Graphics/CommandBuffer.h"
-#include "Graphics/Graphics.h"
+#pragma once
+
+#include "D3DPrerequisites.h"
+#include "../Types.h"
+#include <vector>
 
 namespace Alimer
 {
-    void CommandEncoder::EndEncoding()
+    namespace D3DShaderCompiler
     {
-        EndEncodingCore();
-        _commandBuffer->EndEncoderEncoding();
-    }
-
-    void RenderPassCommandEncoder::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-    {
-        DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
+        ALIMER_API std::vector<uint8_t> Compile(const std::string& hlslSource, ShaderStage stage, uint32_t major = 4, uint32_t minor = 0);
     }
 }

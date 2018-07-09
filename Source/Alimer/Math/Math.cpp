@@ -20,21 +20,10 @@
 // THE SOFTWARE.
 //
 
-#include "../Serialization/JsonDeserializer.h"
-#include "../Core/Log.h"
-#include <vector>
-using namespace std;
+#include "../Math/Math.h"
+#include "../Math/MathUtil.h"
 
 namespace Alimer
 {
-    JsonDeserializer::JsonDeserializer(Stream& stream)
-        : Deserializer(stream)
-        
-    {
-    }
-
-    JsonDeserializer::~JsonDeserializer()
-    {
-        
-    }
+    const Rectangle Rectangle::Empty = { 0, 0, 0, 0 };
 }

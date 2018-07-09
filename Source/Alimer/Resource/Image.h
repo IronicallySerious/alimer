@@ -20,21 +20,17 @@
 // THE SOFTWARE.
 //
 
-#include "../Serialization/JsonDeserializer.h"
-#include "../Core/Log.h"
-#include <vector>
-using namespace std;
+#pragma once
+
+#include "../Resource/Resource.h"
 
 namespace Alimer
 {
-    JsonDeserializer::JsonDeserializer(Stream& stream)
-        : Deserializer(stream)
-        
-    {
-    }
-
-    JsonDeserializer::~JsonDeserializer()
-    {
-        
-    }
+	/// Defines an Image resource.
+	class ALIMER_API Image : public Resource
+	{
+	public:
+		/// Constructor.
+        Image();
+	};
 }

@@ -28,47 +28,74 @@ namespace Alimer
 {
     CommandBuffer::CommandBuffer(Graphics* graphics)
         : GpuResource(graphics, GpuResourceType::CommandBuffer)
-        , _hasPendingEncoder(false)
+        , _state(CommandBufferState::Ready)
     {
+    }
+
+    void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
+    {
+        BeginRenderPass(renderPass, Rectangle::Empty, &clearColor, 1, clearDepth, clearStencil);
+    }
+
+    void CommandBuffer::BeginRenderPass(RenderPass* renderPass,
+        const Rectangle& renderArea,
+        const Color& clearColor,
+        float clearDepth, uint8_t clearStencil)
+    {
+        BeginRenderPass(renderPass, renderArea, &clearColor, 1, clearDepth, clearStencil);
+    }
+
+    void CommandBuffer::BeginRenderPass(RenderPass* renderPass,
+        const Color* clearColors, uint32_t numClearColors,
+        float clearDepth, uint8_t clearStencil)
+    {
+        BeginRenderPass(renderPass, Rectangle::Empty, clearColors, numClearColors, clearDepth, clearStencil);
+    }
+
+    void CommandBuffer::BeginRenderPass(RenderPass* renderPass,
+        const Rectangle& renderArea,
+        const Color* clearColors, uint32_t numClearColors,
+        float clearDepth, uint8_t clearStencil)
+    {
+        if (!IsOutsideRenderPass())
+        {
+            ALIMER_LOGCRITICAL("BeginRenderPass should be called before EndRenderPass.");
+        }
+
+        BeginRenderPassCore(renderPass, renderArea, clearColors, numClearColors, clearDepth, clearStencil);
+        _state = CommandBufferState::InRenderPass;
+    }
+
+    void CommandBuffer::EndRenderPass()
+    {
+        if (!IsInsideRenderPass())
+        {
+            ALIMER_LOGCRITICAL("EndRenderPass must be called inside BeginRenderPass.");
+        }
+
+        EndRenderPassCore();
+        _state = CommandBufferState::Ready;
+    }
+
+    void CommandBuffer::SetViewport(const Viewport& viewport)
+    {
+        SetViewports(1, &viewport);
+    }
+
+    void CommandBuffer::SetScissor(const Rectangle& scissor)
+    {
+        SetScissors(1, &scissor);
     }
 
     void CommandBuffer::Commit()
     {
-        if (_hasPendingEncoder)
+        if (_state == CommandBufferState::Committed)
         {
-            ALIMER_LOGCRITICAL("Cannot commit with pending command encoders.");
+            ALIMER_LOGCRITICAL("CommandBuffer has already been committed.");
         }
 
         CommitCore();
-    }
-
-    void CommandBuffer::EndEncoderEncoding()
-    {
-        _hasPendingEncoder = false;
-    }
-
-    RenderPassCommandEncoder* CommandBuffer::CreateRenderPassCommandEncoder(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
-    {
-        if (_hasPendingEncoder)
-        {
-            ALIMER_LOGCRITICAL("Cannot create RenderPassCommandEncoder while other encoder is active");
-        }
-
-        _hasPendingEncoder = true;
-        return CreateRenderPassCommandEncoderCore(renderPass, &clearColor, 1, clearDepth, clearStencil);
-    }
-
-    RenderPassCommandEncoder* CommandBuffer::CreateRenderPassCommandEncoder(RenderPass* renderPass,
-        const Color* clearColors, uint32_t numClearColors,
-        float clearDepth, uint8_t clearStencil)
-    {
-        if (_hasPendingEncoder)
-        {
-            ALIMER_LOGCRITICAL("Cannot create RenderPassCommandEncoder while other encoder is active");
-        }
-
-        _hasPendingEncoder = true;
-        return CreateRenderPassCommandEncoderCore(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
+        _state = CommandBufferState::Committed;
     }
 
     void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset, VertexInputRate inputRate)
@@ -122,10 +149,23 @@ namespace Alimer
         _dirtySets |= 1u << set;
     }
 
-    
+    void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+        if (!IsInsideRenderPass())
+        {
+            ALIMER_LOGCRITICAL("Cannot draw outside RenderPass.");
+        }
+
+        DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
+    }
 
     void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
+        if (!IsInsideRenderPass())
+        {
+            ALIMER_LOGCRITICAL("Cannot draw outside RenderPass.");
+        }
+
         DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
     }
 }

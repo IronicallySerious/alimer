@@ -57,7 +57,7 @@ macro (define_engine_source_files)
 	endif ()
 	foreach (path ${DEFINE_SRC_FILES_UNPARSED_ARGUMENTS})
 		# Get header files
-		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.hpp)
+		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.hpp ${path}/*.inl)
 		list (REMOVE_ITEM _files
 			Graphics/GraphicsImpl.h
 		)
@@ -268,6 +268,11 @@ if (ALIMER_D3D11 OR ALIMER_D3D12)
         # target_link_libraries (libAlimer ${D3D12_LIBRARIES})
     endif()
 endif()
+
+
+if (ALIMER_THREADING)
+    target_compile_definitions(libAlimer PRIVATE -DALIMER_THREADING=1)
+endif ()
 
 if (BUILD_SHARED_LIBS)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_SHARED=1)

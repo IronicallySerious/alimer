@@ -47,10 +47,10 @@ namespace Alimer
             }
 
             if(!_width)
-                _width = Min(_width, texture->GetLevelWidth(colorAttachment.mipLevel));
+                _width = std::max(_width, texture->GetLevelWidth(colorAttachment.mipLevel));
 
             if (!_height)
-                _height = Min(_height, texture->GetLevelHeight(colorAttachment.mipLevel));
+                _height = std::max(_height, texture->GetLevelHeight(colorAttachment.mipLevel));
 
             _colorAttachments[_colorAttachmentsCount++] = colorAttachment;
         }

@@ -221,26 +221,5 @@ namespace Alimer
 					return DXGI_FORMAT_UNKNOWN;
 			}
 		}
-
-		static inline D3D12_PRIMITIVE_TOPOLOGY Convert(PrimitiveTopology topology)
-		{
-			switch (topology)
-			{
-				case PrimitiveTopology::Points:
-					return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-				case PrimitiveTopology::Lines:
-					return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-				case PrimitiveTopology::LineStrip:
-					return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
-
-				case PrimitiveTopology::Triangles:
-					return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-				case PrimitiveTopology::TriangleStrip:
-					return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-
-				default:
-					return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-			}
-		}
 	}
 }

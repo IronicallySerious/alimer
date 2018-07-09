@@ -32,10 +32,12 @@ namespace Alimer
     class TransformComponent;
     class CameraComponent;
     class RenderableComponent;
+    class SceneManager;
 
     /// Defines a scene, which is a container of SceneObject's.
     class Scene final 
     {
+        friend class SceneManager;
     public:
         /// Constructor.
         Scene();
@@ -56,7 +58,9 @@ namespace Alimer
 
         void UpdateCachedTransforms();
 
-    private:
+    protected:
+        SceneManager* _sceneManager = nullptr;
+
         EventManager events;
         EntityManager _entityManager;
 

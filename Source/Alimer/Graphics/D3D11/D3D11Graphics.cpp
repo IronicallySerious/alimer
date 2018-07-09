@@ -30,8 +30,10 @@
 #include "D3D11PipelineState.h"
 #include "D3D11GpuAdapter.h"
 #include "../ShaderCompiler.h"
+#include "../../Core/Platform.h"
 #include "../../Core/Log.h"
 #include "../../Application/Windows/WindowWindows.h"
+#include <STB/stb_image_write.h>
 
 using namespace Microsoft::WRL;
 
@@ -65,6 +67,7 @@ namespace Alimer
 
     D3D11Graphics::D3D11Graphics(bool validation)
         : Graphics(GraphicsDeviceType::Direct3D11, validation)
+        , _renderThreadRunning(false)
     {
         HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&_dxgiFactory));
         if (FAILED(hr))
@@ -93,12 +96,21 @@ namespace Alimer
 
     D3D11Graphics::~D3D11Graphics()
     {
+        _renderThreadRunning = false;
+        FlushCommands();
         Finalize();
     }
 
     void D3D11Graphics::Finalize()
     {
+        _renderThreadRunning = false;
         WaitIdle();
+
+        // Suspend render thread.
+        if (_renderThread.joinable())
+        {
+            _renderThread.join();
+        }
 
         SafeDelete(_swapChain);
 
@@ -242,7 +254,109 @@ namespace Alimer
         // Immediate/default command queue.
         _defaultCommandBuffer = new D3D11CommandBuffer(this, _d3dContext.Get());
 
+        _renderThreadRunning = true;
+        _renderThread = std::thread(std::bind(&D3D11Graphics::RenderThread, this));
+
         return true;
+    }
+
+    void D3D11Graphics::GenerateScreenshot(const std::string& fileName)
+    {
+        HRESULT hr = S_OK;
+
+        D3D11Texture* backBufferTexture = _swapChain->GetBackbufferTexture();
+        const DXGI_FORMAT format = backBufferTexture->GetDXGIFormat();
+
+        D3D11_TEXTURE2D_DESC textureDesc;
+        textureDesc.Width = backBufferTexture->GetWidth();
+        textureDesc.Height = backBufferTexture->GetHeight();
+        textureDesc.MipLevels = 1;
+        textureDesc.ArraySize = 1;
+        textureDesc.Format = format;
+        textureDesc.SampleDesc.Count = 1;
+        textureDesc.SampleDesc.Quality = 0;
+        textureDesc.Usage = D3D11_USAGE_STAGING;
+        textureDesc.BindFlags = 0;
+        textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        textureDesc.MiscFlags = 0;
+
+        ID3D11Texture2D* texture;
+        hr = _d3dDevice->CreateTexture2D(&textureDesc, nullptr, &texture);
+
+        if (FAILED(hr))
+        {
+            ALIMER_LOGCRITICAL("D3D11 - Failed to create texture, error: {}", std::to_string(hr));
+        }
+
+        // Resolve multisample texture.
+        if (backBufferTexture->GetSamples() > SampleCount::Count1)
+        {
+            D3D11_TEXTURE2D_DESC resolveTextureDesc;
+            resolveTextureDesc.Width = backBufferTexture->GetWidth();
+            resolveTextureDesc.Height = backBufferTexture->GetHeight();
+            resolveTextureDesc.MipLevels = 1;
+            resolveTextureDesc.ArraySize = 1;
+            resolveTextureDesc.Format = format;
+            resolveTextureDesc.SampleDesc.Count = 1;
+            resolveTextureDesc.SampleDesc.Quality = 0;
+            resolveTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+            resolveTextureDesc.BindFlags = 0;
+            resolveTextureDesc.CPUAccessFlags = 0;
+            resolveTextureDesc.MiscFlags = 0;
+
+            ID3D11Texture2D* resolveTexture;
+            hr = _d3dDevice->CreateTexture2D(&resolveTextureDesc, nullptr, &resolveTexture);
+
+            if (FAILED(hr))
+            {
+                texture->Release();
+                ALIMER_LOGCRITICAL("D3D11 - Failed to create texture, error: {}", std::to_string(hr));
+            }
+
+            _d3dContext->ResolveSubresource(resolveTexture, 0, backBufferTexture->GetResource(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+            _d3dContext->CopyResource(texture, resolveTexture);
+            resolveTexture->Release();
+        }
+        else {
+            _d3dContext->CopyResource(texture, backBufferTexture->GetResource());
+        }
+
+        D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+        hr = _d3dContext->Map(texture, 0, D3D11_MAP_READ, 0, &mappedSubresource);
+        if (FAILED(hr))
+        {
+            texture->Release();
+            ALIMER_LOGCRITICAL("D3D11 - Failed to map resource, error: {}", std::to_string(hr));
+        }
+
+        if (!stbi_write_png(fileName.c_str(), textureDesc.Width, textureDesc.Height, 4, mappedSubresource.pData, static_cast<int>(mappedSubresource.RowPitch)))
+        {
+            _d3dContext->Unmap(texture, 0);
+            texture->Release();
+            ALIMER_LOGCRITICAL("D3D11 - Failed to save screenshot to file");
+        }
+
+        _d3dContext->Unmap(texture, 0);
+        texture->Release();
+    }
+
+    void D3D11Graphics::RenderThread()
+    {
+        SetCurrentThreadName("Render");
+
+        while (_renderThreadRunning)
+        {
+            ProcessCommands();
+
+            // Present the frame.
+            _swapChain->Present();
+
+            // Flush immediate context.
+            //_d3dContext->Flush();
+
+            // Reset default command buffer.
+            static_cast<D3D11CommandBuffer*>(_defaultCommandBuffer)->Reset();
+        }
     }
 
     void D3D11Graphics::WaitIdle()
@@ -250,23 +364,38 @@ namespace Alimer
         _d3dContext->Flush();
     }
 
-    SharedPtr<RenderPass> D3D11Graphics::BeginFrameCore()
-    {
-        // TODO: Add check for swap chain resize.
-        return _swapChain->GetRenderPass();
-    }
-
-    void D3D11Graphics::EndFrameCore()
-    {
-        // Present the frame.
-        _swapChain->Present();
-
-        // Flush immediate context.
-        _d3dContext->Flush();
-    }
-
     bool D3D11Graphics::InitializeCaps()
     {
+        switch (_d3dFeatureLevel)
+        {
+        case D3D_FEATURE_LEVEL_10_0:
+            _shaderModelMajor = 4;
+            _shaderModelMinor = 0;
+            break;
+        case D3D_FEATURE_LEVEL_10_1:
+            _shaderModelMajor = 4;
+            _shaderModelMinor = 1;
+            break;
+        case D3D_FEATURE_LEVEL_11_0:
+            _shaderModelMajor = 5;
+            _shaderModelMinor = 0;
+            break;
+        case D3D_FEATURE_LEVEL_11_1:
+            _shaderModelMajor = 5;
+            _shaderModelMinor = 0;
+            break;
+        case D3D_FEATURE_LEVEL_12_0:
+            _shaderModelMajor = 5;
+            _shaderModelMinor = 1;
+            break;
+        case D3D_FEATURE_LEVEL_12_1:
+            _shaderModelMajor = 5;
+            _shaderModelMinor = 1;
+            break;
+        default:
+            break;
+        }
+
         D3D11_FEATURE_DATA_THREADING threadingSupport = { 0 };
         ThrowIfFailed(_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingSupport, sizeof(threadingSupport)));
         return true;

@@ -34,7 +34,8 @@ namespace Alimer
 
     struct ShaderStageDescription
     {
-        std::vector<uint32_t> code;
+        size_t codeSize;
+        const uint32_t* pCode;
         const char* entryPoint;
     };
 

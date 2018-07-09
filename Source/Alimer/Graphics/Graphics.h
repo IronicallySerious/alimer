@@ -35,6 +35,7 @@
 #include "../Graphics/CommandBuffer.h"
 #include <vector>
 #include <set>
+#include <queue>
 #include <mutex>
 #include <atomic>
 
@@ -68,11 +69,15 @@ namespace Alimer
         /// Wait for a device to become idle.
         virtual void WaitIdle() = 0;
 
-        /// Begin frame rendering and return current backbuffer render pass.
-        SharedPtr<RenderPass> BeginFrame();
+        /// Execute operation on rendering thread.
+        void QueueCommand(const std::function<void(void)>& commandCallback);
+        void FlushCommands();
 
-        /// End and present current frame and advance to next frame. 
-        void EndFrame();
+        /// Try to save screenshot with given file name.
+        void SaveScreenshot(const std::string& fileName);
+
+        /// Gets if graphics is not consuming gpu commands
+        bool CanAddCommands() const { return _canAddCommands; }
 
         // RenderPass
         virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
@@ -117,8 +122,10 @@ namespace Alimer
     protected:
         virtual void Finalize();
         virtual bool BackendInitialize() = 0;
-        virtual SharedPtr<RenderPass> BeginFrameCore() = 0;
-        virtual void EndFrameCore() = 0;
+
+        virtual void ProcessCommands();
+        void SubmitQueueCommands();
+        virtual void GenerateScreenshot(const std::string& fileName);
 
     protected:
         GraphicsDeviceType _deviceType;
@@ -130,10 +137,18 @@ namespace Alimer
         GpuAdapter* _adapter;
         CommandBuffer* _defaultCommandBuffer;
 
+        std::atomic<bool> _canAddCommands;
+        bool _queueFinished = false;
+        std::mutex _commandQueueMutex;
+        std::condition_variable _commandQueueCondition;
+
+        // Simple commands to execute on rendering thread.
+        std::queue<std::function<void(void)>> _commandsQueue;
+        std::mutex _queueMutex;
+
     private:
         std::mutex _gpuResourceMutex;
         std::vector<GpuResource*> _gpuResources;
-        bool _inBeginFrame;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);

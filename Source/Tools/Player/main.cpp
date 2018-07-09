@@ -75,17 +75,20 @@ namespace Alimer
         _renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);
 
         // Create scene
-        auto triangleEntity = _scene->CreateEntity();
-        triangleEntity->AddComponent<TransformComponent>();
-        triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
+       // auto triangleEntity = _scene->CreateEntity();
+       // triangleEntity->AddComponent<TransformComponent>();
+       // triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
     }
 
     void RuntimeApplication::OnRender(RenderPass* frameRenderPass)
     {
         CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
         Color clearColor = Color::Green;
-        RenderPassCommandEncoder* encoder = commandBuffer->CreateRenderPassCommandEncoder(frameRenderPass, clearColor);
-        encoder->EndEncoding();
+        commandBuffer->BeginRenderPass(frameRenderPass, clearColor);
+        commandBuffer->SetPipeline(_renderPipeline);
+        commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
+        commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
+        commandBuffer->EndRenderPass();
         commandBuffer->Commit();
     }
 }

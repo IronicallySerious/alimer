@@ -65,6 +65,7 @@ namespace Alimer
 
     void SceneRenderer::Render(Scene* scene, RenderPass* frameRenderPass)
     {
+        return;
         CameraComponent* activeCamera = scene->GetActiveCamera()->GetComponent<CameraComponent>();
 
         auto renderables = scene->GetEntityManager().GetComponentGroup<TransformComponent, RenderableComponent>();
@@ -75,7 +76,7 @@ namespace Alimer
 
         // TODO: handle multi threaded rendering here.
         CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
-        RenderPassCommandEncoder* encoder = commandBuffer->CreateRenderPassCommandEncoder(frameRenderPass, { 0.0f, 0.2f, 0.4f, 1.0f });
+        commandBuffer->BeginRenderPass(frameRenderPass, Color(0.0f, 0.2f, 0.4f, 1.0f));
 
         // Bind per camera UBO
         //commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
@@ -86,7 +87,6 @@ namespace Alimer
             //visible.renderable->Render(context, vis.transform, queue);
         }
 
-        encoder->EndEncoding();
-        commandBuffer->Commit();
+        commandBuffer->EndRenderPass();
     }
 }

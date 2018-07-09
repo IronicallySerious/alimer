@@ -20,21 +20,16 @@
 // THE SOFTWARE.
 //
 
-#include "../Serialization/JsonDeserializer.h"
+#include "../Resource/Image.h"
 #include "../Core/Log.h"
-#include <vector>
-using namespace std;
+#define STB_IMAGE_IMPLEMENTATION
+#include <STB/stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <STB/stb_image_write.h>
 
 namespace Alimer
 {
-    JsonDeserializer::JsonDeserializer(Stream& stream)
-        : Deserializer(stream)
-        
-    {
-    }
-
-    JsonDeserializer::~JsonDeserializer()
-    {
-        
-    }
+    Image::Image()
+	{
+	}
 }
