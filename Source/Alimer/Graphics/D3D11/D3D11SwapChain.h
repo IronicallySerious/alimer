@@ -66,7 +66,7 @@ namespace Alimer
         void Present();
 
         D3D11Texture* GetBackbufferTexture() const { return _backbufferTexture; }
-        SharedPtr<RenderPass> GetRenderPass() const { return _renderPass; }
+        D3D11RenderPass* GetRenderPass() const { return _renderPass.Get(); }
 
     private:
         D3D11Graphics * _graphics;

@@ -65,6 +65,7 @@ namespace Alimer
         inline ID3D11DeviceContext1* GetImmediateContext() const { return _d3dContext.Get(); }
         inline uint32_t GetShaderModerMajor() const { return _shaderModelMajor; }
         inline uint32_t GetShaderModerMinor() const { return _shaderModelMinor; }
+        RenderPass* GetBackbufferRenderPass() const;
 
 	private:
         void Finalize() override;

@@ -33,6 +33,43 @@ namespace Alimer
 {
     class Graphics;
 
+    struct Command
+    {
+        enum class Type : uint8_t
+        {
+            Invalid,
+            BeginRenderPass,
+            EndRenderPass
+        };
+
+        Command(Type type_) : type(type_)
+        {
+        }
+
+        const Type type;
+    };
+
+    struct BeginRenderPassCommand : public Command
+    {
+        BeginRenderPassCommand(RenderPass* renderPass_, const Rectangle& renderArea_)
+            : Command(Command::Type::BeginRenderPass)
+            , renderPass(renderPass_)
+            , renderArea(renderArea)
+        {
+        }
+
+        RenderPass* renderPass;
+        Rectangle renderArea;
+    };
+
+    struct EndRenderPassCommand : public Command
+    {
+        EndRenderPassCommand()
+            : Command(Command::Type::EndRenderPass)
+        {
+        }
+    };
+
     /// Defines a command buffer for storing recorded gpu commands.
     class ALIMER_API CommandBuffer : public GpuResource
     {
@@ -42,7 +79,10 @@ namespace Alimer
 
     public:
         /// Destructor.
-        virtual ~CommandBuffer() = default;
+        virtual ~CommandBuffer();
+
+        /// Clear all commands in the buffer.
+        virtual void Clear();
 
         /// Commits this command buffer for execution as soon as possible.
         void Commit();
@@ -78,6 +118,57 @@ namespace Alimer
         void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
 
     protected:
+        static constexpr size_t CommandAlign = alignof(Command*);
+
+        template<typename T>
+        void Push(const T& command)
+        {
+            static_assert(std::is_base_of<Command, T>::value,
+                "Must derive from Command struct.");
+
+            const size_t commandSize = sizeof(T);
+
+            size_t offset = _size;
+            if (offset % CommandAlign != 0) {
+                offset += CommandAlign - (offset % CommandAlign);
+            }
+
+            if (_capacity < offset + commandSize)
+            {
+                _capacity *= 2;
+                if (_capacity < offset + commandSize) {
+                    _capacity = offset + commandSize;
+                }
+
+                uint8_t* newBuffer = new uint8_t[_capacity];
+                if (_buffer)
+                {
+                    MoveCommands(newBuffer);
+                    FreeCommands();
+                    delete[] _buffer;
+                }
+
+                _buffer = newBuffer;
+            }
+
+            _size = offset + commandSize;
+            ++_count;
+            new (_buffer + offset) T(command);
+        };
+
+        Command* Front() const
+        {
+            if (_current >= _count)
+                return nullptr;
+
+            size_t offset = _position;
+            if (offset % CommandAlign != 0)
+                offset += CommandAlign - (offset % CommandAlign);
+
+            Command* command = reinterpret_cast<Command*>(_buffer + offset);
+            return command;
+        }
+
         virtual void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
         virtual void EndRenderPassCore() = 0;
         virtual void CommitCore() = 0;
@@ -157,6 +248,33 @@ namespace Alimer
         CommandBufferDirtyFlags _dirty = ~0u;
         uint32_t _dirtySets = 0;
         uint32_t _dirtyVbos = 0;
+
+    private:
+        template<typename T>
+        uint32_t DeleteCommand(/*MAYBE_UNUSED*/ T* command)
+        {
+            ALIMER_UNUSED(command);
+            command->~T();
+            return sizeof(*command);
+        }
+
+        template<typename T>
+        uint32_t MoveCommand(T* command, void* newPointer)
+        {
+            ALIMER_UNUSED(command);
+            new (newPointer) T(std::move(*command));
+            return sizeof(*command);
+        }
+
+        void MoveCommands(uint8_t* newBuffer);
+        void FreeCommands();
+
+        uint8_t* _buffer;
+        size_t _capacity;
+        size_t _size;
+        size_t _position;
+        uint32_t _current;
+        uint32_t _count;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);

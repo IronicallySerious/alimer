@@ -165,6 +165,10 @@ namespace Alimer
         }
         else
         {
+            // Tick timer.
+            double frameTime = _timer.Frame();
+            double elapsedTime = _timer.GetElapsed();
+
             Render();
             _input->Update();
         }
@@ -178,6 +182,10 @@ namespace Alimer
         if (_graphics->CanAddCommands())
         {
             // Draw scenes.
+            auto commandBuffer = _graphics->GetDefaultCommandBuffer();
+            commandBuffer->Clear();
+            commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+            commandBuffer->EndRenderPass();
             //_sceneManager->Draw();
             _graphics->FlushCommands();
         }

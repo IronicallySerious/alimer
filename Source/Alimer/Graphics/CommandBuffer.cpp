@@ -29,7 +29,29 @@ namespace Alimer
     CommandBuffer::CommandBuffer(Graphics* graphics)
         : GpuResource(graphics, GpuResourceType::CommandBuffer)
         , _state(CommandBufferState::Ready)
+        , _buffer(nullptr)
     {
+        Clear();
+    }
+
+    CommandBuffer::~CommandBuffer()
+    {
+        Clear();
+    }
+
+    void CommandBuffer::Clear()
+    {
+        if (_buffer)
+        {
+            FreeCommands();
+            delete[] _buffer;
+        }
+
+        _capacity = 0;
+        _size = 0;
+        _position = 0;
+        _current = 0;
+        _count = 0;
     }
 
     void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
@@ -62,7 +84,8 @@ namespace Alimer
             ALIMER_LOGCRITICAL("BeginRenderPass should be called before EndRenderPass.");
         }
 
-        BeginRenderPassCore(renderPass, renderArea, clearColors, numClearColors, clearDepth, clearStencil);
+        Push(BeginRenderPassCommand(renderPass, renderArea));
+        //BeginRenderPassCore(renderPass, renderArea, clearColors, numClearColors, clearDepth, clearStencil);
         _state = CommandBufferState::InRenderPass;
     }
 
@@ -73,7 +96,8 @@ namespace Alimer
             ALIMER_LOGCRITICAL("EndRenderPass must be called inside BeginRenderPass.");
         }
 
-        EndRenderPassCore();
+        Push(EndRenderPassCommand());
+        //EndRenderPassCore();
         _state = CommandBufferState::Ready;
     }
 
@@ -167,5 +191,57 @@ namespace Alimer
         }
 
         DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
+    }
+
+    void CommandBuffer::MoveCommands(uint8_t* newBuffer)
+    {
+        size_t offset = _position;
+
+        for (uint32_t i = _current; i < _count; ++i)
+        {
+            if (offset % CommandAlign != 0) {
+                offset += CommandAlign - (offset % CommandAlign);
+            }
+
+            Command* command = reinterpret_cast<Command*>(_buffer + offset);
+
+            switch (command->type)
+            {
+            case Command::Type::BeginRenderPass:
+                offset += MoveCommand(static_cast<BeginRenderPassCommand*>(command), newBuffer + offset);
+                break;
+
+            case Command::Type::EndRenderPass:
+                offset += MoveCommand(static_cast<EndRenderPassCommand*>(command), newBuffer + offset);
+                break;
+
+            default: assert(false);
+            }
+        }
+    }
+
+    void CommandBuffer::FreeCommands()
+    {
+        size_t offset = _position;
+
+        for (uint32_t i = _current; i < _count; ++i)
+        {
+            if (offset % CommandAlign != 0) {
+                offset += CommandAlign - (offset % CommandAlign);
+            }
+
+            Command* command = reinterpret_cast<Command*>(_buffer + offset);
+            switch (command->type)
+            {
+            case Command::Type::BeginRenderPass :
+                offset += DeleteCommand(static_cast<BeginRenderPassCommand*>(command));
+                break;
+            case Command::Type::EndRenderPass:
+                offset += DeleteCommand(static_cast<EndRenderPassCommand*>(command));
+                break;
+
+            default: assert(false);
+            }
+        }
     }
 }

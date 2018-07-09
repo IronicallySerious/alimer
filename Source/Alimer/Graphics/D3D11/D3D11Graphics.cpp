@@ -406,6 +406,11 @@ namespace Alimer
         // TODO
     }
 
+    RenderPass* D3D11Graphics::GetBackbufferRenderPass() const
+    {
+        return _swapChain->GetRenderPass();
+    }
+
     SharedPtr<RenderPass> D3D11Graphics::CreateRenderPass(const RenderPassDescription& description)
     {
         return MakeShared<D3D11RenderPass>(this, description);

@@ -81,6 +81,11 @@ namespace Alimer
 
     void D3D11CommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
+        if (!renderPass)
+        {
+            renderPass = StaticCast<D3D11Graphics>(_graphics)->GetBackbufferRenderPass();
+        }
+
         _currentRenderPass = static_cast<D3D11RenderPass*>(renderPass);
         _currentRenderPass->Bind(_context);
 
