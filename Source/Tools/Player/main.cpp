@@ -33,7 +33,7 @@ namespace Alimer
 
     private:
         void Initialize() override;
-        void OnRender(RenderPass* frameRenderPass) override;
+        void OnRender(CommandBuffer* commandBuffer) override;
 
     private:
         SharedPtr<GpuBuffer> _vertexBuffer;
@@ -72,7 +72,7 @@ namespace Alimer
         renderPipelineDescriptor.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
         renderPipelineDescriptor.vertexDescriptor.attributes[1].offset = 12;
         renderPipelineDescriptor.vertexDescriptor.layouts[0].stride = _vertexBuffer->GetElementSize();
-        _renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);
+        //_renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);*/
 
         // Create scene
        // auto triangleEntity = _scene->CreateEntity();
@@ -80,16 +80,14 @@ namespace Alimer
        // triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
     }
 
-    void RuntimeApplication::OnRender(RenderPass* frameRenderPass)
+    void RuntimeApplication::OnRender(CommandBuffer* commandBuffer)
     {
-        CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
-        Color clearColor = Color::Green;
-        commandBuffer->BeginRenderPass(frameRenderPass, clearColor);
-        commandBuffer->SetPipeline(_renderPipeline);
-        commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
-        commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
+        commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
         commandBuffer->EndRenderPass();
-        commandBuffer->Commit();
+
+        //commandBuffer->SetPipeline(_renderPipeline);
+        //commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
+        //commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
     }
 }
 

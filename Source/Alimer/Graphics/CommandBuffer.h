@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Core/Flags.h"
+#include "../Graphics/Commands.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/PipelineState.h"
@@ -33,59 +34,56 @@ namespace Alimer
 {
     class Graphics;
 
-    struct Command
-    {
-        enum class Type : uint8_t
-        {
-            Invalid,
-            BeginRenderPass,
-            EndRenderPass
-        };
-
-        Command(Type type_) : type(type_)
-        {
-        }
-
-        const Type type;
-    };
-
-    struct BeginRenderPassCommand : public Command
-    {
-        BeginRenderPassCommand(RenderPass* renderPass_, const Rectangle& renderArea_)
-            : Command(Command::Type::BeginRenderPass)
-            , renderPass(renderPass_)
-            , renderArea(renderArea)
-        {
-        }
-
-        RenderPass* renderPass;
-        Rectangle renderArea;
-    };
-
-    struct EndRenderPassCommand : public Command
-    {
-        EndRenderPassCommand()
-            : Command(Command::Type::EndRenderPass)
-        {
-        }
-    };
-
     /// Defines a command buffer for storing recorded gpu commands.
-    class ALIMER_API CommandBuffer : public GpuResource
+    class ALIMER_API CommandBuffer : public RefCounted
     {
-    protected:
-        /// Constructor.
-        CommandBuffer(Graphics* graphics);
+        static constexpr size_t CommandAlign = alignof(Command*);
 
     public:
+        CommandBuffer();
+
         /// Destructor.
         virtual ~CommandBuffer();
 
-        /// Clear all commands in the buffer.
-        virtual void Clear();
+        /// Clear all commands
+        void Clear();
 
-        /// Commits this command buffer for execution as soon as possible.
-        void Commit();
+        template<typename T>
+        void Push(const T& command)
+        {
+            static_assert(std::is_base_of<Command, T>::value, "Must derive from Command structu");
+
+            size_t offset = _size;
+            if (offset % CommandAlign != 0)
+            {
+                offset += CommandAlign - (offset % CommandAlign);
+            }
+
+            if (_capacity < offset + sizeof(T))
+            {
+                _capacity *= 2;
+                if (_capacity < offset + sizeof(T))
+                {
+                    _capacity = offset + sizeof(T);
+                }
+
+                uint8_t* newBuffer = new uint8_t[_capacity];
+                if (_buffer)
+                {
+                    MoveCommands(newBuffer);
+                    DeleteCommands();
+                    delete[] _buffer;
+                }
+                _buffer = newBuffer;
+            }
+
+            _size = offset + sizeof(T);
+            ++_count;
+            new (_buffer + offset) T(command);
+        }
+
+        Command* Front() const;
+        void Pop();
 
         void BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
         void BeginRenderPass(RenderPass* renderPass, const Rectangle& renderArea, const Color& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
@@ -102,14 +100,14 @@ namespace Alimer
         void EndRenderPass();
 
         virtual void SetViewport(const Viewport& viewport);
-        virtual void SetViewports(uint32_t numViewports, const Viewport* viewports) = 0;
+        virtual void SetViewports(uint32_t numViewports, const Viewport* viewports);
 
         virtual void SetScissor(const Rectangle& scissor);
-        virtual void SetScissors(uint32_t numScissors, const Rectangle* scissors) = 0;
+        //virtual void SetScissors(uint32_t numScissors, const Rectangle* scissors) = 0;
 
         void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
-        virtual void SetPipeline(const SharedPtr<PipelineState>& pipeline) = 0;
+        //virtual void SetPipeline(const SharedPtr<PipelineState>& pipeline) = 0;
 
         void SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer);
 
@@ -117,66 +115,17 @@ namespace Alimer
         void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
         void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
 
+        void ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
+
     protected:
-        static constexpr size_t CommandAlign = alignof(Command*);
+        virtual void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil);
+        virtual void EndRenderPassCore();
+        virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
-        template<typename T>
-        void Push(const T& command)
-        {
-            static_assert(std::is_base_of<Command, T>::value,
-                "Must derive from Command struct.");
-
-            const size_t commandSize = sizeof(T);
-
-            size_t offset = _size;
-            if (offset % CommandAlign != 0) {
-                offset += CommandAlign - (offset % CommandAlign);
-            }
-
-            if (_capacity < offset + commandSize)
-            {
-                _capacity *= 2;
-                if (_capacity < offset + commandSize) {
-                    _capacity = offset + commandSize;
-                }
-
-                uint8_t* newBuffer = new uint8_t[_capacity];
-                if (_buffer)
-                {
-                    MoveCommands(newBuffer);
-                    FreeCommands();
-                    delete[] _buffer;
-                }
-
-                _buffer = newBuffer;
-            }
-
-            _size = offset + commandSize;
-            ++_count;
-            new (_buffer + offset) T(command);
-        };
-
-        Command* Front() const
-        {
-            if (_current >= _count)
-                return nullptr;
-
-            size_t offset = _position;
-            if (offset % CommandAlign != 0)
-                offset += CommandAlign - (offset % CommandAlign);
-
-            Command* command = reinterpret_cast<Command*>(_buffer + offset);
-            return command;
-        }
-
-        virtual void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
-        virtual void EndRenderPassCore() = 0;
-        virtual void CommitCore() = 0;
-
-        virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
-        virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
+        //virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
+        //virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
         virtual void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) {}
-        virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
+        //virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
         inline bool IsInsideRenderPass() const
         {
@@ -195,7 +144,7 @@ namespace Alimer
             Committed
         };
 
-        CommandBufferState _state;
+        CommandBufferState _state = CommandBufferState::Ready;
 
         enum CommandBufferDirtyBits
         {
@@ -213,7 +162,6 @@ namespace Alimer
             _dirty &= ~flags;
             return mask;
         }
-
 
         struct VertexBindingState
         {
@@ -251,7 +199,7 @@ namespace Alimer
 
     private:
         template<typename T>
-        uint32_t DeleteCommand(/*MAYBE_UNUSED*/ T* command)
+        uint32_t DeleteCommand(T* command)
         {
             ALIMER_UNUSED(command);
             command->~T();
@@ -267,14 +215,15 @@ namespace Alimer
         }
 
         void MoveCommands(uint8_t* newBuffer);
-        void FreeCommands();
+        void DeleteCommands();
 
-        uint8_t* _buffer;
-        size_t _capacity;
-        size_t _size;
-        size_t _position;
-        uint32_t _current;
-        uint32_t _count;
+    private:
+        uint8_t * _buffer = nullptr;
+        size_t _capacity = 0;
+        size_t _size = 0;
+        size_t _position = 0;
+        uint32_t _count = 0;
+        uint32_t _current = 0;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);

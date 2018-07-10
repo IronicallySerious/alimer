@@ -69,15 +69,18 @@ namespace Alimer
         /// Wait for a device to become idle.
         virtual void WaitIdle() = 0;
 
-        /// Execute operation on rendering thread.
-        void QueueCommand(const std::function<void(void)>& commandCallback);
-        void FlushCommands();
+        /// Begin frame rendering.
+        virtual bool BeginFrame() = 0;
+
+        /// End and present frame.
+        virtual void EndFrame() = 0;
 
         /// Try to save screenshot with given file name.
         void SaveScreenshot(const std::string& fileName);
 
-        /// Gets if graphics is not consuming gpu commands
-        bool CanAddCommands() const { return _canAddCommands; }
+        virtual CommandBuffer* GetDefaultCommandBuffer() const = 0;
+
+        //SharedPtr<CommandBuffer> CreateCommandBuffer();
 
         // RenderPass
         virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
@@ -110,7 +113,7 @@ namespace Alimer
         inline const GpuDeviceFeatures& GetFeatures() const { return _features; }
 
         /// Get default command buffer.
-        CommandBuffer* GetDefaultCommandBuffer() const { return _defaultCommandBuffer; }
+        //CommandBuffer* GetDefaultCommandBuffer() const { return _defaultCommandBuffer; }
 
     private:
         /// Add a GpuResource to keep track of. 
@@ -123,9 +126,9 @@ namespace Alimer
         virtual void Finalize();
         virtual bool BackendInitialize() = 0;
 
-        virtual void ProcessCommands();
-        void SubmitQueueCommands();
-        virtual void GenerateScreenshot(const std::string& fileName);
+        virtual SharedPtr<CommandBuffer> CreateCommandBufferCore();
+        virtual void GenerateScreenshot(const std::string& fileName) {}
+        virtual void ExecuteCommandBuffer(CommandBuffer* commandBuffer) = 0;
 
     protected:
         GraphicsDeviceType _deviceType;
@@ -135,15 +138,13 @@ namespace Alimer
 
         SharedPtr<Window> _window{};
         GpuAdapter* _adapter;
-        CommandBuffer* _defaultCommandBuffer;
 
-        std::atomic<bool> _canAddCommands;
-        bool _queueFinished = false;
-        std::mutex _commandQueueMutex;
-        std::condition_variable _commandQueueCondition;
+        // Submitted command buffers.
+        std::vector<SharedPtr<CommandBuffer>> _commandBuffers;
+        std::vector<SharedPtr<CommandBuffer>> _executingCommandBuffers;
 
         // Simple commands to execute on rendering thread.
-        std::queue<std::function<void(void)>> _commandsQueue;
+        std::queue<std::function<void(void)>> _threadCommandsQueue;
         std::mutex _queueMutex;
 
     private:

@@ -28,7 +28,6 @@
 
 namespace Alimer
 {
-    class VulkanCommandQueue;
 	class VulkanCommandBuffer;
     class VulkanDescriptorSetAllocator;
     class VulkanPipelineLayout;
@@ -45,6 +44,11 @@ namespace Alimer
 		~VulkanGraphics() override;
 
         void WaitIdle() override;
+
+        bool BeginFrame() override;
+        void EndFrame() override;
+        CommandBuffer* GetDefaultCommandBuffer() const;
+        RenderPass* GetBackbufferRenderPass() const;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
@@ -77,6 +81,7 @@ namespace Alimer
         void Finalize() override;
         bool BackendInitialize() override;
         void CreateAllocator();
+        void ExecuteCommandBuffer(CommandBuffer* commandBuffer) override;
 
 		VkInstance _instance = VK_NULL_HANDLE;
 		VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
@@ -99,16 +104,27 @@ namespace Alimer
 		VkQueue _graphicsQueue = VK_NULL_HANDLE;
 		VkQueue _computeQueue = VK_NULL_HANDLE;
 
-		UniquePtr<VulkanSwapchain> _swapchain;
-
         VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
 
-		// CommandPools
-        VulkanCommandQueue* _defaultCommandQueue = nullptr;
-		VkCommandPool _setupCommandPool = VK_NULL_HANDLE;
+		// Default command pool.
+		VkCommandPool _commandPool = VK_NULL_HANDLE;
 
-        std::vector<VkSemaphore> _waitSemaphores;
-        uint64_t _frameIndex = 1;
+        // Main swap chain
+		VulkanSwapchain* _swapChain = nullptr;
+
+        // Primary/Default command buffer
+        VulkanCommandBuffer* _defaultCommandBuffer = nullptr;
+
+        // Synchronization semaphores
+        struct {
+            // Swap chain image presentation
+            VkSemaphore presentComplete;
+            // Command buffer submission and execution
+            VkSemaphore renderComplete;
+        } _semaphores;
+
+        VkFence _frameFence = VK_NULL_HANDLE;
+        uint32_t _swapchainImageIndex = 0;
 
 		// Cache
 		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;

@@ -360,6 +360,12 @@ namespace Alimer
 				textureDesc,
 				_images[i],
 				createInfo.imageUsage);
+
+            RenderPassDescription passDescription = {};
+            passDescription.colorAttachments[0].texture = _textures[i].Get();
+            passDescription.colorAttachments[0].loadAction = LoadAction::Clear;
+            passDescription.colorAttachments[0].storeAction = StoreAction::Store;
+            _renderPasses[i] = new VulkanRenderPass(_graphics, passDescription);
 		}
 
 		if (createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
@@ -417,15 +423,24 @@ namespace Alimer
 		return _renderPasses[_currentBackBufferIndex];
 	}
 
-	VkResult VulkanSwapchain::QueuePresent(VkQueue queue)
+    VkResult VulkanSwapchain::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex)
+    {
+        return vkAcquireNextImageKHR(_logicalDevice, _swapchain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);
+    }
+
+	VkResult VulkanSwapchain::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
 	{
 		VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 		presentInfo.pNext = nullptr;
-        presentInfo.waitSemaphoreCount = 0;
-        presentInfo.pWaitSemaphores = nullptr;
+        // Check if a wait semaphore has been specified to wait for before presenting the image
+        if (waitSemaphore != VK_NULL_HANDLE)
+        {
+            presentInfo.waitSemaphoreCount = 1;
+            presentInfo.pWaitSemaphores = &waitSemaphore;
+        }
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &_swapchain;
-		presentInfo.pImageIndices = &_currentBackBufferIndex;
+		presentInfo.pImageIndices = &imageIndex;
 
 		return vkQueuePresentKHR(queue, &presentInfo);
 	}

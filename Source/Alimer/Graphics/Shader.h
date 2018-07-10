@@ -36,7 +36,6 @@ namespace Alimer
     {
         size_t codeSize;
         const uint32_t* pCode;
-        const char* entryPoint;
     };
 
     enum class BindingType

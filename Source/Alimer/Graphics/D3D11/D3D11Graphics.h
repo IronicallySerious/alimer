@@ -30,7 +30,7 @@
 
 namespace Alimer
 {
-	class D3D11CommandQueue;
+	class D3D11CommandContext;
 	class D3D11Texture;
     class D3D11SwapChain;
 
@@ -72,8 +72,15 @@ namespace Alimer
         bool BackendInitialize() override;
 		bool InitializeCaps();
 
+        bool BeginFrame() override;
+        void EndFrame() override;
+
+        CommandBuffer* GetDefaultCommandBuffer() const override;
+
         void GenerateScreenshot(const std::string& fileName) override;
-        void RenderThread();
+
+        SharedPtr<CommandBuffer> CreateCommandBufferCore() override;
+        void ExecuteCommandBuffer(CommandBuffer* commandBuffer) override;
 
         Microsoft::WRL::ComPtr<IDXGIFactory2>               _dxgiFactory;
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
@@ -86,7 +93,6 @@ namespace Alimer
         uint32_t _shaderModelMajor = 4;
         uint32_t _shaderModelMinor = 0;
 
-        std::atomic<bool> _renderThreadRunning;
-        std::thread _renderThread;
+        D3D11CommandContext* _defaultCommandBuffer = nullptr;
 	};
 }

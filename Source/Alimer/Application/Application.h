@@ -121,8 +121,8 @@ namespace Alimer
         /// Render after frame update.
         void Render();
 
-        /// Calledn during rendering single frame.
-        virtual void OnRender(RenderPass* frameRenderPass) {}
+        /// Called during rendering single frame.
+        virtual void OnRender(CommandBuffer* commandBuffer);
 
         virtual Input* CreateInput();
         virtual Audio* CreateAudio();

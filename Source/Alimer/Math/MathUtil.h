@@ -106,6 +106,26 @@ namespace Alimer
         return (value + (alignment - 1)) & ~(alignment - 1);
     }
 
+    inline void* AlignVoidPtr(void* ptr, size_t alignment)
+    {
+        ALIMER_ASSERT(IsPowerOfTwo(alignment));
+        ALIMER_ASSERT(alignment != 0);
+        return reinterpret_cast<void*>((reinterpret_cast<size_t>(ptr) + (alignment - 1)) &
+            ~(alignment - 1));
+    }
+
+    template <typename T>
+    T* AlignPtr(T* ptr, size_t alignment)
+    {
+        return reinterpret_cast<T*>(AlignVoidPtr(ptr, alignment));
+    }
+
+    template <typename T>
+    const T* AlignPtr(const T* ptr, size_t alignment)
+    {
+        return reinterpret_cast<const T*>(AlignVoidPtr(const_cast<T*>(ptr), alignment));
+    }
+
     inline uint32_t ScanForward(uint32_t bits)
     {
         ALIMER_ASSERT(bits != 0);

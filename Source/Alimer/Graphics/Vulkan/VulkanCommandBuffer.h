@@ -39,14 +39,11 @@ namespace Alimer
     class VulkanCommandBuffer final : public CommandBuffer
     {
     public:
-        VulkanCommandBuffer(VulkanGraphics* graphics, VulkanCommandQueue* queue);
+        VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary);
         ~VulkanCommandBuffer() override;
 
-        void CommitCore() override;
-
-        void Begin();
+        void Begin(VkCommandBufferInheritanceInfo* inheritanceInfo);
         void End();
-        void Reset();
 
         void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
@@ -55,36 +52,41 @@ namespace Alimer
         void SetViewports(uint32_t numViewports, const Viewport* viewports) override;
 
         void SetScissor(const Rectangle& scissor) override;
-        void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
+        //void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
-        void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
+        //void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
 
-        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
-        void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
+        //void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
+        //void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
-        VkCommandBuffer GetVkHandle() const { return _vkHandle; }
+        void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
+
+        VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
+        bool IsSecondary() const { return _secondary; }
 
     private:
         void ResetState();
         bool PrepareDraw(PrimitiveTopology topology);
         void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
-        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
-       
+        //void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+
 
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
 
     private:
-        VulkanGraphics * _vkGraphics;
-        VulkanCommandQueue* _queue;
+        VulkanGraphics * _graphics;
         VkDevice _logicalDevice;
-        VkCommandBuffer _vkHandle;
+        VkCommandPool _commandPool;
+        VkCommandBuffer _vkCommandBuffer;
+        bool _secondary = false;
         VulkanRenderPass* _currentRenderPass = nullptr;
         SharedPtr<VulkanPipelineState> _currentPipeline;
         VulkanPipelineLayout* _currentPipelineLayout = nullptr;
         VkPipeline _currentVkPipeline = VK_NULL_HANDLE;
         VkPipelineLayout _currentVkPipelineLayout = VK_NULL_HANDLE;
 
+        VkViewport _currentViewports[MaxViewportsAndScissors] = {};
         VkBuffer _currentVkBuffers[MaxVertexBufferBindings] = {};
 
         struct IndexState

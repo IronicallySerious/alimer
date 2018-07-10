@@ -67,7 +67,6 @@ namespace Alimer
 
     D3D11Graphics::D3D11Graphics(bool validation)
         : Graphics(GraphicsDeviceType::Direct3D11, validation)
-        , _renderThreadRunning(false)
     {
         HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&_dxgiFactory));
         if (FAILED(hr))
@@ -96,23 +95,15 @@ namespace Alimer
 
     D3D11Graphics::~D3D11Graphics()
     {
-        _renderThreadRunning = false;
-        FlushCommands();
         Finalize();
     }
 
     void D3D11Graphics::Finalize()
     {
-        _renderThreadRunning = false;
         WaitIdle();
 
-        // Suspend render thread.
-        if (_renderThread.joinable())
-        {
-            _renderThread.join();
-        }
-
         SafeDelete(_swapChain);
+        SafeDelete(_defaultCommandBuffer);
 
         Graphics::Finalize();
     }
@@ -252,12 +243,32 @@ namespace Alimer
 #endif
 
         // Immediate/default command queue.
-        _defaultCommandBuffer = new D3D11CommandBuffer(this, _d3dContext.Get());
+        _defaultCommandBuffer = new D3D11CommandContext(this, _d3dContext.Get());
 
-        _renderThreadRunning = true;
-        _renderThread = std::thread(std::bind(&D3D11Graphics::RenderThread, this));
+        //_renderThreadRunning = true;
+        //_renderThread = std::thread(std::bind(&D3D11Graphics::RenderThread, this));
 
         return true;
+    }
+
+    bool D3D11Graphics::BeginFrame()
+    {
+        // TODO: Bind default viewport and render target.
+        return true;
+    }
+
+    void D3D11Graphics::EndFrame()
+    {
+        // Present the frame.
+        _swapChain->Present();
+
+        // Flush immediate context.
+        //_d3dContext->Flush();
+    }
+
+    CommandBuffer* D3D11Graphics::GetDefaultCommandBuffer() const
+    {
+        return _defaultCommandBuffer;
     }
 
     void D3D11Graphics::GenerateScreenshot(const std::string& fileName)
@@ -340,23 +351,14 @@ namespace Alimer
         texture->Release();
     }
 
-    void D3D11Graphics::RenderThread()
+    SharedPtr<CommandBuffer> D3D11Graphics::CreateCommandBufferCore()
     {
-        SetCurrentThreadName("Render");
+        return MakeShared<D3D11CommandBuffer>(this);
+    }
 
-        while (_renderThreadRunning)
-        {
-            ProcessCommands();
-
-            // Present the frame.
-            _swapChain->Present();
-
-            // Flush immediate context.
-            //_d3dContext->Flush();
-
-            // Reset default command buffer.
-            static_cast<D3D11CommandBuffer*>(_defaultCommandBuffer)->Reset();
-        }
+    void D3D11Graphics::ExecuteCommandBuffer(CommandBuffer* commandBuffer)
+    {
+        static_cast<D3D11CommandBuffer*>(commandBuffer)->Execute(_defaultCommandBuffer);
     }
 
     void D3D11Graphics::WaitIdle()

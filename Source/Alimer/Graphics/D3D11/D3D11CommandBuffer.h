@@ -23,7 +23,6 @@
 #pragma once
 
 #include "Graphics/CommandBuffer.h"
-#include "Graphics/CommandBuffer.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
@@ -31,26 +30,46 @@ namespace Alimer
     class D3D11RenderPass;
     class D3D11Graphics;
 
-	/// D3D11 CommandBuffer implementation.
-	class D3D11CommandBuffer final : public CommandBuffer
-	{
-	public:
-		/// Constructor.
-        D3D11CommandBuffer(D3D11Graphics* graphics, ID3D11DeviceContext1* context);
+    class D3D11CommandContext final : public CommandBuffer
+    {
+    public:
+        /// Constructor.
+        D3D11CommandContext(D3D11Graphics* graphics, ID3D11DeviceContext1* context);
 
-		/// Destructor.
-		~D3D11CommandBuffer() override;
-
-        void Reset();
-
-        void Destroy() override;
-        void CommitCore() override;
+        /// Destructor.
+        ~D3D11CommandContext() override;
 
         void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
-
         void SetViewport(const Viewport& viewport) override;
         void SetViewports(std::uint32_t numViewports, const Viewport* viewports) override;
+
+    private:
+        D3D11Graphics * _graphics;
+        ID3D11DeviceContext1 * _context;
+
+        D3D11RenderPass* _currentRenderPass = nullptr;
+        uint32_t _currentColorAttachmentsBound = 0;
+        PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
+    };
+
+    /// D3D11 CommandBuffer implementation.
+    class D3D11CommandBuffer final : public CommandBuffer
+    {
+    public:
+        /// Constructor.
+        D3D11CommandBuffer(D3D11Graphics* graphics);
+
+        /// Destructor.
+        ~D3D11CommandBuffer() override;
+
+        void Execute(D3D11CommandContext* context);
+
+        /*void Destroy() override;
+        void CommitCore() override;
+
+        void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+
 
         void SetScissor(const Rectangle& scissor) override;
         void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
@@ -59,17 +78,14 @@ namespace Alimer
 
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
-
+        */
     private:
         bool PrepareDraw(PrimitiveTopology topology);
-        void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
-        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
-        
-	private:
-        ID3D11DeviceContext1* _context;
-        bool _isImmediate;
+        //void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
+        //void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
 
-        D3D11RenderPass* _currentRenderPass = nullptr;
+    private:
+        D3D11Graphics * _graphics;
         PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
-	};
+    };
 }

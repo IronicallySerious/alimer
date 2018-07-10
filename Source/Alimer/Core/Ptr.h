@@ -27,7 +27,6 @@
 #include <cstddef>
 #include <memory>
 #include <utility>
-#include <atomic>
 
 namespace Alimer
 {
@@ -40,27 +39,13 @@ namespace Alimer
 		/// Destruct.
 		~RefCount()
 		{
-#if !ALIMER_DISABLE_THREADING
-			refs.store(-1, std::memory_order_relaxed);
-			weakRefs.store(-1, std::memory_order_relaxed);
-#else
-			// Set reference counts below zero to fire asserts if this object is still accessed
 			refs = -1;
 			weakRefs = -1;
-#endif
 		}
 
-#if !ALIMER_DISABLE_THREADING
-		/// Reference count. If below zero, the object has been destroyed.
-		std::atomic_int32_t refs{ 0 };
-		/// Weak reference count.
-		std::atomic_int32_t weakRefs{ 0 };
-#else
-		/// Reference count. If below zero, the object has been destroyed.
 		int refs{ 0 };
 		/// Weak reference count.
 		int weakRefs{ 0 };
-#endif
 	};
 
 	/// Base class for intrusively reference counted objects that can be pointed to with SharedPtr and WeakPtr. These are not copy-constructible and not assignable.
@@ -217,7 +202,7 @@ namespace Alimer
 			if (ptr_)
 			{
 				RefCount* refCount = RefCountPtr();
-#if !ALIMER_DISABLE_THREADING
+#if ALIMER_THREADING
 				refCount->refs.fetch_sub(1, std::memory_order_relaxed); // 2 refs
 				Reset(); // 1 ref
 				refCount->refs.fetch_sub(1, std::memory_order_relaxed); // 0 refs

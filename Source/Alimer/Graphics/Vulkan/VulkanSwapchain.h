@@ -44,9 +44,13 @@ namespace Alimer
 		void Resize(uint32_t width, uint32_t height, bool force = false);
 
 		SharedPtr<VulkanRenderPass> GetNextDrawable();
-		VkResult QueuePresent(VkQueue queue);
+        VkResult AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex);
+		VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
+
 
 		uint32_t GetImageCount() const { return _imageCount; }
+        VulkanRenderPass* GetRenderPass(uint32_t index) const { return _renderPasses[index].Get(); }
+
 	private:
 		/// Graphics subsystem.
 		WeakPtr<VulkanGraphics> _graphics;

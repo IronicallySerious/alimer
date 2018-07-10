@@ -50,13 +50,13 @@ namespace Alimer
     VulkanCommandQueue::~VulkanCommandQueue()
     {
         // Finalize.
-        for (size_t i = 0; i < MaxCommandBuffersPerQueue; i++)
+        /*for (size_t i = 0; i < MaxCommandBuffersPerQueue; i++)
         {
             if (_recycleCommandBuffers[i])
             {
                 SafeDelete(_recycleCommandBuffers[i]);
             }
-        }
+        }*/
 
         // Destroy command pool.
         vkDestroyCommandPool(_logicalDevice, _vkHandle, nullptr);
@@ -64,7 +64,7 @@ namespace Alimer
 
     CommandBuffer* VulkanCommandQueue::CreateCommandBuffer()
     {
-        VulkanCommandBuffer* commandBuffer = GetCommandBuffer();
+       /* VulkanCommandBuffer* commandBuffer = GetCommandBuffer();
 
         if (commandBuffer == nullptr)
         {
@@ -73,8 +73,8 @@ namespace Alimer
 
         // Begin implicitly reset the command buffer.
         commandBuffer->Begin();
-
-        return commandBuffer;
+        */
+        return nullptr;
     }
 
     void VulkanCommandQueue::Enqueue(VkCommandBuffer vkCommandBuffer)

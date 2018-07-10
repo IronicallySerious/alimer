@@ -32,7 +32,7 @@ namespace Alimer
         VkShaderModuleCreateInfo moduleCreateInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
         moduleCreateInfo.pNext = nullptr;
         moduleCreateInfo.flags = 0;
-        moduleCreateInfo.codeSize = desc.codeSize;
+        moduleCreateInfo.codeSize = desc.codeSize * sizeof(uint32_t);
         moduleCreateInfo.pCode = desc.pCode;
 
         VkShaderModule shaderModule;

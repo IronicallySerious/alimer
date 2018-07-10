@@ -28,6 +28,7 @@
 
 namespace Alimer
 {
+    static constexpr uint32_t MaxViewportsAndScissors = 16u;
     static constexpr uint32_t MaxDescriptorSets = 4u;
     static constexpr uint32_t MaxBindingsPerSet = 16u;
     static constexpr uint32_t MaxVertexAttributes = 16u;

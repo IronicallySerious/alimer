@@ -38,67 +38,39 @@ static_assert(offsetof(Alimer::Viewport, maxDepth) == offsetof(D3D11_VIEWPORT, M
 
 namespace Alimer
 {
-    D3D11CommandBuffer::D3D11CommandBuffer(D3D11Graphics* graphics, ID3D11DeviceContext1* context)
-        : CommandBuffer(graphics)
+    static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+
+    D3D11CommandContext::D3D11CommandContext(D3D11Graphics* graphics, ID3D11DeviceContext1* context)
+        : _graphics(graphics)
         , _context(context)
-        , _isImmediate(true)
     {
+
     }
 
-    D3D11CommandBuffer::~D3D11CommandBuffer()
+    D3D11CommandContext::~D3D11CommandContext()
     {
-        Reset();
-        Destroy();
+
     }
 
-    void D3D11CommandBuffer::Destroy()
-    {
-        if (!_isImmediate)
-        {
-            _context->Release();
-        }
-    }
-
-    void D3D11CommandBuffer::Reset()
-    {
-        _state = CommandBufferState::Ready;
-
-        if (!_isImmediate)
-        {
-            _currentTopology = PrimitiveTopology::Count;
-            _context->ClearState();
-        }
-    }
-
-    void D3D11CommandBuffer::CommitCore()
-    {
-        if (_isImmediate)
-            return;
-
-        ComPtr<ID3D11CommandList> commandList;
-        _context->FinishCommandList(FALSE, commandList.ReleaseAndGetAddressOf());
-    }
-
-    void D3D11CommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    void D3D11CommandContext::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         if (!renderPass)
         {
-            renderPass = StaticCast<D3D11Graphics>(_graphics)->GetBackbufferRenderPass();
+            renderPass = _graphics->GetBackbufferRenderPass();
         }
 
         _currentRenderPass = static_cast<D3D11RenderPass*>(renderPass);
         _currentRenderPass->Bind(_context);
+        _currentColorAttachmentsBound = renderPass->GetColorAttachmentsCount();
 
-        for (uint32_t i = 0; i < renderPass->GetColorAttachmentsCount(); ++i)
+        for (uint32_t i = 0; i < _currentColorAttachmentsBound; ++i)
         {
             const RenderPassAttachment& colorAttachment = renderPass->GetColorAttachment(i);
 
             switch (colorAttachment.loadAction)
             {
             case LoadAction::Clear:
-                _context->ClearRenderTargetView(
-                    _currentRenderPass->GetRTV(i),
-                    &clearColors[i].r);
+                _context->ClearRenderTargetView(_currentRenderPass->GetRTV(i), &clearColors[i].r);
                 break;
 
             default:
@@ -113,27 +85,84 @@ namespace Alimer
             setRenderArea = Rectangle((int32_t)renderPass->GetWidth(), (int32_t)renderPass->GetHeight());
         }
 
-        SetViewport(Viewport(setRenderArea));
+        D3D11_VIEWPORT d3dViewport = {
+            static_cast<float>(setRenderArea.x), static_cast<float>(setRenderArea.y),
+            static_cast<float>(setRenderArea.width), static_cast<float>(setRenderArea.height),
+            0.0f, 1.0f
+        }; 
+        _context->RSSetViewports(1, &d3dViewport);
         SetScissor(setRenderArea);
     }
 
-    void D3D11CommandBuffer::EndRenderPassCore()
+    void D3D11CommandContext::EndRenderPassCore()
     {
-        ID3D11RenderTargetView* nullViews[] = { nullptr };
-        _context->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
+        _context->OMSetRenderTargets(_currentColorAttachmentsBound, nullViews, nullptr);
         _currentRenderPass = nullptr;
     }
 
-    void D3D11CommandBuffer::SetViewport(const Viewport& viewport)
+    void D3D11CommandContext::SetViewport(const Viewport& viewport)
     {
         _context->RSSetViewports(1, (D3D11_VIEWPORT*)&viewport);
     }
 
-    void D3D11CommandBuffer::SetViewports(uint32_t numViewports, const Viewport* viewports)
+    void D3D11CommandContext::SetViewports(uint32_t numViewports, const Viewport* viewports)
     {
         _context->RSSetViewports(numViewports, (D3D11_VIEWPORT*)viewports);
     }
 
+    D3D11CommandBuffer::D3D11CommandBuffer(D3D11Graphics* graphics)
+        : CommandBuffer()
+        , _graphics(graphics)
+    {
+    }
+
+    D3D11CommandBuffer::~D3D11CommandBuffer() = default;
+
+    void D3D11CommandBuffer::Execute(D3D11CommandContext* context)
+    {
+        while (Command* command = Front())
+        {
+            switch (command->type)
+            {
+            case Command::Type::BeginRenderPass:
+            {
+                const BeginRenderPassCommand* beginRenderPassCommand = static_cast<const BeginRenderPassCommand*>(command);
+                context->BeginRenderPassCore(
+                    beginRenderPassCommand->renderPass,
+                    beginRenderPassCommand->renderArea,
+                    beginRenderPassCommand->clearColors.data(),
+                    static_cast<uint32_t>(beginRenderPassCommand->clearColors.size()),
+                    beginRenderPassCommand->clearDepth,
+                    beginRenderPassCommand->clearStencil
+                );
+            }
+            break;
+
+            case Command::Type::EndRenderPass:
+            {
+                context->EndRenderPassCore();
+            }
+            break;
+
+            case Command::Type::SetViewport:
+            {
+                const SetViewportCommand* typedCmd = static_cast<const SetViewportCommand*>(command);
+                context->SetViewport(typedCmd->viewport);
+            }
+            break;
+
+            default:
+                ALIMER_LOGCRITICAL("Invalid CommandBuffer command");
+                break;
+            }
+
+            Pop();
+        }
+    }
+
+    /*
+
+    
     void D3D11CommandBuffer::SetScissor(const Rectangle& scissor)
     {
         D3D11_RECT scissorD3D;
@@ -214,5 +243,6 @@ namespace Alimer
         }
 
         return false;
-    }
+    }*/
 }
+

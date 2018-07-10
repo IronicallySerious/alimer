@@ -167,27 +167,27 @@ namespace Alimer
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
         {
-            ALIMER_LOGERROR("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGERROR("[Vulkan] - [{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
         {
-            ALIMER_LOGWARN("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGWARN("[Vulkan] - [{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
         {
-            ALIMER_LOGERROR("[Vulkan] - PERFORMANCE WARNING: [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGERROR("[Vulkan] - PERFORMANCE WARNING: [{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
         {
-            ALIMER_LOGINFO("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGINFO("[Vulkan] - [{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
         {
-            ALIMER_LOGDEBUG("[%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGDEBUG("[{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
         }
         else
         {
-            ALIMER_LOGINFO("%s: %s", pLayerPrefix, pMessage);
+            ALIMER_LOGINFO("{}: {}", pLayerPrefix, pMessage);
         }
 
         return VK_FALSE;
@@ -381,7 +381,7 @@ namespace Alimer
         Graphics::Finalize();
 
         // Destroy main swap chain.
-        _swapchain.Reset();
+        SafeDelete(_swapChain);
 
         for (auto& it : _renderPassCache)
         {
@@ -394,11 +394,19 @@ namespace Alimer
 
         vkDestroyPipelineCache(_logicalDevice, _pipelineCache, nullptr);
 
-        if (_setupCommandPool != VK_NULL_HANDLE)
+        // Destroy default command buffer.
+        SafeDelete(_defaultCommandBuffer);
+
+        // Destroy default command pool.
+        if (_commandPool != VK_NULL_HANDLE)
         {
-            vkDestroyCommandPool(_logicalDevice, _setupCommandPool, nullptr);
-            _setupCommandPool = VK_NULL_HANDLE;
+            vkDestroyCommandPool(_logicalDevice, _commandPool, nullptr);
+            _commandPool = VK_NULL_HANDLE;
         }
+
+        vkDestroySemaphore(_logicalDevice, _semaphores.presentComplete, nullptr);
+        vkDestroySemaphore(_logicalDevice, _semaphores.renderComplete, nullptr);
+        vkDestroyFence(_logicalDevice, _frameFence, nullptr);
 
         // Destroy memory allocator.
         vmaDestroyAllocator(_allocator);
@@ -566,17 +574,36 @@ namespace Alimer
         pipelineCacheCreateInfo.flags = 0;
         vkThrowIfFailed(vkCreatePipelineCache(_logicalDevice, &pipelineCacheCreateInfo, nullptr, &_pipelineCache));
 
-
         // Get queue's.
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.graphics, 0, &_graphicsQueue);
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.compute, 0, &_computeQueue);
 
-        // Create the main swap chain.
-        _swapchain.Reset(new VulkanSwapchain(this, _window.Get()));
+        // Create default command pool.
+        _commandPool = CreateCommandPool(
+            _queueFamilyIndices.graphics,
+            VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
+        );
 
-        // Create default command queue.
-        _defaultCommandQueue = new VulkanCommandQueue(this, _graphicsQueue, _queueFamilyIndices.graphics);
-        _defaultCommandBuffer = _defaultCommandQueue->CreateCommandBuffer();
+        // Create default primary command buffer;
+        _defaultCommandBuffer = new VulkanCommandBuffer(this, _commandPool, false);
+
+        // Create the main swap chain.
+        _swapChain = new VulkanSwapchain(this, _window.Get());
+
+        // Create sync primitives
+        VkSemaphoreCreateInfo semaphoreCreateInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+
+        // Create a semaphore used to synchronize image presentation
+        // Ensures that the image is displayed before we start submitting new commands to the queu
+        vkThrowIfFailed(vkCreateSemaphore(_logicalDevice, &semaphoreCreateInfo, nullptr, &_semaphores.presentComplete));
+
+        // Create a semaphore used to synchronize command submission
+        // Ensures that the image is not presented until all commands have been sumbitted and executed
+        vkThrowIfFailed(vkCreateSemaphore(_logicalDevice, &semaphoreCreateInfo, nullptr, &_semaphores.renderComplete));
+
+        // Create frame fence.
+        VkFenceCreateInfo fenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0 };
+        vkCreateFence(_logicalDevice, &fenceCreateInfo, NULL, &_frameFence);
 
         return true;
     }
@@ -616,45 +643,92 @@ namespace Alimer
 
     void VulkanGraphics::AddWaitSemaphore(VkSemaphore semaphore)
     {
-        _waitSemaphores.push_back(semaphore);
     }
 
-    /*SharedPtr<RenderPass> VulkanGraphics::BeginFrameCore()
+    bool VulkanGraphics::BeginFrame()
     {
         // Acquire the next image from the swap chain
-        SharedPtr<VulkanRenderPass> renderPass = _swapchain->GetNextDrawable();
+        VkResult result = _swapChain->AcquireNextImage(_semaphores.presentComplete, &_swapchainImageIndex);
+        // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+        if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
+        {
+            //WindowResize();
+        }
+        else {
+            vkThrowIfFailed(result);
+        }
 
         for (auto &allocator : _descriptorSetAllocators)
         {
             allocator.second->BeginFrame();
         }
 
-        return renderPass;
+        // Begin command buffer.
+        _defaultCommandBuffer->Begin(nullptr);
+
+        return true;
     }
 
-    void VulkanGraphics::EndFrameCore()
+    void VulkanGraphics::EndFrame()
     {
-        //_defaultCommandBuffer->Commit();
+        _defaultCommandBuffer->End();
 
-        // TODO: Multiple command queue's
-        _defaultCommandQueue->Submit(_waitSemaphores);
+        VkCommandBuffer commandBuffer = _defaultCommandBuffer->GetVkCommandBuffer();
 
-        // Clear wait semaphores.
-        _waitSemaphores.clear();
+        // Submit command buffers.
+        VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        submitInfo.pNext = nullptr;
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = &_semaphores.presentComplete;
+        submitInfo.pWaitDstStageMask = &submitPipelineStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = &_semaphores.renderComplete;
+
+        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _frameFence));
+
+        // Wait for fence to signal that all command buffers are ready,
+        VkResult fenceRes;
+        do {
+            fenceRes = vkWaitForFences(_logicalDevice, 1, &_frameFence, VK_TRUE, 100000000);
+        } while (fenceRes == VK_TIMEOUT);
+        vkThrowIfFailed(fenceRes);
+        vkResetFences(_logicalDevice, 1, &_frameFence);
 
         // Submit Swapchain.
-        VkResult result = _swapchain->QueuePresent(_graphicsQueue);
-        if (result < VK_SUCCESS)
+        VkResult result = _swapChain->QueuePresent(_graphicsQueue, _swapchainImageIndex, _semaphores.renderComplete);
+        if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR)))
         {
-            return;
+            if (result == VK_ERROR_OUT_OF_DATE_KHR)
+            {
+                // Swap chain is no longer compatible with the surface and needs to be recreated
+                //WindowResize();
+                return;
+            }
+            else {
+                vkThrowIfFailed(result);
+            }
         }
 
         // DestroyPendingResources();
-        _frameIndex++;
+    }
 
-        // Get new command buffer.
-        _defaultCommandBuffer = _defaultCommandQueue->CreateCommandBuffer();
-    }*/
+    CommandBuffer* VulkanGraphics::GetDefaultCommandBuffer() const
+    {
+        return _defaultCommandBuffer;
+    }
+
+    RenderPass* VulkanGraphics::GetBackbufferRenderPass() const
+    {
+        return _swapChain->GetRenderPass(_swapchainImageIndex);
+    }
+
+    void VulkanGraphics::ExecuteCommandBuffer(CommandBuffer* commandBuffer)
+    {
+
+    }
 
     SharedPtr<RenderPass> VulkanGraphics::CreateRenderPass(const RenderPassDescription& description)
     {
@@ -721,16 +795,8 @@ namespace Alimer
 
     VkCommandBuffer VulkanGraphics::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
     {
-        if (_setupCommandPool == VK_NULL_HANDLE)
-        {
-            _setupCommandPool = CreateCommandPool(
-                _queueFamilyIndices.graphics,
-                VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
-            );
-        }
-
         VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-        info.commandPool = _setupCommandPool;
+        info.commandPool = _commandPool;
         info.level = level;
         info.commandBufferCount = 1;
 
@@ -778,7 +844,7 @@ namespace Alimer
 
         if (free)
         {
-            vkFreeCommandBuffers(_logicalDevice, _setupCommandPool, 1, &commandBuffer);
+            vkFreeCommandBuffers(_logicalDevice, _commandPool, 1, &commandBuffer);
         }
     }
 

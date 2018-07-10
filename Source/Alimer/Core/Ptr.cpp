@@ -56,30 +56,12 @@ namespace Alimer
     RefCounted::RefCounted()
         : _refCount(new RefCount())
     {
-#if !ALIMER_DISABLE_THREADING
-        // Hold a weak ref to self to avoid possible double delete of the refcount
-        _refCount->weakRefs.fetch_add(1, std::memory_order_relaxed);
-#else
         (_refCount->weakRefs)++;
-#endif
     }
 
     RefCounted::~RefCounted()
     {
         assert(_refCount);
-#if !ALIMER_DISABLE_THREADING
-        assert(_refCount->refs.load(std::memory_order_relaxed) == 0);
-        assert(_refCount->weakRefs.load(std::memory_order_relaxed) > 0);
-
-#if ALIMER_CSHARP
-        InvokeRefCountedCallback(RefCounted_Delete, this);
-#endif
-
-        // Mark object as expired, release the self weak ref and delete the refcount if no other weak refs exist
-        _refCount->refs.store(-1, std::memory_order_relaxed);
-        if (_refCount->weakRefs.fetch_sub(1, std::memory_order_relaxed) == 1)
-            delete _refCount;
-#else
         assert(_refCount->refs == 0);
         assert(_refCount->weakRefs > 0);
 
@@ -93,20 +75,13 @@ namespace Alimer
         if (!_refCount->weakRefs)
             delete _refCount;
 
-#endif
-
         _refCount = nullptr;
     }
 
     void RefCounted::AddRef()
     {
-#if !ALIMER_DISABLE_THREADING
-        assert(_refCount->refs.load(std::memory_order_relaxed) >= 0);
-        _refCount->refs.fetch_add(1, std::memory_order_relaxed);
-#else
         assert(_refCount->refs >= 0);
         (_refCount->refs)++;
-#endif
 
 #if ALIMER_CSHARP
         InvokeRefCountedCallback(RefCounted_AddRef, this);
@@ -115,39 +90,22 @@ namespace Alimer
 
     void RefCounted::Release()
     {
-#if !ALIMER_DISABLE_THREADING
-        assert(_refCount->refs.load(std::memory_order_relaxed) > 0);
-        if (_refCount->refs.fetch_sub(1, std::memory_order_relaxed) == 1)
-        {
-            delete this;
-        }
-
-#else
         assert(_refCount->refs > 0);
         (_refCount->refs)--;
         if (!_refCount->refs)
         {
             delete this;
         }
-#endif
     }
 
     int RefCounted::Refs() const
     {
-#if !ALIMER_DISABLE_THREADING
-        return _refCount->refs.load(std::memory_order_relaxed);
-#else
         return _refCount->refs;
-#endif
     }
 
     int RefCounted::WeakRefs() const
     {
         // Subtract one to not return the internally held reference
-#if !ALIMER_DISABLE_THREADING
-        return _refCount->weakRefs.load(std::memory_order_relaxed) - 1;
-#else
         return _refCount->weakRefs - 1;
-#endif
     }
 }

@@ -47,9 +47,7 @@ namespace Alimer
         : _deviceType(deviceType)
         , _validation(validation)
         , _adapter(nullptr)
-        , _defaultCommandBuffer(nullptr)
         , _features{}
-        , _canAddCommands(true)
     {
         __graphicsInstance = this;
     }
@@ -75,9 +73,6 @@ namespace Alimer
 
     void Graphics::Finalize()
     {
-        // Destroy default command buffer
-        SafeDelete(_defaultCommandBuffer);
-
         // Destroy undestroyed resources.
         if (_gpuResources.size())
         {
@@ -230,77 +225,27 @@ namespace Alimer
         return BackendInitialize();
     }
 
-    void Graphics::FlushCommands()
-    {
-#if ALIMER_THREADING
-        lock_guard<mutex> lock(_commandQueueMutex);
-#endif
-        _canAddCommands = false;
-        _queueFinished = true;
-
-#if ALIMER_THREADING
-        _commandQueueCondition.notify_all();
-#endif
-    }
-
-    void Graphics::ProcessCommands()
-    {
-#if ALIMER_THREADING
-        unique_lock<mutex> lock(_commandQueueMutex);
-        while (!_queueFinished)
-        {
-            _commandQueueCondition.wait(lock);
-        }
-#endif
-
-        _queueFinished = false;
-
-        // Allow to add commands agian.
-        _canAddCommands = true;
-
-        SubmitQueueCommands();
-    }
-
-    void Graphics::QueueCommand(const std::function<void(void)>& commandCallback)
-    {
-        lock_guard<mutex> lock(_queueMutex);
-        _commandsQueue.push(commandCallback);
-    }
-
-
-    void Graphics::SubmitQueueCommands()
-    {
-        std::function<void(void)> func;
-
-        for (;;)
-        {
-            {
-                lock_guard<mutex> lock(_queueMutex);
-                if (_commandsQueue.empty()) break;
-
-                func = std::move(_commandsQueue.front());
-                _commandsQueue.pop();
-            }
-
-            if (func) func();
-        }
-    }
-
     void Graphics::SaveScreenshot(const std::string& fileName)
     {
-        QueueCommand(std::bind(&Graphics::GenerateScreenshot, this, fileName));
     }
 
-    void Graphics::GenerateScreenshot(const std::string& fileName)
+    SharedPtr<CommandBuffer> Graphics::CreateCommandBufferCore()
     {
+        return MakeShared<CommandBuffer>();
     }
+
+    /*SharedPtr<CommandBuffer> Graphics::CreateCommandBuffer()
+    {
+        _commandBuffers.push_back(CreateCommandBufferCore());
+        return _commandBuffers[_commandBuffers.size() - 1];
+    }*/
 
     SharedPtr<Shader> Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
     {
         auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".spv");
         auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".spv");
 
-        // Lookup for GLSL shader.
+        // Lookup for SPIR-V compiled shader.
         if (!vertexShaderStream)
         {
             ALIMER_LOGERROR("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
@@ -331,12 +276,10 @@ namespace Alimer
         ShaderStageDescription vertex = {};
         vertex.pCode = reinterpret_cast<const uint32_t*>(vertexByteCode.data());
         vertex.codeSize = vertexByteCode.size() / sizeof(uint32_t);
-        vertex.entryPoint = "main";
 
         ShaderStageDescription fragment = {};
         fragment.pCode = reinterpret_cast<const uint32_t*>(fragmentByteCode.data());
         fragment.codeSize = fragmentByteCode.size() / sizeof(uint32_t);
-        fragment.entryPoint = "main";
 
         return CreateShader(vertex, fragment);
     }

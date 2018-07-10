@@ -40,29 +40,28 @@ static_assert(offsetof(Alimer::Viewport, height) == offsetof(VkViewport, height)
 static_assert(offsetof(Alimer::Viewport, minDepth) == offsetof(VkViewport, minDepth), "VkViewport minDepth offset mismatch");
 static_assert(offsetof(Alimer::Viewport, maxDepth) == offsetof(VkViewport, maxDepth), "VkViewport maxDepth offset mismatch");
 
-
 namespace Alimer
 {
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VulkanCommandQueue* queue)
-        : CommandBuffer(graphics)
-        , _vkGraphics(graphics)
-        , _logicalDevice(_vkGraphics->GetLogicalDevice())
-        , _queue(queue)
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary)
+        : CommandBuffer()
+        , _graphics(graphics)
+        , _logicalDevice(_graphics->GetLogicalDevice())
+        , _commandPool(commandPool)
     {
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         cmdBufAllocateInfo.pNext = nullptr;
-        cmdBufAllocateInfo.commandPool = queue->GetVkHandle();
-        cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdBufAllocateInfo.commandPool = _commandPool;
+        cmdBufAllocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY: VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdBufAllocateInfo.commandBufferCount = 1;
         vkThrowIfFailed(vkAllocateCommandBuffers(
             _logicalDevice,
             &cmdBufAllocateInfo,
-            &_vkHandle));
+            &_vkCommandBuffer));
     }
 
     VulkanCommandBuffer::~VulkanCommandBuffer()
     {
-        vkFreeCommandBuffers(_logicalDevice, _queue->GetVkHandle(), 1, &_vkHandle);
+        vkFreeCommandBuffers(_logicalDevice, _commandPool, 1, &_vkCommandBuffer);
     }
 
     void VulkanCommandBuffer::ResetState()
@@ -80,37 +79,33 @@ namespace Alimer
         _currentPipeline.Reset();
     }
 
-    void VulkanCommandBuffer::CommitCore()
-    {
-        End();
-        _queue->Enqueue(_vkHandle);
-        _queue->Commit(this);
-    }
-
-    void VulkanCommandBuffer::Begin()
+    void VulkanCommandBuffer::Begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
     {
         VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
         beginInfo.pNext = nullptr;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-        beginInfo.pInheritanceInfo = nullptr;
+        if (inheritanceInfo)
+        {
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+            beginInfo.pInheritanceInfo = inheritanceInfo;
+        }
 
-        vkThrowIfFailed(vkBeginCommandBuffer(_vkHandle, &beginInfo));
+        vkThrowIfFailed(vkBeginCommandBuffer(_vkCommandBuffer, &beginInfo));
 
         ResetState();
     }
 
     void VulkanCommandBuffer::End()
     {
-        vkThrowIfFailed(vkEndCommandBuffer(_vkHandle));
-    }
-
-    void VulkanCommandBuffer::Reset()
-    {
-        vkThrowIfFailed(vkResetCommandBuffer(_vkHandle, 0));
+        vkThrowIfFailed(vkEndCommandBuffer(_vkCommandBuffer));
     }
 
     void VulkanCommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
+        if (!renderPass)
+        {
+            renderPass = _graphics->GetBackbufferRenderPass();
+        }
+
         _currentRenderPass = static_cast<VulkanRenderPass*>(renderPass);
 
         Rectangle setRenderArea = renderArea;
@@ -130,7 +125,7 @@ namespace Alimer
         }
         clearValues[i].depthStencil.depth = clearDepth;
         clearValues[i].depthStencil.stencil = clearStencil;
-       
+
         VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
         renderPassBeginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
         renderPassBeginInfo.framebuffer = _currentRenderPass->GetVkFramebuffer();
@@ -141,38 +136,58 @@ namespace Alimer
         renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
 
-        vkCmdBeginRenderPass(_vkHandle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(_vkCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        // TODO: Set later
-        VkViewport viewport = { 0.0f, 0.0f, renderPassBeginInfo.renderArea.extent.width, renderPassBeginInfo.renderArea.extent.height, 0.0f, 1.0f };
+        VkRect2D scissor = {};
+        scissor.extent = renderPassBeginInfo.renderArea.extent;
 
+        SetViewport(Viewport(setRenderArea));
+        SetScissor(setRenderArea);
+        //vkCmdSetScissor(_vkHandle, 0, 1, &scissor);
+    }
+
+    void VulkanCommandBuffer::EndRenderPassCore()
+    {
+        vkCmdEndRenderPass(_vkCommandBuffer);
+    }
+
+    void VulkanCommandBuffer::ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
+    {
+        std::vector<VkCommandBuffer> vkCommandBuffers;
+        for (uint32_t i = 0; i < commandBufferCount; i++)
+        {
+            VulkanCommandBuffer* vulkanCmdBuffer = static_cast<VulkanCommandBuffer*>(commandBuffers[i]);
+            ALIMER_ASSERT(vulkanCmdBuffer->IsSecondary());
+            vkCommandBuffers[i] = vulkanCmdBuffer->GetVkCommandBuffer();
+        }
+
+        vkCmdExecuteCommands(_vkCommandBuffer, commandBufferCount, vkCommandBuffers.data());
+    }
+
+    void VulkanCommandBuffer::SetViewport(const Viewport& viewport)
+    {
         // Flip to match DirectX coordinate system.
-        viewport = VkViewport{
+        _currentViewports[0] = VkViewport{
             viewport.x, viewport.height + viewport.y,
             viewport.width,   -viewport.height,
             viewport.minDepth, viewport.maxDepth,
         };
 
-        VkRect2D scissor = {};
-        scissor.extent = renderPassBeginInfo.renderArea.extent;
-
-        vkCmdSetViewport(_vkHandle, 0, 1, &viewport);
-        vkCmdSetScissor(_vkHandle, 0, 1, &scissor);
-    }
-
-    void VulkanCommandBuffer::EndRenderPassCore()
-    {
-        vkCmdEndRenderPass(_vkHandle);
-    }
-
-    void VulkanCommandBuffer::SetViewport(const Viewport& viewport)
-    {
-        vkCmdSetViewport(_vkHandle, 0, 1, (VkViewport*)&viewport);
+        vkCmdSetViewport(_vkCommandBuffer, 0, 1, &_currentViewports[0]);
     }
 
     void VulkanCommandBuffer::SetViewports(uint32_t numViewports, const Viewport* viewports)
     {
-        vkCmdSetViewport(_vkHandle, 0, numViewports, (VkViewport*)viewports);
+        for (uint32_t i = 0; i < numViewports; i++)
+        {
+            _currentViewports[i] = VkViewport{
+                viewports[i].x, viewports[i].height + viewports[i].y,
+                viewports[i].width,   -viewports[i].height,
+                viewports[i].minDepth, viewports[i].maxDepth,
+            };
+        }
+
+        vkCmdSetViewport(_vkCommandBuffer, 0, numViewports, _currentViewports);
     }
 
     void VulkanCommandBuffer::SetScissor(const Rectangle& scissor)
@@ -180,7 +195,7 @@ namespace Alimer
 
     }
 
-    void VulkanCommandBuffer::SetScissors(uint32_t numScissors, const Rectangle* scissors)
+    /*void VulkanCommandBuffer::SetScissors(uint32_t numScissors, const Rectangle* scissors)
     {
 
     }
@@ -220,7 +235,7 @@ namespace Alimer
     void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
 
-    }
+    }*/
 
     bool VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)
     {
@@ -266,7 +281,7 @@ namespace Alimer
         _currentVkBuffers[binding] = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
     }
 
-    void VulkanCommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    /*void VulkanCommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         if (_indexState.buffer == buffer
             && _indexState.offset == offset
@@ -283,8 +298,7 @@ namespace Alimer
         VkIndexType vkIndexType = vk::Convert(indexType);
         vkCmdBindIndexBuffer(_vkHandle, vkBuffer, offset, vkIndexType);
     }
-
-    
+    */
 
     void VulkanCommandBuffer::FlushDescriptorSet(uint32_t set)
     {
@@ -336,7 +350,7 @@ namespace Alimer
         }
 
         vkCmdBindDescriptorSets(
-            _vkHandle,
+            _vkCommandBuffer,
             _currentRenderPass ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE,
             _currentVkPipelineLayout,
             set,
@@ -353,3 +367,4 @@ namespace Alimer
         _dirtySets &= ~updateSet;
     }
 }
+

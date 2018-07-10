@@ -108,8 +108,8 @@ namespace Alimer
 
             // Create and init graphics.
             //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
-            _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
-            //_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
+            //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
+            _settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
 
             _graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
             GpuAdapter* adapter = nullptr;
@@ -146,6 +146,7 @@ namespace Alimer
         //InternalUpdate();
         _pluginManager.Update();
 
+        // 
         _graphics->SaveScreenshot("Test.png");
 
         return true;
@@ -179,32 +180,21 @@ namespace Alimer
         if (_headless)
             return;
 
-        if (_graphics->CanAddCommands())
+        if (_graphics->BeginFrame())
         {
-            // Draw scenes.
+            // Add command buffer.
             auto commandBuffer = _graphics->GetDefaultCommandBuffer();
-            commandBuffer->Clear();
-            commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
-            commandBuffer->EndRenderPass();
-            //_sceneManager->Draw();
-            _graphics->FlushCommands();
-        }
+            OnRender(commandBuffer);
 
-        // Acquire frame texture first.
-        /*SharedPtr<RenderPass> frameRenderPass = _graphics->BeginFrame();
-        if (frameRenderPass.IsNotNull())
-        {
-            // Tick timer.
-            double frameTime = _timer.Frame();
-            double elapsedTime = _timer.GetElapsed();
-
-            // Render single frame.
-            RenderFrame(frameRenderPass.Get(), frameTime, elapsedTime);
-            OnRender(frameRenderPass.Get());
-
-            // End frame.
+            // End rendering frame.
             _graphics->EndFrame();
-        }*/
+        }
+    }
+
+    void Application::OnRender(CommandBuffer* commandBuffer)
+    {
+        commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+        commandBuffer->EndRenderPass();
     }
 
     void Application::UpdateScene(double frameTime, double elapsedTime)
