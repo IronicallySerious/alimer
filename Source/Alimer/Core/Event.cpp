@@ -21,18 +21,125 @@
 //
 
 #include "../Core/Event.h"
+#include "../Core/Object.h"
+using namespace std;
 
 namespace Alimer
 {
-    size_t BaseEvent::_familyCounter = 0;
+    EventHandler::EventHandler(Object* receiver)
+        : _receiver(receiver)
+    {
+    }
 
-    EventManager::EventManager()
+    Event::Event()
+        : _currentSender(nullptr)
     {
 
     }
 
-    EventManager::~EventManager()
+    void Event::Send(Object* sender)
     {
+        //if (!Thread::IsMainThread())
+        //{
+        //    ALIMER_LOGERROR("Attempted to send an event from outside the main thread");
+        //    return;
+        //}
 
+        // Retain a weak pointer to the sender on the stack for safety, in case it is destroyed
+        // as a result of event handling, in which case the current event may also be destroyed
+        _currentSender = sender;
+
+        for (auto it = _handlers.begin(); it != _handlers.end();)
+        {
+            const unique_ptr<EventHandler>& handler = *it;
+            bool remove = true;
+
+            if (handler)
+            {
+                const Object* receiver = handler->GetReceiver();
+                if (receiver)
+                {
+                    remove = false;
+                    handler->Invoke(*this);
+                    // If the sender has been destroyed, abort processing immediately
+                    //if (!sender->GetRefCount())
+                    //    return;
+                }
+            }
+
+            if (remove)
+                it = _handlers.erase(it);
+            else
+                ++it;
+        }
+
+        _currentSender = nullptr;
+    }
+
+    void Event::Subscribe(EventHandler* handler)
+    {
+        if (!handler)
+            return;
+
+        // Check if the same receiver already exists; in that case replace the handler data
+        for (auto it = _handlers.begin(); it != _handlers.end(); ++it)
+        {
+            const unique_ptr<EventHandler>& existing = *it;
+            if (existing
+                && existing->GetReceiver() == handler->GetReceiver())
+            {
+                it->reset(handler);
+                return;
+            }
+        }
+
+        _handlers.push_back(unique_ptr<EventHandler>(handler));
+    }
+
+    void Event::Unsubscribe(Object* receiver)
+    {
+        for (auto it = _handlers.begin(); it != _handlers.end(); ++it)
+        {
+            const unique_ptr<EventHandler>& handler = *it;
+            if (handler
+                && handler->GetReceiver() == receiver)
+            {
+                // If event sending is going on, only clear the pointer but do not remove the element from the handler vector
+                // to not confuse the event sending iteration; the element will eventually be cleared by the next SendEvent().
+                if (_currentSender)
+                    *it = nullptr;
+                else
+                    _handlers.erase(it);
+                return;
+            }
+        }
+    }
+
+    bool Event::HasReceivers() const
+    {
+        for (const unique_ptr<EventHandler>& handler : _handlers)
+        {
+            if (handler
+                && handler->GetReceiver())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool Event::HasReceiver(const Object* receiver) const
+    {
+        for (const unique_ptr<EventHandler>& handler : _handlers)
+        {
+            if (handler
+                && handler->GetReceiver() == receiver)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

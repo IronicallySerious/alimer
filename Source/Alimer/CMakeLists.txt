@@ -44,7 +44,7 @@
 #endforeach()
 
 #add_custom_target(
-#	AlimerShaders 
+#	AlimerShaders
 #	DEPENDS ${SPIRV_BINARY_FILES}
 #	)
 
@@ -75,7 +75,6 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_B
 
 # Add source files from subdirectories
 define_engine_source_files (NORECURSE . Core Util IO Math Graphics Input Audio Application)
-define_engine_source_files (NORECURSE glm glm/detail glm/ext glm/gtc glm/gtx glm/simd)
 define_engine_source_files (Resource Serialization Scene Renderer)
 
 if (PLATFORM_WINDOWS)
@@ -242,12 +241,12 @@ set_target_properties(libAlimer PROPERTIES
     CXX_EXTENSIONS NO
 )
 
-target_include_directories(libAlimer 
-	PUBLIC  
+target_include_directories(libAlimer
+	PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${DEST_BASE_INCLUDE_DIR}>
-	PRIVATE 
+	PRIVATE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
     $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
     $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}/glfw/include>

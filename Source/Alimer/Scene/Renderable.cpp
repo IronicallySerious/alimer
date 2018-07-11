@@ -27,7 +27,7 @@ namespace Alimer
 {
     TriangleRenderable::TriangleRenderable()
     {
-        struct Vertex
+        /*struct Vertex
         {
             glm::vec3 position;
             Color color;
@@ -46,7 +46,7 @@ namespace Alimer
         vertexBufferDesc.usage = BufferUsage::Vertex;
         vertexBufferDesc.elementCount = 3;
         vertexBufferDesc.elementSize = sizeof(Vertex);
-        _vertexBuffer = gGraphics().CreateBuffer(vertexBufferDesc, triangleVertices);
+        _vertexBuffer = gGraphics().CreateBuffer(vertexBufferDesc, triangleVertices);*/
 
         /*RenderPipelineDescriptor renderPipelineDescriptor;
         renderPipelineDescriptor.shader = gGraphics().CreateShader("color.vert", "color.frag");

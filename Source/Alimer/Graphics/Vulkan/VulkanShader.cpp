@@ -27,13 +27,13 @@
 
 namespace Alimer
 {
-    static VkShaderModule CreateShaderModule(VkDevice device, const ShaderStageDescription& desc)
+    static VkShaderModule CreateShaderModule(VkDevice device, const void *pCode, size_t codeSize)
     {
         VkShaderModuleCreateInfo moduleCreateInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
         moduleCreateInfo.pNext = nullptr;
         moduleCreateInfo.flags = 0;
-        moduleCreateInfo.codeSize = desc.codeSize * sizeof(uint32_t);
-        moduleCreateInfo.pCode = desc.pCode;
+        moduleCreateInfo.codeSize = codeSize;
+        moduleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(pCode);
 
         VkShaderModule shaderModule;
         vkThrowIfFailed(vkCreateShaderModule(
@@ -44,21 +44,23 @@ namespace Alimer
         return shaderModule;
     }
 
-    VulkanShader::VulkanShader(VulkanGraphics* graphics, const ShaderStageDescription& desc)
-        : Shader()
+    VulkanShader::VulkanShader(VulkanGraphics* graphics, const void *pCode, size_t codeSize)
+        : Shader(graphics, pCode, codeSize)
         , _logicalDevice(graphics->GetLogicalDevice())
     {
-        _shaderModules[static_cast<unsigned>(ShaderStage::Compute)] = CreateShaderModule(_logicalDevice, desc);
+        _shaderModules[static_cast<unsigned>(ShaderStage::Compute)] = CreateShaderModule(_logicalDevice, pCode, codeSize);
         _pipelineLayout = graphics->RequestPipelineLayout(_layout);
     }
 
     /// Constructor.
-    VulkanShader::VulkanShader(VulkanGraphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
-        : Shader(vertex, fragment)
+    VulkanShader::VulkanShader(VulkanGraphics* graphics,
+        const void *pVertexCode, size_t vertexCodeSize,
+        const void *pFragmentCode, size_t fragmentCodeSize)
+        : Shader(graphics, pVertexCode, vertexCodeSize, pFragmentCode, fragmentCodeSize)
         , _logicalDevice(graphics->GetLogicalDevice())
     {
-        _shaderModules[static_cast<unsigned>(ShaderStage::Vertex)] = CreateShaderModule(_logicalDevice, vertex);
-        _shaderModules[static_cast<unsigned>(ShaderStage::Fragment)] = CreateShaderModule(_logicalDevice, fragment);
+        _shaderModules[static_cast<unsigned>(ShaderStage::Vertex)] = CreateShaderModule(_logicalDevice, pVertexCode, vertexCodeSize);
+        _shaderModules[static_cast<unsigned>(ShaderStage::Fragment)] = CreateShaderModule(_logicalDevice, pFragmentCode, fragmentCodeSize);
 
         _pipelineLayout = graphics->RequestPipelineLayout(_layout);
     }

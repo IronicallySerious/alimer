@@ -34,18 +34,27 @@ namespace Alimer
 	{
 	public:
 		/// Constructor.
-        D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& desc);
+        D3D11Shader(D3D11Graphics* graphics, const void *pCode, size_t codeSize);
 		/// Constructor.
-        D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
+        D3D11Shader(D3D11Graphics* graphics,
+            const void *pVertexCode, size_t vertexCodeSize,
+            const void *pFragmentCode, size_t fragmentCodeSize);
 
 		/// Destructor.
 		~D3D11Shader() override;
 
-		bool HasBytecode(ShaderStage stage);
-		std::vector<uint8_t> AcquireBytecode(ShaderStage stage);
+        void Destroy() override;
+
+        std::vector<uint8_t> AcquireVertexShaderBytecode();
+
+        ID3D11VertexShader* GetD3DVertexShader() const { return _d3dVertexShader; }
+        ID3D11PixelShader* GetD3DPixelShader() const { return _d3dPixelShader; }
+        ID3D11ComputeShader* GetD3DComputeShader() const { return _d3dComputeShader; }
 
 	private:
-        D3D11Graphics* _graphics;
-		std::vector<uint8_t> _shaders[static_cast<unsigned>(ShaderStage::Count)];
+        ID3D11VertexShader* _d3dVertexShader = nullptr;
+        ID3D11PixelShader* _d3dPixelShader = nullptr;
+        ID3D11ComputeShader* _d3dComputeShader = nullptr;
+        std::vector<uint8_t> _vsByteCode;
 	};
 }

@@ -43,17 +43,15 @@ namespace Alimer
 
 		void Resize(uint32_t width, uint32_t height, bool force = false);
 
-		SharedPtr<VulkanRenderPass> GetNextDrawable();
         VkResult AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex);
 		VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
-
 
 		uint32_t GetImageCount() const { return _imageCount; }
         VulkanRenderPass* GetRenderPass(uint32_t index) const { return _renderPasses[index].Get(); }
 
 	private:
 		/// Graphics subsystem.
-		WeakPtr<VulkanGraphics> _graphics;
+		VulkanGraphics* _graphics;
 
 		VkInstance _instance;
 		VkPhysicalDevice _physicalDevice;
@@ -64,8 +62,8 @@ namespace Alimer
 		VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
 		
 		std::vector<VkImage> _images;
-        std::vector<SharedPtr<VulkanTexture>> _textures;
-		std::vector<SharedPtr<VulkanRenderPass>> _renderPasses;
+        std::vector<UniquePtr<VulkanTexture>> _textures;
+		std::vector<UniquePtr<VulkanRenderPass>> _renderPasses;
         std::vector<VkSemaphore> _semaphores;
 
         uint32_t _imageCount;

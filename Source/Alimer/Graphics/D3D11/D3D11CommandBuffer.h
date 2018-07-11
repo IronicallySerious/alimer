@@ -28,6 +28,7 @@
 namespace Alimer
 {
     class D3D11RenderPass;
+    class D3D11PipelineState;
     class D3D11Graphics;
 
     class D3D11CommandContext final : public CommandBuffer
@@ -44,6 +45,17 @@ namespace Alimer
         void SetViewport(const Viewport& viewport) override;
         void SetViewports(std::uint32_t numViewports, const Viewport* viewports) override;
 
+        void SetScissor(const Rectangle& scissor) override;
+        void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
+
+        void SetPipeline(PipelineState* pipeline) override;
+        void SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
+
+        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
+
+    private:
+        bool PrepareDraw(PrimitiveTopology topology);
+
     private:
         D3D11Graphics * _graphics;
         ID3D11DeviceContext1 * _context;
@@ -51,6 +63,7 @@ namespace Alimer
         D3D11RenderPass* _currentRenderPass = nullptr;
         uint32_t _currentColorAttachmentsBound = 0;
         PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
+        D3D11PipelineState* _currentPipeline = nullptr;
     };
 
     /// D3D11 CommandBuffer implementation.
@@ -70,17 +83,10 @@ namespace Alimer
 
         void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
 
-
-        void SetScissor(const Rectangle& scissor) override;
-        void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
-
-        void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
-
-        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
         */
     private:
-        bool PrepareDraw(PrimitiveTopology topology);
+        
         //void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
         //void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
 

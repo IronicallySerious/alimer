@@ -20,23 +20,15 @@
 // THE SOFTWARE.
 //
 
-#include "../Resource/ResourceLoader.h"
-#include "../IO/Stream.h"
-#include "../Core/Log.h"
+#include "../Math/Vector4.h"
+#include "../Math/MathUtil.h"
 
 namespace Alimer
 {
-	ResourceLoader::ResourceLoader()
-	{
-	}
-
-	Resource* ResourceLoader::Load(Stream& source)
-	{
-		Resource* result = nullptr;
-		bool success = BeginLoad(source);
-		if (success)
-			result = EndLoad();
-
-		return result;
-	}
+    const Vector4 Vector4::Zero = { 0.f, 0.f, 0.f, 0.f };
+    const Vector4 Vector4::One = { 1.f, 1.f, 1.f, 1.f };
+    const Vector4 Vector4::UnitX = { 1.f, 0.f, 0.f, 0.f };
+    const Vector4 Vector4::UnitY = { 0.f, 1.f, 0.f, 0.f };
+    const Vector4 Vector4::UnitZ = { 0.f, 0.f, 1.f, 0.f };
+    const Vector4 Vector4::UnitW = { 0.f, 0.f, 0.f, 1.f };
 }

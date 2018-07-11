@@ -103,17 +103,18 @@ namespace Alimer
         virtual void SetViewports(uint32_t numViewports, const Viewport* viewports);
 
         virtual void SetScissor(const Rectangle& scissor);
-        //virtual void SetScissors(uint32_t numScissors, const Rectangle* scissors) = 0;
+        virtual void SetScissors(uint32_t numScissors, const Rectangle* scissors) = 0;
 
-        void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
-        void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
-        //virtual void SetPipeline(const SharedPtr<PipelineState>& pipeline) = 0;
+        virtual void SetPipeline(PipelineState* pipeline) = 0;
 
+        void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding = 0, uint64_t offset = 0);
+        //void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
+        
         void SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer);
 
         // Draw methods
         void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
-        void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
+        //void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
 
         void ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
@@ -122,9 +123,11 @@ namespace Alimer
         virtual void EndRenderPassCore();
         virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
-        //virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
+        virtual void SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer);
+
+        virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
         //virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
-        virtual void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) {}
+        virtual void SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset);
         //virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
         inline bool IsInsideRenderPass() const
@@ -163,13 +166,7 @@ namespace Alimer
             return mask;
         }
 
-        struct VertexBindingState
-        {
-            GpuBuffer* buffers[MaxVertexBufferBindings];
-            uint64_t offsets[MaxVertexBufferBindings];
-            uint64_t strides[MaxVertexBufferBindings];
-            VertexInputRate inputRates[MaxVertexBufferBindings];
-        };
+        
 
         struct ResourceBindingBufferInfo {
             const GpuBuffer*  buffer;
@@ -190,7 +187,7 @@ namespace Alimer
             uint8_t push_constant_data[MaxDescriptorSets];
         };
 
-        VertexBindingState _vbo = {};
+       
         ResourceBindings _bindings;
 
         CommandBufferDirtyFlags _dirty = ~0u;

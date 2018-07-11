@@ -31,8 +31,8 @@ namespace Alimer
     SceneRenderer::SceneRenderer(Graphics* graphics)
         : _graphics(graphics)
     {
-        _camera.viewMatrix = glm::mat4(1.0f);
-        _camera.projectionMatrix = glm::mat4(1.0f);
+        //_camera.viewMatrix = glm::mat4(1.0f);
+        //_camera.projectionMatrix = glm::mat4(1.0f);
 
         // Create camera uniform buffer.
         GpuBufferDescription uboBufferDesc = {};

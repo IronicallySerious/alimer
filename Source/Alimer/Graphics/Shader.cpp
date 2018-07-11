@@ -28,14 +28,27 @@ using namespace std;
 
 namespace Alimer
 {
-    Shader::Shader()
+    Shader::Shader(Graphics* graphics, const void *pCode, size_t codeSize)
+        : GpuResource(graphics, GpuResourceType::Shader)
+        , _isCompute(true)
     {
+        Reflect(ShaderStage::Compute, pCode, codeSize);
+
+        for (uint32_t i = 0; i < MaxDescriptorSets; i++)
+        {
+            if (_layout.sets[i].stages != 0)
+                _layout.descriptorSetMask |= 1u << i;
+        }
     }
 
-    Shader::Shader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
+    Shader::Shader(Graphics* graphics,
+        const void *pVertexCode, size_t vertexCodeSize,
+        const void *pFragmentCode, size_t fragmentCodeSize)
+        : GpuResource(graphics, GpuResourceType::Shader)
+        , _isCompute(true)
     {
-        Reflect(ShaderStage::Vertex, vertex.pCode, vertex.codeSize);
-        Reflect(ShaderStage::Fragment, fragment.pCode, fragment.codeSize);
+        Reflect(ShaderStage::Vertex, pVertexCode, vertexCodeSize);
+        Reflect(ShaderStage::Fragment, pFragmentCode, fragmentCodeSize);
 
         for (uint32_t i = 0; i < MaxDescriptorSets; i++)
         {
@@ -48,9 +61,9 @@ namespace Alimer
     {
     }
 
-    void Shader::Reflect(ShaderStage stage, const uint32_t *data, size_t size)
+    void Shader::Reflect(ShaderStage stage, const void *pCode, size_t codeSize)
     {
-        spirv_cross::Compiler compiler(data, size);
+        spirv_cross::Compiler compiler(reinterpret_cast<const uint32_t*>(pCode), codeSize / sizeof(uint32_t));
         auto resources = compiler.get_shader_resources();
 
         if (stage == ShaderStage::Vertex)

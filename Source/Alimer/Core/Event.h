@@ -22,96 +22,92 @@
 
 #pragma once
 
-#include <cstdint>
-#include <cstddef>
+#include "../Core/Ptr.h"
 #include <vector>
-#include <list>
-#include <unordered_map>
-#include <memory>
-#include <utility>
-#include "simplesignal/simplesignal.h"
-#include "../AlimerConfig.h"
 
 namespace Alimer
 {
-    /// Used internally by the EventManager.
-    class BaseEvent {
-    public:
-        virtual ~BaseEvent() = default;
+    class Object;
+    class Event;
 
-    protected:
-        static size_t _familyCounter;
-    };
-
-    template <typename Derived>
-    class Event : public BaseEvent {
-    public:
-        /// Used internally for registration.
-        static size_t Family() {
-            static size_t family = _familyCounter++;
-            return family;
-        }
-    };
-
-    /**
-    * Handles event subscription and delivery.
-    *
-    * Subscriptions are automatically removed when receivers are destroyed..
-    */
-    class ALIMER_API EventManager final
+    /// Internal helper class for invoking event handler functions.
+    class ALIMER_API EventHandler
     {
     public:
-        EventManager();
-        virtual ~EventManager();
+        /// Construct with receiver object pointer.
+        EventHandler(Object* receiver);
+        /// Destruct.
+        virtual ~EventHandler() = default;
 
-        template <typename E>
-        void Emit(const E &event)
+        /// Invoke the handler function. Implemented by subclasses.
+        virtual void Invoke(Event& event) = 0;
+
+        /// Return the receiver object.
+        const Object* GetReceiver() const { return _receiver; }
+
+    protected:
+        /// Receiver object.
+        Object* _receiver;
+    };
+
+    /// Template implementation of the event handler invoke helper, stores a function pointer of specific class.
+    template <class T, class U>
+    class EventHandlerImpl : public EventHandler
+    {
+    public:
+        typedef void (T::*HandlerFunctionPtr)(U&);
+
+        /// Construct with receiver and function pointers.
+        EventHandlerImpl(Object* receiver, HandlerFunctionPtr function)
+            : EventHandler(receiver)
+            , _function(function)
         {
-            auto sig = SignalFor(Event<E>::Family());
-            sig->emit(&event);
+            assert(function);
         }
 
-        /// Emit an already constructed event.
-        template <typename E>
-        void Emit(std::unique_ptr<E> event)
+        /// Invoke the handler function.
+        void Invoke(Event& event) override
         {
-            auto sig = SignalFor(Event<E>::Family());
-            sig->emit(event.get());
-        }
-
-        template <typename E, typename ... Args>
-        void Emit(Args && ... args)
-        {
-            // Using 'E event(std::forward...)' causes VS to fail with an internal error. Hack around it.
-            E event = E(std::forward<Args>(args) ...);
-            auto sig = SignalFor(std::size_t(Event<E>::Family()));
-            sig->emit(&event);
+            T* typedReceiver = static_cast<T*>(_receiver.Get());
+            U& typedEvent = static_cast<U&>(event);
+            (typedReceiver->*_function)(typedEvent);
         }
 
     private:
-        using EventSignal = Simple::Signal<void(const void*)>;
-        using EventSignalPtr = std::shared_ptr<EventSignal>;
+        /// Pointer to the event handler function.
+        HandlerFunctionPtr _function;
+    };
 
-        EventSignalPtr& SignalFor(std::size_t id)
-        {
-            if (id >= _handlers.size())
-                _handlers.resize(id + 1);
-            if (!_handlers[id])
-                _handlers[id] = std::make_shared<EventSignal>();
-            return _handlers[id];
-        }
+    /// Notification and data passing mechanism, to which objects can subscribe by specifying a handler function. Subclass to include event-specific data.
+    class ALIMER_API Event
+    {
+    public:
+        /// Construct.
+        Event();
+        /// Destruct.
+        virtual ~Event() = default;
 
-        // Functor used as an event signal callback that casts to E.
-        template <typename E>
-        struct EventCallbackWrapper {
-            explicit EventCallbackWrapper(std::function<void(const E &)> callback) : callback(callback) {}
-            void operator()(const void *event) { callback(*(static_cast<const E*>(event))); }
-            std::function<void(const E &)> callback;
-        };
+        /// Send the event.
+        void Send(Object* sender);
+        /// Subscribe to the event. The event takes ownership of the handler data. If there is already handler data for the same receiver, it is overwritten.
+        void Subscribe(EventHandler* handler);
+        /// Unsubscribe from the event.
+        void Unsubscribe(Object* receiver);
 
-        std::vector<EventSignalPtr> _handlers;
+        /// Return whether has at least one valid receiver.
+        bool HasReceivers() const;
+        /// Return whether has a specific receiver.
+        bool HasReceiver(const Object* receiver) const;
+        /// Return current sender.
+        const Object* GetSender() const { return _currentSender; }
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(EventManager);
+        /// Event handlers.
+        std::vector<std::unique_ptr<EventHandler>> _handlers;
+        /// Current sender.
+        Object* _currentSender;
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Event);
     };
 }

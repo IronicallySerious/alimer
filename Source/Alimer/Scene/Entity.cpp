@@ -28,18 +28,12 @@ namespace Alimer
     uint32_t ComponentIDMapping::_ids;
     uint32_t ComponentIDMapping::_groupIds;
 
-    void EntityDeleter::operator()(Entity *entity)
-    {
-        entity->GetManager()->DeleteEntity(entity);
-    }
-
     void Entity::SetName(const std::string& name)
     {
         _name = name;
     }
 
-    EntityManager::EntityManager(EventManager &eventManager)
-        : _eventManager(eventManager)
+    EntityManager::EntityManager()
     {
     }
 
@@ -51,7 +45,6 @@ namespace Alimer
     {
         EntityHandle entity = EntityHandle(_pool.Allocate(this));
         _entities.push_back(entity.Get());
-        _eventManager.Emit<EntityCreatedEvent>(entity);
         return entity;
     }
 

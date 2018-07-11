@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
+#include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
 #include <string>
 #include <vector>
@@ -31,12 +31,6 @@
 namespace Alimer
 {
     class Graphics;
-
-    struct ShaderStageDescription
-    {
-        size_t codeSize;
-        const uint32_t* pCode;
-    };
 
     enum class BindingType
     {
@@ -70,31 +64,35 @@ namespace Alimer
     };
 
     /// Defines a shader (module/function) class.
-    class Shader : public Resource
+    class Shader : public Resource, public GpuResource
     {
+        ALIMER_OBJECT(Shader, Resource);
+
     protected:
         /// Constructor.
-        Shader();
+        Shader(Graphics* graphics, const void *pCode, size_t codeSize);
 
         /// Constructor.
-        Shader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
+        Shader(Graphics* graphics,
+            const void *pVertexCode, size_t vertexCodeSize,
+            const void *pFragmentCode, size_t fragmentCodeSize);
 
     public:
         /// Destructor.
         virtual ~Shader();
 
-        const ResourceLayout &GetResourceLayout() const
-        {
-            return _layout;
-        }
+        bool IsCompute() const { return _isCompute; }
+        const ResourceLayout& GetResourceLayout() const { return _layout; }
 
     protected:
-        void Reflect(ShaderStage stage, const uint32_t *data, size_t size);
+        void Reflect(ShaderStage stage, const void *pCode, size_t codeSize);
 
-        ShaderStageDescription _shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
+        bool _isCompute;
         ResourceLayout _layout;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
     };
+
+    using ShaderPtr = SharedPtr<Shader>;
 }

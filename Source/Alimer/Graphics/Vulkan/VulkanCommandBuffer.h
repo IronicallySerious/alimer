@@ -52,11 +52,11 @@ namespace Alimer
         void SetViewports(uint32_t numViewports, const Viewport* viewports) override;
 
         void SetScissor(const Rectangle& scissor) override;
-        //void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
+        void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
-        //void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
+        void SetPipeline(PipelineState* pipeline) override;
 
-        //void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
+        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         //void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
         void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
@@ -67,7 +67,7 @@ namespace Alimer
     private:
         void ResetState();
         bool PrepareDraw(PrimitiveTopology topology);
-        void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
+        void SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
         //void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
 
 
@@ -81,13 +81,19 @@ namespace Alimer
         VkCommandBuffer _vkCommandBuffer;
         bool _secondary = false;
         VulkanRenderPass* _currentRenderPass = nullptr;
-        SharedPtr<VulkanPipelineState> _currentPipeline;
+        VulkanPipelineState* _currentPipeline = nullptr;
         VulkanPipelineLayout* _currentPipelineLayout = nullptr;
         VkPipeline _currentVkPipeline = VK_NULL_HANDLE;
         VkPipelineLayout _currentVkPipelineLayout = VK_NULL_HANDLE;
 
         VkViewport _currentViewports[MaxViewportsAndScissors] = {};
-        VkBuffer _currentVkBuffers[MaxVertexBufferBindings] = {};
+
+        struct VertexBindingState
+        {
+            VkBuffer buffers[MaxVertexBufferBindings];
+            uint64_t offsets[MaxVertexBufferBindings];
+            uint64_t strides[MaxVertexBufferBindings];
+        };
 
         struct IndexState
         {
@@ -96,6 +102,7 @@ namespace Alimer
             IndexType indexType;
         };
 
+        VertexBindingState _vbo = {};
         IndexState _indexState = {};
     };
 }

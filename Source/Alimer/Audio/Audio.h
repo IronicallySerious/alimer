@@ -37,7 +37,7 @@ namespace Alimer
 
 	public:
 		/// Destructor.
-		virtual ~Audio();
+		virtual ~Audio() = default;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Audio);

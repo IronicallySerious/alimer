@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
+#include "../Core/Object.h"
 #include <memory>
 #include <string>
 #include <atomic>
@@ -45,8 +45,10 @@ namespace Alimer
 	};
 
 	/// Runtime resource class.
-	class ALIMER_API Resource : public RefCounted
+	class ALIMER_API Resource : public Object
 	{
+        ALIMER_OBJECT(Resource, Object);
+
 	protected:
 		/// Constructor.
 		Resource();

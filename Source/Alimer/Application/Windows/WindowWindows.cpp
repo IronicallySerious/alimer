@@ -386,6 +386,15 @@ namespace Alimer
 		_focused = focused;
 	}
 
+    void WindowWindows::HandleResize(const Vector2& newSize)
+    {
+        _monitor = MonitorFromWindow(_hwnd, MONITOR_DEFAULTTONEAREST);
+
+        //_size = newSize;
+        resizeEvent.size = newSize;
+        SendEvent(resizeEvent);
+    }
+
 	LRESULT WindowWindows::OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (msg)
@@ -420,6 +429,28 @@ namespace Alimer
 				}
 				break;
 			}
+
+            case WM_SIZE:
+            {
+                switch (wParam)
+                {
+                case SIZE_MINIMIZED:
+                    gApplication().Pause();
+                    break;
+                case SIZE_RESTORED:
+                    gApplication().Resume();
+                    HandleResize(Vector2(static_cast<float>(LOWORD(lParam)),
+                        static_cast<float>(HIWORD(lParam))));
+                    break;
+                case SIZE_MAXIMIZED:
+                    HandleResize(Vector2(static_cast<float>(LOWORD(lParam)),
+                        static_cast<float>(HIWORD(lParam))));
+                    break;
+                }
+                return 0;
+            }
+
+            break;
 
             case WM_ERASEBKGND:
             {

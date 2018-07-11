@@ -29,7 +29,7 @@ namespace Alimer
     {
     }
 
-    void CameraComponent::Update(const glm::mat4& worldTransform)
+    /*void CameraComponent::Update(const glm::mat4& worldTransform)
     {
         _projection = glm::perspective(glm::radians(_fovy), _aspect, _znear, _zfar);
         _view = glm::inverse(worldTransform);
@@ -43,5 +43,5 @@ namespace Alimer
     glm::mat4 CameraComponent::GetProjection() const
     {
         return _projection;
-    }
+    }*/
 }

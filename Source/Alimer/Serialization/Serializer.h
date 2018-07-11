@@ -25,7 +25,9 @@
 #include "../Core/String.h"
 #include "../Util/Util.h"
 #include "../IO/Stream.h"
-#include "../Math/MathUtil.h"
+#include "../Math/Vector2.h"
+#include "../Math/Vector3.h"
+#include "../Math/Vector4.h"
 #include "../Math/Color.h"
 #include <map>
 
@@ -56,10 +58,10 @@ namespace Alimer
         virtual void Serialize(const char* key, const char* value);
         virtual void Serialize(const char* key, const std::string& value) = 0;
 
-        virtual void Serialize(const char* key, glm::vec2& value);
-        virtual void Serialize(const char* key, glm::vec3& value);
-        virtual void Serialize(const char* key, glm::vec4& value);
-        virtual void Serialize(const char* key, glm::quat& value);
+        virtual void Serialize(const char* key, Vector2& value);
+        virtual void Serialize(const char* key, Vector3& value);
+        virtual void Serialize(const char* key, Vector4& value);
+        //virtual void Serialize(const char* key, Quaternion& value);
         virtual void Serialize(const char* key, const Color& value);
         virtual void Serialize(const char* key, const float* values, uint32_t count) = 0;
 

@@ -223,55 +223,39 @@ namespace Alimer
         //SetScissors(1, &scissor);
     }
 
-    void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset, VertexInputRate inputRate)
+    void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
     {
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Vertex);
 
-        if (_vbo.buffers[binding] != buffer
-            || _vbo.offsets[binding] != offset)
-        {
-            _dirtyVbos |= 1u << binding;
-        }
-
-        uint64_t stride = buffer->GetElementSize();
-        if (_vbo.strides[binding] != stride
-            || _vbo.inputRates[binding] != inputRate)
-        {
-            SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
-        }
-
-        _vbo.buffers[binding] = buffer;
-        _vbo.offsets[binding] = offset;
-        _vbo.strides[binding] = stride;
-        _vbo.inputRates[binding] = inputRate;
-        OnSetVertexBuffer(buffer, binding, offset);
+        SetVertexBufferCore(buffer, binding, offset);
     }
 
-    void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandBuffer::SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
+    {
+
+    }
+
+    /*void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Index);
 
         //SetIndexBufferCore(buffer, offset, indexType);
-    }
+    }*/
 
     void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer)
     {
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
         ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Uniform);
-        auto &b = _bindings.bindings[set][binding];
 
-        uint64_t range = buffer->GetSize();
-        if (buffer == b.buffer.buffer
-            && b.buffer.offset == 0
-            && b.buffer.range == range)
-            return;
+        SetUniformBufferCore(set, binding, buffer);
+    }
 
-        b.buffer = { buffer, 0, range };
-        _dirtySets |= 1u << set;
+    void CommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer)
+    {
     }
 
     void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
@@ -281,18 +265,18 @@ namespace Alimer
             ALIMER_LOGCRITICAL("Cannot draw outside RenderPass.");
         }
 
-        //DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
+        DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
-    void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    /*void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
         if (!IsInsideRenderPass())
         {
             ALIMER_LOGCRITICAL("Cannot draw outside RenderPass.");
         }
 
-        //DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
-    }
+        DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
+    }*/
 
     void CommandBuffer::ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
     {

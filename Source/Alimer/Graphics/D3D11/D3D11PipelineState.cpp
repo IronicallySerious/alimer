@@ -53,6 +53,17 @@ namespace Alimer
             elements[i].InstanceDataStepRate = 0;
             elementsCount++;
         }
+
+        auto vsByteCode = _shader->AcquireVertexShaderBytecode();
+        HRESULT hr = graphics->GetD3DDevice()->CreateInputLayout(
+            elements, elementsCount,
+            vsByteCode.data(), vsByteCode.size(),
+            &_d3dInputLayout);
+
+        if (FAILED(hr))
+        {
+            ALIMER_LOGERROR("D3D11 - Failed to create input layout");
+        }
     }
 
     D3D11PipelineState::~D3D11PipelineState() = default;
@@ -61,6 +72,7 @@ namespace Alimer
     {
         if (_isGraphics)
         {
+            context->IASetInputLayout(_d3dInputLayout);
         }
         else
         {

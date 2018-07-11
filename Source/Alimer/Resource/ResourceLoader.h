@@ -42,7 +42,7 @@ namespace Alimer
 		virtual ~ResourceLoader() = default;
 
 		/// Load the resource synchronously from a binary stream. Return instance on success.
-		SharedPtr<Resource> Load(Stream& source);
+		Resource* Load(Stream& source);
 
 	protected:
 		virtual bool BeginLoad(Stream& source) = 0;

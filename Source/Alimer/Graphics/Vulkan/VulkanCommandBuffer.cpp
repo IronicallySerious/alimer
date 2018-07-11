@@ -51,7 +51,7 @@ namespace Alimer
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         cmdBufAllocateInfo.pNext = nullptr;
         cmdBufAllocateInfo.commandPool = _commandPool;
-        cmdBufAllocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY: VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdBufAllocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdBufAllocateInfo.commandBufferCount = 1;
         vkThrowIfFailed(vkAllocateCommandBuffers(
             _logicalDevice,
@@ -76,7 +76,7 @@ namespace Alimer
         _currentVkPipeline = VK_NULL_HANDLE;
         _currentVkPipelineLayout = VK_NULL_HANDLE;
         _currentPipelineLayout = nullptr;
-        _currentPipeline.Reset();
+        _currentPipeline = nullptr;
     }
 
     void VulkanCommandBuffer::Begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
@@ -195,14 +195,14 @@ namespace Alimer
 
     }
 
-    /*void VulkanCommandBuffer::SetScissors(uint32_t numScissors, const Rectangle* scissors)
+    void VulkanCommandBuffer::SetScissors(uint32_t numScissors, const Rectangle* scissors)
     {
 
     }
 
-    void VulkanCommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)
+    void VulkanCommandBuffer::SetPipeline(PipelineState* pipeline)
     {
-        _currentPipeline = StaticCast<VulkanPipelineState>(pipeline);
+        _currentPipeline = static_cast<VulkanPipelineState*>(pipeline);
         _currentVkPipeline = VK_NULL_HANDLE;
 
         auto newPipelineLayout = _currentPipeline->GetShader()->GetPipelineLayout();
@@ -229,10 +229,10 @@ namespace Alimer
         if (!PrepareDraw(topology))
             return;
 
-        vkCmdDraw(_vkHandle, vertexCount, instanceCount, vertexStart, baseInstance);
+        vkCmdDraw(_vkCommandBuffer, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
-    void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    /*void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
 
     }*/
@@ -276,9 +276,24 @@ namespace Alimer
         return true;
     }
 
-    void VulkanCommandBuffer::OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
+    void VulkanCommandBuffer::SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
     {
-        _currentVkBuffers[binding] = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
+        auto vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
+        if (_vbo.buffers[binding] != vkBuffer
+            || _vbo.offsets[binding] != offset)
+        {
+            _dirtyVbos |= 1u << binding;
+        }
+
+        uint64_t stride = buffer->GetElementSize();
+        if (_vbo.strides[binding] != stride)
+        {
+            SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
+        }
+
+        _vbo.buffers[binding] = vkBuffer;
+        _vbo.offsets[binding] = offset;
+        _vbo.strides[binding] = stride;
     }
 
     /*void VulkanCommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)

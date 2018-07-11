@@ -31,8 +31,7 @@ using namespace std;
 namespace Alimer
 {
 	Scene::Scene()
-        : _entityManager(events)
-        , _spatials(_entityManager.GetComponentGroup<TransformComponent>())
+        : _spatials(_entityManager.GetComponentGroup<TransformComponent>())
         , _cameras(_entityManager.GetComponentGroup<CameraComponent, TransformComponent>())
 	{
         _defaultCamera = CreateEntity();
@@ -62,7 +61,7 @@ namespace Alimer
 
     void Scene::UpdateCachedTransforms()
     {
-        const glm::mat4 &parentTransform = glm::mat4(1.0f);
+        /*const glm::mat4 &parentTransform = glm::mat4(1.0f);
 
         for (auto &s : _spatials)
         {
@@ -78,15 +77,15 @@ namespace Alimer
             //{
             //    transform->lastTimestamp = *transform->currentTimestamp;
             //}
-        }
+        }*/
 
         // Update camera transforms.
         for (auto &c : _cameras)
         {
-            CameraComponent *camera;
-            TransformComponent *transform;
-            std::tie(camera, transform) = c;
-            camera->Update(transform->worldTransform);
+            //CameraComponent *camera;
+            //TransformComponent *transform;
+            //std::tie(camera, transform) = c;
+            //camera->Update(transform->worldTransform);
         }
     }
 }

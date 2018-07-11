@@ -20,23 +20,46 @@
 // THE SOFTWARE.
 //
 
-#include "../Resource/ResourceLoader.h"
-#include "../IO/Stream.h"
-#include "../Core/Log.h"
+#pragma once
+
+#include "../AlimerConfig.h"
+#include <string>
 
 namespace Alimer
 {
-	ResourceLoader::ResourceLoader()
-	{
-	}
+    /// Defines a 2D vector.
+    class ALIMER_API Vector2
+    {
+    public:
+        /// The x coordinate.
+        float x;
 
-	Resource* ResourceLoader::Load(Stream& source)
-	{
-		Resource* result = nullptr;
-		bool success = BeginLoad(source);
-		if (success)
-			result = EndLoad();
+        /// The y coordinate.
+        float y;
 
-		return result;
-	}
+        Vector2() noexcept : x(0.0f), y(0.0f) {}
+
+        Vector2(const Vector2&) = default;
+        Vector2& operator=(const Vector2&) = default;
+
+        Vector2(Vector2&&) = default;
+        Vector2& operator=(Vector2&&) = default;
+
+        constexpr explicit Vector2(float value) : x(value), y(value) {}
+        constexpr Vector2(float x_, float y_) : x(x_), y(y_) {}
+        explicit Vector2(const float *data) : x(data[0]), y(data[1]) {}
+
+        // Comparison operators
+        bool operator == (const Vector2& rhs)  const { return x == rhs.x && y == rhs.y; }
+        bool operator != (const Vector2& rhs) const { return x != rhs.x || y != rhs.y; }
+
+        // Constants
+        static const Vector2 Zero;
+        static const Vector2 One;
+        static const Vector2 UnitX;
+        static const Vector2 UnitY;
+    };
+
+    using vec2 = Vector2;
 }
+

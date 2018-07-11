@@ -23,13 +23,12 @@
 #pragma once
 
 #include "../Math/MathUtil.h"
-#include "../Util/Intrusive.h"
 #include "../Scene/Entity.h"
 #include "../Graphics/Graphics.h"
 
 namespace Alimer
 {
-    class ALIMER_API Renderable : public IntrusivePtrEnabled<Renderable>
+    class ALIMER_API Renderable : public RefCounted
     {
     public:
         virtual ~Renderable() = default;
@@ -37,7 +36,7 @@ namespace Alimer
         virtual void Render(CommandBuffer* commandBuffer) = 0;
     };
 
-    using RenderableHandle = IntrusivePtr<Renderable>;
+    using RenderableHandle = SharedPtr<Renderable>;
 
     class ALIMER_API RenderableComponent : public Component
     {

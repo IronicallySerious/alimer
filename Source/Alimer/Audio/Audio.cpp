@@ -28,9 +28,4 @@ namespace Alimer
 	Audio::Audio()
 	{
 	}
-
-
-	Audio::~Audio()
-	{
-	}
 }

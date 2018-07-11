@@ -59,6 +59,8 @@ namespace Alimer
         // Delete enkiTS
         enkiDeleteTaskScheduler(_taskScheduler);
 
+        _renderer.reset();
+
         __appInstance = nullptr;
     }
 
@@ -107,9 +109,9 @@ namespace Alimer
             _window = MakeWindow("Alimer", 800, 600);
 
             // Create and init graphics.
+            _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
             //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
-            //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
-            _settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
+            //_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
 
             _graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
             GpuAdapter* adapter = nullptr;
@@ -130,7 +132,7 @@ namespace Alimer
         LoadPlugins();
 
         // Create renderer.
-        _renderer = new SceneRenderer(_graphics.Get());
+        _renderer = make_unique<SceneRenderer>(_graphics);
 
         // Initialize this instance and all systems.
         Initialize();

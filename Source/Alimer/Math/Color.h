@@ -27,30 +27,20 @@
 
 namespace Alimer
 {
-	/**
-	* Defines 4-element floating point RGBA color.
-	*/
+	/// Defines 4-element floating point RGBA color.
 	class ALIMER_API Color
 	{
 	public:
-		/**
-		* Red value.
-		*/
+		/// Red value.
 		float r;
 
-		/**
-		* Green value.
-		*/
+		/// Green value.
 		float g;
 
-		/**
-		* Blue value.
-		*/
+		/// Blue value.
 		float b;
 
-		/**
-		* Alpha value.
-		*/
+		/// Alpha value.
 		float a;
 
 		/// Construct with default values (opaque black.)

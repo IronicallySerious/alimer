@@ -35,7 +35,7 @@ namespace Alimer
         Buffer,
         Texture,
         RenderPass,
-        CommandBuffer,
+        Shader,
     };
 
 	/// Defines a base GPU Resource.
@@ -53,7 +53,7 @@ namespace Alimer
         virtual void Destroy() {}
 
         /// Return the graphics subsystem associated with this GPU object.
-        Graphics* GetGraphics() const;
+        Graphics* GetGraphics() const { return _graphics.Get(); }
 
         inline GpuResourceType GetResourceType() const { return _resourceType; }
 

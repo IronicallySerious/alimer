@@ -29,6 +29,8 @@ namespace Alimer
 	/// Defines an Image resource.
 	class ALIMER_API Image : public Resource
 	{
+        ALIMER_OBJECT(Image, Resource);
+
 	public:
 		/// Constructor.
         Image();

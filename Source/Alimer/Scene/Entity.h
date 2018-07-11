@@ -28,8 +28,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <algorithm>
-#include "../Core/Event.h"
-#include "../Util/Intrusive.h"
+#include "../Core/Object.h"
 #include "../Util/ObjectPool.h"
 #include <assert.h>
 
@@ -191,15 +190,11 @@ namespace Alimer
         }
     };
 
-
-    struct EntityDeleter
-    {
-        void operator()(Entity *entity);
-    };
-
     /// Defines a Entity class.
-    class ALIMER_API Entity final : public IntrusivePtrEnabled<Entity, EntityDeleter>
+    class ALIMER_API Entity final : public Object
     {
+        ALIMER_OBJECT(Entity, Object);
+
     public:
         Entity() = default;
         Entity(EntityManager *manager) : _manager(manager) {}
@@ -267,18 +262,7 @@ namespace Alimer
         std::unordered_map<uint32_t, Component*> _components;
     };
 
-    using EntityHandle = IntrusivePtr<Entity, EntityDeleter>;
-
-    /**
-    * Emitted when an entity is added to the system.
-    */
-    struct EntityCreatedEvent : public Event<EntityCreatedEvent>
-    {
-        explicit EntityCreatedEvent(EntityHandle entity) : entity(entity) {}
-        virtual ~EntityCreatedEvent() = default;
-
-        EntityHandle entity;
-    };
+    using EntityHandle = SharedPtr<Entity>;
 
     class ComponentAllocatorBase
     {
@@ -301,7 +285,7 @@ namespace Alimer
     class ALIMER_API EntityManager final
     {
     public:
-        explicit EntityManager(EventManager &eventManager);
+        explicit EntityManager();
         virtual ~EntityManager();
 
         /**
@@ -376,8 +360,6 @@ namespace Alimer
         void ResetGroups();
 
     private:
-        EventManager & _eventManager;
-
         ObjectPool<Entity> _pool;
         std::vector<Entity *> _entities;
         std::unordered_map<uint32_t, std::unique_ptr<EntityGroupBase>> _groups;

@@ -34,10 +34,10 @@ namespace Alimer
         CameraComponent();
         ~CameraComponent() = default;
 
-        void Update(const glm::mat4& worldTransform);
+        //void Update(const glm::mat4& worldTransform);
 
-        glm::mat4 GetView() const;
-        glm::mat4 GetProjection() const;
+        //glm::mat4 GetView() const;
+        //glm::mat4 GetProjection() const;
 
     private:
         // Field of view (in degrees)
@@ -47,7 +47,7 @@ namespace Alimer
         float _zfar  = 1000.0f;
 
         // Calculated values.
-        glm::mat4 _view;
-        glm::mat4 _projection;
+        //glm::mat4 _view;
+        //glm::mat4 _projection;
 	};
 }

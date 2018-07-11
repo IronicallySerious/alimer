@@ -209,7 +209,7 @@ namespace Alimer
         return graphics;
     }
 
-    bool Graphics::Initialize(GpuAdapter* adapter, const SharedPtr<Window>& window)
+    bool Graphics::Initialize(GpuAdapter* adapter, WindowPtr window)
     {
         if (!adapter)
         {
@@ -229,18 +229,7 @@ namespace Alimer
     {
     }
 
-    SharedPtr<CommandBuffer> Graphics::CreateCommandBufferCore()
-    {
-        return MakeShared<CommandBuffer>();
-    }
-
-    /*SharedPtr<CommandBuffer> Graphics::CreateCommandBuffer()
-    {
-        _commandBuffers.push_back(CreateCommandBufferCore());
-        return _commandBuffers[_commandBuffers.size() - 1];
-    }*/
-
-    SharedPtr<Shader> Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
+    Shader* Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
     {
         auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".spv");
         auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".spv");
@@ -273,15 +262,10 @@ namespace Alimer
         fragmentByteCode = fragmentShaderStream->ReadBytes();
 #endif
 
-        ShaderStageDescription vertex = {};
-        vertex.pCode = reinterpret_cast<const uint32_t*>(vertexByteCode.data());
-        vertex.codeSize = vertexByteCode.size() / sizeof(uint32_t);
-
-        ShaderStageDescription fragment = {};
-        fragment.pCode = reinterpret_cast<const uint32_t*>(fragmentByteCode.data());
-        fragment.codeSize = fragmentByteCode.size() / sizeof(uint32_t);
-
-        return CreateShader(vertex, fragment);
+        return CreateShader(
+            vertexByteCode.data(), vertexByteCode.size(),
+            fragmentByteCode.data(), fragmentByteCode.size()
+        );
     }
 
     void Graphics::AddGpuResource(GpuResource* resource)

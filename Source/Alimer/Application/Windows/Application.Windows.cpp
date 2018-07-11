@@ -37,6 +37,8 @@ extern "C"
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 
+using namespace std;
+
 namespace Alimer
 {
     bool Win32PlatformInitialize()
@@ -119,19 +121,19 @@ namespace Alimer
         }
     }
 
-    SharedPtr<Window> Application::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
+    WindowPtr Application::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
     {
         return MakeShared<WindowWindows>(title, width, height, fullscreen);
     }
 
-    Input* Application::CreateInput()
+    unique_ptr<Input> Application::CreateInput()
     {
-        return new InputWindows();
+        return make_unique<InputWindows>();
     }
 
-    Audio* Application::CreateAudio()
+    unique_ptr<Audio> Application::CreateAudio()
     {
-        return new AudioWASAPI();
+        return make_unique<AudioWASAPI>();
     }
 
     int Application::Run()

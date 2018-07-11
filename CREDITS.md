@@ -11,7 +11,6 @@ Alimer uses the following open-source and third-party libraries:
 - [glslang](https://github.com/KhronosGroup/glslang)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [fmt 5.0.0](http://fmtlib.net)]
-- [glm](https://github.com/g-truc/glm)
 - [rapidjson](https://github.com/Tencent/rapidjson)
 - [CLI11 1.6](https://github.com/CLIUtils/CLI11)
 - [enkiTS](https://github.com/dougbinks/enkiTS)

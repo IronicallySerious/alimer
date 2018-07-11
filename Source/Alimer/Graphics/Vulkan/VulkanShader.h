@@ -36,9 +36,11 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        VulkanShader(VulkanGraphics* graphics, const ShaderStageDescription& desc);
+        VulkanShader(VulkanGraphics* graphics, const void *pCode, size_t codeSize);
         /// Constructor.
-        VulkanShader(VulkanGraphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
+        VulkanShader(VulkanGraphics* graphics,
+            const void *pVertexCode, size_t vertexCodeSize,
+            const void *pFragmentCode, size_t fragmentCodeSize);
 
         ~VulkanShader() override;
 

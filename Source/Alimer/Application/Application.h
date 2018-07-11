@@ -30,6 +30,7 @@
 #include <vector>
 #include <string>
 #include <atomic>
+#include "../Core/Object.h"
 #include "../Core/Log.h"
 #include "../Core/Timer.h"
 #include "../Core/PluginManager.h"
@@ -60,8 +61,10 @@ namespace Alimer
     class SceneRenderer;
 
     /// Application for main loop and all modules and OS setup.
-    class ALIMER_API Application : public RefCounted
+    class ALIMER_API Application : public Object
     {
+        ALIMER_OBJECT(Application, Object);
+
     protected:
         /// Constructor.
         Application();
@@ -88,19 +91,19 @@ namespace Alimer
         /// Resume the main execution loop.
         void Resume();
 
-        SharedPtr<Window> MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
+        WindowPtr MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
 
         Timer &GetFrameTimer() { return _timer; }
 
         inline ResourceManager* GetResources() { return &_resources; }
-        inline Window* GetMainWindow() const { return _window.Get(); }
-        inline Graphics* GetGraphics() const { return _graphics.Get(); }
-        inline Input* GetInput() const { return _input.Get(); }
-        inline Audio* GetAudio() const { return _audio.Get(); }
+        inline const Window* GetMainWindow() const { return _window.Get(); }
+        inline const Graphics* GetGraphics() const { return _graphics.Get(); }
+        inline Input* GetInput() const { return _input.get(); }
+        inline Audio* GetAudio() const { return _audio.get(); }
 
         /// Sets the current scene to be active and rendered.
         void SetScene(Scene* scene);
-        SceneManager* GetSceneManager() const { return _sceneManager.Get(); }
+        SceneManager* GetSceneManager() const { return _sceneManager.get(); }
 
     private:
         void PlatformConstruct();
@@ -124,8 +127,8 @@ namespace Alimer
         /// Called during rendering single frame.
         virtual void OnRender(CommandBuffer* commandBuffer);
 
-        virtual Input* CreateInput();
-        virtual Audio* CreateAudio();
+        virtual std::unique_ptr<Input> CreateInput();
+        virtual std::unique_ptr<Audio> CreateAudio();
 
         std::vector<std::string> _args;
         std::atomic<bool> _running;
@@ -133,18 +136,18 @@ namespace Alimer
         std::atomic<bool> _headless;
         ApplicationSettings _settings;
 
-        UniquePtr<Logger> _log;
+        std::unique_ptr<Logger> _log;
         Timer _timer;
         PluginManager _pluginManager;
         ResourceManager _resources;
-        SharedPtr<Window> _window;
-        UniquePtr<Graphics> _graphics;
-        UniquePtr<Input> _input;
-        UniquePtr<Audio> _audio;
+        WindowPtr _window;
+        SharedPtr<Graphics> _graphics;
+        std::unique_ptr<Input> _input;
+        std::unique_ptr<Audio> _audio;
         enkiTaskScheduler* _taskScheduler;
 
-        UniquePtr<SceneManager> _sceneManager;
-        UniquePtr<SceneRenderer> _renderer;
+        std::unique_ptr<SceneManager> _sceneManager;
+        std::unique_ptr<SceneRenderer> _renderer;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

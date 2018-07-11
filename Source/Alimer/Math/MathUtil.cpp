@@ -21,11 +21,10 @@
 //
 
 #include "../Math/MathUtil.h"
-using namespace glm;
 
 namespace Alimer
 {
-    void ComputeTransform(vec3 translation, quat rotation, vec3 scale, mat4 &world, const mat4 &parent)
+    /*void ComputeTransform(vec3 translation, quat rotation, vec3 scale, mat4 &world, const mat4 &parent)
     {
         mat4 S = glm::scale(scale);
         mat4 R = glm::mat4_cast(rotation);
@@ -33,5 +32,5 @@ namespace Alimer
 
         mat4 model = R * S;
         world = parent * T * model;
-    }
+    }*/
 }

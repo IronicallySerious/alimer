@@ -61,7 +61,6 @@ namespace Alimer
     protected:
         SceneManager* _sceneManager = nullptr;
 
-        EventManager events;
         EntityManager _entityManager;
 
         EntityHandle _defaultCamera;

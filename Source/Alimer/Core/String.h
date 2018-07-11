@@ -33,17 +33,29 @@
 #include <vector>
 #include <type_traits>
 #include <algorithm>
+#include <utility>
 #define FMT_NO_FMT_STRING_ALIAS
 #include <fmt/format.h>
 
 namespace Alimer
 {
+    /// Convert a char to uppercase.
+    inline char ToUpper(char c) { return (c >= 'a' && c <= 'z') ? c - 0x20 : c; }
+    /// Convert a char to lowercase.
+    inline char ToLower(char c) { return (c >= 'A' && c <= 'Z') ? c + 0x20 : c; }
+    /// Return whether a char is an alphabet letter.
+    inline bool IsAlpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
+    /// Return whether a char is a digit.
+    inline bool IsDigit(char c) { return c >= '0' && c <= '9'; }
+
     template <typename T>
     struct EnumNames {
     };
 
     namespace str
     {
+        static constexpr size_t ConversionBufferLength = 256;
+
         namespace inner
         {
             template<typename T>
@@ -99,6 +111,16 @@ namespace Alimer
         inline std::wstring ToWide(const std::string& s)
         {
             return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(s);
+        }
+
+        inline void ToLower(std::string& s)
+        {
+            std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+        }
+
+        inline void ToUpper(std::string& s)
+        {
+            std::transform(s.begin(), s.end(), s.begin(), ::toupper);
         }
     }
 }

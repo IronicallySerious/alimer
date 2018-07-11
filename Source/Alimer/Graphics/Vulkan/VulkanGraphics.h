@@ -52,8 +52,9 @@ namespace Alimer
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
-		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
-		SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
+        Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
+        Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,
+            const void *pFragmentCode, size_t fragmentCodeSize) override;
         SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
 
 		VkInstance GetInstance() const { return _instance; }
@@ -81,7 +82,6 @@ namespace Alimer
         void Finalize() override;
         bool BackendInitialize() override;
         void CreateAllocator();
-        void ExecuteCommandBuffer(CommandBuffer* commandBuffer) override;
 
 		VkInstance _instance = VK_NULL_HANDLE;
 		VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;

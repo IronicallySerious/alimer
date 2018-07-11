@@ -30,7 +30,7 @@ using namespace Microsoft::WRL;
 namespace Alimer
 {
     static std::vector<uint8_t> ConvertAndCompileHLSL(
-        const ShaderStageDescription& desc,
+        const void *pCode, size_t codeSize,
         ShaderStage stage,
         uint32_t major, uint32_t minor)
     {
@@ -38,7 +38,7 @@ namespace Alimer
         //options_glsl.vertex.fixup_clipspace = true;
         //options_glsl.vertex.flip_vert_y = true;
 
-        spirv_cross::CompilerHLSL compiler(desc.pCode, desc.codeSize);
+        spirv_cross::CompilerHLSL compiler(reinterpret_cast<const uint32_t*>(pCode), codeSize / sizeof(uint32_t));
         compiler.set_common_options(options_glsl);
 
         spirv_cross::CompilerHLSL::Options options_hlsl;
@@ -49,44 +49,87 @@ namespace Alimer
         return D3DShaderCompiler::Compile(hlslSource, stage, major, minor);
     }
 
-    D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& desc)
-        : Shader()
-        , _graphics(graphics)
+    D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const void *pCode, size_t codeSize)
+        : Shader(graphics, pCode, codeSize)
     {
-        _shaders[static_cast<unsigned>(ShaderStage::Compute)] = ConvertAndCompileHLSL(
-            desc,
+        auto byteCode = ConvertAndCompileHLSL(
+            pCode, codeSize,
             ShaderStage::Compute,
             graphics->GetShaderModerMajor(),
             graphics->GetShaderModerMinor());
+
+        graphics->GetD3DDevice()->CreateComputeShader(byteCode.data(), byteCode.size(), nullptr, &_d3dComputeShader);
     }
 
-    D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
-        : Shader(vertex, fragment)
-        , _graphics(graphics)
+    D3D11Shader::D3D11Shader(D3D11Graphics* graphics,
+        const void *pVertexCode, size_t vertexCodeSize,
+        const void *pFragmentCode, size_t fragmentCodeSize)
+        : Shader(graphics, pVertexCode, vertexCodeSize, pFragmentCode, fragmentCodeSize)
     {
         const D3D_FEATURE_LEVEL featureLevel = graphics->GetFeatureLevel();
 
-        _shaders[static_cast<unsigned>(ShaderStage::Vertex)] = ConvertAndCompileHLSL(
-            vertex, ShaderStage::Vertex,
+        _vsByteCode = ConvertAndCompileHLSL(
+            pVertexCode, vertexCodeSize, ShaderStage::Vertex,
             graphics->GetShaderModerMajor(), graphics->GetShaderModerMinor()
         );
-        _shaders[static_cast<unsigned>(ShaderStage::Fragment)] = ConvertAndCompileHLSL(
-            fragment, ShaderStage::Fragment,
+
+        auto fsByteCode = ConvertAndCompileHLSL(
+            pFragmentCode, fragmentCodeSize, ShaderStage::Fragment,
             graphics->GetShaderModerMajor(), graphics->GetShaderModerMinor()
         );
+
+        graphics->GetD3DDevice()->CreateVertexShader(_vsByteCode.data(), _vsByteCode.size(), nullptr, &_d3dVertexShader);
+        graphics->GetD3DDevice()->CreatePixelShader(fsByteCode.data(), fsByteCode.size(), nullptr, &_d3dPixelShader);
     }
 
     D3D11Shader::~D3D11Shader()
     {
+        Destroy();
     }
 
-    bool D3D11Shader::HasBytecode(ShaderStage stage)
+    void D3D11Shader::Destroy()
     {
-        return _shaders[static_cast<unsigned>(stage)].size() > 0;
+        if (_isCompute)
+        {
+            if (_d3dComputeShader)
+            {
+#if defined(_DEBUG)
+                ULONG refCount = GetRefCount(_d3dComputeShader);
+                ALIMER_ASSERT_MSG(refCount == 1, "D3D11Shader leakage");
+#endif
+
+                _d3dComputeShader->Release();
+                _d3dComputeShader = nullptr;
+            }
+        }
+        else
+        {
+            if (_d3dVertexShader)
+            {
+#if defined(_DEBUG)
+                ULONG refCount = GetRefCount(_d3dVertexShader);
+                ALIMER_ASSERT_MSG(refCount == 1, "D3D11Shader leakage");
+#endif
+
+                _d3dVertexShader->Release();
+                _d3dVertexShader = nullptr;
+            }
+
+            if (_d3dPixelShader)
+            {
+#if defined(_DEBUG)
+                ULONG refCount = GetRefCount(_d3dPixelShader);
+                ALIMER_ASSERT_MSG(refCount == 1, "D3D11Shader leakage");
+#endif
+
+                _d3dPixelShader->Release();
+                _d3dPixelShader = nullptr;
+            }
+        }
     }
 
-    std::vector<uint8_t> D3D11Shader::AcquireBytecode(ShaderStage stage)
+    std::vector<uint8_t> D3D11Shader::AcquireVertexShaderBytecode()
     {
-        return std::move(_shaders[static_cast<unsigned>(stage)]);
+        return std::move(_vsByteCode);
     }
 }

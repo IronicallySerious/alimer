@@ -1,4 +1,5 @@
 //
+// Alimer is based on the Turso3D codebase.
 // Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,23 +21,41 @@
 // THE SOFTWARE.
 //
 
-#include "../Resource/ResourceLoader.h"
-#include "../IO/Stream.h"
-#include "../Core/Log.h"
+#include "../Core/StringHash.h"
+#include "../Core/String.h"
 
 namespace Alimer
 {
-	ResourceLoader::ResourceLoader()
+	const StringHash StringHash::ZERO;
+
+	StringHash::StringHash(const char* str) noexcept
+		: _value(Calculate(str))
 	{
 	}
 
-	Resource* ResourceLoader::Load(Stream& source)
+	StringHash::StringHash(const std::string& str) noexcept
+		: _value(Calculate(str.c_str()))
 	{
-		Resource* result = nullptr;
-		bool success = BeginLoad(source);
-		if (success)
-			result = EndLoad();
+	}
 
-		return result;
+	uint32_t StringHash::Calculate(const char* str, uint32_t hash)
+	{
+		if (!str)
+			return hash;
+
+		while (*str)
+		{
+			hash = (Alimer::ToLower(*str)) + (hash << 6) + (hash << 16) - hash;
+			++str;
+		}
+
+		return hash;
+	}
+
+	std::string StringHash::ToString() const
+	{
+		char tempBuffer[str::ConversionBufferLength];
+		sprintf(tempBuffer, "%08X", _value);
+		return std::string(tempBuffer);
 	}
 }

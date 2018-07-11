@@ -42,7 +42,10 @@ namespace Alimer
 
         void Bind(ID3D11DeviceContext1* context);
 
+        ID3D11InputLayout* GetD3DInputLayout() const { return _d3dInputLayout; }
+
 	private:
         SharedPtr<D3D11Shader> _shader;
+        ID3D11InputLayout* _d3dInputLayout = nullptr;
 	};
 }

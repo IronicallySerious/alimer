@@ -52,8 +52,9 @@ namespace Alimer
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 
-		SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
-		SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
+        Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
+        Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,
+            const void *pFragmentCode, size_t fragmentCodeSize) override;
         SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
 
         void HandleDeviceLost();
@@ -78,9 +79,6 @@ namespace Alimer
         CommandBuffer* GetDefaultCommandBuffer() const override;
 
         void GenerateScreenshot(const std::string& fileName) override;
-
-        SharedPtr<CommandBuffer> CreateCommandBufferCore() override;
-        void ExecuteCommandBuffer(CommandBuffer* commandBuffer) override;
 
         Microsoft::WRL::ComPtr<IDXGIFactory2>               _dxgiFactory;
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;

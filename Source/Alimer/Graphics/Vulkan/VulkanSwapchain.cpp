@@ -355,8 +355,8 @@ namespace Alimer
 		{
             vkCreateSemaphore(_logicalDevice, &semaphoreCreateInfo, nullptr, &_semaphores[i]);
 
-			_textures[i] = MakeShared<VulkanTexture>(
-				_graphics.Get(),
+			_textures[i] = MakeUnique<VulkanTexture>(
+				_graphics,
 				textureDesc,
 				_images[i],
 				createInfo.imageUsage);
@@ -397,7 +397,7 @@ namespace Alimer
 		}
 	}
 
-	SharedPtr<VulkanRenderPass> VulkanSwapchain::GetNextDrawable()
+	/*SharedPtr<VulkanRenderPass> VulkanSwapchain::GetNextDrawable()
 	{
         VkSemaphore semaphore = _semaphores[_currentSemaphoreIndex];
         _currentSemaphoreIndex = (_currentSemaphoreIndex + 1) % _imageCount;
@@ -421,7 +421,7 @@ namespace Alimer
 
         _graphics->AddWaitSemaphore(semaphore);
 		return _renderPasses[_currentBackBufferIndex];
-	}
+	}*/
 
     VkResult VulkanSwapchain::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex)
     {

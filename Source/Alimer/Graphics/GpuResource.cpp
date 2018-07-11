@@ -39,9 +39,4 @@ namespace Alimer
         if (_graphics)
             _graphics->RemoveGpuResource(this);
     }
-
-    Graphics* GpuResource::GetGraphics() const
-    {
-        return _graphics.Get();
-    }
 }

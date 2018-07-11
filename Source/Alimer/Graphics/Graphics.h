@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
+#include "../Core/Object.h"
 #include "../Application/Window.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/GpuDeviceFeatures.h"
@@ -42,9 +42,11 @@
 namespace Alimer
 {
     /// Low-level 3D graphics API class.
-    class ALIMER_API Graphics : public RefCounted
+    class ALIMER_API Graphics : public Object
     {
         friend class GpuResource;
+
+        ALIMER_OBJECT(Graphics, Object);
 
     protected:
         /// Constructor.
@@ -64,7 +66,7 @@ namespace Alimer
         static Graphics* Create(GraphicsDeviceType deviceType, bool validation = false, const std::string& applicationName = "Alimer");
 
         /// Initialize graphics with given adapter and window.
-        bool Initialize(GpuAdapter* adapter, const SharedPtr<Window>& window);
+        bool Initialize(GpuAdapter* adapter, WindowPtr window);
 
         /// Wait for a device to become idle.
         virtual void WaitIdle() = 0;
@@ -80,8 +82,6 @@ namespace Alimer
 
         virtual CommandBuffer* GetDefaultCommandBuffer() const = 0;
 
-        //SharedPtr<CommandBuffer> CreateCommandBuffer();
-
         // RenderPass
         virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
 
@@ -89,14 +89,14 @@ namespace Alimer
         virtual SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;
 
         // Shader
-        SharedPtr<Shader> CreateShader(
+        Shader* CreateShader(
             const std::string& vertexShaderFile,
             const std::string& fragmentShaderFile);
 
-        virtual SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) = 0;
-        virtual SharedPtr<Shader> CreateShader(
-            const ShaderStageDescription& vertex,
-            const ShaderStageDescription& fragment) = 0;
+        virtual Shader* CreateComputeShader(const void *pCode, size_t codeSize) = 0;
+        virtual Shader* CreateShader(
+            const void *pVertexCode, size_t vertexCodeSize,
+            const void *pFragmentCode, size_t fragmentCodeSize) = 0;
 
         // PipelineState
         virtual SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
@@ -126,9 +126,7 @@ namespace Alimer
         virtual void Finalize();
         virtual bool BackendInitialize() = 0;
 
-        virtual SharedPtr<CommandBuffer> CreateCommandBufferCore();
         virtual void GenerateScreenshot(const std::string& fileName) {}
-        virtual void ExecuteCommandBuffer(CommandBuffer* commandBuffer) = 0;
 
     protected:
         GraphicsDeviceType _deviceType;
@@ -136,16 +134,8 @@ namespace Alimer
         std::vector<GpuAdapter*> _adapters;
         GpuDeviceFeatures _features;
 
-        SharedPtr<Window> _window{};
+        WindowPtr _window{};
         GpuAdapter* _adapter;
-
-        // Submitted command buffers.
-        std::vector<SharedPtr<CommandBuffer>> _commandBuffers;
-        std::vector<SharedPtr<CommandBuffer>> _executingCommandBuffers;
-
-        // Simple commands to execute on rendering thread.
-        std::queue<std::function<void(void)>> _threadCommandsQueue;
-        std::mutex _queueMutex;
 
     private:
         std::mutex _gpuResourceMutex;

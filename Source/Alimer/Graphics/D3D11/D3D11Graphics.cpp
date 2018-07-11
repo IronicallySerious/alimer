@@ -351,16 +351,6 @@ namespace Alimer
         texture->Release();
     }
 
-    SharedPtr<CommandBuffer> D3D11Graphics::CreateCommandBufferCore()
-    {
-        return MakeShared<D3D11CommandBuffer>(this);
-    }
-
-    void D3D11Graphics::ExecuteCommandBuffer(CommandBuffer* commandBuffer)
-    {
-        static_cast<D3D11CommandBuffer*>(commandBuffer)->Execute(_defaultCommandBuffer);
-    }
-
     void D3D11Graphics::WaitIdle()
     {
         _d3dContext->Flush();
@@ -423,14 +413,19 @@ namespace Alimer
         return MakeShared<D3D11GpuBuffer>(this, description, initialData);
     }
 
-    SharedPtr<Shader> D3D11Graphics::CreateComputeShader(const ShaderStageDescription& desc)
+    Shader* D3D11Graphics::CreateComputeShader(const void *pCode, size_t codeSize)
     {
-        return MakeShared<D3D11Shader>(this, desc);
+        return new D3D11Shader(this, pCode, codeSize);
     }
 
-    SharedPtr<Shader> D3D11Graphics::CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
+    Shader* D3D11Graphics::CreateShader(
+        const void *pVertexCode, size_t vertexCodeSize,
+        const void *pFragmentCode, size_t fragmentCodeSize)
     {
-        return MakeShared<D3D11Shader>(this, vertex, fragment);
+        return new D3D11Shader(this,
+            pVertexCode, vertexCodeSize,
+            pFragmentCode, fragmentCodeSize
+        );
     }
 
     SharedPtr<PipelineState> D3D11Graphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)

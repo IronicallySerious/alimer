@@ -51,7 +51,7 @@ namespace Alimer
 
 	struct RenderPipelineDescriptor
 	{
-		SharedPtr<Shader> shader;
+        ShaderPtr shader;
         VertexDescriptor vertexDescriptor;
 		
 	};

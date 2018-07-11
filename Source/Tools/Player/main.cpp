@@ -42,22 +42,21 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
-        auto test = GetOSDescription();
     }
 
     void RuntimeApplication::Initialize()
     {
         struct Vertex
         {
-            glm::vec3 position;
+            vec3 position;
             Color color;
         };
 
         Vertex triangleVertices[] =
         {
-            { glm::vec3(0.0f, 0.5f, 0.0f), Color(1.0f, 0.0f, 0.0f) },
-            { glm::vec3(0.5f, -0.5f, 0.0f), Color(0.0f, 1.0f, 0.0f) },
-            { glm::vec3(-0.5f, -0.5f, 0.0f),Color(0.0f, 0.0f, 1.0f) }
+            { vec3(0.0f, 0.5f, 0.0f), Color(1.0f, 0.0f, 0.0f) },
+            { vec3(0.5f, -0.5f, 0.0f), Color(0.0f, 1.0f, 0.0f) },
+            { vec3(-0.5f, -0.5f, 0.0f),Color(0.0f, 0.0f, 1.0f) }
         };
 
         GpuBufferDescription vertexBufferDesc = {};
@@ -72,7 +71,7 @@ namespace Alimer
         renderPipelineDescriptor.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
         renderPipelineDescriptor.vertexDescriptor.attributes[1].offset = 12;
         renderPipelineDescriptor.vertexDescriptor.layouts[0].stride = _vertexBuffer->GetElementSize();
-        //_renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);*/
+        _renderPipeline = _graphics->CreateRenderPipelineState(renderPipelineDescriptor);
 
         // Create scene
        // auto triangleEntity = _scene->CreateEntity();
@@ -83,11 +82,10 @@ namespace Alimer
     void RuntimeApplication::OnRender(CommandBuffer* commandBuffer)
     {
         commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+        commandBuffer->SetPipeline(_renderPipeline.Get());
+        commandBuffer->SetVertexBuffer(_vertexBuffer.Get());
+        commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
         commandBuffer->EndRenderPass();
-
-        //commandBuffer->SetPipeline(_renderPipeline);
-        //commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
-        //commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
     }
 }
 

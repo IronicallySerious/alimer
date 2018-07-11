@@ -25,13 +25,12 @@
 #include <functional>
 #include <assert.h>
 #include <memory.h>
+#include "../Math/Vector2.h"
 #include <string>
 
 namespace Alimer
 {
-    struct Vector2;
-    struct Vector4;
-    struct Matrix;
+    struct Matrix4;
     struct Quaternion;
     struct Plane;
 
@@ -80,29 +79,6 @@ namespace Alimer
 
         // Constants
         static const Rectangle Empty;
-    };
-
-    // 2D vector
-    struct Vector2
-    {
-        float x;
-        float y;
-
-        Vector2() noexcept : x(0.0f), y(0.0f) {}
-
-        Vector2(const Vector2&) = default;
-        Vector2& operator=(const Vector2&) = default;
-
-        Vector2(Vector2&&) = default;
-        Vector2& operator=(Vector2&&) = default;
-
-        constexpr explicit Vector2(float value) : x(value), y(value) {}
-        constexpr Vector2(float x_, float y_) : x(x_), y(y_) {}
-        explicit Vector2(const float *data) : x(data[0]), y(data[1]) {}
-
-        // Comparison operators
-        bool operator == (const Vector2& rhs) const;
-        bool operator != (const Vector2& rhs) const;
     };
 
     struct Viewport

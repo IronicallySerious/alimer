@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
+#include "../Core/Object.h"
+#include "../Math/Math.h"
 #include <string>
 
 #if ALIMER_PLATFORM_WINDOWS
@@ -79,9 +80,19 @@ namespace Alimer
         } info;
     };
 
-    /// OS Window class.
-    class Window : public RefCounted
+    /// Window resized event.
+    class ALIMER_API WindowResizeEvent : public Event
     {
+    public:
+        /// New window size.
+        Vector2 size;
+    };
+
+    /// OS Window class.
+    class Window : public Object
+    {
+        ALIMER_OBJECT(Window, Object);
+
     protected:
         /// Constructor.
         Window();
@@ -94,6 +105,9 @@ namespace Alimer
         inline uint32_t GetHeight() const { return _height; }
         inline float GetAspectRatio() const { return static_cast<float>(_width) / _height; }
         inline const WindowHandle& GetHandle() const { return _handle; }
+
+        /// Size changed event.
+        WindowResizeEvent resizeEvent;
 
     protected:
         WindowHandle _handle;
@@ -109,4 +123,6 @@ namespace Alimer
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Window);
     };
+
+    using WindowPtr = SharedPtr<Window>;
 }

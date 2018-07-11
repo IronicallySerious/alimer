@@ -44,6 +44,7 @@ namespace Alimer
 
 		void Show();
 		void Close();
+
 		LRESULT OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
 
 		inline HINSTANCE GetHInstance() const { return _hInstance; }
@@ -51,6 +52,7 @@ namespace Alimer
 
 	private:
 		void InitAfterCreation();
+        void HandleResize(const Vector2& newSize);
 
 		HINSTANCE _hInstance = nullptr;
 		HWND _hwnd = nullptr;

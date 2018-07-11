@@ -31,6 +31,8 @@ namespace Alimer
 	/// Defines a Mesh.
     class ALIMER_API Mesh final : public Resource
 	{
+        ALIMER_OBJECT(Mesh, Resource);
+
     public:
         Mesh(Graphics* graphics);
         ~Mesh() = default;

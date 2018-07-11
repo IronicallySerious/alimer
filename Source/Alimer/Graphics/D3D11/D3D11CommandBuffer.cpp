@@ -24,6 +24,7 @@
 #include "D3D11Graphics.h"
 #include "D3D11Texture.h"
 #include "D3D11RenderPass.h"
+#include "D3D11PipelineState.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
@@ -110,6 +111,73 @@ namespace Alimer
         _context->RSSetViewports(numViewports, (D3D11_VIEWPORT*)viewports);
     }
 
+    void D3D11CommandContext::SetScissor(const Rectangle& scissor)
+    {
+        D3D11_RECT scissorD3D;
+        scissorD3D.left = scissor.x;
+        scissorD3D.top = scissor.y;
+        scissorD3D.right = scissor.x + scissor.width;
+        scissorD3D.bottom = scissor.y + scissor.height;
+        _context->RSSetScissorRects(1, &scissorD3D);
+    }
+
+    void D3D11CommandContext::SetScissors(uint32_t numScissors, const Rectangle* scissors)
+    {
+        numScissors = std::min(numScissors, static_cast<uint32_t>(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE));
+        D3D11_RECT scissorsD3D[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+
+        for (uint32_t i = 0; i < numScissors; ++i)
+        {
+            const Rectangle& src = scissors[i];
+            D3D11_RECT& dst = scissorsD3D[i];
+
+            dst.left = src.x;
+            dst.top = src.y;
+            dst.right = src.x + src.width;
+            dst.bottom = src.y + src.height;
+        }
+
+        _context->RSSetScissorRects(numScissors, scissorsD3D);
+    }
+
+    void D3D11CommandContext::SetPipeline(PipelineState* pipeline)
+    {
+        _currentPipeline = static_cast<D3D11PipelineState*>(pipeline);
+    }
+
+    void D3D11CommandContext::SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
+    {
+        //_context->IASetVertexBuffers(binding, 1, );
+    }
+
+    bool D3D11CommandContext::PrepareDraw(PrimitiveTopology topology)
+    {
+        if (_currentTopology != topology)
+        {
+            _context->IASetPrimitiveTopology(d3d::Convert(topology));
+            _currentTopology = topology;
+        }
+
+        _currentPipeline->Bind(_context);
+
+        return false;
+    }
+
+    void D3D11CommandContext::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+        if (!PrepareDraw(topology))
+            return;
+
+        if (instanceCount <= 1)
+        {
+            _context->Draw(vertexCount, vertexStart);
+        }
+        else
+        {
+            _context->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
+        }
+    }
+
     D3D11CommandBuffer::D3D11CommandBuffer(D3D11Graphics* graphics)
         : CommandBuffer()
         , _graphics(graphics)
@@ -163,38 +231,9 @@ namespace Alimer
     /*
 
     
-    void D3D11CommandBuffer::SetScissor(const Rectangle& scissor)
-    {
-        D3D11_RECT scissorD3D;
-        scissorD3D.left = scissor.x;
-        scissorD3D.top = scissor.y;
-        scissorD3D.right = scissor.x + scissor.width;
-        scissorD3D.bottom = scissor.y + scissor.height;
-        _context->RSSetScissorRects(1, &scissorD3D);
-    }
+   
 
-    void D3D11CommandBuffer::SetScissors(uint32_t numScissors, const Rectangle* scissors)
-    {
-        numScissors = std::min(numScissors, static_cast<uint32_t>(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE));
-        D3D11_RECT scissorsD3D[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
-
-        for (uint32_t i = 0; i < numScissors; ++i)
-        {
-            const Rectangle& src = scissors[i];
-            D3D11_RECT& dst = scissorsD3D[i];
-
-            dst.left = src.x;
-            dst.top = src.y;
-            dst.right = src.x + src.width;
-            dst.bottom = src.y + src.height;
-        }
-
-        _context->RSSetScissorRects(numScissors, scissorsD3D);
-    }
-
-    void D3D11CommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)
-    {
-    }
+    
 
     void D3D11CommandBuffer::OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
     {
@@ -204,20 +243,7 @@ namespace Alimer
     {
     }
 
-    void D3D11CommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-    {
-        if (!PrepareDraw(topology))
-            return;
-
-        if (instanceCount <= 1)
-        {
-            _context->Draw(vertexCount, vertexStart);
-        }
-        else
-        {
-            _context->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
-        }
-    }
+    
 
     void D3D11CommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
@@ -234,15 +260,6 @@ namespace Alimer
         }
     }
 
-    bool D3D11CommandBuffer::PrepareDraw(PrimitiveTopology topology)
-    {
-        if (_currentTopology != topology)
-        {
-            _context->IASetPrimitiveTopology(d3d::Convert(topology));
-            _currentTopology = topology;
-        }
-
-        return false;
-    }*/
+    */
 }
 

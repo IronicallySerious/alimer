@@ -725,11 +725,6 @@ namespace Alimer
         return _swapChain->GetRenderPass(_swapchainImageIndex);
     }
 
-    void VulkanGraphics::ExecuteCommandBuffer(CommandBuffer* commandBuffer)
-    {
-
-    }
-
     SharedPtr<RenderPass> VulkanGraphics::CreateRenderPass(const RenderPassDescription& description)
     {
         return MakeShared<VulkanRenderPass>(this, description);
@@ -740,14 +735,19 @@ namespace Alimer
         return MakeShared<VulkanBuffer>(this, description, initialData);
     }
 
-    SharedPtr<Shader> VulkanGraphics::CreateComputeShader(const ShaderStageDescription& desc)
+    Shader* VulkanGraphics::CreateComputeShader(const void *pCode, size_t codeSize)
     {
-        return MakeShared<VulkanShader>(this, desc);
+        return new VulkanShader(this, pCode, codeSize);
     }
 
-    SharedPtr<Shader> VulkanGraphics::CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
+    Shader* VulkanGraphics::CreateShader(
+        const void *pVertexCode, size_t vertexCodeSize,
+        const void *pFragmentCode, size_t fragmentCodeSize)
     {
-        return MakeShared<VulkanShader>(this, vertex, fragment);
+        return new VulkanShader(this,
+            pVertexCode, vertexCodeSize,
+            pFragmentCode, fragmentCodeSize
+        );
     }
 
     SharedPtr<PipelineState> VulkanGraphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)

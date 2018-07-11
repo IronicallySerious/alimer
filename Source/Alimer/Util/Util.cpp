@@ -96,16 +96,6 @@ namespace Alimer
         RightTrim(s);
     }
 
-    void str::ToLower(std::string& s)
-    {
-        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-    }
-
-    void str::ToUpper(std::string& s)
-    {
-        std::transform(s.begin(), s.end(), s.begin(), ::toupper);
-    }
-
     bool str::StartsWith(const string& str, const string& pattern, bool lowerCase)
     {
         if (pattern.empty())

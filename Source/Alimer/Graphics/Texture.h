@@ -24,8 +24,8 @@
 
 #include "../Core/Flags.h"
 #include "../Graphics/GpuResource.h"
-#include "../Graphics/PixelFormat.h"
 #include "../Resource/Resource.h"
+#include "../Graphics/PixelFormat.h"
 
 namespace Alimer
 {
@@ -73,6 +73,8 @@ namespace Alimer
     /// Defines a Texture class.
     class ALIMER_API Texture : public Resource, public GpuResource
     {
+        ALIMER_OBJECT(Texture, Resource);
+
     protected:
         /// Constructor.
         Texture(Graphics* graphics);

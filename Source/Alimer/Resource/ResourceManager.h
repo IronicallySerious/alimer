@@ -50,7 +50,7 @@ namespace Alimer
 
         std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
 
-		SharedPtr<Resource> LoadResource(const std::string& assetName);
+        SharedPtr<Resource> LoadResource(const std::string& assetName);
 
 		template <class T> SharedPtr<T> Load(const std::string& assetName)
 		{
