@@ -408,9 +408,9 @@ namespace Alimer
         return MakeShared<D3D11RenderPass>(this, description);
     }
 
-    SharedPtr<GpuBuffer> D3D11Graphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
+    GpuBuffer* D3D11Graphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
     {
-        return MakeShared<D3D11GpuBuffer>(this, description, initialData);
+        return new D3D11GpuBuffer(this, description, initialData);
     }
 
     Shader* D3D11Graphics::CreateComputeShader(const void *pCode, size_t codeSize)
@@ -428,8 +428,8 @@ namespace Alimer
         );
     }
 
-    SharedPtr<PipelineState> D3D11Graphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
+    PipelineState* D3D11Graphics::CreateRenderPipelineState(const RenderPipelineDescription& description)
     {
-        return MakeShared<D3D11PipelineState>(this, descriptor);
+        return new D3D11PipelineState(this, description);
     }
 }

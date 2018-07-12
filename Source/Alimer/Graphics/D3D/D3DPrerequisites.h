@@ -40,6 +40,8 @@
 #define _WIN32_WINNT_WIN10 0x0A00
 #endif
 
+#define D3D11_NO_HELPERS
+
 #if defined(_XBOX_ONE) && defined(_TITLE)
 #   include <d3d11_x.h>
 #   define DCOMMON_H_INCLUDED

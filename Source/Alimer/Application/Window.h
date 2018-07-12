@@ -101,6 +101,25 @@ namespace Alimer
         /// Destructor.
         virtual ~Window();
 
+        /// Show the window.
+        virtual void Show();
+        /// Hide the window.
+        virtual void Hide();
+        /// Minimize the window.
+        virtual void Minimize();
+        /// Maximize the window.
+        virtual void Maximize();
+        /// Restore window size.
+        virtual void Restore();
+        /// Close the window.
+        virtual void Close();
+
+        /// Return whether is visible.
+        virtual bool IsVisible() const;
+
+        /// Return whether is currently minimized.
+        virtual bool IsMinimized() const;
+
         inline uint32_t GetWidth() const { return _width; }
         inline uint32_t GetHeight() const { return _height; }
         inline float GetAspectRatio() const { return static_cast<float>(_width) / _height; }

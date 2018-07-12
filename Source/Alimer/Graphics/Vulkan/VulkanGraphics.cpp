@@ -730,9 +730,9 @@ namespace Alimer
         return MakeShared<VulkanRenderPass>(this, description);
     }
 
-    SharedPtr<GpuBuffer> VulkanGraphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
+    GpuBuffer* VulkanGraphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
     {
-        return MakeShared<VulkanBuffer>(this, description, initialData);
+        return new VulkanBuffer(this, description, initialData);
     }
 
     Shader* VulkanGraphics::CreateComputeShader(const void *pCode, size_t codeSize)
@@ -750,9 +750,9 @@ namespace Alimer
         );
     }
 
-    SharedPtr<PipelineState> VulkanGraphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
+    PipelineState* VulkanGraphics::CreateRenderPipelineState(const RenderPipelineDescription& description)
     {
-        return MakeShared<VulkanPipelineState>(this, descriptor);
+        return new VulkanPipelineState(this, description);
     }
 
     uint32_t VulkanGraphics::GetQueueFamilyIndex(VkQueueFlagBits queueFlags)

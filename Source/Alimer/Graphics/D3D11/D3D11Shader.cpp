@@ -128,6 +128,19 @@ namespace Alimer
         }
     }
 
+    void D3D11Shader::Bind(ID3D11DeviceContext1* context)
+    {
+        if (_isCompute)
+        {
+            context->CSSetShader(_d3dComputeShader, nullptr, 0);
+        }
+        else
+        {
+            context->VSSetShader(_d3dVertexShader, nullptr, 0);
+            context->PSSetShader(_d3dPixelShader, nullptr, 0);
+        }
+    }
+
     std::vector<uint8_t> D3D11Shader::AcquireVertexShaderBytecode()
     {
         return std::move(_vsByteCode);

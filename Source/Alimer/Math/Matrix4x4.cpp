@@ -20,60 +20,40 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#include "../Math/Matrix4x4.h"
+#include "../Math/MathUtil.h"
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
+    const Matrix4x4 Matrix4x4::Identity = {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f
+    };
 
-	Window::~Window()
-	{
-	}
-
-    void Window::Show()
+    Matrix4x4::Matrix4x4(const float* pArray)
     {
-        // Do nothing by default
-    }
+        assert(pArray != nullptr);
 
-    void Window::Hide()
-    {
-        // Do nothing by default
-    }
+        m[0][0] = pArray[0];
+        m[0][1] = pArray[1];
+        m[0][2] = pArray[2];
+        m[0][3] = pArray[3];
 
-    void Window::Minimize()
-    {
-        // Do nothing by default
-    }
+        m[1][0] = pArray[4];
+        m[1][1] = pArray[5];
+        m[1][2] = pArray[6];
+        m[1][3] = pArray[7];
 
-    void Window::Maximize()
-    {
-        // Do nothing by default
-    }
+        m[2][0] = pArray[8];
+        m[2][1] = pArray[9];
+        m[2][2] = pArray[10];
+        m[2][3] = pArray[11];
 
-    void Window::Restore()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Close()
-    {
-        // Do nothing by default
-    }
-
-    bool Window::IsVisible() const
-    {
-        return true;
-    }
-
-    bool Window::IsMinimized() const
-    {
-        return false;
+        m[3][0] = pArray[12];
+        m[3][1] = pArray[13];
+        m[3][2] = pArray[14];
+        m[3][3] = pArray[15];
     }
 }

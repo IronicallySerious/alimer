@@ -50,12 +50,12 @@ namespace Alimer
         void WaitIdle() override;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
-        SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
+        GpuBuffer* CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
 
         Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
         Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,
             const void *pFragmentCode, size_t fragmentCodeSize) override;
-        SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
+        PipelineState* CreateRenderPipelineState(const RenderPipelineDescription& description) override;
 
         void HandleDeviceLost();
 

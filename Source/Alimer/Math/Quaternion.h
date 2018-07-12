@@ -22,13 +22,14 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
-#include <string>
+#include "../Math/Vector3.h"
+#include "../Math/Matrix4x4.h"
+//#include "../Math/Plane.h"
 
 namespace Alimer
 {
-    /// Defines a 4D vector
-    class ALIMER_API Vector4
+    /// Defines a 4 element quaternion.
+    class ALIMER_API Quaternion
     {
     public:
         /// The x coordinate.
@@ -43,33 +44,29 @@ namespace Alimer
         /// The w coordinate.
         float w;
 
-        Vector4() noexcept : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+        Quaternion() noexcept : x(0.0f), y(0.0f), z(0.0f), w(1.0f) {}
 
-        Vector4(const Vector4&) = default;
-        Vector4& operator=(const Vector4&) = default;
+        Quaternion(const Quaternion&) = default;
+        Quaternion& operator=(const Quaternion&) = default;
 
-        Vector4(Vector4&&) = default;
-        Vector4& operator=(Vector4&&) = default;
+        Quaternion(Quaternion&&) = default;
+        Quaternion& operator=(Quaternion&&) = default;
 
-        constexpr explicit Vector4(float value) : x(value), y(value), z(value), w(value) {}
-        constexpr Vector4(float x_, float y_) : x(x_), y(y_), z(0.0f), w(0.0f) {}
-        constexpr Vector4(float x_, float y_, float z_) : x(x_), y(y_), z(z_), w(0.0f) {}
-        constexpr Vector4(float x_, float y_, float z_ , float w_) : x(x_), y(y_), z(z_), w(w_) {}
-        explicit Vector4(const float *data) : x(data[0]), y(data[1]), z(data[2]), w(data[3]) {}
+        constexpr explicit Quaternion(float value) : x(value), y(value), z(value), w(value) {}
+        constexpr Quaternion(float x_, float y_, float z_) : x(x_), y(y_), z(z_), w(1.0f) {}
+        constexpr Quaternion(float x_, float y_, float z_ , float w_) : x(x_), y(y_), z(z_), w(w_) {}
+        explicit Quaternion(const float *data) : x(data[0]), y(data[1]), z(data[2]), w(data[3]) {}
 
         // Comparison operators
-        bool operator == (const Vector4& rhs)  const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
-        bool operator != (const Vector4& rhs) const { return x != rhs.x || y != rhs.y || z != rhs.z || w != rhs.w; }
+        bool operator == (const Quaternion& rhs)  const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
+        bool operator != (const Quaternion& rhs) const { return x != rhs.x || y != rhs.y || z != rhs.z || w != rhs.w; }
+
 
         // Constants
-        static const Vector4 Zero;
-        static const Vector4 One;
-        static const Vector4 UnitX;
-        static const Vector4 UnitY;
-        static const Vector4 UnitZ;
-        static const Vector4 UnitW;
+        static const Quaternion Zero;
+        static const Quaternion Identity;
     };
 
-    using vec4 = Vector4;
+    using quat = Quaternion;
 }
 

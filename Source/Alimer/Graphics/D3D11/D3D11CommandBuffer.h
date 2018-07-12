@@ -40,6 +40,8 @@ namespace Alimer
         /// Destructor.
         ~D3D11CommandContext() override;
 
+        void Reset();
+
         void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
         void SetViewport(const Viewport& viewport) override;
@@ -50,8 +52,11 @@ namespace Alimer
 
         void SetPipeline(PipelineState* pipeline) override;
         void SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
+        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
 
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
+        void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
     private:
         bool PrepareDraw(PrimitiveTopology topology);
@@ -60,10 +65,13 @@ namespace Alimer
         D3D11Graphics * _graphics;
         ID3D11DeviceContext1 * _context;
 
-        D3D11RenderPass* _currentRenderPass = nullptr;
-        uint32_t _currentColorAttachmentsBound = 0;
-        PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
-        D3D11PipelineState* _currentPipeline = nullptr;
+        D3D11RenderPass* _currentRenderPass;
+        uint32_t _currentColorAttachmentsBound;
+        PrimitiveTopology _currentTopology;
+        D3D11PipelineState* _currentPipeline;
+        ID3D11RasterizerState1* _currentRasterizerState;
+        ID3D11DepthStencilState* _currentDepthStencilState;
+        ID3D11BlendState1* _currentBlendState;
     };
 
     /// D3D11 CommandBuffer implementation.
@@ -77,18 +85,8 @@ namespace Alimer
         ~D3D11CommandBuffer() override;
 
         void Execute(D3D11CommandContext* context);
-
-        /*void Destroy() override;
-        void CommitCore() override;
-
-        void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
-
-        void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
-        */
     private:
         
-        //void OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
-        //void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
 
     private:
         D3D11Graphics * _graphics;

@@ -115,7 +115,7 @@ namespace Alimer
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		}
 
-		auto* window = reinterpret_cast<Alimer::WindowWindows*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+		auto* window = reinterpret_cast<Alimer::Win32Window*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 		if (!window)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 
@@ -180,7 +180,7 @@ namespace Alimer
 		LONG _oleRefCount = 0;
 	};
 
-	WindowWindows::WindowWindows(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
+    Win32Window::Win32Window(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
 		: _dropTarget(new OleDropTarget())
 		, _cursor(LoadCursorW(nullptr, IDC_ARROW))
 	{
@@ -316,12 +316,12 @@ namespace Alimer
 		::SetWindowLongPtrW(_hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 	}
 
-	WindowWindows::~WindowWindows()
+    Win32Window::~Win32Window()
 	{
 		_dropTarget = nullptr;
 	}
 
-	void WindowWindows::InitAfterCreation()
+	void Win32Window::InitAfterCreation()
 	{
 		_monitor = MonitorFromWindow(_hwnd, MONITOR_DEFAULTTONEAREST);
 
@@ -344,7 +344,7 @@ namespace Alimer
 		}
 	}
 
-	void WindowWindows::Show()
+	void Win32Window::Show()
 	{
 		if (_visible)
 			return;
@@ -353,7 +353,43 @@ namespace Alimer
 		::ShowWindow(_hwnd, _showCommand);
 	}
 
-	void WindowWindows::Close()
+    void Win32Window::Hide()
+    {
+        if (_visible)
+        {
+            _visible = false;
+            if (_hwnd)
+                ::ShowWindow(_hwnd, SW_HIDE);
+            else
+                _showCommand = SW_HIDE;
+        }
+    }
+
+    void Win32Window::Minimize()
+    {
+        if (_hwnd)
+            ::ShowWindow(_hwnd, SW_MINIMIZE);
+        else
+            _showCommand = SW_MINIMIZE;
+    }
+
+    void Win32Window::Maximize()
+    {
+        if (_hwnd)
+            ::ShowWindow(_hwnd, SW_MAXIMIZE);
+        else
+            _showCommand = SW_MAXIMIZE;
+    }
+
+    void Win32Window::Restore()
+    {
+        if (_hwnd)
+            ::ShowWindow(_hwnd, SW_RESTORE);
+        else
+            _showCommand = SW_RESTORE;
+    }
+
+	void Win32Window::Close()
 	{
 		const bool shouldCancel = false;
 		if (!shouldCancel)
@@ -364,7 +400,7 @@ namespace Alimer
 		}
 	}
 
-	void WindowWindows::Destroy()
+	void Win32Window::Destroy()
 	{
 		if (IsWindow(_hwnd))
 		{
@@ -378,7 +414,7 @@ namespace Alimer
 		::DestroyWindow(destroyHandle);
 	}
 
-	void WindowWindows::Activate(bool focused)
+	void Win32Window::Activate(bool focused)
 	{
 		if (_focused == focused)
 			return;
@@ -386,7 +422,12 @@ namespace Alimer
 		_focused = focused;
 	}
 
-    void WindowWindows::HandleResize(const Vector2& newSize)
+    bool Win32Window::IsMinimized() const
+    {
+        return !!::IsIconic(_hwnd);
+    }
+
+    void Win32Window::HandleResize(const Vector2& newSize)
     {
         _monitor = MonitorFromWindow(_hwnd, MONITOR_DEFAULTTONEAREST);
 
@@ -395,7 +436,7 @@ namespace Alimer
         SendEvent(resizeEvent);
     }
 
-	LRESULT WindowWindows::OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam)
+	LRESULT Win32Window::OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (msg)
 		{

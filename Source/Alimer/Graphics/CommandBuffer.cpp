@@ -237,13 +237,18 @@ namespace Alimer
 
     }
 
-    /*void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Index);
 
-        //SetIndexBufferCore(buffer, offset, indexType);
-    }*/
+        SetIndexBufferCore(buffer, offset, indexType);
+    }
+
+    void CommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    {
+
+    }
 
     void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer)
     {
@@ -251,10 +256,10 @@ namespace Alimer
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
         ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Uniform);
 
-        SetUniformBufferCore(set, binding, buffer);
+        SetUniformBufferCore(set, binding, buffer, 0, buffer->GetSize());
     }
 
-    void CommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer)
+    void CommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range)
     {
     }
 
@@ -268,7 +273,7 @@ namespace Alimer
         DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
-    /*void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
         if (!IsInsideRenderPass())
         {
@@ -276,7 +281,12 @@ namespace Alimer
         }
 
         DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
-    }*/
+    }
+
+    void CommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    {
+
+    }
 
     void CommandBuffer::ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
     {

@@ -34,16 +34,20 @@ namespace Alimer
         : GpuBuffer(graphics, description)
     {
         const bool dynamic = description.resourceUsage == ResourceUsage::Dynamic;
+
         D3D11_BUFFER_DESC bufferDesc = {};
-        bufferDesc.ByteWidth = description.elementSize;
+        bufferDesc.ByteWidth = static_cast<UINT>(_size);
         bufferDesc.StructureByteStride = description.elementSize;
         bufferDesc.Usage = d3d11::Convert(description.resourceUsage);
         bufferDesc.CPUAccessFlags = 0;
         if (description.resourceUsage == ResourceUsage::Dynamic)
+        {
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        }
         else if (description.resourceUsage == ResourceUsage::Staging)
+        {
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
-
+        }
 
         if (description.usage & BufferUsage::Uniform)
         {

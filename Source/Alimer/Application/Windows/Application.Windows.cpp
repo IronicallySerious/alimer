@@ -123,7 +123,7 @@ namespace Alimer
 
     WindowPtr Application::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
     {
-        return MakeShared<WindowWindows>(title, width, height, fullscreen);
+        return MakeShared<Win32Window>(title, width, height, fullscreen);
     }
 
     unique_ptr<Input> Application::CreateInput()

@@ -35,11 +35,11 @@ namespace Alimer
         //_camera.projectionMatrix = glm::mat4(1.0f);
 
         // Create camera uniform buffer.
-        GpuBufferDescription uboBufferDesc = {};
-        uboBufferDesc.usage = BufferUsage::Uniform;
-        uboBufferDesc.elementCount = 1;
-        uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
-        _perCameraUboBuffer = graphics->CreateBuffer(uboBufferDesc, &_camera);
+        //GpuBufferDescription uboBufferDesc = {};
+        //uboBufferDesc.usage = BufferUsage::Uniform;
+        //uboBufferDesc.elementCount = 1;
+        //uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
+        //_perCameraUboBuffer = graphics->CreateBuffer(uboBufferDesc, &_camera);
     }
 
     // TODO: Add frustum

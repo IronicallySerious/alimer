@@ -35,7 +35,7 @@ namespace Alimer
 	{
 	public:
 		/// Constructor.
-        D3D11PipelineState(D3D11Graphics* graphics, const RenderPipelineDescriptor& descriptor);
+        D3D11PipelineState(D3D11Graphics* graphics, const RenderPipelineDescription& description);
 
 		/// Destructor.
 		~D3D11PipelineState() override;
@@ -43,9 +43,15 @@ namespace Alimer
         void Bind(ID3D11DeviceContext1* context);
 
         ID3D11InputLayout* GetD3DInputLayout() const { return _d3dInputLayout; }
+        ID3D11RasterizerState1* GetD3DRasterizerState() const { return _d3d11RasterizerState; }
+        ID3D11DepthStencilState* GetD3DDepthStencilState() const { return _d3d11DepthStencilState; }
+        ID3D11BlendState1* GetD3DBlendState() const { return _d3d11BlendState; }
 
 	private:
         SharedPtr<D3D11Shader> _shader;
         ID3D11InputLayout* _d3dInputLayout = nullptr;
+        ID3D11RasterizerState1* _d3d11RasterizerState = nullptr;
+        ID3D11DepthStencilState* _d3d11DepthStencilState = nullptr;
+        ID3D11BlendState1* _d3d11BlendState = nullptr;
 	};
 }

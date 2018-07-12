@@ -61,15 +61,18 @@ namespace Alimer
 
         void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
+        void SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
+        //void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
+
         VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
         bool IsSecondary() const { return _secondary; }
 
     private:
-        void ResetState();
+        void BeginCompute();
+        void BeginGraphics();
+        void BeginContext();
         bool PrepareDraw(PrimitiveTopology topology);
-        void SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
-        //void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
-
 
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
@@ -102,7 +105,31 @@ namespace Alimer
             IndexType indexType;
         };
 
+        struct ResourceBinding
+        {
+            union {
+                VkDescriptorBufferInfo buffer;
+                struct
+                {
+                    VkDescriptorImageInfo fp;
+                    VkDescriptorImageInfo integer;
+                } image;
+                VkBufferView bufferView;
+            };
+        };
+
+        struct ResourceBindings
+        {
+            ResourceBinding bindings[MaxDescriptorSets][MaxBindingsPerSet];
+            uint8_t push_constant_data[MaxDescriptorSets];
+        };
+
         VertexBindingState _vbo = {};
         IndexState _indexState = {};
+        ResourceBindings _bindings;
+
+        bool _isCompute = true;
+        uint32_t _dirtyVbos = 0;
+        uint32_t _dirtySets = 0;
     };
 }

@@ -20,60 +20,11 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#include "../Math/Quaternion.h"
+#include "../Math/MathUtil.h"
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
-
-	Window::~Window()
-	{
-	}
-
-    void Window::Show()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Hide()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Minimize()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Maximize()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Restore()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Close()
-    {
-        // Do nothing by default
-    }
-
-    bool Window::IsVisible() const
-    {
-        return true;
-    }
-
-    bool Window::IsMinimized() const
-    {
-        return false;
-    }
+    const Quaternion Quaternion::Zero = { 0.0f, 0.0f, 0.0f, 0.0f };
+    const Quaternion Quaternion::Identity = { 0.0f, 0.0f, 0.0f, 1.0f };
 }

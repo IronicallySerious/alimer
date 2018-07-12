@@ -35,7 +35,7 @@ namespace Alimer
 	class VulkanPipelineState final : public PipelineState
 	{
 	public:
-        VulkanPipelineState(VulkanGraphics* graphics, const RenderPipelineDescriptor& descriptor);
+        VulkanPipelineState(VulkanGraphics* graphics, const RenderPipelineDescription& description);
 		~VulkanPipelineState() override;
 
         VulkanShader* GetShader() const { return _shader.Get(); }

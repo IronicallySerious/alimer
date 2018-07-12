@@ -86,7 +86,7 @@ namespace Alimer
         virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
 
         // Buffer
-        virtual SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;
+        virtual GpuBuffer* CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;
 
         // Shader
         Shader* CreateShader(
@@ -99,7 +99,7 @@ namespace Alimer
             const void *pFragmentCode, size_t fragmentCodeSize) = 0;
 
         // PipelineState
-        virtual SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) = 0;
+        virtual PipelineState* CreateRenderPipelineState(const RenderPipelineDescription& description) = 0;
 
         inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
 

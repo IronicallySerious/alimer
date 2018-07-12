@@ -30,12 +30,12 @@
 
 namespace Alimer
 {
-    VulkanPipelineState::VulkanPipelineState(VulkanGraphics* graphics, const RenderPipelineDescriptor& descriptor)
+    VulkanPipelineState::VulkanPipelineState(VulkanGraphics* graphics, const RenderPipelineDescription& description)
         : PipelineState(graphics, true)
         , _logicalDevice(graphics->GetLogicalDevice())
         , _pipelineCache(graphics->GetPipelineCache())
     {
-        _shader = StaticCast<VulkanShader>(descriptor.shader);
+        _shader = StaticCast<VulkanShader>(description.shader);
 
         // Stages
         for (uint32_t i = 0; i < static_cast<uint32_t>(ShaderStage::Count); i++)
@@ -58,17 +58,17 @@ namespace Alimer
         {
             auto &attr = _vkAttribs[_vkAttribsCount++];
             attr.location = bit;
-            attr.binding = descriptor.vertexDescriptor.attributes[bit].binding;
-            attr.format = vk::Convert(descriptor.vertexDescriptor.attributes[bit].format);
-            attr.offset = descriptor.vertexDescriptor.attributes[bit].offset;
+            attr.binding = description.vertexDescription.attributes[bit].binding;
+            attr.format = vk::Convert(description.vertexDescription.attributes[bit].format);
+            attr.offset = description.vertexDescription.attributes[bit].offset;
             _bindingMask |= 1u << attr.binding;
         });
 
         ForEachBit(_bindingMask, [&](uint32_t bit) {
             auto &bind = _vkBindings[_vkBindingsCount++];
             bind.binding = bit;
-            bind.inputRate = vk::Convert(descriptor.vertexDescriptor.layouts[bit].inputRate);
-            bind.stride = descriptor.vertexDescriptor.layouts[bit].stride;
+            bind.inputRate = vk::Convert(description.vertexDescription.layouts[bit].inputRate);
+            bind.stride = description.vertexDescription.layouts[bit].stride;
         });
 
     }

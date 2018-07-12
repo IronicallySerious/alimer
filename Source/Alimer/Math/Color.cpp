@@ -28,11 +28,12 @@ namespace Alimer
     const Color Color::Black = { 0.0f, 0.0f, 0.0f, 1.0f };
     const Color Color::White = { 1.0f, 1.0f, 1.0f, 1.0f };
     const Color Color::WhiteSmoke = { 0.960784376f, 0.960784376f, 0.960784376f, 1.0f };
-    const Color Color::Red = { 1.0f, 0.0f, 0.0f, 1.0f };
+    const Color Color::Red = { 1.000000000f, 0.000000000f, 0.000000000f, 1.000000000f };
     const Color Color::Green = { 0.0f, 0.501960814f, 0.0f, 1.0f };
-    const Color Color::Blue = { 0.0f, 0.0f, 0.0f, 1.0f };
+    const Color Color::Blue = { 0.0f, 0.0f, 1.0f, 1.0f };
     const Color Color::Yellow = { 1.0f, 1.0f, 0.0f, 1.0f };
     const Color Color::YellowGreen = { 0.603921592f, 0.803921640f, 0.196078449f, 1.0f };
+    const Color Color::Lime = { 0.000000000f, 1.000000000f, 0.000000000f, 1.000000000f };
 
     std::string Color::ToString() const
     {

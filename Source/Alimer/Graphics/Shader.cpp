@@ -45,7 +45,7 @@ namespace Alimer
         const void *pVertexCode, size_t vertexCodeSize,
         const void *pFragmentCode, size_t fragmentCodeSize)
         : GpuResource(graphics, GpuResourceType::Shader)
-        , _isCompute(true)
+        , _isCompute(false)
     {
         Reflect(ShaderStage::Vertex, pVertexCode, vertexCodeSize);
         Reflect(ShaderStage::Fragment, pFragmentCode, fragmentCodeSize);

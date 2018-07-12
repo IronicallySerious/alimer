@@ -25,6 +25,7 @@
 #include "D3D11Texture.h"
 #include "D3D11RenderPass.h"
 #include "D3D11PipelineState.h"
+#include "D3D11GpuBuffer.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
@@ -45,12 +46,23 @@ namespace Alimer
         : _graphics(graphics)
         , _context(context)
     {
-
+        Reset();
     }
 
     D3D11CommandContext::~D3D11CommandContext()
     {
 
+    }
+
+    void D3D11CommandContext::Reset()
+    {
+        _currentRenderPass = nullptr;
+        _currentColorAttachmentsBound = 0;
+        _currentTopology = PrimitiveTopology::Count;
+        _currentPipeline = nullptr;
+        _currentRasterizerState = nullptr;
+        _currentDepthStencilState = nullptr;
+        _currentBlendState = nullptr;
     }
 
     void D3D11CommandContext::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
@@ -147,20 +159,68 @@ namespace Alimer
 
     void D3D11CommandContext::SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
     {
-        //_context->IASetVertexBuffers(binding, 1, );
+        // TODO: Handle single bind with one call.
+        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
+
+        UINT stride = buffer->GetElementSize();
+        UINT uOffset = static_cast<UINT>(offset);
+
+        _context->IASetVertexBuffers(binding, 1, &d3dBuffer, &stride, &uOffset);
+    }
+
+
+    void D3D11CommandContext::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    {
+        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
+        DXGI_FORMAT dxgiFormat = DXGI_FORMAT_R16_UINT;
+        if (indexType == IndexType::UInt32)
+        {
+            dxgiFormat = DXGI_FORMAT_R32_UINT;
+        }
+
+        _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
+    }
+
+
+    void D3D11CommandContext::SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range)
+    {
+        ID3D11Buffer* d3dBuffer = static_cast<const D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
+        _context->VSSetConstantBuffers(binding, 1, &d3dBuffer);
     }
 
     bool D3D11CommandContext::PrepareDraw(PrimitiveTopology topology)
     {
         if (_currentTopology != topology)
         {
+            auto b = d3d::Convert(topology);
             _context->IASetPrimitiveTopology(d3d::Convert(topology));
             _currentTopology = topology;
         }
 
         _currentPipeline->Bind(_context);
 
-        return false;
+        auto rasterizerState = _currentPipeline->GetD3DRasterizerState();
+        if (_currentRasterizerState != rasterizerState)
+        {
+            _currentRasterizerState = rasterizerState;
+            _context->RSSetState(rasterizerState);
+        }
+
+        auto dsState = _currentPipeline->GetD3DDepthStencilState();
+        if (_currentDepthStencilState != dsState)
+        {
+            _currentDepthStencilState = dsState;
+            _context->OMSetDepthStencilState(dsState, 0);
+        }
+
+        auto blendState = _currentPipeline->GetD3DBlendState();
+        if (_currentBlendState != blendState)
+        {
+            _currentBlendState = blendState;
+            _context->OMSetBlendState(blendState, nullptr, 0xFFFFFFFF);
+        }
+
+        return true;
     }
 
     void D3D11CommandContext::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
@@ -175,6 +235,21 @@ namespace Alimer
         else
         {
             _context->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
+        }
+    }
+
+    void D3D11CommandContext::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    {
+        if (!PrepareDraw(topology))
+            return;
+
+        if (instanceCount <= 1)
+        {
+            _context->DrawIndexed(indexCount, startIndex, 0);
+        }
+        else
+        {
+            _context->DrawIndexedInstanced(indexCount, instanceCount, startIndex, 0, 0);
         }
     }
 
@@ -227,39 +302,5 @@ namespace Alimer
             Pop();
         }
     }
-
-    /*
-
-    
-   
-
-    
-
-    void D3D11CommandBuffer::OnSetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
-    {
-    }
-
-    void D3D11CommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
-    {
-    }
-
-    
-
-    void D3D11CommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
-    {
-        if (!PrepareDraw(topology))
-            return;
-
-        if (instanceCount <= 1)
-        {
-            _context->DrawIndexed(indexCount, startIndex, 0);
-        }
-        else
-        {
-            _context->DrawIndexedInstanced(indexCount, instanceCount, startIndex, 0, 0);
-        }
-    }
-
-    */
 }
 

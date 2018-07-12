@@ -30,10 +30,6 @@
 
 namespace Alimer
 {
-    struct Matrix4;
-    struct Quaternion;
-    struct Plane;
-
     struct Rectangle
     {
         int x;

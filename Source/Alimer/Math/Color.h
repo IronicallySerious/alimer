@@ -80,5 +80,6 @@ namespace Alimer
         static const Color Blue;
         static const Color Yellow;
         static const Color YellowGreen;
+        static const Color Lime;
 	};
 }

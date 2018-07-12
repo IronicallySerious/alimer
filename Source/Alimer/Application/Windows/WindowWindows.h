@@ -34,16 +34,23 @@ namespace Alimer
 	class OleDropTarget;
 
 	/// Win32 OS window implementation.
-	class WindowWindows final : public Window
+	class Win32Window final : public Window
 	{
 	public:
-		WindowWindows(const std::string& title, uint32_t width, uint32_t height, bool fullscreen);
-		~WindowWindows() override;
+        Win32Window(const std::string& title, uint32_t width, uint32_t height, bool fullscreen);
+		~Win32Window() override;
 		void Destroy();
 		void Activate(bool focused);
 
-		void Show();
-		void Close();
+        void Show() override;
+        void Hide() override;
+        void Minimize() override;
+        void Maximize() override;
+        void Restore() override;
+        void Close() override;
+
+        bool IsVisible() const override { return _visible; }
+        bool IsMinimized() const override;
 
 		LRESULT OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
 

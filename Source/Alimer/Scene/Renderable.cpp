@@ -48,7 +48,7 @@ namespace Alimer
         vertexBufferDesc.elementSize = sizeof(Vertex);
         _vertexBuffer = gGraphics().CreateBuffer(vertexBufferDesc, triangleVertices);*/
 
-        /*RenderPipelineDescriptor renderPipelineDescriptor;
+        /*RenderPipelineDescription renderPipelineDescriptor;
         renderPipelineDescriptor.shader = gGraphics().CreateShader("color.vert", "color.frag");
         renderPipelineDescriptor.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
         renderPipelineDescriptor.vertexDescriptor.attributes[1].format = VertexFormat::Float4;

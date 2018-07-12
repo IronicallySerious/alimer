@@ -28,52 +28,69 @@
 
 namespace Alimer
 {
-	class Graphics;
+    class Graphics;
 
-    struct VertexBufferLayoutDescriptor
+    struct VertexBufferLayoutDescription
     {
         uint32_t stride;
         VertexInputRate inputRate;
     };
 
-    struct VertexAttributeDescriptor
+    struct VertexAttributeDescription
     {
         uint32_t binding;
         VertexFormat format;
         uint32_t offset;
     };
 
-    struct VertexDescriptor
+    struct VertexDescription
     {
-        VertexBufferLayoutDescriptor layouts[MaxVertexBufferBindings] = {};
-        VertexAttributeDescriptor attributes[MaxVertexAttributes] = {};
+        VertexBufferLayoutDescription layouts[MaxVertexBufferBindings] = {};
+        VertexAttributeDescription attributes[MaxVertexAttributes] = {};
     };
 
-	struct RenderPipelineDescriptor
-	{
+    struct BlendState
+    {
+
+    };
+
+    struct RasterizerState
+    {
+
+    };
+
+    struct DepthStencilState
+    {
+
+    };
+
+    struct RenderPipelineDescription
+    {
         ShaderPtr shader;
-        VertexDescriptor vertexDescriptor;
-		
-	};
+        VertexDescription vertexDescription;
+        BlendState blendState;
+        RasterizerState rasterizerState;
+        DepthStencilState depthStencilState;
+    };
 
-	/// Defines a PipelineState class.
-	class PipelineState : public RefCounted
-	{
-	protected:
-		/// Constructor.
-		PipelineState(Graphics* graphics, bool isGraphics);
+    /// Defines a PipelineState class.
+    class PipelineState : public RefCounted
+    {
+    protected:
+        /// Constructor.
+        PipelineState(Graphics* graphics, bool isGraphics);
 
-	public:
-		/// Destructor.
-		virtual ~PipelineState() = default;
+    public:
+        /// Destructor.
+        virtual ~PipelineState() = default;
 
-		bool IsGraphics() const { return _isGraphics; }
+        bool IsGraphics() const { return _isGraphics; }
 
-	protected:
-		Graphics* _graphics;
-		bool _isGraphics;
+    protected:
+        Graphics * _graphics;
+        bool _isGraphics;
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(PipelineState);
-	};
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(PipelineState);
+    };
 }

@@ -45,8 +45,9 @@ namespace Alimer
 
         void Destroy() override;
 
-        std::vector<uint8_t> AcquireVertexShaderBytecode();
+        void Bind(ID3D11DeviceContext1* context);
 
+        std::vector<uint8_t> AcquireVertexShaderBytecode();
         ID3D11VertexShader* GetD3DVertexShader() const { return _d3dVertexShader; }
         ID3D11PixelShader* GetD3DPixelShader() const { return _d3dPixelShader; }
         ID3D11ComputeShader* GetD3DComputeShader() const { return _d3dComputeShader; }

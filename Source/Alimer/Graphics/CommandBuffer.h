@@ -108,13 +108,13 @@ namespace Alimer
         virtual void SetPipeline(PipelineState* pipeline) = 0;
 
         void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding = 0, uint64_t offset = 0);
-        //void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
+        void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
         
         void SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer);
 
         // Draw methods
         void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
-        //void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
+        void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
 
         void ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
@@ -123,12 +123,12 @@ namespace Alimer
         virtual void EndRenderPassCore();
         virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
-        virtual void SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer);
+        virtual void SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range);
 
         virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
-        //virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
+        virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex);
         virtual void SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset);
-        //virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
+        virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType);
 
         inline bool IsInsideRenderPass() const
         {
@@ -168,31 +168,8 @@ namespace Alimer
 
         
 
-        struct ResourceBindingBufferInfo {
-            const GpuBuffer*  buffer;
-            uint64_t    offset;
-            uint64_t    range;
-        };
-
-        struct ResourceBinding
-        {
-            union {
-                ResourceBindingBufferInfo buffer;
-            };
-        };
-
-        struct ResourceBindings
-        {
-            ResourceBinding bindings[MaxDescriptorSets][MaxBindingsPerSet];
-            uint8_t push_constant_data[MaxDescriptorSets];
-        };
-
-       
-        ResourceBindings _bindings;
-
         CommandBufferDirtyFlags _dirty = ~0u;
-        uint32_t _dirtySets = 0;
-        uint32_t _dirtyVbos = 0;
+        
 
     private:
         template<typename T>
