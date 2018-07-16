@@ -229,37 +229,36 @@ namespace Alimer
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Vertex);
 
-        SetVertexBufferCore(buffer, binding, offset);
+        SetVertexBufferCore(buffer->GetHandle(), binding, offset, buffer->GetElementSize());
     }
 
-    void CommandBuffer::SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
+    void CommandBuffer::SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
     {
 
     }
 
-    void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandBuffer::SetIndexBuffer(IndexBuffer* buffer, uint32_t offset)
     {
         ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Index);
 
-        SetIndexBufferCore(buffer, offset, indexType);
+        SetIndexBufferCore(buffer->GetHandle(), offset, buffer->GetIndexType());
     }
 
-    void CommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandBuffer::SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType)
     {
 
     }
 
-    void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, const GpuBuffer* buffer)
+    void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer)
     {
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
         ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Uniform);
 
-        SetUniformBufferCore(set, binding, buffer, 0, buffer->GetSize());
+        SetUniformBufferCore(set, binding, buffer->GetHandle(), 0, buffer->GetSize());
     }
 
-    void CommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range)
+    void CommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range)
     {
     }
 

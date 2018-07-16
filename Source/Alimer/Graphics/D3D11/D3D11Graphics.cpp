@@ -408,9 +408,9 @@ namespace Alimer
         return MakeShared<D3D11RenderPass>(this, description);
     }
 
-    GpuBuffer* D3D11Graphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
+    BufferHandle* D3D11Graphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
     {
-        return new D3D11GpuBuffer(this, description, initialData);
+        return new D3D11GpuBuffer(this, usage, size, stride, resourceUsage, initialData);
     }
 
     Shader* D3D11Graphics::CreateComputeShader(const void *pCode, size_t codeSize)

@@ -69,16 +69,24 @@ namespace Alimer
         ResourceUsage resourceUsage = ResourceUsage::Default;
     };
 
+    class BufferHandle;
+
 	/// Defines a GPU Buffer class.
 	class GpuBuffer : public GpuResource, public RefCounted
 	{
 	protected:
+        /// Constructor.
+        GpuBuffer(Graphics* graphics);
+
+    public:
 		/// Constructor.
-		GpuBuffer(Graphics* graphics, const GpuBufferDescription& description);
+		GpuBuffer(Graphics* graphics, const GpuBufferDescription& description, const void* initialData = nullptr);
 
 	public:
 		/// Destructor.
-		virtual ~GpuBuffer() = default;
+		virtual ~GpuBuffer();
+
+        void Destroy() override;
 
         const GpuBufferDescription &GetDescription() const { return _description; }
 		inline BufferUsageFlags GetBufferUsage() const { return _description.usage; }
@@ -86,8 +94,20 @@ namespace Alimer
 		inline uint32_t GetElementSize() const { return _description.elementSize; }
 		inline uint64_t GetSize() const { return _size; }
 
+        /// Get the backend buffer implementation.
+        BufferHandle* GetHandle() { return _handle; }
+
+    protected:
+        bool Create(bool useShadowData, const void* initialData);
+
 	protected:
         GpuBufferDescription _description;
-		uint64_t _size;
+        BufferUsageFlags _usage = BufferUsage::Unknown;
+		uint64_t _size = 0;
+        uint32_t _stride = 0;
+        ResourceUsage _resourceUsage = ResourceUsage::Default;
+
+        /// Backend handle.
+        BufferHandle* _handle = nullptr;
 	};
 }

@@ -22,32 +22,29 @@
 
 #pragma once
 
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/GraphicsImpl.h"
-#include "D3D11Prerequisites.h"
+#include "../Graphics/GpuBuffer.h"
 
 namespace Alimer
 {
-	class D3D11Graphics;
+    /// Defines a GPU IndexBuffer class.
+    class IndexBuffer final : public GpuBuffer
+    {
+    public:
+        /// Constructor.
+        IndexBuffer(Graphics* graphics, uint32_t indexCount, IndexType indexType);
 
-	/// D3D11 GpuBuffer implementation.
-	class D3D11GpuBuffer final : public BufferHandle
-	{
-	public:
-		/// Constructor.
-		D3D11GpuBuffer(D3D11Graphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData);
+        /// Destructor.
+        virtual ~IndexBuffer() override;
 
-		/// Destructor.
-		~D3D11GpuBuffer() override;
+        /// Return number of indices.
+        uint32_t GetIndexCount() const { return _indexCount; }
 
-        bool SetData(uint32_t offset, uint32_t size, const void* data) override;
-
-        ID3D11Buffer* GetD3DBuffer() const { return _d3dBuffer; }
-
-	private:
-        D3D11Graphics * _graphics;
-        bool _isDynamic;
-
-        ID3D11Buffer* _d3dBuffer;
-	};
+        /// Return single element type.
+        IndexType GetIndexType() const { return _indexType; }
+        /// Return size of index in bytes.
+        uint32_t GetIndexSize() const { return _stride; }
+    private:
+        uint32_t _indexCount;
+        IndexType _indexType;
+    };
 }

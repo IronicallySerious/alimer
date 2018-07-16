@@ -290,7 +290,7 @@ namespace Alimer
         return true;
     }
 
-    void VulkanCommandBuffer::SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
+    void VulkanCommandBuffer::SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
     {
         auto vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
         if (_vbo.buffers[binding] != vkBuffer
@@ -299,7 +299,6 @@ namespace Alimer
             _dirtyVbos |= 1u << binding;
         }
 
-        uint64_t stride = buffer->GetElementSize();
         if (_vbo.strides[binding] != stride)
         {
             SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
@@ -329,9 +328,9 @@ namespace Alimer
     }
     */
 
-    void VulkanCommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range)
+    void VulkanCommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range)
     {
-        auto vkBuffer = static_cast<const VulkanBuffer*>(buffer)->GetVkHandle();
+        auto vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
         auto &b = _bindings.bindings[set][binding];
 
         if (b.buffer.buffer == vkBuffer

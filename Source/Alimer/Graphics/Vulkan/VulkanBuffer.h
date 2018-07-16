@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../GpuBuffer.h"
+#include "../GraphicsImpl.h"
 #include "VulkanPrerequisites.h"
 #include <vector>
 
@@ -31,12 +32,11 @@ namespace Alimer
 	class VulkanGraphics;
 
 	/// Vulkan Buffer.
-	class VulkanBuffer final : public GpuBuffer
+	class VulkanBuffer final : public BufferHandle
 	{
 	public:
-        VulkanBuffer(VulkanGraphics* graphics, const GpuBufferDescription& description, const void* initialData);
+        VulkanBuffer(VulkanGraphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData);
 		~VulkanBuffer() override;
-        void Destroy() override;
 
 		inline VkBuffer GetVkHandle() const { return _vkHandle; }
 

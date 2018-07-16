@@ -22,32 +22,23 @@
 
 #pragma once
 
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/GraphicsImpl.h"
-#include "D3D11Prerequisites.h"
+#include "../Graphics/Types.h"
 
 namespace Alimer
 {
-	class D3D11Graphics;
+    class BufferHandle
+    {
+    protected:
+        explicit BufferHandle()
+        {
+        }
 
-	/// D3D11 GpuBuffer implementation.
-	class D3D11GpuBuffer final : public BufferHandle
-	{
-	public:
-		/// Constructor.
-		D3D11GpuBuffer(D3D11Graphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData);
+    public:
+        /// Destructor.
+        virtual ~BufferHandle() = default;
 
-		/// Destructor.
-		~D3D11GpuBuffer() override;
+        virtual bool SetData(uint32_t offset, uint32_t size, const void* data) = 0;
 
-        bool SetData(uint32_t offset, uint32_t size, const void* data) override;
-
-        ID3D11Buffer* GetD3DBuffer() const { return _d3dBuffer; }
-
-	private:
-        D3D11Graphics * _graphics;
-        bool _isDynamic;
-
-        ID3D11Buffer* _d3dBuffer;
-	};
+    protected:
+    };
 }

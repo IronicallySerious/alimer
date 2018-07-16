@@ -20,18 +20,72 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/GpuBuffer.h"
-#include "Graphics/Graphics.h"
+#include "../Graphics/GpuBuffer.h"
+#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsImpl.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* graphics, const GpuBufferDescription& description)
+    GpuBuffer::GpuBuffer(Graphics* graphics)
+        : GpuResource(graphics, GpuResourceType::Buffer)
+    {
+
+    }
+
+    GpuBuffer::GpuBuffer(Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
         : GpuResource(graphics, GpuResourceType::Buffer)
         , _description(description)
     {
-        _size = description.elementCount * description.elementSize;
+        _usage = description.usage;
+        _stride = description.elementCount;
+        _resourceUsage = description.resourceUsage;
+        _size = _stride * description.elementSize;
         ALIMER_ASSERT(description.usage != BufferUsage::Unknown);
         ALIMER_ASSERT(_size != 0);
+
+        Create(false, initialData);
+    }
+
+    GpuBuffer::~GpuBuffer()
+    {
+        Destroy();
+    }
+
+    void GpuBuffer::Destroy()
+    {
+        SafeDelete(_handle);
+    }
+
+    static const char* BufferUsageToString(BufferUsageFlags usage)
+    {
+        if (usage & BufferUsage::Vertex)
+            return "vertex";
+        if (usage & BufferUsage::Index)
+            return "index";
+        if (usage & BufferUsage::Uniform)
+            return "uniform";
+
+        return "unknown";
+    }
+
+    bool GpuBuffer::Create(bool useShadowData, const void* initialData)
+    {
+        if (!_graphics || !_graphics->IsInitialized())
+            return false;
+
+        _handle = _graphics->CreateBuffer(_usage, _size, _stride, _resourceUsage, initialData);
+        if (!_handle)
+        {
+            ALIMER_LOGERROR("Failed to create {} buffer", BufferUsageToString(_usage));
+            return false;
+        }
+
+        ALIMER_LOGDEBUG(
+            "Created {} buffer [size: {}, stride {}]",
+            BufferUsageToString(_usage),
+            _size,
+            _stride);
+        return true;
     }
 }

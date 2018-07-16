@@ -58,12 +58,16 @@ macro (define_engine_source_files)
 	foreach (path ${DEFINE_SRC_FILES_UNPARSED_ARGUMENTS})
 		# Get header files
 		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.hpp ${path}/*.inl)
-		list (REMOVE_ITEM _files
+		list (APPEND HEADER_FILES ${_files})
+
+        # Remove unsupported header to install.
+        list (REMOVE_ITEM _files
 			Graphics/GraphicsImpl.h
 		)
-		list (APPEND HEADER_FILES ${_files})
+
 		# Install them
 		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
+
 		# Get source files
 		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.cpp)
 		list (APPEND SOURCE_FILES ${_files})

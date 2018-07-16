@@ -29,27 +29,27 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    
-    D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
-        : GpuBuffer(graphics, description)
+    D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
+        : _graphics(graphics)
+        , _isDynamic(resourceUsage == ResourceUsage::Dynamic)
     {
-        const bool dynamic = description.resourceUsage == ResourceUsage::Dynamic;
+        const bool dynamic = resourceUsage == ResourceUsage::Dynamic;
 
         D3D11_BUFFER_DESC bufferDesc = {};
-        bufferDesc.ByteWidth = static_cast<UINT>(_size);
-        bufferDesc.StructureByteStride = description.elementSize;
-        bufferDesc.Usage = d3d11::Convert(description.resourceUsage);
+        bufferDesc.ByteWidth = static_cast<UINT>(size);
+        bufferDesc.StructureByteStride = stride;
+        bufferDesc.Usage = d3d11::Convert(resourceUsage);
         bufferDesc.CPUAccessFlags = 0;
-        if (description.resourceUsage == ResourceUsage::Dynamic)
+        if (resourceUsage == ResourceUsage::Dynamic)
         {
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
         }
-        else if (description.resourceUsage == ResourceUsage::Staging)
+        else if (resourceUsage == ResourceUsage::Staging)
         {
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
         }
 
-        if (description.usage & BufferUsage::Uniform)
+        if (usage & BufferUsage::Uniform)
         {
             // D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT
             bufferDesc.ByteWidth = Align(bufferDesc.ByteWidth, 16u);
@@ -57,22 +57,22 @@ namespace Alimer
         }
         else
         {
-            if (description.usage & BufferUsage::Vertex)
+            if (usage & BufferUsage::Vertex)
             {
                 bufferDesc.BindFlags |= D3D11_BIND_VERTEX_BUFFER;
             }
 
-            if (description.usage & BufferUsage::Index)
+            if (usage & BufferUsage::Index)
             {
                 bufferDesc.BindFlags |= D3D11_BIND_INDEX_BUFFER;
             }
 
-            if (description.usage & BufferUsage::Storage)
+            if (usage & BufferUsage::Storage)
             {
                 bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
             }
 
-            if (description.usage & BufferUsage::Indirect)
+            if (usage & BufferUsage::Indirect)
             {
                 bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
             }
@@ -89,11 +89,6 @@ namespace Alimer
 
     D3D11GpuBuffer::~D3D11GpuBuffer()
     {
-        Destroy();
-    }
-
-    void D3D11GpuBuffer::Destroy()
-    {
         if (_d3dBuffer)
         {
 #if defined(_DEBUG)
@@ -104,5 +99,52 @@ namespace Alimer
             _d3dBuffer->Release();
             _d3dBuffer = nullptr;
         }
+    }
+
+    bool D3D11GpuBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
+    {
+        ID3D11DeviceContext* d3dDeviceContext = _graphics->GetImmediateContext();
+
+        if (_isDynamic)
+        {
+            D3D11_MAPPED_SUBRESOURCE mappedResource;
+            HRESULT hr = d3dDeviceContext->Map(
+                _d3dBuffer,
+                0,
+                D3D11_MAP_WRITE_DISCARD,
+                0,
+                &mappedResource);
+
+            if (FAILED(hr))
+            {
+                ALIMER_LOGERROR("Failed to map index buffer for update");
+                return false;
+            }
+
+            memcpy(
+                static_cast<uint8_t*>(mappedResource.pData) + offset,
+                data,
+                size);
+
+            d3dDeviceContext->Unmap(_d3dBuffer, 0);
+        }
+        else
+        {
+            D3D11_BOX destBox;
+            destBox.left = offset;
+            destBox.right = size;
+            destBox.top = destBox.front = 0;
+            destBox.bottom = destBox.back = 1;
+
+            d3dDeviceContext->UpdateSubresource(
+                _d3dBuffer,
+                0,
+                &destBox,
+                data,
+                0,
+                0);
+        }
+
+        return true;
     }
 }

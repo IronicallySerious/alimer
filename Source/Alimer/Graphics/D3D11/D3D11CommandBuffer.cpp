@@ -157,19 +157,18 @@ namespace Alimer
         _currentPipeline = static_cast<D3D11PipelineState*>(pipeline);
     }
 
-    void D3D11CommandContext::SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
+    void D3D11CommandContext::SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
     {
         // TODO: Handle single bind with one call.
         ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
 
-        UINT stride = buffer->GetElementSize();
         UINT uOffset = static_cast<UINT>(offset);
 
         _context->IASetVertexBuffers(binding, 1, &d3dBuffer, &stride, &uOffset);
     }
 
 
-    void D3D11CommandContext::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void D3D11CommandContext::SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType)
     {
         ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
         DXGI_FORMAT dxgiFormat = DXGI_FORMAT_R16_UINT;
@@ -182,7 +181,7 @@ namespace Alimer
     }
 
 
-    void D3D11CommandContext::SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range)
+    void D3D11CommandContext::SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range)
     {
         ID3D11Buffer* d3dBuffer = static_cast<const D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
         _context->VSSetConstantBuffers(binding, 1, &d3dBuffer);

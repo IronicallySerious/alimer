@@ -27,37 +27,36 @@
 
 namespace Alimer
 {
-    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const GpuBufferDescription& description, const void* initialData)
-        : GpuBuffer(graphics, description)
-        , _logicalDevice(graphics->GetLogicalDevice())
+    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
+        : _logicalDevice(graphics->GetLogicalDevice())
         , _allocator(graphics->GetAllocator())
     {
         VkBufferUsageFlags vkUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-        if (description.resourceUsage == ResourceUsage::Dynamic)
+        if (resourceUsage == ResourceUsage::Dynamic)
         {
             vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         }
 
-        if (description.usage & BufferUsage::Vertex)
+        if (usage & BufferUsage::Vertex)
             vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-        if (description.usage & BufferUsage::Index)
+        if (usage & BufferUsage::Index)
             vkUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-        if (description.usage & BufferUsage::Uniform)
+        if (usage & BufferUsage::Uniform)
             vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-        if (description.usage & BufferUsage::Storage)
+        if (usage & BufferUsage::Storage)
             vkUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
-        if (description.usage & BufferUsage::Indirect)
+        if (usage & BufferUsage::Indirect)
             vkUsage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
         VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.size = _size;
+        createInfo.size = size;
         createInfo.usage = vkUsage;
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.queueFamilyIndexCount = 0;
@@ -84,11 +83,6 @@ namespace Alimer
     }
 
     VulkanBuffer::~VulkanBuffer()
-    {
-        Destroy();
-    }
-
-    void VulkanBuffer::Destroy()
     {
         vmaDestroyBuffer(_allocator, _vkHandle, _allocation);
     }

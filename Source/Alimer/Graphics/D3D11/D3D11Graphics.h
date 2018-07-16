@@ -50,7 +50,7 @@ namespace Alimer
         void WaitIdle() override;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
-        GpuBuffer* CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
+        BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
 
         Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
         Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,

@@ -51,9 +51,9 @@ namespace Alimer
         void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
         void SetPipeline(PipelineState* pipeline) override;
-        void SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
-        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
-        void SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
+        void SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride) override;
+        void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
+        void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
 
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;

@@ -61,9 +61,9 @@ namespace Alimer
 
         void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
-        void SetVertexBufferCore(GpuBuffer* buffer, uint32_t binding, uint64_t offset) override;
-        //void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
-        void SetUniformBufferCore(uint32_t set, uint32_t binding, const GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
+        void SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride) override;
+        //void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
+        void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
 
         VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
         bool IsSecondary() const { return _secondary; }

@@ -41,6 +41,8 @@
 
 namespace Alimer
 {
+    class BufferHandle;
+
     /// Low-level 3D graphics API class.
     class ALIMER_API Graphics : public Object
     {
@@ -86,7 +88,7 @@ namespace Alimer
         virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
 
         // Buffer
-        virtual GpuBuffer* CreateBuffer(const GpuBufferDescription& description, const void* initialData = nullptr) = 0;
+        virtual BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData = nullptr) = 0;
 
         // Shader
         Shader* CreateShader(
@@ -100,6 +102,8 @@ namespace Alimer
 
         // PipelineState
         virtual PipelineState* CreateRenderPipelineState(const RenderPipelineDescription& description) = 0;
+
+        bool IsInitialized() const { return _initialized; }
 
         inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
 
@@ -131,6 +135,7 @@ namespace Alimer
     protected:
         GraphicsDeviceType _deviceType;
         bool _validation;
+        bool _initialized;
         std::vector<GpuAdapter*> _adapters;
         GpuDeviceFeatures _features;
 

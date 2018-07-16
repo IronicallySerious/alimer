@@ -48,7 +48,7 @@ namespace Alimer
             vertexBufferDesc.elementCount = 3;
             vertexBufferDesc.elementSize = sizeof(Vertex);
             vertexBufferDesc.resourceUsage = ResourceUsage::Immutable;
-            _vertexBuffer = graphics->CreateBuffer(vertexBufferDesc, triangleVertices);
+            _vertexBuffer = new GpuBuffer(graphics, vertexBufferDesc, triangleVertices);
 
             RenderPipelineDescription renderPipelineDesc = {};
             renderPipelineDesc.shader = graphics->CreateShader("color.vert", "color.frag");
@@ -64,7 +64,7 @@ namespace Alimer
             GpuBufferDescription uboBufferDesc = {};
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(uboBufferDesc, &_camera);
+            _perCameraUboBuffer = new GpuBuffer(graphics, uboBufferDesc, &_camera);
         }
 
         void Render(CommandBuffer* commandBuffer)
@@ -91,6 +91,7 @@ namespace Alimer
         PerCameraCBuffer _camera;
     };
 
+#if TODO
     class QuadExample
     {
     public:
@@ -279,6 +280,8 @@ namespace Alimer
 
         PerCameraCBuffer _camera;
     };
+#endif 
+
 
     class RuntimeApplication final : public Application
     {
@@ -292,8 +295,8 @@ namespace Alimer
 
     private:
         TriangleExample _triangleExample;
-        QuadExample _quadExample;
-        CubeExample _cubeExample;
+        //QuadExample _quadExample;
+        //CubeExample _cubeExample;
     };
 
     RuntimeApplication::RuntimeApplication()
@@ -302,9 +305,9 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        // _triangleExample.Initialize(_graphics);
+         _triangleExample.Initialize(_graphics);
         //_quadExample.Initialize(_graphics);
-        _cubeExample.Initialize(_graphics, _window->GetAspectRatio());
+        //_cubeExample.Initialize(_graphics, _window->GetAspectRatio());
 
         // Create scene
        // auto triangleEntity = _scene->CreateEntity();
@@ -314,9 +317,9 @@ namespace Alimer
 
     void RuntimeApplication::OnRender(CommandBuffer* commandBuffer)
     {
-        //_triangleExample.Render(commandBuffer);
+        _triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);
-        _cubeExample.Render(commandBuffer);
+        //_cubeExample.Render(commandBuffer);
     }
 }
 

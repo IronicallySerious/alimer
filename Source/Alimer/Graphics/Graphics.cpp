@@ -46,6 +46,7 @@ namespace Alimer
     Graphics::Graphics(GraphicsDeviceType deviceType, bool validation)
         : _deviceType(deviceType)
         , _validation(validation)
+        , _initialized(false)
         , _adapter(nullptr)
         , _features{}
     {
@@ -211,6 +212,12 @@ namespace Alimer
 
     bool Graphics::Initialize(GpuAdapter* adapter, WindowPtr window)
     {
+        if (_initialized)
+        {
+            ALIMER_LOGCRITICAL("Cannot Initialize Graphics if already initialized");
+            return false;
+        }
+
         if (!adapter)
         {
             _adapter = GetDefaultAdapter();
@@ -222,7 +229,8 @@ namespace Alimer
 
         ALIMER_ASSERT_MSG(window.Get(), "Invalid window for graphics creation");
         _window = window;
-        return BackendInitialize();
+        _initialized = BackendInitialize();
+        return _initialized;
     }
 
     void Graphics::SaveScreenshot(const std::string& fileName)
