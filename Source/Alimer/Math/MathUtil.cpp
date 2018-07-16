@@ -24,6 +24,34 @@
 
 namespace Alimer
 {
+    bool IsZero(float value)
+    {
+        return fabsf(value) < M_EPSILON;
+    }
+
+    bool IsOne(float value)
+    {
+        return IsZero(value - 1.0f);
+    }
+
+    bool ScalarNearEqual(float scalar1, float scalar2, float epsilon)
+    {
+        float delta = scalar1 - scalar2;
+        return (fabsf(delta) <= epsilon);
+    }
+
+    void SinCos(float angle, float* sin, float* cos)
+    {
+#if defined(HAVE_SINCOSF)
+        sincosf(angle, sin, &cos);
+#elif defined(__MACOSX__) && !defined(__INTEL_COMPILER)
+        __sincosf(angle, &sin, &cos);
+#else
+        *sin = sinf(angle);
+        *cos = cosf(angle);
+#endif
+    }
+
     /*void ComputeTransform(vec3 translation, quat rotation, vec3 scale, mat4 &world, const mat4 &parent)
     {
         mat4 S = glm::scale(scale);

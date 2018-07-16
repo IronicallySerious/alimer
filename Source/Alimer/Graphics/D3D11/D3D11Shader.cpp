@@ -24,7 +24,7 @@
 #include "D3D11Graphics.h"
 #include "../D3D/D3DShaderCompiler.h"
 #include "../../Core/Log.h"
-#include <spirv-cross/spirv_hlsl.hpp>
+#include <spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
 
 namespace Alimer

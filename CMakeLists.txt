@@ -100,7 +100,7 @@ endif (NOT ANDROID)
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER  "3.6")
 	if (ALIMER_TOOLS)
-		set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "AlimerStudio" )
+		set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer.Studio" )
 	else ()
 		set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer" )
 	endif ()

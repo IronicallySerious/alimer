@@ -20,14 +20,20 @@
 # THE SOFTWARE.
 #
 
-add_subdirectory(fmt EXCLUDE_FROM_ALL)
+if (ALIMER_THIRDPARTY_SHARED_LIBS)
+    set (THIRDPARTY_LIB_TYPE SHARED)
+else ()
+    set (THIRDPARTY_LIB_TYPE STATIC)
+endif ()
+
+add_subdirectory (STB)
+add_subdirectory (fmt EXCLUDE_FROM_ALL)
+add_subdirectory (SPIRV-Cross)
 
 if (ALIMER_TOOLS)
     set (ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Enable glslang binaries")
 	set (SKIP_GLSLANG_INSTALL ON CACHE BOOL "Skip glslang installation")
     add_subdirectory (glslang EXCLUDE_FROM_ALL)
-
-    set_target_properties(glslang OGLCompiler OSDependent SPIRV SPVRemapper HLSL PROPERTIES
-        FOLDER ThirdParty/glslang
-    )
 endif ()
+
+vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} ThirdParty)

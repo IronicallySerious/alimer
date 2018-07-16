@@ -88,7 +88,7 @@ endif ()
 
 if (ALIMER_VULKAN)
 	define_engine_source_files(Graphics/Vulkan)
-	# volk
+    # volk
 	list (APPEND SOURCE_FILES ${ALIMER_THIRD_PARTY_DIR}/volk/volk.c)
 endif (ALIMER_VULKAN)
 
@@ -103,46 +103,6 @@ endif ()
 if (ALIMER_D3D12)
 	define_engine_source_files(Graphics/D3D12)
 endif ()
-
-# SPIRV-Cross
-set(SPIRV_CROSS_HEADER_FILES
-	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/GLSL.std.450.h
-	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_common.hpp
-	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_cfg.hpp
-	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_cross.hpp
-	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv.hpp
-)
-
-set(SPIRV_CROSS_SOURCE_FILES
-	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_cfg.cpp
-	${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_cross.cpp
-)
-
-set(NEED_SPIRV_CROSS_GLSL OFF)
-
-if (ALIMER_D3D11 OR ALIMER_D3D12)
-	list(APPEND SPIRV_CROSS_HEADER_FILES
-		${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_hlsl.hpp
-	)
-
-	list(APPEND SPIRV_CROSS_SOURCE_FILES
-		${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_hlsl.cpp
-	)
-	set(NEED_SPIRV_CROSS_GLSL ON)
-endif()
-
-if (ALIMER_VULKAN OR ALIMER_OPENGL OR NEED_SPIRV_CROSS_GLSL)
-	list(APPEND SPIRV_CROSS_HEADER_FILES
-		${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_glsl.hpp
-	)
-	list(APPEND SPIRV_CROSS_SOURCE_FILES
-		${ALIMER_THIRD_PARTY_DIR}/SPIRV-Cross/spirv_glsl.cpp
-	)
-endif()
-
-list (APPEND HEADER_FILES ${SPIRV_CROSS_HEADER_FILES})
-list (APPEND SOURCE_FILES ${SPIRV_CROSS_SOURCE_FILES})
-install (FILES ${SPIRV_CROSS_HEADER_FILES} DESTINATION ${DEST_INCLUDE_DIR}/ThirdParty/SPIRV-Cross)
 
 # enkiTS
 set(ENKITS_HEADER_FILES
@@ -241,18 +201,23 @@ set_target_properties(libAlimer PROPERTIES
     CXX_EXTENSIONS NO
 )
 
-target_include_directories(libAlimer
-	PUBLIC
+target_include_directories(libAlimer PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${DEST_BASE_INCLUDE_DIR}>
+    $<INSTALL_INTERFACE:${DEST_THIRDPARTY_HEADERS_DIR}>
 	PRIVATE
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-    $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
-    $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}/glfw/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+        $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
 )
 
-target_link_libraries (libAlimer fmt)
+# Link dependencies
+set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross)
+foreach (dep ${THIRD_PARTY_DEPENDENCIES})
+    if (TARGET "${dep}")
+        target_link_libraries(libAlimer ${dep})
+    endif ()
+endforeach()
 
 if (ALIMER_D3D11 OR ALIMER_D3D12)
     target_include_directories(libAlimer SYSTEM PRIVATE ${D3D12_INCLUDE_DIR} ${D3D11_INCLUDE_DIR} ${DXGI_INCLUDE_DIR})

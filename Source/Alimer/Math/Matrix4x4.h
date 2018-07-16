@@ -91,6 +91,12 @@ namespace Alimer
         float operator() (size_t row, size_t column) const { return m[row][column]; }
         float& operator() (size_t row, size_t column) { return m[row][column]; }
 
+        static void CreatePerspectiveFieldOfView(float fieldOfView, float aspectRatio, float nearPlaneDistance, float farPlaneDistance, Matrix4x4* result);
+        static Matrix4x4 CreatePerspectiveFieldOfView(float fieldOfView, float aspectRatio, float nearPlaneDistance, float farPlaneDistance);
+
+        static void CreateLookAt(const Vector3& cameraPosition, const Vector3& cameraTarget, const Vector3& cameraUpVector, Matrix4x4* result);
+        static Matrix4x4 CreateLookAt(const Vector3& cameraPosition, const Vector3& cameraTarget, const Vector3& cameraUpVector);
+
         // Constants
         static const Matrix4x4 Identity;
     };

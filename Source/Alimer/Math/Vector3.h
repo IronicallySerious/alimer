@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "../Math/MathUtil.h"
 #include <string>
 
 namespace Alimer
@@ -57,6 +57,141 @@ namespace Alimer
         bool operator == (const Vector3& rhs)  const { return x == rhs.x && y == rhs.y && z == rhs.z; }
         bool operator != (const Vector3& rhs) const { return x != rhs.x || y != rhs.y || z != rhs.z; }
 
+        /// Add a vector.
+        Vector3 operator +(const Vector3& rhs) const { return Vector3(x + rhs.x, y + rhs.y, z + rhs.z); }
+
+        /// Return negation.
+        Vector3 operator -() const { return Vector3(-x, -y, -z); }
+
+        /// Subtract a vector.
+        Vector3 operator -(const Vector3& rhs) const { return Vector3(x - rhs.x, y - rhs.y, z - rhs.z); }
+
+        /// Multiply with a scalar.
+        Vector3 operator *(float rhs) const { return Vector3(x * rhs, y * rhs, z * rhs); }
+
+        /// Multiply with a vector.
+        Vector3 operator *(const Vector3& rhs) const { return Vector3(x * rhs.x, y * rhs.y, z * rhs.z); }
+
+        /// Divide by a scalar.
+        Vector3 operator /(float rhs) const { return Vector3(x / rhs, y / rhs, z / rhs); }
+
+        /// Divide by a vector.
+        Vector3 operator /(const Vector3& rhs) const { return Vector3(x / rhs.x, y / rhs.y, z / rhs.z); }
+
+        /// Add-assign a vector.
+        Vector3& operator +=(const Vector3& rhs)
+        {
+            x += rhs.x;
+            y += rhs.y;
+            z += rhs.z;
+            return *this;
+        }
+
+        /// Subtract-assign a vector.
+        Vector3& operator -=(const Vector3& rhs)
+        {
+            x -= rhs.x;
+            y -= rhs.y;
+            z -= rhs.z;
+            return *this;
+        }
+
+        /// Multiply-assign a scalar.
+        Vector3& operator *=(float scalar)
+        {
+            x *= scalar;
+            y *= scalar;
+            z *= scalar;
+            return *this;
+        }
+
+        /// Multiply-assign a vector.
+        Vector3& operator *=(const Vector3& rhs)
+        {
+            x *= rhs.x;
+            y *= rhs.y;
+            z *= rhs.z;
+            return *this;
+        }
+
+        /// Divide-assign a scalar.
+        Vector3& operator /=(float scalar)
+        {
+            assert(scalar != 0.0f);
+            float invRhs = 1.0f / scalar;
+            x *= invRhs;
+            y *= invRhs;
+            z *= invRhs;
+            return *this;
+        }
+
+        /// Divide-assign a vector.
+        Vector3& operator /=(const Vector3& rhs)
+        {
+            x /= rhs.x;
+            y /= rhs.y;
+            z /= rhs.z;
+            return *this;
+        }
+
+        /// Gets the length computed for this vector.
+        float Length() const { return sqrtf(x * x + y * y + z * z); }
+
+        /// Gets the squared length computed for this vector.
+        float LengthSquared() const { return x * x + y * y + z * z; }
+
+        /// Return float data.
+        const float* Data() const { return &x; }
+
+        static void Add(const Vector3& left, const Vector3& right, Vector3* result);
+        static Vector3 Add(const Vector3& left, const Vector3& right);
+
+        static void Subtract(const Vector3& left, const Vector3& right, Vector3* result);
+        static Vector3 Subtract(const Vector3& left, const Vector3& right);
+
+        static void Multiply(const Vector3& left, const Vector3& right, Vector3* result);
+        static Vector3 Multiply(const Vector3& left, const Vector3& right);
+
+        static void Divide(const Vector3& left, const Vector3& right, Vector3* result);
+        static Vector3 Divide(const Vector3& left, const Vector3& right);
+
+        /// Normalizes the given vector.
+        void Normalize()
+        {
+            float lenSquared = LengthSquared();
+            if (!Alimer::Equals(lenSquared, 1.0f) && lenSquared > 0.0f)
+            {
+                float invLen = 1.0f / sqrtf(lenSquared);
+                x *= invLen;
+                y *= invLen;
+                z *= invLen;
+            }
+        }
+
+        /// Return normalized to unit length.
+        Vector3 Normalized() const
+        {
+            float lenSquared = LengthSquared();
+            if (!Alimer::Equals(lenSquared, 1.0f)
+                && lenSquared > 0.0f)
+            {
+                float invLen = 1.0f / sqrtf(lenSquared);
+                return *this * invLen;
+            }
+
+            return *this;
+        }
+
+
+        static void Cross(const Vector3& left, const Vector3& right, Vector3* result);
+        static Vector3 Cross(const Vector3& left, const Vector3& right);
+
+        /// Calculate dot product.
+        float Dot(const Vector3& rhs) const { return (x * rhs.x) + (y * rhs.y) + (z * rhs.z); }
+
+        /// Calculate dot product between two vectors.
+        static float Dot(const Vector3& left, const Vector3& right);
+
         // Constants
         static const Vector3 Zero;
         static const Vector3 One;
@@ -71,6 +206,10 @@ namespace Alimer
         static const Vector3 Backward;
     };
 
+    /// Multiply Vector3 with a scalar.
+    inline Vector3 operator *(float lhs, const Vector3& rhs) { return rhs * lhs; }
+
+    using float3 = Vector3;
     using vec3 = Vector3;
 }
 

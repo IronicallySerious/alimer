@@ -25,7 +25,4 @@ add_subdirectory(Player)
 
 if (ALIMER_TOOLS)
     add_subdirectory(ShaderCompiler)
-
-    # Editor
-    add_subdirectory(Editor)
 endif (ALIMER_TOOLS)

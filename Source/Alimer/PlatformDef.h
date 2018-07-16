@@ -138,6 +138,26 @@
 #	error "Unknown architecture"
 #endif
 
+/**
+* SIMD defines
+*/
+#define ALIMER_SSE2 0
+#define ALIMER_NEON 0
+#define ALIMER_VMX 0
+
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
+#	undef ALIMER_SSE2
+#	define ALIMER_SSE2 1
+#endif
+#if defined(_M_ARM) || defined(__ARM_NEON__)
+#	undef ALIMER_NEON
+#	define ALIMER_NEON 1
+#endif
+#if defined(_M_PPC) || defined(__CELLOS_LV2__)
+#	undef ALIMER_VMX
+#	define ALIMER_VMX 1
+#endif
+
 // Compiler shortcut
 #define ALIMER_GCC_FAMILY (ALIMER_CLANG || ALIMER_GCC)
 // OS shortcut

@@ -20,12 +20,21 @@
 # THE SOFTWARE.
 #
 
-file (GLOB_RECURSE HEADER_FILES *.h *.hpp)
-file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
+file (GLOB_RECURSE SOURCE_FILES *.h *.cpp)
+add_library(STB STATIC ${SOURCE_FILES})
+target_compile_definitions(STB PUBLIC -DSTB_VORBIS_HEADER_ONLY=1)
 
-# Define the target.
-add_alimer_executable(AlimerStudio ${SOURCE_FILES} ${HEADER_FILES})
-set_target_properties(AlimerStudio PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
-set_target_properties(AlimerStudio PROPERTIES FOLDER "Tools")
+target_include_directories(STB
+    INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/STB>
+        $<INSTALL_INTERFACE:${DEST_THIRDPARTY_HEADERS_DIR}/STB>
+)
 
-install(TARGETS AlimerStudio RUNTIME DESTINATION ${DEST_TOOLS_DIR})
+install (TARGETS STB EXPORT libAlimer
+    LIBRARY DESTINATION ${DEST_LIBRARY_DIR}
+    RUNTIME DESTINATION ${DEST_BIN_DIR}
+    ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR}
+)
+install (DIRECTORY include/ DESTINATION ${DEST_THIRDPARTY_HEADERS_DIR}/ FILES_MATCHING PATTERN *.h)

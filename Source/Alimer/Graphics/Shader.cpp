@@ -22,7 +22,7 @@
 
 #include "Graphics/Shader.h"
 #include "Graphics/Graphics.h"
-#include <spirv-cross/spirv_cross.hpp>
+#include <spirv_cross.hpp>
 #include <vector>
 using namespace std;
 

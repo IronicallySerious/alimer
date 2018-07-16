@@ -23,20 +23,36 @@
 #pragma once
 
 #include "../AlimerConfig.h"
-#include <string>
-
-#ifdef _MSC_VER
-#	include <intrin.h>
-#endif
 
 #ifdef _MSC_VER
 #   pragma warning(push)
 #   pragma warning(disable:4244) // Conversion from 'double' to 'float'
 #   pragma warning(disable:4702) // unreachable code
+#	include <intrin.h>
 #endif
+
+#include <cstdlib>
+#include <cmath>
+#include <limits>
 
 namespace Alimer
 {
+#ifdef M_PI
+#   undef M_PI
+#endif
+
+    constexpr float M_PI = 3.141592654f;
+    constexpr float M_2PI = 6.283185307f;
+    constexpr float M_1DIVPI = 0.318309886f;
+    constexpr float M_1DIV2PI = 0.159154943f;
+    constexpr float M_PIDIV2 = 1.570796327f;
+    constexpr float M_PIDIV4 = 0.785398163f;
+    constexpr float M_DEGTORAD = M_PI / 180.0f;
+    constexpr float M_RADTODEG = 180.0f / M_PI;
+
+    constexpr float M_EPSILON = 0.000001f;
+    constexpr float M_LARGE_EPSILON = 0.00005f;
+
     /// Check whether two floating point values are equal within accuracy.
     template <class T>
     inline bool Equals(T lhs, T rhs) { return lhs + std::numeric_limits<T>::epsilon() >= rhs && lhs - std::numeric_limits<T>::epsilon() <= rhs; }
@@ -198,6 +214,18 @@ namespace Alimer
 
     /// Round value up.
     template <class T> inline int CeilToInt(T x) { return static_cast<int>(ceil(x)); }
+
+    inline constexpr float ToRadians(float degrees) { return degrees * M_DEGTORAD; }
+    inline constexpr float ToDegrees(float radians) { return radians * M_RADTODEG; }
+
+    ALIMER_API bool IsZero(float value);
+    ALIMER_API bool IsOne(float value);
+
+    /// Determines if two scalars are nearly equal with given epsilon value
+    ALIMER_API bool ScalarNearEqual(float scalar1, float scalar2, float epsilon = std::numeric_limits<float>::epsilon());
+
+    /// Calculate both sine and cosine, with angle in radians.
+    ALIMER_API void SinCos(float angle, float* sin, float* cos);
 
     //void ComputeTransform(glm::vec3 translation, glm::quat rotation, glm::vec3 scale, glm::mat4 &world, const glm::mat4 &parent);
 }
