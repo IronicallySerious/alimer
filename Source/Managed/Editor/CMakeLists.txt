@@ -20,21 +20,10 @@
 # THE SOFTWARE.
 #
 
-# Native .NET bindings
-add_subdirectory(libAlimerSharp)
+# Alimer.Studio.Core
+add_target_csharp(Alimer.Studio.Core ${CMAKE_CURRENT_SOURCE_DIR}/Alimer.Studio.Core/Alimer.Studio.Core.csproj)
+set_target_properties(Alimer.Studio.Core PROPERTIES FOLDER Managed/Editor)
 
-# Find dotnet program
-find_program(DOTNET_BINARY dotnet)
-if (NOT DOTNET_BINARY)
-    message (FATAL_ERROR "Please make sure dotnet is on the PATH.")
-endif ()
-
-# CMake install has issues with new C# project format.
-if (NOT DEFINED ENV{APPVEYOR})
-    add_target_csharp(AlimerSharp ${CMAKE_CURRENT_SOURCE_DIR}/AlimerSharp/AlimerSharp.Desktop.csproj)
-    set_target_properties(AlimerSharp PROPERTIES FOLDER Managed)
-
-    if (PLATFORM_DESKTOP)
-        add_subdirectory(Editor)
-    endif (PLATFORM_DESKTOP)
-endif()
+# Alimer.Studio
+add_target_csharp(Alimer.Studio ${CMAKE_CURRENT_SOURCE_DIR}/Alimer.Studio/Alimer.Studio.csproj)
+set_target_properties(Alimer.Studio PROPERTIES FOLDER Managed/Editor)
