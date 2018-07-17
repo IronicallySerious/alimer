@@ -43,19 +43,20 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color::Blue }
             };
 
-            GpuBufferDescription vertexBufferDesc = {};
-            vertexBufferDesc.usage = BufferUsage::Vertex;
-            vertexBufferDesc.elementCount = 3;
-            vertexBufferDesc.elementSize = sizeof(Vertex);
-            vertexBufferDesc.resourceUsage = ResourceUsage::Immutable;
-            _vertexBuffer = new GpuBuffer(graphics, vertexBufferDesc, triangleVertices);
+
+            std::vector<VertexElement> vertexDeclaration;
+            vertexDeclaration.emplace_back(VertexFormat::Float3, VertexElementSemantic::POSITION);
+            vertexDeclaration.emplace_back(VertexFormat::Float4, VertexElementSemantic::COLOR);
+
+            _vertexBuffer = new VertexBuffer(graphics);
+            _vertexBuffer->Define(3, vertexDeclaration, ResourceUsage::Immutable, triangleVertices);
 
             RenderPipelineDescription renderPipelineDesc = {};
             renderPipelineDesc.shader = graphics->CreateShader("color.vert", "color.frag");
             renderPipelineDesc.vertexDescription.attributes[0].format = VertexFormat::Float3;
             renderPipelineDesc.vertexDescription.attributes[1].format = VertexFormat::Float4;
             renderPipelineDesc.vertexDescription.attributes[1].offset = 12;
-            renderPipelineDesc.vertexDescription.layouts[0].stride = _vertexBuffer->GetElementSize();
+            renderPipelineDesc.vertexDescription.layouts[0].stride = _vertexBuffer->GetStride();
             _renderPipeline = graphics->CreateRenderPipelineState(renderPipelineDesc);
 
 
@@ -78,7 +79,7 @@ namespace Alimer
         }
 
     private:
-        SharedPtr<GpuBuffer> _vertexBuffer;
+        SharedPtr<VertexBuffer> _vertexBuffer;
         SharedPtr<PipelineState> _renderPipeline;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
@@ -91,7 +92,6 @@ namespace Alimer
         PerCameraCBuffer _camera;
     };
 
-#if TODO
     class QuadExample
     {
     public:
@@ -105,30 +105,25 @@ namespace Alimer
                 { Vector3(-0.5f, -0.5f, 0.0f), Color(1.0f, 1.0f, 0.0f, 1.0f) },
             };
 
-            GpuBufferDescription vertexBufferDesc = {};
-            vertexBufferDesc.usage = BufferUsage::Vertex;
-            vertexBufferDesc.elementCount = 4;
-            vertexBufferDesc.elementSize = sizeof(Vertex);
-            vertexBufferDesc.resourceUsage = ResourceUsage::Immutable;
-            _vertexBuffer = graphics->CreateBuffer(vertexBufferDesc, triangleVertices);
+            std::vector<VertexElement> vertexDeclaration;
+            vertexDeclaration.emplace_back(VertexFormat::Float3, VertexElementSemantic::POSITION);
+            vertexDeclaration.emplace_back(VertexFormat::Float4, VertexElementSemantic::COLOR);
+            _vertexBuffer = new VertexBuffer(graphics);
+            _vertexBuffer->Define(4, vertexDeclaration, ResourceUsage::Immutable, triangleVertices);
 
+            // Create index buffer.
             const uint16_t indices[] = {
                 0, 1, 2, 0, 2, 3
             };
-
-            GpuBufferDescription indexBufferDesc = {};
-            indexBufferDesc.usage = BufferUsage::Index;
-            indexBufferDesc.elementCount = 6;
-            indexBufferDesc.elementSize = sizeof(uint16_t);
-            indexBufferDesc.resourceUsage = ResourceUsage::Immutable;
-            _indexBuffer = graphics->CreateBuffer(indexBufferDesc, indices);
+            _indexBuffer = new IndexBuffer(graphics);
+            _indexBuffer->Define(6, IndexType::UInt16, ResourceUsage::Immutable, indices);
 
             RenderPipelineDescription renderPipelineDesc = {};
             renderPipelineDesc.shader = graphics->CreateShader("color.vert", "color.frag");
             renderPipelineDesc.vertexDescription.attributes[0].format = VertexFormat::Float3;
             renderPipelineDesc.vertexDescription.attributes[1].format = VertexFormat::Float4;
             renderPipelineDesc.vertexDescription.attributes[1].offset = 12;
-            renderPipelineDesc.vertexDescription.layouts[0].stride = _vertexBuffer->GetElementSize();
+            renderPipelineDesc.vertexDescription.layouts[0].stride = _vertexBuffer->GetStride();
             _renderPipeline = graphics->CreateRenderPipelineState(renderPipelineDesc);
 
 
@@ -137,7 +132,7 @@ namespace Alimer
             GpuBufferDescription uboBufferDesc = {};
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(uboBufferDesc, &_camera);
+            _perCameraUboBuffer =  new GpuBuffer(graphics, uboBufferDesc, &_camera);
         }
 
         void Render(CommandBuffer* commandBuffer)
@@ -152,8 +147,8 @@ namespace Alimer
         }
 
     private:
-        SharedPtr<GpuBuffer> _vertexBuffer;
-        SharedPtr<GpuBuffer> _indexBuffer;
+        SharedPtr<VertexBuffer> _vertexBuffer;
+        SharedPtr<IndexBuffer> _indexBuffer;
         SharedPtr<PipelineState> _renderPipeline;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
@@ -166,6 +161,7 @@ namespace Alimer
         PerCameraCBuffer _camera;
     };
 
+#if TODO
     class CubeExample
     {
     public:
@@ -295,7 +291,7 @@ namespace Alimer
 
     private:
         TriangleExample _triangleExample;
-        //QuadExample _quadExample;
+        QuadExample _quadExample;
         //CubeExample _cubeExample;
     };
 

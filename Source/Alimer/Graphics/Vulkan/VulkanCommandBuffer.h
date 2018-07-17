@@ -61,7 +61,7 @@ namespace Alimer
 
         void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
-        void SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride) override;
+        void SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride) override;
         //void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
 

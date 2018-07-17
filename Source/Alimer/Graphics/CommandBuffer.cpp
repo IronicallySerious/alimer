@@ -223,16 +223,15 @@ namespace Alimer
         //SetScissors(1, &scissor);
     }
 
-    void CommandBuffer::SetVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset)
+    void CommandBuffer::SetVertexBuffer(VertexBuffer* buffer, uint32_t binding, uint64_t offset)
     {
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
         ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Vertex);
 
-        SetVertexBufferCore(buffer->GetHandle(), binding, offset, buffer->GetElementSize());
+        SetVertexBufferCore(buffer, binding, offset, buffer->GetStride());
     }
 
-    void CommandBuffer::SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
+    void CommandBuffer::SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
     {
 
     }
@@ -253,7 +252,6 @@ namespace Alimer
     {
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
-        ALIMER_ASSERT(buffer->GetBufferUsage() & BufferUsage::Uniform);
 
         SetUniformBufferCore(set, binding, buffer->GetHandle(), 0, buffer->GetSize());
     }

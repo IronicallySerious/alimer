@@ -51,7 +51,7 @@ namespace Alimer
         void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
         void SetPipeline(PipelineState* pipeline) override;
-        void SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride) override;
+        void SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride) override;
         void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
 
@@ -60,6 +60,7 @@ namespace Alimer
 
     private:
         bool PrepareDraw(PrimitiveTopology topology);
+        void UpdateVbos(uint32_t binding, uint32_t count);
 
     private:
         D3D11Graphics * _graphics;
@@ -72,6 +73,22 @@ namespace Alimer
         ID3D11RasterizerState1* _currentRasterizerState;
         ID3D11DepthStencilState* _currentDepthStencilState;
         ID3D11BlendState1* _currentBlendState;
+
+        struct VertexBindingState
+        {
+            VertexBuffer* buffers[MaxVertexBufferBindings];
+            ID3D11Buffer* d3dBuffers[MaxVertexBufferBindings];
+            uint32_t offsets[MaxVertexBufferBindings];
+            uint32_t strides[MaxVertexBufferBindings];
+            VertexInputRate inputRates[MaxVertexBufferBindings];
+        };
+
+        VertexBindingState _vbo = {};
+        bool _inputLayoutDirty;
+        uint32_t _dirtyVbos = 0;
+
+        /// Current input layout: vertex buffers' element mask and vertex shader's element mask combined.
+        InputLayoutDesc _currentInputLayout;
     };
 
     /// D3D11 CommandBuffer implementation.

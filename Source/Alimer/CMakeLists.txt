@@ -81,7 +81,13 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_B
 define_engine_source_files (NORECURSE . Core Util IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
 
-if (PLATFORM_WINDOWS)
+if (ALIMER_GLFW)
+    define_engine_source_files(Application/glfw)
+    define_engine_source_files(Input/glfw)
+    if (PLATFORM_WINDOWS)
+        define_engine_source_files(Audio/WASAPI)
+    endif() 
+elseif (PLATFORM_WINDOWS)
 	define_engine_source_files(Application/Windows)
 	define_engine_source_files(Input/Windows)
 	define_engine_source_files(Audio/WASAPI)
@@ -217,6 +223,10 @@ target_include_directories(libAlimer PUBLIC
 
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross)
+if (ALIMER_GLFW)
+    list (APPEND THIRD_PARTY_DEPENDENCIES glfw)
+endif ()
+
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     if (TARGET "${dep}")
         target_link_libraries(libAlimer ${dep})

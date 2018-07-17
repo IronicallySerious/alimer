@@ -59,6 +59,9 @@ namespace Alimer
 
         void HandleDeviceLost();
 
+        ID3D11InputLayout* GetInputLayout(const InputLayoutDesc& desc);
+        void StoreInputLayout(const InputLayoutDesc& desc, ID3D11InputLayout* layout);
+
         // Getters
 		inline IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory.Get(); }
 		inline D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
@@ -92,5 +95,8 @@ namespace Alimer
         uint32_t _shaderModelMinor = 0;
 
         D3D11CommandContext* _defaultCommandBuffer = nullptr;
+
+        /// Input layouts.
+        InputLayoutMap _inputLayouts;
 	};
 }

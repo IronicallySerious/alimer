@@ -24,6 +24,7 @@
 #include "D3D11Graphics.h"
 #include "D3D11Texture.h"
 #include "D3D11RenderPass.h"
+#include "D3D11Shader.h"
 #include "D3D11PipelineState.h"
 #include "D3D11GpuBuffer.h"
 #include "../D3D/D3DConvert.h"
@@ -63,6 +64,13 @@ namespace Alimer
         _currentRasterizerState = nullptr;
         _currentDepthStencilState = nullptr;
         _currentBlendState = nullptr;
+
+        _currentInputLayout.first = 0;
+        _currentInputLayout.second = 0;
+
+        //_dirtyVbos = ~0u;
+        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
+        _inputLayoutDirty = false;
     }
 
     void D3D11CommandContext::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
@@ -102,7 +110,7 @@ namespace Alimer
             static_cast<float>(setRenderArea.x), static_cast<float>(setRenderArea.y),
             static_cast<float>(setRenderArea.width), static_cast<float>(setRenderArea.height),
             0.0f, 1.0f
-        }; 
+        };
         _context->RSSetViewports(1, &d3dViewport);
         SetScissor(setRenderArea);
     }
@@ -157,14 +165,30 @@ namespace Alimer
         _currentPipeline = static_cast<D3D11PipelineState*>(pipeline);
     }
 
-    void D3D11CommandContext::SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
+    void D3D11CommandContext::SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
     {
-        // TODO: Handle single bind with one call.
-        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
+        if (_vbo.buffers[binding] != buffer
+            || _vbo.offsets[binding] != offset)
+        {
+            ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
 
-        UINT uOffset = static_cast<UINT>(offset);
+            _vbo.d3dBuffers[binding] = d3dBuffer;
 
-        _context->IASetVertexBuffers(binding, 1, &d3dBuffer, &stride, &uOffset);
+            _dirtyVbos |= 1u << binding;
+            _inputLayoutDirty = true;
+        }
+
+        if (_vbo.strides[binding] != stride
+            /*|| _vbo.input_rates[binding] != step_rate*/)
+        {
+            //set_dirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
+        }
+
+
+        _vbo.buffers[binding] = buffer;
+        _vbo.offsets[binding] = offset;
+        _vbo.strides[binding] = stride;
+        _vbo.inputRates[binding] = VertexInputRate::Vertex; // step_rate;
     }
 
 
@@ -189,9 +213,15 @@ namespace Alimer
 
     bool D3D11CommandContext::PrepareDraw(PrimitiveTopology topology)
     {
+        uint32_t updateVboMask = _dirtyVbos/* & _currentPipeline->GetBindingMask()*/;
+        ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
+        {
+            UpdateVbos(binding, count);
+        });
+        _dirtyVbos &= ~updateVboMask;
+
         if (_currentTopology != topology)
         {
-            auto b = d3d::Convert(topology);
             _context->IASetPrimitiveTopology(d3d::Convert(topology));
             _currentTopology = topology;
         }
@@ -220,6 +250,94 @@ namespace Alimer
         }
 
         return true;
+    }
+
+    void D3D11CommandContext::UpdateVbos(uint32_t binding, uint32_t count)
+    {
+#ifdef ALIMER_DEV
+        for (uint32_t i = binding; i < binding + count; i++)
+        {
+            ALIMER_ASSERT(_vbo.buffers[i] != nullptr);
+        }
+#endif
+        _context->IASetVertexBuffers(
+            binding,
+            count,
+            _vbo.d3dBuffers + binding,
+            _vbo.strides + binding,
+            _vbo.offsets + binding);
+
+        // InputLayout
+        if (_inputLayoutDirty)
+        {
+            _inputLayoutDirty = false;
+
+            InputLayoutDesc newInputLayout;
+            newInputLayout.first = 0;
+            //newInputLayout.second = vertexShader->GetElementHash();
+            for (uint32_t i = binding; i < binding + count; i++)
+            {
+                newInputLayout.first |= _vbo.buffers[i]->GetElementHash() << (i * 16);
+            }
+
+            if (_currentInputLayout != newInputLayout)
+            {
+                // Check if layout already exists
+                auto inputLayout = _graphics->GetInputLayout(newInputLayout);
+                if (inputLayout != nullptr)
+                {
+                    _context->IASetInputLayout(inputLayout);
+                    _currentInputLayout = newInputLayout;
+                }
+                else
+                {
+                    // Not found, create new
+                    D3D11_INPUT_ELEMENT_DESC d3dElementDescs[MaxVertexAttributes];
+                    memset(d3dElementDescs, 0, sizeof(d3dElementDescs));
+
+                    UINT attributeCount = 0;
+                    VertexInputRate inputRate = VertexInputRate::Vertex;
+                    for (uint32_t i = binding; i < binding + count; i++)
+                    {
+                        const std::vector<VertexElement>& elements = _vbo.buffers[i]->GetElements();
+                        inputRate = _vbo.inputRates[i];
+
+                        for (const VertexElement& element : elements)
+                        {
+                            D3D11_INPUT_ELEMENT_DESC* d3d11ElementDesc = &d3dElementDescs[attributeCount++];
+                            d3d11ElementDesc->SemanticName = element.semanticName;
+                            d3d11ElementDesc->SemanticIndex = element.semanticIndex;
+                            d3d11ElementDesc->Format = d3d::Convert(element.format);
+                            d3d11ElementDesc->InputSlot = i;
+                            d3d11ElementDesc->AlignedByteOffset = element.offset;
+                            if (inputRate == VertexInputRate::Instance)
+                            {
+                                d3d11ElementDesc->InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
+                                d3d11ElementDesc->InstanceDataStepRate = 1;
+                            }
+                        }
+                    }
+
+                    auto vsByteCode = _currentPipeline->GetShader()->AcquireVertexShaderBytecode();
+                    ID3D11InputLayout* d3dInputLayout = nullptr;
+
+                    if (FAILED(_graphics->GetD3DDevice()->CreateInputLayout(
+                        d3dElementDescs,
+                        attributeCount,
+                        vsByteCode.data(),
+                        vsByteCode.size(), &d3dInputLayout)))
+                    {
+                        ALIMER_LOGERROR("Failed to create input layout");
+                    }
+                    else
+                    {
+                        _graphics->StoreInputLayout(newInputLayout, d3dInputLayout);
+                        _context->IASetInputLayout(d3dInputLayout);
+                        _currentInputLayout = newInputLayout;
+                    }
+                }
+            }
+        }
     }
 
     void D3D11CommandContext::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)

@@ -398,6 +398,24 @@ namespace Alimer
         // TODO
     }
 
+    ID3D11InputLayout* D3D11Graphics::GetInputLayout(const InputLayoutDesc& desc)
+    {
+        // Check if layout already exists
+        auto it = _inputLayouts.find(desc);
+        if (it != end(_inputLayouts))
+        {
+            return it->second;
+        }
+
+        return nullptr;
+    }
+
+    void D3D11Graphics::StoreInputLayout(const InputLayoutDesc& desc, ID3D11InputLayout* layout)
+    {
+        ALIMER_ASSERT(_inputLayouts[desc] == nullptr);
+        _inputLayouts[desc] = layout;
+    }
+
     RenderPass* D3D11Graphics::GetBackbufferRenderPass() const
     {
         return _swapChain->GetRenderPass();

@@ -27,20 +27,20 @@
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* graphics)
+    GpuBuffer::GpuBuffer(Graphics* graphics, BufferUsage usage)
         : GpuResource(graphics, GpuResourceType::Buffer)
+        , _usage(usage)
     {
 
     }
 
     GpuBuffer::GpuBuffer(Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
         : GpuResource(graphics, GpuResourceType::Buffer)
-        , _description(description)
     {
         _usage = description.usage;
-        _stride = description.elementCount;
+        _stride = description.elementSize;
         _resourceUsage = description.resourceUsage;
-        _size = _stride * description.elementSize;
+        _size = _stride * description.elementCount;
         ALIMER_ASSERT(description.usage != BufferUsage::Unknown);
         ALIMER_ASSERT(_size != 0);
 
@@ -87,5 +87,21 @@ namespace Alimer
             _size,
             _stride);
         return true;
+    }
+
+    bool GpuBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
+    {
+        if (_handle && _resourceUsage == ResourceUsage::Immutable)
+        {
+            ALIMER_LOGERROR("Can not update immutable buffer");
+            return false;
+        }
+
+        //if (_shadowData)
+        //{
+        //    memcpy(_shadowData.get() + offset, data, size);
+        //}
+
+        return _handle->SetData(offset, size, data);
     }
 }

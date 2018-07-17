@@ -109,7 +109,7 @@ namespace Alimer
 
         virtual void SetPipeline(PipelineState* pipeline) = 0;
 
-        void SetVertexBuffer(GpuBuffer* buffer, uint32_t binding = 0, uint64_t offset = 0);
+        void SetVertexBuffer(VertexBuffer* buffer, uint32_t binding = 0, uint64_t offset = 0);
         void SetIndexBuffer(IndexBuffer* buffer, uint32_t offset = 0);
         
         void SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer);
@@ -129,7 +129,7 @@ namespace Alimer
 
         virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
         virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex);
-        virtual void SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride);
+        virtual void SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride);
         virtual void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType);
 
         inline bool IsInsideRenderPass() const

@@ -22,37 +22,26 @@
 
 #pragma once
 
-#include "../PipelineState.h"
-#include "D3D11Prerequisites.h"
+#include "../Input.h"
+#define GLFW_INCLUDE_NONE
+#include "GLFW/glfw3.h"
 
 namespace Alimer
 {
-	class D3D11Graphics;
-    class D3D11Shader;
-
-	/// D3D11 PipelineState implementation.
-	class D3D11PipelineState final : public PipelineState
+	/// glfw Input system implementation.
+	class glfwInput final : public Input
 	{
 	public:
 		/// Constructor.
-        D3D11PipelineState(D3D11Graphics* graphics, const RenderPipelineDescription& description);
+        glfwInput();
 
 		/// Destructor.
-		~D3D11PipelineState() override;
+		~glfwInput() override;
 
-        void Bind(ID3D11DeviceContext1* context);
-
-        D3D11Shader* GetShader() const { return _shader.Get(); }
-        ID3D11InputLayout* GetD3DInputLayout() const { return _d3dInputLayout; }
-        ID3D11RasterizerState1* GetD3DRasterizerState() const { return _d3d11RasterizerState; }
-        ID3D11DepthStencilState* GetD3DDepthStencilState() const { return _d3d11DepthStencilState; }
-        ID3D11BlendState1* GetD3DBlendState() const { return _d3d11BlendState; }
+		bool IsCursorVisible() const override;
+		void SetCursorVisible(bool visible) override;
 
 	private:
-        SharedPtr<D3D11Shader> _shader;
-        ID3D11InputLayout* _d3dInputLayout = nullptr;
-        ID3D11RasterizerState1* _d3d11RasterizerState = nullptr;
-        ID3D11DepthStencilState* _d3d11DepthStencilState = nullptr;
-        ID3D11BlendState1* _d3d11BlendState = nullptr;
+		bool _cursorVisible = true;
 	};
 }

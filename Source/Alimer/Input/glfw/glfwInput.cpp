@@ -20,18 +20,26 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/UniformBuffer.h"
-#include "../Graphics/GraphicsImpl.h"
+#include "glfwInput.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {
-    UniformBuffer::UniformBuffer(Graphics* graphics)
-        : GpuBuffer(graphics, BufferUsage::Uniform)
-    {
-    }
+    glfwInput::glfwInput()
+	{
+	}
 
-    UniformBuffer::~UniformBuffer()
-    {
-        Destroy();
-    }
+    glfwInput::~glfwInput()
+	{
+	}
+
+	bool glfwInput::IsCursorVisible() const
+	{
+		return _cursorVisible;
+	}
+
+	void glfwInput::SetCursorVisible(bool visible)
+	{
+		_cursorVisible = visible;
+	}
 }

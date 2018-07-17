@@ -290,9 +290,9 @@ namespace Alimer
         return true;
     }
 
-    void VulkanCommandBuffer::SetVertexBufferCore(BufferHandle* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
+    void VulkanCommandBuffer::SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
     {
-        auto vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
+        auto vkBuffer = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
         if (_vbo.buffers[binding] != vkBuffer
             || _vbo.offsets[binding] != offset)
         {

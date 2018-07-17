@@ -76,7 +76,7 @@ namespace Alimer
 	{
 	protected:
         /// Constructor.
-        GpuBuffer(Graphics* graphics);
+        GpuBuffer(Graphics* graphics, BufferUsage usage);
 
     public:
 		/// Constructor.
@@ -88,20 +88,26 @@ namespace Alimer
 
         void Destroy() override;
 
-        const GpuBufferDescription &GetDescription() const { return _description; }
-		inline BufferUsageFlags GetBufferUsage() const { return _description.usage; }
-		inline uint32_t GetElementCount() const { return _description.elementCount; }
-		inline uint32_t GetElementSize() const { return _description.elementSize; }
-		inline uint64_t GetSize() const { return _size; }
+        /// Get the buffer usage flags.
+		BufferUsageFlags GetUsage() const { return _usage; }
+
+        /// Get the buffer resource usage.
+        ResourceUsage GetResourceUsage() const { return _resourceUsage; }
+
+        /// Get single element size in bytes.
+		uint32_t GetStride() const { return _stride; }
+
+        /// Get size in bytes of the buffer.
+		uint64_t GetSize() const { return _size; }
 
         /// Get the backend buffer implementation.
         BufferHandle* GetHandle() { return _handle; }
 
     protected:
         bool Create(bool useShadowData, const void* initialData);
+        bool SetData(uint32_t offset, uint32_t size, const void* data);
 
 	protected:
-        GpuBufferDescription _description;
         BufferUsageFlags _usage = BufferUsage::Unknown;
 		uint64_t _size = 0;
         uint32_t _stride = 0;

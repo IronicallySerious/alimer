@@ -92,9 +92,6 @@ namespace Alimer
             value &= ~((1u << (bit + range)) - 1);
         }
     }
-
-    
-
   
     namespace str
     {

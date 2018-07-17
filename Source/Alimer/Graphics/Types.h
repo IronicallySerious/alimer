@@ -123,6 +123,8 @@ namespace Alimer
         Count
     };
 
+    ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
+
     template <>
     struct EnumNames<ShaderStage>
     {
