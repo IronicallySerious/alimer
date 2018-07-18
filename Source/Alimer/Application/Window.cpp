@@ -24,18 +24,18 @@
 
 namespace Alimer
 {
-	Window::Window()
-		: _title("Alimer")
-		, _width(800)
-		, _height(600)
-		, _resizable(true)
-        , _handle{ WINDOW_HANDLE_UNKNOWN }
-	{
-	}
+    Window::Window()
+        : _title("Alimer")
+        , _width(800)
+        , _height(600)
+        , _resizable(true)
+        , _handle{}
+    {
+    }
 
-	Window::~Window()
-	{
-	}
+    Window::~Window()
+    {
+    }
 
     void Window::Show()
     {

@@ -34,29 +34,39 @@ namespace Alimer
     {
         // Determines whether tearing support is available for fullscreen borderless windows.
         ComPtr<IDXGIFactory4> factory4;
-        ComPtr<IDXGIFactory5> factory5;
+
         bool validFactory4 = SUCCEEDED(graphics->GetDXGIFactory()->QueryInterface(IID_PPV_ARGS(&factory4)));
-        bool validFactory5 = SUCCEEDED(graphics->GetDXGIFactory()->QueryInterface(IID_PPV_ARGS(&factory5)));
 
         // Check tearing support.
-        BOOL allowTearing = FALSE;
         HRESULT hr = S_FALSE;
-        if (validFactory5)
+        const bool isWindows10OrGreater = IsWindows10OrGreater();
+        if (isWindows10OrGreater)
         {
-            hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
+            ComPtr<IDXGIFactory5> factory5;
+            ThrowIfFailed(graphics->GetDXGIFactory()->QueryInterface(IID_PPV_ARGS(&factory5)));
+            BOOL allowTearing = FALSE;
+            factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
+            if (allowTearing)
+            {
+                ALIMER_LOGTRACE("Tearing is supported.");
+                _allowTearing = true;
+            }
+            else
+            {
+                _allowTearing = false;
+                ALIMER_LOGTRACE("Tearing is supported.");
+            }
         }
-
-        if (FAILED(hr) || !allowTearing)
+        else
         {
             _allowTearing = false;
-            ALIMER_LOGWARN("D3D11: Variable refresh rate displays not supported");
         }
 
         // Disable HDR if we are on an OS that can't support FLIP swap effects
         if (_swapchainFlags & SwapchainFlagBits::EnableHDR)
         {
             ComPtr<IDXGIFactory5> factory5;
-            if (!validFactory5)
+            if (!isWindows10OrGreater)
             {
                 _swapchainFlags &= ~SwapchainFlagBits::EnableHDR;
                 ALIMER_LOGWARN("D3D11: HDR swap chains not supported");
@@ -105,21 +115,16 @@ namespace Alimer
         ID3D11RenderTargetView* nullViews[] = { nullptr };
         _graphics->GetImmediateContext()->OMSetRenderTargets(1, nullViews, nullptr);
 
-        UINT dxgiSwapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-
-        if (_allowTearing)
-        {
-            dxgiSwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-        }
+        HRESULT hr = S_OK;
 
         if (_swapChain)
         {
-            HRESULT hr = _swapChain->ResizeBuffers(
+            hr = _swapChain->ResizeBuffers(
                 _backBufferCount,
                 width,
                 height,
                 _backBufferFormat,
-                dxgiSwapChainFlags
+                _allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0
             );
 
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
@@ -134,35 +139,40 @@ namespace Alimer
             swapChainDesc.Width = width;
             swapChainDesc.Height = height;
             swapChainDesc.Format = _backBufferFormat;
-            swapChainDesc.Stereo = FALSE;
             swapChainDesc.SampleDesc.Count = 1;
             swapChainDesc.SampleDesc.Quality = 0;
             swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
             swapChainDesc.BufferCount = _backBufferCount;
             swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-            swapChainDesc.SwapEffect = _allowTearing || (_swapchainFlags & (SwapchainFlagBits::FlipPresent | SwapchainFlagBits::EnableHDR)) ? DXGI_SWAP_EFFECT_FLIP_DISCARD : DXGI_SWAP_EFFECT_DISCARD;
+            swapChainDesc.SwapEffect = _allowTearing ? DXGI_SWAP_EFFECT_FLIP_DISCARD : DXGI_SWAP_EFFECT_DISCARD;
             swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-            swapChainDesc.Flags = dxgiSwapChainFlags;
+            swapChainDesc.Flags = _allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
             if (!_window)
             {
                 DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
                 fsSwapChainDesc.Windowed = TRUE;
 
-                ThrowIfFailed(
-                    _graphics->GetDXGIFactory()->CreateSwapChainForHwnd(
-                        _graphics->GetD3DDevice(),
-                        _hwnd,
-                        &swapChainDesc,
-                        &fsSwapChainDesc,
-                        nullptr,
-                        &_swapChain
-                    ));
+                hr = _graphics->GetDXGIFactory()->CreateSwapChainForHwnd(
+                    _graphics->GetD3DDevice(),
+                    _hwnd,
+                    &swapChainDesc,
+                    &fsSwapChainDesc,
+                    nullptr,
+                    &_swapChain
+                );
+
+                if (FAILED(hr))
+                {
+                    ALIMER_LOGCRITICAL("Failed to create DXGI SwapChain");
+                }
 
                 ThrowIfFailed(_graphics->GetDXGIFactory()->MakeWindowAssociation(_hwnd, DXGI_MWA_NO_ALT_ENTER));
             }
             else
             {
+                swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+
                 ThrowIfFailed(_graphics->GetDXGIFactory()->CreateSwapChainForCoreWindow(
                     _graphics->GetD3DDevice(),
                     _window,

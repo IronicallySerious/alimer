@@ -38,46 +38,12 @@ typedef struct ANativeWindow ANativeWindow;
 
 namespace Alimer
 {
-    enum WindowHandleType
-    {
-        WINDOW_HANDLE_UNKNOWN,
-        WINDOW_HANDLE_WINDOWS,
-        WINDOW_HANDLE_UWP,
-        WINDOW_HANDLE_Android,
-    };
-
     struct WindowHandle
     {
-        WindowHandleType type;
-        union
-        {
-#if ALIMER_PLATFORM_WINDOWS
-            struct
-            {
-                /// The window handle
-                HWND__* window;
-                /// The window device context
-                HDC__* hdc;
-
-                /// The instance handle
-                HINSTANCE__* hInstance;
-            } win;
-
-#elif ALIMER_PLATFORM_UWP
-            struct
-            {
-                /// UWP CoreWindow
-                IUnknown* window;
-            } uwp;
-#elif ALIMER_PLATFORM_ANDROID
-            struct
-            {
-                ANativeWindow *window;
-            } android;
-#endif
-            // Make sure this union is always 64 bytes (8 64-bit pointers)
-            unsigned char dummy[64];
-        } info;
+        /// Native connection, display or instance type.
+        void* connection;
+        /// Native window handle.
+        void* handle;
     };
 
     /// Window resized event.

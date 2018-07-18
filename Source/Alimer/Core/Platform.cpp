@@ -62,6 +62,44 @@ typedef struct tagTHREADNAME_INFO
     DWORD dwFlags; // Reserved for future use, must be zero.
 } THREADNAME_INFO;
 #pragma pack(pop)
+
+bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wServicePackMajor)
+{
+    RTL_OSVERSIONINFOEXW verInfo = { 0 };
+    verInfo.dwOSVersionInfoSize = sizeof(verInfo);
+
+    std::string version = "Microsoft Windows";
+
+    if (GetRealOSVersion((PRTL_OSVERSIONINFOW)&verInfo))
+    {
+        if (verInfo.dwMajorVersion > wMajorVersion)
+            return true;
+        else if (verInfo.dwMajorVersion < wMajorVersion)
+            return false;
+
+        if (verInfo.dwMinorVersion > wMinorVersion)
+            return true;
+        else if (verInfo.dwMinorVersion < wMinorVersion)
+            return false;
+
+        if (verInfo.wServicePackMajor >= wServicePackMajor)
+            return true;
+    }
+
+    OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0,{ 0 }, 0, 0 };
+    const DWORDLONG dwlConditionMask = VerSetConditionMask(
+        VerSetConditionMask(
+            VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL),
+            VER_MINORVERSION, VER_GREATER_EQUAL),
+        VER_SERVICEPACKMAJOR, VER_GREATER_EQUAL);
+
+    osvi.dwMajorVersion = wMajorVersion;
+    osvi.dwMinorVersion = wMinorVersion;
+    osvi.wServicePackMajor = wServicePackMajor;
+
+    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR, dwlConditionMask) != FALSE;
+}
+
 #endif
 
 namespace Alimer

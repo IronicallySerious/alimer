@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 //
 
-
 #include "../Core/PluginManager.h"
 #include "../IO/FileSystem.h"
 #include "../Core/Log.h"
@@ -39,57 +38,34 @@ using namespace std;
 
 namespace Alimer
 {
+    PluginManager *PluginManager::_instance;
+
     PluginManager::PluginManager()
     {
     }
 
-    static bool LoadPlugin(const std::string& pluginPath, void** pDllHandle, AlimerPluginApi** pApi)
+    PluginManager::~PluginManager()
     {
-        void* libHandle = LoadNativeLibrary(pluginPath.c_str());
-        if (!libHandle)
-        {
-            return false;
-        }
 
-        GetPluginApiFunc getPluginApi = (GetPluginApiFunc)GetSymbol(libHandle, "AlimerGetPluginApi");
-        if (!getPluginApi)
-        {
-            UnloadNativeLibrary(libHandle);
-            return false;  // Not a plugin
-        }
-
-        AlimerPluginApi* pluginApi = (AlimerPluginApi*)getPluginApi(PLUGIN_API_ID, 0);
-        if (!pluginApi) {
-            UnloadNativeLibrary(libHandle);
-            return false;  // Incompatible plugin
-        }
-
-        *pDllHandle = libHandle;
-        *pApi = pluginApi;
-
-        return true;
     }
 
-    static bool ValidatePlugin(const std::string& pluginPath, PluginDesc* desc)
+    PluginManager *PluginManager::GetInstance()
     {
-        void* dllHandle;
-        AlimerPluginApi* api;
-        if (!LoadPlugin(pluginPath, &dllHandle, &api))
-        {
-            return false;
-        }
+        if (!_instance)
+            _instance = new PluginManager;
 
-        memcpy(desc, api->GetDesc(), sizeof(PluginDesc));
-        UnloadNativeLibrary(dllHandle);
-
-        return true;
+        return _instance;
     }
 
+    void PluginManager::DeleteInstance()
+    {
+        delete _instance;
+        _instance = nullptr;
+    }
 
-    bool PluginManager::Initialize(const string& pluginPath)
+    void PluginManager::LoadPlugins(const string& pluginPath)
     {
         ALIMER_LOGTRACE("Initializing Plugin System...");
-
         ALIMER_LOGDEBUG("Scanning for plugins in directory '{}' ...", pluginPath);
 
         vector<string> files;
@@ -97,27 +73,52 @@ namespace Alimer
 
         for (const string& pluginFile : files)
         {
-            PluginDesc desc;
-            if (ValidatePlugin(pluginFile, &desc))
-            {
-                _plugins[pluginFile] = desc;
-            }
+            LoadPlugin(pluginFile);
         }
 
         // List enumerated plugins
-        for (auto it : _plugins)
+        /*for (auto it : _plugins)
         {
             const PluginDesc& desc = it.second;
             ALIMER_LOGINFO("Loaded plugin => Name: '{}', Version: '{}.{}'",
                 desc.name,
                 ALIMER_VERSION_MAJOR(desc.version),
                 ALIMER_VERSION_MAJOR(desc.version));
+        }*/
+    }
+
+    bool PluginManager::LoadPlugin(const std::string& pluginName)
+    {
+        void* libHandle = LoadNativeLibrary(pluginName.c_str());
+        if (!libHandle)
+        {
+            return false;
         }
 
+        PluginLoadFunc loadFunc = (PluginLoadFunc)GetSymbol(libHandle, "AlimerPluginLoad");
+        if (!loadFunc)
+        {
+            UnloadNativeLibrary(libHandle);
+            return false;  // Not a plugin
+        }
+
+        InstallPlugin(loadFunc());
+        UnloadNativeLibrary(libHandle);
         return true;
     }
 
-    void PluginManager::Update()
+    void PluginManager::InstallPlugin(Plugin* plugin)
     {
+        ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName());
+
+        _plugins.push_back(UniquePtr<Plugin>(plugin));
+        plugin->Install();
+
+        //if (_initialised)
+        {
+            plugin->Initialize();
+        }
+
+        ALIMER_LOGINFO("Plugin successfully installed");
     }
 }

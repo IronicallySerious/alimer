@@ -33,6 +33,7 @@
 // Core
 #include "Core/Platform.h"
 #include "Core/String.h"
+#include "Core/Plugin.h"
 #include "Core/Log.h"
 #include "Util/Util.h"
 

@@ -23,8 +23,8 @@
 #pragma once
 
 #include "../Window.h"
-#define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
+
+struct GLFWwindow;
 
 namespace Alimer
 {
@@ -46,6 +46,7 @@ namespace Alimer
 
         bool IsVisible() const override { return _visible; }
         bool IsMinimized() const override;
+        bool ShouldClose() const;
 
 	private:
         void HandleResize(const Vector2& newSize);

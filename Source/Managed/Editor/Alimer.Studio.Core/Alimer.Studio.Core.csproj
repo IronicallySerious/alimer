@@ -44,10 +44,6 @@
       <Project>{373391d8-8bec-3fde-9a70-64a95c7c256e}</Project>
       <Name>AlimerSharp</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Assets\Alimer.Assets\Alimer.Assets.csproj">
-      <Project>{16e5a4a2-fa7f-3f9d-8986-f3f7e86d54d4}</Project>
-      <Name>Alimer.Assets</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

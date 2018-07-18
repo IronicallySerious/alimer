@@ -61,6 +61,8 @@ namespace Alimer
 
         _renderer.reset();
 
+        PluginManager::DeleteInstance();
+
         __appInstance = nullptr;
     }
 
@@ -146,7 +148,6 @@ namespace Alimer
 
         // Run the first time an update
         //InternalUpdate();
-        _pluginManager.Update();
 
         // 
         _graphics->SaveScreenshot("Test.png");
@@ -156,7 +157,7 @@ namespace Alimer
 
     void Application::LoadPlugins()
     {
-        _pluginManager.Initialize(GetExecutableFolder());
+        PluginManager::GetInstance()->LoadPlugins(GetExecutableFolder());
     }
 
     void Application::RunOneFrame()

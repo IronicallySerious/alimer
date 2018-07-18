@@ -22,23 +22,7 @@
 
 #pragma once
 
-#pragma warning(push)
-#pragma warning(disable : 4005)
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#define NODRAWTEXT
-#define NOGDI
-#define NOBITMAP
-#define NOMCX
-#define NOSERVICE
-#define NOHELP
-#pragma warning(pop)
-
-#include <windows.h>
-
-#ifndef _WIN32_WINNT_WIN10
-#define _WIN32_WINNT_WIN10 0x0A00
-#endif
+#include "../../PlatformIncl.h"
 
 #define D3D11_NO_HELPERS
 
@@ -50,13 +34,6 @@
 #endif
 
 #include <dxgi1_4.h>
-
-#if (defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)) || (defined(_XBOX_ONE) && defined(_TITLE))
-#   pragma warning(push)
-#   pragma warning(disable: 4471)
-#   include <Windows.UI.Core.h>
-#   pragma warning(pop)
-#endif
 
 #pragma warning(push)
 #pragma warning(disable : 4702)

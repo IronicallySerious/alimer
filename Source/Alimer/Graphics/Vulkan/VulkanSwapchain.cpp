@@ -45,17 +45,17 @@ namespace Alimer
         const WindowHandle& handle = window->GetHandle();
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-		surfaceCreateInfo.hinstance = handle.info.win.hInstance;
-		surfaceCreateInfo.hwnd = handle.info.win.window;
+		surfaceCreateInfo.hinstance = static_cast<HINSTANCE>(handle.connection);
+		surfaceCreateInfo.hwnd = static_cast<HWND>(handle.handle);
 		result = vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
 		VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR };
-		surfaceCreateInfo.dpy = (Display*)connection;
-		surfaceCreateInfo.window = (Window)window;
+		surfaceCreateInfo.dpy = static_cast<Display*>(handle.connection);
+        surfaceCreateInfo.window = static_cast<Window>(handle.handle);
 		result = vkCreateXlibSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR };
-		surfaceCreateInfo.window = (ANativeWindow*)window;
+		surfaceCreateInfo.window = static_cast<ANativeWindow*>(handle.handle);
 		result = vkCreateAndroidSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
 #endif
 		vkThrowIfFailed(result);

@@ -5,42 +5,41 @@
 ** file 'LICENSE', which is part of this source code package.
 */
 
-#include "AlimerPluginApi.h"
-#include <cstring>
+#include "Alimer.h"
+using namespace Alimer;
 
-void InitializePlugin(GetPluginApiFunc getApi)
+const std::string sPluginName = "TestPlugin";
+
+class TestPlugin final : public Alimer::Plugin
 {
-}
+public:
+    const std::string& GetName() const { return sPluginName; }
 
-void ShutdownPlugin()
-{
-}
+    void Install() override {
 
-PluginDesc* GetDescPlugin()
-{
-    static PluginDesc desc;
-    strcpy(desc.name, "TestPlugin");
-    strcpy(desc.description, "TestPlugin Desc");
-    desc.type = PLUGIN_TYP_GENERIC;
-    desc.version = ALIMER_MAKE_VERSION(1, 0, 0);
-    return &desc;
-}
-
-#if !defined ALIMER_STATIC_PLUGIN
-ALIMER_INTERFACE_EXPORT void* AlimerGetPluginApi(uint32_t api, uint32_t version)
-{
-	static AlimerPluginApi plugin;
-
-    if (version == 0) {
-        plugin.Initialize = InitializePlugin;
-        plugin.Shutdown = ShutdownPlugin;
-        plugin.GetDesc = GetDescPlugin;
-        return &plugin;
-    }
-    else {
-        return nullptr;
     }
 
-	return &plugin;
+    void Uninstall()  override {
+
+    }
+
+    void Initialize() override {
+
+    }
+
+    void Shutdown() override {
+
+    }
+};
+
+#if !defined(ALIMER_STATIC_PLUGIN)
+extern "C" ALIMER_INTERFACE_EXPORT Alimer::Plugin* AlimerPluginLoad()
+{
+    return new TestPlugin();
+}
+
+extern "C" ALIMER_INTERFACE_EXPORT void AlimerPluginUnload(Alimer::Plugin* plugin)
+{
+
 }
 #endif

@@ -23,13 +23,41 @@
 #include "glfwWindow.h"
 #include "../Application.h"
 #include "../../Core/Log.h"
+#define GLFW_INCLUDE_NONE
+#include "GLFW/glfw3.h"
+
+#if ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM
+#   define GLFW_EXPOSE_NATIVE_X11
+#	define GLFW_EXPOSE_NATIVE_GLX
+#elif ALIMER_PLATFORM_APPLE_OSX
+#	define GLFW_EXPOSE_NATIVE_COCOA
+#	define GLFW_EXPOSE_NATIVE_NSGL
+#elif ALIMER_PLATFORM_WINDOWS
+#	define GLFW_EXPOSE_NATIVE_WIN32
+#	define GLFW_EXPOSE_NATIVE_WGL
+#endif
+
+#include "GLFW/glfw3native.h"
 
 namespace Alimer
 {
     glfwWindow::glfwWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
 	{
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_VISIBLE, 1);
         _window = glfwCreateWindow(width, height, title.c_str(), nullptr, 0);
+        glfwSetWindowUserPointer(_window, this);
+
+#if ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM
+        _handle.connection = glfwGetX11Display();
+        _handle.handle = (void*)(uintptr_t)glfwGetX11Window(_window);
+#elif ALIMER_PLATFORM_APPLE_OSX
+        _handle.connection = nullptr;
+        _handle.handle = glfwGetCocoaWindow(_window);
+#elif ALIMER_PLATFORM_WINDOWS
+        _handle.connection = GetModuleHandleW(NULL);
+        _handle.handle = glfwGetWin32Window(_window);
+#endif
 	}
 
     glfwWindow::~glfwWindow()
@@ -91,6 +119,11 @@ namespace Alimer
     bool glfwWindow::IsMinimized() const
     {
         return false;
+    }
+
+    bool glfwWindow::ShouldClose() const
+    {
+        return glfwWindowShouldClose(_window);
     }
 
     void glfwWindow::HandleResize(const Vector2& newSize)

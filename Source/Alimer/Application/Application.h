@@ -138,7 +138,6 @@ namespace Alimer
 
         std::unique_ptr<Logger> _log;
         Timer _timer;
-        PluginManager _pluginManager;
         ResourceManager _resources;
         WindowPtr _window;
         SharedPtr<Graphics> _graphics;

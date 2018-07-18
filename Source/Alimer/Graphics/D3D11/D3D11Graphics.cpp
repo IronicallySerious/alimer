@@ -237,9 +237,9 @@ namespace Alimer
         _swapChain = new D3D11SwapChain(this);
 
 #if ALIMER_PLATFORM_UWP
-        _swapChain->SetCoreWindow(handle.info.uwp.window, _window->GetWidth(), _window->GetHeight());
+        _swapChain->SetCoreWindow(static_cast<IUnknown*>(handle.handle), _window->GetWidth(), _window->GetHeight());
 #else
-        _swapChain->SetWindow(handle.info.win.window, _window->GetWidth(), _window->GetHeight());
+        _swapChain->SetWindow(static_cast<HWND>(handle.handle), _window->GetWidth(), _window->GetHeight());
 #endif
 
         // Immediate/default command queue.

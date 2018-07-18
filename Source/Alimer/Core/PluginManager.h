@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
-#include "../AlimerPluginApi.h"
-#include <string>
+#include "../Core/Ptr.h"
+#include "../Core/Plugin.h"
+#include <vector>
 #include <unordered_map>
 
 namespace Alimer
@@ -34,14 +34,24 @@ namespace Alimer
     class ALIMER_API PluginManager
     {
     public:
+        /// Returns the plugin manager instance.
+        static PluginManager *GetInstance();
+
+        /// Get the singleton instance.
+        static void DeleteInstance();
+
+        /// Load plugins from given path.
+        void LoadPlugins(const std::string& pluginPath);
+        bool LoadPlugin(const std::string& pluginName);
+        void InstallPlugin(Plugin* plugin);
+
+    private:
         /// Constructor.
         PluginManager();
-        virtual ~PluginManager() = default;
+        ~PluginManager();
 
-        bool Initialize(const std::string& pluginPath);
-        void Update();
-    private:
-        std::unordered_map<std::string, PluginDesc> _plugins;
+        static PluginManager *_instance;
+        std::vector<UniquePtr<Plugin>> _plugins;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(PluginManager);

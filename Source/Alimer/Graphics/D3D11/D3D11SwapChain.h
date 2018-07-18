@@ -76,7 +76,7 @@ namespace Alimer
         HWND _hwnd = nullptr;
         IUnknown* _window = nullptr;
         DXGI_FORMAT _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-        bool _allowTearing = true;
+        bool _allowTearing;
         SwapchainFlags _swapchainFlags = SwapchainFlagBits::FlipPresent;
 
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain;

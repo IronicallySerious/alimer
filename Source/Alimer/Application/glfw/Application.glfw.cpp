@@ -101,6 +101,7 @@ namespace Alimer
 
     void Application::PlatformConstruct()
     {
+#if ALIMER_PLATFORM_WINDOWS
         int argc;
         LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 
@@ -117,6 +118,7 @@ namespace Alimer
 
             LocalFree(argv);
         }
+#endif // ALIMER_PLATFORM_WINDOWS
     }
 
     WindowPtr Application::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
@@ -152,54 +154,21 @@ namespace Alimer
         }
 #endif
 
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
         if (!InitializeBeforeRun())
         {
             return EXIT_FAILURE;
         }
 
-        MSG msg;
-        while (_running)
+        glfwWindow* glfwMainWindow = static_cast<glfwWindow*>(_window.Get());
+        while (_running
+            && !glfwMainWindow->ShouldClose())
         {
-            if (!_paused)
-            {
-                if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
-                {
-                    TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
+            glfwPollEvents();
 
-                    if (msg.message == WM_QUIT)
-                    {
-                        Exit();
-                        break;
-                    }
-                }
-
-                // Tick handles pause state.
-                RunOneFrame();
-            }
-            else
-            {
-                BOOL ret = GetMessageW(&msg, nullptr, 0, 0);
-                if (ret == 0)
-                {
-                    Exit();
-                    break;
-                }
-                else if (ret == -1)
-                {
-                    Exit();
-                    ALIMER_LOGERROR("[Win32] - Failed to get message");
-                    return EXIT_FAILURE;
-                }
-                else
-                {
-                    TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
-                }
-
-                // Tick handles pause state.
-                RunOneFrame();
-            }
+            // Tick handles pause state.
+            RunOneFrame();
         }
 
         OnExiting();

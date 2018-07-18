@@ -286,7 +286,7 @@ namespace Alimer
                 auto inputLayout = _graphics->GetInputLayout(newInputLayout);
                 if (inputLayout != nullptr)
                 {
-                    _context->IASetInputLayout(inputLayout);
+                    //_context->IASetInputLayout(inputLayout);
                     _currentInputLayout = newInputLayout;
                 }
                 else
@@ -321,7 +321,7 @@ namespace Alimer
                     auto vsByteCode = _currentPipeline->GetShader()->AcquireVertexShaderBytecode();
                     ID3D11InputLayout* d3dInputLayout = nullptr;
 
-                    if (FAILED(_graphics->GetD3DDevice()->CreateInputLayout(
+                    /*if (FAILED(_graphics->GetD3DDevice()->CreateInputLayout(
                         d3dElementDescs,
                         attributeCount,
                         vsByteCode.data(),
@@ -332,9 +332,9 @@ namespace Alimer
                     else
                     {
                         _graphics->StoreInputLayout(newInputLayout, d3dInputLayout);
-                        _context->IASetInputLayout(d3dInputLayout);
+                        //_context->IASetInputLayout(d3dInputLayout);
                         _currentInputLayout = newInputLayout;
-                    }
+                    }*/
                 }
             }
         }
