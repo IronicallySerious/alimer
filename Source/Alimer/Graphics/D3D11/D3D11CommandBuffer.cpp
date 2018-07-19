@@ -70,6 +70,7 @@ namespace Alimer
 
         //_dirtyVbos = ~0u;
         memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
+        memset(_vbo.d3dBuffers, 0, sizeof(_vbo.d3dBuffers));
         _inputLayoutDirty = false;
     }
 
@@ -165,21 +166,19 @@ namespace Alimer
         _currentPipeline = static_cast<D3D11PipelineState*>(pipeline);
     }
 
-    void D3D11CommandContext::SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
+    void D3D11CommandContext::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
     {
         if (_vbo.buffers[binding] != buffer
             || _vbo.offsets[binding] != offset)
         {
-            ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
-
-            _vbo.d3dBuffers[binding] = d3dBuffer;
+            _vbo.d3dBuffers[binding] = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
 
             _dirtyVbos |= 1u << binding;
             _inputLayoutDirty = true;
         }
 
         if (_vbo.strides[binding] != stride
-            /*|| _vbo.input_rates[binding] != step_rate*/)
+            || _vbo.inputRates[binding] != inputRate)
         {
             //set_dirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
         }
@@ -188,7 +187,7 @@ namespace Alimer
         _vbo.buffers[binding] = buffer;
         _vbo.offsets[binding] = offset;
         _vbo.strides[binding] = stride;
-        _vbo.inputRates[binding] = VertexInputRate::Vertex; // step_rate;
+        _vbo.inputRates[binding] = inputRate;
     }
 
 

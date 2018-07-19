@@ -117,7 +117,7 @@ namespace Alimer
         /// Divide-assign a scalar.
         Vector3& operator /=(float scalar)
         {
-            assert(scalar != 0.0f);
+            ALIMER_ASSERT(scalar != 0.0f);
             float invRhs = 1.0f / scalar;
             x *= invRhs;
             y *= invRhs;

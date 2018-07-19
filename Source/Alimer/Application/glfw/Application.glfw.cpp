@@ -168,7 +168,7 @@ namespace Alimer
             glfwPollEvents();
 
             // Tick handles pause state.
-            RunOneFrame();
+            RunFrame();
         }
 
         OnExiting();

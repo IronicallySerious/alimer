@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Hans-Kristian Arntzen
+/* Copyright (c) 2017-2018 Hans-Kristian Arntzen
 *
 * Permission is hereby granted, free of charge, to any person obtaining
 * a copy of this software and associated documentation files (the
@@ -27,6 +27,7 @@
 #include <memory>
 #include <stdint.h>
 #include <unordered_map>
+#include <string>
 
 namespace Alimer
 {
@@ -46,6 +47,12 @@ namespace Alimer
 	class Hasher
 	{
 	public:
+        Hasher(Hash value) noexcept : _value(value)
+        {
+        }
+
+        Hasher() = default;
+
 		template <typename T>
 		inline void data(const T *data, size_t size)
 		{
@@ -83,17 +90,26 @@ namespace Alimer
 			u32(value >> 32);
 		}
 
-		inline void pointer(const void *ptr)
-		{
-			u64(reinterpret_cast<uintptr_t>(ptr));
-		}
+        template <typename T>
+        inline void pointer(T *ptr)
+        {
+            u64(reinterpret_cast<uintptr_t>(ptr));
+        }
 
 		inline void string(const char *str)
 		{
-			char c;
-			while ((c = *str++) != '\0')
-				u32(uint8_t(c));
+            char c;
+            u32(0xff);
+            while ((c = *str++) != '\0')
+                u32(uint8_t(c));
 		}
+
+        inline void string(const std::string &str)
+        {
+            u32(0xff);
+            for (auto &c : str)
+                u32(uint8_t(c));
+        }
 
 		inline Hash get() const
 		{
@@ -101,6 +117,6 @@ namespace Alimer
 		}
 
 	private:
-		Hash _value = 0xcbf29ce484222325ull;
+		Hash _value = 0xcbf49ce238222325ull;
 	};
 }

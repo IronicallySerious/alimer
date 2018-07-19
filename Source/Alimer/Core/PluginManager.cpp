@@ -103,7 +103,7 @@ namespace Alimer
         }
 
         InstallPlugin(loadFunc());
-        UnloadNativeLibrary(libHandle);
+        //UnloadNativeLibrary(libHandle);
         return true;
     }
 

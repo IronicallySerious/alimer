@@ -22,17 +22,23 @@
 
 #include "../Graphics/ShaderCompiler.h"
 
-#if !ALIMER_SHADER_COMPILER
+#include <fstream>
+using namespace std;
+
+#if !defined(ALIMER_SHADER_COMPILER)
 namespace Alimer
 {
-    std::vector<uint32_t> ShaderCompiler::Compile(const std::string& filePath, std::string& errorLog)
+    namespace ShaderCompiler
     {
-        return {};
-    }
+        vector<uint8_t> Compile(const std::string& filePath, std::string& errorLog)
+        {
+            return {};
+        }
 
-    std::vector<uint32_t> ShaderCompiler::Compile(const std::string& shaderSource, const std::string& filePath, ShaderStage stage, std::string& errorLog)
-    {
-        return {};
+        vector<uint8_t> Compile(const std::string& shaderSource, const std::string& filePath, ShaderStage stage, std::string& errorLog)
+        {
+            return {};
+        }
     }
 }
 #else
@@ -41,7 +47,6 @@ namespace Alimer
 #include "../Core/Log.h"
 #include "glslang/Public/ShaderLang.h"
 #include "SPIRV/GlslangToSpv.h"
-using namespace std;
 
 namespace Alimer
 {
@@ -146,9 +151,9 @@ namespace Alimer
     class AlimerIncluder : public glslang::TShader::Includer
     {
     public:
-        AlimerIncluder(const std::string& from)
+        AlimerIncluder(const string& from)
         {
-            dir = from;
+            _rootDirectory = from;
         }
 
         IncludeResult* includeSystem(const char* headerName, const char* includerName, size_t inclusionDepth) override
@@ -158,22 +163,26 @@ namespace Alimer
 
         IncludeResult* includeLocal(const char* headerName, const char* includerName, size_t inclusionDepth) override
         {
-            //ALIMER_UNUSED(includerName);
-            //ALIMER_UNUSED(inclusionDepth);
+            ALIMER_UNUSED(includerName);
+            ALIMER_UNUSED(inclusionDepth);
 
-            std::string fullPath = Path::Join(dir, headerName);
-            auto includeFile = gResources()->Open(fullPath);
-            if (!includeFile)
+            string fullPath = Path::Join(_rootDirectory, headerName);
+            stringstream content;
+            string line;
+            ifstream file(fullPath);
+            if (file.is_open())
             {
-                includeFile = gResources()->Open(headerName);
-                if (!includeFile)
-                    return false;
+                while (getline(file, line))
+                {
+                    content << line << '\n';
+                }
+                file.close();
             }
 
-            std::string fileContent = includeFile->ReadAllText();
-            char* heapcontent = new char[fileContent.size() + 1];
-            strcpy(heapcontent, fileContent.c_str());
-            return new IncludeResult(fullPath, heapcontent, fileContent.size(), heapcontent);
+            string fileContent = content.str();
+            char* heapContent = new char[fileContent.size() + 1];
+            strcpy(heapContent, fileContent.c_str());
+            return new IncludeResult(fullPath, heapContent, content.str().size(), heapContent);
         }
 
         void releaseInclude(IncludeResult* result) override {
@@ -181,7 +190,7 @@ namespace Alimer
             delete result;
         }
     private:
-        std::string dir;
+        string _rootDirectory;
     };
 
     class GlslangInitializer {
@@ -193,144 +202,151 @@ namespace Alimer
 
     GlslangInitializer s_glslangInitializer;
 
-    vector<uint32_t> ShaderCompiler::Compile(
-        const string& filePath,
-        string& errorLog)
+    namespace ShaderCompiler
     {
-        if (!FileExists(filePath))
+        vector<uint8_t> Compile(
+            const string& filePath,
+            string& errorLog)
         {
-            ALIMER_LOGERROR("Shader file '%s' does not exists", filePath.c_str());
-            return {};
+            if (!FileExists(filePath))
+            {
+                ALIMER_LOGERROR("Shader file '%s' does not exists", filePath.c_str());
+                return {};
+            }
+
+            auto stream = FileSystem::Get().Open(filePath);
+            if (!stream)
+            {
+                ALIMER_LOGERROR("Cannot open shader file '%s'", filePath.c_str());
+                return {};
+            }
+
+            string shaderSource = stream->ReadAllText();
+            size_t firstExtStart = filePath.find_last_of(".");
+            bool hasFirstExt = firstExtStart != string::npos;
+            size_t secondExtStart = hasFirstExt ? filePath.find_last_of(".", firstExtStart - 1) : string::npos;
+            bool hasSecondExt = secondExtStart != string::npos;
+            string firstExt = filePath.substr(firstExtStart + 1, std::string::npos);
+            bool usesUnifiedExt = hasFirstExt && (firstExt == "glsl" || firstExt == "hlsl");
+            if (usesUnifiedExt && firstExt == "hlsl")
+            {
+                // Add HLSL to glslang
+            }
+
+            std::string stageName;
+            if (hasFirstExt && !usesUnifiedExt)
+                stageName = firstExt;
+            else if (usesUnifiedExt && hasSecondExt)
+                stageName = filePath.substr(secondExtStart + 1, firstExtStart - secondExtStart - 1);
+
+            ShaderStage stage = ShaderStage::Count;
+            if (stageName == "vert")
+                stage = ShaderStage::Vertex;
+            else if (stageName == "tesc")
+                stage = ShaderStage::TessControl;
+            else if (stageName == "tese")
+                stage = ShaderStage::TessEvaluation;
+            else if (stageName == "geom")
+                stage = ShaderStage::Geometry;
+            else if (stageName == "frag")
+                stage = ShaderStage::Fragment;
+            else if (stageName == "comp")
+                stage = ShaderStage::Compute;
+
+            return Compile(shaderSource, filePath, stage, errorLog);
         }
 
-        auto stream = gResources()->Open(filePath);
-        if (!stream)
+        vector<uint8_t> Compile(const string& shaderSource, const std::string& filePath, ShaderStage stage, string& errorLog)
         {
-            ALIMER_LOGERROR("Cannot open shader file '%s'", filePath.c_str());
-            return {};
+            TBuiltInResource resources;
+            InitResources(resources);
+
+            const string macroDefinitions = "";
+            const string poundExtension =
+                "#extension GL_GOOGLE_include_directive : enable\n";
+            const string preamble = macroDefinitions + poundExtension;
+
+            //
+            EShLanguage language = EShLangCount;
+            switch (stage)
+            {
+            case ShaderStage::Vertex:
+                language = EShLangVertex;
+                break;
+            case ShaderStage::TessControl:
+                language = EShLangTessControl;
+                break;
+            case ShaderStage::TessEvaluation:
+                language = EShLangTessEvaluation;
+                break;
+            case ShaderStage::Geometry:
+                language = EShLangGeometry;
+                break;
+            case ShaderStage::Fragment:
+                language = EShLangFragment;
+                break;
+            case ShaderStage::Compute:
+                language = EShLangCompute;
+                break;
+            default:
+                break;
+            }
+            glslang::TProgram program;
+            glslang::TShader shader(language);
+
+            const char* shaderStrings = shaderSource.c_str();
+            const int shaderLengths = static_cast<int>(shaderSource.length());
+            const char* stringNames = filePath.c_str();
+            shader.setStringsWithLengthsAndNames(
+                &shaderStrings,
+                &shaderLengths,
+                &stringNames, 1);
+            shader.setPreamble(preamble.c_str());
+            shader.setEntryPoint("main");
+            //shader.setInvertY(true);
+
+            EShMessages messages = static_cast<EShMessages>(EShMsgCascadingErrors | EShMsgSpvRules | EShMsgVulkanRules);
+            AlimerIncluder includer(GetPath(filePath));
+
+            const EProfile DefaultProfile = ENoProfile;
+            const bool ForceVersionProfile = false;
+            const bool NotForwardCompatible = false;
+
+            bool success = shader.parse(
+                &resources,
+                450,
+                DefaultProfile,
+                ForceVersionProfile,
+                NotForwardCompatible,
+                messages,
+                includer);
+
+            if (!success)
+            {
+                errorLog = shader.getInfoLog();
+                return {};
+            }
+
+            program.addShader(&shader);
+            success = program.link(EShMsgDefault) && program.mapIO();
+            if (!success)
+            {
+                errorLog = program.getInfoLog();
+                return {};
+            }
+
+            vector<uint32_t> spirv;
+            glslang::SpvOptions options;
+            options.generateDebugInfo = false;
+            options.disableOptimizer = true;
+            options.optimizeSize = false;
+            glslang::GlslangToSpv(*program.getIntermediate(language), spirv, &options);
+
+
+            vector<uint8_t> byteCode(spirv.size() * sizeof(uint32_t));
+            memcpy(byteCode.data(), spirv.data(), byteCode.size());
+            return byteCode;
         }
-
-        string shaderSource = stream->ReadAllText();
-        size_t firstExtStart = filePath.find_last_of(".");
-        bool hasFirstExt = firstExtStart != string::npos;
-        size_t secondExtStart = hasFirstExt ? filePath.find_last_of(".", firstExtStart - 1) : string::npos;
-        bool hasSecondExt = secondExtStart != string::npos;
-        string firstExt = filePath.substr(firstExtStart + 1, std::string::npos);
-        bool usesUnifiedExt = hasFirstExt && (firstExt == "glsl" || firstExt == "hlsl");
-        if (usesUnifiedExt && firstExt == "hlsl")
-        {
-            // Add HLSL to glslang
-        }
-
-        std::string stageName;
-        if (hasFirstExt && !usesUnifiedExt)
-            stageName = firstExt;
-        else if (usesUnifiedExt && hasSecondExt)
-            stageName = filePath.substr(secondExtStart + 1, firstExtStart - secondExtStart - 1);
-
-        ShaderStage stage = ShaderStage::Count;
-        if (stageName == "vert")
-            stage = ShaderStage::Vertex;
-        else if (stageName == "tesc")
-            stage = ShaderStage::TessControl;
-        else if (stageName == "tese")
-            stage = ShaderStage::TessEvaluation;
-        else if (stageName == "geom")
-            stage = ShaderStage::Geometry;
-        else if (stageName == "frag")
-            stage = ShaderStage::Fragment;
-        else if (stageName == "comp")
-            stage = ShaderStage::Compute;
-
-        return Compile(shaderSource, filePath, stage, errorLog);
-    }
-
-    vector<uint32_t> ShaderCompiler::Compile(const string& shaderSource, const std::string& filePath, ShaderStage stage, string& errorLog)
-    {
-        TBuiltInResource resources;
-        InitResources(resources);
-
-        const string macroDefinitions = "";
-        const string poundExtension =
-            "#extension GL_GOOGLE_include_directive : enable\n";
-        const string preamble = macroDefinitions + poundExtension;
-
-        //
-        EShLanguage language = EShLangCount;
-        switch (stage)
-        {
-        case ShaderStage::Vertex:
-            language = EShLangVertex;
-            break;
-        case ShaderStage::TessControl:
-            language = EShLangTessControl;
-            break;
-        case ShaderStage::TessEvaluation:
-            language = EShLangTessEvaluation;
-            break;
-        case ShaderStage::Geometry:
-            language = EShLangGeometry;
-            break;
-        case ShaderStage::Fragment:
-            language = EShLangFragment;
-            break;
-        case ShaderStage::Compute:
-            language = EShLangCompute;
-            break;
-        default:
-            break;
-        }
-        glslang::TProgram program;
-        glslang::TShader shader(language);
-
-        const char* shaderStrings = shaderSource.c_str();
-        const int shaderLengths = static_cast<int>(shaderSource.length());
-        const char* stringNames = filePath.c_str();
-        shader.setStringsWithLengthsAndNames(
-            &shaderStrings,
-            &shaderLengths,
-            &stringNames, 1);
-        shader.setPreamble(preamble.c_str());
-        shader.setEntryPoint("main");
-        //shader.setInvertY(true);
-
-        EShMessages messages = static_cast<EShMessages>(EShMsgCascadingErrors | EShMsgSpvRules | EShMsgVulkanRules);
-        AlimerIncluder includer(GetPath(filePath));
-
-        const EProfile DefaultProfile = ENoProfile;
-        const bool ForceVersionProfile = false;
-        const bool NotForwardCompatible = false;
-
-        bool success = shader.parse(
-            &resources,
-            450,
-            DefaultProfile,
-            ForceVersionProfile,
-            NotForwardCompatible,
-            messages,
-            includer);
-
-        if (!success)
-        {
-            errorLog = shader.getInfoLog();
-            return {};
-        }
-
-        program.addShader(&shader);
-        success = program.link(EShMsgDefault) && program.mapIO();
-        if (!success)
-        {
-            errorLog = program.getInfoLog();
-            return {};
-        }
-
-        std::vector<uint32_t> spirv;
-        glslang::SpvOptions options;
-        options.generateDebugInfo = false;
-        options.disableOptimizer = true;
-        options.optimizeSize = false;
-        glslang::GlslangToSpv(*program.getIntermediate(language), spirv, &options);
-        return spirv;
     }
 }
 

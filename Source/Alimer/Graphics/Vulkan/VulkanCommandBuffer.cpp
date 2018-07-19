@@ -84,6 +84,7 @@ namespace Alimer
         _dirtySets = ~0u;
         _dirtyVbos = ~0u;
         memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
+        memset(_vbo.vkBuffers, 0, sizeof(_vbo.vkBuffers));
         memset(&_indexState, 0, sizeof(_indexState));
         memset(&_bindings, 0, sizeof(_bindings));
 
@@ -91,6 +92,7 @@ namespace Alimer
         _currentVkPipelineLayout = VK_NULL_HANDLE;
         _currentPipelineLayout = nullptr;
         _currentPipeline = nullptr;
+        _currentTopology = PrimitiveTopology::Count;
     }
 
     void VulkanCommandBuffer::Begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
@@ -215,25 +217,30 @@ namespace Alimer
 
     void VulkanCommandBuffer::SetPipeline(PipelineState* pipeline)
     {
+        if (_currentPipeline == pipeline)
+            return;
+
         _currentPipeline = static_cast<VulkanPipelineState*>(pipeline);
         _currentVkPipeline = VK_NULL_HANDLE;
 
-        auto newPipelineLayout = _currentPipeline->GetShader()->GetPipelineLayout();
+        SetDirty(COMMAND_BUFFER_DIRTY_PIPELINE_BIT | COMMAND_BUFFER_DYNAMIC_BITS);
+
         if (_currentPipelineLayout == nullptr)
         {
             _dirtySets = ~0u;
+            SetDirty(COMMAND_BUFFER_DIRTY_PUSH_CONSTANTS_BIT);
 
-            _currentPipelineLayout = newPipelineLayout;
-            _currentVkPipelineLayout = newPipelineLayout->GetVkHandle();
+            _currentPipelineLayout = _currentPipeline->GetShader()->GetPipelineLayout();
+            _currentVkPipelineLayout = _currentPipelineLayout->GetVkHandle();
         }
-        else if (newPipelineLayout != _currentPipelineLayout)
+        else if (_currentPipeline->GetShader()->GetPipelineLayout() != _currentPipelineLayout)
         {
-            const ResourceLayout &newLayout = newPipelineLayout->GetResourceLayout();
+            const ResourceLayout &newLayout = _currentPipeline->GetShader()->GetPipelineLayout()->GetResourceLayout();
             const ResourceLayout &oldLayout = _currentPipelineLayout->GetResourceLayout();
 
             // TODO: Invalidate sets
-            _currentPipelineLayout = newPipelineLayout;
-            _currentVkPipelineLayout = newPipelineLayout->GetVkHandle();
+            _currentPipelineLayout = _currentPipeline->GetShader()->GetPipelineLayout();
+            _currentVkPipelineLayout = _currentPipelineLayout->GetVkHandle();
         }
     }
 
@@ -252,22 +259,14 @@ namespace Alimer
 
     bool VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)
     {
+        //ALIMER_ASSERT(current_program);
+        ALIMER_ASSERT(!_isCompute);
+
         if (!_currentPipeline)
             return false;
 
-        VkPipeline oldPipeline = _currentVkPipeline;
-        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(
-            topology,
-            _currentRenderPass->GetVkRenderPass()
-        );
-
-        if (oldPipeline != newPipeline)
-        {
-            vkCmdBindPipeline(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, newPipeline);
-            _currentVkPipeline = newPipeline;
-        }
-
-        FlushDescriptorSets();
+        SetPrimitiveTopology(topology);
+        FlushRenderState();
 
         uint32_t updateVboMask = _dirtyVbos & _currentPipeline->GetBindingMask();
         ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
@@ -282,7 +281,7 @@ namespace Alimer
             vkCmdBindVertexBuffers(_vkCommandBuffer,
                 binding,
                 count,
-                _vbo.buffers + binding,
+                _vbo.vkBuffers + binding,
                 _vbo.offsets + binding);
         });
         _dirtyVbos &= ~updateVboMask;
@@ -290,23 +289,25 @@ namespace Alimer
         return true;
     }
 
-    void VulkanCommandBuffer::SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
+    void VulkanCommandBuffer::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
     {
-        auto vkBuffer = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
-        if (_vbo.buffers[binding] != vkBuffer
+        if (_vbo.buffers[binding] != buffer
             || _vbo.offsets[binding] != offset)
         {
+            _vbo.vkBuffers[binding] = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
             _dirtyVbos |= 1u << binding;
         }
 
-        if (_vbo.strides[binding] != stride)
+        if (_vbo.strides[binding] != stride
+            || _vbo.inputRates[binding] != inputRate)
         {
             SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
         }
 
-        _vbo.buffers[binding] = vkBuffer;
+        _vbo.buffers[binding] = buffer;
         _vbo.offsets[binding] = offset;
         _vbo.strides[binding] = stride;
+        _vbo.inputRates[binding] = inputRate;
     }
 
     /*void VulkanCommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
@@ -342,6 +343,58 @@ namespace Alimer
 
         b.buffer = { vkBuffer, offset, range };
         _dirtySets |= 1u << set;
+    }
+
+    void VulkanCommandBuffer::FlushRenderState()
+    {
+        ALIMER_ASSERT(_currentPipelineLayout);
+        //ALIMER_ASSERT(current_program);
+
+        // We've invalidated pipeline state, update the VkPipeline.
+        if (GetAndClear(
+            COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT
+            | COMMAND_BUFFER_DIRTY_PIPELINE_BIT
+            | COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT))
+        {
+            VkPipeline oldPipeline = _currentVkPipeline;
+            FlushGraphicsPipeline();
+            if (oldPipeline != _currentVkPipeline)
+            {
+                vkCmdBindPipeline(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _currentVkPipeline);
+                SetDirty(COMMAND_BUFFER_DYNAMIC_BITS);
+            }
+        }
+
+        FlushDescriptorSets();
+    }
+
+    void VulkanCommandBuffer::FlushGraphicsPipeline()
+    {
+        Hasher h;
+        _activeVbos = 0;
+        auto &layout = _currentPipelineLayout->GetResourceLayout();
+        ForEachBit(layout.attributeMask, [&](uint32_t bit)
+        {
+            h.u32(bit);
+            _activeVbos |= 1u << attribs[bit].binding;
+            h.u32(attribs[bit].binding);
+            h.u32(attribs[bit].format);
+            h.u32(attribs[bit].offset);
+        });
+
+        ForEachBit(_activeVbos, [&](uint32_t bit)
+        {
+            h.u32(static_cast<uint32_t>(_vbo.inputRates[bit]));
+            h.u32(_vbo.strides[bit]);
+        });
+
+
+        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(
+            _currentTopology,
+            _currentRenderPass->GetVkRenderPass()
+        );
+
+        _currentVkPipeline = newPipeline;
     }
 
     void VulkanCommandBuffer::FlushDescriptorSet(uint32_t set)

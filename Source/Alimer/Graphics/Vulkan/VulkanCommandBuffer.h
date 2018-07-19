@@ -35,6 +35,26 @@ namespace Alimer
     class VulkanPipelineState;
     class VulkanRenderPass;
 
+    enum CommandBufferDirtyBits
+    {
+        COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT = 1 << 0,
+        COMMAND_BUFFER_DIRTY_PIPELINE_BIT = 1 << 1,
+
+        COMMAND_BUFFER_DIRTY_VIEWPORT_BIT = 1 << 2,
+        COMMAND_BUFFER_DIRTY_SCISSOR_BIT = 1 << 3,
+        COMMAND_BUFFER_DIRTY_DEPTH_BIAS_BIT = 1 << 4,
+        COMMAND_BUFFER_DIRTY_STENCIL_REFERENCE_BIT = 1 << 5,
+
+        COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT = 1 << 6,
+
+        COMMAND_BUFFER_DIRTY_PUSH_CONSTANTS_BIT = 1 << 7,
+
+        COMMAND_BUFFER_DYNAMIC_BITS = COMMAND_BUFFER_DIRTY_VIEWPORT_BIT | COMMAND_BUFFER_DIRTY_SCISSOR_BIT |
+        COMMAND_BUFFER_DIRTY_DEPTH_BIAS_BIT |
+        COMMAND_BUFFER_DIRTY_STENCIL_REFERENCE_BIT
+    };
+    using CommandBufferDirtyFlags = uint32_t;
+
     /// Vulkan CommandBuffer.
     class VulkanCommandBuffer final : public CommandBuffer
     {
@@ -61,9 +81,18 @@ namespace Alimer
 
         void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
-        void SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride) override;
+        void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
         //void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
+
+        inline void SetPrimitiveTopology(PrimitiveTopology topology)
+        {
+            if (_currentTopology != topology)
+            {                                        
+                _currentTopology = topology;
+                SetDirty(COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT);
+            }
+        }
 
         VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
         bool IsSecondary() const { return _secondary; }
@@ -74,10 +103,25 @@ namespace Alimer
         void BeginContext();
         bool PrepareDraw(PrimitiveTopology topology);
 
+        void FlushRenderState();
+        void FlushGraphicsPipeline();
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
 
     private:
+        
+        void SetDirty(CommandBufferDirtyFlags flags)
+        {
+            _dirty |= flags;
+        }
+
+        CommandBufferDirtyFlags GetAndClear(CommandBufferDirtyFlags flags)
+        {
+            auto mask = _dirty & flags;
+            _dirty &= ~flags;
+            return mask;
+        }
+
         VulkanGraphics * _graphics;
         VkDevice _logicalDevice;
         VkCommandPool _commandPool;
@@ -93,9 +137,11 @@ namespace Alimer
 
         struct VertexBindingState
         {
-            VkBuffer buffers[MaxVertexBufferBindings];
+            VertexBuffer* buffers[MaxVertexBufferBindings];
+            VkBuffer vkBuffers[MaxVertexBufferBindings];
             uint64_t offsets[MaxVertexBufferBindings];
             uint64_t strides[MaxVertexBufferBindings];
+            VertexInputRate inputRates[MaxVertexBufferBindings];
         };
 
         struct IndexState
@@ -127,9 +173,12 @@ namespace Alimer
         VertexBindingState _vbo = {};
         IndexState _indexState = {};
         ResourceBindings _bindings;
+        PrimitiveTopology _currentTopology;
 
         bool _isCompute = true;
-        uint32_t _dirtyVbos = 0;
+        CommandBufferDirtyFlags _dirty = ~0u;
         uint32_t _dirtySets = 0;
+        uint32_t _dirtyVbos = 0;
+        uint32_t _activeVbos = 0;
     };
 }

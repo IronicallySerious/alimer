@@ -48,7 +48,8 @@ namespace Alimer
         /// Add a resource load directory. Optional priority parameter which will control search order.
         bool AddResourceDir(const std::string& assetName, uint32_t priority = PRIORITY_LAST);
 
-        std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+        std::unique_ptr<Stream> Open(const std::string &assetName, StreamMode mode = StreamMode::ReadOnly);
+        bool Exists(const std::string &assetName);
 
         SharedPtr<Resource> LoadResource(const std::string& assetName);
 
@@ -69,6 +70,12 @@ namespace Alimer
         /// Search resource packages for file.
         std::unique_ptr<Stream> SearchPackages(const std::string& name);
 
+        /// Search FileSystem for file.
+        bool ExistsInResourceDirs(const std::string& name);
+
+        /// Search resource packages for file.
+        bool ExistsInPackages(const std::string& name);
+
         /// Mutex for thread-safe access to the resource directories, resource packages and resource dependencies.
         mutable std::mutex _resourceMutex;
 
@@ -83,7 +90,4 @@ namespace Alimer
     private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceManager);
 	};
-
-    /// Access to current resource manager instance.
-    ALIMER_API ResourceManager* gResources();
 }

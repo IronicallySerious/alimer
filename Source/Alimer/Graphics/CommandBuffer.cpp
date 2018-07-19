@@ -223,15 +223,15 @@ namespace Alimer
         //SetScissors(1, &scissor);
     }
 
-    void CommandBuffer::SetVertexBuffer(VertexBuffer* buffer, uint32_t binding, uint64_t offset)
+    void CommandBuffer::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
         ALIMER_ASSERT(buffer);
 
-        SetVertexBufferCore(buffer, binding, offset, buffer->GetStride());
+        SetVertexBufferCore(binding, buffer, offset, buffer->GetStride(), inputRate);
     }
 
-    void CommandBuffer::SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride)
+    void CommandBuffer::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
     {
 
     }

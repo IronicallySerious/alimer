@@ -109,7 +109,7 @@ namespace Alimer
 
         virtual void SetPipeline(PipelineState* pipeline) = 0;
 
-        void SetVertexBuffer(VertexBuffer* buffer, uint32_t binding = 0, uint64_t offset = 0);
+        void SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(IndexBuffer* buffer, uint32_t offset = 0);
         
         void SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer);
@@ -129,7 +129,7 @@ namespace Alimer
 
         virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
         virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex);
-        virtual void SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride);
+        virtual void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate);
         virtual void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType);
 
         inline bool IsInsideRenderPass() const
@@ -150,28 +150,6 @@ namespace Alimer
         };
 
         CommandBufferState _state = CommandBufferState::Ready;
-
-        enum CommandBufferDirtyBits
-        {
-            COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT = 1 << 0,
-        };
-        using CommandBufferDirtyFlags = uint32_t;
-        void SetDirty(CommandBufferDirtyFlags flags)
-        {
-            _dirty |= flags;
-        }
-
-        CommandBufferDirtyFlags GetAndClear(CommandBufferDirtyFlags flags)
-        {
-            auto mask = _dirty & flags;
-            _dirty &= ~flags;
-            return mask;
-        }
-
-        
-
-        CommandBufferDirtyFlags _dirty = ~0u;
-        
 
     private:
         template<typename T>

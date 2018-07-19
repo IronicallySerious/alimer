@@ -38,11 +38,6 @@ namespace Alimer
     {
     }
 
-    ResourceManager* gResources()
-    {
-        return gApplication().GetResources();
-    }
-
     bool ResourceManager::AddResourceDir(const string& path, uint32_t priority)
     {
         lock_guard<mutex> guard(_resourceMutex);
@@ -107,6 +102,34 @@ namespace Alimer
         }
 
         return {};
+    }
+
+    bool ResourceManager::Exists(const std::string &assetName)
+    {
+        lock_guard<mutex> guard(_resourceMutex);
+
+        string sanitatedName = SanitateResourceName(assetName);
+
+        if (sanitatedName.length())
+        {
+            bool exists = false;
+            if (_searchPackagesFirst)
+            {
+                exists = ExistsInPackages(sanitatedName);
+                if (!exists)
+                    exists = ExistsInResourceDirs(sanitatedName);
+            }
+            else
+            {
+                exists = ExistsInResourceDirs(sanitatedName);
+                if (!exists)
+                    exists = ExistsInPackages(sanitatedName);
+            }
+
+            return exists;
+        }
+
+        return false;
     }
 
     SharedPtr<Resource> ResourceManager::LoadResource(const string& assetName)
@@ -190,5 +213,28 @@ namespace Alimer
     {
         // TODO:
         return {};
+    }
+
+    bool ResourceManager::ExistsInResourceDirs(const string& name)
+    {
+        for (size_t i = 0; i < _resourceDirs.size(); ++i)
+        {
+            if (FileExists(_resourceDirs[i] + name))
+            {
+                return true;
+            }
+        }
+
+        // Fallback using absolute path
+        if (FileExists(name))
+            return true;
+
+        return false;
+    }
+
+    bool ResourceManager::ExistsInPackages(const string& name)
+    {
+        // TODO:
+        return false;
     }
 }

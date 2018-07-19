@@ -77,44 +77,12 @@ namespace Alimer
 
         ALIMER_LOGINFO("Initializing engine {}...", ALIMER_VERSION_STR);
 
-        // Init resource paths.
-        static const string AssetsFolderName = "assets";
-        static const string ShadersFolderName = "shaders";
-
-        string executablePath = GetExecutableFolder();
-        string assetsDirectory = Path::Join(GetParentPath(executablePath), AssetsFolderName);
-        string shadersDirectory = Path::Join(assetsDirectory, ShadersFolderName);
-
-        if (DirectoryExists(assetsDirectory))
-        {
-            _resources.AddResourceDir(assetsDirectory);
-            if (DirectoryExists(shadersDirectory))
-                _resources.AddResourceDir(shadersDirectory);
-        }
-        else
-        {
-            assetsDirectory = Path::Join(executablePath, AssetsFolderName);
-            shadersDirectory = Path::Join(assetsDirectory, ShadersFolderName);
-
-            if (DirectoryExists(assetsDirectory))
-            {
-                _resources.AddResourceDir(assetsDirectory);
-
-                if (DirectoryExists(shadersDirectory))
-                    _resources.AddResourceDir(shadersDirectory);
-            }
-        }
-
         // Init Window and Gpu.
         if (!_headless)
         {
             _window = MakeWindow("Alimer", 800, 600);
 
             // Create and init graphics.
-            _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
-            //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D12;
-            //_settings.graphicsDeviceType  = GraphicsDeviceType::Vulkan;
-
             _graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
             GpuAdapter* adapter = nullptr;
             if (!_graphics->Initialize(adapter, _window))
@@ -160,7 +128,7 @@ namespace Alimer
         PluginManager::GetInstance()->LoadPlugins(GetExecutableFolder());
     }
 
-    void Application::RunOneFrame()
+    void Application::RunFrame()
     {
         if (_paused)
         {
@@ -173,12 +141,12 @@ namespace Alimer
             double frameTime = _timer.Frame();
             double elapsedTime = _timer.GetElapsed();
 
-            Render();
+            RenderFrame(frameTime, elapsedTime);
             _input->Update();
         }
     }
 
-    void Application::Render()
+    void Application::RenderFrame(double frameTime, double elapsedTime)
     {
         if (_headless)
             return;
@@ -187,14 +155,14 @@ namespace Alimer
         {
             // Add command buffer.
             auto commandBuffer = _graphics->GetDefaultCommandBuffer();
-            OnRender(commandBuffer);
+            OnRenderFrame(commandBuffer, frameTime, elapsedTime);
 
             // End rendering frame.
             _graphics->EndFrame();
         }
     }
 
-    void Application::OnRender(CommandBuffer* commandBuffer)
+    void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
     {
         commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
         commandBuffer->EndRenderPass();

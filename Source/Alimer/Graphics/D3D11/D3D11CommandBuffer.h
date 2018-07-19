@@ -51,7 +51,7 @@ namespace Alimer
         void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
         void SetPipeline(PipelineState* pipeline) override;
-        void SetVertexBufferCore(VertexBuffer* buffer, uint32_t binding, uint64_t offset, uint32_t stride) override;
+        void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
         void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
 

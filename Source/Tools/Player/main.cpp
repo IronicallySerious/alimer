@@ -52,7 +52,7 @@ namespace Alimer
             _vertexBuffer->Define(3, vertexDeclaration, ResourceUsage::Immutable, triangleVertices);
 
             RenderPipelineDescription renderPipelineDesc = {};
-            renderPipelineDesc.shader = graphics->CreateShader("color.vert", "color.frag");
+            renderPipelineDesc.shader = graphics->CreateShader("assets://shaders/color.vert", "assets://shaders/color.frag");
             renderPipelineDesc.vertexDescription.attributes[0].format = VertexFormat::Float3;
             renderPipelineDesc.vertexDescription.attributes[1].format = VertexFormat::Float4;
             renderPipelineDesc.vertexDescription.attributes[1].offset = 12;
@@ -72,7 +72,7 @@ namespace Alimer
         {
             commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             commandBuffer->SetPipeline(_renderPipeline.Get());
-            commandBuffer->SetVertexBuffer(_vertexBuffer.Get());
+            commandBuffer->SetVertexBuffer(0, _vertexBuffer.Get());
             commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
             commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
             commandBuffer->EndRenderPass();
@@ -139,7 +139,7 @@ namespace Alimer
         {
             commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             commandBuffer->SetPipeline(_renderPipeline.Get());
-            commandBuffer->SetVertexBuffer(_vertexBuffer.Get());
+            commandBuffer->SetVertexBuffer(0, _vertexBuffer.Get());
             commandBuffer->SetIndexBuffer(_indexBuffer.Get());
             commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
             commandBuffer->DrawIndexed(PrimitiveTopology::Triangles, 6);
@@ -287,7 +287,7 @@ namespace Alimer
 
     private:
         void Initialize() override;
-        void OnRender(CommandBuffer* commandBuffer) override;
+        void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime) override;
 
     private:
         TriangleExample _triangleExample;
@@ -297,6 +297,8 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
+        //_settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
+        _settings.graphicsDeviceType = GraphicsDeviceType::Vulkan;
     }
 
     void RuntimeApplication::Initialize()
@@ -311,7 +313,7 @@ namespace Alimer
        // triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
     }
 
-    void RuntimeApplication::OnRender(CommandBuffer* commandBuffer)
+    void RuntimeApplication::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
     {
         _triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);

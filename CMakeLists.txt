@@ -87,16 +87,6 @@ include(AlimerPackaging)
 # Install CMake modules and toolchains provided by and for Alimer
 install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant
 
-if (NOT ANDROID)
-    foreach (ASSERT_DIR ${ASSET_DIRS})
-		get_filename_component (NAME ${ASSERT_DIR} NAME)
-		install (DIRECTORY ${ASSERT_DIR} DESTINATION ${DEST_ASSETS_DIR})
-        if (NOT EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NAME})
-            create_symlink(${ASSERT_DIR} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NAME})
-        endif ()
-	endforeach ()
-endif (NOT ANDROID)
-
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER  "3.6")
 	if (ALIMER_TOOLS)
@@ -123,4 +113,5 @@ message(STATUS "  D3D11           ${ALIMER_D3D11}")
 message(STATUS "  D3D12           ${ALIMER_D3D12}")
 message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
 message(STATUS "  GLFW            ${ALIMER_GLFW}")
+message(STATUS "  ShaderCompiler  ${ALIMER_SHADER_COMPILER}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")

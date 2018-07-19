@@ -20,34 +20,6 @@
 # THE SOFTWARE.
 #
 
-# Compile SPIRV GLSL (https://gist.github.com/vlsh/a0d191701cb48f157b05be7f74d79396)
-#if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
-#	set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslangValidator.exe")
-#else()
-#	set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin32/glslangValidator.exe")
-#endif()
-
-#file(GLOB_RECURSE GLSL_SOURCE_FILES
-#	"${ALIMER_ASSETS_PATH}/shaders/*.vert"
-#	"${ALIMER_ASSETS_PATH}/shaders/*.frag"
-#	)
-
-#foreach(GLSL ${GLSL_SOURCE_FILES})
-#	get_filename_component(FILE_NAME ${GLSL} NAME)
-#	set(SPIRV "${PROJECT_BINARY_DIR}/shaders/${FILE_NAME}.spv")
-#	add_custom_command(
-#		OUTPUT ${SPIRV}
-#		COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/shaders/"
-#		COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
-#		DEPENDS ${GLSL})
-#	list(APPEND SPIRV_BINARY_FILES ${SPIRV})
-#endforeach()
-
-#add_custom_target(
-#	AlimerShaders
-#	DEPENDS ${SPIRV_BINARY_FILES}
-#	)
-
 macro (define_engine_source_files)
 	cmake_parse_arguments(DEFINE_SRC_FILES "NORECURSE" "" "" ${ARGN} )
 	if (DEFINE_SRC_FILES_NORECURSE)
@@ -95,6 +67,10 @@ elseif (PLATFORM_UWP)
 	define_engine_source_files(Application/UWP)
 	define_engine_source_files(Audio/WASAPI)
 endif ()
+
+if (PLATFORM_WINDOWS OR PLATFORM_UWP)
+    define_engine_source_files(IO/Windows)
+endif()
 
 if (ALIMER_VULKAN)
 	define_engine_source_files(Graphics/Vulkan)
@@ -233,6 +209,8 @@ foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     endif ()
 endforeach()
 
+target_compile_definitions(libAlimer PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
+
 if (ALIMER_D3D11 OR ALIMER_D3D12)
     target_include_directories(libAlimer SYSTEM PRIVATE ${D3D12_INCLUDE_DIR} ${D3D11_INCLUDE_DIR} ${DXGI_INCLUDE_DIR})
 
@@ -247,9 +225,13 @@ if (ALIMER_D3D11 OR ALIMER_D3D12)
     endif()
 endif()
 
-
 if (ALIMER_THREADING)
     target_compile_definitions(libAlimer PRIVATE -DALIMER_THREADING=1)
+endif ()
+
+if (ALIMER_SHADER_COMPILER)
+    target_compile_definitions(libAlimer PRIVATE -DALIMER_SHADER_COMPILER=1)
+    target_link_libraries(libAlimer glslang SPIRV)
 endif ()
 
 if (BUILD_SHARED_LIBS)
@@ -269,7 +251,7 @@ if (ALIMER_VULKAN)
 	elseif (PLATFORM_ANDROID)
 		target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
 	endif()
-endif (ALIMER_VULKAN)
+endif ()
 
 # Add OS-specific library dependencies
 if (PLATFORM_WINDOWS)
@@ -284,16 +266,7 @@ endif ()
 
 if (ALIMER_CSHARP)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_CSHARP)
-endif (ALIMER_CSHARP)
-
-# add_dependencies(libAlimer AlimerShaders)
-
-# add_custom_command(TARGET libAlimer POST_BUILD
-# 	COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:libAlimer>/shaders/"
-# 	COMMAND ${CMAKE_COMMAND} -E copy_directory
-# 		"${PROJECT_BINARY_DIR}/shaders"
-# 		"$<TARGET_FILE_DIR:libAlimer>/shaders"
-# 		)
+endif ()
 
 # SDK installation
 install(TARGETS libAlimer

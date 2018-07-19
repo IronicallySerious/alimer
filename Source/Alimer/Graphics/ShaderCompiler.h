@@ -29,14 +29,9 @@
 namespace Alimer
 {
 	/// Class for shader compilation support.
-	class ShaderCompiler
+	namespace ShaderCompiler
 	{
-	public:
-		static std::vector<uint32_t> Compile(const std::string& filePath, std::string& errorLog);
-		static std::vector<uint32_t> Compile(const std::string& shaderSource, const std::string& filePath, ShaderStage stage, std::string& errorLog);
-
-	private:
-		ShaderCompiler() = delete;
-		DISALLOW_COPY_MOVE_AND_ASSIGN(ShaderCompiler);
-	};
+		ALIMER_API std::vector<uint8_t> Compile(const std::string& filePath, std::string& errorLog);
+        ALIMER_API std::vector<uint8_t> Compile(const std::string& shaderSource, const std::string& filePath, ShaderStage stage, std::string& errorLog);
+	}
 }

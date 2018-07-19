@@ -22,30 +22,38 @@
 
 #pragma once
 
-#include "../GpuBuffer.h"
-#include "../GraphicsImpl.h"
-#include "VulkanPrerequisites.h"
-#include <vector>
+#include "../../PlatformIncl.h"
+#include "../FileSystem.h"
 
 namespace Alimer
 {
-	class VulkanGraphics;
+    class WindowsFileStream final : public Stream
+    {
+    public:
+        WindowsFileStream(const std::string &path, StreamMode mode);
+        ~WindowsFileStream() override;
 
-	/// Vulkan Buffer.
-	class VulkanBuffer final : public BufferHandle
-	{
-	public:
-        VulkanBuffer(VulkanGraphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData);
-		~VulkanBuffer() override;
+        bool CanSeek() const override { return _handle != nullptr; }
 
-        bool SetData(uint32_t offset, uint32_t size, const void* data) override;
+        size_t Read(void* dest, size_t size) override;
+        void Write(const void* data, size_t size) override;
 
-		inline VkBuffer GetVkHandle() const { return _vkHandle; }
+    private:
+        HANDLE _handle = nullptr;
+    };
 
-	private:
-		VkDevice _logicalDevice;
-        VmaAllocator _allocator;
-        VkBuffer _vkHandle = VK_NULL_HANDLE;
-        VmaAllocation _allocation = VK_NULL_HANDLE;
-	};
+    /// OS file system protocol protocol for file system.
+    class OSFileSystemProtocol final : public FileSystemProtocol
+    {
+    public:
+        OSFileSystemProtocol(const std::string &rootDirectory);
+        ~OSFileSystemProtocol();
+
+        std::string GetFileSystemPath(const std::string& path) override;
+
+        std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode) override;
+
+    protected:
+        std::string _rootDirectory;
+    };
 }

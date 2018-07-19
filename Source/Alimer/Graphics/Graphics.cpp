@@ -39,17 +39,17 @@
 
 using namespace std;
 
+#if defined(_WIN32)
 // Prefer the high-performance GPU on switchable GPU systems
 extern "C"
 {
     __declspec(dllexport) DWORD NvOptimusEnablement = 1;
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
+#endif
 
 namespace Alimer
 {
-    static Graphics* __graphicsInstance = nullptr;
-
     Graphics::Graphics(GraphicsDeviceType deviceType, bool validation)
         : _deviceType(deviceType)
         , _validation(validation)
@@ -57,7 +57,6 @@ namespace Alimer
         , _adapter(nullptr)
         , _features{}
     {
-        __graphicsInstance = this;
     }
 
     Graphics::~Graphics()
@@ -70,13 +69,6 @@ namespace Alimer
             SafeDelete(adapter);
         }
         _adapters.clear();
-
-        __graphicsInstance = nullptr;
-    }
-
-    Graphics* Graphics::GetInstance()
-    {
-        return __graphicsInstance;
     }
 
     void Graphics::Finalize()
@@ -246,36 +238,49 @@ namespace Alimer
 
     Shader* Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
     {
-        auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".spv");
-        auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".spv");
-
-        // Lookup for SPIR-V compiled shader.
-        if (!vertexShaderStream)
-        {
-            ALIMER_LOGERROR("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
-            return nullptr;
-        }
-
-        if (!fragmentShaderStream)
-        {
-            ALIMER_LOGERROR("GLSL shader does not exists '%s'", fragmentShaderFile.c_str());
-            return nullptr;
-        }
-
+        // Load from spv bytecode.
         vector<uint8_t> vertexByteCode;
         vector<uint8_t> fragmentByteCode;
 
-#if ALIMER_SHADER_COMPILER
-        // Compile GLSL.
-        string vertexShader = vertexShaderStream->ReadAllText();
-        string fragmentShader = fragmentShaderStream->ReadAllText();
-        string errorLog;
-        vertexByteCode = ShaderCompiler::Compile(vertexShader, vertexShaderStream->GetName(), ShaderStage::Vertex, errorLog);
-        fragmentByteCode = ShaderCompiler::Compile(fragmentShader, fragmentShaderStream->GetName(), ShaderStage::Fragment, errorLog);
+        /*if (gResources()->Exists(vertexShaderFile + ".spv")
+            && gResources()->Exists(fragmentShaderFile + ".spv"))
+        {
+            auto vertexShaderStream = FileSystem::Get().Open(vertexShaderFile + ".spv");
+            //auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".spv");
+            auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".spv");
+
+            // Lookup for SPIR-V compiled shader.
+            if (!vertexShaderStream)
+            {
+                ALIMER_LOGERROR("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
+                return nullptr;
+            }
+
+            if (!fragmentShaderStream)
+            {
+                ALIMER_LOGERROR("GLSL shader does not exists '%s'", fragmentShaderFile.c_str());
+                return nullptr;
+            }
+
+            vertexByteCode = vertexShaderStream->ReadBytes();
+            fragmentByteCode = fragmentShaderStream->ReadBytes();
+        }
+        else*/
+        {
+#if !defined(ALIMER_SHADER_COMPILER)
+            ALIMER_LOGCRITICAL("Shader compilation is not allowed");
 #else
-        vertexByteCode = vertexShaderStream->ReadBytes();
-        fragmentByteCode = fragmentShaderStream->ReadBytes();
+            auto vertexShaderStream = FileSystem::Get().Open(vertexShaderFile);
+            auto fragmentShaderStream = FileSystem::Get().Open(fragmentShaderFile);
+
+            // Compile from source GLSL.
+            string vertexShader = vertexShaderStream->ReadAllText();
+            string fragmentShader = fragmentShaderStream->ReadAllText();
+            string errorLog;
+            vertexByteCode = ShaderCompiler::Compile(vertexShader, vertexShaderStream->GetName(), ShaderStage::Vertex, errorLog);
+            fragmentByteCode = ShaderCompiler::Compile(fragmentShader, fragmentShaderStream->GetName(), ShaderStage::Fragment, errorLog);
 #endif
+        }
 
         return CreateShader(
             vertexByteCode.data(), vertexByteCode.size(),
@@ -297,10 +302,5 @@ namespace Alimer
         {
             _gpuResources.erase(it);
         }
-    }
-
-    Graphics& gGraphics()
-    {
-        return *__graphicsInstance;
     }
 }

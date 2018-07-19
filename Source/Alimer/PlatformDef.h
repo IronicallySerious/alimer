@@ -292,7 +292,7 @@ extern void __cdecl __debugbreak(void);
 
 #ifndef ALIMER_ASSERT
 #	ifdef _DEBUG
-#	include <cassert>
+#   include <assert.h>
 #	define ALIMER_ASSERT(expression) assert(expression)
 #	define ALIMER_ASSERT_MSG(expression, msg) assert(expression && msg)
 #	else

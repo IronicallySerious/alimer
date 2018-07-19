@@ -732,8 +732,7 @@ namespace Alimer
 
     BufferHandle* VulkanGraphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
     {
-        return nullptr;
-        //return new VulkanBuffer(this, description, initialData);
+        return new VulkanBuffer(this, usage, size, stride, resourceUsage, initialData);
     }
 
     Shader* VulkanGraphics::CreateComputeShader(const void *pCode, size_t codeSize)

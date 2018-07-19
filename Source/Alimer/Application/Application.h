@@ -80,7 +80,7 @@ namespace Alimer
         int Run();
 
         /// Run one frame.
-        void RunOneFrame();
+        void RunFrame();
 
         /// Request application to exit.
         void Exit();
@@ -122,10 +122,10 @@ namespace Alimer
         virtual void OnExiting() { }
 
         /// Render after frame update.
-        void Render();
+        void RenderFrame(double frameTime, double elapsedTime);
 
         /// Called during rendering single frame.
-        virtual void OnRender(CommandBuffer* commandBuffer);
+        virtual void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime);
 
         virtual std::unique_ptr<Input> CreateInput();
         virtual std::unique_ptr<Audio> CreateAudio();

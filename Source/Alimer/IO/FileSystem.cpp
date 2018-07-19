@@ -27,13 +27,68 @@
 #include "../Core/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-#include "../PlatformIncl.h"
+#include "../IO/Windows/WindowsFileSystem.h"
 #endif
 
 using namespace std;
 
 namespace Alimer
 {
+    FileSystem::FileSystem()
+    {
+        // Register default file protocol.
+        RegisterProtocol("file", unique_ptr<FileSystemProtocol>(new OSFileSystemProtocol(".")));
+
+#ifdef ALIMER_DEFAULT_ASSETS_DIRECTORY
+        const char *assetsDir = ALIMER_DEFAULT_ASSETS_DIRECTORY;
+        if (assetsDir)
+        {
+            RegisterProtocol("assets", unique_ptr<FileSystemProtocol>(new OSFileSystemProtocol(assetsDir)));
+        }
+#else
+        // Lookup assets folder
+        if (DirectoryExists("assets"))
+        {
+            RegisterProtocol("assets", unique_ptr<FileSystemProtocol>(new OSFileSystemProtocol("assets")));
+        }
+#endif // ALIMER_DEFAULT_ASSETS_DIRECTORY
+    }
+
+    FileSystem &FileSystem::Get()
+    {
+        static FileSystem fs;
+        return fs;
+    }
+
+    void FileSystem::RegisterProtocol(const string &name, unique_ptr<FileSystemProtocol> protocol)
+    {
+        protocol->SetName(name);
+        // Dispatch event.
+        _protocols[name] = move(protocol);
+    }
+
+    FileSystemProtocol* FileSystem::GetProcotol(const std::string &name)
+    {
+        auto it = _protocols.find(name);
+        if (name.empty())
+            it = _protocols.find("file");
+
+        if (it != end(_protocols))
+            return it->second.get();
+
+        return nullptr;
+    }
+
+    unique_ptr<Stream> FileSystem::Open(const std::string &path, StreamMode mode)
+    {
+        auto paths = Path::ProtocolSplit(path);
+        auto *backend = GetProcotol(paths.first);
+        if (!backend)
+            return {};
+
+        return backend->Open(paths.second, mode);
+    }
+
     string GetInternalPath(const string& path)
     {
         return str::Replace(path, "\\", "/");
@@ -210,143 +265,7 @@ namespace Alimer
         return true;
     }
 
-    class Win32FileStream final : public Stream
-    {
-    public:
-        Win32FileStream(const string &path, StreamMode mode);
-        ~Win32FileStream() override;
-
-        bool CanSeek() const override { return _handle != nullptr; }
-
-        size_t Read(void* dest, size_t size) override;
-        void Write(const void* data, size_t size) override;
-
-    private:
-        HANDLE _handle = nullptr;
-    };
-
-    static bool Win32EnsureDirectoryInner(const string &path)
-    {
-        if (Path::IsRootPath(path))
-            return false;
-
-        if (DirectoryExists(path))
-            return true;
-
-        auto basedir = Path::GetBaseDir(path);
-        if (!Win32EnsureDirectoryInner(basedir))
-            return false;
-
-        if (!CreateDirectoryA(path.c_str(), nullptr))
-        {
-            return GetLastError() == ERROR_ALREADY_EXISTS;
-        }
-
-        return true;
-    }
-
-    static bool Win32EnsureDirectory(const std::string &path)
-    {
-        string basedir = Path::GetBaseDir(path);
-        return Win32EnsureDirectoryInner(basedir);
-    }
-
-    Win32FileStream::Win32FileStream(const string &path, StreamMode mode)
-    {
-        _name = path;
-        DWORD access = 0;
-        DWORD disposition = 0;
-
-        switch (mode)
-        {
-        case StreamMode::ReadOnly:
-            access = GENERIC_READ;
-            disposition = OPEN_EXISTING;
-            break;
-
-        case StreamMode::ReadWrite:
-            if (!Win32EnsureDirectory(path))
-            {
-                ALIMER_LOGCRITICAL("Win32 Stream failed to create directory");
-            }
-
-            access = GENERIC_READ | GENERIC_WRITE;
-            disposition = OPEN_ALWAYS;
-            break;
-
-        case StreamMode::WriteOnly:
-            if (!Win32EnsureDirectory(path))
-            {
-                ALIMER_LOGCRITICAL("Win32 Stream failed to create directory");
-            }
-
-            access = GENERIC_READ | GENERIC_WRITE;
-            disposition = CREATE_ALWAYS;
-            break;
-        }
-
-        _handle = CreateFileA(path.c_str(), access, FILE_SHARE_READ, nullptr, disposition, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, INVALID_HANDLE_VALUE);
-        if (_handle == INVALID_HANDLE_VALUE)
-        {
-            ALIMER_LOGERROR("Failed to open file: %s.\n", path.c_str());
-            throw runtime_error("FileStream::FileStream()");
-        }
-
-        LARGE_INTEGER size;
-        if (!GetFileSizeEx(_handle, &size))
-        {
-            throw runtime_error("[Win32] - GetFileSizeEx: failed");
-        }
-
-        _position = 0;
-        _size = static_cast<size_t>(size.QuadPart);
-    }
-
-    Win32FileStream::~Win32FileStream()
-    {
-        if (_handle != INVALID_HANDLE_VALUE)
-        {
-            CloseHandle(_handle);
-            _handle = INVALID_HANDLE_VALUE;
-        }
-
-        _position = 0;
-        _size = 0;
-    }
-
-    size_t Win32FileStream::Read(void* dest, size_t size)
-    {
-        if (!CanRead())
-        {
-            ALIMER_LOGERROR("Cannot read for write only stream");
-            return static_cast<size_t>(-1);
-        }
-
-        DWORD byteRead;
-        if (!ReadFile(_handle, dest, static_cast<DWORD>(size), &byteRead, nullptr))
-        {
-            return static_cast<size_t>(-1);
-        }
-
-        _position += byteRead;
-        return static_cast<size_t>(byteRead);
-    }
-
-    void Win32FileStream::Write(const void* data, size_t size)
-    {
-        if (!size)
-            return;
-
-        DWORD byteWritten;
-        if (!WriteFile(_handle, data, static_cast<DWORD>(size), &byteWritten, nullptr))
-        {
-            return;
-        }
-
-        _position += byteWritten;
-        if (_position > _size)
-            _size = _position;
-    }
+    
 
     unique_ptr<Stream> OpenStream(const string &path, StreamMode mode)
     {
@@ -358,7 +277,7 @@ namespace Alimer
 
         try
         {
-            unique_ptr<Stream> file(new Win32FileStream(path, mode));
+            unique_ptr<Stream> file(new WindowsFileStream(path, mode));
             return file;
         }
         catch (const std::exception &e)

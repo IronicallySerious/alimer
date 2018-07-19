@@ -58,9 +58,6 @@ namespace Alimer
         /// Destructor.
         virtual ~Graphics();
 
-        /// Return the single instance of the Graphics.
-        static Graphics* GetInstance();
-
         /// Get supported graphics backends.
         static std::set<GraphicsDeviceType> GetAvailableBackends();
 
@@ -149,7 +146,4 @@ namespace Alimer
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);
     };
-
-    /// Access to current Graphics module.
-    ALIMER_API Graphics& gGraphics();
 }

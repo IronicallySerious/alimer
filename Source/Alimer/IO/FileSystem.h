@@ -86,4 +86,52 @@ namespace Alimer
     ALIMER_API std::unique_ptr<Stream> OpenStream(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
     /// Scan a directory for specified files.
     ALIMER_API void ScanDirectory(std::vector<std::string>& result, const std::string& pathName, const std::string& filter, ScanDirFlags flags, bool recursive);
+
+    /// Backend protocol for file system.
+    class ALIMER_API FileSystemProtocol
+    {
+    public:
+        virtual ~FileSystemProtocol() = default;
+
+        virtual std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly) = 0;
+
+        inline virtual std::string GetFileSystemPath(const std::string&)
+        {
+            return "";
+        }
+
+        /// Gets the name.
+        std::string GetName() const { return _name; }
+
+        /// Set the name.
+        void SetName(const std::string &name) { _name = name; }
+
+    protected:
+        std::string _name;
+    };
+
+    /// Class for accessing File system.
+    class ALIMER_API FileSystem
+    {
+    public:
+        /// Returns the FileSystem instance.
+        static FileSystem &Get();
+
+        /// Register protocol with given name.
+        void RegisterProtocol(const std::string &name, std::unique_ptr<FileSystemProtocol> protocol);
+
+        /// Get protocol by name or empty for default protocol.
+        FileSystemProtocol* GetProcotol(const std::string &name);
+
+        /// Open stream from given path with given access mode.
+        std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+
+    private:
+        FileSystem();
+
+        std::unordered_map<std::string, std::unique_ptr<FileSystemProtocol>> _protocols;
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(FileSystem);
+    };
 }
