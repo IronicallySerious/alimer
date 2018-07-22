@@ -28,7 +28,7 @@
 namespace Alimer
 {
     class D3D11RenderPass;
-    class D3D11PipelineState;
+    class D3D11Shader;
     class D3D11Graphics;
 
     class D3D11CommandContext final : public CommandBuffer
@@ -50,7 +50,7 @@ namespace Alimer
         void SetScissor(const Rectangle& scissor) override;
         void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
-        void SetPipeline(PipelineState* pipeline) override;
+        void SetShaderCore(Shader* shader) override;
         void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
         void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
@@ -69,7 +69,7 @@ namespace Alimer
         D3D11RenderPass* _currentRenderPass;
         uint32_t _currentColorAttachmentsBound;
         PrimitiveTopology _currentTopology;
-        D3D11PipelineState* _currentPipeline;
+        D3D11Shader* _currentShader;
         ID3D11RasterizerState1* _currentRasterizerState;
         ID3D11DepthStencilState* _currentDepthStencilState;
         ID3D11BlendState1* _currentBlendState;

@@ -24,7 +24,6 @@
 
 #include "../PipelineState.h"
 #include "VulkanPrerequisites.h"
-#include "../../Util/HashMap.h"
 
 namespace Alimer
 {
@@ -39,22 +38,12 @@ namespace Alimer
 		~VulkanPipelineState() override;
 
         VulkanShader* GetShader() const { return _shader.Get(); }
-        uint32_t GetBindingMask() const { return _bindingMask; }
-        VkPipeline GetGraphicsPipeline(PrimitiveTopology topology, VkRenderPass renderPass);
+        
 
 	private:
 		VkDevice _logicalDevice;
         VkPipelineCache _pipelineCache;
         SharedPtr<VulkanShader> _shader;
-        uint32_t _bindingMask = 0;
-
-        uint32_t _stageCount = 0;
-        uint32_t _vkBindingsCount = 0;
-        uint32_t _vkAttribsCount = 0;
-
-        VkPipelineShaderStageCreateInfo _stages[static_cast<uint32_t>(ShaderStage::Count)] = {};
-        VkVertexInputBindingDescription _vkBindings[MaxVertexBufferBindings] = {};
-        VkVertexInputAttributeDescription _vkAttribs[MaxVertexAttributes] = {};
-        HashMap<VkPipeline> _graphicsPipelineCache;
+        
 	};
 }

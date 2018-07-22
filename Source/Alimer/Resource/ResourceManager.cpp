@@ -44,7 +44,7 @@ namespace Alimer
 
         if (!DirectoryExists(path))
         {
-            ALIMER_LOGERROR("Directory '%s' does not exists", path.c_str());
+            ALIMER_LOGERROR("Directory '{}' does not exists", path.c_str());
             return false;
         }
 

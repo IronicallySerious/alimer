@@ -101,7 +101,7 @@ namespace Alimer
         uint32_t GetVertexCount() const { return _vertexCount; }
 
         /// Return number of vertex elements.
-        uint32_t GetElementsCout() const { return static_cast<uint32_t>(_elements.size()); }
+        uint32_t GetElementsCount() const { return static_cast<uint32_t>(_elements.size()); }
         /// Return vertex elements.
         const std::vector<VertexElement>& GetElements() const { return _elements; }
         /// Return vertex declaration hash code.

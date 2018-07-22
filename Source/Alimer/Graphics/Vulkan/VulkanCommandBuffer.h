@@ -32,7 +32,7 @@ namespace Alimer
     class VulkanCommandBuffer;
     class VulkanCommandQueue;
     class VulkanPipelineLayout;
-    class VulkanPipelineState;
+    class VulkanShader;
     class VulkanRenderPass;
 
     enum CommandBufferDirtyBits
@@ -55,6 +55,14 @@ namespace Alimer
     };
     using CommandBufferDirtyFlags = uint32_t;
 
+
+    struct VertexAttribState
+    {
+        uint32_t binding;
+        VkFormat format;
+        uint32_t offset;
+    };
+
     /// Vulkan CommandBuffer.
     class VulkanCommandBuffer final : public CommandBuffer
     {
@@ -74,15 +82,16 @@ namespace Alimer
         void SetScissor(const Rectangle& scissor) override;
         void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
-        void SetPipeline(PipelineState* pipeline) override;
+        void SetShaderCore(Shader* shader) override;
 
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
-        //void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
+        void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
         void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
+        void SetVertexAttribute(uint32_t attrib, uint32_t binding, VkFormat format, VkDeviceSize offset);
         void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
-        //void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
+        void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
 
         inline void SetPrimitiveTopology(PrimitiveTopology topology)
@@ -101,7 +110,7 @@ namespace Alimer
         void BeginCompute();
         void BeginGraphics();
         void BeginContext();
-        bool PrepareDraw(PrimitiveTopology topology);
+        void PrepareDraw(PrimitiveTopology topology);
 
         void FlushRenderState();
         void FlushGraphicsPipeline();
@@ -128,7 +137,8 @@ namespace Alimer
         VkCommandBuffer _vkCommandBuffer;
         bool _secondary = false;
         VulkanRenderPass* _currentRenderPass = nullptr;
-        VulkanPipelineState* _currentPipeline = nullptr;
+        uint32_t _currentSubpass = 0;
+        VulkanShader* _currentShader = nullptr;
         VulkanPipelineLayout* _currentPipelineLayout = nullptr;
         VkPipeline _currentVkPipeline = VK_NULL_HANDLE;
         VkPipelineLayout _currentVkPipelineLayout = VK_NULL_HANDLE;
@@ -146,7 +156,7 @@ namespace Alimer
 
         struct IndexState
         {
-            GpuBuffer* buffer;
+            BufferHandle* buffer;
             uint32_t offset;
             IndexType indexType;
         };
@@ -170,6 +180,7 @@ namespace Alimer
             uint8_t push_constant_data[MaxDescriptorSets];
         };
 
+        VertexAttribState _attribs[MaxVertexAttributes] = {};
         VertexBindingState _vbo = {};
         IndexState _indexState = {};
         ResourceBindings _bindings;

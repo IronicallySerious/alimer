@@ -60,7 +60,7 @@ namespace Alimer
         _currentRenderPass = nullptr;
         _currentColorAttachmentsBound = 0;
         _currentTopology = PrimitiveTopology::Count;
-        _currentPipeline = nullptr;
+        _currentShader = nullptr;
         _currentRasterizerState = nullptr;
         _currentDepthStencilState = nullptr;
         _currentBlendState = nullptr;
@@ -161,9 +161,9 @@ namespace Alimer
         _context->RSSetScissorRects(numScissors, scissorsD3D);
     }
 
-    void D3D11CommandContext::SetPipeline(PipelineState* pipeline)
+    void D3D11CommandContext::SetShaderCore(Shader* shader)
     {
-        _currentPipeline = static_cast<D3D11PipelineState*>(pipeline);
+        _currentShader = static_cast<D3D11Shader*>(shader);
     }
 
     void D3D11CommandContext::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
@@ -225,9 +225,9 @@ namespace Alimer
             _currentTopology = topology;
         }
 
-        _currentPipeline->Bind(_context);
+        _currentShader->Bind(_context);
 
-        auto rasterizerState = _currentPipeline->GetD3DRasterizerState();
+        /*auto rasterizerState = _currentPipeline->GetD3DRasterizerState();
         if (_currentRasterizerState != rasterizerState)
         {
             _currentRasterizerState = rasterizerState;
@@ -246,7 +246,7 @@ namespace Alimer
         {
             _currentBlendState = blendState;
             _context->OMSetBlendState(blendState, nullptr, 0xFFFFFFFF);
-        }
+        }*/
 
         return true;
     }
@@ -285,7 +285,7 @@ namespace Alimer
                 auto inputLayout = _graphics->GetInputLayout(newInputLayout);
                 if (inputLayout != nullptr)
                 {
-                    //_context->IASetInputLayout(inputLayout);
+                    _context->IASetInputLayout(inputLayout);
                     _currentInputLayout = newInputLayout;
                 }
                 else
@@ -301,11 +301,15 @@ namespace Alimer
                         const std::vector<VertexElement>& elements = _vbo.buffers[i]->GetElements();
                         inputRate = _vbo.inputRates[i];
 
+                        uint32_t attributeIndex = 0;
                         for (const VertexElement& element : elements)
                         {
                             D3D11_INPUT_ELEMENT_DESC* d3d11ElementDesc = &d3dElementDescs[attributeCount++];
-                            d3d11ElementDesc->SemanticName = element.semanticName;
-                            d3d11ElementDesc->SemanticIndex = element.semanticIndex;
+
+                            d3d11ElementDesc->SemanticName = "TEXCOORD";
+                            d3d11ElementDesc->SemanticIndex = attributeIndex++;
+                            //d3d11ElementDesc->SemanticName = element.semanticName;
+                            //d3d11ElementDesc->SemanticIndex = element.semanticIndex;
                             d3d11ElementDesc->Format = d3d::Convert(element.format);
                             d3d11ElementDesc->InputSlot = i;
                             d3d11ElementDesc->AlignedByteOffset = element.offset;
@@ -317,10 +321,10 @@ namespace Alimer
                         }
                     }
 
-                    auto vsByteCode = _currentPipeline->GetShader()->AcquireVertexShaderBytecode();
+                    auto vsByteCode = _currentShader->AcquireVertexShaderBytecode();
                     ID3D11InputLayout* d3dInputLayout = nullptr;
 
-                    /*if (FAILED(_graphics->GetD3DDevice()->CreateInputLayout(
+                    if (FAILED(_graphics->GetD3DDevice()->CreateInputLayout(
                         d3dElementDescs,
                         attributeCount,
                         vsByteCode.data(),
@@ -331,9 +335,9 @@ namespace Alimer
                     else
                     {
                         _graphics->StoreInputLayout(newInputLayout, d3dInputLayout);
-                        //_context->IASetInputLayout(d3dInputLayout);
+                        _context->IASetInputLayout(d3dInputLayout);
                         _currentInputLayout = newInputLayout;
-                    }*/
+                    }
                 }
             }
         }

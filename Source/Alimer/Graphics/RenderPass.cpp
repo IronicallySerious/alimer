@@ -43,7 +43,7 @@ namespace Alimer
 
             if (!(texture->GetUsage() & TextureUsage::RenderTarget))
             {
-                ALIMER_LOGERROR("RenderPass color attachment at index %d must be created with RenderTarget usage", i);
+                ALIMER_LOGERROR("RenderPass color attachment at index {} must be created with RenderTarget usage", i);
             }
 
             if(!_width)

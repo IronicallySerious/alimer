@@ -252,13 +252,13 @@ namespace Alimer
             // Lookup for SPIR-V compiled shader.
             if (!vertexShaderStream)
             {
-                ALIMER_LOGERROR("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
+                ALIMER_LOGERROR("GLSL shader does not exists '{}'", vertexShaderFile.c_str());
                 return nullptr;
             }
 
             if (!fragmentShaderStream)
             {
-                ALIMER_LOGERROR("GLSL shader does not exists '%s'", fragmentShaderFile.c_str());
+                ALIMER_LOGERROR("GLSL shader does not exists '{}'", fragmentShaderFile.c_str());
                 return nullptr;
             }
 

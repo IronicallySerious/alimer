@@ -147,7 +147,7 @@ namespace Alimer
 
             if (!found)
             {
-                ALIMER_LOGDEBUG("[Vulkan] - Cannot find layer: %s", layerNames[i]);
+                ALIMER_LOGDEBUG("[Vulkan] - Cannot find layer: {}", layerNames[i]);
                 return false;
             }
         }
@@ -242,7 +242,7 @@ namespace Alimer
             if (vkEnumerateInstanceVersion(&checkApiVersion) == VK_SUCCESS)
             {
                 // Translate the version into major/minor for easier comparison
-                ALIMER_LOGDEBUG("Loader/Runtime support detected for Vulkan %d.%d.%d",
+                ALIMER_LOGDEBUG("Loader/Runtime support detected for Vulkan {}.{}.{}",
                     VK_VERSION_MAJOR(checkApiVersion),
                     VK_VERSION_MINOR(checkApiVersion),
                     VK_VERSION_PATCH(checkApiVersion));

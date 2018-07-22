@@ -81,4 +81,18 @@ namespace Alimer
     {
         return _shaderModules[static_cast<unsigned>(stage)];
     }
+
+    VkPipeline VulkanShader::GetGraphicsPipeline(Hash hash)
+    {
+        auto it = _graphicsPipelineCache.find(hash);
+        if (it != _graphicsPipelineCache.end())
+            return it->second;
+
+        return VK_NULL_HANDLE;
+    }
+
+    void VulkanShader::AddPipeline(Hash hash, VkPipeline pipeline)
+    {
+        _graphicsPipelineCache[hash] = pipeline;
+    }
 }

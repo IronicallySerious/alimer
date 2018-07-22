@@ -210,14 +210,14 @@ namespace Alimer
         {
             if (!FileExists(filePath))
             {
-                ALIMER_LOGERROR("Shader file '%s' does not exists", filePath.c_str());
+                ALIMER_LOGERROR("Shader file '{}' does not exists", filePath.c_str());
                 return {};
             }
 
             auto stream = FileSystem::Get().Open(filePath);
             if (!stream)
             {
-                ALIMER_LOGERROR("Cannot open shader file '%s'", filePath.c_str());
+                ALIMER_LOGERROR("Cannot open shader file '{}'", filePath.c_str());
                 return {};
             }
 

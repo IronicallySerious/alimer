@@ -24,6 +24,7 @@
 
 #include "../Shader.h"
 #include "VulkanPrerequisites.h"
+#include "../../Util/HashMap.h"
 #include <vector>
 
 namespace Alimer
@@ -44,11 +45,16 @@ namespace Alimer
 
         ~VulkanShader() override;
 
+        VkShaderModule GetVkShaderModule(unsigned stage) const { return _shaderModules[stage]; }
         VkShaderModule GetVkShaderModule(ShaderStage stage) const;
         VulkanPipelineLayout* GetPipelineLayout() const { return _pipelineLayout; }
+        VkPipeline GetGraphicsPipeline(Hash hash);
+        void AddPipeline(Hash hash, VkPipeline pipeline);
+
     private:
         VkDevice _logicalDevice;
         VkShaderModule _shaderModules[static_cast<unsigned>(ShaderStage::Count)] = {};
         VulkanPipelineLayout* _pipelineLayout = nullptr;
+        HashMap<VkPipeline> _graphicsPipelineCache;
     };
 }

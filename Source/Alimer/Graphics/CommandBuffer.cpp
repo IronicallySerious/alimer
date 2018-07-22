@@ -223,6 +223,16 @@ namespace Alimer
         //SetScissors(1, &scissor);
     }
 
+    void CommandBuffer::SetShader(Shader* shader)
+    {
+        ALIMER_ASSERT(shader);
+        SetShaderCore(shader);
+    }
+
+    void CommandBuffer::SetShaderCore(Shader* shader)
+    {
+    }
+
     void CommandBuffer::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);

@@ -91,7 +91,7 @@ namespace Alimer
         _currentVkPipeline = VK_NULL_HANDLE;
         _currentVkPipelineLayout = VK_NULL_HANDLE;
         _currentPipelineLayout = nullptr;
-        _currentPipeline = nullptr;
+        _currentShader = nullptr;
         _currentTopology = PrimitiveTopology::Count;
     }
 
@@ -215,12 +215,12 @@ namespace Alimer
 
     }
 
-    void VulkanCommandBuffer::SetPipeline(PipelineState* pipeline)
+    void VulkanCommandBuffer::SetShaderCore(Shader* shader)
     {
-        if (_currentPipeline == pipeline)
+        if (_currentShader == shader)
             return;
 
-        _currentPipeline = static_cast<VulkanPipelineState*>(pipeline);
+        _currentShader = static_cast<VulkanShader*>(shader);
         _currentVkPipeline = VK_NULL_HANDLE;
 
         SetDirty(COMMAND_BUFFER_DIRTY_PIPELINE_BIT | COMMAND_BUFFER_DYNAMIC_BITS);
@@ -230,45 +230,44 @@ namespace Alimer
             _dirtySets = ~0u;
             SetDirty(COMMAND_BUFFER_DIRTY_PUSH_CONSTANTS_BIT);
 
-            _currentPipelineLayout = _currentPipeline->GetShader()->GetPipelineLayout();
+            _currentPipelineLayout = _currentShader->GetPipelineLayout();
             _currentVkPipelineLayout = _currentPipelineLayout->GetVkHandle();
         }
-        else if (_currentPipeline->GetShader()->GetPipelineLayout() != _currentPipelineLayout)
+        else if (_currentShader->GetPipelineLayout() != _currentPipelineLayout)
         {
-            const ResourceLayout &newLayout = _currentPipeline->GetShader()->GetPipelineLayout()->GetResourceLayout();
+            const ResourceLayout &newLayout = _currentShader->GetPipelineLayout()->GetResourceLayout();
             const ResourceLayout &oldLayout = _currentPipelineLayout->GetResourceLayout();
 
             // TODO: Invalidate sets
-            _currentPipelineLayout = _currentPipeline->GetShader()->GetPipelineLayout();
+            _currentPipelineLayout = _currentShader->GetPipelineLayout();
             _currentVkPipelineLayout = _currentPipelineLayout->GetVkHandle();
         }
     }
 
     void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
     {
-        if (!PrepareDraw(topology))
-            return;
-
+        PrepareDraw(topology);
         vkCmdDraw(_vkCommandBuffer, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
-    /*void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
-
-    }*/
-
-    bool VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)
-    {
-        //ALIMER_ASSERT(current_program);
+        ALIMER_ASSERT(_currentShader);
         ALIMER_ASSERT(!_isCompute);
+        ALIMER_ASSERT(_indexState.buffer != nullptr);
+        PrepareDraw(topology);
+        vkCmdDrawIndexed(_vkCommandBuffer, indexCount, instanceCount, startIndex, 0, 0);
+    }
 
-        if (!_currentPipeline)
-            return false;
+    void VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)
+    {
+        ALIMER_ASSERT(_currentShader);
+        ALIMER_ASSERT(!_isCompute);
 
         SetPrimitiveTopology(topology);
         FlushRenderState();
 
-        uint32_t updateVboMask = _dirtyVbos & _currentPipeline->GetBindingMask();
+        uint32_t updateVboMask = _dirtyVbos & _activeVbos;
         ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
         {
 #ifdef ALIMER_DEV
@@ -285,8 +284,22 @@ namespace Alimer
                 _vbo.offsets + binding);
         });
         _dirtyVbos &= ~updateVboMask;
+    }
 
-        return true;
+    void VulkanCommandBuffer::SetVertexAttribute(uint32_t attrib, uint32_t binding, VkFormat format, VkDeviceSize offset)
+    {
+        ALIMER_ASSERT(attrib < MaxVertexAttributes);
+
+        auto &attr = _attribs[attrib];
+
+        if (attr.binding != binding || attr.format != format || attr.offset != offset)
+            SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
+
+        ALIMER_ASSERT(binding < MaxVertexBufferBindings);
+
+        attr.binding = binding;
+        attr.format = format;
+        attr.offset = offset;
     }
 
     void VulkanCommandBuffer::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
@@ -296,6 +309,14 @@ namespace Alimer
         {
             _vbo.vkBuffers[binding] = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
             _dirtyVbos |= 1u << binding;
+
+            // Bind vertex attributes as well
+            uint32_t attrib = 0;
+            uint32_t count = buffer->GetElementsCount();
+            for (auto& element : buffer->GetElements())
+            {
+                SetVertexAttribute(attrib++, binding, vk::Convert(element.format), element.offset);
+            }
         }
 
         if (_vbo.strides[binding] != stride
@@ -310,7 +331,7 @@ namespace Alimer
         _vbo.inputRates[binding] = inputRate;
     }
 
-    /*void VulkanCommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void VulkanCommandBuffer::SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType)
     {
         if (_indexState.buffer == buffer
             && _indexState.offset == offset
@@ -325,9 +346,8 @@ namespace Alimer
 
         VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
         VkIndexType vkIndexType = vk::Convert(indexType);
-        vkCmdBindIndexBuffer(_vkHandle, vkBuffer, offset, vkIndexType);
+        vkCmdBindIndexBuffer(_vkCommandBuffer, vkBuffer, offset, vkIndexType);
     }
-    */
 
     void VulkanCommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range)
     {
@@ -376,10 +396,10 @@ namespace Alimer
         ForEachBit(layout.attributeMask, [&](uint32_t bit)
         {
             h.u32(bit);
-            _activeVbos |= 1u << attribs[bit].binding;
-            h.u32(attribs[bit].binding);
-            h.u32(attribs[bit].format);
-            h.u32(attribs[bit].offset);
+            _activeVbos |= 1u << _attribs[bit].binding;
+            h.u32(_attribs[bit].binding);
+            h.u32(_attribs[bit].format);
+            h.u32(_attribs[bit].offset);
         });
 
         ForEachBit(_activeVbos, [&](uint32_t bit)
@@ -388,13 +408,143 @@ namespace Alimer
             h.u32(_vbo.strides[bit]);
         });
 
+        // TODO: use render pass hash.
+        h.pointer(_currentRenderPass->GetVkRenderPass());
+        //h.u64(_currentRenderPass->GetHash());
+        h.u32(_currentSubpass);
+        h.pointer(_currentShader);
+        //h.u64(_currentPipeline->GetHash());
+        h.u32(static_cast<uint32_t>(_currentTopology));
 
-        VkPipeline newPipeline = _currentPipeline->GetGraphicsPipeline(
-            _currentTopology,
-            _currentRenderPass->GetVkRenderPass()
-        );
+        auto hash = h.get();
+        _currentVkPipeline = _currentShader->GetGraphicsPipeline(hash);
+        if (_currentVkPipeline == VK_NULL_HANDLE)
+        {
+            // Create new.
+            VkPipelineVertexInputStateCreateInfo vertexInputState = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+            VkVertexInputAttributeDescription vkAttribs[MaxVertexAttributes];
+            vertexInputState.pVertexAttributeDescriptions = vkAttribs;
 
-        _currentVkPipeline = newPipeline;
+            uint32_t attributeMask = _currentPipelineLayout->GetResourceLayout().attributeMask;
+            uint32_t bindingMask = 0;
+            ForEachBit(attributeMask, [&](uint32_t bit) {
+                auto &attr = vkAttribs[vertexInputState.vertexAttributeDescriptionCount++];
+                attr.location = bit;
+                attr.binding = _attribs[bit].binding;
+                attr.format = _attribs[bit].format;
+                attr.offset = _attribs[bit].offset;
+                bindingMask |= 1u << attr.binding;
+            });
+
+            VkVertexInputBindingDescription vkVboBindings[MaxVertexBufferBindings];
+            vertexInputState.pVertexBindingDescriptions = vkVboBindings;
+            ForEachBit(bindingMask, [&](uint32_t bit) {
+                auto &bind = vkVboBindings[vertexInputState.vertexBindingDescriptionCount++];
+                bind.binding = bit;
+                bind.inputRate = vk::Convert(_vbo.inputRates[bit]);
+                bind.stride = _vbo.strides[bit];
+            });
+
+            // Viewport state
+            VkPipelineViewportStateCreateInfo viewportState = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+            viewportState.viewportCount = 1;
+            viewportState.scissorCount = 1;
+
+            // Rasterization state
+            VkPipelineRasterizationStateCreateInfo rasterizationState = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
+            rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+            // Default clockwise as DirectX coordinate.
+            rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
+            rasterizationState.lineWidth = 1.0f;
+            rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+            rasterizationState.depthBiasEnable = VK_FALSE;
+
+            // Multisample
+            VkPipelineMultisampleStateCreateInfo multpleSampleState = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
+            multpleSampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+            // Depth state
+            VkPipelineDepthStencilStateCreateInfo depthStencilState = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+            depthStencilState.stencilTestEnable = VK_FALSE;
+            depthStencilState.depthTestEnable = VK_FALSE;
+            depthStencilState.depthWriteEnable = VK_FALSE;
+
+            // Blend state
+            VkPipelineColorBlendAttachmentState blendAttachments[MaxColorAttachments] = {};
+            blendAttachments[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            blendAttachments[0].blendEnable = VK_FALSE;
+
+            VkPipelineColorBlendStateCreateInfo blendState = { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+            blendState.attachmentCount = 1;
+            blendState.pAttachments = blendAttachments;
+
+            // Dynamic state
+            VkPipelineDynamicStateCreateInfo dynamicState = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+            dynamicState.dynamicStateCount = 2;
+            VkDynamicState states[2] = {
+                VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT,
+            };
+            dynamicState.pDynamicStates = states;
+
+            // Input assembly
+            VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+            inputAssemblyState.pNext = nullptr;
+            inputAssemblyState.flags = 0;
+            inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            inputAssemblyState.primitiveRestartEnable = VK_FALSE;
+
+            // Stages
+            VkPipelineShaderStageCreateInfo stages[static_cast<uint32_t>(ShaderStage::Count)];
+            uint32_t numStages = 0;
+
+            for (uint32_t i = 0; i < static_cast<uint32_t>(ShaderStage::Count); i++)
+            {
+                auto vkModule = _currentShader->GetVkShaderModule(i);
+                if (vkModule != VK_NULL_HANDLE)
+                {
+                    auto &stage = stages[numStages++];
+                    stage = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+                    stage.module = vkModule;
+                    stage.pName = "main";
+                    stage.stage = static_cast<VkShaderStageFlagBits>(1u << i);
+                }
+            }
+
+            VkGraphicsPipelineCreateInfo createInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+            createInfo.pNext = nullptr;
+            createInfo.flags = 0;
+            createInfo.stageCount = numStages;
+            createInfo.pStages = stages;
+            createInfo.pVertexInputState = &vertexInputState;
+            createInfo.pTessellationState = nullptr;
+            createInfo.pViewportState = &viewportState;
+            createInfo.pRasterizationState = &rasterizationState;
+            createInfo.pMultisampleState = &multpleSampleState;
+            createInfo.pDepthStencilState = &depthStencilState;
+            createInfo.pColorBlendState = &blendState;
+            createInfo.pDynamicState = &dynamicState;
+            createInfo.pInputAssemblyState = &inputAssemblyState;
+            createInfo.layout = _currentVkPipelineLayout;
+            createInfo.renderPass = _currentRenderPass->GetVkRenderPass();
+            createInfo.subpass = _currentSubpass;
+            createInfo.basePipelineHandle = VK_NULL_HANDLE;
+            createInfo.basePipelineIndex = 0;
+
+            VkPipeline newPipeline;
+            if (vkCreateGraphicsPipelines(
+                _logicalDevice,
+                _graphics->GetPipelineCache(),
+                1,
+                &createInfo,
+                nullptr,
+                &newPipeline) != VK_SUCCESS)
+            {
+                ALIMER_LOGCRITICAL("Vulkan - Failed to graphics pipeline");
+            }
+
+            _currentShader->AddPipeline(hash, newPipeline);
+            _currentVkPipeline = newPipeline;
+        }
     }
 
     void VulkanCommandBuffer::FlushDescriptorSet(uint32_t set)
