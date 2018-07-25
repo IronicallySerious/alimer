@@ -88,12 +88,8 @@ include(AlimerPackaging)
 install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant
 
 # Set VS Startup project.
-if(CMAKE_VERSION VERSION_GREATER  "3.6")
-	if (ALIMER_TOOLS)
-		set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer.Studio" )
-	else ()
-		set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer" )
-	endif ()
+if(CMAKE_VERSION VERSION_GREATER "3.6")
+	set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer" )
 endif()
 
 # Print current build configuration
