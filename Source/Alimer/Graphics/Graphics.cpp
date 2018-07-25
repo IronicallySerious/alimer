@@ -278,7 +278,16 @@ namespace Alimer
             string fragmentShader = fragmentShaderStream->ReadAllText();
             string errorLog;
             vertexByteCode = ShaderCompiler::Compile(vertexShader, vertexShaderStream->GetName(), ShaderStage::Vertex, errorLog);
+            if (!errorLog.empty())
+            {
+                ALIMER_LOGCRITICAL("Vertex shader compilation failed: \n {}", errorLog);
+            }
+
             fragmentByteCode = ShaderCompiler::Compile(fragmentShader, fragmentShaderStream->GetName(), ShaderStage::Fragment, errorLog);
+            if (!errorLog.empty())
+            {
+                ALIMER_LOGCRITICAL("Fragment shader compilation failed: \n {}", errorLog);
+            }
 #endif
         }
 

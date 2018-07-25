@@ -27,13 +27,134 @@
 
 namespace Alimer
 {
-    D3D11Texture::D3D11Texture(D3D11Graphics* graphics)
-        : Texture(graphics)
-        , _d3dDevice(graphics->GetD3DDevice())
-        , _resource(nullptr)
-        , _dxgiFormat(DXGI_FORMAT_UNKNOWN)
+    D3D11Texture::D3D11Texture(D3D11Graphics* graphics, const TextureDescription& description, const ImageLevel* initialData)
+        : Texture(graphics, description)
     {
+        // Setup initial data.
+        std::vector<D3D11_SUBRESOURCE_DATA> subResourceData;
+        if (initialData)
+        {
+            subResourceData.resize(description.arrayLayers * description.mipLevels);
+            for (uint32_t i = 0; i < description.arrayLayers * description.mipLevels; ++i)
+            {
+                uint32_t rowPitch;
+                if (!initialData[i].rowPitch)
+                {
+                    const uint32_t mipWidth = ((description.width >> i) > 0) ? description.width >> i : 1;
+                    const uint32_t mipHeight = ((description.height >> i) > 0) ? description.height >> i : 1;
 
+                    uint32_t rows;
+                    CalculateDataSize(
+                        mipWidth,
+                        mipHeight,
+                        description.format,
+                        &rows,
+                        &rowPitch);
+                }
+                else
+                {
+                    rowPitch = initialData[i].rowPitch;
+                }
+
+                subResourceData[i].pSysMem = initialData[i].data;
+                subResourceData[i].SysMemPitch = rowPitch;
+                subResourceData[i].SysMemSlicePitch = 0;
+            }
+        }
+
+        _dxgiFormat = d3d::Convert(description.format);
+
+        switch (description.type)
+        {
+        case TextureType::Type1D:
+        {
+            D3D11_TEXTURE1D_DESC d3d11Desc = {};
+        }
+        break;
+
+        case TextureType::Type2D:
+        case TextureType::TypeCube:
+        {
+            D3D11_TEXTURE2D_DESC d3d11Desc = {};
+            d3d11Desc.Width = description.width;
+            d3d11Desc.Height = description.height;
+            d3d11Desc.MipLevels = description.mipLevels;
+            d3d11Desc.ArraySize = description.arrayLayers;
+            d3d11Desc.Format = _dxgiFormat;
+            d3d11Desc.SampleDesc.Count = static_cast<uint32_t>(description.samples);
+            d3d11Desc.Usage = D3D11_USAGE_DEFAULT;
+
+            if (description.usage & TextureUsage::ShaderRead)
+            {
+                d3d11Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+            }
+
+            if (description.usage & TextureUsage::ShaderWrite)
+            {
+                d3d11Desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+            }
+
+            if (description.usage & TextureUsage::RenderTarget)
+            {
+                if (!IsDepthStencilFormat(description.format))
+                {
+                    d3d11Desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+                }
+                else
+                {
+                    d3d11Desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+                }
+            }
+
+            const bool dynamic = false;
+            d3d11Desc.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
+            d3d11Desc.MiscFlags = 0;
+            if (description.type == TextureType::TypeCube)
+            {
+                d3d11Desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+            }
+
+            graphics->GetD3DDevice()->CreateTexture2D(
+                &d3d11Desc,
+                subResourceData.data(),
+                &_texture2D);
+
+        }
+        break;
+
+        default:
+            break;
+        }
+
+        // Create default shader resource view
+        if (description.usage & TextureUsage::ShaderRead)
+        {
+            D3D11_SHADER_RESOURCE_VIEW_DESC resourceViewDesc = {};
+            resourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            resourceViewDesc.Format = _dxgiFormat;
+
+            if (FAILED(graphics->GetD3DDevice()->CreateShaderResourceView(
+                _resource,
+                nullptr,
+                &_shaderResourceView)))
+            {
+                ALIMER_LOGERROR("D3D11 - Failed to create ShaderResourceView for texture.");
+            }
+
+            D3D11_SAMPLER_DESC samplerDesc = {};
+            samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+            samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+            samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+            samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+            samplerDesc.MaxAnisotropy = (graphics->GetFeatureLevel() > D3D_FEATURE_LEVEL_9_1) ? D3D11_MAX_MAXANISOTROPY : 2;
+            samplerDesc.MaxLOD = FLT_MAX;
+            samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+
+            ThrowIfFailed(graphics->GetD3DDevice()->CreateSamplerState(
+                &samplerDesc,
+                &_samplerState)
+            );
+        }
     }
 
     D3D11Texture::D3D11Texture(D3D11Graphics* graphics, ID3D11Texture2D* nativeTexture)
@@ -87,6 +208,17 @@ namespace Alimer
 
     void D3D11Texture::Destroy()
     {
+        if (_shaderResourceView)
+        {
+#if defined(_DEBUG)
+            ULONG refCount = GetRefCount(_shaderResourceView);
+            ALIMER_ASSERT_MSG(refCount == 1, "ID3D11ShaderResourceView leakage");
+#endif
+
+            _shaderResourceView->Release();
+            _shaderResourceView = nullptr;
+        }
+
         if (_resource)
         {
 #if defined(_DEBUG)

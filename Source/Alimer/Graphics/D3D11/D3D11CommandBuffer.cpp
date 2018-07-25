@@ -43,8 +43,60 @@ namespace Alimer
 {
     static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 
+    D3D11CommandBuffer::D3D11CommandBuffer(D3D11Graphics* graphics, bool immediate)
+        : CommandBuffer()
+        , _graphics(graphics)
+        , _immediate(immediate)
+    {
+    }
+
+    D3D11CommandBuffer::~D3D11CommandBuffer() = default;
+
+    void D3D11CommandBuffer::Execute(D3D11CommandContext* context)
+    {
+        while (Command* command = Front())
+        {
+            switch (command->type)
+            {
+            case Command::Type::BeginRenderPass:
+            {
+                const BeginRenderPassCommand* beginRenderPassCommand = static_cast<const BeginRenderPassCommand*>(command);
+                context->BeginRenderPassCore(
+                    beginRenderPassCommand->renderPass,
+                    beginRenderPassCommand->renderArea,
+                    beginRenderPassCommand->clearColors.data(),
+                    static_cast<uint32_t>(beginRenderPassCommand->clearColors.size()),
+                    beginRenderPassCommand->clearDepth,
+                    beginRenderPassCommand->clearStencil
+                );
+            }
+            break;
+
+            case Command::Type::EndRenderPass:
+            {
+                context->EndRenderPassCore();
+            }
+            break;
+
+            case Command::Type::SetViewport:
+            {
+                const SetViewportCommand* typedCmd = static_cast<const SetViewportCommand*>(command);
+                context->SetViewport(typedCmd->viewport);
+            }
+            break;
+
+            default:
+                ALIMER_LOGCRITICAL("Invalid CommandBuffer command");
+                break;
+            }
+
+            Pop();
+        }
+    }
+
+    // D3D11CommandContext
     D3D11CommandContext::D3D11CommandContext(D3D11Graphics* graphics, ID3D11DeviceContext1* context)
-        : _graphics(graphics)
+        : D3D11CommandBuffer(graphics, true)
         , _context(context)
     {
         Reset();
@@ -206,8 +258,33 @@ namespace Alimer
 
     void D3D11CommandContext::SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<const D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
+        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
         _context->VSSetConstantBuffers(binding, 1, &d3dBuffer);
+    }
+
+    void D3D11CommandContext::SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    {
+        auto d3d11Texture = static_cast<D3D11Texture*>(texture);
+        ID3D11ShaderResourceView* shaderResourceView =  d3d11Texture->GetShaderResourceView();
+        ID3D11SamplerState* samplerState = d3d11Texture->GetSamplerState();
+
+        if (stage & ShaderStage::Compute)
+        {
+            _context->CSSetShaderResources(binding, 1, &shaderResourceView);
+            _context->CSSetSamplers(binding, 1, &samplerState);
+        }
+
+        if (stage & ShaderStage::Vertex)
+        {
+            _context->VSSetShaderResources(binding, 1, &shaderResourceView);
+            _context->VSSetSamplers(binding, 1, &samplerState);
+        }
+
+        if (stage & ShaderStage::Fragment)
+        {
+            _context->PSSetShaderResources(binding, 1, &shaderResourceView);
+            _context->PSSetSamplers(binding, 1, &samplerState);
+        }
     }
 
     bool D3D11CommandContext::PrepareDraw(PrimitiveTopology topology)
@@ -373,54 +450,6 @@ namespace Alimer
         }
     }
 
-    D3D11CommandBuffer::D3D11CommandBuffer(D3D11Graphics* graphics)
-        : CommandBuffer()
-        , _graphics(graphics)
-    {
-    }
-
-    D3D11CommandBuffer::~D3D11CommandBuffer() = default;
-
-    void D3D11CommandBuffer::Execute(D3D11CommandContext* context)
-    {
-        while (Command* command = Front())
-        {
-            switch (command->type)
-            {
-            case Command::Type::BeginRenderPass:
-            {
-                const BeginRenderPassCommand* beginRenderPassCommand = static_cast<const BeginRenderPassCommand*>(command);
-                context->BeginRenderPassCore(
-                    beginRenderPassCommand->renderPass,
-                    beginRenderPassCommand->renderArea,
-                    beginRenderPassCommand->clearColors.data(),
-                    static_cast<uint32_t>(beginRenderPassCommand->clearColors.size()),
-                    beginRenderPassCommand->clearDepth,
-                    beginRenderPassCommand->clearStencil
-                );
-            }
-            break;
-
-            case Command::Type::EndRenderPass:
-            {
-                context->EndRenderPassCore();
-            }
-            break;
-
-            case Command::Type::SetViewport:
-            {
-                const SetViewportCommand* typedCmd = static_cast<const SetViewportCommand*>(command);
-                context->SetViewport(typedCmd->viewport);
-            }
-            break;
-
-            default:
-                ALIMER_LOGCRITICAL("Invalid CommandBuffer command");
-                break;
-            }
-
-            Pop();
-        }
-    }
+    
 }
 

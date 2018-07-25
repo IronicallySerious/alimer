@@ -23,9 +23,20 @@
 #pragma once
 
 #include "../Resource/Resource.h"
+#include "../Graphics/PixelFormat.h"
 
 namespace Alimer
 {
+    /// Description of image mip level data.
+    struct ALIMER_API ImageLevel
+    {
+        /// Pointer to pixel data.
+        const void* data;
+
+        /// Single row pitch.
+        uint32_t rowPitch = 0;
+    };
+
 	/// Defines an Image resource.
 	class ALIMER_API Image : public Resource
 	{

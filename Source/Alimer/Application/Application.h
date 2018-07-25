@@ -41,7 +41,7 @@
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
 #include "../Graphics/Graphics.h"
-#include "../Scene/SceneManager.h"
+#include "../Scene/Scene.h"
 struct enkiTaskScheduler;
 
 namespace Alimer
@@ -103,16 +103,14 @@ namespace Alimer
 
         /// Sets the current scene to be active and rendered.
         void SetScene(Scene* scene);
-        SceneManager* GetSceneManager() const { return _sceneManager.get(); }
+
+        /// Get the active scene.
+        Scene* GetScene() const { return _scene.Get(); }
 
     private:
         void PlatformConstruct();
         bool InitializeBeforeRun();
         void LoadPlugins();
-
-        void RenderFrame(RenderPass* frameRenderPass, double frameTime, double elapsedTime);
-        void UpdateScene(double frameTime, double elapsedTime);
-        void RenderScene(RenderPass* frameRenderPass);
 
     protected:
         /// Called after setup and engine initialization with all modules initialized.
@@ -125,7 +123,7 @@ namespace Alimer
         void RenderFrame(double frameTime, double elapsedTime);
 
         /// Called during rendering single frame.
-        virtual void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime);
+        virtual void OnRenderFrame(double frameTime, double elapsedTime);
 
         virtual std::unique_ptr<Input> CreateInput();
         virtual std::unique_ptr<Audio> CreateAudio();
@@ -145,7 +143,7 @@ namespace Alimer
         std::unique_ptr<Audio> _audio;
         enkiTaskScheduler* _taskScheduler;
 
-        std::unique_ptr<SceneManager> _sceneManager;
+        SharedPtr<Scene> _scene;
         std::unique_ptr<SceneRenderer> _renderer;
 
     private:

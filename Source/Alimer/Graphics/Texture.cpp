@@ -30,6 +30,13 @@ namespace Alimer
 	{
 	}
 
+    Texture::Texture(Graphics* graphics, const TextureDescription& description)
+        : GpuResource(graphics, GpuResourceType::Texture)
+        , _description(description)
+    {
+
+    }
+
 	Texture::~Texture()
 	{
 	}

@@ -30,27 +30,35 @@
 
 namespace Alimer
 {
-	class D3D11CommandContext;
-	class D3D11Texture;
+    class D3D11CommandContext;
+    class D3D11Texture;
     class D3D11SwapChain;
 
-	/// D3D11 Low-level 3D graphics API class.
-	class D3D11Graphics final : public Graphics
-	{
-	public:
-		/// Is backend supported?
-		static bool IsSupported();
+    /// D3D11 Low-level 3D graphics API class.
+    class D3D11Graphics final : public Graphics
+    {
+    public:
+        /// Is backend supported?
+        static bool IsSupported();
 
-		/// Constructor.
-		D3D11Graphics(bool validation);
+        /// Constructor.
+        D3D11Graphics(bool validation);
 
-		/// Destructor.
-		~D3D11Graphics() override;
+        /// Destructor.
+        ~D3D11Graphics() override;
 
         void WaitIdle() override;
 
+        bool BeginFrame() override;
+        void EndFrame() override;
+
+        SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBufferType type) override;
+        void Submit(const SharedPtr<CommandBuffer> &commandBuffer) override;
+
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
+
+        SharedPtr<Texture> CreateTexture(const TextureDescription& description, const ImageLevel* initialData) override;
 
         Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
         Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,
@@ -63,30 +71,25 @@ namespace Alimer
         void StoreInputLayout(const InputLayoutDesc& desc, ID3D11InputLayout* layout);
 
         // Getters
-		inline IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory.Get(); }
-		inline D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
-		inline ID3D11Device1* GetD3DDevice() const { return _d3dDevice.Get(); }
-        inline ID3D11DeviceContext1* GetImmediateContext() const { return _d3dContext.Get(); }
+        inline IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory.Get(); }
+        inline D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
+        inline ID3D11Device1* GetD3DDevice() const { return _d3dDevice.Get(); }
+        inline ID3D11DeviceContext1* GetImmediateContext() const { return _d3dImmediateContext.Get(); }
         inline uint32_t GetShaderModerMajor() const { return _shaderModelMajor; }
         inline uint32_t GetShaderModerMinor() const { return _shaderModelMinor; }
         RenderPass* GetBackbufferRenderPass() const;
 
-	private:
+    private:
         void Finalize() override;
         bool BackendInitialize() override;
-		bool InitializeCaps();
-
-        bool BeginFrame() override;
-        void EndFrame() override;
-
-        CommandBuffer* GetDefaultCommandBuffer() const override;
+        bool InitializeCaps();
 
         void GenerateScreenshot(const std::string& fileName) override;
 
         Microsoft::WRL::ComPtr<IDXGIFactory2>               _dxgiFactory;
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
         Microsoft::WRL::ComPtr<ID3D11Device1>               _d3dDevice;
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext1>        _d3dContext;
+        Microsoft::WRL::ComPtr<ID3D11DeviceContext1>        _d3dImmediateContext;
         Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
         D3D11SwapChain* _swapChain = nullptr;
@@ -94,9 +97,9 @@ namespace Alimer
         uint32_t _shaderModelMajor = 4;
         uint32_t _shaderModelMinor = 0;
 
-        D3D11CommandContext* _defaultCommandBuffer = nullptr;
+        SharedPtr<D3D11CommandContext> _defaultCommandBuffer;
 
         /// Input layouts.
         InputLayoutMap _inputLayouts;
-	};
+    };
 }

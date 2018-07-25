@@ -25,7 +25,7 @@
 #include "../Core/Flags.h"
 #include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
-#include "../Graphics/PixelFormat.h"
+#include "../Resource/Image.h"
 
 namespace Alimer
 {
@@ -78,6 +78,9 @@ namespace Alimer
     protected:
         /// Constructor.
         Texture(Graphics* graphics);
+
+        /// Constructor.
+        Texture(Graphics* graphics, const TextureDescription& description);
 
     public:
         /// Destructor.

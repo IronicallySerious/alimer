@@ -79,13 +79,17 @@ namespace Alimer
         /// Try to save screenshot with given file name.
         void SaveScreenshot(const std::string& fileName);
 
-        virtual CommandBuffer* GetDefaultCommandBuffer() const = 0;
+        virtual SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBufferType type = CommandBufferType::Default) = 0;
+        virtual void Submit(const SharedPtr<CommandBuffer> &commandBuffer) = 0;
 
         // RenderPass
         virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
 
         // Buffer
         virtual BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData = nullptr) = 0;
+
+        // RenderPass
+        virtual SharedPtr<Texture> CreateTexture(const TextureDescription& description, const ImageLevel* initialData = nullptr) = 0;
 
         // Shader
         Shader* CreateShader(
@@ -100,9 +104,11 @@ namespace Alimer
         // PipelineState
         virtual PipelineState* CreateRenderPipelineState(const RenderPipelineDescription& description) = 0;
 
+        /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
 
-        inline GraphicsDeviceType GetDeviceType() const { return _deviceType; }
+        /// Get the type of device.
+        GraphicsDeviceType GetDeviceType() const { return _deviceType; }
 
         /// Get supported adapters.
         const std::vector<GpuAdapter*>& GetAdapters() const { return _adapters; }
@@ -112,9 +118,6 @@ namespace Alimer
 
         /// Get the device features.
         inline const GpuDeviceFeatures& GetFeatures() const { return _features; }
-
-        /// Get default command buffer.
-        //CommandBuffer* GetDefaultCommandBuffer() const { return _defaultCommandBuffer; }
 
     private:
         /// Add a GpuResource to keep track of. 

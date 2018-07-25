@@ -24,7 +24,6 @@
 
 #include "Graphics/Texture.h"
 #include "D3D11Prerequisites.h"
-#include <map>
 
 namespace Alimer
 {
@@ -35,7 +34,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        D3D11Texture(D3D11Graphics* graphics);
+        D3D11Texture(D3D11Graphics* graphics, const TextureDescription& description, const ImageLevel* initialData);
 
         /// Constructor.
         D3D11Texture(D3D11Graphics* graphics, ID3D11Texture2D* nativeTexture);
@@ -46,10 +45,13 @@ namespace Alimer
         void Destroy() override;
 
         ID3D11Resource* GetResource() const { return _resource; }
-        inline DXGI_FORMAT GetDXGIFormat() const { return _dxgiFormat; }
+        DXGI_FORMAT GetDXGIFormat() const { return _dxgiFormat; }
+        ID3D11ShaderResourceView* GetShaderResourceView() const { return _shaderResourceView; }
+        ID3D11SamplerState* GetSamplerState() const { return _samplerState.Get(); }
 
     private:
         ID3D11Device1* _d3dDevice;
+        DXGI_FORMAT _dxgiFormat;
 
         union {
             ID3D11Resource* _resource;
@@ -58,6 +60,7 @@ namespace Alimer
             ID3D11Texture3D* _texture3D;
         };
 
-        DXGI_FORMAT _dxgiFormat;
+        ID3D11ShaderResourceView* _shaderResourceView = nullptr;
+        Microsoft::WRL::ComPtr<ID3D11SamplerState> _samplerState{};
     };
 }

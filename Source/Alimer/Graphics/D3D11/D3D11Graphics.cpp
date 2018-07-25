@@ -103,7 +103,7 @@ namespace Alimer
         WaitIdle();
 
         SafeDelete(_swapChain);
-        SafeDelete(_defaultCommandBuffer);
+        _defaultCommandBuffer.Reset();
 
         Graphics::Finalize();
     }
@@ -226,7 +226,7 @@ namespace Alimer
 #endif
 
         ThrowIfFailed(device.As(&_d3dDevice));
-        ThrowIfFailed(context.As(&_d3dContext));
+        ThrowIfFailed(context.As(&_d3dImmediateContext));
         ThrowIfFailed(context.As(&_d3dAnnotation));
 
         if (!InitializeCaps())
@@ -243,10 +243,7 @@ namespace Alimer
 #endif
 
         // Immediate/default command queue.
-        _defaultCommandBuffer = new D3D11CommandContext(this, _d3dContext.Get());
-
-        //_renderThreadRunning = true;
-        //_renderThread = std::thread(std::bind(&D3D11Graphics::RenderThread, this));
+        _defaultCommandBuffer = new D3D11CommandContext(this, _d3dImmediateContext.Get());
 
         return true;
     }
@@ -266,9 +263,28 @@ namespace Alimer
         //_d3dContext->Flush();
     }
 
-    CommandBuffer* D3D11Graphics::GetDefaultCommandBuffer() const
+    SharedPtr<CommandBuffer> D3D11Graphics::RequestCommandBuffer(CommandBufferType type)
     {
-        return _defaultCommandBuffer;
+        switch (type)
+        {
+        case CommandBufferType::Default:
+            return _defaultCommandBuffer;
+
+        default:
+            ALIMER_LOGCRITICAL("Invalid CommandBuffer type requested: {}", str::ToString(type));
+        }
+    }
+
+    void D3D11Graphics::Submit(const SharedPtr<CommandBuffer> &commandBuffer)
+    {
+        auto d3d11CommandBuffer = StaticCast<D3D11CommandBuffer>(commandBuffer);
+        if (d3d11CommandBuffer->IsImmediate())
+            return;
+
+        // Execute deferred command buffer.
+        ComPtr<ID3D11CommandList> commandList;
+        ThrowIfFailed(_d3dImmediateContext->FinishCommandList(FALSE, commandList.ReleaseAndGetAddressOf()));
+        _d3dImmediateContext->ExecuteCommandList(commandList.Get(), FALSE);
     }
 
     void D3D11Graphics::GenerateScreenshot(const std::string& fileName)
@@ -324,16 +340,17 @@ namespace Alimer
                 ALIMER_LOGCRITICAL("D3D11 - Failed to create texture, error: {}", std::to_string(hr));
             }
 
-            _d3dContext->ResolveSubresource(resolveTexture, 0, backBufferTexture->GetResource(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
-            _d3dContext->CopyResource(texture, resolveTexture);
+            _d3dImmediateContext->ResolveSubresource(resolveTexture, 0, backBufferTexture->GetResource(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+            _d3dImmediateContext->CopyResource(texture, resolveTexture);
             resolveTexture->Release();
         }
-        else {
-            _d3dContext->CopyResource(texture, backBufferTexture->GetResource());
+        else
+        {
+            _d3dImmediateContext->CopyResource(texture, backBufferTexture->GetResource());
         }
 
         D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-        hr = _d3dContext->Map(texture, 0, D3D11_MAP_READ, 0, &mappedSubresource);
+        hr = _d3dImmediateContext->Map(texture, 0, D3D11_MAP_READ, 0, &mappedSubresource);
         if (FAILED(hr))
         {
             texture->Release();
@@ -342,18 +359,18 @@ namespace Alimer
 
         if (!stbi_write_png(fileName.c_str(), textureDesc.Width, textureDesc.Height, 4, mappedSubresource.pData, static_cast<int>(mappedSubresource.RowPitch)))
         {
-            _d3dContext->Unmap(texture, 0);
+            _d3dImmediateContext->Unmap(texture, 0);
             texture->Release();
             ALIMER_LOGCRITICAL("D3D11 - Failed to save screenshot to file");
         }
 
-        _d3dContext->Unmap(texture, 0);
+        _d3dImmediateContext->Unmap(texture, 0);
         texture->Release();
     }
 
     void D3D11Graphics::WaitIdle()
     {
-        _d3dContext->Flush();
+        _d3dImmediateContext->Flush();
     }
 
     bool D3D11Graphics::InitializeCaps()
@@ -429,6 +446,11 @@ namespace Alimer
     BufferHandle* D3D11Graphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
     {
         return new D3D11GpuBuffer(this, usage, size, stride, resourceUsage, initialData);
+    }
+
+    SharedPtr<Texture> D3D11Graphics::CreateTexture(const TextureDescription& description, const ImageLevel* initialData)
+    {
+        return MakeShared<D3D11Texture>(this, description, initialData);
     }
 
     Shader* D3D11Graphics::CreateComputeShader(const void *pCode, size_t codeSize)

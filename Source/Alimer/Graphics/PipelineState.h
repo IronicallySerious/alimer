@@ -66,7 +66,7 @@ namespace Alimer
 
     struct RenderPipelineDescription
     {
-        ShaderPtr shader;
+        SharedPtr<Shader> shader;
         VertexDescription vertexDescription;
         BlendState blendState;
         RasterizerState rasterizerState;

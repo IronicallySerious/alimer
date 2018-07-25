@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
+#include "../Graphics/Shader.h"
 #include <string>
 #include <vector>
 

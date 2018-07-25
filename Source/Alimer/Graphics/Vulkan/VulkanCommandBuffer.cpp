@@ -494,10 +494,10 @@ namespace Alimer
             inputAssemblyState.primitiveRestartEnable = VK_FALSE;
 
             // Stages
-            VkPipelineShaderStageCreateInfo stages[static_cast<uint32_t>(ShaderStage::Count)];
+            VkPipelineShaderStageCreateInfo stages[static_cast<uint32_t>(VulkanShaderStage::Count)];
             uint32_t numStages = 0;
 
-            for (uint32_t i = 0; i < static_cast<uint32_t>(ShaderStage::Count); i++)
+            for (uint32_t i = 0; i < static_cast<uint32_t>(VulkanShaderStage::Count); i++)
             {
                 auto vkModule = _currentShader->GetVkShaderModule(i);
                 if (vkModule != VK_NULL_HANDLE)

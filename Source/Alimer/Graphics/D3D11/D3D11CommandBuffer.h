@@ -30,8 +30,28 @@ namespace Alimer
     class D3D11RenderPass;
     class D3D11Shader;
     class D3D11Graphics;
+    class D3D11CommandContext;
 
-    class D3D11CommandContext final : public CommandBuffer
+    /// D3D11 CommandBuffer implementation.
+    class D3D11CommandBuffer : public CommandBuffer
+    {
+    public:
+        /// Constructor.
+        D3D11CommandBuffer(D3D11Graphics* graphics, bool immediate);
+
+        /// Destructor.
+        ~D3D11CommandBuffer() override;
+
+        void Execute(D3D11CommandContext* context);
+
+        bool IsImmediate() const { return _immediate; }
+
+    protected:
+        D3D11Graphics* _graphics;
+        bool _immediate;
+    };
+
+    class D3D11CommandContext final : public D3D11CommandBuffer
     {
     public:
         /// Constructor.
@@ -54,6 +74,7 @@ namespace Alimer
         void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
         void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
+        void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) override;
 
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
@@ -63,7 +84,6 @@ namespace Alimer
         void UpdateVbos(uint32_t binding, uint32_t count);
 
     private:
-        D3D11Graphics * _graphics;
         ID3D11DeviceContext1 * _context;
 
         D3D11RenderPass* _currentRenderPass;
@@ -89,24 +109,5 @@ namespace Alimer
 
         /// Current input layout: vertex buffers' element mask and vertex shader's element mask combined.
         InputLayoutDesc _currentInputLayout;
-    };
-
-    /// D3D11 CommandBuffer implementation.
-    class D3D11CommandBuffer final : public CommandBuffer
-    {
-    public:
-        /// Constructor.
-        D3D11CommandBuffer(D3D11Graphics* graphics);
-
-        /// Destructor.
-        ~D3D11CommandBuffer() override;
-
-        void Execute(D3D11CommandContext* context);
-    private:
-        
-
-    private:
-        D3D11Graphics * _graphics;
-        PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
     };
 }

@@ -40,7 +40,6 @@ namespace Alimer
         , _headless(false)
         , _settings{}
         , _log(new Logger())
-        , _sceneManager(new SceneManager())
     {
         PlatformConstruct();
 
@@ -141,6 +140,11 @@ namespace Alimer
             double frameTime = _timer.Frame();
             double elapsedTime = _timer.GetElapsed();
 
+            if (_scene)
+            {
+                _scene->UpdateCachedTransforms();
+            }
+
             RenderFrame(frameTime, elapsedTime);
             _input->Update();
         }
@@ -153,36 +157,25 @@ namespace Alimer
 
         if (_graphics->BeginFrame())
         {
-            // Add command buffer.
-            auto commandBuffer = _graphics->GetDefaultCommandBuffer();
-            OnRenderFrame(commandBuffer, frameTime, elapsedTime);
+            OnRenderFrame(frameTime, elapsedTime);
+
+            if (_scene)
+            {
+                _renderer->Render(_scene);
+            }
 
             // End rendering frame.
             _graphics->EndFrame();
         }
     }
 
-    void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
+    void Application::OnRenderFrame(double frameTime, double elapsedTime)
     {
+        // By default clear with some color.
+        auto commandBuffer = _graphics->RequestCommandBuffer();
         commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
         commandBuffer->EndRenderPass();
-    }
-
-    void Application::UpdateScene(double frameTime, double elapsedTime)
-    {
-        //_scene->UpdateCachedTransforms();
-    }
-
-    void Application::RenderScene(RenderPass* frameRenderPass)
-    {
-        // TODO: Add Scene renderer.
-        //_renderer->Render(_scene, frameRenderPass);
-    }
-
-    void Application::RenderFrame(RenderPass* frameRenderPass, double frameTime, double elapsedTime)
-    {
-        UpdateScene(frameTime, elapsedTime);
-        RenderScene(frameRenderPass);
+        _graphics->Submit(commandBuffer);
     }
 
     void Application::Exit()
@@ -216,7 +209,7 @@ namespace Alimer
 
     void Application::SetScene(Scene* scene)
     {
-        _sceneManager->SetScene(scene);
+        _scene = scene;
     }
 
     Application& gApplication()

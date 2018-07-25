@@ -345,6 +345,20 @@ namespace Alimer
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
             _perCameraUboBuffer = new GpuBuffer(graphics, uboBufferDesc, &_camera);
+
+            // Create checkerboard texture.
+            ImageLevel initial = {};
+            static const uint32_t checkerboard[] = {
+                0xffffffffu, 0xffffffffu, 0xff000000u, 0xff000000u,
+                0xffffffffu, 0xffffffffu, 0xff000000u, 0xff000000u,
+                0xff000000u, 0xff000000u, 0xffffffffu, 0xffffffffu,
+                0xff000000u, 0xff000000u, 0xffffffffu, 0xffffffffu,
+            };
+            initial.data = checkerboard;
+
+            TextureDescription textureDesc = {};
+            textureDesc.width = textureDesc.height = 4;
+            _texture = graphics->CreateTexture(textureDesc, &initial);
         }
 
         void Render(CommandBuffer* commandBuffer)
@@ -354,6 +368,7 @@ namespace Alimer
             commandBuffer->SetVertexBuffer(0, _vertexBuffer.Get());
             commandBuffer->SetIndexBuffer(_indexBuffer.Get());
             commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
+            commandBuffer->SetTexture(0, _texture.Get(), ShaderStage::Fragment);
             commandBuffer->DrawIndexed(PrimitiveTopology::Triangles, 6);
             commandBuffer->EndRenderPass();
         }
@@ -363,6 +378,7 @@ namespace Alimer
         SharedPtr<IndexBuffer> _indexBuffer;
         SharedPtr<Shader> _shader;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
+        SharedPtr<Texture> _texture;
 
         struct PerCameraCBuffer
         {
@@ -381,7 +397,7 @@ namespace Alimer
 
     private:
         void Initialize() override;
-        void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime) override;
+        void OnRenderFrame(double frameTime, double elapsedTime) override;
 
     private:
         TriangleExample _triangleExample;
@@ -404,17 +420,22 @@ namespace Alimer
         _texturedCubeExample.Initialize(_graphics, _window->GetAspectRatio());
 
         // Create scene
-       // auto triangleEntity = _scene->CreateEntity();
+        //_scene = new Scene();
+       //auto triangleEntity = _scene->CreateEntity();
        // triangleEntity->AddComponent<TransformComponent>();
        // triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
     }
 
-    void RuntimeApplication::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
+    void RuntimeApplication::OnRenderFrame(double frameTime, double elapsedTime)
     {
+        auto commandBuffer = _graphics->RequestCommandBuffer();
         //_triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);
         //_cubeExample.Render(commandBuffer);
         _texturedCubeExample.Render(commandBuffer);
+
+        // Submit command buffer.
+        _graphics->Submit(commandBuffer);
     }
 }
 

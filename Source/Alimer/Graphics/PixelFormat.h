@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../PlatformDef.h"
+#include "../AlimerConfig.h"
 
 namespace Alimer
 {
@@ -35,4 +35,15 @@ namespace Alimer
 		RGBA8UNorm,
 		BGRA8UNorm,
 	};
+
+    ALIMER_API bool IsDepthFormat(PixelFormat format);
+    ALIMER_API bool IsStencilFormat(PixelFormat format);
+    ALIMER_API bool IsDepthStencilFormat(PixelFormat format);
+    ALIMER_API bool IsCompressed(PixelFormat format);
+
+    ALIMER_API uint32_t GetPixelFormatSize(PixelFormat format);
+
+    /// Calculate the data size of an image level.
+    ALIMER_API uint32_t CalculateDataSize(uint32_t width, uint32_t height, PixelFormat format, uint32_t* numRows = 0, uint32_t* rowPitch = 0);
+
 }

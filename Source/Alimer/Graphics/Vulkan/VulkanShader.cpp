@@ -59,15 +59,15 @@ namespace Alimer
         : Shader(graphics, pVertexCode, vertexCodeSize, pFragmentCode, fragmentCodeSize)
         , _logicalDevice(graphics->GetLogicalDevice())
     {
-        _shaderModules[static_cast<unsigned>(ShaderStage::Vertex)] = CreateShaderModule(_logicalDevice, pVertexCode, vertexCodeSize);
-        _shaderModules[static_cast<unsigned>(ShaderStage::Fragment)] = CreateShaderModule(_logicalDevice, pFragmentCode, fragmentCodeSize);
+        _shaderModules[static_cast<unsigned>(VulkanShaderStage::Vertex)] = CreateShaderModule(_logicalDevice, pVertexCode, vertexCodeSize);
+        _shaderModules[static_cast<unsigned>(VulkanShaderStage::Fragment)] = CreateShaderModule(_logicalDevice, pFragmentCode, fragmentCodeSize);
 
         _pipelineLayout = graphics->RequestPipelineLayout(_layout);
     }
 
     VulkanShader::~VulkanShader()
     {
-        for (uint32_t i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        for (uint32_t i = 0; i < static_cast<unsigned>(VulkanShaderStage::Count); i++)
         {
             if (_shaderModules[i] != VK_NULL_HANDLE)
             {

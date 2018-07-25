@@ -75,18 +75,6 @@ namespace Alimer
         Staging
     };
 
-    /// Shader stage.
-    enum class ShaderStage
-    {
-        Vertex = 0,
-        TessControl = 1,
-        TessEvaluation = 2,
-        Geometry = 3,
-        Fragment = 4,
-        Compute = 5,
-        Count
-    };
-
     /// Primitive topology.
     enum class PrimitiveTopology : uint32_t
     {
@@ -124,19 +112,4 @@ namespace Alimer
     };
 
     ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
-
-    template <>
-    struct EnumNames<ShaderStage>
-    {
-        constexpr std::array<const char*, 6> operator()() const {
-            return { {
-                    "vertex",
-                    "tesscontrol",
-                    "tesseval",
-                    "geometry",
-                    "fragment",
-                    "compute",
-                } };
-        }
-    };
 }

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "../Core/Object.h"
 #include <memory>
 #include <string>
 
@@ -32,8 +32,10 @@ namespace Alimer
     class Deserializer;
 
     /// Base class that supports serialization.
-    class ALIMER_API Serializable
+    class ALIMER_API Serializable : public Object
     {
+        ALIMER_OBJECT(Serializable, Object);
+
     protected:
         /// Constructor.
         Serializable();

@@ -239,7 +239,7 @@ namespace Alimer
             else if (usesUnifiedExt && hasSecondExt)
                 stageName = filePath.substr(secondExtStart + 1, firstExtStart - secondExtStart - 1);
 
-            ShaderStage stage = ShaderStage::Count;
+            ShaderStage stage = ShaderStage::None;
             if (stageName == "vert")
                 stage = ShaderStage::Vertex;
             else if (stageName == "tesc")

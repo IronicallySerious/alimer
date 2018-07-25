@@ -28,6 +28,7 @@
 #include "../Graphics/IndexBuffer.h"
 #include "../Graphics/UniformBuffer.h"
 #include "../Graphics/RenderPass.h"
+#include "../Graphics/Shader.h"
 #include "../Graphics/PipelineState.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
@@ -35,6 +36,22 @@
 namespace Alimer
 {
     class Graphics;
+
+    /// Defines the type of CommandBuffer.
+    enum class CommandBufferType : uint8_t
+    {
+        Default
+    };
+
+    template <>
+    struct EnumNames<CommandBufferType>
+    {
+        constexpr std::array<const char*, 1> operator()() const {
+            return { {
+                    "default",
+                } };
+        }
+    };
 
     /// Defines a command buffer for storing recorded gpu commands.
     class ALIMER_API CommandBuffer : public RefCounted
@@ -113,6 +130,7 @@ namespace Alimer
         void SetIndexBuffer(IndexBuffer* buffer, uint32_t offset = 0);
         
         void SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer);
+        void SetTexture(uint32_t binding, Texture* texture, ShaderStageFlags stage = ShaderStage::AllGraphics);
 
         // Draw methods
         void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
@@ -126,6 +144,7 @@ namespace Alimer
         virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
         virtual void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range);
+        virtual void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage);
 
         virtual void SetShaderCore(Shader* shader);
         virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;

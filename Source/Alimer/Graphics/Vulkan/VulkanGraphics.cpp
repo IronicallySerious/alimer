@@ -395,7 +395,7 @@ namespace Alimer
         vkDestroyPipelineCache(_logicalDevice, _pipelineCache, nullptr);
 
         // Destroy default command buffer.
-        SafeDelete(_defaultCommandBuffer);
+        _defaultCommandBuffer.Reset();
 
         // Destroy default command pool.
         if (_commandPool != VK_NULL_HANDLE)
@@ -715,9 +715,21 @@ namespace Alimer
         // DestroyPendingResources();
     }
 
-    CommandBuffer* VulkanGraphics::GetDefaultCommandBuffer() const
+    SharedPtr<CommandBuffer> VulkanGraphics::RequestCommandBuffer(CommandBufferType type)
     {
-        return _defaultCommandBuffer;
+        switch (type)
+        {
+        case CommandBufferType::Default:
+            return _defaultCommandBuffer;
+
+        default:
+            ALIMER_LOGCRITICAL("Invalid CommandBuffer type requested: {}", str::ToString(type));
+        }
+    }
+
+    void VulkanGraphics::Submit(const SharedPtr<CommandBuffer> &commandBuffer)
+    {
+
     }
 
     RenderPass* VulkanGraphics::GetBackbufferRenderPass() const
@@ -733,6 +745,11 @@ namespace Alimer
     BufferHandle* VulkanGraphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
     {
         return new VulkanBuffer(this, usage, size, stride, resourceUsage, initialData);
+    }
+
+    SharedPtr<Texture> VulkanGraphics::CreateTexture(const TextureDescription& description, const ImageLevel* initialData)
+    {
+        return MakeShared<VulkanTexture>(this, description, initialData);
     }
 
     Shader* VulkanGraphics::CreateComputeShader(const void *pCode, size_t codeSize)

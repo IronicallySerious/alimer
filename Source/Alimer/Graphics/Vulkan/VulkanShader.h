@@ -32,6 +32,17 @@ namespace Alimer
     class VulkanGraphics;
     class VulkanPipelineLayout;
 
+    enum class VulkanShaderStage
+    {
+        Vertex = 0,
+        TessControl = 1,
+        TessEvaluation = 2,
+        Geometry = 3,
+        Fragment = 4,
+        Compute = 5,
+        Count
+    };
+
     /// D3D12 Shader implementation.
     class VulkanShader final : public Shader
     {
@@ -53,7 +64,7 @@ namespace Alimer
 
     private:
         VkDevice _logicalDevice;
-        VkShaderModule _shaderModules[static_cast<unsigned>(ShaderStage::Count)] = {};
+        VkShaderModule _shaderModules[static_cast<unsigned>(VulkanShaderStage::Count)] = {};
         VulkanPipelineLayout* _pipelineLayout = nullptr;
         HashMap<VkPipeline> _graphicsPipelineCache;
     };

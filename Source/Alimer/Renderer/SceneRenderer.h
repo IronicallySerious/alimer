@@ -27,7 +27,6 @@
 
 namespace Alimer
 {
-    class RenderPass;
     class Graphics;
 
     class Renderable;
@@ -47,7 +46,7 @@ namespace Alimer
         SceneRenderer(Graphics* graphics);
         virtual ~SceneRenderer() = default;
 
-        void Render(Scene* scene, RenderPass* frameRenderPass);
+        void Render(Scene* scene);
 
     private:
         /// Graphics subsystem.

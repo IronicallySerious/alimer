@@ -35,7 +35,9 @@ namespace Alimer
 	{
 	public:
 		VulkanTexture(VulkanGraphics* graphics, const TextureDescription& description, VkImage vkImage, VkImageUsageFlags usage);
-		~VulkanTexture() override;
+        VulkanTexture(VulkanGraphics* graphics, const TextureDescription& description, const ImageLevel* initialData);
+
+        ~VulkanTexture() override;
         void Destroy() override;
 
 		inline VkImage GetVkHandle() const { return _vkHandle; }

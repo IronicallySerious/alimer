@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Core/Flags.h"
 #include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
 #include <string>
@@ -31,6 +32,32 @@
 namespace Alimer
 {
     class Graphics;
+
+    /// Defines shader stage usage.
+    enum class ShaderStage : uint32_t
+    {
+        None = 0,
+        Vertex = 1 << 0,
+        TessControl = 1 << 1,
+        TessEvaluation = 1 << 2,
+        Geometry = 1 << 3,
+        Fragment = 1 << 4,
+        Compute = 1 << 5,
+        AllTessellation = (TessControl | TessEvaluation),
+        AllGraphics = (Vertex | AllTessellation | Geometry | Fragment),
+        All = (AllGraphics | Compute),
+    };
+
+    using ShaderStageFlags = Flags<ShaderStage>;
+    ALIMER_FORCE_INLINE ShaderStageFlags operator|(ShaderStage bit0, ShaderStage bit1)
+    {
+        return ShaderStageFlags(bit0) | bit1;
+    }
+
+    ALIMER_FORCE_INLINE ShaderStageFlags operator~(ShaderStage bits)
+    {
+        return ~(ShaderStageFlags(bits));
+    }
 
     enum class BindingType
     {
@@ -93,6 +120,4 @@ namespace Alimer
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
     };
-
-    using ShaderPtr = SharedPtr<Shader>;
 }

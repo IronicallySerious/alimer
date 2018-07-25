@@ -47,11 +47,17 @@ namespace Alimer
 
         bool BeginFrame() override;
         void EndFrame() override;
-        CommandBuffer* GetDefaultCommandBuffer() const;
+
+        SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBufferType type) override;
+        void Submit(const SharedPtr<CommandBuffer> &commandBuffer) override;
+
         RenderPass* GetBackbufferRenderPass() const;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
         BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
+
+        SharedPtr<Texture> CreateTexture(const TextureDescription& description, const ImageLevel* initialData) override;
+
         Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
         Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,
             const void *pFragmentCode, size_t fragmentCodeSize) override;
@@ -113,7 +119,7 @@ namespace Alimer
 		VulkanSwapchain* _swapChain = nullptr;
 
         // Primary/Default command buffer
-        VulkanCommandBuffer* _defaultCommandBuffer = nullptr;
+        SharedPtr<VulkanCommandBuffer> _defaultCommandBuffer;
 
         // Synchronization semaphores
         struct {

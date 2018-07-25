@@ -60,6 +60,12 @@ namespace Alimer
         }
     }
 
+    VulkanTexture::VulkanTexture(VulkanGraphics* graphics, const TextureDescription& description, const ImageLevel* initialData)
+        : Texture(graphics, description)
+    {
+
+    }
+
     VulkanTexture::~VulkanTexture()
     {
         Destroy();

@@ -270,6 +270,17 @@ namespace Alimer
     {
     }
 
+    void CommandBuffer::SetTexture(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    {
+        ALIMER_ASSERT(binding < MaxBindingsPerSet);
+        SetTextureCore(binding, texture, stage);
+    }
+
+    void CommandBuffer::SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    {
+
+    }
+
     void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
     {
         if (!IsInsideRenderPass())

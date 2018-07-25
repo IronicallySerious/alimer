@@ -23,7 +23,7 @@
 #pragma once
 
 #include "D3DPrerequisites.h"
-#include "../Types.h"
+#include "../Shader.h"
 #include <vector>
 
 namespace Alimer
