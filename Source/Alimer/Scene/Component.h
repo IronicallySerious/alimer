@@ -22,32 +22,35 @@
 
 #pragma once
 
-#include "../Scene/Component.h"
-#include "../Math/Matrix4x4.h"
+#include "../Serialization/Serializable.h"
 
 namespace Alimer
 {
-	/// Defines a Camera Component class.
-    class ALIMER_API CameraComponent final : public Component
-	{
+    class Entity;
+    class Scene;
+
+    /// Defines a Base Component class.
+    class ALIMER_API Component : public Serializable
+    {
+        ALIMER_OBJECT(Component, Serializable);
+
+        friend class Entity;
+        friend class EntityManager;
+        friend class Scene;
+        
+    protected:
+        /// Constructor.
+        Component();
+
     public:
-        CameraComponent();
-        ~CameraComponent() = default;
+        /// Destructor.
+        virtual ~Component() = default;
 
-        //void Update(const glm::mat4& worldTransform);
+        /// Return the owner Entity.
+        Entity* GetEntity() const { return _entity; }
 
-        //glm::mat4 GetView() const;
-        //glm::mat4 GetProjection() const;
-
-    private:
-        // Field of view (in degrees)
-        float _fovy = 60.0f;
-        float _aspect = 16.0f / 9.0f;
-        float _znear = 1.0f;
-        float _zfar  = 1000.0f;
-
-        // Calculated values.
-        Matrix4x4 _view;
-        Matrix4x4 _projection;
-	};
+    protected:
+        Entity * _entity = nullptr;
+        bool _enabled;
+    };
 }

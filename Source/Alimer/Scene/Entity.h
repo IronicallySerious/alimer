@@ -30,35 +30,13 @@
 #include <algorithm>
 #include "../Core/Object.h"
 #include "../Util/ObjectPool.h"
+#include "../Scene/Component.h"
 #include <assert.h>
 
 namespace Alimer
 {
     class Entity;
     class EntityManager;
-
-    /// Defines a base Component class.
-    class ALIMER_API Component
-    {
-        friend class EntityManager;
-
-    protected:
-        /// Constructor
-        Component() {}
-
-    public:
-        /// Destructor.
-        virtual ~Component() = default;
-
-        Entity* GetEntity() const { return _entity; }
-
-    protected:
-        Entity * _entity = nullptr;
-        bool _enabled = true;
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Component);
-    };
 
     struct ComponentIDMapping
     {

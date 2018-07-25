@@ -20,34 +20,25 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Scene/Component.h"
-#include "../Math/Matrix4x4.h"
+#include "../Scene/ComponentSystem.h"
+#include "../Scene/Scene.h"
 
 namespace Alimer
 {
-	/// Defines a Camera Component class.
-    class ALIMER_API CameraComponent final : public Component
-	{
-    public:
-        CameraComponent();
-        ~CameraComponent() = default;
+    ComponentSystem::ComponentSystem(std::type_index type)
+        : _scene(nullptr)
+        , _type(type)
+        , _active(true)
+    {
+    }
 
-        //void Update(const glm::mat4& worldTransform);
+    void ComponentSystem::Update(double deltaTime)
+    {
 
-        //glm::mat4 GetView() const;
-        //glm::mat4 GetProjection() const;
+    }
 
-    private:
-        // Field of view (in degrees)
-        float _fovy = 60.0f;
-        float _aspect = 16.0f / 9.0f;
-        float _znear = 1.0f;
-        float _zfar  = 1000.0f;
-
-        // Calculated values.
-        Matrix4x4 _view;
-        Matrix4x4 _projection;
-	};
+    void ComponentSystem::SetScene(Scene* scene)
+    {
+        _scene = scene;
+    }
 }

@@ -23,31 +23,43 @@
 #pragma once
 
 #include "../Scene/Component.h"
-#include "../Math/Matrix4x4.h"
+#include <vector>
+#include <typeindex>
 
 namespace Alimer
 {
-	/// Defines a Camera Component class.
-    class ALIMER_API CameraComponent final : public Component
+    class Scene;
+
+	/// Defines a base ComponentSystem class.
+    class ALIMER_API ComponentSystem
 	{
+        friend class Scene;
+
+    protected:
+        /// Constructor.
+        ComponentSystem(std::type_index type);
+
     public:
-        CameraComponent();
-        ~CameraComponent() = default;
+        /// Destructor.
+        virtual ~ComponentSystem() = default;
 
-        //void Update(const glm::mat4& worldTransform);
+        /// Updates the system
+        virtual void Update(double deltaTime);
 
-        //glm::mat4 GetView() const;
-        //glm::mat4 GetProjection() const;
+        /// Gets the unique type ID of the system.
+        std::type_index GetType() const { return _type; }
+
+        /// Gets true if the system is currently active.
+        bool IsActive() const { return _active; }
 
     private:
-        // Field of view (in degrees)
-        float _fovy = 60.0f;
-        float _aspect = 16.0f / 9.0f;
-        float _znear = 1.0f;
-        float _zfar  = 1000.0f;
+        void SetScene(Scene* scene);
 
-        // Calculated values.
-        Matrix4x4 _view;
-        Matrix4x4 _projection;
+        Scene* _scene;
+        std::type_index _type;
+        bool _active;
+
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(ComponentSystem);
 	};
 }

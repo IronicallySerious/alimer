@@ -23,9 +23,9 @@
 #pragma once
 
 #include "../Scene/Entity.h"
+#include "../Scene/ComponentSystem.h"
 #include "../Math/MathUtil.h"
 #include "../Graphics/Graphics.h"
-#include <vector>
 
 namespace Alimer
 {
@@ -34,8 +34,10 @@ namespace Alimer
     class RenderableComponent;
 
     /// Defines a scene, which is a container of SceneObject's.
-    class Scene final : public RefCounted
+    class Scene final : public Serializable
     {
+        ALIMER_OBJECT(Scene, Serializable);
+
     public:
         /// Constructor.
         Scene();
@@ -54,6 +56,14 @@ namespace Alimer
 
         EntityManager &GetEntityManager();
 
+        /// Creates a new system of the given type and add to system.
+        template <typename T, typename... Args>
+        T& AddSystem(Args&&... args);
+
+        /// Update scene 
+        void Update(double deltaTime);
+
+    private:
         void UpdateCachedTransforms();
 
     protected:
@@ -66,8 +76,33 @@ namespace Alimer
         std::vector<std::tuple<CameraComponent*, TransformComponent*>> &_cameras;
         
         std::vector<EntityHandle> _entities;
+        std::vector<std::unique_ptr<ComponentSystem>> _systems;
+        std::vector<ComponentSystem*> _activeSystems;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);
     };
+
+    template <typename T, typename... Args>
+    T& Scene::AddSystem(Args&&... args)
+    {
+        static_assert(std::is_base_of<ComponentSystem, T>::value, "Invalid ComponentSystem type");
+
+        std::type_index type(typeid(T));
+        auto result = std::find_if(std::begin(_systems), std::end(_systems),
+            [&type](const std::unique_ptr<ComponentSystem>& system)
+        {
+            return system->GetType() == type;
+        });
+
+        if (result != _systems.end())
+        {
+            return *(dynamic_cast<T*>(result->get()));
+        }
+
+        _systems.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
+        _systems.back()->SetScene(this);
+        _activeSystems.push_back(_systems.back().get());
+        return *(dynamic_cast<T*>(_systems.back().get()));
+    }
 }

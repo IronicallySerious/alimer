@@ -138,14 +138,14 @@ namespace Alimer
         {
             // Tick timer.
             double frameTime = _timer.Frame();
-            double elapsedTime = _timer.GetElapsed();
+            double deltaTime = _timer.GetElapsed();
 
             if (_scene)
             {
-                _scene->UpdateCachedTransforms();
+                _scene->Update(deltaTime);
             }
 
-            RenderFrame(frameTime, elapsedTime);
+            RenderFrame(frameTime, deltaTime);
             _input->Update();
         }
     }

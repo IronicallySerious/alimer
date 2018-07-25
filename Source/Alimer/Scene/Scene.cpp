@@ -24,6 +24,7 @@
 #include "../Scene/TransformComponent.h"
 #include "../Scene/CameraComponent.h"
 #include "../Scene/Renderable.h"
+#include "Scene/Systems/CameraSystem.h"
 #include "../Core/Log.h"
 using namespace std;
 
@@ -39,6 +40,9 @@ namespace Alimer
         //_defaultCamera->AddComponent<AudioListener>();
 
         _activeCamera = _defaultCamera;
+
+        // Setup systems.
+        AddSystem<CameraSystem>();
 	}
 
 	Scene::~Scene()
@@ -56,6 +60,14 @@ namespace Alimer
     EntityManager &Scene::GetEntityManager()
     {
         return _entityManager;
+    }
+
+    void Scene::Update(double deltaTime)
+    {
+        for (auto& system : _activeSystems)
+        {
+            system->Update(deltaTime);
+        }
     }
 
     void Scene::UpdateCachedTransforms()
