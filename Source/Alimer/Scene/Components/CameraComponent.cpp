@@ -20,12 +20,28 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/TransformComponent.h"
+#include "Scene/Components/CameraComponent.h"
+#include "Scene/Components/TransformComponent.h"
 
 namespace Alimer
 {
-    TransformComponent::TransformComponent()
+    CameraComponent::CameraComponent()
     {
-        
     }
+
+    /*void CameraComponent::Update(const glm::mat4& worldTransform)
+    {
+        _projection = glm::perspective(glm::radians(_fovy), _aspect, _znear, _zfar);
+        _view = glm::inverse(worldTransform);
+    }
+
+    glm::mat4 CameraComponent::GetView() const
+    {
+        return _view;
+    }
+
+    glm::mat4 CameraComponent::GetProjection() const
+    {
+        return _projection;
+    }*/
 }

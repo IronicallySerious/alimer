@@ -29,6 +29,7 @@
 namespace Alimer
 {
     class Scene;
+    class EntityManager;
 
 	/// Defines a base ComponentSystem class.
     class ALIMER_API ComponentSystem
@@ -52,11 +53,11 @@ namespace Alimer
         /// Gets true if the system is currently active.
         bool IsActive() const { return _active; }
 
-    private:
+    protected:
         void SetScene(Scene* scene);
 
-        Scene* _scene;
         std::type_index _type;
+        Scene* _scene;
         bool _active;
 
     private:

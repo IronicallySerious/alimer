@@ -23,7 +23,6 @@
 #pragma once
 
 #include "Graphics/GpuBuffer.h"
-#include "Graphics/GraphicsImpl.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
@@ -31,7 +30,7 @@ namespace Alimer
 	class D3D11Graphics;
 
 	/// D3D11 GpuBuffer implementation.
-	class D3D11GpuBuffer final : public BufferHandle
+	class D3D11GpuBuffer final : public GpuBuffer
 	{
 	public:
 		/// Constructor.
@@ -40,7 +39,7 @@ namespace Alimer
 		/// Destructor.
 		~D3D11GpuBuffer() override;
 
-        bool SetData(uint32_t offset, uint32_t size, const void* data) override;
+        //bool SetData(uint32_t offset, uint32_t size, const void* data) override;
 
         ID3D11Buffer* GetD3DBuffer() const { return _d3dBuffer; }
 

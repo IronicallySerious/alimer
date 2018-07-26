@@ -86,7 +86,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        VertexBuffer(Graphics* graphics);
+        VertexBuffer();
 
         /// Destructor.
         virtual ~VertexBuffer() override;

@@ -233,27 +233,29 @@ namespace Alimer
     {
     }
 
-    void CommandBuffer::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset, VertexInputRate inputRate)
+    void CommandBuffer::SetVertexBuffer(uint32_t binding, GpuBuffer* buffer, uint64_t offset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
         ALIMER_ASSERT(buffer);
+        ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Vertex);
 
         SetVertexBufferCore(binding, buffer, offset, buffer->GetStride(), inputRate);
     }
 
-    void CommandBuffer::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
+    void CommandBuffer::SetVertexBufferCore(uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
     {
 
     }
 
-    void CommandBuffer::SetIndexBuffer(IndexBuffer* buffer, uint32_t offset)
+    void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset)
     {
         ALIMER_ASSERT(buffer);
+        ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Index);
 
-        SetIndexBufferCore(buffer->GetHandle(), offset, buffer->GetIndexType());
+        SetIndexBufferCore(buffer, offset, buffer->GetStride() == 2 ? IndexType::UInt16 : IndexType::UInt32);
     }
 
-    void CommandBuffer::SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType)
+    void CommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
 
     }
@@ -262,11 +264,13 @@ namespace Alimer
     {
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
+        ALIMER_ASSERT(buffer);
+        ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Uniform);
 
-        SetUniformBufferCore(set, binding, buffer->GetHandle(), 0, buffer->GetSize());
+        SetUniformBufferCore(set, binding, buffer, 0, buffer->GetSize());
     }
 
-    void CommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range)
+    void CommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range)
     {
     }
 

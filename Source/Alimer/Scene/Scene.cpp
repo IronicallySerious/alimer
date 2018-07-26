@@ -21,10 +21,10 @@
 //
 
 #include "../Scene/Scene.h"
-#include "../Scene/TransformComponent.h"
-#include "../Scene/CameraComponent.h"
-#include "../Scene/Renderable.h"
-#include "Scene/Systems/CameraSystem.h"
+#include "../Scene/Components/TransformComponent.h"
+#include "../Scene/Components/CameraComponent.h"
+#include "../Scene/Systems/CameraSystem.h"
+#include "../Scene/Systems/RenderSystem.h"
 #include "../Core/Log.h"
 using namespace std;
 
@@ -32,7 +32,6 @@ namespace Alimer
 {
 	Scene::Scene()
         : _spatials(_entityManager.GetComponentGroup<TransformComponent>())
-        , _cameras(_entityManager.GetComponentGroup<CameraComponent, TransformComponent>())
 	{
         _defaultCamera = CreateEntity();
         _defaultCamera->AddComponent<TransformComponent>();
@@ -42,7 +41,8 @@ namespace Alimer
         _activeCamera = _defaultCamera;
 
         // Setup systems.
-        AddSystem<CameraSystem>();
+        AddSystem<CameraSystem>(_entityManager);
+        AddSystem<RenderSystem>(_entityManager);
 	}
 
 	Scene::~Scene()
@@ -70,6 +70,11 @@ namespace Alimer
         }
     }
 
+    void Scene::Render(CommandBuffer* commandBuffer)
+    {
+        GetSystem<RenderSystem>().Render(commandBuffer);
+    }
+
     void Scene::UpdateCachedTransforms()
     {
         /*const glm::mat4 &parentTransform = glm::mat4(1.0f);
@@ -89,14 +94,5 @@ namespace Alimer
             //    transform->lastTimestamp = *transform->currentTimestamp;
             //}
         }*/
-
-        // Update camera transforms.
-        for (auto &c : _cameras)
-        {
-            //CameraComponent *camera;
-            //TransformComponent *transform;
-            //std::tie(camera, transform) = c;
-            //camera->Update(transform->worldTransform);
-        }
     }
 }

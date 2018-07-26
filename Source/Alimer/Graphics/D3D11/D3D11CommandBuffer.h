@@ -71,9 +71,9 @@ namespace Alimer
         void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
         void SetShaderCore(Shader* shader) override;
-        void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
-        void SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType) override;
-        void SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range) override;
+        void SetVertexBufferCore(uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
+        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
         void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) override;
 
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
@@ -96,7 +96,7 @@ namespace Alimer
 
         struct VertexBindingState
         {
-            VertexBuffer* buffers[MaxVertexBufferBindings];
+            GpuBuffer* buffers[MaxVertexBufferBindings];
             ID3D11Buffer* d3dBuffers[MaxVertexBufferBindings];
             uint32_t offsets[MaxVertexBufferBindings];
             uint32_t strides[MaxVertexBufferBindings];

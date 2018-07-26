@@ -218,12 +218,12 @@ namespace Alimer
         _currentShader = static_cast<D3D11Shader*>(shader);
     }
 
-    void D3D11CommandContext::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
+    void D3D11CommandContext::SetVertexBufferCore(uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
     {
         if (_vbo.buffers[binding] != buffer
             || _vbo.offsets[binding] != offset)
         {
-            _vbo.d3dBuffers[binding] = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
+            _vbo.d3dBuffers[binding] = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
 
             _dirtyVbos |= 1u << binding;
             _inputLayoutDirty = true;
@@ -243,7 +243,7 @@ namespace Alimer
     }
 
 
-    void D3D11CommandContext::SetIndexBufferCore(BufferHandle* buffer, uint32_t offset, IndexType indexType)
+    void D3D11CommandContext::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
         DXGI_FORMAT dxgiFormat = DXGI_FORMAT_R16_UINT;
@@ -256,7 +256,7 @@ namespace Alimer
     }
 
 
-    void D3D11CommandContext::SetUniformBufferCore(uint32_t set, uint32_t binding, BufferHandle* buffer, uint64_t offset, uint64_t range)
+    void D3D11CommandContext::SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range)
     {
         ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
         _context->VSSetConstantBuffers(binding, 1, &d3dBuffer);
@@ -353,7 +353,7 @@ namespace Alimer
             //newInputLayout.second = vertexShader->GetElementHash();
             for (uint32_t i = binding; i < binding + count; i++)
             {
-                newInputLayout.first |= _vbo.buffers[i]->GetElementHash() << (i * 16);
+                //newInputLayout.first |= _vbo.buffers[i]->GetElementHash() << (i * 16);
             }
 
             if (_currentInputLayout != newInputLayout)
@@ -368,7 +368,7 @@ namespace Alimer
                 else
                 {
                     // Not found, create new
-                    D3D11_INPUT_ELEMENT_DESC d3dElementDescs[MaxVertexAttributes];
+                    /*D3D11_INPUT_ELEMENT_DESC d3dElementDescs[MaxVertexAttributes];
                     memset(d3dElementDescs, 0, sizeof(d3dElementDescs));
 
                     UINT attributeCount = 0;
@@ -414,7 +414,7 @@ namespace Alimer
                         _graphics->StoreInputLayout(newInputLayout, d3dInputLayout);
                         _context->IASetInputLayout(d3dInputLayout);
                         _currentInputLayout = newInputLayout;
-                    }
+                    }*/
                 }
             }
         }

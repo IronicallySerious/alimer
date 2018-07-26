@@ -20,9 +20,10 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Scene.h"
-#include "../Scene/TransformComponent.h"
-#include "../Scene/Renderable.h"
+#include "Scene/Components/Renderable.h"
+#include "Scene/Components/TransformComponent.h"
+#include "Scene/Scene.h"
+
 namespace Alimer
 {
     TriangleRenderable::TriangleRenderable()
@@ -62,10 +63,10 @@ namespace Alimer
 
     }
 
-    void TriangleRenderable::Render(CommandBuffer* commandBuffer)
-    {
+    //void TriangleRenderable::Render(CommandBuffer* commandBuffer)
+    //{
         /*commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
         commandBuffer->SetPipeline(_renderPipeline);
         commandBuffer->Draw(PrimitiveTopology::Triangles, 3);*/
-    }
+    //}
 }

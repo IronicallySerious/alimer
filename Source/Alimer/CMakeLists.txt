@@ -90,24 +90,6 @@ if (ALIMER_D3D12)
 	define_engine_source_files(Graphics/D3D12)
 endif ()
 
-# enkiTS
-set(ENKITS_HEADER_FILES
-	${ALIMER_THIRD_PARTY_DIR}/enkiTS/src/Atomics.h
-	${ALIMER_THIRD_PARTY_DIR}/enkiTS/src/LockLessMultiReadPipe.h
-	${ALIMER_THIRD_PARTY_DIR}/enkiTS/src/TaskScheduler.h
-	${ALIMER_THIRD_PARTY_DIR}/enkiTS/src/TaskScheduler_c.h
-	${ALIMER_THIRD_PARTY_DIR}/enkiTS/src/Threads.h
-)
-
-set(ENKITS_SOURCE_FILES
-	${ALIMER_THIRD_PARTY_DIR}/enkiTS/src/TaskScheduler.cpp
-	${ALIMER_THIRD_PARTY_DIR}/enkiTS/src/TaskScheduler_c.cpp
-)
-
-list (APPEND HEADER_FILES ${ENKITS_HEADER_FILES})
-list (APPEND SOURCE_FILES ${ENKITS_SOURCE_FILES})
-install (FILES ${ENKITS_HEADER_FILES} DESTINATION ${DEST_INCLUDE_DIR}/ThirdParty/enkiTS)
-
 # Group source code in VS solution
 group_sources()
 

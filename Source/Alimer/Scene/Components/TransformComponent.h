@@ -22,45 +22,30 @@
 
 #pragma once
 
-#include "../Scene/Scene.h"
-#include "../Scene/CameraComponent.h"
+#include "../../Math/MathUtil.h"
+#include "../../Scene/Component.h"
 
 namespace Alimer
 {
-    class Graphics;
-
-    class Renderable;
-    class RenderableComponent;
-
-    struct RenderableInfo
+    struct Transform
     {
-        Renderable *renderable;
-        const TransformComponent *transform;
+        //glm::vec3 scale = glm::vec3(1.0f);
+        //glm::vec3 translation = glm::vec3(0.0f);
+        //glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     };
-    using VisibilitySet = std::vector<RenderableInfo>;
 
-	/// Defines a scene renderer.
-    class ALIMER_API SceneRenderer
+	/// Defines a Transform Component.
+    class ALIMER_API TransformComponent : public Component
 	{
     public:
-        SceneRenderer(Graphics* graphics);
-        virtual ~SceneRenderer() = default;
+        TransformComponent();
+        virtual ~TransformComponent() = default;
 
-        void Render(Scene* scene);
+        Transform transform;
 
-    private:
-        /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
+        //glm::mat4 worldTransform;
 
-        struct PerCameraCBuffer
-        {
-            //glm::mat4 viewMatrix;
-            //glm::mat4 projectionMatrix;
-        };
-
-        PerCameraCBuffer _camera;
-        SharedPtr<GpuBuffer> _perCameraUboBuffer;
-
-        VisibilitySet _visibleSet;
+        uint32_t lastTimestamp = ~0u;
+        const uint32_t *currentTimestamp = nullptr;
 	};
 }

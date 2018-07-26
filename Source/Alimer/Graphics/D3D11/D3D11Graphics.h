@@ -56,7 +56,8 @@ namespace Alimer
         void Submit(const SharedPtr<CommandBuffer> &commandBuffer) override;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
-        BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
+
+        GpuBuffer* CreateBufferCore(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
 
         SharedPtr<Texture> CreateTexture(const TextureDescription& description, const ImageLevel* initialData) override;
 

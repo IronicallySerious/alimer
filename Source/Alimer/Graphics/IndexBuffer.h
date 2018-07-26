@@ -31,7 +31,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        IndexBuffer(Graphics* graphics);
+        IndexBuffer();
 
         /// Destructor.
         virtual ~IndexBuffer() override;

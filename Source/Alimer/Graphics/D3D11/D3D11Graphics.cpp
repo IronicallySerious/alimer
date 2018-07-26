@@ -443,7 +443,7 @@ namespace Alimer
         return MakeShared<D3D11RenderPass>(this, description);
     }
 
-    BufferHandle* D3D11Graphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
+    GpuBuffer* D3D11Graphics::CreateBufferCore(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
     {
         return new D3D11GpuBuffer(this, usage, size, stride, resourceUsage, initialData);
     }

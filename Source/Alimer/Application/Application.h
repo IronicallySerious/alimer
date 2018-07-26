@@ -42,7 +42,6 @@
 #include "../Audio/Audio.h"
 #include "../Graphics/Graphics.h"
 #include "../Scene/Scene.h"
-struct enkiTaskScheduler;
 
 namespace Alimer
 {
@@ -57,8 +56,6 @@ namespace Alimer
         bool validation = false;
 #endif
     };
-
-    class SceneRenderer;
 
     /// Application for main loop and all modules and OS setup.
     class ALIMER_API Application : public Object
@@ -141,10 +138,8 @@ namespace Alimer
         SharedPtr<Graphics> _graphics;
         std::unique_ptr<Input> _input;
         std::unique_ptr<Audio> _audio;
-        enkiTaskScheduler* _taskScheduler;
 
         SharedPtr<Scene> _scene;
-        std::unique_ptr<SceneRenderer> _renderer;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

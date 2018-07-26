@@ -20,26 +20,17 @@
 // THE SOFTWARE.
 //
 
-#include "../Renderer/SceneRenderer.h"
-#include "../Scene/TransformComponent.h"
-#include "../Scene/CameraComponent.h"
-#include "../Scene/Renderable.h"
-#include "../Graphics/Graphics.h"
+#include "../Systems/RenderSystem.h"
+#include "../Scene.h"
+#include "../../Graphics/Graphics.h"
 
 namespace Alimer
 {
-    SceneRenderer::SceneRenderer(Graphics* graphics)
-        : _graphics(graphics)
+    RenderSystem::RenderSystem(EntityManager& entityManager)
+        : ComponentSystem(typeid(RenderSystem))
+        , _renderables(entityManager.GetComponentGroup<TransformComponent, RenderableComponent>())
     {
-        //_camera.viewMatrix = glm::mat4(1.0f);
-        //_camera.projectionMatrix = glm::mat4(1.0f);
-
-        // Create camera uniform buffer.
-        //GpuBufferDescription uboBufferDesc = {};
-        //uboBufferDesc.usage = BufferUsage::Uniform;
-        //uboBufferDesc.elementCount = 1;
-        //uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
-        //_perCameraUboBuffer = graphics->CreateBuffer(uboBufferDesc, &_camera);
+        
     }
 
     // TODO: Add frustum
@@ -54,27 +45,38 @@ namespace Alimer
             if (transform)
             {
                 // if (frustum.intersects_fast(transform->world_aabb))
-                list.push_back({ renderable->renderable.Get(), transform });
+                list.push_back({ renderable, transform });
             }
             else
             {
-                list.push_back({ renderable->renderable.Get(), nullptr });
+                list.push_back({ renderable, nullptr });
             }
         }
     }
 
-    void SceneRenderer::Render(Scene* scene)
+    void RenderSystem::Update(double deltaTime)
     {
-        CameraComponent* activeCamera = scene->GetActiveCamera()->GetComponent<CameraComponent>();
-
-        auto renderables = scene->GetEntityManager().GetComponentGroup<TransformComponent, RenderableComponent>();
-
         // Gather visibles.
         _visibleSet.clear();
-        GatherVisibleRenderables(_visibleSet, renderables);
 
-        // TODO: handle multi threaded rendering here.
-        auto commandBuffer = _graphics->RequestCommandBuffer();
+        // TODO: Add async culling.
+        if (_renderables.size())
+        {
+            CameraComponent* activeCamera = _scene->GetActiveCamera()->GetComponent<CameraComponent>();
+
+            GatherVisibleRenderables(_visibleSet, _renderables);
+
+            /*for (auto &c : _renderables)
+            {
+                TransformComponent *transform;
+                RenderableComponent *renderable;
+                std::tie(transform, renderable) = c;
+            }*/
+        }
+    }
+
+    void RenderSystem::Render(CommandBuffer* commandBuffer)
+    {
         commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
 
         // Bind per camera UBO
@@ -87,6 +89,5 @@ namespace Alimer
         }
 
         commandBuffer->EndRenderPass();
-        _graphics->Submit(commandBuffer);
     }
 }

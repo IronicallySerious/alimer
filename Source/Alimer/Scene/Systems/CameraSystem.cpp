@@ -20,18 +20,26 @@
 // THE SOFTWARE.
 //
 
-#include "Scene/Systems/CameraSystem.h"
+#include "../Systems/CameraSystem.h"
+#include "../Scene.h"
 
 namespace Alimer
 {
-    CameraSystem::CameraSystem()
+    CameraSystem::CameraSystem(EntityManager& entityManager)
         : ComponentSystem(typeid(CameraSystem))
+        , _cameras(entityManager.GetComponentGroup<CameraComponent, TransformComponent>())
     {
         
     }
 
     void CameraSystem::Update(double deltaTime)
     {
-
+        for (auto &c : _cameras)
+        {
+            CameraComponent *camera;
+            TransformComponent *transform;
+            std::tie(camera, transform) = c;
+            //camera->Update(transform->worldTransform);
+        }
     }
 }

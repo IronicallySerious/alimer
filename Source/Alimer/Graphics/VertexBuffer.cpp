@@ -34,8 +34,8 @@ namespace Alimer
         return h.get();
     }
 
-    VertexBuffer::VertexBuffer(Graphics* graphics)
-        : GpuBuffer(graphics, BufferUsage::Vertex)
+    VertexBuffer::VertexBuffer()
+        : GpuBuffer(nullptr, BufferUsage::Vertex, 0, 0, ResourceUsage::Default)
     {
     }
 

@@ -24,10 +24,7 @@
 #include "../Application/Application.h"
 #include "../IO/Path.h"
 #include "../Core/Platform.h"
-#include "../Renderer/SceneRenderer.h"
 #include "../Core/Log.h"
-
-#include "enkiTS/src/TaskScheduler_c.h"
 using namespace std;
 
 namespace Alimer
@@ -43,10 +40,6 @@ namespace Alimer
     {
         PlatformConstruct();
 
-        // Init enkiTS
-        _taskScheduler = enkiNewTaskScheduler();
-        enkiInitTaskScheduler(_taskScheduler);
-
         __appInstance = this;
     }
 
@@ -54,11 +47,6 @@ namespace Alimer
     {
         _paused = true;
         _running = false;
-
-        // Delete enkiTS
-        enkiDeleteTaskScheduler(_taskScheduler);
-
-        _renderer.reset();
 
         PluginManager::DeleteInstance();
 
@@ -99,9 +87,6 @@ namespace Alimer
 
         // Load plugins
         LoadPlugins();
-
-        // Create renderer.
-        _renderer = make_unique<SceneRenderer>(_graphics);
 
         // Initialize this instance and all systems.
         Initialize();
@@ -157,12 +142,17 @@ namespace Alimer
 
         if (_graphics->BeginFrame())
         {
-            OnRenderFrame(frameTime, elapsedTime);
-
             if (_scene)
             {
-                _renderer->Render(_scene);
+                // Render scene to default command buffer.
+                auto commandBuffer = _graphics->RequestCommandBuffer();
+                _scene->Render(commandBuffer.Get());
+
+                // Submit command buffer.
+                _graphics->Submit(commandBuffer);
             }
+
+            OnRenderFrame(frameTime, elapsedTime);
 
             // End rendering frame.
             _graphics->EndFrame();

@@ -20,28 +20,28 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/CameraComponent.h"
-#include "../Scene/TransformComponent.h"
+#pragma once
+
+#include "../../Scene/Component.h"
+#include "../../Graphics/Graphics.h"
+#include "../../Math/MathUtil.h"
 
 namespace Alimer
 {
-    CameraComponent::CameraComponent()
+    class ALIMER_API RenderableComponent : public Component
     {
-    }
+    public:
+    };
 
-    /*void CameraComponent::Update(const glm::mat4& worldTransform)
+    class ALIMER_API TriangleRenderable final : public RenderableComponent
     {
-        _projection = glm::perspective(glm::radians(_fovy), _aspect, _znear, _zfar);
-        _view = glm::inverse(worldTransform);
-    }
+    public:
+        TriangleRenderable();
+        virtual ~TriangleRenderable();
 
-    glm::mat4 CameraComponent::GetView() const
-    {
-        return _view;
-    }
-
-    glm::mat4 CameraComponent::GetProjection() const
-    {
-        return _projection;
-    }*/
+        //void Render(CommandBuffer* commandBuffer) override;
+    private:
+        //SharedPtr<GpuBuffer> _vertexBuffer;
+        //SharedPtr<PipelineState> _renderPipeline;
+    };
 }

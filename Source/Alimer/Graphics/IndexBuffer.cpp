@@ -25,10 +25,9 @@
 
 namespace Alimer
 {
-    IndexBuffer::IndexBuffer(Graphics* graphics)
-        : GpuBuffer(graphics, BufferUsage::Index)
+    IndexBuffer::IndexBuffer()
+        : GpuBuffer(nullptr, BufferUsage::Index, 0, 2, ResourceUsage::Default)
     {
-        _stride = 2;
     }
 
     IndexBuffer::~IndexBuffer()

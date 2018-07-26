@@ -85,8 +85,15 @@ namespace Alimer
         // RenderPass
         virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
 
-        // Buffer
-        virtual BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData = nullptr) = 0;
+        /// Create a new buffer with usage, size.
+        SharedPtr<GpuBuffer> CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
+
+        /// Create new vertex buffer.
+        SharedPtr<GpuBuffer> CreateVertexBuffer(uint32_t vertexCount, uint32_t vertexSize, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
+
+        /// Create new index buffer.
+        SharedPtr<GpuBuffer> CreateIndexBuffer(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
+        //virtual BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData = nullptr) = 0;
 
         // RenderPass
         virtual SharedPtr<Texture> CreateTexture(const TextureDescription& description, const ImageLevel* initialData = nullptr) = 0;
@@ -129,7 +136,7 @@ namespace Alimer
     protected:
         virtual void Finalize();
         virtual bool BackendInitialize() = 0;
-
+        virtual GpuBuffer* CreateBufferCore(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) = 0;
         virtual void GenerateScreenshot(const std::string& fileName) {}
 
     protected:

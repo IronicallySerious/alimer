@@ -20,18 +20,29 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/UniformBuffer.h"
-#include "../Graphics/GraphicsImpl.h"
+#pragma once
+
+#include "../Scene.h"
+#include "../Components/TransformComponent.h"
+#include "../Components/CameraComponent.h"
+#include "../Components/Renderable.h"
 
 namespace Alimer
 {
-    UniformBuffer::UniformBuffer(Graphics* graphics)
-        : GpuBuffer(graphics, BufferUsage::Uniform)
-    {
-    }
+    class CommandBuffer;
 
-    UniformBuffer::~UniformBuffer()
-    {
-        Destroy();
-    }
+	/// System that manages renderable components with transform.
+    class ALIMER_API RenderSystem final : public ComponentSystem
+	{
+    public:
+        RenderSystem(EntityManager& entityManager);
+
+        void Update(double deltaTime) override;
+
+        void Render(CommandBuffer* commandBuffer);
+
+    private:
+        std::vector<std::tuple<TransformComponent*, RenderableComponent*>> &_renderables;
+        VisibilitySet _visibleSet;
+	};
 }

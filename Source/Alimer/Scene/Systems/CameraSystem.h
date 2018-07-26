@@ -22,7 +22,9 @@
 
 #pragma once
 
-#include "Scene/ComponentSystem.h"
+#include "../ComponentSystem.h"
+#include "../Components/TransformComponent.h"
+#include "../Components//CameraComponent.h"
 
 namespace Alimer
 {
@@ -31,8 +33,11 @@ namespace Alimer
     class ALIMER_API CameraSystem final : public ComponentSystem
 	{
     public:
-        CameraSystem();
+        CameraSystem(EntityManager& entityManager);
 
         void Update(double deltaTime) override;
+
+    private:
+        std::vector<std::tuple<CameraComponent*, TransformComponent*>> &_cameras;
 	};
 }

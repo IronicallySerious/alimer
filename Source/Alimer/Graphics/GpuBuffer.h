@@ -76,7 +76,7 @@ namespace Alimer
 	{
 	protected:
         /// Constructor.
-        GpuBuffer(Graphics* graphics, BufferUsage usage);
+        GpuBuffer(Graphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage);
 
     public:
 		/// Constructor.

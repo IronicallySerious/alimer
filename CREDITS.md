@@ -13,7 +13,6 @@ Alimer uses the following open-source and third-party libraries:
 - [fmt 5.0.0](http://fmtlib.net)]
 - [rapidjson](https://github.com/Tencent/rapidjson)
 - [CLI11 1.6](https://github.com/CLIUtils/CLI11)
-- [enkiTS](https://github.com/dougbinks/enkiTS)
 
 Additional inspiration, research or code used:
 

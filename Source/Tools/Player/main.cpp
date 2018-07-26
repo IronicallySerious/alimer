@@ -55,7 +55,7 @@ namespace Alimer
             vertexDeclaration.emplace_back(VertexFormat::Float3, VertexElementSemantic::POSITION);
             vertexDeclaration.emplace_back(VertexFormat::Float4, VertexElementSemantic::COLOR);
 
-            _vertexBuffer = new VertexBuffer(graphics);
+            _vertexBuffer = new VertexBuffer();
             _vertexBuffer->Define(3, vertexDeclaration, ResourceUsage::Immutable, triangleVertices);
 
             // Create shader.
@@ -109,14 +109,14 @@ namespace Alimer
             std::vector<VertexElement> vertexDeclaration;
             vertexDeclaration.emplace_back(VertexFormat::Float3, VertexElementSemantic::POSITION);
             vertexDeclaration.emplace_back(VertexFormat::Float4, VertexElementSemantic::COLOR);
-            _vertexBuffer = new VertexBuffer(graphics);
+            _vertexBuffer = new VertexBuffer();
             _vertexBuffer->Define(4, vertexDeclaration, ResourceUsage::Immutable, triangleVertices);
 
             // Create index buffer.
             const uint16_t indices[] = {
                 0, 1, 2, 0, 2, 3
             };
-            _indexBuffer = new IndexBuffer(graphics);
+            _indexBuffer = new IndexBuffer();
             _indexBuffer->Define(6, IndexType::UInt16, ResourceUsage::Immutable, indices);
 
             _shader = graphics->CreateShader("assets://shaders/color.vert", "assets://shaders/color.frag");
@@ -217,10 +217,10 @@ namespace Alimer
             std::vector<VertexElement> vertexDeclaration;
             vertexDeclaration.emplace_back(VertexFormat::Float3, VertexElementSemantic::POSITION);
             vertexDeclaration.emplace_back(VertexFormat::Float4, VertexElementSemantic::COLOR);
-            _vertexBuffer = new VertexBuffer(graphics);
+            _vertexBuffer = new VertexBuffer();
             _vertexBuffer->Define(static_cast<uint32_t>(vertices.size()), vertexDeclaration, ResourceUsage::Immutable, vertices.data());
 
-            _indexBuffer = new IndexBuffer(graphics);
+            _indexBuffer = new IndexBuffer();
             _indexBuffer->Define(static_cast<uint32_t>(indices.size()), IndexType::UInt16, ResourceUsage::Immutable, indices.data());
 
             _shader = graphics->CreateShader("assets://shaders/color.vert", "assets://shaders/color.frag");
@@ -331,11 +331,10 @@ namespace Alimer
             vertexDeclaration.emplace_back(VertexFormat::Float4, VertexElementSemantic::COLOR);
             vertexDeclaration.emplace_back(VertexFormat::Float2, VertexElementSemantic::TEXCOORD);
 
-            _vertexBuffer = new VertexBuffer(graphics);
+            _vertexBuffer = new VertexBuffer();
             _vertexBuffer->Define(static_cast<uint32_t>(vertices.size()), vertexDeclaration, ResourceUsage::Immutable, vertices.data());
 
-            _indexBuffer = new IndexBuffer(graphics);
-            _indexBuffer->Define(static_cast<uint32_t>(indices.size()), IndexType::UInt16, ResourceUsage::Immutable, indices.data());
+            _indexBuffer = graphics->CreateIndexBuffer(static_cast<uint32_t>(indices.size()), IndexType::UInt16, ResourceUsage::Immutable, indices.data());
 
             _shader = graphics->CreateShader("assets://shaders/sprite.vert", "assets://shaders/sprite.frag");
 
@@ -375,7 +374,7 @@ namespace Alimer
 
     private:
         SharedPtr<VertexBuffer> _vertexBuffer;
-        SharedPtr<IndexBuffer> _indexBuffer;
+        SharedPtr<GpuBuffer> _indexBuffer;
         SharedPtr<Shader> _shader;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
         SharedPtr<Texture> _texture;
@@ -420,7 +419,7 @@ namespace Alimer
         _texturedCubeExample.Initialize(_graphics, _window->GetAspectRatio());
 
         // Create scene
-        //_scene = new Scene();
+        _scene = new Scene();
        //auto triangleEntity = _scene->CreateEntity();
        // triangleEntity->AddComponent<TransformComponent>();
        // triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();

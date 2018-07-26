@@ -236,6 +236,61 @@ namespace Alimer
     {
     }
 
+    static const char* BufferUsageToString(BufferUsageFlags usage)
+    {
+        if (usage & BufferUsage::Vertex)
+            return "vertex";
+        if (usage & BufferUsage::Index)
+            return "index";
+        if (usage & BufferUsage::Uniform)
+            return "uniform";
+
+        return "unknown";
+    }
+
+    SharedPtr<GpuBuffer> Graphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
+    {
+        if (usage == BufferUsage::Unknown)
+            ALIMER_LOGCRITICAL("Cannot create buffer with Unknown usage.");
+
+        if (!size)
+            ALIMER_LOGCRITICAL("Cannot create empty buffer.");
+
+        if (!stride)
+            ALIMER_LOGCRITICAL("Invalid buffer stride.");
+
+        if (resourceUsage == ResourceUsage::Immutable && !initialData)
+            ALIMER_LOGCRITICAL("Cannot create immutable buffer without initial data.");
+
+        auto buffer = CreateBufferCore(usage, size, stride, resourceUsage, initialData);
+        if (!buffer)
+        {
+            ALIMER_LOGERROR("Failed to create {} buffer", BufferUsageToString(usage));
+            return false;
+        }
+
+        ALIMER_LOGDEBUG(
+            "Created {} buffer [size: {}, stride {}]",
+            BufferUsageToString(usage),
+            size,
+            stride);
+
+        return SharedPtr<GpuBuffer>(buffer);
+    }
+
+    SharedPtr<GpuBuffer> Graphics::CreateVertexBuffer(uint32_t vertexCount, uint32_t vertexSize, ResourceUsage resourceUsage, const void* initialData)
+    {
+        uint64_t size = vertexCount * vertexSize;
+        return CreateBuffer(BufferUsage::Vertex, size, vertexSize, resourceUsage, initialData);
+    }
+
+    SharedPtr<GpuBuffer> Graphics::CreateIndexBuffer(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData)
+    {
+        uint32_t stride = indexType == IndexType::UInt16 ? 2 : 4;
+        uint64_t size = indexCount * stride;
+        return CreateBuffer(BufferUsage::Index, size, stride, resourceUsage, initialData);
+    }
+
     Shader* Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
     {
         // Load from spv bytecode.

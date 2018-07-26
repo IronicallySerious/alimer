@@ -61,7 +61,7 @@ namespace Alimer
     };
 
     /// Defines a base ComponentSystem.
-    class EntityGroupBase
+    class ALIMER_API EntityGroupBase
     {
     public:
         /// Destructor.
@@ -188,8 +188,7 @@ namespace Alimer
         template <typename T>
         bool HasComponent() const
         {
-            auto it = _components.find(ComponentIDMapping::GetId<T>());
-            return it != std::end(_components);
+            return HasComponent(ComponentIDMapping::GetId<T>());
         }
 
         template <typename T>
@@ -199,7 +198,7 @@ namespace Alimer
             if (it == std::end(_components))
                 return nullptr;
 
-            return static_cast<T *>(it->second);
+            return static_cast<T*>(it->second);
         }
 
         template <typename T>
@@ -209,7 +208,7 @@ namespace Alimer
             if (it == std::end(_components))
                 return nullptr;
 
-            return static_cast<T *>(it->second);
+            return static_cast<T*>(it->second);
         }
 
         template <typename T, typename... Args>
@@ -260,17 +259,14 @@ namespace Alimer
         }
     };
 
+    /// Manages Entity and Component logic.
     class ALIMER_API EntityManager final
     {
     public:
         explicit EntityManager();
         virtual ~EntityManager();
 
-        /**
-        * Create a new Entity.
-        *
-        * Emits EntityCreatedEvent.
-        */
+        /// Create a new Entity.
         EntityHandle CreateEntity();
 
         void DeleteEntity(Entity *entity);
@@ -339,7 +335,7 @@ namespace Alimer
 
     private:
         ObjectPool<Entity> _pool;
-        std::vector<Entity *> _entities;
+        std::vector<Entity*> _entities;
         std::unordered_map<uint32_t, std::unique_ptr<EntityGroupBase>> _groups;
         std::unordered_map<uint32_t, std::unique_ptr<ComponentAllocatorBase>> _components;
         std::unordered_map<uint32_t, std::unordered_set<uint32_t>> _componentToGroups;

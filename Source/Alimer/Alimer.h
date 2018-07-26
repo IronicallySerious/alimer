@@ -50,7 +50,6 @@
 #include "Graphics/PixelFormat.h"
 #include "Graphics/VertexBuffer.h"
 #include "Graphics/IndexBuffer.h"
-#include "Graphics/UniformBuffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
 #include "Graphics/Graphics.h"
@@ -65,10 +64,11 @@
 #include "Serialization/JsonDeserializer.h"
 
 // Scene
+#include "Scene/Component.h"
 #include "Scene/Entity.h"
-#include "Scene/TransformComponent.h"
-#include "Scene/CameraComponent.h"
-#include "Scene/Renderable.h"
+#include "Scene/Components/TransformComponent.h"
+#include "Scene/Components/CameraComponent.h"
+#include "Scene/Components/Renderable.h"
 
 // Application
 #include "Application/Application.h"

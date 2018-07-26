@@ -742,7 +742,7 @@ namespace Alimer
         return MakeShared<VulkanRenderPass>(this, description);
     }
 
-    BufferHandle* VulkanGraphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
+    GpuBuffer* VulkanGraphics::CreateBufferCore(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
     {
         return new VulkanBuffer(this, usage, size, stride, resourceUsage, initialData);
     }
