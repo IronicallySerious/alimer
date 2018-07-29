@@ -27,12 +27,9 @@
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage)
-        : GpuResource(graphics, GpuResourceType::Buffer)
+    GpuBuffer::GpuBuffer(Graphics* graphics, BufferUsageFlags usage, ResourceUsage resourceUsage)
+        : GpuResource(graphics, GpuResourceType::Buffer, resourceUsage)
         , _usage(usage)
-        , _size(size)
-        , _stride(stride)
-        , _resourceUsage(resourceUsage)
     {
 
     }
@@ -47,7 +44,7 @@ namespace Alimer
         ALIMER_ASSERT(description.usage != BufferUsage::Unknown);
         ALIMER_ASSERT(_size != 0);
 
-        Create(false, initialData);
+        Create(initialData);
     }
 
     GpuBuffer::~GpuBuffer()
@@ -60,11 +57,21 @@ namespace Alimer
         SafeDelete(_handle);
     }
 
-    
-
-    bool GpuBuffer::Create(bool useShadowData, const void* initialData)
+    static const char* BufferUsageToString(BufferUsageFlags usage)
     {
-        /*if (!_graphics || !_graphics->IsInitialized())
+        if (usage & BufferUsage::Vertex)
+            return "vertex";
+        if (usage & BufferUsage::Index)
+            return "index";
+        if (usage & BufferUsage::Uniform)
+            return "uniform";
+
+        return "unknown";
+    }
+
+    bool GpuBuffer::Create(const void* initialData)
+    {
+        if (!_graphics || !_graphics->IsInitialized())
             return false;
 
         _handle = _graphics->CreateBuffer(_usage, _size, _stride, _resourceUsage, initialData);
@@ -78,7 +85,7 @@ namespace Alimer
             "Created {} buffer [size: {}, stride {}]",
             BufferUsageToString(_usage),
             _size,
-            _stride);*/
+            _stride);
 
         return true;
     }

@@ -30,8 +30,7 @@ using namespace Microsoft::WRL;
 namespace Alimer
 {
     D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
-        : GpuBuffer(graphics, usage, size, stride, resourceUsage)
-        , _graphics(graphics)
+        : _graphics(graphics)
         , _isDynamic(resourceUsage == ResourceUsage::Dynamic)
     {
         const bool dynamic = resourceUsage == ResourceUsage::Dynamic;
@@ -102,7 +101,7 @@ namespace Alimer
         }
     }
 
-    /*bool D3D11GpuBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
+    bool D3D11GpuBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
     {
         ID3D11DeviceContext* d3dDeviceContext = _graphics->GetImmediateContext();
 
@@ -147,5 +146,5 @@ namespace Alimer
         }
 
         return true;
-    }*/
+    }
 }

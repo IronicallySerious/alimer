@@ -54,7 +54,7 @@ namespace Alimer
         RenderPass* GetBackbufferRenderPass() const;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
-        GpuBuffer* CreateBufferCore(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
+        BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
 
         SharedPtr<Texture> CreateTexture(const TextureDescription& description, const ImageLevel* initialData) override;
 

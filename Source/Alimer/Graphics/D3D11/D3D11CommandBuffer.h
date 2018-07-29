@@ -71,7 +71,7 @@ namespace Alimer
         void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
         void SetShaderCore(Shader* shader) override;
-        void SetVertexBufferCore(uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
+        void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
         void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
         void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) override;
@@ -96,7 +96,7 @@ namespace Alimer
 
         struct VertexBindingState
         {
-            GpuBuffer* buffers[MaxVertexBufferBindings];
+            VertexBuffer* buffers[MaxVertexBufferBindings];
             ID3D11Buffer* d3dBuffers[MaxVertexBufferBindings];
             uint32_t offsets[MaxVertexBufferBindings];
             uint32_t strides[MaxVertexBufferBindings];

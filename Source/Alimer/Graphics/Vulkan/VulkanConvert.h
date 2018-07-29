@@ -165,22 +165,22 @@ namespace Alimer
             }
         }
 
-        static inline VkFormat Convert(VertexFormat format)
+        static inline VkFormat Convert(VertexElementFormat format)
         {
             switch (format)
             {
-            case VertexFormat::Float:		return VK_FORMAT_R32_SFLOAT;
-            case VertexFormat::Float2:		return VK_FORMAT_R32G32_SFLOAT;
-            case VertexFormat::Float3:		return VK_FORMAT_R32G32B32_SFLOAT;
-            case VertexFormat::Float4:		return VK_FORMAT_R32G32B32A32_SFLOAT;
-            case VertexFormat::Byte4:       return VK_FORMAT_R8G8B8A8_SINT;
-            case VertexFormat::Byte4N:      return VK_FORMAT_R8G8B8A8_SNORM;
-            case VertexFormat::UByte4:      return VK_FORMAT_R8G8B8A8_UINT;
-            case VertexFormat::UByte4N:     return VK_FORMAT_R8G8B8A8_UNORM;
-            case VertexFormat::Short2:      return VK_FORMAT_R16G16_SINT;
-            case VertexFormat::Short2N:     return VK_FORMAT_R16G16_SNORM;
-            case VertexFormat::Short4:      return VK_FORMAT_R16G16B16A16_SINT;
-            case VertexFormat::Short4N:     return VK_FORMAT_R16G16B16A16_SNORM;
+            case VertexElementFormat::Float:		return VK_FORMAT_R32_SFLOAT;
+            case VertexElementFormat::Float2:		return VK_FORMAT_R32G32_SFLOAT;
+            case VertexElementFormat::Float3:		return VK_FORMAT_R32G32B32_SFLOAT;
+            case VertexElementFormat::Float4:		return VK_FORMAT_R32G32B32A32_SFLOAT;
+            case VertexElementFormat::Byte4:       return VK_FORMAT_R8G8B8A8_SINT;
+            case VertexElementFormat::Byte4N:      return VK_FORMAT_R8G8B8A8_SNORM;
+            case VertexElementFormat::UByte4:      return VK_FORMAT_R8G8B8A8_UINT;
+            case VertexElementFormat::UByte4N:     return VK_FORMAT_R8G8B8A8_UNORM;
+            case VertexElementFormat::Short2:      return VK_FORMAT_R16G16_SINT;
+            case VertexElementFormat::Short2N:     return VK_FORMAT_R16G16_SNORM;
+            case VertexElementFormat::Short4:      return VK_FORMAT_R16G16B16A16_SINT;
+            case VertexElementFormat::Short4N:     return VK_FORMAT_R16G16B16A16_SNORM;
             default:
                 return VK_FORMAT_UNDEFINED;
             }

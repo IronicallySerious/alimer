@@ -28,8 +28,7 @@
 namespace Alimer
 {
     VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
-        : GpuBuffer(graphics, usage, size, stride, resourceUsage)
-        , _logicalDevice(graphics->GetLogicalDevice())
+        : _logicalDevice(graphics->GetLogicalDevice())
         , _allocator(graphics->GetAllocator())
     {
         VkBufferUsageFlags vkUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -88,10 +87,10 @@ namespace Alimer
         vmaDestroyBuffer(_allocator, _vkHandle, _allocation);
     }
 
-   /* bool VulkanBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
+    bool VulkanBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
     {
         ALIMER_LOGCRITICAL("VulkanBuffer::SetData not implemented");
         //memcpy(_allocation->GetMappedData(), initialData, vmaAllocInfo.size);
         return false;
-    }*/
+    }
 }

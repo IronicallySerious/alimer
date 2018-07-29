@@ -23,6 +23,7 @@
 #include "D3D11Shader.h"
 #include "D3D11Graphics.h"
 #include "../D3D/D3DShaderCompiler.h"
+#include "../../Util/HashMap.h"
 #include "../../Core/Log.h"
 #include <spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
@@ -78,6 +79,9 @@ namespace Alimer
             graphics->GetShaderModerMajor(), graphics->GetShaderModerMinor()
         );
 
+        Hasher h;
+        h.data(_vsByteCode.data(), _vsByteCode.size());
+        _vertexShaderHash = h.get();
         graphics->GetD3DDevice()->CreateVertexShader(_vsByteCode.data(), _vsByteCode.size(), nullptr, &_d3dVertexShader);
         graphics->GetD3DDevice()->CreatePixelShader(fsByteCode.data(), fsByteCode.size(), nullptr, &_d3dPixelShader);
     }

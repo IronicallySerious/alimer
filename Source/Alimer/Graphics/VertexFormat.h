@@ -22,52 +22,46 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
 #include "../Graphics/Types.h"
+#include <vector>
 
 namespace Alimer
 {
-	class Graphics;
-
-    enum class GpuResourceType : uint32_t
+    /// Defines a GPU VertexFormat.
+    class VertexFormat final
     {
-        Unknown,
-        Buffer,
-        Texture,
-        RenderPass,
-        Shader,
-    };
-
-	/// Defines a base GPU Resource.
-	class ALIMER_API GpuResource //: public RefCounted
-	{
-	protected:
+    public:
         /// Constructor.
-        GpuResource(Graphics* graphics, GpuResourceType resourceType, ResourceUsage resourceUsage = ResourceUsage::Default);
+        VertexFormat(const std::vector<VertexElement>& elements);
 
-	public:
-		/// Destructor.
-		virtual ~GpuResource();
+        /// Constructor.
+        VertexFormat(const VertexElement* elements, size_t elementCount);
 
-        /// Unconditionally destroy the GPU resource.
-        virtual void Destroy() {}
+        /// Destructor.
+        ~VertexFormat();
 
-        /// Return the graphics subsystem associated with this GPU object.
-        Graphics* GetGraphics() const { return _graphics.Get(); }
+        /// Return number of vertex elements.
+        uint32_t GetElementsCount() const { return static_cast<uint32_t>(_elements.size()); }
 
-        /// Get the resource type.
-        GpuResourceType GetResourceType() const { return _resourceType; }
+        /// Return vertex elements.
+        const std::vector<VertexElement>& GetElements() const { return _elements; }
 
-        /// Get the resource usage.
-        ResourceUsage GetResourceUsage() const { return _resourceUsage; }
+        /// Return the number of bytes from one vertex to the next.
+        uint32_t GetStride() const { return _stride; }
 
-    protected:
-        /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
-        GpuResourceType _resourceType;
-        ResourceUsage _resourceUsage;
+        /// Return vertex declaration hash code.
+        uint64_t GetHash() const { return _hash; }
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);
-	};
+    private:
+        void Initialize(const VertexElement* elements, size_t elementCount);
+
+        /// Vertex elements.
+        std::vector<VertexElement> _elements;
+
+        /// VertexFormat stride.
+        uint32_t _stride;
+
+        /// Vertex element hash code.
+        uint64_t _hash;
+    };
 }

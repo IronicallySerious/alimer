@@ -420,9 +420,7 @@ namespace Alimer
         // Check if layout already exists
         auto it = _inputLayouts.find(desc);
         if (it != end(_inputLayouts))
-        {
             return it->second;
-        }
 
         return nullptr;
     }
@@ -443,7 +441,7 @@ namespace Alimer
         return MakeShared<D3D11RenderPass>(this, description);
     }
 
-    GpuBuffer* D3D11Graphics::CreateBufferCore(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
+    BufferHandle* D3D11Graphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
     {
         return new D3D11GpuBuffer(this, usage, size, stride, resourceUsage, initialData);
     }

@@ -30,25 +30,6 @@ namespace Alimer
 {
     class Graphics;
 
-    struct VertexBufferLayoutDescription
-    {
-        uint32_t stride;
-        VertexInputRate inputRate;
-    };
-
-    struct VertexAttributeDescription
-    {
-        uint32_t binding;
-        VertexFormat format;
-        uint32_t offset;
-    };
-
-    struct VertexDescription
-    {
-        VertexBufferLayoutDescription layouts[MaxVertexBufferBindings] = {};
-        VertexAttributeDescription attributes[MaxVertexAttributes] = {};
-    };
-
     struct BlendState
     {
 
@@ -67,7 +48,6 @@ namespace Alimer
     struct RenderPipelineDescription
     {
         SharedPtr<Shader> shader;
-        VertexDescription vertexDescription;
         BlendState blendState;
         RasterizerState rasterizerState;
         DepthStencilState depthStencilState;

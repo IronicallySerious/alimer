@@ -28,6 +28,7 @@
 #include "D3D11PipelineState.h"
 #include "D3D11GpuBuffer.h"
 #include "../D3D/D3DConvert.h"
+#include "../../Util/HashMap.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
@@ -218,12 +219,12 @@ namespace Alimer
         _currentShader = static_cast<D3D11Shader*>(shader);
     }
 
-    void D3D11CommandContext::SetVertexBufferCore(uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
+    void D3D11CommandContext::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
     {
         if (_vbo.buffers[binding] != buffer
             || _vbo.offsets[binding] != offset)
         {
-            _vbo.d3dBuffers[binding] = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
+            _vbo.d3dBuffers[binding] = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
 
             _dirtyVbos |= 1u << binding;
             _inputLayoutDirty = true;
@@ -235,7 +236,6 @@ namespace Alimer
             //set_dirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
         }
 
-
         _vbo.buffers[binding] = buffer;
         _vbo.offsets[binding] = offset;
         _vbo.strides[binding] = stride;
@@ -245,7 +245,7 @@ namespace Alimer
 
     void D3D11CommandContext::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
+        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
         DXGI_FORMAT dxgiFormat = DXGI_FORMAT_R16_UINT;
         if (indexType == IndexType::UInt32)
         {
@@ -255,10 +255,9 @@ namespace Alimer
         _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
     }
 
-
     void D3D11CommandContext::SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
+        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
         _context->VSSetConstantBuffers(binding, 1, &d3dBuffer);
     }
 
@@ -348,13 +347,17 @@ namespace Alimer
         {
             _inputLayoutDirty = false;
 
-            InputLayoutDesc newInputLayout;
-            newInputLayout.first = 0;
-            //newInputLayout.second = vertexShader->GetElementHash();
+            Hasher inputLayoutHasher;
+            
             for (uint32_t i = binding; i < binding + count; i++)
             {
-                //newInputLayout.first |= _vbo.buffers[i]->GetElementHash() << (i * 16);
+                inputLayoutHasher.u32(binding);
+                inputLayoutHasher.u64(_vbo.buffers[i]->GetVertexFormat().GetHash());
             }
+
+            InputLayoutDesc newInputLayout;
+            newInputLayout.first = inputLayoutHasher.get();
+            newInputLayout.second = _currentShader->GetVertexShaderHash();
 
             if (_currentInputLayout != newInputLayout)
             {
@@ -368,18 +371,17 @@ namespace Alimer
                 else
                 {
                     // Not found, create new
-                    /*D3D11_INPUT_ELEMENT_DESC d3dElementDescs[MaxVertexAttributes];
+                    D3D11_INPUT_ELEMENT_DESC d3dElementDescs[MaxVertexAttributes];
                     memset(d3dElementDescs, 0, sizeof(d3dElementDescs));
 
                     UINT attributeCount = 0;
-                    VertexInputRate inputRate = VertexInputRate::Vertex;
                     for (uint32_t i = binding; i < binding + count; i++)
                     {
-                        const std::vector<VertexElement>& elements = _vbo.buffers[i]->GetElements();
-                        inputRate = _vbo.inputRates[i];
+                        const VertexFormat& vertexFormat = _vbo.buffers[i]->GetVertexFormat();
+                        const std::vector<VertexElement>& elements = vertexFormat.GetElements();
 
                         uint32_t attributeIndex = 0;
-                        for (const VertexElement& element : elements)
+                        for (const VertexElement& element : vertexFormat.GetElements())
                         {
                             D3D11_INPUT_ELEMENT_DESC* d3d11ElementDesc = &d3dElementDescs[attributeCount++];
 
@@ -390,7 +392,7 @@ namespace Alimer
                             d3d11ElementDesc->Format = d3d::Convert(element.format);
                             d3d11ElementDesc->InputSlot = i;
                             d3d11ElementDesc->AlignedByteOffset = element.offset;
-                            if (inputRate == VertexInputRate::Instance)
+                            if (_vbo.inputRates[i] == VertexInputRate::Instance)
                             {
                                 d3d11ElementDesc->InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
                                 d3d11ElementDesc->InstanceDataStepRate = 1;
@@ -414,7 +416,7 @@ namespace Alimer
                         _graphics->StoreInputLayout(newInputLayout, d3dInputLayout);
                         _context->IASetInputLayout(d3dInputLayout);
                         _currentInputLayout = newInputLayout;
-                    }*/
+                    }
                 }
             }
         }

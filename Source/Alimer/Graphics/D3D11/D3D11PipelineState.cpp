@@ -33,37 +33,7 @@ namespace Alimer
         : PipelineState(graphics, true)
     {
         _shader = StaticCast<D3D11Shader>(description.shader);
-
-        UINT elementsCount = 0;
-        D3D11_INPUT_ELEMENT_DESC elements[MaxVertexAttributes];
-        for (uint32_t i = 0; i < MaxVertexAttributes; ++i)
-        {
-            const auto& attribute = description.vertexDescription.attributes[i];
-            if (attribute.format == VertexFormat::Invalid)
-                continue;
-
-            // If the HLSL semantic is TEXCOORDN the SemanticName should be "TEXCOORD" and the
-            // SemanticIndex N
-            elements[i].SemanticName = "TEXCOORD";
-            elements[i].SemanticIndex = static_cast<uint32_t>(i);
-            elements[i].Format = d3d::Convert(attribute.format);
-            elements[i].InputSlot = attribute.binding;
-            elements[i].AlignedByteOffset = attribute.offset;
-            elements[i].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-            elements[i].InstanceDataStepRate = 0;
-            elementsCount++;
-        }
-
-        auto vsByteCode = _shader->AcquireVertexShaderBytecode();
-        HRESULT hr = graphics->GetD3DDevice()->CreateInputLayout(
-            elements, elementsCount,
-            vsByteCode.data(), vsByteCode.size(),
-            &_d3dInputLayout);
-
-        if (FAILED(hr))
-        {
-            ALIMER_LOGERROR("D3D11 - Failed to create input layout");
-        }
+        HRESULT hr = S_OK;
 
         // Create blend state.
         D3D11_BLEND_DESC1 bsDesc;
@@ -147,7 +117,6 @@ namespace Alimer
         if (_isGraphics)
         {
             _shader->Bind(context);
-            context->IASetInputLayout(_d3dInputLayout);
         }
         else
         {

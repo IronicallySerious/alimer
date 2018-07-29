@@ -31,13 +31,10 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        IndexBuffer();
+        IndexBuffer(Graphics* graphics, uint32_t indexCount, IndexType indexType = IndexType::UInt16, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
 
         /// Destructor.
         virtual ~IndexBuffer() override;
-
-        /// Define buffer. Immutable buffers must specify initial data here. Return true on success.
-        bool Define(uint32_t indexCount, IndexType indexType = IndexType::UInt16, ResourceUsage resourceUsage = ResourceUsage::Default, const void* data = nullptr);
 
         /// Redefine buffer data either completely or partially. Not supported for immutable buffers. Return true on success.
         bool SetData(const void* data, uint32_t indexStart = 0, uint32_t indexCount = 0);

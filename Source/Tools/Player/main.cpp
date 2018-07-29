@@ -51,12 +51,11 @@ namespace Alimer
             };
 
 
-            std::vector<VertexElement> vertexDeclaration;
-            vertexDeclaration.emplace_back(VertexFormat::Float3, VertexElementSemantic::POSITION);
-            vertexDeclaration.emplace_back(VertexFormat::Float4, VertexElementSemantic::COLOR);
+            std::vector<VertexElement> vertexElements;
+            vertexElements.emplace_back(VertexElementFormat::Float3, VertexElementSemantic::POSITION);
+            vertexElements.emplace_back(VertexElementFormat::Float4, VertexElementSemantic::COLOR);
 
-            _vertexBuffer = new VertexBuffer();
-            _vertexBuffer->Define(3, vertexDeclaration, ResourceUsage::Immutable, triangleVertices);
+            _vertexBuffer = new VertexBuffer(graphics, VertexFormat(vertexElements), 3, ResourceUsage::Immutable, triangleVertices);
 
             // Create shader.
             _shader = graphics->CreateShader("assets://shaders/color.vert", "assets://shaders/color.frag");
@@ -106,19 +105,17 @@ namespace Alimer
                 { Vector3(-0.5f, -0.5f, 0.0f), Color(1.0f, 1.0f, 0.0f, 1.0f) },
             };
 
-            std::vector<VertexElement> vertexDeclaration;
-            vertexDeclaration.emplace_back(VertexFormat::Float3, VertexElementSemantic::POSITION);
-            vertexDeclaration.emplace_back(VertexFormat::Float4, VertexElementSemantic::COLOR);
-            _vertexBuffer = new VertexBuffer();
-            _vertexBuffer->Define(4, vertexDeclaration, ResourceUsage::Immutable, triangleVertices);
+            std::vector<VertexElement> vertexElements;
+            vertexElements.emplace_back(VertexElementFormat::Float3, VertexElementSemantic::POSITION);
+            vertexElements.emplace_back(VertexElementFormat::Float4, VertexElementSemantic::COLOR);
+
+            _vertexBuffer = new VertexBuffer(graphics, VertexFormat(vertexElements), 4, ResourceUsage::Immutable, triangleVertices);
 
             // Create index buffer.
             const uint16_t indices[] = {
                 0, 1, 2, 0, 2, 3
             };
-            _indexBuffer = new IndexBuffer();
-            _indexBuffer->Define(6, IndexType::UInt16, ResourceUsage::Immutable, indices);
-
+            _indexBuffer = new IndexBuffer(graphics, 6, IndexType::UInt16, ResourceUsage::Immutable, indices);
             _shader = graphics->CreateShader("assets://shaders/color.vert", "assets://shaders/color.frag");
 
             _camera.viewMatrix = Matrix4x4::Identity;
@@ -155,6 +152,7 @@ namespace Alimer
         PerCameraCBuffer _camera;
     };
 
+#if TODO
     class CubeExample
     {
     public:
@@ -387,6 +385,8 @@ namespace Alimer
 
         PerCameraCBuffer _camera;
     };
+#endif // TODO
+
 
     class RuntimeApplication final : public Application
     {
@@ -401,8 +401,8 @@ namespace Alimer
     private:
         TriangleExample _triangleExample;
         QuadExample _quadExample;
-        CubeExample _cubeExample;
-        TexturedCubeExample _texturedCubeExample;
+        //CubeExample _cubeExample;
+        //TexturedCubeExample _texturedCubeExample;
     };
 
     RuntimeApplication::RuntimeApplication()
@@ -414,9 +414,9 @@ namespace Alimer
     void RuntimeApplication::Initialize()
     {
         // _triangleExample.Initialize(_graphics);
-        //_quadExample.Initialize(_graphics);
+        _quadExample.Initialize(_graphics);
         //_cubeExample.Initialize(_graphics, _window->GetAspectRatio());
-        _texturedCubeExample.Initialize(_graphics, _window->GetAspectRatio());
+        //_texturedCubeExample.Initialize(_graphics, _window->GetAspectRatio());
 
         // Create scene
         _scene = new Scene();
@@ -429,9 +429,9 @@ namespace Alimer
     {
         auto commandBuffer = _graphics->RequestCommandBuffer();
         //_triangleExample.Render(commandBuffer);
-        //_quadExample.Render(commandBuffer);
+        _quadExample.Render(commandBuffer);
         //_cubeExample.Render(commandBuffer);
-        _texturedCubeExample.Render(commandBuffer);
+        //_texturedCubeExample.Render(commandBuffer);
 
         // Submit command buffer.
         _graphics->Submit(commandBuffer);

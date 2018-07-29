@@ -32,13 +32,13 @@ namespace Alimer
 	class VulkanGraphics;
 
 	/// Vulkan Buffer.
-	class VulkanBuffer final : public GpuBuffer
+	class VulkanBuffer final : public BufferHandle
 	{
 	public:
         VulkanBuffer(VulkanGraphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData);
 		~VulkanBuffer() override;
 
-        //bool SetData(uint32_t offset, uint32_t size, const void* data) override;
+        bool SetData(uint32_t offset, uint32_t size, const void* data) override;
 
 		inline VkBuffer GetVkHandle() const { return _vkHandle; }
 

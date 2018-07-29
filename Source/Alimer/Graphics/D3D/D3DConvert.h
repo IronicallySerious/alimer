@@ -72,22 +72,22 @@ namespace Alimer
             }
         }
 
-        static inline DXGI_FORMAT Convert(VertexFormat format)
+        static inline DXGI_FORMAT Convert(VertexElementFormat format)
         {
             switch (format)
             {
-            case VertexFormat::Float:		return DXGI_FORMAT_R32_FLOAT;
-            case VertexFormat::Float2:		return DXGI_FORMAT_R32G32_FLOAT;
-            case VertexFormat::Float3:		return DXGI_FORMAT_R32G32B32_FLOAT;
-            case VertexFormat::Float4:		return DXGI_FORMAT_R32G32B32A32_FLOAT;
-            case VertexFormat::Byte4:       return DXGI_FORMAT_R8G8B8A8_SINT;
-            case VertexFormat::Byte4N:      return DXGI_FORMAT_R8G8B8A8_SNORM;
-            case VertexFormat::UByte4:      return DXGI_FORMAT_R8G8B8A8_UINT;
-            case VertexFormat::UByte4N:     return DXGI_FORMAT_R8G8B8A8_UNORM;
-            case VertexFormat::Short2:      return DXGI_FORMAT_R16G16_SINT;
-            case VertexFormat::Short2N:     return DXGI_FORMAT_R16G16_SNORM;
-            case VertexFormat::Short4:      return DXGI_FORMAT_R16G16B16A16_SINT;
-            case VertexFormat::Short4N:     return DXGI_FORMAT_R16G16B16A16_SNORM;
+            case VertexElementFormat::Float:		return DXGI_FORMAT_R32_FLOAT;
+            case VertexElementFormat::Float2:		return DXGI_FORMAT_R32G32_FLOAT;
+            case VertexElementFormat::Float3:		return DXGI_FORMAT_R32G32B32_FLOAT;
+            case VertexElementFormat::Float4:		return DXGI_FORMAT_R32G32B32A32_FLOAT;
+            case VertexElementFormat::Byte4:       return DXGI_FORMAT_R8G8B8A8_SINT;
+            case VertexElementFormat::Byte4N:      return DXGI_FORMAT_R8G8B8A8_SNORM;
+            case VertexElementFormat::UByte4:      return DXGI_FORMAT_R8G8B8A8_UINT;
+            case VertexElementFormat::UByte4N:     return DXGI_FORMAT_R8G8B8A8_UNORM;
+            case VertexElementFormat::Short2:      return DXGI_FORMAT_R16G16_SINT;
+            case VertexElementFormat::Short2N:     return DXGI_FORMAT_R16G16_SNORM;
+            case VertexElementFormat::Short4:      return DXGI_FORMAT_R16G16B16A16_SINT;
+            case VertexElementFormat::Short4N:     return DXGI_FORMAT_R16G16B16A16_SNORM;
             default:
                 ALIMER_UNREACHABLE();
                 return DXGI_FORMAT_UNKNOWN;

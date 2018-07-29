@@ -125,7 +125,7 @@ namespace Alimer
 
         void SetShader(Shader* shader);
 
-        void SetVertexBuffer(uint32_t binding, GpuBuffer* buffer, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+        void SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0);
         
         void SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer);
@@ -148,7 +148,7 @@ namespace Alimer
         virtual void SetShaderCore(Shader* shader);
         virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
         virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex);
-        virtual void SetVertexBufferCore(uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate);
+        virtual void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate);
         virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType);
 
         inline bool IsInsideRenderPass() const

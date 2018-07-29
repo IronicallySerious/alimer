@@ -48,6 +48,7 @@ namespace Alimer
         void Bind(ID3D11DeviceContext1* context);
 
         std::vector<uint8_t> AcquireVertexShaderBytecode();
+        uint64_t GetVertexShaderHash() const { return _vertexShaderHash; }
         ID3D11VertexShader* GetD3DVertexShader() const { return _d3dVertexShader; }
         ID3D11PixelShader* GetD3DPixelShader() const { return _d3dPixelShader; }
         ID3D11ComputeShader* GetD3DComputeShader() const { return _d3dComputeShader; }
@@ -57,5 +58,6 @@ namespace Alimer
         ID3D11PixelShader* _d3dPixelShader = nullptr;
         ID3D11ComputeShader* _d3dComputeShader = nullptr;
         std::vector<uint8_t> _vsByteCode;
+        uint64_t _vertexShaderHash = 0;
 	};
 }

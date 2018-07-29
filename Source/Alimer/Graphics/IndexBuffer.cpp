@@ -25,45 +25,31 @@
 
 namespace Alimer
 {
-    IndexBuffer::IndexBuffer()
-        : GpuBuffer(nullptr, BufferUsage::Index, 0, 2, ResourceUsage::Default)
+    IndexBuffer::IndexBuffer(Graphics* graphics, uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData)
+        : GpuBuffer(graphics, BufferUsage::Index, resourceUsage)
     {
+        if (!indexCount)
+        {
+            ALIMER_LOGERROR("Can not define index buffer with no indices");
+            return;
+        }
+
+        if (resourceUsage == ResourceUsage::Immutable
+            && !initialData)
+        {
+            ALIMER_LOGERROR("Immutable index buffer must define initial data");
+            return;
+        }
+
+        _indexCount = indexCount;
+        _stride = indexType == IndexType::UInt16 ? 2 : 4;
+        _size = _indexCount * _stride;
+        GpuBuffer::Create(initialData);
     }
 
     IndexBuffer::~IndexBuffer()
     {
         Destroy();
-    }
-
-    bool IndexBuffer::Define(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* data)
-    {
-        if (!indexCount)
-        {
-            ALIMER_LOGERROR("Can not define index buffer with no indices");
-            return false;
-        }
-
-        if (resourceUsage == ResourceUsage::Immutable && !data)
-        {
-            ALIMER_LOGERROR("Immutable index buffer must define initial data");
-            return false;
-        }
-
-        if (indexType != IndexType::UInt16
-            && indexType != IndexType::UInt32)
-        {
-            ALIMER_LOGERROR("Index type must be UInt16 or UInt32");
-            return false;
-        }
-
-        Destroy();
-        _indexCount = indexCount;
-        _stride = indexType == IndexType::UInt16 ? 2 : 4;
-        _size = _indexCount * _stride;
-        _resourceUsage = resourceUsage;
-
-        const bool useShadowData = false;
-        return GpuBuffer::Create(useShadowData, data);
     }
 
     bool IndexBuffer::SetData(const void* data, uint32_t indexStart, uint32_t indexCount)

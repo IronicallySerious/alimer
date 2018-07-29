@@ -301,9 +301,9 @@ namespace Alimer
         attr.offset = offset;
     }
 
-    void VulkanCommandBuffer::SetVertexBufferCore(uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
+    void VulkanCommandBuffer::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
     {
-        VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
+        VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
         if (_vbo.buffers[binding] != vkBuffer
             || _vbo.offsets[binding] != offset)
         {
@@ -343,14 +343,14 @@ namespace Alimer
         _indexState.offset = offset;
         _indexState.indexType = indexType;
 
-        VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
+        VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
         VkIndexType vkIndexType = vk::Convert(indexType);
         vkCmdBindIndexBuffer(_vkCommandBuffer, vkBuffer, offset, vkIndexType);
     }
 
     void VulkanCommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range)
     {
-        auto vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
+        auto vkBuffer = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
         auto &b = _bindings.bindings[set][binding];
 
         if (b.buffer.buffer == vkBuffer

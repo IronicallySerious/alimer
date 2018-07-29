@@ -49,6 +49,7 @@ namespace Alimer
         _running = false;
 
         PluginManager::DeleteInstance();
+        _scene.Reset();
 
         __appInstance = nullptr;
     }
