@@ -1,6 +1,6 @@
 # Alimer
 
-[![Build status](https://ci.appveyor.com/api/projects/status/07v556pnpao0c3vu?svg=true)](https://ci.appveyor.com/project/amerkoleci/alimer)
+[![Build status](https://ci.appveyor.com/api/projects/status/uto2wruji8bo6bcl?svg=true)](https://ci.appveyor.com/project/amerkoleci/alimer)
 [![Contribute!](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/amerkoleci/alimer/issues)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/amerkoleci/alimer/blob/master/LICENSE)
 

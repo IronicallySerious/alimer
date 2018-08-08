@@ -63,15 +63,11 @@ namespace Alimer
         if (_renderables.size())
         {
             CameraComponent* activeCamera = _scene->GetActiveCamera()->GetComponent<CameraComponent>();
-
             GatherVisibleRenderables(_visibleSet, _renderables);
 
-            /*for (auto &c : _renderables)
+            for (auto &visible : _visibleSet)
             {
-                TransformComponent *transform;
-                RenderableComponent *renderable;
-                std::tie(transform, renderable) = c;
-            }*/
+            }
         }
     }
 

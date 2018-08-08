@@ -37,7 +37,7 @@ namespace Alimer
         friend class Entity;
         friend class EntityManager;
         friend class Scene;
-        
+
     protected:
         /// Constructor.
         Component();
@@ -50,7 +50,7 @@ namespace Alimer
         Entity* GetEntity() const { return _entity; }
 
     protected:
-        Entity * _entity = nullptr;
+        Entity* _entity;
         bool _enabled;
     };
 }

@@ -420,21 +420,21 @@ namespace Alimer
 
         // Create scene
         _scene = new Scene();
-       //auto triangleEntity = _scene->CreateEntity();
-       // triangleEntity->AddComponent<TransformComponent>();
-       // triangleEntity->AddComponent<RenderableComponent>()->renderable = new TriangleRenderable();
+       auto triangleEntity = _scene->CreateEntity();
+       triangleEntity->AddComponent<TransformComponent>();
+       triangleEntity->AddComponent<RenderableComponent>();
     }
 
     void RuntimeApplication::OnRenderFrame(double frameTime, double elapsedTime)
     {
-        auto commandBuffer = _graphics->RequestCommandBuffer();
+        //auto commandBuffer = _graphics->RequestCommandBuffer();
         //_triangleExample.Render(commandBuffer);
-        _quadExample.Render(commandBuffer);
+        //_quadExample.Render(commandBuffer);
         //_cubeExample.Render(commandBuffer);
         //_texturedCubeExample.Render(commandBuffer);
 
         // Submit command buffer.
-        _graphics->Submit(commandBuffer);
+        //_graphics->Submit(commandBuffer);
     }
 }
 
