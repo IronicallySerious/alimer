@@ -18,7 +18,6 @@
 #define SPIRV_CROSS_GLSL_HPP
 
 #include "spirv_cross.hpp"
-#include <limits>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -466,7 +465,7 @@ protected:
 	virtual std::string to_initializer_expression(const SPIRVariable &var);
 
 	bool buffer_is_packing_standard(const SPIRType &type, BufferPackingStandard packing, uint32_t start_offset = 0,
-	                                uint32_t end_offset = std::numeric_limits<uint32_t>::max());
+	                                uint32_t end_offset = ~(0u));
 	uint32_t type_to_packed_base_size(const SPIRType &type, BufferPackingStandard packing);
 	uint32_t type_to_packed_alignment(const SPIRType &type, const Bitset &flags, BufferPackingStandard packing);
 	uint32_t type_to_packed_array_stride(const SPIRType &type, const Bitset &flags, BufferPackingStandard packing);
@@ -550,6 +549,7 @@ protected:
 	void find_static_extensions();
 
 	std::string emit_for_loop_initializers(const SPIRBlock &block);
+	void emit_while_loop_initializers(const SPIRBlock &block);
 	bool for_loop_initializers_are_same_type(const SPIRBlock &block);
 	bool optimize_read_modify_write(const SPIRType &type, const std::string &lhs, const std::string &rhs);
 	void fixup_image_load_store_access();
