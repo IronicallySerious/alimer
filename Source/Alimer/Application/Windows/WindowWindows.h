@@ -59,7 +59,7 @@ namespace Alimer
 
 	private:
 		void InitAfterCreation();
-        void HandleResize(const Vector2& newSize);
+        void HandleResize(const uvec2& newSize);
 
 		HINSTANCE _hInstance = nullptr;
 		HWND _hwnd = nullptr;

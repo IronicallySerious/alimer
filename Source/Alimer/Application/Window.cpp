@@ -26,8 +26,7 @@ namespace Alimer
 {
     Window::Window()
         : _title("Alimer")
-        , _width(800)
-        , _height(600)
+        , _size(800u, 600u)
         , _resizable(true)
         , _handle{}
     {

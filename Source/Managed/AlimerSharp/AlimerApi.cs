@@ -1,12 +1,12 @@
 // Copyright (c) Amer Koleci and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the MIT License.
 
 using System;
 using System.Runtime.InteropServices;
 
 namespace Alimer
 {
-    internal partial class AlimerApi
+    internal static partial class AlimerApi
     {
         public const string Library = "libAlimerSharp";
 

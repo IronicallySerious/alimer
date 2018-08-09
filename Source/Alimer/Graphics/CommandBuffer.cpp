@@ -213,11 +213,6 @@ namespace Alimer
         Push(SetViewportCommand(viewport));
     }
 
-    void CommandBuffer::SetViewports(uint32_t numViewports, const Viewport* viewports)
-    {
-        Push(SetViewportsCommand(numViewports, viewports));
-    }
-
     void CommandBuffer::SetScissor(const Rectangle& scissor)
     {
         //SetScissors(1, &scissor);

@@ -49,7 +49,7 @@ namespace Alimer
         bool ShouldClose() const;
 
 	private:
-        void HandleResize(const Vector2& newSize);
+        void HandleResize(const uvec2& newSize);
 
         GLFWwindow* _window;
         bool _visible = true;

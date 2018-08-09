@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Util/Util.h"
+#include "../Math/Math.h"
 #include "../Math/Color.h"
 #include <array>
 
@@ -165,6 +166,65 @@ namespace Alimer
         VertexElement& operator=(VertexElement&&) = default;
     };
 
+    struct Viewport
+    {
+        float x = 0.0f;
+        float y = 0.0f;
+        float width = 0.0f;
+        float height = 0.0f;
+        float minDepth = 0.0f;
+        float maxDepth = 1.0f;
+
+        Viewport() = default;
+        constexpr Viewport(float x_, float y_, float width_, float height_, float minDepth_ = 0.0f, float maxDepth_ = 1.0f)
+            : x(x_), y(y_), width(width_), height(height_), minDepth(minDepth_), maxDepth(maxDepth_) {}
+
+        explicit Viewport(const Rectangle& rect)
+            : x(static_cast<float>(rect.x)), y(static_cast<float>(rect.y))
+            , width(static_cast<float>(rect.width)), height(static_cast<float>(rect.height))
+            , minDepth(0.0f), maxDepth(1.0f) {}
+
+        Viewport(const Viewport&) = default;
+        Viewport& operator=(const Viewport&) = default;
+
+        Viewport(Viewport&&) = default;
+        Viewport& operator=(Viewport&&) = default;
+
+        // Comparison operators
+        bool operator == (const Viewport& rhs) const
+        {
+            return (x == rhs.x && y == rhs.y
+                && width == rhs.width && height == rhs.height
+                && minDepth == rhs.minDepth && maxDepth == rhs.maxDepth);
+        }
+
+        bool operator != (const Viewport& rhs) const
+        {
+            return (x != rhs.x || y != rhs.y
+                || width != rhs.width || height != rhs.height
+                || minDepth != rhs.minDepth || maxDepth != rhs.maxDepth);
+        }
+
+        // Assignment operators
+        Viewport& operator= (const Rectangle& rect)
+        {
+            x = static_cast<float>(rect.x);
+            y = static_cast<float>(rect.y);
+            width = static_cast<float>(rect.width);
+            height = static_cast<float>(rect.height);
+            minDepth = 0.0f; maxDepth = 1.0f;
+            return *this;
+        }
+
+        /// Get aspect ratio.
+        inline float GetAspectRatio() const
+        {
+            if (width == 0.0f || height == 0.0f)
+                return 0.0f;
+
+            return (width / height);
+        }
+    };
 
     ALIMER_API uint32_t GetVertexFormatSize(VertexElementFormat format);
 }

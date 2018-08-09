@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../../Scene/Component.h"
-#include "../../Math/Matrix4x4.h"
+#include "../../Math/Math.h"
 
 namespace Alimer
 {
@@ -47,7 +47,7 @@ namespace Alimer
         float _zfar  = 1000.0f;
 
         // Calculated values.
-        Matrix4x4 _view;
-        Matrix4x4 _projection;
+        mat4 _view;
+        mat4 _projection;
 	};
 }

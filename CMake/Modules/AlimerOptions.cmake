@@ -46,6 +46,14 @@ if (PLATFORM_WINDOWS)
 endif ()
 
 # Graphics backends
+if (NOT ALIMER_DISABLE_GL)
+	if (NOT PLATFORM_UWP)
+		set (ALIMER_GL_DEFAULT ON)
+	else ()
+		set (ALIMER_GL_DEFAULT OFF)
+	endif ()
+endif ()
+
 if (NOT ALIMER_DISABLE_VULKAN)
 	if (PLATFORM_WINDOWS OR PLATFORM_LINUX OR PLATFORM_ANDROID)
 		set (ALIMER_VULKAN_DEFAULT ON)
@@ -107,6 +115,7 @@ if (NOT ALIMER_DISABLE_TOOLS)
 endif ()
 
 option (ALIMER_STATIC_RUNTIME "Enable link to static runtime" ${ALIMER_STATIC_RUNTIME_DEFAULT})
+option (ALIMER_GL "Enable OpenGL backend" ${ALIMER_GL_DEFAULT})
 option (ALIMER_VULKAN "Enable Vulkan backend" ${ALIMER_VULKAN_DEFAULT})
 option (ALIMER_D3D11 "Enable D3D11 backend" ${ALIMER_D3D11_DEFAULT})
 option (ALIMER_D3D12 "Enable D3D12 backend" ${ALIMER_D3D12_DEFAULT})

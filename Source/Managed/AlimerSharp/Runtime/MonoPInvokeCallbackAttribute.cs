@@ -1,3 +1,6 @@
+// Copyright (c) Amer Koleci and contributors.
+// Licensed under the MIT License.
+
 using System;
 
 namespace Alimer

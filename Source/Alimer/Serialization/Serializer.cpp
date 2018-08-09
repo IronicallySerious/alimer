@@ -35,25 +35,25 @@ namespace Alimer
         Serialize(key, std::string(value));
     }
 
-    void Serializer::Serialize(const char* key, Vector2& value)
+    void Serializer::Serialize(const char* key, vec2& value)
     {
         Serialize(key, &value.x, 2);
     }
 
-    void Serializer::Serialize(const char* key, Vector3& value)
+    void Serializer::Serialize(const char* key, vec3& value)
     {
         Serialize(key, &value.x, 3);
     }
 
-    void Serializer::Serialize(const char* key, Vector4& value)
+    void Serializer::Serialize(const char* key, vec4& value)
     {
         Serialize(key, &value.x, 4);
     }
 
-    //void Serializer::Serialize(const char* key, Quaternion& value)
-    //{
-    //    Serialize(key, &value.x, 4);
-    //}
+    void Serializer::Serialize(const char* key, quat& value)
+    {
+        Serialize(key, &value.x, 4);
+    }
 
     void Serializer::Serialize(const char* key, const Color& value)
     {

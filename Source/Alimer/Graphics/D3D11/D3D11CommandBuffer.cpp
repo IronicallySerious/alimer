@@ -180,11 +180,6 @@ namespace Alimer
         _context->RSSetViewports(1, (D3D11_VIEWPORT*)&viewport);
     }
 
-    void D3D11CommandContext::SetViewports(uint32_t numViewports, const Viewport* viewports)
-    {
-        _context->RSSetViewports(numViewports, (D3D11_VIEWPORT*)viewports);
-    }
-
     void D3D11CommandContext::SetScissor(const Rectangle& scissor)
     {
         D3D11_RECT scissorD3D;
@@ -193,25 +188,6 @@ namespace Alimer
         scissorD3D.right = scissor.x + scissor.width;
         scissorD3D.bottom = scissor.y + scissor.height;
         _context->RSSetScissorRects(1, &scissorD3D);
-    }
-
-    void D3D11CommandContext::SetScissors(uint32_t numScissors, const Rectangle* scissors)
-    {
-        numScissors = std::min(numScissors, static_cast<uint32_t>(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE));
-        D3D11_RECT scissorsD3D[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
-
-        for (uint32_t i = 0; i < numScissors; ++i)
-        {
-            const Rectangle& src = scissors[i];
-            D3D11_RECT& dst = scissorsD3D[i];
-
-            dst.left = src.x;
-            dst.top = src.y;
-            dst.right = src.x + src.width;
-            dst.bottom = src.y + src.height;
-        }
-
-        _context->RSSetScissorRects(numScissors, scissorsD3D);
     }
 
     void D3D11CommandContext::SetShaderCore(Shader* shader)

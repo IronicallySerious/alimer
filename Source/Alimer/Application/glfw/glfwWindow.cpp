@@ -126,9 +126,9 @@ namespace Alimer
         return glfwWindowShouldClose(_window);
     }
 
-    void glfwWindow::HandleResize(const Vector2& newSize)
+    void glfwWindow::HandleResize(const uvec2& newSize)
     {
-        //_size = newSize;
+        _size = newSize;
         resizeEvent.size = newSize;
         SendEvent(resizeEvent);
     }

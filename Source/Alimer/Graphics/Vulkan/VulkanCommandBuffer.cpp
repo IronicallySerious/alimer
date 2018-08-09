@@ -178,27 +178,13 @@ namespace Alimer
     void VulkanCommandBuffer::SetViewport(const Viewport& viewport)
     {
         // Flip to match DirectX coordinate system.
-        _currentViewports[0] = VkViewport{
+        _currentViewport = VkViewport{
             viewport.x, viewport.height + viewport.y,
             viewport.width,   -viewport.height,
             viewport.minDepth, viewport.maxDepth,
         };
 
-        vkCmdSetViewport(_vkCommandBuffer, 0, 1, &_currentViewports[0]);
-    }
-
-    void VulkanCommandBuffer::SetViewports(uint32_t numViewports, const Viewport* viewports)
-    {
-        for (uint32_t i = 0; i < numViewports; i++)
-        {
-            _currentViewports[i] = VkViewport{
-                viewports[i].x, viewports[i].height + viewports[i].y,
-                viewports[i].width,   -viewports[i].height,
-                viewports[i].minDepth, viewports[i].maxDepth,
-            };
-        }
-
-        vkCmdSetViewport(_vkCommandBuffer, 0, numViewports, _currentViewports);
+        vkCmdSetViewport(_vkCommandBuffer, 0, 1, &_currentViewport);
     }
 
     void VulkanCommandBuffer::SetScissor(const Rectangle& scissor)
@@ -207,11 +193,6 @@ namespace Alimer
         vkScissor.offset = { scissor.x, scissor.y };
         vkScissor.extent = { static_cast<uint32_t>(scissor.width), static_cast<uint32_t>(scissor.height) };
         vkCmdSetScissor(_vkCommandBuffer, 0, 1, &vkScissor);
-    }
-
-    void VulkanCommandBuffer::SetScissors(uint32_t numScissors, const Rectangle* scissors)
-    {
-
     }
 
     void VulkanCommandBuffer::SetShaderCore(Shader* shader)

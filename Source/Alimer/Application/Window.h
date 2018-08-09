@@ -51,7 +51,7 @@ namespace Alimer
     {
     public:
         /// New window size.
-        Vector2 size;
+        uvec2 size;
     };
 
     /// OS Window class.
@@ -86,10 +86,13 @@ namespace Alimer
         /// Return whether is currently minimized.
         virtual bool IsMinimized() const;
 
-        inline uint32_t GetWidth() const { return _width; }
-        inline uint32_t GetHeight() const { return _height; }
-        inline float GetAspectRatio() const { return static_cast<float>(_width) / _height; }
-        inline const WindowHandle& GetHandle() const { return _handle; }
+        /// Return window client area size.
+        const uvec2& getSize() const { return _size; }
+        uint32_t getWidth() const { return _size.x; }
+        uint32_t getHeight() const { return _size.y; }
+
+        float getAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
+        const WindowHandle& getHandle() const { return _handle; }
 
         /// Size changed event.
         WindowResizeEvent resizeEvent;
@@ -98,10 +101,8 @@ namespace Alimer
         WindowHandle _handle;
         /// Window title.
         std::string _title;
-        /// Window width.
-        uint32_t _width;
-        /// Window height.
-        uint32_t _height;
+        /// Window size.
+        uvec2 _size;
         /// Resizable flag.
         bool _resizable;
 

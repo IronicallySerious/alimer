@@ -77,10 +77,7 @@ namespace Alimer
         void EndRenderPassCore() override;
 
         void SetViewport(const Viewport& viewport) override;
-        void SetViewports(uint32_t numViewports, const Viewport* viewports) override;
-
         void SetScissor(const Rectangle& scissor) override;
-        void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
         void SetShaderCore(Shader* shader) override;
 
@@ -143,7 +140,7 @@ namespace Alimer
         VkPipeline _currentVkPipeline = VK_NULL_HANDLE;
         VkPipelineLayout _currentVkPipelineLayout = VK_NULL_HANDLE;
 
-        VkViewport _currentViewports[MaxViewportsAndScissors] = {};
+        VkViewport _currentViewport;
 
         struct VertexBindingState
         {

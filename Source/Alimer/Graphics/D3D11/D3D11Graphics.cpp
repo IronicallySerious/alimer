@@ -189,7 +189,7 @@ namespace Alimer
 #else
         typedef HRESULT(WINAPI * LPDXGIGETDEBUGINTERFACE)(REFIID, void **);
 
-        HMODULE dxgidebug = LoadLibraryEx(L"dxgidebug.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        HMODULE dxgidebug = LoadLibraryExW(L"dxgidebug.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
         if (dxgidebug)
         {
             Microsoft::WRL::ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
@@ -213,14 +213,29 @@ namespace Alimer
             ComPtr<ID3D11InfoQueue> d3dInfoQueue;
             if (SUCCEEDED(d3dDebug.As(&d3dInfoQueue)))
             {
-                D3D11_MESSAGE_ID hide[] =
+                D3D11_INFO_QUEUE_FILTER filter;
+                memset(&filter, 0, sizeof(filter));
+
+                D3D11_MESSAGE_SEVERITY denySeverity = D3D11_MESSAGE_SEVERITY_INFO;
+                filter.DenyList.NumSeverities = 1;
+                filter.DenyList.pSeverityList = &denySeverity;
+
+                D3D11_MESSAGE_ID denyIds[] =
                 {
+                    D3D11_MESSAGE_ID_OMSETRENDERTARGETS_INVALIDVIEW,
+                    D3D11_MESSAGE_ID_DEVICE_DRAW_INDEX_BUFFER_TOO_SMALL,
+                    D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET,
                     D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS,
                 };
-                D3D11_INFO_QUEUE_FILTER filter = {};
-                filter.DenyList.NumIDs = _countof(hide);
-                filter.DenyList.pIDList = hide;
-                d3dInfoQueue->AddStorageFilterEntries(&filter);
+
+                filter.DenyList.NumIDs = sizeof(denyIds) / sizeof(D3D11_MESSAGE_ID);
+                filter.DenyList.pIDList = (D3D11_MESSAGE_ID*)&denyIds;
+                d3dInfoQueue->PushStorageFilter(&filter);
+
+                d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+                d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+
+                //d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, true);
             }
         }
 #endif
@@ -233,13 +248,13 @@ namespace Alimer
             return false;
 
         // Create Swapchain.
-        const WindowHandle& handle = _window->GetHandle();
+        const WindowHandle& handle = _window->getHandle();
         _swapChain = new D3D11SwapChain(this);
 
 #if ALIMER_PLATFORM_UWP
-        _swapChain->SetCoreWindow(static_cast<IUnknown*>(handle.handle), _window->GetWidth(), _window->GetHeight());
+        _swapChain->SetCoreWindow(static_cast<IUnknown*>(handle.handle), _window->getWidth(), _window->getHeight());
 #else
-        _swapChain->SetWindow(static_cast<HWND>(handle.handle), _window->GetWidth(), _window->GetHeight());
+        _swapChain->SetWindow(static_cast<HWND>(handle.handle), _window->getWidth(), _window->getHeight());
 #endif
 
         // Immediate/default command queue.

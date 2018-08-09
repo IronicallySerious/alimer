@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Math/Math.h"
-#include "../Math/Color.h"
+#include "../Graphics/Types.h"
 #include <vector>
 
 namespace Alimer
@@ -38,7 +38,6 @@ namespace Alimer
             BeginRenderPass,
             EndRenderPass,
             SetViewport,
-            SetViewports
         };
 
         Command(Type type_) : type(type_)
@@ -88,16 +87,5 @@ namespace Alimer
         }
 
         const Viewport viewport;
-    };
-
-    struct SetViewportsCommand : public Command
-    {
-        SetViewportsCommand(uint32_t numViewports_, const Viewport* viewports_)
-            : Command(Command::Type::SetViewports)
-            , viewports(viewports_, viewports_ + numViewports_)
-        {
-        }
-
-        std::vector<Viewport> viewports;
     };
 }

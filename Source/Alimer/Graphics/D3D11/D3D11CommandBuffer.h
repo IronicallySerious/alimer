@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "Graphics/CommandBuffer.h"
+#include "../CommandBuffer.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
@@ -64,11 +64,9 @@ namespace Alimer
 
         void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
-        void SetViewport(const Viewport& viewport) override;
-        void SetViewports(std::uint32_t numViewports, const Viewport* viewports) override;
 
+        void SetViewport(const Viewport& viewport) override;
         void SetScissor(const Rectangle& scissor) override;
-        void SetScissors(uint32_t numScissors, const Rectangle* scissors) override;
 
         void SetShaderCore(Shader* shader) override;
         void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
