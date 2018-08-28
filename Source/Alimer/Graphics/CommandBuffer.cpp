@@ -27,164 +27,20 @@
 
 namespace Alimer
 {
-    CommandBuffer::CommandBuffer()
+    CommandContext::CommandContext()
     {
-        Clear();
     }
 
-    CommandBuffer::~CommandBuffer()
+    CommandContext::~CommandContext()
     {
-        Clear();
     }
 
-    void CommandBuffer::Clear()
+    void CommandContext::BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
     {
-        if (_buffer)
-        {
-            DeleteCommands();
-            delete[] _buffer;
-        }
-
-        _state = CommandBufferState::Ready;
-        _buffer = nullptr;
-        _capacity = 0;
-        _size = 0;
-        _position = 0;
-        _count = 0;
-        _current = 0;
+        BeginRenderPass(renderPass, &clearColor, 1, clearDepth, clearStencil);
     }
 
-    Command* CommandBuffer::Front() const
-    {
-        if (_current >= _count) return nullptr;
-
-        size_t offset = _position;
-        if (offset % CommandAlign != 0)
-            offset += CommandAlign - (offset % CommandAlign);
-
-        Command* command = reinterpret_cast<Command*>(_buffer + offset);
-        return command;
-    }
-
-    void CommandBuffer::Pop()
-    {
-        if (_current >= _count) return;
-
-        if (_position % CommandAlign != 0)
-            _position += CommandAlign - (_position % CommandAlign);
-
-        Command* command = reinterpret_cast<Command*>(_buffer + _position);
-
-        switch (command->type)
-        {
-        case Command::Type::BeginRenderPass:
-            _position += DeleteCommand(static_cast<BeginRenderPassCommand*>(command));
-            break;
-
-        case Command::Type::EndRenderPass:
-            _position += DeleteCommand(static_cast<EndRenderPassCommand*>(command));
-            break;
-
-        case Command::Type::SetViewport:
-            _position += DeleteCommand(static_cast<SetViewportCommand*>(command));
-            break;
-
-        default: break;
-        }
-
-        ++_current;
-
-        if (_current == _count)
-        {
-            _count = 0;
-            _size = 0;
-            _position = 0;
-            _current = 0;
-        }
-    }
-
-    void CommandBuffer::MoveCommands(uint8_t* newBuffer)
-    {
-        size_t offset = _position;
-
-        for (uint32_t i = _current; i < _count; ++i)
-        {
-            if (offset % CommandAlign != 0)
-                offset += CommandAlign - (offset % CommandAlign);
-
-            Command* command = reinterpret_cast<Command*>(_buffer + offset);
-
-            switch (command->type)
-            {
-            case Command::Type::BeginRenderPass:
-                offset += MoveCommand(static_cast<BeginRenderPassCommand*>(command), newBuffer + offset);
-                break;
-
-            case Command::Type::EndRenderPass:
-                offset += MoveCommand(static_cast<EndRenderPassCommand*>(command), newBuffer + offset);
-                break;
-
-            case Command::Type::SetViewport:
-                offset += MoveCommand(static_cast<SetViewportCommand*>(command), newBuffer + offset);
-                break;
-
-            default: assert(false);
-            }
-        }
-    }
-
-    void CommandBuffer::DeleteCommands()
-    {
-        size_t offset = _position;
-
-        for (uint32_t i = _current; i < _count; ++i)
-        {
-            if (offset % CommandAlign != 0)
-                offset += CommandAlign - (offset % CommandAlign);
-
-            Command* command = reinterpret_cast<Command*>(_buffer + offset);
-
-            switch (command->type)
-            {
-            case Command::Type::BeginRenderPass:
-                offset += DeleteCommand(static_cast<BeginRenderPassCommand*>(command));
-                break;
-
-            case Command::Type::EndRenderPass:
-                offset += DeleteCommand(static_cast<EndRenderPassCommand*>(command));
-                break;
-
-            case Command::Type::SetViewport:
-                offset += DeleteCommand(static_cast<SetViewportCommand*>(command));
-                break;
-
-            default: assert(false);
-            }
-        }
-    }
-
-    void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
-    {
-        BeginRenderPass(renderPass, Rectangle::Empty, &clearColor, 1, clearDepth, clearStencil);
-    }
-
-    void CommandBuffer::BeginRenderPass(RenderPass* renderPass,
-        const Rectangle& renderArea,
-        const Color& clearColor,
-        float clearDepth, uint8_t clearStencil)
-    {
-        BeginRenderPass(renderPass, renderArea, &clearColor, 1, clearDepth, clearStencil);
-    }
-
-    void CommandBuffer::BeginRenderPass(RenderPass* renderPass,
-        const Color* clearColors, uint32_t numClearColors,
-        float clearDepth, uint8_t clearStencil)
-    {
-        BeginRenderPass(renderPass, Rectangle::Empty, clearColors, numClearColors, clearDepth, clearStencil);
-    }
-
-    void CommandBuffer::BeginRenderPass(RenderPass* renderPass,
-        const Rectangle& renderArea,
+    void CommandContext::BeginRenderPass(RenderPass* renderPass,
         const Color* clearColors, uint32_t numClearColors,
         float clearDepth, uint8_t clearStencil)
     {
@@ -193,11 +49,11 @@ namespace Alimer
             ALIMER_LOGCRITICAL("BeginRenderPass should be called before EndRenderPass.");
         }
 
-        BeginRenderPassCore(renderPass, renderArea, clearColors, numClearColors, clearDepth, clearStencil);
+        BeginRenderPassCore(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
         _state = CommandBufferState::InRenderPass;
     }
 
-    void CommandBuffer::EndRenderPass()
+    void CommandContext::EndRenderPass()
     {
         if (!IsInsideRenderPass())
         {
@@ -208,27 +64,13 @@ namespace Alimer
         _state = CommandBufferState::Ready;
     }
 
-    void CommandBuffer::SetViewport(const Viewport& viewport)
-    {
-        Push(SetViewportCommand(viewport));
-    }
-
-    void CommandBuffer::SetScissor(const Rectangle& scissor)
-    {
-        //SetScissors(1, &scissor);
-    }
-
-    void CommandBuffer::SetShader(Shader* shader)
+    void CommandContext::SetShader(Shader* shader)
     {
         ALIMER_ASSERT(shader);
         SetShaderCore(shader);
     }
 
-    void CommandBuffer::SetShaderCore(Shader* shader)
-    {
-    }
-
-    void CommandBuffer::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset, VertexInputRate inputRate)
+    void CommandContext::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
         ALIMER_ASSERT(buffer);
@@ -236,12 +78,7 @@ namespace Alimer
         SetVertexBufferCore(binding, buffer, offset, buffer->GetStride(), inputRate);
     }
 
-    void CommandBuffer::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
-    {
-
-    }
-
-    void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset)
+    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Index);
@@ -249,12 +86,7 @@ namespace Alimer
         SetIndexBufferCore(buffer, offset, buffer->GetStride() == 2 ? IndexType::UInt16 : IndexType::UInt32);
     }
 
-    void CommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
-    {
-
-    }
-
-    void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer)
+    void CommandContext::SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer)
     {
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
@@ -264,22 +96,13 @@ namespace Alimer
         SetUniformBufferCore(set, binding, buffer, 0, buffer->GetSize());
     }
 
-    void CommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range)
-    {
-    }
-
-    void CommandBuffer::SetTexture(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    void CommandContext::SetTexture(uint32_t binding, Texture* texture, ShaderStageFlags stage)
     {
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
         SetTextureCore(binding, texture, stage);
     }
 
-    void CommandBuffer::SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage)
-    {
-
-    }
-
-    void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    void CommandContext::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
     {
         if (!IsInsideRenderPass())
         {
@@ -289,7 +112,7 @@ namespace Alimer
         DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
-    void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
         if (!IsInsideRenderPass())
         {
@@ -299,31 +122,11 @@ namespace Alimer
         DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
     }
 
-    void CommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
-    {
-
-    }
-
-    void CommandBuffer::ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
+    /*void CommandBuffer::ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
     {
         ALIMER_ASSERT(commandBufferCount);
         ALIMER_ASSERT(commandBuffers);
 
         ExecuteCommandsCore(commandBufferCount, commandBuffers);
-    }
-
-    void CommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
-    {
-        Push(BeginRenderPassCommand(renderPass, renderArea, clearColors, numClearColors, clearDepth, clearStencil));
-    }
-
-    void CommandBuffer::EndRenderPassCore()
-    {
-        Push(EndRenderPassCommand());
-    }
-
-    void CommandBuffer::ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
-    {
-
-    }
+    }*/
 }

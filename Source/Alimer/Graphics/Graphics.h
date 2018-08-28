@@ -79,9 +79,6 @@ namespace Alimer
         /// Try to save screenshot with given file name.
         void SaveScreenshot(const std::string& fileName);
 
-        virtual SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBufferType type = CommandBufferType::Default) = 0;
-        virtual void Submit(const SharedPtr<CommandBuffer> &commandBuffer) = 0;
-
         // RenderPass
         virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
 
@@ -118,6 +115,9 @@ namespace Alimer
 
         /// Get the device features.
         const GpuDeviceFeatures& GetFeatures() const { return _features; }
+
+        /// Gets the immediate command context.
+        virtual CommandContext* GetImmediateContext() const = 0;
 
     private:
         /// Add a GpuResource to keep track of. 

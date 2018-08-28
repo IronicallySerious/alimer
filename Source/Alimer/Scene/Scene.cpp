@@ -70,9 +70,9 @@ namespace Alimer
         }
     }
 
-    void Scene::Render(CommandBuffer* commandBuffer)
+    void Scene::Render(CommandContext* context)
     {
-        GetSystem<RenderSystem>().Render(commandBuffer);
+        GetSystem<RenderSystem>().Render(context);
     }
 
     void Scene::UpdateCachedTransforms()

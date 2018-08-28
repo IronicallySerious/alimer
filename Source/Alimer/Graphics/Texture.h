@@ -46,6 +46,12 @@ namespace Alimer
         RenderTarget = 1 << 2,
     };
 
+    enum class TextureColorSpace : uint32_t
+    {
+        Default = 0,
+        sRGB = 1
+    };
+
     using TextureUsageFlags = Flags<TextureUsage, uint32_t>;
     ALIMER_FORCE_INLINE TextureUsageFlags operator|(TextureUsage bit0, TextureUsage bit1)
     {
@@ -68,6 +74,7 @@ namespace Alimer
         uint32_t mipLevels = 1;
         uint32_t arrayLayers = 1;
         SampleCount samples = SampleCount::Count1;
+        TextureColorSpace colorSpace = TextureColorSpace::Default;
     };
 
     /// Defines a Texture class.

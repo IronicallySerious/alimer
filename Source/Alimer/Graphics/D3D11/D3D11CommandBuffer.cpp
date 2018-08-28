@@ -44,61 +44,12 @@ namespace Alimer
 {
     static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 
-    D3D11CommandBuffer::D3D11CommandBuffer(D3D11Graphics* graphics, bool immediate)
-        : CommandBuffer()
-        , _graphics(graphics)
-        , _immediate(immediate)
-    {
-    }
-
-    D3D11CommandBuffer::~D3D11CommandBuffer() = default;
-
-    void D3D11CommandBuffer::Execute(D3D11CommandContext* context)
-    {
-        while (Command* command = Front())
-        {
-            switch (command->type)
-            {
-            case Command::Type::BeginRenderPass:
-            {
-                const BeginRenderPassCommand* beginRenderPassCommand = static_cast<const BeginRenderPassCommand*>(command);
-                context->BeginRenderPassCore(
-                    beginRenderPassCommand->renderPass,
-                    beginRenderPassCommand->renderArea,
-                    beginRenderPassCommand->clearColors.data(),
-                    static_cast<uint32_t>(beginRenderPassCommand->clearColors.size()),
-                    beginRenderPassCommand->clearDepth,
-                    beginRenderPassCommand->clearStencil
-                );
-            }
-            break;
-
-            case Command::Type::EndRenderPass:
-            {
-                context->EndRenderPassCore();
-            }
-            break;
-
-            case Command::Type::SetViewport:
-            {
-                const SetViewportCommand* typedCmd = static_cast<const SetViewportCommand*>(command);
-                context->SetViewport(typedCmd->viewport);
-            }
-            break;
-
-            default:
-                ALIMER_LOGCRITICAL("Invalid CommandBuffer command");
-                break;
-            }
-
-            Pop();
-        }
-    }
-
     // D3D11CommandContext
     D3D11CommandContext::D3D11CommandContext(D3D11Graphics* graphics, ID3D11DeviceContext1* context)
-        : D3D11CommandBuffer(graphics, true)
+        : CommandContext()
+        , _graphics(graphics)
         , _context(context)
+        , _immediate(context->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
     {
         Reset();
     }
@@ -106,6 +57,15 @@ namespace Alimer
     D3D11CommandContext::~D3D11CommandContext()
     {
 
+    }
+
+    void D3D11CommandContext::Flush(bool wait)
+    {
+        if (_immediate
+            && wait)
+        {
+            _context->Flush();
+        }
     }
 
     void D3D11CommandContext::Reset()
@@ -127,7 +87,7 @@ namespace Alimer
         _inputLayoutDirty = false;
     }
 
-    void D3D11CommandContext::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    void D3D11CommandContext::BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         if (!renderPass)
         {
@@ -153,20 +113,19 @@ namespace Alimer
             }
         }
 
-        // Set viewport and scissor from render area.
-        Rectangle setRenderArea = renderArea;
-        if (renderArea.IsEmpty())
-        {
-            setRenderArea = Rectangle((int32_t)renderPass->GetWidth(), (int32_t)renderPass->GetHeight());
-        }
-
-        D3D11_VIEWPORT d3dViewport = {
-            static_cast<float>(setRenderArea.x), static_cast<float>(setRenderArea.y),
-            static_cast<float>(setRenderArea.width), static_cast<float>(setRenderArea.height),
+        // Set viewport and scissor from fbo.
+        D3D11_VIEWPORT viewport = {
+            0.0f, 0.0f,
+            float(renderPass->GetWidth()), float(renderPass->GetHeight()),
             0.0f, 1.0f
         };
-        _context->RSSetViewports(1, &d3dViewport);
-        SetScissor(setRenderArea);
+
+        D3D11_RECT scissor = { 0, 0,
+            LONG(renderPass->GetWidth()), LONG(renderPass->GetHeight())
+        };
+
+        _context->RSSetViewports(1, &viewport);
+        _context->RSSetScissorRects(1, &scissor);
     }
 
     void D3D11CommandContext::EndRenderPassCore()

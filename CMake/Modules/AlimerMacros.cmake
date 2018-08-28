@@ -142,6 +142,7 @@ macro (add_target_csharp TARGET PROJECT_FILE)
     elseif (EXISTS ${NET_OUTPUT_DIRECTORY}/${TARGET}.exe)
         install (FILES ${NET_OUTPUT_DIRECTORY}/${TARGET}.exe DESTINATION ${DEST_LIBRARY_DIR})
     endif()
+
 endmacro()
 
 function(vs_group_subdirectory_targets DIR FOLDER_NAME)

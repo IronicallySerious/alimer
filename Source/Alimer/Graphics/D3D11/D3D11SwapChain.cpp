@@ -113,7 +113,7 @@ namespace Alimer
 
         // Clear the previous window size specific context.
         ID3D11RenderTargetView* nullViews[] = { nullptr };
-        _graphics->GetImmediateContext()->OMSetRenderTargets(1, nullViews, nullptr);
+        _graphics->GetD3DImmediateContext()->OMSetRenderTargets(1, nullViews, nullptr);
 
         HRESULT hr = S_OK;
 

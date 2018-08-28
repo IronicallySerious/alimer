@@ -28,7 +28,6 @@
 #include "../../Application/Window.h"
 #include "VulkanGraphics.h"
 #include "VulkanGpuAdapter.h"
-#include "VulkanCommandQueue.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanRenderPass.h"
 #include "VulkanTexture.h"
@@ -395,7 +394,7 @@ namespace Alimer
         vkDestroyPipelineCache(_logicalDevice, _pipelineCache, nullptr);
 
         // Destroy default command buffer.
-        _defaultCommandBuffer.Reset();
+        SafeDelete(_defaultCommandBuffer);
 
         // Destroy default command pool.
         if (_commandPool != VK_NULL_HANDLE)
@@ -715,21 +714,9 @@ namespace Alimer
         // DestroyPendingResources();
     }
 
-    SharedPtr<CommandBuffer> VulkanGraphics::RequestCommandBuffer(CommandBufferType type)
+    CommandContext* VulkanGraphics::GetImmediateContext() const
     {
-        switch (type)
-        {
-        case CommandBufferType::Default:
-            return _defaultCommandBuffer;
-
-        default:
-            ALIMER_LOGCRITICAL("Invalid CommandBuffer type requested: {}", str::ToString(type));
-        }
-    }
-
-    void VulkanGraphics::Submit(const SharedPtr<CommandBuffer> &commandBuffer)
-    {
-
+        return _defaultCommandBuffer;
     }
 
     RenderPass* VulkanGraphics::GetBackbufferRenderPass() const

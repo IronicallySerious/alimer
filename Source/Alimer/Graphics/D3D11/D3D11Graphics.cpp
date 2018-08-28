@@ -103,7 +103,7 @@ namespace Alimer
         WaitIdle();
 
         SafeDelete(_swapChain);
-        _defaultCommandBuffer.Reset();
+        SafeDelete(_immediateContext);
 
         Graphics::Finalize();
     }
@@ -257,8 +257,8 @@ namespace Alimer
         _swapChain->SetWindow(static_cast<HWND>(handle.handle), _window->getWidth(), _window->getHeight());
 #endif
 
-        // Immediate/default command queue.
-        _defaultCommandBuffer = new D3D11CommandContext(this, _d3dImmediateContext.Get());
+        // Create immediate command context.
+        _immediateContext = new D3D11CommandContext(this, _d3dImmediateContext.Get());
 
         return true;
     }
@@ -276,30 +276,6 @@ namespace Alimer
 
         // Flush immediate context.
         //_d3dContext->Flush();
-    }
-
-    SharedPtr<CommandBuffer> D3D11Graphics::RequestCommandBuffer(CommandBufferType type)
-    {
-        switch (type)
-        {
-        case CommandBufferType::Default:
-            return _defaultCommandBuffer;
-
-        default:
-            ALIMER_LOGCRITICAL("Invalid CommandBuffer type requested: {}", str::ToString(type));
-        }
-    }
-
-    void D3D11Graphics::Submit(const SharedPtr<CommandBuffer> &commandBuffer)
-    {
-        auto d3d11CommandBuffer = StaticCast<D3D11CommandBuffer>(commandBuffer);
-        if (d3d11CommandBuffer->IsImmediate())
-            return;
-
-        // Execute deferred command buffer.
-        ComPtr<ID3D11CommandList> commandList;
-        ThrowIfFailed(_d3dImmediateContext->FinishCommandList(FALSE, commandList.ReleaseAndGetAddressOf()));
-        _d3dImmediateContext->ExecuteCommandList(commandList.Get(), FALSE);
     }
 
     void D3D11Graphics::GenerateScreenshot(const std::string& fileName)
@@ -420,14 +396,25 @@ namespace Alimer
             break;
         }
 
-        D3D11_FEATURE_DATA_THREADING threadingSupport = { 0 };
-        ThrowIfFailed(_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingSupport, sizeof(threadingSupport)));
+        D3D11_FEATURE_DATA_THREADING threadingFeature = { 0 };
+        ThrowIfFailed(_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingFeature, sizeof(threadingFeature)));
+        if (threadingFeature.DriverConcurrentCreates
+            && threadingFeature.DriverCommandLists)
+        {
+            _features.SetMultithreading(true);
+        }
+
         return true;
     }
 
     void D3D11Graphics::HandleDeviceLost()
     {
         // TODO
+    }
+
+    CommandContext* D3D11Graphics::GetImmediateContext() const
+    {
+        return _immediateContext;
     }
 
     ID3D11InputLayout* D3D11Graphics::GetInputLayout(const InputLayoutDesc& desc)

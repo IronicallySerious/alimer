@@ -64,7 +64,7 @@ namespace Alimer
     };
 
     /// Vulkan CommandBuffer.
-    class VulkanCommandBuffer final : public CommandBuffer
+    class VulkanCommandBuffer final : public CommandContext
     {
     public:
         VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary);
@@ -73,7 +73,9 @@ namespace Alimer
         void Begin(VkCommandBufferInheritanceInfo* inheritanceInfo);
         void End();
 
-        void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        void Flush(bool wait) override;
+
+        void BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
 
         void SetViewport(const Viewport& viewport) override;
@@ -84,12 +86,13 @@ namespace Alimer
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
-        void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
+        //void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
         void SetVertexAttribute(uint32_t attrib, uint32_t binding, VkFormat format, VkDeviceSize offset);
         void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
         void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
+        void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) override;
 
         inline void SetPrimitiveTopology(PrimitiveTopology topology)
         {

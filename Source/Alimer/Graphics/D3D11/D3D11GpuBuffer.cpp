@@ -103,7 +103,7 @@ namespace Alimer
 
     bool D3D11GpuBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
     {
-        ID3D11DeviceContext* d3dDeviceContext = _graphics->GetImmediateContext();
+        ID3D11DeviceContext* d3dDeviceContext = _graphics->GetD3DImmediateContext();
 
         if (_isDynamic)
         {

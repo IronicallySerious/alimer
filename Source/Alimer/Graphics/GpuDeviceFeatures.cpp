@@ -26,6 +26,11 @@ namespace Alimer
 {
     GpuDeviceFeatures::GpuDeviceFeatures()
     {
+        Reset();
+    }
 
+    void GpuDeviceFeatures::Reset()
+    {
+        _multithreading = false;
     }
 }

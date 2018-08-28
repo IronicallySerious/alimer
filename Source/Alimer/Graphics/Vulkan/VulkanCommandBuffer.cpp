@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanCommandQueue.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
@@ -43,8 +42,7 @@ static_assert(offsetof(Alimer::Viewport, maxDepth) == offsetof(VkViewport, maxDe
 namespace Alimer
 {
     VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary)
-        : CommandBuffer()
-        , _graphics(graphics)
+        : _graphics(graphics)
         , _logicalDevice(_graphics->GetLogicalDevice())
         , _commandPool(commandPool)
     {
@@ -112,7 +110,12 @@ namespace Alimer
         vkThrowIfFailed(vkEndCommandBuffer(_vkCommandBuffer));
     }
 
-    void VulkanCommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    void VulkanCommandBuffer::Flush(bool wait)
+    {
+
+    }
+
+    void VulkanCommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         if (!renderPass)
         {
@@ -120,12 +123,6 @@ namespace Alimer
         }
 
         _currentRenderPass = static_cast<VulkanRenderPass*>(renderPass);
-
-        Rectangle setRenderArea = renderArea;
-        if (renderArea.IsEmpty())
-        {
-            setRenderArea = Rectangle((int32_t)renderPass->GetWidth(), (int32_t)renderPass->GetHeight());
-        }
 
         std::vector<VkClearValue> clearValues(numClearColors + 1);
         uint32_t i = 0;
@@ -142,18 +139,18 @@ namespace Alimer
         VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
         renderPassBeginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
         renderPassBeginInfo.framebuffer = _currentRenderPass->GetVkFramebuffer();
-        renderPassBeginInfo.renderArea.offset.x = setRenderArea.x;
-        renderPassBeginInfo.renderArea.offset.y = setRenderArea.y;
-        renderPassBeginInfo.renderArea.extent.width = setRenderArea.width;
-        renderPassBeginInfo.renderArea.extent.height = setRenderArea.height;
+        renderPassBeginInfo.renderArea.offset.x = 0;
+        renderPassBeginInfo.renderArea.offset.y = 0;
+        renderPassBeginInfo.renderArea.extent.width = renderPass->GetWidth();
+        renderPassBeginInfo.renderArea.extent.height = renderPass->GetHeight();
         renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
 
         vkCmdBeginRenderPass(_vkCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        // 
-        SetViewport(Viewport(setRenderArea));
-        SetScissor(setRenderArea);
+        //Viewport viewport(0.0f, 0.0f, float(renderPass->GetWidth()), float(renderPass->GetHeight()), 0.0f, 1.0f);
+        //SetViewport(viewport);
+        //SetScissor(setRenderArea);
         BeginGraphics();
     }
 
@@ -162,7 +159,7 @@ namespace Alimer
         vkCmdEndRenderPass(_vkCommandBuffer);
     }
 
-    void VulkanCommandBuffer::ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
+    /*void VulkanCommandBuffer::ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
     {
         std::vector<VkCommandBuffer> vkCommandBuffers;
         for (uint32_t i = 0; i < commandBufferCount; i++)
@@ -173,7 +170,7 @@ namespace Alimer
         }
 
         vkCmdExecuteCommands(_vkCommandBuffer, commandBufferCount, vkCommandBuffers.data());
-    }
+    }*/
 
     void VulkanCommandBuffer::SetViewport(const Viewport& viewport)
     {
@@ -343,6 +340,11 @@ namespace Alimer
 
         b.buffer = { vkBuffer, offset, range };
         _dirtySets |= 1u << set;
+    }
+
+    void VulkanCommandBuffer::SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    {
+
     }
 
     void VulkanCommandBuffer::FlushRenderState()

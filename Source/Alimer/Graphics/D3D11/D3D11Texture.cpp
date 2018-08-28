@@ -62,7 +62,8 @@ namespace Alimer
             }
         }
 
-        _dxgiFormat = d3d::Convert(description.format);
+        const bool srgb = description.colorSpace == TextureColorSpace::sRGB;
+        _dxgiFormat = d3d::Convert(description.format, srgb);
 
         switch (description.type)
         {

@@ -71,12 +71,12 @@ namespace Alimer
         }
     }
 
-    void RenderSystem::Render(CommandBuffer* commandBuffer)
+    void RenderSystem::Render(CommandContext* context)
     {
-        commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+    context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
 
         // Bind per camera UBO
-        //commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
+        //context->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
 
         for (auto &visible : _visibleSet)
         {
@@ -84,6 +84,6 @@ namespace Alimer
             //visible.renderable->Render(context, vis.transform, queue);
         }
 
-        commandBuffer->EndRenderPass();
+        context->EndRenderPass();
     }
 }

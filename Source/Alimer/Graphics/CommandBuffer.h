@@ -36,89 +36,28 @@ namespace Alimer
 {
     class Graphics;
 
-    /// Defines the type of CommandBuffer.
-    enum class CommandBufferType : uint8_t
+    /// Defines a command context for recording gpu commands.
+    class ALIMER_API CommandContext 
     {
-        Default
-    };
-
-    template <>
-    struct EnumNames<CommandBufferType>
-    {
-        constexpr std::array<const char*, 1> operator()() const {
-            return { {
-                    "default",
-                } };
-        }
-    };
-
-    /// Defines a command buffer for storing recorded gpu commands.
-    class ALIMER_API CommandBuffer : public RefCounted
-    {
-        static constexpr size_t CommandAlign = alignof(Command*);
-
     public:
-        CommandBuffer();
+        CommandContext();
 
         /// Destructor.
-        virtual ~CommandBuffer();
+        virtual ~CommandContext();
 
-        /// Clear all commands
-        void Clear();
-
-        template<typename T>
-        void Push(const T& command)
-        {
-            static_assert(std::is_base_of<Command, T>::value, "Must derive from Command structu");
-
-            size_t offset = _size;
-            if (offset % CommandAlign != 0)
-            {
-                offset += CommandAlign - (offset % CommandAlign);
-            }
-
-            if (_capacity < offset + sizeof(T))
-            {
-                _capacity *= 2;
-                if (_capacity < offset + sizeof(T))
-                {
-                    _capacity = offset + sizeof(T);
-                }
-
-                uint8_t* newBuffer = new uint8_t[_capacity];
-                if (_buffer)
-                {
-                    MoveCommands(newBuffer);
-                    DeleteCommands();
-                    delete[] _buffer;
-                }
-                _buffer = newBuffer;
-            }
-
-            _size = offset + sizeof(T);
-            ++_count;
-            new (_buffer + offset) T(command);
-        }
-
-        Command* Front() const;
-        void Pop();
+        /// Flush the command context and optionally wait for execution.
+        virtual void Flush(bool wait = false) = 0;
 
         void BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
-        void BeginRenderPass(RenderPass* renderPass, const Rectangle& renderArea, const Color& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
         void BeginRenderPass(RenderPass* renderPass,
-            const Color* clearColors, uint32_t numClearColors,
-            float clearDepth = 1.0f, uint8_t clearStencil = 0);
-
-        void BeginRenderPass(RenderPass* renderPass,
-            const Rectangle& renderArea,
             const Color* clearColors, uint32_t numClearColors,
             float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
         void EndRenderPass();
 
-        virtual void SetViewport(const Viewport& viewport);
-        virtual void SetScissor(const Rectangle& scissor);
+        virtual void SetViewport(const Viewport& viewport) = 0;
+        virtual void SetScissor(const Rectangle& scissor) = 0;
 
         void SetShader(Shader* shader);
 
@@ -132,21 +71,21 @@ namespace Alimer
         void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
         void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
 
-        void ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
+        //void ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
     protected:
-        virtual void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil);
-        virtual void EndRenderPassCore();
-        virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
+        virtual void BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
+        virtual void EndRenderPassCore() = 0;
+        //virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
-        virtual void SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range);
-        virtual void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage);
+        virtual void SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range) = 0;
+        virtual void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) = 0;
 
-        virtual void SetShaderCore(Shader* shader);
+        virtual void SetShaderCore(Shader* shader) = 0;
         virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
-        virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex);
-        virtual void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate);
-        virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType);
+        virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
+        virtual void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) = 0;
+        virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
         inline bool IsInsideRenderPass() const
         {
@@ -168,34 +107,6 @@ namespace Alimer
         CommandBufferState _state = CommandBufferState::Ready;
 
     private:
-        template<typename T>
-        uint32_t DeleteCommand(T* command)
-        {
-            ALIMER_UNUSED(command);
-            command->~T();
-            return sizeof(*command);
-        }
-
-        template<typename T>
-        uint32_t MoveCommand(T* command, void* newPointer)
-        {
-            ALIMER_UNUSED(command);
-            new (newPointer) T(std::move(*command));
-            return sizeof(*command);
-        }
-
-        void MoveCommands(uint8_t* newBuffer);
-        void DeleteCommands();
-
-    private:
-        uint8_t * _buffer = nullptr;
-        size_t _capacity = 0;
-        size_t _size = 0;
-        size_t _position = 0;
-        uint32_t _count = 0;
-        uint32_t _current = 0;
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);
+        DISALLOW_COPY_MOVE_AND_ASSIGN(CommandContext);
     };
 }

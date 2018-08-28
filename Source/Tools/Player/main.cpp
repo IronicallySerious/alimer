@@ -69,14 +69,14 @@ namespace Alimer
             _perCameraUboBuffer = new GpuBuffer(graphics, uboBufferDesc, &_camera);
         }
 
-        void Render(CommandBuffer* commandBuffer)
+        void Render(CommandContext* context)
         {
-            commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
-            commandBuffer->SetShader(_shader.Get());
-            commandBuffer->SetVertexBuffer(0, _vertexBuffer.Get());
-            commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
-            commandBuffer->Draw(PrimitiveTopology::Triangles, 3);
-            commandBuffer->EndRenderPass();
+            context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+            context->SetShader(_shader.Get());
+            context->SetVertexBuffer(0, _vertexBuffer.Get());
+            context->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
+            context->Draw(PrimitiveTopology::Triangles, 3);
+            context->EndRenderPass();
         }
 
     private:
@@ -127,15 +127,15 @@ namespace Alimer
             _perCameraUboBuffer = new GpuBuffer(graphics, uboBufferDesc, &_camera);
         }
 
-        void Render(CommandBuffer* commandBuffer)
+        void Render(CommandContext* context)
         {
-            commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
-            commandBuffer->SetShader(_shader.Get());
-            commandBuffer->SetVertexBuffer(0, _vertexBuffer.Get());
-            commandBuffer->SetIndexBuffer(_indexBuffer.Get());
-            commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
-            commandBuffer->DrawIndexed(PrimitiveTopology::Triangles, 6);
-            commandBuffer->EndRenderPass();
+            context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+            context->SetShader(_shader.Get());
+            context->SetVertexBuffer(0, _vertexBuffer.Get());
+            context->SetIndexBuffer(_indexBuffer.Get());
+            context->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
+            context->DrawIndexed(PrimitiveTopology::Triangles, 6);
+            context->EndRenderPass();
         }
 
     private:
@@ -239,15 +239,15 @@ namespace Alimer
             _perCameraUboBuffer = new GpuBuffer(graphics, uboBufferDesc, &_camera);
         }
 
-        void Render(CommandBuffer* commandBuffer)
+        void Render(CommandContext* context)
         {
-            commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
-            commandBuffer->SetShader(_shader.Get());
-            commandBuffer->SetVertexBuffer(0, _vertexBuffer.Get());
-            commandBuffer->SetIndexBuffer(_indexBuffer.Get());
-            commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
-            commandBuffer->DrawIndexed(PrimitiveTopology::Triangles, 6);
-            commandBuffer->EndRenderPass();
+            context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+            context->SetShader(_shader.Get());
+            context->SetVertexBuffer(0, _vertexBuffer.Get());
+            context->SetIndexBuffer(_indexBuffer.Get());
+            context->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
+            context->DrawIndexed(PrimitiveTopology::Triangles, 6);
+            context->EndRenderPass();
         }
 
     private:
@@ -367,16 +367,16 @@ namespace Alimer
             _texture = graphics->CreateTexture(textureDesc, &initial);
         }
 
-        void Render(CommandBuffer* commandBuffer)
+        void Render(CommandContexzt* context)
         {
-            commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
-            commandBuffer->SetShader(_shader.Get());
-            commandBuffer->SetVertexBuffer(0, _vertexBuffer.Get());
-            commandBuffer->SetIndexBuffer(_indexBuffer.Get());
-            commandBuffer->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
-            commandBuffer->SetTexture(0, _texture.Get(), ShaderStage::Fragment);
-            commandBuffer->DrawIndexed(PrimitiveTopology::Triangles, 6);
-            commandBuffer->EndRenderPass();
+            context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+            context->SetShader(_shader.Get());
+            context->SetVertexBuffer(0, _vertexBuffer.Get());
+            context->SetIndexBuffer(_indexBuffer.Get());
+            context->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
+            context->SetTexture(0, _texture.Get(), ShaderStage::Fragment);
+            context->DrawIndexed(PrimitiveTopology::Triangles, 6);
+            context->EndRenderPass();
         }
 
     private:
@@ -410,8 +410,8 @@ namespace Alimer
 
     private:
         TriangleExample _triangleExample;
-        QuadExample _quadExample;
-        CubeExample _cubeExample;
+        //QuadExample _quadExample;
+        //CubeExample _cubeExample;
         //TexturedCubeExample _texturedCubeExample;
     };
 
@@ -423,9 +423,9 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        // _triangleExample.Initialize(_graphics);
+        _triangleExample.Initialize(_graphics);
         //_quadExample.Initialize(_graphics);
-        _cubeExample.Initialize(_graphics, _window->getAspectRatio());
+        //_cubeExample.Initialize(_graphics, _window->getAspectRatio());
         //_texturedCubeExample.Initialize(_graphics, _window->getAspectRatio());
 
         // Create scene
@@ -437,14 +437,11 @@ namespace Alimer
 
     void RuntimeApplication::OnRenderFrame(double frameTime, double elapsedTime)
     {
-        auto commandBuffer = _graphics->RequestCommandBuffer();
-        //_triangleExample.Render(commandBuffer);
-        //_quadExample.Render(commandBuffer);
-        _cubeExample.Render(commandBuffer);
-        //_texturedCubeExample.Render(commandBuffer);
-
-        // Submit command buffer.
-        _graphics->Submit(commandBuffer);
+        auto context = _graphics->GetImmediateContext();
+        _triangleExample.Render(context);
+        //_quadExample.Render(context);
+        //_cubeExample.Render(context);
+        //_texturedCubeExample.Render(context);
     }
 }
 

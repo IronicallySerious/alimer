@@ -34,11 +34,37 @@ namespace Alimer
 		RG8UNorm,
 		RGBA8UNorm,
 		BGRA8UNorm,
+
+        Depth16UNorm,
+        Depth32Float,
+        Depth24UNormStencil8,
+        Depth32FloatStencil8,
+
+        BC1,
+        BC2,
+        BC3,
+        BC4UNorm,
+        BC4SNorm,
+        BC5UNorm,
+        BC5SNorm,
+
+        /// Compressed format with four floating-point components.
+        BC6HSFloat,
+
+        /// Compressed format with four unsigned floating-point components.
+        BC6HUFloat,
 	};
 
+    /// Checks if given format is depth.
     ALIMER_API bool IsDepthFormat(PixelFormat format);
+
+    /// Checks if given format is stencil.
     ALIMER_API bool IsStencilFormat(PixelFormat format);
+
+    /// Checks if given format is depth-stencil.
     ALIMER_API bool IsDepthStencilFormat(PixelFormat format);
+
+    /// Checks if given format is compressed.
     ALIMER_API bool IsCompressed(PixelFormat format);
 
     ALIMER_API uint32_t GetPixelFormatSize(PixelFormat format);

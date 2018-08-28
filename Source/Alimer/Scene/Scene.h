@@ -67,8 +67,8 @@ namespace Alimer
         /// Update scene 
         void Update(double deltaTime);
 
-        /// Render the scene to given command buffer.
-        void Render(CommandBuffer* commandBuffer);
+        /// Render the scene to given command context.
+        void Render(CommandContext* context);
 
         /// Creates a new system of the given type and add to system.
         template <typename T, typename... Args>

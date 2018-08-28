@@ -51,12 +51,10 @@ namespace Alimer
     {
         BeginRenderPassCommand(
             RenderPass* renderPass_,
-            const Rectangle& renderArea_,
             const Color* clearColors_, uint32_t numClearColors_,
             float clearDepth_, uint8_t clearStencil_)
             : Command(Command::Type::BeginRenderPass)
             , renderPass(renderPass_)
-            , renderArea(renderArea_)
             , clearColors(clearColors_, clearColors_ + numClearColors_)
             , clearDepth(clearDepth_)
             , clearStencil(clearStencil_)
@@ -64,7 +62,6 @@ namespace Alimer
         }
 
         RenderPass* renderPass;
-        const Rectangle renderArea;
         std::vector<Color> clearColors;
         float clearDepth;
         uint8_t clearStencil;

@@ -48,9 +48,7 @@ namespace Alimer
         bool BeginFrame() override;
         void EndFrame() override;
 
-        SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBufferType type) override;
-        void Submit(const SharedPtr<CommandBuffer> &commandBuffer) override;
-
+        CommandContext* GetImmediateContext() const override;
         RenderPass* GetBackbufferRenderPass() const;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
@@ -119,7 +117,7 @@ namespace Alimer
 		VulkanSwapchain* _swapChain = nullptr;
 
         // Primary/Default command buffer
-        SharedPtr<VulkanCommandBuffer> _defaultCommandBuffer;
+        VulkanCommandBuffer* _defaultCommandBuffer;
 
         // Synchronization semaphores
         struct {

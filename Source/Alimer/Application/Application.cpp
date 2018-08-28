@@ -143,17 +143,18 @@ namespace Alimer
 
         if (_graphics->BeginFrame())
         {
+            CommandContext* commandContext = _graphics->GetImmediateContext();
+
             if (_scene)
             {
                 // Render scene to default command buffer.
-                auto commandBuffer = _graphics->RequestCommandBuffer();
-                _scene->Render(commandBuffer.Get());
-
-                // Submit command buffer.
-                _graphics->Submit(commandBuffer);
+                _scene->Render(commandContext);
             }
 
             OnRenderFrame(frameTime, elapsedTime);
+
+            // Submit command buffer.
+            commandContext->Flush(true);
 
             // End rendering frame.
             _graphics->EndFrame();
@@ -163,10 +164,9 @@ namespace Alimer
     void Application::OnRenderFrame(double frameTime, double elapsedTime)
     {
         // By default clear with some color.
-        auto commandBuffer = _graphics->RequestCommandBuffer();
-        commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
-        commandBuffer->EndRenderPass();
-        _graphics->Submit(commandBuffer);
+        auto context = _graphics->GetImmediateContext();
+        context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+        context->EndRenderPass();
     }
 
     void Application::Exit()

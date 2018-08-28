@@ -37,6 +37,13 @@ namespace Alimer
 		/// Destructor.
 		~GpuDeviceFeatures() = default;
 
+        /// Reset features to default.
+        void Reset();
+
+        bool GetMultithreading() const { return _multithreading; }
+        void SetMultithreading(bool value) { _multithreading = value; }
+
     protected:
+        bool _multithreading;
 	};
 }

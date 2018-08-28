@@ -52,8 +52,7 @@ namespace Alimer
         bool BeginFrame() override;
         void EndFrame() override;
 
-        SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBufferType type) override;
-        void Submit(const SharedPtr<CommandBuffer> &commandBuffer) override;
+        CommandContext* GetImmediateContext() const override;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
 
@@ -75,7 +74,7 @@ namespace Alimer
         inline IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory.Get(); }
         inline D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
         inline ID3D11Device1* GetD3DDevice() const { return _d3dDevice.Get(); }
-        inline ID3D11DeviceContext1* GetImmediateContext() const { return _d3dImmediateContext.Get(); }
+        inline ID3D11DeviceContext1* GetD3DImmediateContext() const { return _d3dImmediateContext.Get(); }
         inline uint32_t GetShaderModerMajor() const { return _shaderModelMajor; }
         inline uint32_t GetShaderModerMinor() const { return _shaderModelMinor; }
         RenderPass* GetBackbufferRenderPass() const;
@@ -98,7 +97,7 @@ namespace Alimer
         uint32_t _shaderModelMajor = 4;
         uint32_t _shaderModelMinor = 0;
 
-        SharedPtr<D3D11CommandContext> _defaultCommandBuffer;
+        D3D11CommandContext* _immediateContext;
 
         /// Input layouts.
         InputLayoutMap _inputLayouts;

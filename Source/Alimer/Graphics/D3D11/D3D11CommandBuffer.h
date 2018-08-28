@@ -32,26 +32,7 @@ namespace Alimer
     class D3D11Graphics;
     class D3D11CommandContext;
 
-    /// D3D11 CommandBuffer implementation.
-    class D3D11CommandBuffer : public CommandBuffer
-    {
-    public:
-        /// Constructor.
-        D3D11CommandBuffer(D3D11Graphics* graphics, bool immediate);
-
-        /// Destructor.
-        ~D3D11CommandBuffer() override;
-
-        void Execute(D3D11CommandContext* context);
-
-        bool IsImmediate() const { return _immediate; }
-
-    protected:
-        D3D11Graphics* _graphics;
-        bool _immediate;
-    };
-
-    class D3D11CommandContext final : public D3D11CommandBuffer
+    class D3D11CommandContext final : public CommandContext
     {
     public:
         /// Constructor.
@@ -60,9 +41,11 @@ namespace Alimer
         /// Destructor.
         ~D3D11CommandContext() override;
 
+        void Flush(bool wait) override;
+
         void Reset();
 
-        void BeginRenderPassCore(RenderPass* renderPass, const Rectangle& renderArea, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        void BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
 
         void SetViewport(const Viewport& viewport) override;
@@ -77,12 +60,15 @@ namespace Alimer
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
 
+        bool IsImmediate() const { return _immediate; }
     private:
         bool PrepareDraw(PrimitiveTopology topology);
         void UpdateVbos(uint32_t binding, uint32_t count);
 
     private:
-        ID3D11DeviceContext1 * _context;
+        D3D11Graphics* _graphics;
+        ID3D11DeviceContext1* _context;
+        bool _immediate;
 
         D3D11RenderPass* _currentRenderPass;
         uint32_t _currentColorAttachmentsBound;

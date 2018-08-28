@@ -28,28 +28,28 @@ namespace Alimer
 {
     bool IsDepthFormat(PixelFormat format)
     {
-        //switch (format)
-        //{
-        //case PixelFormat::Depth16UNorm:
-            //case PixelFormat::Depth16UNormStencil8:
-        //case PixelFormat::Depth24UNormStencil8:
-        //case PixelFormat::Depth32Float:
-            //case PixelFormat::Depth32FloatStencil8:
-        //    return true;
-        //default:
+        switch (format)
+        {
+        case PixelFormat::Depth16UNorm:
+        case PixelFormat::Depth24UNormStencil8:
+        case PixelFormat::Depth32Float:
+        case PixelFormat::Depth32FloatStencil8:
+            return true;
+        default:
             return false;
-        //}
+        }
     }
 
     bool IsStencilFormat(PixelFormat format)
     {
-        //switch (format)
-        //{
-        //case PixelFormat::Stencil8:
-        //    return true;
-        //default:
+        switch (format)
+        {
+        case PixelFormat::Depth24UNormStencil8:
+        case PixelFormat::Depth32FloatStencil8:
+            return true;
+        default:
             return false;
-        //}
+        }
     }
 
     bool IsDepthStencilFormat(PixelFormat format)
@@ -59,61 +59,64 @@ namespace Alimer
 
     bool IsCompressed(PixelFormat format)
     {
-        //switch (format)
-        //{
-        //case PixelFormat::BC1:
-            //case PixelFormat::BC1_SRGB:
-        //case PixelFormat::BC2:
-            //case PixelFormat::BC2_SRGB:
-        //case PixelFormat::BC3:
-            //case PixelFormat::BC3_SRGB:
-        //    return true;
-        //default:
+        switch (format)
+        {
+        case PixelFormat::BC1:
+        case PixelFormat::BC2:
+        case PixelFormat::BC3:
+        case PixelFormat::BC4UNorm:
+        case PixelFormat::BC4SNorm:
+        case PixelFormat::BC5UNorm:
+        case PixelFormat::BC5SNorm:
+        case PixelFormat::BC6HSFloat:
+        case PixelFormat::BC6HUFloat:
+            return true;
+        default:
             return false;
-        //}
+        }
     }
 
     uint32_t GetPixelFormatSize(PixelFormat format)
     {
         switch (format)
         {
-        //case PixelFormat::A8UNorm:
+            //case PixelFormat::A8UNorm:
         case PixelFormat::R8UNorm:
             return 1;
 
         case PixelFormat::RG8UNorm:
-        //case PixelFormat::R16UNorm:
-        //case PixelFormat::R16Float:
-        //case PixelFormat::Depth16UNorm:
+            //case PixelFormat::R16UNorm:
+            //case PixelFormat::R16Float:
+            //case PixelFormat::Depth16UNorm:
             return 2;
 
         case PixelFormat::RGBA8UNorm:
-        //case PixelFormat::RG16UNorm:
-        //case PixelFormat::RG16Float:
-        //case PixelFormat::R32Float:
-        //case PixelFormat::Depth32Float:
-        //case PixelFormat::Depth24UNormStencil8:
+            //case PixelFormat::RG16UNorm:
+            //case PixelFormat::RG16Float:
+            //case PixelFormat::R32Float:
+            //case PixelFormat::Depth32Float:
+            //case PixelFormat::Depth24UNormStencil8:
             return 4;
 
-        //case PixelFormat::RGBA16UNorm:
-        //case PixelFormat::RGBA16Float:
-        //case PixelFormat::RG32Float:
-        //    return 8;
-        //case PixelFormat::RGBA32Float:
-        //    return 16;
+            //case PixelFormat::RGBA16UNorm:
+            //case PixelFormat::RGBA16Float:
+            //case PixelFormat::RG32Float:
+            //    return 8;
+            //case PixelFormat::RGBA32Float:
+            //    return 16;
 
-        //case PixelFormat::Stencil8:
-        //    return 1;
+            //case PixelFormat::Stencil8:
+            //    return 1;
 
-        //case PixelFormat::BC1:
-        //case PixelFormat::BC2:
-        //case PixelFormat::BC3:
-        //case PixelFormat::ETC1:
-        //case PixelFormat::PVRTC_RGB_2BPP:
-        //case PixelFormat::PVRTC_RGBA_2BPP:
-        //case PixelFormat::PVRTC_RGB_4BPP:
-        //case PixelFormat::PVRTC_RGBA_4BPP:
-        //    return 0;
+            //case PixelFormat::BC1:
+            //case PixelFormat::BC2:
+            //case PixelFormat::BC3:
+            //case PixelFormat::ETC1:
+            //case PixelFormat::PVRTC_RGB_2BPP:
+            //case PixelFormat::PVRTC_RGBA_2BPP:
+            //case PixelFormat::PVRTC_RGB_4BPP:
+            //case PixelFormat::PVRTC_RGBA_4BPP:
+            //    return 0;
 
         default:
             ALIMER_LOGERROR("Invalid PixelFormat value");
