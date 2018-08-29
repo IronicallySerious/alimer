@@ -27,27 +27,27 @@
 
 namespace Alimer
 {
-    D3D11Texture::D3D11Texture(D3D11Graphics* graphics, const TextureDescription& description, const ImageLevel* initialData)
-        : Texture(graphics, description)
+    D3D11Texture::D3D11Texture(D3D11Graphics* graphics, const TextureDescription* pDescription, const ImageLevel* initialData)
+        : Texture(graphics, *pDescription)
     {
         // Setup initial data.
         std::vector<D3D11_SUBRESOURCE_DATA> subResourceData;
         if (initialData)
         {
-            subResourceData.resize(description.arrayLayers * description.mipLevels);
-            for (uint32_t i = 0; i < description.arrayLayers * description.mipLevels; ++i)
+            subResourceData.resize(pDescription->arrayLayers * pDescription->mipLevels);
+            for (uint32_t i = 0; i < pDescription->arrayLayers * pDescription->mipLevels; ++i)
             {
                 uint32_t rowPitch;
                 if (!initialData[i].rowPitch)
                 {
-                    const uint32_t mipWidth = ((description.width >> i) > 0) ? description.width >> i : 1;
-                    const uint32_t mipHeight = ((description.height >> i) > 0) ? description.height >> i : 1;
+                    const uint32_t mipWidth = ((pDescription->width >> i) > 0) ? pDescription->width >> i : 1;
+                    const uint32_t mipHeight = ((pDescription->height >> i) > 0) ? pDescription->height >> i : 1;
 
                     uint32_t rows;
                     CalculateDataSize(
                         mipWidth,
                         mipHeight,
-                        description.format,
+                        pDescription->format,
                         &rows,
                         &rowPitch);
                 }
@@ -62,10 +62,10 @@ namespace Alimer
             }
         }
 
-        const bool srgb = description.colorSpace == TextureColorSpace::sRGB;
-        _dxgiFormat = d3d::Convert(description.format, srgb);
+        const bool srgb = pDescription->colorSpace == TextureColorSpace::sRGB;
+        _dxgiFormat = d3d::Convert(pDescription->format, srgb);
 
-        switch (description.type)
+        switch (pDescription->type)
         {
         case TextureType::Type1D:
         {
@@ -77,27 +77,27 @@ namespace Alimer
         case TextureType::TypeCube:
         {
             D3D11_TEXTURE2D_DESC d3d11Desc = {};
-            d3d11Desc.Width = description.width;
-            d3d11Desc.Height = description.height;
-            d3d11Desc.MipLevels = description.mipLevels;
-            d3d11Desc.ArraySize = description.arrayLayers;
+            d3d11Desc.Width = pDescription->width;
+            d3d11Desc.Height = pDescription->height;
+            d3d11Desc.MipLevels = pDescription->mipLevels;
+            d3d11Desc.ArraySize = pDescription->arrayLayers;
             d3d11Desc.Format = _dxgiFormat;
-            d3d11Desc.SampleDesc.Count = static_cast<uint32_t>(description.samples);
+            d3d11Desc.SampleDesc.Count = static_cast<uint32_t>(pDescription->samples);
             d3d11Desc.Usage = D3D11_USAGE_DEFAULT;
 
-            if (description.usage & TextureUsage::ShaderRead)
+            if (pDescription->usage & TextureUsage::ShaderRead)
             {
                 d3d11Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
             }
 
-            if (description.usage & TextureUsage::ShaderWrite)
+            if (pDescription->usage & TextureUsage::ShaderWrite)
             {
                 d3d11Desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
             }
 
-            if (description.usage & TextureUsage::RenderTarget)
+            if (pDescription->usage & TextureUsage::RenderTarget)
             {
-                if (!IsDepthStencilFormat(description.format))
+                if (!IsDepthStencilFormat(pDescription->format))
                 {
                     d3d11Desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
                 }
@@ -110,7 +110,7 @@ namespace Alimer
             const bool dynamic = false;
             d3d11Desc.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
             d3d11Desc.MiscFlags = 0;
-            if (description.type == TextureType::TypeCube)
+            if (pDescription->type == TextureType::TypeCube)
             {
                 d3d11Desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
             }
@@ -128,7 +128,7 @@ namespace Alimer
         }
 
         // Create default shader resource view
-        if (description.usage & TextureUsage::ShaderRead)
+        if (pDescription->usage & TextureUsage::ShaderRead)
         {
             D3D11_SHADER_RESOURCE_VIEW_DESC resourceViewDesc = {};
             resourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;

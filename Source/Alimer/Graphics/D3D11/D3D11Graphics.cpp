@@ -448,9 +448,9 @@ namespace Alimer
         return new D3D11GpuBuffer(this, usage, size, stride, resourceUsage, initialData);
     }
 
-    SharedPtr<Texture> D3D11Graphics::CreateTexture(const TextureDescription& description, const ImageLevel* initialData)
+    Texture* D3D11Graphics::CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData)
     {
-        return MakeShared<D3D11Texture>(this, description, initialData);
+        return new D3D11Texture(this, pDescription, initialData);
     }
 
     Shader* D3D11Graphics::CreateComputeShader(const void *pCode, size_t codeSize)

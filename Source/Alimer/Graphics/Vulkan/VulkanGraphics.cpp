@@ -734,9 +734,9 @@ namespace Alimer
         return new VulkanBuffer(this, usage, size, stride, resourceUsage, initialData);
     }
 
-    SharedPtr<Texture> VulkanGraphics::CreateTexture(const TextureDescription& description, const ImageLevel* initialData)
+    Texture* VulkanGraphics::CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData)
     {
-        return MakeShared<VulkanTexture>(this, description, initialData);
+        return new VulkanTexture(this, pDescription, initialData);
     }
 
     Shader* VulkanGraphics::CreateComputeShader(const void *pCode, size_t codeSize)

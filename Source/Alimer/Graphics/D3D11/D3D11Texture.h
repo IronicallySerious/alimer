@@ -34,7 +34,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        D3D11Texture(D3D11Graphics* graphics, const TextureDescription& description, const ImageLevel* initialData);
+        D3D11Texture(D3D11Graphics* graphics, const TextureDescription* pDescription, const ImageLevel* initialData);
 
         /// Constructor.
         D3D11Texture(D3D11Graphics* graphics, ID3D11Texture2D* nativeTexture);

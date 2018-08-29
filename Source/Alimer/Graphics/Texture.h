@@ -121,6 +121,6 @@ namespace Alimer
         }
 
     protected:
-        TextureDescription _description{};
+        TextureDescription _description;
     };
 }

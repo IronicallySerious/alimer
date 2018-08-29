@@ -58,7 +58,7 @@ namespace Alimer
 
         BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
 
-        SharedPtr<Texture> CreateTexture(const TextureDescription& description, const ImageLevel* initialData) override;
+        Texture* CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData) override;
 
         Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
         Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,

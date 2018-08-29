@@ -50,8 +50,6 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color::Blue }
             };
 
-            auto z = vec2::zero();
-
             std::vector<VertexElement> vertexElements;
             vertexElements.emplace_back(VertexElementFormat::Float3, VertexElementSemantic::POSITION);
             vertexElements.emplace_back(VertexElementFormat::Float4, VertexElementSemantic::COLOR);
@@ -364,7 +362,7 @@ namespace Alimer
 
             TextureDescription textureDesc = {};
             textureDesc.width = textureDesc.height = 4;
-            _texture = graphics->CreateTexture(textureDesc, &initial);
+            _texture = graphics->CreateTexture(&textureDesc, &initial);
         }
 
         void Render(CommandContexzt* context)

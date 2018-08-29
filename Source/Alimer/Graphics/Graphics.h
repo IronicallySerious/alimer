@@ -86,7 +86,7 @@ namespace Alimer
         virtual BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) = 0;
 
         // RenderPass
-        virtual SharedPtr<Texture> CreateTexture(const TextureDescription& description, const ImageLevel* initialData = nullptr) = 0;
+        virtual Texture* CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData = nullptr) = 0;
 
         // Shader
         Shader* CreateShader(
