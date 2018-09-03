@@ -89,8 +89,8 @@ install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMak
 
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER "3.6")
-    if (PLATFORM_WINDOWS)
-        set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer.Studio" )
+    if (ALIMER_TOOLS)
+        set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "AlimerStudio" )
     else ()
         set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer" )
     endif ()
@@ -114,11 +114,5 @@ message(STATUS "  D3D11           ${ALIMER_D3D11}")
 message(STATUS "  D3D12           ${ALIMER_D3D12}")
 message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
 message(STATUS "  GLFW            ${ALIMER_GLFW}")
-message(STATUS "  ShaderCompiler  ${ALIMER_SHADER_COMPILER}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")
-
-if (PLATFORM_WINDOWS)
-    message(STATUS "  Editor          ON")
-else ()
-    message(STATUS "  Editor          OFF")
-endif ()
+message(STATUS "  Tools           ${ALIMER_TOOLS}")
