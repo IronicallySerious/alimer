@@ -24,30 +24,27 @@
 
 #include "Graphics/GpuBuffer.h"
 #include "D3D11Prerequisites.h"
-#include "../GraphicsImpl.h"
 
 namespace Alimer
 {
 	class D3D11Graphics;
 
 	/// D3D11 GpuBuffer implementation.
-	class D3D11GpuBuffer final : public BufferHandle
+	class D3D11GpuBuffer final : public GpuBuffer
 	{
 	public:
 		/// Constructor.
-		D3D11GpuBuffer(D3D11Graphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData);
+		D3D11GpuBuffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData);
 
 		/// Destructor.
 		~D3D11GpuBuffer() override;
 
-        bool SetData(uint32_t offset, uint32_t size, const void* data) override;
+        bool SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData) override;
 
-        ID3D11Buffer* GetD3DBuffer() const { return _d3dBuffer; }
+        ID3D11Buffer* GetHandle() const { return _handle; }
 
 	private:
-        D3D11Graphics * _graphics;
         bool _isDynamic;
-
-        ID3D11Buffer* _d3dBuffer;
+        ID3D11Buffer* _handle;
 	};
 }

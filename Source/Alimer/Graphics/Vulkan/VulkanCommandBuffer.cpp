@@ -54,14 +54,14 @@ namespace Alimer
         vkThrowIfFailed(vkAllocateCommandBuffers(
             _logicalDevice,
             &cmdBufAllocateInfo,
-            &_vkCommandBuffer));
+            &_handle));
 
         BeginCompute();
     }
 
     VulkanCommandBuffer::~VulkanCommandBuffer()
     {
-        vkFreeCommandBuffers(_logicalDevice, _commandPool, 1, &_vkCommandBuffer);
+        vkFreeCommandBuffers(_logicalDevice, _commandPool, 1, &_handle);
     }
 
     void VulkanCommandBuffer::BeginCompute()
@@ -92,6 +92,23 @@ namespace Alimer
         _currentTopology = PrimitiveTopology::Count;
     }
 
+    bool VulkanCommandBuffer::BeginCore()
+    {
+        VkCommandBufferBeginInfo beginInfo = {
+            VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            nullptr,
+            VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+            nullptr
+        };
+
+        return vkBeginCommandBuffer(_handle, &beginInfo) == VK_SUCCESS;
+    }
+
+    bool VulkanCommandBuffer::EndCore()
+    {
+        return vkEndCommandBuffer(_handle) == VK_SUCCESS;
+    }
+
     void VulkanCommandBuffer::Begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
     {
         VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
@@ -102,17 +119,7 @@ namespace Alimer
             beginInfo.pInheritanceInfo = inheritanceInfo;
         }
 
-        vkThrowIfFailed(vkBeginCommandBuffer(_vkCommandBuffer, &beginInfo));
-    }
-
-    void VulkanCommandBuffer::End()
-    {
-        vkThrowIfFailed(vkEndCommandBuffer(_vkCommandBuffer));
-    }
-
-    void VulkanCommandBuffer::Flush(bool wait)
-    {
-
+        vkThrowIfFailed(vkBeginCommandBuffer(_handle, &beginInfo));
     }
 
     void VulkanCommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
@@ -146,7 +153,7 @@ namespace Alimer
         renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
 
-        vkCmdBeginRenderPass(_vkCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(_handle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         //Viewport viewport(0.0f, 0.0f, float(renderPass->GetWidth()), float(renderPass->GetHeight()), 0.0f, 1.0f);
         //SetViewport(viewport);
@@ -156,7 +163,7 @@ namespace Alimer
 
     void VulkanCommandBuffer::EndRenderPassCore()
     {
-        vkCmdEndRenderPass(_vkCommandBuffer);
+        vkCmdEndRenderPass(_handle);
     }
 
     /*void VulkanCommandBuffer::ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
@@ -181,7 +188,7 @@ namespace Alimer
             viewport.minDepth, viewport.maxDepth,
         };
 
-        vkCmdSetViewport(_vkCommandBuffer, 0, 1, &_currentViewport);
+        vkCmdSetViewport(_handle, 0, 1, &_currentViewport);
     }
 
     void VulkanCommandBuffer::SetScissor(const Rectangle& scissor)
@@ -189,7 +196,7 @@ namespace Alimer
         VkRect2D vkScissor = {};
         vkScissor.offset = { scissor.x, scissor.y };
         vkScissor.extent = { static_cast<uint32_t>(scissor.width), static_cast<uint32_t>(scissor.height) };
-        vkCmdSetScissor(_vkCommandBuffer, 0, 1, &vkScissor);
+        vkCmdSetScissor(_handle, 0, 1, &vkScissor);
     }
 
     void VulkanCommandBuffer::SetShaderCore(Shader* shader)
@@ -224,7 +231,7 @@ namespace Alimer
     void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
     {
         PrepareDraw(topology);
-        vkCmdDraw(_vkCommandBuffer, vertexCount, instanceCount, vertexStart, baseInstance);
+        vkCmdDraw(_handle, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
     void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
@@ -233,7 +240,7 @@ namespace Alimer
         ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(_indexState.buffer != nullptr);
         PrepareDraw(topology);
-        vkCmdDrawIndexed(_vkCommandBuffer, indexCount, instanceCount, startIndex, 0, 0);
+        vkCmdDrawIndexed(_handle, indexCount, instanceCount, startIndex, 0, 0);
     }
 
     void VulkanCommandBuffer::PrepareDraw(PrimitiveTopology topology)
@@ -254,7 +261,7 @@ namespace Alimer
             }
 #endif
 
-            vkCmdBindVertexBuffers(_vkCommandBuffer,
+            vkCmdBindVertexBuffers(_handle,
                 binding,
                 count,
                 _vbo.buffers + binding,
@@ -281,11 +288,11 @@ namespace Alimer
 
     void VulkanCommandBuffer::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
     {
-        VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
-        if (_vbo.buffers[binding] != vkBuffer
-            || _vbo.offsets[binding] != offset)
-        {
-            _dirtyVbos |= 1u << binding;
+        //VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
+        //if (_vbo.buffers[binding] != vkBuffer
+        //    || _vbo.offsets[binding] != offset)
+        //{
+         //   _dirtyVbos |= 1u << binding;
 
             // Bind vertex attributes as well
             /*uint32_t attrib = 0;
@@ -294,7 +301,7 @@ namespace Alimer
             {
                 SetVertexAttribute(attrib++, binding, vk::Convert(element.format), element.offset);
             }*/
-        }
+        //}
 
         if (_vbo.strides[binding] != stride
             || _vbo.inputRates[binding] != inputRate)
@@ -302,13 +309,13 @@ namespace Alimer
             SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
         }
 
-        _vbo.buffers[binding] = vkBuffer;
+        //_vbo.buffers[binding] = vkBuffer;
         _vbo.offsets[binding] = offset;
         _vbo.strides[binding] = stride;
         _vbo.inputRates[binding] = inputRate;
     }
 
-    void VulkanCommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void VulkanCommandBuffer::SetIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType)
     {
         if (_indexState.buffer == buffer
             && _indexState.offset == offset
@@ -321,14 +328,14 @@ namespace Alimer
         _indexState.offset = offset;
         _indexState.indexType = indexType;
 
-        VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
+        VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
         VkIndexType vkIndexType = vk::Convert(indexType);
-        vkCmdBindIndexBuffer(_vkCommandBuffer, vkBuffer, offset, vkIndexType);
+        vkCmdBindIndexBuffer(_handle, vkBuffer, offset, vkIndexType);
     }
 
     void VulkanCommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range)
     {
-        auto vkBuffer = static_cast<VulkanBuffer*>(buffer->GetHandle())->GetVkHandle();
+        auto vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
         auto &b = _bindings.bindings[set][binding];
 
         if (b.buffer.buffer == vkBuffer
@@ -362,7 +369,7 @@ namespace Alimer
             FlushGraphicsPipeline();
             if (oldPipeline != _currentVkPipeline)
             {
-                vkCmdBindPipeline(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _currentVkPipeline);
+                vkCmdBindPipeline(_handle, VK_PIPELINE_BIND_POINT_GRAPHICS, _currentVkPipeline);
                 SetDirty(COMMAND_BUFFER_DYNAMIC_BITS);
             }
         }
@@ -578,7 +585,7 @@ namespace Alimer
         }
 
         vkCmdBindDescriptorSets(
-            _vkCommandBuffer,
+            _handle,
             _currentRenderPass ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE,
             _currentVkPipelineLayout,
             set,

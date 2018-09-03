@@ -67,7 +67,7 @@ namespace Alimer
             _perCameraUboBuffer = new GpuBuffer(graphics, uboBufferDesc, &_camera);
         }
 
-        void Render(CommandContext* context)
+        void Render(CommandBuffer* context)
         {
             context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             context->SetShader(_shader.Get());
@@ -91,6 +91,7 @@ namespace Alimer
         PerCameraCBuffer _camera;
     };
 
+#if TODO
     class QuadExample
     {
     public:
@@ -125,7 +126,7 @@ namespace Alimer
             _perCameraUboBuffer = new GpuBuffer(graphics, uboBufferDesc, &_camera);
         }
 
-        void Render(CommandContext* context)
+        void Render(CommandBuffer* context)
         {
             context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             context->SetShader(_shader.Get());
@@ -237,7 +238,7 @@ namespace Alimer
             _perCameraUboBuffer = new GpuBuffer(graphics, uboBufferDesc, &_camera);
         }
 
-        void Render(CommandContext* context)
+        void Render(CommandBuffer* context)
         {
             context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             context->SetShader(_shader.Get());
@@ -263,7 +264,6 @@ namespace Alimer
         PerCameraCBuffer _camera;
     };
 
-#if TODO
     class TexturedCubeExample
     {
     public:
@@ -435,11 +435,13 @@ namespace Alimer
 
     void RuntimeApplication::OnRenderFrame(double frameTime, double elapsedTime)
     {
-        auto context = _graphics->GetImmediateContext();
-        _triangleExample.Render(context);
-        //_quadExample.Render(context);
-        //_cubeExample.Render(context);
-        //_texturedCubeExample.Render(context);
+        auto commandBuffer = _graphics->GetDefaultCommandBuffer();
+        commandBuffer->Begin();
+        _triangleExample.Render(commandBuffer);
+        //_quadExample.Render(commandBuffer);
+        //_cubeExample.Render(commandBuffer);
+        //_texturedCubeExample.Render(commandBuffer);
+        commandBuffer->End();
     }
 }
 

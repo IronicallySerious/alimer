@@ -103,7 +103,7 @@ namespace Alimer
         WaitIdle();
 
         SafeDelete(_swapChain);
-        SafeDelete(_immediateContext);
+        SafeDelete(_defaultCommandBuffer);
 
         Graphics::Finalize();
     }
@@ -248,17 +248,17 @@ namespace Alimer
             return false;
 
         // Create Swapchain.
-        const WindowHandle& handle = _window->getHandle();
+        const WindowHandle& handle = _window->GetHandle();
         _swapChain = new D3D11SwapChain(this);
 
 #if ALIMER_PLATFORM_UWP
-        _swapChain->SetCoreWindow(static_cast<IUnknown*>(handle.handle), _window->getWidth(), _window->getHeight());
+        _swapChain->SetCoreWindow(static_cast<IUnknown*>(handle.handle), _window->GetWidth(), _window->GetHeight());
 #else
-        _swapChain->SetWindow(static_cast<HWND>(handle.handle), _window->getWidth(), _window->getHeight());
+        _swapChain->SetWindow(static_cast<HWND>(handle.handle), _window->GetWidth(), _window->GetHeight());
 #endif
 
-        // Create immediate command context.
-        _immediateContext = new D3D11CommandContext(this, _d3dImmediateContext.Get());
+        // Create default command buffer.
+        _defaultCommandBuffer = new D3D11CommandBuffer(this, _d3dImmediateContext.Get());
 
         return true;
     }
@@ -412,9 +412,22 @@ namespace Alimer
         // TODO
     }
 
-    CommandContext* D3D11Graphics::GetImmediateContext() const
+    CommandBuffer* D3D11Graphics::GetDefaultCommandBuffer() const
     {
-        return _immediateContext;
+        return _defaultCommandBuffer;
+    }
+
+    CommandBuffer* D3D11Graphics::CreateCommandBuffer()
+    {
+        ID3D11DeviceContext1* context;
+        HRESULT hr = _d3dDevice->CreateDeferredContext1(0, &context);
+        if (FAILED(hr))
+        {
+            ALIMER_LOGCRITICAL("D3D11 - Failed to create deferred context");
+            return nullptr;
+        }
+
+        return new D3D11CommandBuffer(this, context);
     }
 
     ID3D11InputLayout* D3D11Graphics::GetInputLayout(const InputLayoutDesc& desc)
@@ -443,9 +456,9 @@ namespace Alimer
         return MakeShared<D3D11RenderPass>(this, description);
     }
 
-    BufferHandle* D3D11Graphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
+    GpuBuffer* D3D11Graphics::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
-        return new D3D11GpuBuffer(this, usage, size, stride, resourceUsage, initialData);
+        return new D3D11GpuBuffer(this, descriptor, initialData);
     }
 
     Texture* D3D11Graphics::CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData)

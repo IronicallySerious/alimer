@@ -102,9 +102,6 @@ namespace Alimer
         // Run the first time an update
         //InternalUpdate();
 
-        // 
-        _graphics->SaveScreenshot("Test.png");
-
         return true;
     }
 
@@ -143,18 +140,15 @@ namespace Alimer
 
         if (_graphics->BeginFrame())
         {
-            CommandContext* commandContext = _graphics->GetImmediateContext();
-
             if (_scene)
             {
+                CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
+
                 // Render scene to default command buffer.
-                _scene->Render(commandContext);
+                _scene->Render(commandBuffer);
             }
 
             OnRenderFrame(frameTime, elapsedTime);
-
-            // Submit command buffer.
-            commandContext->Flush(true);
 
             // End rendering frame.
             _graphics->EndFrame();
@@ -164,9 +158,9 @@ namespace Alimer
     void Application::OnRenderFrame(double frameTime, double elapsedTime)
     {
         // By default clear with some color.
-        auto context = _graphics->GetImmediateContext();
-        context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
-        context->EndRenderPass();
+        //auto commandBuffer = _graphics->GetDefaultCommandBuffer();
+        //commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+        //commandBuffer->EndRenderPass();
     }
 
     void Application::Exit()

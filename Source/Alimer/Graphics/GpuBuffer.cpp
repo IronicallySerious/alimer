@@ -22,39 +22,21 @@
 
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* graphics, BufferUsageFlags usage, ResourceUsage resourceUsage)
-        : GpuResource(graphics, GpuResourceType::Buffer, resourceUsage)
-        , _usage(usage)
-    {
-
-    }
-
-    GpuBuffer::GpuBuffer(Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
+    GpuBuffer::GpuBuffer(Graphics* graphics, const BufferDescriptor* descriptor)
         : GpuResource(graphics, GpuResourceType::Buffer)
+        , _usage(descriptor->usage)
+        , _size(descriptor->size)
+        , _stride(descriptor->stride)
     {
-        _usage = description.usage;
-        _stride = description.elementSize;
-        _resourceUsage = description.resourceUsage;
-        _size = _stride * description.elementCount;
-        ALIMER_ASSERT(description.usage != BufferUsage::Unknown);
-        ALIMER_ASSERT(_size != 0);
-
-        Create(initialData);
     }
 
     GpuBuffer::~GpuBuffer()
     {
         Destroy();
-    }
-
-    void GpuBuffer::Destroy()
-    {
-        SafeDelete(_handle);
     }
 
     static const char* BufferUsageToString(BufferUsageFlags usage)
@@ -69,40 +51,20 @@ namespace Alimer
         return "unknown";
     }
 
-    bool GpuBuffer::Create(const void* initialData)
+    bool GpuBuffer::SetSubData(GpuSize offset, GpuSize size, const void* pData)
     {
-        if (!_graphics || !_graphics->IsInitialized())
-            return false;
-
-        _handle = _graphics->CreateBuffer(_usage, _size, _stride, _resourceUsage, initialData);
-        if (!_handle)
+        if (offset + size > GetSize())
         {
-            ALIMER_LOGERROR("Failed to create {} buffer", BufferUsageToString(_usage));
+            ALIMER_LOGERROR("Buffer subdata out of range");
             return false;
         }
 
-        ALIMER_LOGDEBUG(
-            "Created {} buffer [size: {}, stride {}]",
-            BufferUsageToString(_usage),
-            _size,
-            _stride);
-
-        return true;
-    }
-
-    bool GpuBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
-    {
-        if (_handle && _resourceUsage == ResourceUsage::Immutable)
+        if (!(_usage & BufferUsage::TransferDest))
         {
-            ALIMER_LOGERROR("Can not update immutable buffer");
+            ALIMER_LOGERROR("Buffer needs 'TransferDest' usage");
             return false;
         }
 
-        //if (_shadowData)
-        //{
-        //    memcpy(_shadowData.get() + offset, data, size);
-        //}
-
-        return _handle->SetData(offset, size, data);
+        return SetSubDataImpl(offset, size, pData);
     }
 }

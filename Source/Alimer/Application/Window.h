@@ -87,12 +87,12 @@ namespace Alimer
         virtual bool IsMinimized() const;
 
         /// Return window client area size.
-        const uvec2& getSize() const { return _size; }
-        uint32_t getWidth() const { return _size.x; }
-        uint32_t getHeight() const { return _size.y; }
+        const uvec2& GetSize() const { return _size; }
+        uint32_t GetWidth() const { return _size.x; }
+        uint32_t GetHeight() const { return _size.y; }
 
-        float getAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
-        const WindowHandle& getHandle() const { return _handle; }
+        float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
+        const WindowHandle& GetHandle() const { return _handle; }
 
         /// Size changed event.
         WindowResizeEvent resizeEvent;

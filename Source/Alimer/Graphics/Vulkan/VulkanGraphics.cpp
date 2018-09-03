@@ -672,7 +672,7 @@ namespace Alimer
     {
         _defaultCommandBuffer->End();
 
-        VkCommandBuffer commandBuffer = _defaultCommandBuffer->GetVkCommandBuffer();
+        VkCommandBuffer commandBuffer = _defaultCommandBuffer->GetHandle();
 
         // Submit command buffers.
         VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -714,9 +714,14 @@ namespace Alimer
         // DestroyPendingResources();
     }
 
-    CommandContext* VulkanGraphics::GetImmediateContext() const
+    CommandBuffer* VulkanGraphics::GetDefaultCommandBuffer() const
     {
         return _defaultCommandBuffer;
+    }
+
+    CommandBuffer* VulkanGraphics::CreateCommandBuffer()
+    {
+        return nullptr;
     }
 
     RenderPass* VulkanGraphics::GetBackbufferRenderPass() const
@@ -729,9 +734,9 @@ namespace Alimer
         return MakeShared<VulkanRenderPass>(this, description);
     }
 
-    BufferHandle* VulkanGraphics::CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
+    GpuBuffer* VulkanGraphics::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
-        return new VulkanBuffer(this, usage, size, stride, resourceUsage, initialData);
+        return new VulkanBuffer(this, descriptor, initialData);
     }
 
     Texture* VulkanGraphics::CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData)

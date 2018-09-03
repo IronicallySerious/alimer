@@ -33,6 +33,6 @@ if (NOT CMAKE_CROSS_COMPILING AND ALIMER_CSHARP)
 	add_subdirectory (Managed)
 endif ()
 
-if (NOT CMAKE_CROSS_COMPILING)
+if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
     add_subdirectory (Tools)
 endif ()

@@ -64,16 +64,16 @@ namespace Alimer
     };
 
     /// Vulkan CommandBuffer.
-    class VulkanCommandBuffer final : public CommandContext
+    class VulkanCommandBuffer final : public CommandBuffer
     {
     public:
         VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary);
         ~VulkanCommandBuffer() override;
 
-        void Begin(VkCommandBufferInheritanceInfo* inheritanceInfo);
-        void End();
+        bool BeginCore() override;
+        bool EndCore() override;
 
-        void Flush(bool wait) override;
+        void Begin(VkCommandBufferInheritanceInfo* inheritanceInfo);
 
         void BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
@@ -90,7 +90,7 @@ namespace Alimer
 
         void SetVertexAttribute(uint32_t attrib, uint32_t binding, VkFormat format, VkDeviceSize offset);
         void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
-        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
         void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) override;
 
@@ -103,7 +103,7 @@ namespace Alimer
             }
         }
 
-        VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
+        VkCommandBuffer GetHandle() const { return _handle; }
         bool IsSecondary() const { return _secondary; }
 
     private:
@@ -134,7 +134,7 @@ namespace Alimer
         VulkanGraphics * _graphics;
         VkDevice _logicalDevice;
         VkCommandPool _commandPool;
-        VkCommandBuffer _vkCommandBuffer;
+        VkCommandBuffer _handle;
         bool _secondary = false;
         VulkanRenderPass* _currentRenderPass = nullptr;
         uint32_t _currentSubpass = 0;

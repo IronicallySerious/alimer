@@ -30,7 +30,7 @@ namespace Alimer
         : ComponentSystem(typeid(RenderSystem))
         , _renderables(entityManager.GetComponentGroup<TransformComponent, RenderableComponent>())
     {
-        
+
     }
 
     // TODO: Add frustum
@@ -71,9 +71,10 @@ namespace Alimer
         }
     }
 
-    void RenderSystem::Render(CommandContext* context)
+    void RenderSystem::Render(CommandBuffer* context)
     {
-    context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+        context->Begin();
+        context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
 
         // Bind per camera UBO
         //context->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
@@ -85,5 +86,6 @@ namespace Alimer
         }
 
         context->EndRenderPass();
+        context->End();
     }
 }

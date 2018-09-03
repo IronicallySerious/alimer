@@ -48,11 +48,12 @@ namespace Alimer
         bool BeginFrame() override;
         void EndFrame() override;
 
-        CommandContext* GetImmediateContext() const override;
+        CommandBuffer* GetDefaultCommandBuffer() const override;
+        CommandBuffer* CreateCommandBuffer() override;
         RenderPass* GetBackbufferRenderPass() const;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
-        BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
+        GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
 
         Texture* CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData) override;
 

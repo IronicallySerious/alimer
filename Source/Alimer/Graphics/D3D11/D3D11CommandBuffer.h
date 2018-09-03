@@ -30,18 +30,18 @@ namespace Alimer
     class D3D11RenderPass;
     class D3D11Shader;
     class D3D11Graphics;
-    class D3D11CommandContext;
 
-    class D3D11CommandContext final : public CommandContext
+    class D3D11CommandBuffer final : public CommandBuffer
     {
     public:
         /// Constructor.
-        D3D11CommandContext(D3D11Graphics* graphics, ID3D11DeviceContext1* context);
+        D3D11CommandBuffer(D3D11Graphics* graphics, ID3D11DeviceContext1* context);
 
         /// Destructor.
-        ~D3D11CommandContext() override;
+        ~D3D11CommandBuffer() override;
 
-        void Flush(bool wait) override;
+        bool BeginCore() override;
+        bool EndCore() override;
 
         void Reset();
 
@@ -53,7 +53,7 @@ namespace Alimer
 
         void SetShaderCore(Shader* shader) override;
         void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
-        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
         void SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
         void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) override;
 

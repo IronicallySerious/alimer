@@ -21,13 +21,11 @@
 //
 
 #include "../Graphics/VertexBuffer.h"
-#include "../Graphics/GraphicsImpl.h"
-#include "../Util/HashMap.h"
 
 namespace Alimer
 {
     VertexBuffer::VertexBuffer(Graphics* graphics, const VertexFormat& vertexFormat, uint32_t vertexCount, ResourceUsage resourceUsage, const void* initialData)
-        : GpuBuffer(graphics, BufferUsage::Vertex, resourceUsage)
+        : GpuBuffer(graphics, nullptr)
         , _vertexFormat(vertexFormat)
         , _vertexCount(vertexCount)
     {
@@ -46,9 +44,6 @@ namespace Alimer
 
         // Determine offset of elements and the vertex size & element hash
         _vertexFormat = vertexFormat;
-        _stride = vertexFormat.GetStride();
-        _size = _stride * _vertexCount;
-        Create(initialData);
     }
 
     VertexBuffer::~VertexBuffer()

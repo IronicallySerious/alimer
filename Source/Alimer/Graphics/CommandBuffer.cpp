@@ -27,33 +27,69 @@
 
 namespace Alimer
 {
-    CommandContext::CommandContext()
+    CommandBuffer::CommandBuffer()
     {
     }
 
-    CommandContext::~CommandContext()
+    CommandBuffer::~CommandBuffer()
     {
     }
 
-    void CommandContext::BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
+    bool CommandBuffer::Begin()
+    {
+        // Don't allow Begin to be called more than once before End is called.
+        if (_state == State::Recording)
+            return false;
+
+        if (!BeginCore())
+            return false;
+
+        // Mark CommandBuffer as recording.
+        _state = State::Recording;
+        return true;
+    }
+
+    bool CommandBuffer::End()
+    {
+        // Begin must be called first.
+        if (_state != State::Recording)
+            return false;
+
+        // Mark CommandBuffer as not recording.
+        _state = State::None;
+
+        return EndCore();
+    }
+
+    void CommandBuffer::EnsureIsRecording()
+    {
+        if (_state != State::Recording && _state != State::InRenderPass)
+        {
+            ALIMER_LOGCRITICAL("CommandBuffer is not recording, call Begin first");
+        }
+    }
+
+    void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
     {
         BeginRenderPass(renderPass, &clearColor, 1, clearDepth, clearStencil);
     }
 
-    void CommandContext::BeginRenderPass(RenderPass* renderPass,
+    void CommandBuffer::BeginRenderPass(RenderPass* renderPass,
         const Color* clearColors, uint32_t numClearColors,
         float clearDepth, uint8_t clearStencil)
     {
-        if (!IsOutsideRenderPass())
+        EnsureIsRecording();
+
+        if (_state == State::InRenderPass)
         {
             ALIMER_LOGCRITICAL("BeginRenderPass should be called before EndRenderPass.");
         }
 
         BeginRenderPassCore(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
-        _state = CommandBufferState::InRenderPass;
+        _state = State::InRenderPass;
     }
 
-    void CommandContext::EndRenderPass()
+    void CommandBuffer::EndRenderPass()
     {
         if (!IsInsideRenderPass())
         {
@@ -61,16 +97,16 @@ namespace Alimer
         }
 
         EndRenderPassCore();
-        _state = CommandBufferState::Ready;
+        _state = State::Recording;
     }
 
-    void CommandContext::SetShader(Shader* shader)
+    void CommandBuffer::SetShader(Shader* shader)
     {
         ALIMER_ASSERT(shader);
         SetShaderCore(shader);
     }
 
-    void CommandContext::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset, VertexInputRate inputRate)
+    void CommandBuffer::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
         ALIMER_ASSERT(buffer);
@@ -78,15 +114,15 @@ namespace Alimer
         SetVertexBufferCore(binding, buffer, offset, buffer->GetStride(), inputRate);
     }
 
-    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset)
+    void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, GpuSize offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Index);
 
-        SetIndexBufferCore(buffer, offset, buffer->GetStride() == 2 ? IndexType::UInt16 : IndexType::UInt32);
+        SetIndexBufferImpl(buffer, offset, indexType);
     }
 
-    void CommandContext::SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer)
+    void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer)
     {
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
@@ -96,13 +132,13 @@ namespace Alimer
         SetUniformBufferCore(set, binding, buffer, 0, buffer->GetSize());
     }
 
-    void CommandContext::SetTexture(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    void CommandBuffer::SetTexture(uint32_t binding, Texture* texture, ShaderStageFlags stage)
     {
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
         SetTextureCore(binding, texture, stage);
     }
 
-    void CommandContext::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
     {
         if (!IsInsideRenderPass())
         {
@@ -112,7 +148,7 @@ namespace Alimer
         DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
-    void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
         if (!IsInsideRenderPass())
         {

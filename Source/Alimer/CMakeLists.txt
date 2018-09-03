@@ -216,12 +216,13 @@ if (ALIMER_THREADING)
     target_compile_definitions(libAlimer PRIVATE -DALIMER_THREADING=1)
 endif ()
 
-if (ALIMER_SHADER_COMPILER)
-    target_compile_definitions(libAlimer PRIVATE -DALIMER_SHADER_COMPILER=1)
+if (NOT ALIMER_DISABLE_SHADER_COMPILER)
     target_link_libraries(libAlimer glslang SPIRV)
+else()
+    target_compile_definitions(libAlimer PRIVATE -DALIMER_DISABLE_SHADER_COMPILER=1)
 endif ()
 
-if (BUILD_SHARED_LIBS)
+if (ALIMER_SHARED)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_SHARED=1)
 endif ()
 

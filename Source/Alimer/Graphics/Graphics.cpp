@@ -232,8 +232,26 @@ namespace Alimer
         return _initialized;
     }
 
-    void Graphics::SaveScreenshot(const std::string& fileName)
+    GpuBuffer* Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
     {
+        ALIMER_ASSERT(descriptor);
+
+        if (!descriptor->usage)
+        {
+            ALIMER_LOGCRITICAL("Invalid buffer usage");
+        }
+
+        if (!descriptor->size)
+        {
+            ALIMER_LOGCRITICAL("Cannot create empty buffer");
+        }
+
+        if (initialData && !(descriptor->usage & BufferUsage::TransferDest))
+        {
+            ALIMER_LOGCRITICAL("Buffer needs the transfer dest usage when creating with initial data");
+        }
+
+        return CreateBufferImpl(descriptor, initialData);
     }
 
     Shader* Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
@@ -267,8 +285,9 @@ namespace Alimer
         }
         else*/
         {
-#if !defined(ALIMER_SHADER_COMPILER)
+#if defined(ALIMER_DISABLE_SHADER_COMPILER)
             ALIMER_LOGCRITICAL("Shader compilation is not allowed");
+            return nullptr;
 #else
             auto vertexShaderStream = FileSystem::Get().Open(vertexShaderFile);
             auto fragmentShaderStream = FileSystem::Get().Open(fragmentShaderFile);

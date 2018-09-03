@@ -41,8 +41,6 @@
 
 namespace Alimer
 {
-    class BufferHandle;
-
     /// Low-level 3D graphics API class.
     class ALIMER_API Graphics : public Object
     {
@@ -76,14 +74,11 @@ namespace Alimer
         /// End and present frame.
         virtual void EndFrame() = 0;
 
-        /// Try to save screenshot with given file name.
-        void SaveScreenshot(const std::string& fileName);
-
         // RenderPass
         virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
 
-        /// Create a new buffer with usage, size.
-        virtual BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) = 0;
+        /// Create new buffer with given descriptor and optional initial data.
+        GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
 
         // RenderPass
         virtual Texture* CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData = nullptr) = 0;
@@ -116,8 +111,11 @@ namespace Alimer
         /// Get the device features.
         const GpuDeviceFeatures& GetFeatures() const { return _features; }
 
-        /// Gets the immediate command context.
-        virtual CommandContext* GetImmediateContext() const = 0;
+        /// Get the default command buffer.
+        virtual CommandBuffer* GetDefaultCommandBuffer() const = 0;
+
+        /// Create new command buffer.
+        virtual CommandBuffer* CreateCommandBuffer() = 0;
 
     private:
         /// Add a GpuResource to keep track of. 
@@ -129,7 +127,7 @@ namespace Alimer
     protected:
         virtual void Finalize();
         virtual bool BackendInitialize() = 0;
-        virtual void GenerateScreenshot(const std::string& fileName) {}
+        virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
 
     protected:
         GraphicsDeviceType _deviceType;

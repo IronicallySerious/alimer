@@ -23,6 +23,9 @@
 # Player
 add_subdirectory(Player)
 
-if (ALIMER_TOOLS)
-    add_subdirectory(ShaderCompiler)
-endif (ALIMER_TOOLS)
+# Standalone shader compiler
+add_subdirectory(ShaderCompiler)
+
+if (PLATFORM_DESKTOP)
+    add_subdirectory(Studio)
+endif (PLATFORM_DESKTOP)

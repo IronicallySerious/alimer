@@ -29,7 +29,7 @@
 
 namespace Alimer
 {
-    class CommandContext;
+    class CommandBuffer;
 
 	/// System that manages renderable components with transform.
     class ALIMER_API RenderSystem final : public ComponentSystem
@@ -39,7 +39,7 @@ namespace Alimer
 
         void Update(double deltaTime) override;
 
-        void Render(CommandContext* context);
+        void Render(CommandBuffer* context);
 
     private:
         std::vector<std::tuple<TransformComponent*, RenderableComponent*>> &_renderables;

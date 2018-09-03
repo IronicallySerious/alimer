@@ -25,7 +25,7 @@
 #include <fstream>
 using namespace std;
 
-#if !defined(ALIMER_SHADER_COMPILER)
+#ifdef ALIMER_DISABLE_SHADER_COMPILER
 namespace Alimer
 {
     namespace ShaderCompiler

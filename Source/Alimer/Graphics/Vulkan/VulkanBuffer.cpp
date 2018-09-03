@@ -27,36 +27,38 @@
 
 namespace Alimer
 {
-    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
-        : _logicalDevice(graphics->GetLogicalDevice())
+    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
+        : GpuBuffer(graphics, descriptor)
+        , _logicalDevice(graphics->GetLogicalDevice())
         , _allocator(graphics->GetAllocator())
     {
-        VkBufferUsageFlags vkUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        VkBufferUsageFlags vkUsage = 0;
 
-        if (resourceUsage == ResourceUsage::Dynamic)
-        {
+        if (descriptor->usage & BufferUsage::TransferSrc)
+            vkUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+        if (descriptor->usage & BufferUsage::TransferDest)
             vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        }
 
-        if (usage & BufferUsage::Vertex)
+        if (descriptor->usage & BufferUsage::Vertex)
             vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-        if (usage & BufferUsage::Index)
+        if (descriptor->usage & BufferUsage::Index)
             vkUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-        if (usage & BufferUsage::Uniform)
+        if (descriptor->usage & BufferUsage::Uniform)
             vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-        if (usage & BufferUsage::Storage)
+        if (descriptor->usage & BufferUsage::Storage)
             vkUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
-        if (usage & BufferUsage::Indirect)
+        if (descriptor->usage & BufferUsage::Indirect)
             vkUsage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
         VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.size = size;
+        createInfo.size = descriptor->size;
         createInfo.usage = vkUsage;
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.queueFamilyIndexCount = 0;
@@ -87,7 +89,7 @@ namespace Alimer
         vmaDestroyBuffer(_allocator, _vkHandle, _allocation);
     }
 
-    bool VulkanBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
+    bool VulkanBuffer::SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData)
     {
         ALIMER_LOGCRITICAL("VulkanBuffer::SetData not implemented");
         //memcpy(_allocation->GetMappedData(), initialData, vmaAllocInfo.size);

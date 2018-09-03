@@ -70,7 +70,7 @@ namespace Alimer
         }
     }
 
-    void Scene::Render(CommandContext* context)
+    void Scene::Render(CommandBuffer* context)
     {
         GetSystem<RenderSystem>().Render(context);
     }

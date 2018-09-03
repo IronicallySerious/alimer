@@ -20,31 +20,30 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Graphics/GpuBuffer.h"
+#include "Editor.hpp"
 
 namespace Alimer
 {
-    /// Defines a GPU IndexBuffer class.
-    class IndexBuffer final : public GpuBuffer
+    Editor::Editor()
     {
-    public:
-        /// Constructor.
-        IndexBuffer(Graphics* graphics, uint32_t indexCount, IndexType indexType = IndexType::UInt16, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
+        _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
+        //_settings.graphicsDeviceType = GraphicsDeviceType::Vulkan;
+    }
 
-        /// Destructor.
-        virtual ~IndexBuffer() override;
+    Editor::~Editor()
+    {
+        //ui::ShutdownDock();
+    }
 
-        /// Redefine buffer data either completely or partially. Not supported for immutable buffers. Return true on success.
-        bool SetData(const void* data, uint32_t indexStart = 0, uint32_t indexCount = 0);
+    void Editor::Initialize()
+    {
+        //_window->SetTitle("Alimer Studio 2018");
+    }
 
-        /// Return number of indices.
-        uint32_t GetIndexCount() const { return _indexCount; }
-
-        /// Return single element type.
-        IndexType GetIndexType() const { return _stride == 2 ? IndexType::UInt16 : IndexType::UInt32; }
-    private:
-        uint32_t _indexCount = 0;
-    };
+    void Editor::OnRenderFrame(double frameTime, double elapsedTime)
+    {
+        auto context = _graphics->GetImmediateContext();
+    }
 }
+
+ALIMER_APPLICATION(Alimer::Editor);

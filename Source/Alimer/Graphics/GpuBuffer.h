@@ -22,94 +22,37 @@
 
 #pragma once
 
-#include "../Core/Flags.h"
 #include "../Graphics/GpuResource.h"
-#include <memory>
 
 namespace Alimer
 {
-    enum class BufferUsage : uint32_t
-    {
-        Unknown = 0,
-        Vertex = 1 << 0,
-        Index = 1 << 1,
-        Uniform = 1 << 2,
-        Storage = 1 << 3,
-        Indirect = 1 << 4,
-    };
-
-    enum class IndexType : uint32_t
-    {
-        UInt16,
-        UInt32,
-    };
-
-    using BufferUsageFlags = Flags<BufferUsage, uint32_t>;
-    ALIMER_FORCE_INLINE BufferUsageFlags operator|(BufferUsage bit0, BufferUsage bit1)
-    {
-        return BufferUsageFlags(bit0) | bit1;
-    }
-
-    ALIMER_FORCE_INLINE BufferUsageFlags operator~(BufferUsage bits)
-    {
-        return ~(BufferUsageFlags(bits));
-    }
-
-    struct GpuBufferDescription
-    {
-        /// Number of elements in the buffer.
-        uint32_t elementCount = 1;
-        /// Size of each individual element in the buffer, in bytes. 
-        uint32_t elementSize = 0;
-
-        /// Buffer usage.
-        BufferUsageFlags usage = BufferUsage::Unknown;
-
-        /// Buffer resource usage.
-        ResourceUsage resourceUsage = ResourceUsage::Default;
-    };
-
-    class BufferHandle;
-
 	/// Defines a GPU Buffer class.
 	class GpuBuffer : public GpuResource, public RefCounted
 	{
 	protected:
-        /// Constructor.
-        GpuBuffer(Graphics* graphics, BufferUsageFlags usage, ResourceUsage resourceUsage);
-
-    public:
 		/// Constructor.
-		GpuBuffer(Graphics* graphics, const GpuBufferDescription& description, const void* initialData = nullptr);
+		GpuBuffer(Graphics* graphics, const BufferDescriptor* descriptor);
 
 	public:
 		/// Destructor.
 		virtual ~GpuBuffer();
 
-        void Destroy() override;
+        bool SetSubData(GpuSize offset, GpuSize size, const void* pData);
 
         /// Get the buffer usage flags.
 		BufferUsageFlags GetUsage() const { return _usage; }
 
+        /// Get size in bytes of the buffer.
+        GpuSize GetSize() const { return _size; }
+
         /// Get single element size in bytes.
 		uint32_t GetStride() const { return _stride; }
 
-        /// Get size in bytes of the buffer.
-		uint64_t GetSize() const { return _size; }
+	private:
+        virtual bool SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData) = 0;
 
-        /// Get the backend buffer implementation.
-        BufferHandle* GetHandle() { return _handle; }
-
-    protected:
-        bool Create(const void* initialData);
-        bool SetData(uint32_t offset, uint32_t size, const void* data);
-
-	protected:
-        BufferUsageFlags _usage = BufferUsage::Unknown;
-		uint64_t _size = 0;
-        uint32_t _stride = 0;
-
-        /// Backend handle.
-        BufferHandle* _handle = nullptr;
+        BufferUsageFlags _usage;
+		uint64_t _size;
+        uint32_t _stride;
 	};
 }

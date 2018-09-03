@@ -30,7 +30,7 @@
 
 namespace Alimer
 {
-    class D3D11CommandContext;
+    class D3D11CommandBuffer;
     class D3D11Texture;
     class D3D11SwapChain;
 
@@ -52,11 +52,12 @@ namespace Alimer
         bool BeginFrame() override;
         void EndFrame() override;
 
-        CommandContext* GetImmediateContext() const override;
+        CommandBuffer* GetDefaultCommandBuffer() const override;
+        CommandBuffer* CreateCommandBuffer() override;
 
         SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
 
-        BufferHandle* CreateBuffer(BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData) override;
+        GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
 
         Texture* CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData) override;
 
@@ -84,7 +85,7 @@ namespace Alimer
         bool BackendInitialize() override;
         bool InitializeCaps();
 
-        void GenerateScreenshot(const std::string& fileName) override;
+        void GenerateScreenshot(const std::string& fileName);
 
         Microsoft::WRL::ComPtr<IDXGIFactory2>               _dxgiFactory;
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
@@ -97,7 +98,7 @@ namespace Alimer
         uint32_t _shaderModelMajor = 4;
         uint32_t _shaderModelMinor = 0;
 
-        D3D11CommandContext* _immediateContext;
+        D3D11CommandBuffer* _defaultCommandBuffer;
 
         /// Input layouts.
         InputLayoutMap _inputLayouts;

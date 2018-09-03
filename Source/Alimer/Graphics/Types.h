@@ -22,10 +22,10 @@
 
 #pragma once
 
+#include "../Core/Flags.h"
 #include "../Util/Util.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
-#include <array>
 
 namespace Alimer
 {
@@ -35,6 +35,8 @@ namespace Alimer
     static constexpr uint32_t MaxVertexAttributes = 16u;
     static constexpr uint32_t MaxVertexBufferBindings = 4u;
     static constexpr uint32_t MaxColorAttachments = 8u;
+
+    using GpuSize = uint64_t;
 
     /// Enum describing the Graphics backend type.
     enum class GraphicsDeviceType
@@ -87,6 +89,29 @@ namespace Alimer
         Count
     };
 
+    enum class BufferUsage : uint32_t
+    {
+        None = 0,
+        TransferSrc = 1 << 0,
+        TransferDest = 1 << 1,
+        Vertex = 1 << 2,
+        Index = 1 << 3,
+        Uniform = 1 << 4,
+        Storage = 1 << 5,
+        Indirect = 1 << 6,
+    };
+
+    using BufferUsageFlags = Flags<BufferUsage, uint32_t>;
+    ALIMER_FORCE_INLINE BufferUsageFlags operator|(BufferUsage bit0, BufferUsage bit1)
+    {
+        return BufferUsageFlags(bit0) | bit1;
+    }
+
+    ALIMER_FORCE_INLINE BufferUsageFlags operator~(BufferUsage bits)
+    {
+        return ~(BufferUsageFlags(bits));
+    }
+
     enum class VertexElementFormat
     {
         Invalid,
@@ -112,6 +137,14 @@ namespace Alimer
         Instance
     };
 
+    enum class IndexType : uint32_t
+    {
+        UInt16,
+        UInt32,
+    };
+
+   
+
     /// Element semantics for vertex elements.
     class ALIMER_API VertexElementSemantic
     {
@@ -125,6 +158,19 @@ namespace Alimer
         static constexpr const char* BLENDWEIGHT = "BLENDWEIGHT";
         static constexpr const char* BLENDINDICES = "BLENDINDICES";
     };
+
+    struct BufferDescriptor
+    {
+        /// Buffer usage.
+        BufferUsageFlags usage = BufferUsage::None;
+
+        /// Size in bytes of buffer.
+        uint64_t size = 0;
+
+        /// Size of each individual element in the buffer, in bytes. 
+        uint32_t stride = 0;
+    };
+
 
     class ALIMER_API VertexElement
     {

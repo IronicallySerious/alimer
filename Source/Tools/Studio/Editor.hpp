@@ -21,24 +21,22 @@
 //
 
 #pragma once
-
-#include "../Graphics/Types.h"
+#include "Alimer.h"
 
 namespace Alimer
 {
-    class BufferHandle
+    class Editor final : public Application
     {
-    protected:
-        explicit BufferHandle()
-        {
-        }
+        ALIMER_OBJECT(Editor, Application);
 
     public:
-        /// Destructor.
-        virtual ~BufferHandle() = default;
+        explicit Editor();
+        ~Editor() override;
 
-        virtual bool SetData(uint32_t offset, uint32_t size, const void* data) = 0;
+    private:
+        void Initialize() override;
+        void OnRenderFrame(double frameTime, double elapsedTime) override;
 
-    protected:
+    private:
     };
 }

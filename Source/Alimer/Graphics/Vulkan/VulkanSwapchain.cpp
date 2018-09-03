@@ -42,7 +42,7 @@ namespace Alimer
 		VkResult result = VK_SUCCESS;
 
 		// Create the os-specific surface.
-        const WindowHandle& handle = window->getHandle();
+        const WindowHandle& handle = window->GetHandle();
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 		surfaceCreateInfo.hinstance = static_cast<HINSTANCE>(handle.connection);

@@ -29,27 +29,31 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, BufferUsageFlags usage, uint64_t size, uint32_t stride, ResourceUsage resourceUsage, const void* initialData)
-        : _graphics(graphics)
-        , _isDynamic(resourceUsage == ResourceUsage::Dynamic)
+    D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
+        : GpuBuffer(graphics, descriptor)
     {
-        const bool dynamic = resourceUsage == ResourceUsage::Dynamic;
+        if (descriptor->usage & BufferUsage::TransferSrc)
+            _isDynamic = true;
+
+        if (descriptor->usage & BufferUsage::TransferDest)
+            _isDynamic = true;
 
         D3D11_BUFFER_DESC bufferDesc = {};
-        bufferDesc.ByteWidth = static_cast<UINT>(size);
-        bufferDesc.StructureByteStride = stride;
-        bufferDesc.Usage = d3d11::Convert(resourceUsage);
+        bufferDesc.ByteWidth = static_cast<UINT>(descriptor->size);
+        bufferDesc.StructureByteStride = descriptor->stride;
+        bufferDesc.Usage = _isDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
         bufferDesc.CPUAccessFlags = 0;
-        if (resourceUsage == ResourceUsage::Dynamic)
+        if (descriptor->usage & BufferUsage::TransferDest)
         {
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
         }
-        else if (resourceUsage == ResourceUsage::Staging)
+
+        if (descriptor->usage & BufferUsage::TransferSrc)
         {
-            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
+            bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
         }
 
-        if (usage & BufferUsage::Uniform)
+        if (descriptor->usage & BufferUsage::Uniform)
         {
             // D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT
             bufferDesc.ByteWidth = Align(bufferDesc.ByteWidth, 16u);
@@ -57,22 +61,22 @@ namespace Alimer
         }
         else
         {
-            if (usage & BufferUsage::Vertex)
+            if (descriptor->usage & BufferUsage::Vertex)
             {
                 bufferDesc.BindFlags |= D3D11_BIND_VERTEX_BUFFER;
             }
 
-            if (usage & BufferUsage::Index)
+            if (descriptor->usage & BufferUsage::Index)
             {
                 bufferDesc.BindFlags |= D3D11_BIND_INDEX_BUFFER;
             }
 
-            if (usage & BufferUsage::Storage)
+            if (descriptor->usage & BufferUsage::Storage)
             {
                 bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
             }
 
-            if (usage & BufferUsage::Indirect)
+            if (descriptor->usage & BufferUsage::Indirect)
             {
                 bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
             }
@@ -83,33 +87,33 @@ namespace Alimer
         initData.pSysMem = initialData;
 
         ThrowIfFailed(
-            graphics->GetD3DDevice()->CreateBuffer(&bufferDesc, initialData ? &initData : nullptr, &_d3dBuffer)
+            graphics->GetD3DDevice()->CreateBuffer(&bufferDesc, initialData ? &initData : nullptr, &_handle)
         );
     }
 
     D3D11GpuBuffer::~D3D11GpuBuffer()
     {
-        if (_d3dBuffer)
+        if (_handle)
         {
 #if defined(_DEBUG)
-            ULONG refCount = GetRefCount(_d3dBuffer);
+            ULONG refCount = GetRefCount(_handle);
             ALIMER_ASSERT_MSG(refCount == 1, "D3D11GpuBuffer leakage");
 #endif
 
-            _d3dBuffer->Release();
-            _d3dBuffer = nullptr;
+            _handle->Release();
+            _handle = nullptr;
         }
     }
 
-    bool D3D11GpuBuffer::SetData(uint32_t offset, uint32_t size, const void* data)
+    bool D3D11GpuBuffer::SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData)
     {
-        ID3D11DeviceContext* d3dDeviceContext = _graphics->GetD3DImmediateContext();
+        ID3D11DeviceContext* d3dDeviceContext = StaticCast<D3D11Graphics>(_graphics)->GetD3DImmediateContext();
 
         if (_isDynamic)
         {
             D3D11_MAPPED_SUBRESOURCE mappedResource;
             HRESULT hr = d3dDeviceContext->Map(
-                _d3dBuffer,
+                _handle,
                 0,
                 D3D11_MAP_WRITE_DISCARD,
                 0,
@@ -123,24 +127,24 @@ namespace Alimer
 
             memcpy(
                 static_cast<uint8_t*>(mappedResource.pData) + offset,
-                data,
+                pData,
                 size);
 
-            d3dDeviceContext->Unmap(_d3dBuffer, 0);
+            d3dDeviceContext->Unmap(_handle, 0);
         }
         else
         {
             D3D11_BOX destBox;
-            destBox.left = offset;
-            destBox.right = size;
+            destBox.left = static_cast<UINT>(offset);
+            destBox.right = static_cast<UINT>(size);
             destBox.top = destBox.front = 0;
             destBox.bottom = destBox.back = 1;
 
             d3dDeviceContext->UpdateSubresource(
-                _d3dBuffer,
+                _handle,
                 0,
                 &destBox,
-                data,
+                pData,
                 0,
                 0);
         }

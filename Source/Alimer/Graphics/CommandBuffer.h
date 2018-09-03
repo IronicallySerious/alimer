@@ -25,7 +25,6 @@
 #include "../Core/Flags.h"
 #include "../Graphics/Commands.h"
 #include "../Graphics/VertexBuffer.h"
-#include "../Graphics/IndexBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/PipelineState.h"
@@ -36,18 +35,20 @@ namespace Alimer
 {
     class Graphics;
 
-    /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext 
+    /// Defines a command buffer for recording gpu commands.
+    class ALIMER_API CommandBuffer 
     {
     public:
-        CommandContext();
+        CommandBuffer();
 
         /// Destructor.
-        virtual ~CommandContext();
+        virtual ~CommandBuffer();
 
-        /// Flush the command context and optionally wait for execution.
-        virtual void Flush(bool wait = false) = 0;
+        /// Begin command recording.
+        bool Begin();
 
+        /// End command recording.
+        bool End();
         void BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
         void BeginRenderPass(RenderPass* renderPass,
@@ -62,7 +63,7 @@ namespace Alimer
         void SetShader(Shader* shader);
 
         void SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
-        void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0);
+        void SetIndexBuffer(GpuBuffer* buffer, GpuSize offset, IndexType indexType);
         
         void SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer);
         void SetTexture(uint32_t binding, Texture* texture, ShaderStageFlags stage = ShaderStage::AllGraphics);
@@ -74,6 +75,9 @@ namespace Alimer
         //void ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
     protected:
+        
+        virtual bool BeginCore() = 0;
+        virtual bool EndCore() = 0;
         virtual void BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
         virtual void EndRenderPassCore() = 0;
         //virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
@@ -85,28 +89,27 @@ namespace Alimer
         virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
         virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
         virtual void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) = 0;
-        virtual void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
+        virtual void SetIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) = 0;
+
+    private:
+        void EnsureIsRecording();
 
         inline bool IsInsideRenderPass() const
         {
-            return _state == CommandBufferState::InRenderPass;
+            return _state == State::InRenderPass;
         }
 
-        inline bool IsOutsideRenderPass() const
+        enum class State
         {
-            return _state == CommandBufferState::Ready;
-        }
-
-        enum class CommandBufferState
-        {
-            Ready,
+            None,
+            Recording,
             InRenderPass,
             Committed
         };
 
-        CommandBufferState _state = CommandBufferState::Ready;
+        State _state = State::None;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(CommandContext);
+        DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);
     };
 }

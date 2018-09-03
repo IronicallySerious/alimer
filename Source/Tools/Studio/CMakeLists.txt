@@ -24,7 +24,8 @@ file (GLOB_RECURSE HEADER_FILES *.h *.hpp)
 file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
 
 # Define the target.
-add_alimer_executable(Alimer ${SOURCE_FILES} ${HEADER_FILES})
-set_target_properties(Alimer PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+add_alimer_executable(AlimerStudio ${SOURCE_FILES} ${HEADER_FILES})
+set_target_properties(AlimerStudio PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+set_target_properties(AlimerStudio PROPERTIES FOLDER "Editor")
 
-install(TARGETS Alimer RUNTIME DESTINATION ${DEST_TOOLS_DIR})
+install(TARGETS AlimerStudio RUNTIME DESTINATION ${DEST_TOOLS_DIR})

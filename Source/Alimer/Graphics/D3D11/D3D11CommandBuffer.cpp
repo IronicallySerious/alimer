@@ -45,30 +45,23 @@ namespace Alimer
     static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 
     // D3D11CommandContext
-    D3D11CommandContext::D3D11CommandContext(D3D11Graphics* graphics, ID3D11DeviceContext1* context)
-        : CommandContext()
-        , _graphics(graphics)
+    D3D11CommandBuffer::D3D11CommandBuffer(D3D11Graphics* graphics, ID3D11DeviceContext1* context)
+        : _graphics(graphics)
         , _context(context)
         , _immediate(context->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
     {
         Reset();
     }
 
-    D3D11CommandContext::~D3D11CommandContext()
+    D3D11CommandBuffer::~D3D11CommandBuffer()
     {
-
-    }
-
-    void D3D11CommandContext::Flush(bool wait)
-    {
-        if (_immediate
-            && wait)
+        if (!_immediate)
         {
-            _context->Flush();
+            SafeRelease(_context);
         }
     }
 
-    void D3D11CommandContext::Reset()
+    void D3D11CommandBuffer::Reset()
     {
         _currentRenderPass = nullptr;
         _currentColorAttachmentsBound = 0;
@@ -87,7 +80,18 @@ namespace Alimer
         _inputLayoutDirty = false;
     }
 
-    void D3D11CommandContext::BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    bool D3D11CommandBuffer::BeginCore()
+    {
+        Reset();
+        return true;
+    }
+
+    bool D3D11CommandBuffer::EndCore()
+    {
+        return true;
+    }
+
+    void D3D11CommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         if (!renderPass)
         {
@@ -128,18 +132,18 @@ namespace Alimer
         _context->RSSetScissorRects(1, &scissor);
     }
 
-    void D3D11CommandContext::EndRenderPassCore()
+    void D3D11CommandBuffer::EndRenderPassCore()
     {
         _context->OMSetRenderTargets(_currentColorAttachmentsBound, nullViews, nullptr);
         _currentRenderPass = nullptr;
     }
 
-    void D3D11CommandContext::SetViewport(const Viewport& viewport)
+    void D3D11CommandBuffer::SetViewport(const Viewport& viewport)
     {
         _context->RSSetViewports(1, (D3D11_VIEWPORT*)&viewport);
     }
 
-    void D3D11CommandContext::SetScissor(const Rectangle& scissor)
+    void D3D11CommandBuffer::SetScissor(const Rectangle& scissor)
     {
         D3D11_RECT scissorD3D;
         scissorD3D.left = scissor.x;
@@ -149,17 +153,17 @@ namespace Alimer
         _context->RSSetScissorRects(1, &scissorD3D);
     }
 
-    void D3D11CommandContext::SetShaderCore(Shader* shader)
+    void D3D11CommandBuffer::SetShaderCore(Shader* shader)
     {
         _currentShader = static_cast<D3D11Shader*>(shader);
     }
 
-    void D3D11CommandContext::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
+    void D3D11CommandBuffer::SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate)
     {
         if (_vbo.buffers[binding] != buffer
             || _vbo.offsets[binding] != offset)
         {
-            _vbo.d3dBuffers[binding] = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
+            //_vbo.d3dBuffers[binding] = static_cast<D3D11GpuBuffer*>(buffer)->GetD3DBuffer();
 
             _dirtyVbos |= 1u << binding;
             _inputLayoutDirty = true;
@@ -178,25 +182,25 @@ namespace Alimer
     }
 
 
-    void D3D11CommandContext::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void D3D11CommandBuffer::SetIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
+        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetHandle();
         DXGI_FORMAT dxgiFormat = DXGI_FORMAT_R16_UINT;
         if (indexType == IndexType::UInt32)
         {
             dxgiFormat = DXGI_FORMAT_R32_UINT;
         }
 
-        _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
+        _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, static_cast<UINT>(offset));
     }
 
-    void D3D11CommandContext::SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range)
+    void D3D11CommandBuffer::SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer->GetHandle())->GetD3DBuffer();
+        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetHandle();
         _context->VSSetConstantBuffers(binding, 1, &d3dBuffer);
     }
 
-    void D3D11CommandContext::SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    void D3D11CommandBuffer::SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage)
     {
         auto d3d11Texture = static_cast<D3D11Texture*>(texture);
         ID3D11ShaderResourceView* shaderResourceView =  d3d11Texture->GetShaderResourceView();
@@ -221,7 +225,7 @@ namespace Alimer
         }
     }
 
-    bool D3D11CommandContext::PrepareDraw(PrimitiveTopology topology)
+    bool D3D11CommandBuffer::PrepareDraw(PrimitiveTopology topology)
     {
         uint32_t updateVboMask = _dirtyVbos/* & _currentPipeline->GetBindingMask()*/;
         ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
@@ -262,7 +266,7 @@ namespace Alimer
         return true;
     }
 
-    void D3D11CommandContext::UpdateVbos(uint32_t binding, uint32_t count)
+    void D3D11CommandBuffer::UpdateVbos(uint32_t binding, uint32_t count)
     {
 #ifdef ALIMER_DEV
         for (uint32_t i = binding; i < binding + count; i++)
@@ -357,7 +361,7 @@ namespace Alimer
         }
     }
 
-    void D3D11CommandContext::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    void D3D11CommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
     {
         if (!PrepareDraw(topology))
             return;
@@ -372,7 +376,7 @@ namespace Alimer
         }
     }
 
-    void D3D11CommandContext::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    void D3D11CommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
         if (!PrepareDraw(topology))
             return;
@@ -386,7 +390,5 @@ namespace Alimer
             _context->DrawIndexedInstanced(indexCount, instanceCount, startIndex, 0, 0);
         }
     }
-
-    
 }
 
