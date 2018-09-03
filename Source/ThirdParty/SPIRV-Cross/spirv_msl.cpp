@@ -1562,6 +1562,20 @@ void CompilerMSL::emit_specialization_constants()
 		statement("");
 }
 
+void CompilerMSL::emit_binary_unord_op(uint32_t result_type, uint32_t result_id, uint32_t op0, uint32_t op1,
+                                       const char *op)
+{
+	bool forward = should_forward(op0) && should_forward(op1);
+	emit_op(result_type, result_id,
+	        join("(isunordered(", to_enclosed_unpacked_expression(op0), ", ", to_enclosed_unpacked_expression(op1),
+	             ") || ", to_enclosed_unpacked_expression(op0), " ", op, " ", to_enclosed_unpacked_expression(op1),
+	             ")"),
+	        forward);
+
+	inherit_expression_dependencies(result_id, op0);
+	inherit_expression_dependencies(result_id, op1);
+}
+
 // Override for MSL-specific syntax instructions
 void CompilerMSL::emit_instruction(const Instruction &instruction)
 {
@@ -1576,6 +1590,7 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 #define MSL_BFOP_CAST(op, type) \
 	emit_binary_func_op_cast(ops[0], ops[1], ops[2], ops[3], #op, type, opcode_is_sign_invariant(opcode))
 #define MSL_UFOP(op) emit_unary_func_op(ops[0], ops[1], ops[2], #op)
+#define MSL_UNORD_BOP(op) emit_binary_unord_op(ops[0], ops[1], ops[2], ops[3], #op)
 
 	auto ops = stream(instruction);
 	auto opcode = static_cast<Op>(instruction.op);
@@ -1618,6 +1633,30 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 	case OpSLessThanEqual:
 	case OpFOrdLessThanEqual:
 		MSL_BOP(<=);
+		break;
+
+	case OpFUnordEqual:
+		MSL_UNORD_BOP(==);
+		break;
+
+	case OpFUnordNotEqual:
+		MSL_UNORD_BOP(!=);
+		break;
+
+	case OpFUnordGreaterThan:
+		MSL_UNORD_BOP(>);
+		break;
+
+	case OpFUnordGreaterThanEqual:
+		MSL_UNORD_BOP(>=);
+		break;
+
+	case OpFUnordLessThan:
+		MSL_UNORD_BOP(<);
+		break;
+
+	case OpFUnordLessThanEqual:
+		MSL_UNORD_BOP(<=);
 		break;
 
 	// Derivatives
@@ -2408,15 +2447,22 @@ void CompilerMSL::emit_function_prototype(SPIRFunction &func, const Bitset &)
 
 	for (auto &arg : func.arguments)
 	{
-		add_local_variable_name(arg.id);
+		uint32_t name_id = arg.id;
 
 		string address_space;
 		auto *var = maybe_get<SPIRVariable>(arg.id);
 		if (var)
 		{
+			// If we need to modify the name of the variable, make sure we modify the original variable.
+			// Our alias is just a shadow variable.
+			if (arg.alias_global_variable && var->basevariable)
+				name_id = var->basevariable;
+
 			var->parameter = &arg; // Hold a pointer to the parameter so we can invalidate the readonly field if needed.
 			address_space = get_argument_address_space(*var);
 		}
+
+		add_local_variable_name(name_id);
 
 		if (!address_space.empty())
 			decl += address_space + " ";
@@ -2953,9 +2999,14 @@ string CompilerMSL::member_attribute_qualifier(const SPIRType &type, uint32_t in
 			{
 			case BuiltInVertexId:
 			case BuiltInVertexIndex:
+			case BuiltInBaseVertex:
 			case BuiltInInstanceId:
 			case BuiltInInstanceIndex:
+			case BuiltInBaseInstance:
 				return string(" [[") + builtin_qualifier(builtin) + "]]";
+
+			case BuiltInDrawIndex:
+				SPIRV_CROSS_THROW("DrawIndex is not supported in MSL.");
 
 			default:
 				return "";
@@ -3408,8 +3459,15 @@ uint32_t CompilerMSL::get_metal_resource_index(SPIRVariable &var, SPIRType::Base
 
 string CompilerMSL::argument_decl(const SPIRFunction::Parameter &arg)
 {
+
 	auto &var = get<SPIRVariable>(arg.id);
 	auto &type = expression_type(arg.id);
+
+	// If we need to modify the name of the variable, make sure we use the original variable.
+	// Our alias is just a shadow variable.
+	uint32_t name_id = var.self;
+	if (arg.alias_global_variable && var.basevariable)
+		name_id = var.basevariable;
 
 	bool constref = !arg.alias_global_variable && type.pointer && arg.write_count == 0;
 
@@ -3437,13 +3495,13 @@ string CompilerMSL::argument_decl(const SPIRFunction::Parameter &arg)
 	{
 		// If the argument is a pure value and not an opaque type, we will pass by value.
 		decl += " ";
-		decl += to_expression(var.self);
+		decl += to_expression(name_id);
 	}
 	else if (is_array(type) && !type_is_image)
 	{
 		// Arrays of images and samplers are special cased.
 		decl += " (&";
-		decl += to_expression(var.self);
+		decl += to_expression(name_id);
 		decl += ")";
 		decl += type_to_array_glsl(type);
 	}
@@ -3451,12 +3509,12 @@ string CompilerMSL::argument_decl(const SPIRFunction::Parameter &arg)
 	{
 		decl += "&";
 		decl += " ";
-		decl += to_expression(var.self);
+		decl += to_expression(name_id);
 	}
 	else
 	{
 		decl += " ";
-		decl += to_expression(var.self);
+		decl += to_expression(name_id);
 	}
 
 	return decl;
@@ -3825,6 +3883,12 @@ string CompilerMSL::builtin_to_glsl(BuiltIn builtin, StorageClass storage)
 		return "gl_VertexIndex";
 	case BuiltInInstanceIndex:
 		return "gl_InstanceIndex";
+	case BuiltInBaseVertex:
+		return "gl_BaseVertex";
+	case BuiltInBaseInstance:
+		return "gl_BaseInstance";
+	case BuiltInDrawIndex:
+		SPIRV_CROSS_THROW("DrawIndex is not supported in MSL.");
 
 	// When used in the entry function, output builtins are qualified with output struct name.
 	// Test storage class as NOT Input, as output builtins might be part of generic type.
@@ -3859,10 +3923,16 @@ string CompilerMSL::builtin_qualifier(BuiltIn builtin)
 		return "vertex_id";
 	case BuiltInVertexIndex:
 		return "vertex_id";
+	case BuiltInBaseVertex:
+		return "base_vertex";
 	case BuiltInInstanceId:
 		return "instance_id";
 	case BuiltInInstanceIndex:
 		return "instance_id";
+	case BuiltInBaseInstance:
+		return "base_instance";
+	case BuiltInDrawIndex:
+		SPIRV_CROSS_THROW("DrawIndex is not supported in MSL.");
 
 	// Vertex function out
 	case BuiltInClipDistance:
@@ -3926,10 +3996,16 @@ string CompilerMSL::builtin_type_decl(BuiltIn builtin)
 		return "uint";
 	case BuiltInVertexIndex:
 		return "uint";
+	case BuiltInBaseVertex:
+		return "uint";
 	case BuiltInInstanceId:
 		return "uint";
 	case BuiltInInstanceIndex:
 		return "uint";
+	case BuiltInBaseInstance:
+		return "uint";
+	case BuiltInDrawIndex:
+		SPIRV_CROSS_THROW("DrawIndex is not supported in MSL.");
 
 	// Vertex function out
 	case BuiltInClipDistance:
@@ -3952,6 +4028,10 @@ string CompilerMSL::builtin_type_decl(BuiltIn builtin)
 		return "uint";
 	case BuiltInSampleMask:
 		return "uint";
+
+	// Fragment function out
+	case BuiltInFragDepth:
+		return "float";
 
 	// Compute function in
 	case BuiltInGlobalInvocationId:
