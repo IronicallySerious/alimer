@@ -34,13 +34,13 @@ namespace Alimer
 	class VulkanTexture final : public Texture
 	{
 	public:
-		VulkanTexture(VulkanGraphics* graphics, const TextureDescription& description, VkImage vkImage, VkImageUsageFlags usage);
-        VulkanTexture(VulkanGraphics* graphics, const TextureDescription* pDescription, const ImageLevel* initialData);
+		VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, VkImage vkImage, VkImageUsageFlags usage);
+        VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData);
 
         ~VulkanTexture() override;
         void Destroy() override;
 
-		inline VkImage GetVkHandle() const { return _vkHandle; }
+		VkImage GetHandle() const { return _vkHandle; }
 		inline VkImageView GetDefaultImageView() const { return _defaultImageView; }
 
 	private:

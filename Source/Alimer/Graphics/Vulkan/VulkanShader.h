@@ -43,7 +43,23 @@ namespace Alimer
         Count
     };
 
-    /// D3D12 Shader implementation.
+    /// Vulkan ShaderModule implementation.
+    class VulkanShaderModule final : public ShaderModule
+    {
+    public:
+        /// Constructor.
+        VulkanShaderModule(VulkanGraphics* graphics, const std::vector<uint32_t>& spirv);
+        ~VulkanShaderModule() override;
+
+        void Destroy() override;
+
+        VkShaderModule GetHandle() const { return _handle; }
+
+    private:
+        VkDevice _logicalDevice;
+        VkShaderModule _handle = VK_NULL_HANDLE;
+    };
+
     class VulkanShader final : public Shader
     {
     public:

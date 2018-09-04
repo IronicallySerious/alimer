@@ -33,48 +33,6 @@ namespace Alimer
 {
     class Graphics;
 
-    /// Defines shader stage usage.
-    enum class ShaderStage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        TessControl = 1 << 1,
-        TessEvaluation = 1 << 2,
-        Geometry = 1 << 3,
-        Fragment = 1 << 4,
-        Compute = 1 << 5,
-        AllTessellation = (TessControl | TessEvaluation),
-        AllGraphics = (Vertex | AllTessellation | Geometry | Fragment),
-        All = (AllGraphics | Compute),
-    };
-
-    using ShaderStageFlags = Flags<ShaderStage>;
-    ALIMER_FORCE_INLINE ShaderStageFlags operator|(ShaderStage bit0, ShaderStage bit1)
-    {
-        return ShaderStageFlags(bit0) | bit1;
-    }
-
-    ALIMER_FORCE_INLINE ShaderStageFlags operator~(ShaderStage bits)
-    {
-        return ~(ShaderStageFlags(bits));
-    }
-
-    enum class BindingType
-    {
-        UniformBuffer,
-        SampledTexture,
-        Sampler,
-        StorageBuffer
-    };
-
-    /*struct ShaderResourceParameter
-    {
-        uint32_t set;
-        uint32_t binding;
-        BindingType type;
-        std::string name;
-    };*/
-
     struct DescriptorSetLayout
     {
         uint32_t uniformBufferMask = 0;
@@ -90,8 +48,30 @@ namespace Alimer
         //std::map<std::string, ShaderResourceParameter> resources;
     };
 
-    /// Defines a shader (module/function) class.
-    class Shader : public Resource, public GpuResource
+    ALIMER_API void SPIRVReflectResources(const std::vector<uint32_t>& spirv, ShaderStage& stage, std::vector<PipelineResource>& shaderResources);
+
+    /// Defines a shader module class.
+    class ALIMER_API ShaderModule : public Resource, public GpuResource
+    {
+        ALIMER_OBJECT(ShaderModule, Resource);
+
+    protected:
+        /// Constructor.
+        ShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv);
+
+    public:
+        /// Destructor.
+        virtual ~ShaderModule() = default;
+
+        ShaderStage GetStage() const { return _stage; }
+
+    protected:
+        std::vector<uint32_t> _spirv;
+        ShaderStage _stage = ShaderStage::None;
+        std::vector<PipelineResource> _resources;
+    };
+
+    class ALIMER_API Shader : public Resource, public GpuResource
     {
         ALIMER_OBJECT(Shader, Resource);
 

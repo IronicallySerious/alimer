@@ -25,20 +25,19 @@
 
 namespace Alimer
 {
-	Texture::Texture(Graphics* graphics)
-		: GpuResource(graphics, GpuResourceType::Texture)
-        , _description{}
-	{
-	}
-
-    Texture::Texture(Graphics* graphics, const TextureDescription& description)
+    Texture::Texture(Graphics* graphics, const TextureDescriptor* descriptor)
         : GpuResource(graphics, GpuResourceType::Texture)
-        , _description(description)
+        , _type(descriptor->type)
+        , _usage(descriptor->usage)
+        , _format(descriptor->format)
+        , _width(descriptor->width)
+        , _height(descriptor->height)
+        , _depth(descriptor->depth)
+        , _mipLevels(descriptor->depth)
+        , _arrayLayers(descriptor->arrayLayers)
+        , _samples(descriptor->samples)
+        , _colorSpace(descriptor->colorSpace)
     {
 
     }
-
-	Texture::~Texture()
-	{
-	}
 }

@@ -55,11 +55,12 @@ namespace Alimer
         CommandBuffer* GetDefaultCommandBuffer() const override;
         CommandBuffer* CreateCommandBuffer() override;
 
-        SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
-
+        RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) override;
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
+        VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) override;
+        ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) override;
 
-        Texture* CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData) override;
+        Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
 
         Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
         Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,

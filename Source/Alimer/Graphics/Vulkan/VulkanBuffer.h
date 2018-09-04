@@ -39,7 +39,7 @@ namespace Alimer
 
         bool SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData) override;
 
-		inline VkBuffer GetVkHandle() const { return _vkHandle; }
+		VkBuffer GetHandle() const { return _vkHandle; }
 
 	private:
 		VkDevice _logicalDevice;

@@ -232,6 +232,13 @@ namespace Alimer
         return _initialized;
     }
 
+    RenderPass* Graphics::CreateRenderPass(const RenderPassDescription* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+
+        return CreateRenderPassImpl(descriptor);
+    }
+
     GpuBuffer* Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
     {
         ALIMER_ASSERT(descriptor);
@@ -248,10 +255,58 @@ namespace Alimer
 
         if (initialData && !(descriptor->usage & BufferUsage::TransferDest))
         {
-            ALIMER_LOGCRITICAL("Buffer needs the transfer dest usage when creating with initial data");
+            ALIMER_LOGCRITICAL("Buffer needs the transfer dest usage when creating with initial data.");
         }
 
         return CreateBufferImpl(descriptor, initialData);
+    }
+
+    VertexInputFormat* Graphics::CreateVertexInputFormat(const VertexInputFormatDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+
+        if (!descriptor->attributesCount)
+        {
+            ALIMER_LOGCRITICAL("Can not define VertexInputFormat with no vertex attributes");
+        }
+
+        return CreateVertexInputFormatImpl(descriptor);
+    }
+
+    ShaderModule* Graphics::CreateShaderModule(const std::vector<uint32_t>& spirv)
+    {
+        if (spirv.empty())
+        {
+            ALIMER_LOGCRITICAL("Cannot create shader module with empty bytecode");
+        }
+
+        return CreateShaderModuleImpl(spirv);
+    }
+
+    Texture* Graphics::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    {
+        ALIMER_ASSERT(descriptor);
+
+        if (!descriptor->usage)
+        {
+            ALIMER_LOGCRITICAL("Invalid texture usage");
+        }
+
+        if (descriptor->width == 0
+            || descriptor->height == 0
+            || descriptor->depth == 0
+            || descriptor->arrayLayers == 0
+            || descriptor->mipLevels == 0)
+        {
+            ALIMER_LOGCRITICAL("Cannot create an empty texture");
+        }
+
+        //if (initialData && !(descriptor->usage & TextureUsage::TransferDest))
+        //{
+        //    ALIMER_LOGCRITICAL("Texture needs the transfer dest usage when creating with initial data.");
+        //}
+
+        return CreateTextureImpl(descriptor, initialData);
     }
 
     Shader* Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)

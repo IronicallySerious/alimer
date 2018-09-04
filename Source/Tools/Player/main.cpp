@@ -50,35 +50,54 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color::Blue }
             };
 
-            std::vector<VertexElement> vertexElements;
-            vertexElements.emplace_back(VertexElementFormat::Float3, VertexElementSemantic::POSITION);
-            vertexElements.emplace_back(VertexElementFormat::Float4, VertexElementSemantic::COLOR);
+            std::array<VertexAttributeDescriptor, 2> vertexInputAttributs;
+            // Attribute location 0: Position
+            vertexInputAttributs[0].bufferIndex = 0;
+            vertexInputAttributs[0].location = 0;
+            vertexInputAttributs[0].format = VertexFormat::Float3;
+            vertexInputAttributs[0].offset = offsetof(VertexColor, position);
+            // Attribute location 1: Color
+            vertexInputAttributs[1].bufferIndex = 0;
+            vertexInputAttributs[1].location = 1;
+            vertexInputAttributs[1].format = VertexFormat::Float4;
+            vertexInputAttributs[1].offset = offsetof(VertexColor, color);
 
-            _vertexBuffer = new VertexBuffer(graphics, VertexFormat(vertexElements), 3, ResourceUsage::Immutable, triangleVertices);
+            VertexInputFormatDescriptor inputFormatDescriptor = {};
+            inputFormatDescriptor.attributes = vertexInputAttributs.data();
+            inputFormatDescriptor.attributesCount = 2;
+            _vertexInputFormat = graphics->CreateVertexInputFormat(&inputFormatDescriptor);
+
+            BufferDescriptor vertexBufferDesc = {};
+            vertexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Vertex;
+            vertexBufferDesc.size = sizeof(triangleVertices);
+            vertexBufferDesc.stride = sizeof(VertexColor);
+            _vertexBuffer = graphics->CreateBuffer(&vertexBufferDesc, triangleVertices);
 
             // Create shader.
             _shader = graphics->CreateShader("assets://shaders/color.vert", "assets://shaders/color.frag");
 
             _camera.viewMatrix = mat4::identity();
             _camera.projectionMatrix = mat4::identity();
-            GpuBufferDescription uboBufferDesc = {};
-            uboBufferDesc.usage = BufferUsage::Uniform;
-            uboBufferDesc.elementSize = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = new GpuBuffer(graphics, uboBufferDesc, &_camera);
+            BufferDescriptor uboBufferDesc = {};
+            uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
+            uboBufferDesc.size = sizeof(PerCameraCBuffer);
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
         }
 
         void Render(CommandBuffer* context)
         {
             context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             context->SetShader(_shader.Get());
-            context->SetVertexBuffer(0, _vertexBuffer.Get());
-            context->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
+            //context->SetVertexInputFormat(_vertexInputFormat.Get());
+            context->BindVertexBuffer(0, _vertexBuffer.Get());
+            context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
             context->Draw(PrimitiveTopology::Triangles, 3);
             context->EndRenderPass();
         }
 
     private:
-        SharedPtr<VertexBuffer> _vertexBuffer;
+        SharedPtr<VertexInputFormat> _vertexInputFormat;
+        SharedPtr<GpuBuffer> _vertexBuffer;
         SharedPtr<Shader> _shader;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
@@ -360,7 +379,7 @@ namespace Alimer
             };
             initial.data = checkerboard;
 
-            TextureDescription textureDesc = {};
+            TextureDescriptor textureDesc = {};
             textureDesc.width = textureDesc.height = 4;
             _texture = graphics->CreateTexture(&textureDesc, &initial);
         }

@@ -35,7 +35,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription& descriptor);
+        D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription* descriptor);
 
         /// Destructor.
         ~D3D11RenderPass() override;

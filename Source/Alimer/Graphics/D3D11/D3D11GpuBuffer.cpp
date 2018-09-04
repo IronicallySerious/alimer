@@ -32,11 +32,11 @@ namespace Alimer
     D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
         : GpuBuffer(graphics, descriptor)
     {
-        if (descriptor->usage & BufferUsage::TransferSrc)
+        if (descriptor->usage & BufferUsage::TransferDest
+            || descriptor->usage & BufferUsage::TransferSrc)
+        {
             _isDynamic = true;
-
-        if (descriptor->usage & BufferUsage::TransferDest)
-            _isDynamic = true;
+        }
 
         D3D11_BUFFER_DESC bufferDesc = {};
         bufferDesc.ByteWidth = static_cast<UINT>(descriptor->size);

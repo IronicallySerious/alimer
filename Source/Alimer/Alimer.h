@@ -44,7 +44,8 @@
 
 // Graphics
 #include "Graphics/PixelFormat.h"
-#include "Graphics/VertexBuffer.h"
+#include "Graphics/GpuBuffer.h"
+#include "Graphics/VertexFormat.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
 #include "Graphics/Graphics.h"

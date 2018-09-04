@@ -50,6 +50,47 @@ namespace Alimer
         return D3DShaderCompiler::Compile(hlslSource, stage, major, minor);
     }
 
+    D3D11ShaderModule::D3D11ShaderModule(D3D11Graphics* graphics, const std::vector<uint32_t>& spirv)
+        : ShaderModule(graphics, spirv)
+    {
+        std::vector<uint8_t> bytecode = ConvertAndCompileHLSL(
+            spirv.data(), spirv.size(),
+            _stage,
+            graphics->GetShaderModerMajor(),
+            graphics->GetShaderModerMinor());
+
+        switch (_stage)
+        {
+        case ShaderStage::Vertex:
+            graphics->GetD3DDevice()->CreateVertexShader(bytecode.data(), bytecode.size(), nullptr, &_vertex);
+            break;
+        case ShaderStage::TessControl:
+            break;
+        case ShaderStage::TessEvaluation:
+            break;
+        case ShaderStage::Geometry:
+            break;
+        case ShaderStage::Fragment:
+            graphics->GetD3DDevice()->CreatePixelShader(bytecode.data(), bytecode.size(), nullptr, &_pixel);
+            break;
+        case ShaderStage::Compute:
+            graphics->GetD3DDevice()->CreateComputeShader(bytecode.data(), bytecode.size(), nullptr, &_compute);
+            break;
+        default:
+            break;
+        }
+    }
+
+    D3D11ShaderModule::~D3D11ShaderModule()
+    {
+        Destroy();
+    }
+
+    void D3D11ShaderModule::Destroy()
+    {
+
+    }
+
     D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const void *pCode, size_t codeSize)
         : Shader(graphics, pCode, codeSize)
     {

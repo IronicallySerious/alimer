@@ -52,10 +52,12 @@ namespace Alimer
         CommandBuffer* CreateCommandBuffer() override;
         RenderPass* GetBackbufferRenderPass() const;
 
-        SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
+        RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) override;
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
+        VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) override;
+        ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) override;
 
-        Texture* CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData) override;
+        Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
 
         Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
         Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,
@@ -73,7 +75,7 @@ namespace Alimer
 		void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
 		void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkAccessFlagBits srcAccessMask, VkClearColorValue *clearValue);
 
-		VkRenderPass GetVkRenderPass(const RenderPassDescription& description);
+		VkRenderPass GetVkRenderPass(const RenderPassDescription* descriptor);
 
         VulkanDescriptorSetAllocator* RequestDescriptorSetAllocator(const DescriptorSetLayout &layout);
         VulkanPipelineLayout* RequestPipelineLayout(const ResourceLayout &layout);

@@ -33,6 +33,7 @@
 #include "../Graphics/Shader.h"
 #include "../Graphics/PipelineState.h"
 #include "../Graphics/CommandBuffer.h"
+#include "../Graphics/VertexFormat.h"
 #include <vector>
 #include <set>
 #include <queue>
@@ -74,14 +75,20 @@ namespace Alimer
         /// End and present frame.
         virtual void EndFrame() = 0;
 
-        // RenderPass
-        virtual SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) = 0;
+        /// Create new RenderPass given descriptor
+        RenderPass* CreateRenderPass(const RenderPassDescription* descriptor);
 
         /// Create new buffer with given descriptor and optional initial data.
         GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
 
-        // RenderPass
-        virtual Texture* CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData = nullptr) = 0;
+        /// Create new VertexInputFormat with given descriptor.
+        VertexInputFormat* CreateVertexInputFormat(const VertexInputFormatDescriptor* descriptor);
+
+        /// Create new shader module using SPIRV bytecode.
+        ShaderModule* CreateShaderModule(const std::vector<uint32_t>& spirv);
+
+        /// Create new Texture with given descriptor and optional initial data.
+        Texture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
 
         // Shader
         Shader* CreateShader(
@@ -127,7 +134,12 @@ namespace Alimer
     protected:
         virtual void Finalize();
         virtual bool BackendInitialize() = 0;
+
+        virtual RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) = 0;
         virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
+        virtual VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) = 0;
+        virtual ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) = 0;
+        virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr) = 0;
 
     protected:
         GraphicsDeviceType _deviceType;

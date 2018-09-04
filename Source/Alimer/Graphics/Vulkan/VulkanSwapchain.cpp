@@ -344,7 +344,7 @@ namespace Alimer
         _currentSemaphoreIndex = 0;
         _currentBackBufferIndex = 0;
 
-		TextureDescription textureDesc = {};
+		TextureDescriptor textureDesc = {};
 		textureDesc.type = TextureType::Type2D;
 		textureDesc.usage = TextureUsage::RenderTarget;
 		textureDesc.format = vk::Convert(_swapchainFormat.format);
@@ -365,7 +365,7 @@ namespace Alimer
             passDescription.colorAttachments[0].texture = _textures[i].Get();
             passDescription.colorAttachments[0].loadAction = LoadAction::Clear;
             passDescription.colorAttachments[0].storeAction = StoreAction::Store;
-            _renderPasses[i] = new VulkanRenderPass(_graphics, passDescription);
+            _renderPasses[i] = new VulkanRenderPass(_graphics, &passDescription);
 		}
 
 		if (createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)

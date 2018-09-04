@@ -89,10 +89,13 @@ namespace Alimer
         //void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
         void SetVertexAttribute(uint32_t attrib, uint32_t binding, VkFormat format, VkDeviceSize offset);
-        void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
-        void SetIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
-        void SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
+
+        void BindVertexBufferImpl(uint32_t binding, GpuBuffer* buffer, GpuSize offset, uint64_t stride, VertexInputRate inputRate) override;
+        void SetVertexInputFormatImpl(VertexInputFormat* format) override;
+        void BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
+        void BindBufferImpl(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding) override;
         void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) override;
+
 
         inline void SetPrimitiveTopology(PrimitiveTopology topology)
         {

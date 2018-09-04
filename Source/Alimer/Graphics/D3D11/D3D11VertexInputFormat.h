@@ -20,34 +20,29 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/VertexBuffer.h"
+#pragma once
+
+#include "Graphics/VertexFormat.h"
+#include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-    VertexBuffer::VertexBuffer(Graphics* graphics, const VertexFormat& vertexFormat, uint32_t vertexCount, ResourceUsage resourceUsage, const void* initialData)
-        : GpuBuffer(graphics, nullptr)
-        , _vertexFormat(vertexFormat)
-        , _vertexCount(vertexCount)
+    class D3D11Graphics;
+
+    /// D3D11 VertexInputFormat implementation.
+    class D3D11VertexInputFormat final : public VertexInputFormat
     {
-        if (!vertexCount || !vertexFormat.GetElementsCount())
-        {
-            ALIMER_LOGERROR("Can not define vertex buffer with no vertices or no elements");
-            return;
-        }
+    public:
+        /// Constructor.
+        D3D11VertexInputFormat(D3D11Graphics* graphics, const VertexInputFormatDescriptor* descriptor);
 
-        if (resourceUsage == ResourceUsage::Immutable
-            && !initialData)
-        {
-            ALIMER_LOGERROR("Immutable vertex buffer must define initial data");
-            return;
-        }
+        /// Destructor.
+        ~D3D11VertexInputFormat() override;
 
-        // Determine offset of elements and the vertex size & element hash
-        _vertexFormat = vertexFormat;
-    }
+        const std::vector<D3D11_INPUT_ELEMENT_DESC>& GetInputElements() const { return _inputElements; }
 
-    VertexBuffer::~VertexBuffer()
-    {
-        Destroy();
-    }
+    private:
+        D3D11Graphics* _graphics;
+        std::vector<D3D11_INPUT_ELEMENT_DESC> _inputElements;
+    };
 }

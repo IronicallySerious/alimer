@@ -33,7 +33,7 @@ namespace Alimer
     class VulkanRenderPass final : public RenderPass
     {
     public:
-        VulkanRenderPass(VulkanGraphics* graphics, const RenderPassDescription& description);
+        VulkanRenderPass(VulkanGraphics* graphics, const RenderPassDescription* descriptor);
         ~VulkanRenderPass() override;
         void Destroy() override;
 

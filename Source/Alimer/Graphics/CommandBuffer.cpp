@@ -106,30 +106,45 @@ namespace Alimer
         SetShaderCore(shader);
     }
 
-    void CommandBuffer::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint64_t offset, VertexInputRate inputRate)
+    void CommandBuffer::BindVertexBuffer(uint32_t binding, GpuBuffer* buffer, GpuSize offset, VertexInputRate inputRate)
     {
-        ALIMER_ASSERT(binding < MaxVertexBufferBindings);
         ALIMER_ASSERT(buffer);
+        ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Vertex);
+        ALIMER_ASSERT(binding < MaxVertexBufferBindings);
 
-        SetVertexBufferCore(binding, buffer, offset, buffer->GetStride(), inputRate);
+        BindVertexBufferImpl(binding, buffer, offset, buffer->GetStride(), inputRate);
     }
 
-    void CommandBuffer::SetIndexBuffer(GpuBuffer* buffer, GpuSize offset, IndexType indexType)
+    void CommandBuffer::SetVertexInputFormat(VertexInputFormat* format)
+    {
+        ALIMER_ASSERT(format);
+
+        SetVertexInputFormatImpl(format);
+    }
+
+    void CommandBuffer::BindIndexBuffer(GpuBuffer* buffer, GpuSize offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Index);
 
-        SetIndexBufferImpl(buffer, offset, indexType);
+        BindIndexBufferImpl(buffer, offset, indexType);
     }
 
-    void CommandBuffer::SetUniformBuffer(uint32_t set, uint32_t binding, GpuBuffer* buffer)
+    void CommandBuffer::BindBuffer(GpuBuffer* buffer, uint32_t set, uint32_t binding)
     {
+        ALIMER_ASSERT(buffer);
+
+        BindBuffer(buffer, 0, buffer->GetSize(), set, binding);
+    }
+
+    void CommandBuffer::BindBuffer(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding)
+    {
+        ALIMER_ASSERT(buffer);
+        ALIMER_ASSERT((buffer->GetUsage() & BufferUsage::Uniform) || buffer->GetUsage() & BufferUsage::Storage);
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
-        ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Uniform);
 
-        SetUniformBufferCore(set, binding, buffer, 0, buffer->GetSize());
+        BindBufferImpl(buffer, offset, range, set, binding);
     }
 
     void CommandBuffer::SetTexture(uint32_t binding, Texture* texture, ShaderStageFlags stage)

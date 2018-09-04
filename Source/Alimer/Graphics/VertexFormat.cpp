@@ -21,43 +21,16 @@
 //
 
 #include "../Graphics/VertexFormat.h"
-#include "../Util/HashMap.h"
 
 namespace Alimer
 {
-    VertexFormat::VertexFormat(const std::vector<VertexElement>& elements)
-    {
-        if (!elements.size())
-        {
-            ALIMER_LOGERROR("Can not define VertexElement with no elements");
-            return;
-        }
-
-        Initialize(elements.data(), elements.size());
-    }
-
-    VertexFormat::VertexFormat(const VertexElement* elements, size_t elementCount)
-    {
-        if (!elementCount || !elements)
-        {
-            ALIMER_LOGERROR("Can not define VertexElement with no elements");
-            return;
-        }
-
-        Initialize(elements, elementCount);
-    }
-
-    VertexFormat::~VertexFormat()
-    {
-    }
-
-    void VertexFormat::Initialize(const VertexElement* elements, size_t elementCount)
+    VertexInputFormat::VertexInputFormat(const VertexInputFormatDescriptor* descriptor)
     {
         // Check if we need to auto offset.
         bool useAutoOffset = true;
-        for (size_t i = 0; i < elementCount; ++i)
+        for (size_t i = 0; i < descriptor->attributesCount; ++i)
         {
-            if (elements[i].offset != 0)
+            if (descriptor->attributes[i].offset != 0)
             {
                 useAutoOffset = false;
                 break;
@@ -65,21 +38,23 @@ namespace Alimer
         }
 
         uint32_t stride = 0;
-        Hasher h;
-        _elements.resize(elementCount);
 
-        for (size_t i = 0; i < elementCount; ++i)
+        _attributes.resize(descriptor->attributesCount);
+        for (size_t i = 0; i < descriptor->attributesCount; ++i)
         {
-            _elements[i] = elements[i];
-            _elements[i].offset = useAutoOffset ? stride : elements[i].offset;
-            stride += GetVertexFormatSize(elements[i].format);
-            h.string(elements[i].semanticName);
-            h.u32(elements[i].semanticIndex);
-            h.u32(static_cast<uint32_t>(elements[i].format));
-            h.u32(_elements[i].offset);
+            _attributes[i] = descriptor->attributes[i];
+            _attributes[i].offset = useAutoOffset ? stride : descriptor->attributes[i].offset;
+            stride += GetVertexFormatSize(descriptor->attributes[i].format);
         }
 
-        _stride = stride;
-        _hash = h.get();
+        // Compute default single buffer layout if none specified.
+        if (!descriptor->layoutsCount)
+        {
+            _layouts.push_back({ 0, stride, VertexInputRate::Vertex });
+        }
+    }
+
+    VertexInputFormat::~VertexInputFormat()
+    {
     }
 }

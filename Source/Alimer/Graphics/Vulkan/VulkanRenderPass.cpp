@@ -29,17 +29,17 @@
 
 namespace Alimer
 {
-    VulkanRenderPass::VulkanRenderPass(VulkanGraphics* graphics, const RenderPassDescription& description)
-        : RenderPass(graphics, description)
+    VulkanRenderPass::VulkanRenderPass(VulkanGraphics* graphics, const RenderPassDescription* descriptor)
+        : RenderPass(graphics, descriptor)
         , _logicalDevice(graphics->GetLogicalDevice())
-        , _renderPass(graphics->GetVkRenderPass(description))
+        , _renderPass(graphics->GetVkRenderPass(descriptor))
     {
         VkImageView views[MaxColorAttachments + 1];
         uint32_t numViews = 0;
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            const RenderPassAttachment& colorAttachment = description.colorAttachments[i];
+            const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
             Texture* texture = colorAttachment.texture;
             if (!texture)
                 continue;

@@ -27,9 +27,50 @@
 
 namespace Alimer
 {
-    D3D11Texture::D3D11Texture(D3D11Graphics* graphics, const TextureDescription* pDescription, const ImageLevel* initialData)
-        : Texture(graphics, *pDescription)
+    D3D11Texture::D3D11Texture(D3D11Graphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture)
+        : Texture(graphics, descriptor)
     {
+        if (nativeTexture)
+        {
+            D3D11_TEXTURE2D_DESC desc;
+            nativeTexture->GetDesc(&desc);
+
+            _description.type = TextureType::Type2D;
+            _dxgiFormat = desc.Format;
+            _description.format = d3d::Convert(_dxgiFormat);
+
+            _description.width = desc.Width;
+            _description.height = desc.Height;
+            _description.depth = 1;
+            if (desc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
+            {
+                _description.type = TextureType::TypeCube;
+                _description.arrayLayers = desc.ArraySize / 6;
+            }
+            else
+            {
+                _description.arrayLayers = desc.ArraySize;
+            }
+            _description.mipLevels = desc.MipLevels;
+
+            _description.usage = TextureUsage::Unknown;
+            if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+            {
+                _description.usage |= TextureUsage::ShaderRead;
+            }
+
+            if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+            {
+                _description.usage |= TextureUsage::ShaderWrite;
+            }
+
+            if (desc.BindFlags & D3D11_BIND_RENDER_TARGET
+                || desc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+            {
+                _description.usage |= TextureUsage::RenderTarget;
+            }
+        }
+
         // Setup initial data.
         std::vector<D3D11_SUBRESOURCE_DATA> subResourceData;
         if (initialData)
@@ -155,50 +196,6 @@ namespace Alimer
                 &samplerDesc,
                 &_samplerState)
             );
-        }
-    }
-
-    D3D11Texture::D3D11Texture(D3D11Graphics* graphics, ID3D11Texture2D* nativeTexture)
-        : Texture(graphics)
-        , _d3dDevice(graphics->GetD3DDevice())
-        , _texture2D(nativeTexture)
-    {
-        D3D11_TEXTURE2D_DESC desc;
-        nativeTexture->GetDesc(&desc);
-
-        _description.type = TextureType::Type2D;
-        _dxgiFormat = desc.Format;
-        _description.format = d3d::Convert(_dxgiFormat);
-
-        _description.width = desc.Width;
-        _description.height = desc.Height;
-        _description.depth = 1;
-        if (desc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
-        {
-            _description.type = TextureType::TypeCube;
-            _description.arrayLayers = desc.ArraySize / 6;
-        }
-        else
-        {
-            _description.arrayLayers = desc.ArraySize;
-        }
-        _description.mipLevels = desc.MipLevels;
-
-        _description.usage = TextureUsage::Unknown;
-        if (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
-        {
-            _description.usage |= TextureUsage::ShaderRead;
-        }
-
-        if (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
-        {
-            _description.usage |= TextureUsage::ShaderWrite;
-        }
-
-        if (desc.BindFlags & D3D11_BIND_RENDER_TARGET
-            || desc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
-        {
-            _description.usage |= TextureUsage::RenderTarget;
         }
     }
 

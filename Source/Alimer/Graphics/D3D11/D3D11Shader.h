@@ -29,7 +29,24 @@ namespace Alimer
 {
 	class D3D11Graphics;
 
-	/// D3D11 Shader implementation.
+    /// D3D11 ShaderModule implementation.
+    class D3D11ShaderModule final : public ShaderModule
+    {
+    public:
+        /// Constructor.
+        D3D11ShaderModule(D3D11Graphics* graphics, const std::vector<uint32_t>& spirv);
+        ~D3D11ShaderModule() override;
+
+        void Destroy() override;
+
+    private:
+        union {
+            ID3D11VertexShader* _vertex;
+            ID3D11PixelShader* _pixel;
+            ID3D11ComputeShader* _compute;
+        };
+    };
+
 	class D3D11Shader final : public Shader
 	{
 	public:

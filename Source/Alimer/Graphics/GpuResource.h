@@ -32,10 +32,11 @@ namespace Alimer
     enum class GpuResourceType : uint32_t
     {
         Unknown,
+        RenderPass,
         Buffer,
         Texture,
-        RenderPass,
-        Shader,
+        ShaderModule,
+        Pipeline,
     };
 
 	/// Defines a base GPU Resource.

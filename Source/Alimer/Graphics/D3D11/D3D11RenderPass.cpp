@@ -28,14 +28,14 @@
 
 namespace Alimer
 {
-    D3D11RenderPass::D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription& description)
-        : RenderPass(graphics, description)
+    D3D11RenderPass::D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription* descriptor)
+        : RenderPass(graphics, descriptor)
         , _d3dDevice(graphics->GetD3DDevice())
         , _depthStencilView(nullptr)
     {
         for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
-            const RenderPassAttachment& colorAttachment = description.colorAttachments[i];
+            const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
             Texture* texture = colorAttachment.texture;
             if (!texture)
                 continue;

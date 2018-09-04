@@ -63,7 +63,7 @@ namespace Alimer
         return ~(TextureUsageFlags(bits));
     }
 
-    struct TextureDescription
+    struct TextureDescriptor
     {
         TextureType type = TextureType::Type2D;
         TextureUsageFlags usage = TextureUsage::ShaderRead;
@@ -84,43 +84,45 @@ namespace Alimer
 
     protected:
         /// Constructor.
-        Texture(Graphics* graphics);
-
-        /// Constructor.
-        Texture(Graphics* graphics, const TextureDescription& description);
+        Texture(Graphics* graphics, const TextureDescriptor* descriptor);
 
     public:
         /// Destructor.
-        virtual ~Texture();
+        virtual ~Texture() = default;
 
-        const TextureDescription &GetDescription() const { return _description; }
-
-        inline TextureType GetTextureType() const { return _description.type; }
-        inline TextureUsageFlags GetUsage() const { return _description.usage; }
-        inline PixelFormat GetFormat() const { return _description.format; }
-        inline uint32_t GetWidth() const { return _description.width; }
-        inline uint32_t GetHeight() const { return _description.height; }
-        inline uint32_t GetDepth() const { return _description.depth; }
-        inline uint32_t GetMipLevels() const { return _description.mipLevels; }
-        inline uint32_t GetArrayLayers() const { return _description.arrayLayers; }
-        inline SampleCount GetSamples() const { return _description.samples; }
+        inline TextureType GetTextureType() const { return _type; }
+        inline TextureUsageFlags GetUsage() const { return _usage; }
+        inline PixelFormat GetFormat() const { return _format; }
+        inline uint32_t GetWidth() const { return _width; }
+        inline uint32_t GetHeight() const { return _height; }
+        inline uint32_t GetDepth() const { return _depth; }
+        inline uint32_t GetMipLevels() const { return _mipLevels; }
+        inline uint32_t GetArrayLayers() const { return _arrayLayers; }
+        inline SampleCount GetSamples() const { return _samples; }
 
         uint32_t GetLevelWidth(uint32_t mipLevel) const
         {
-            return std::max(1u, _description.width >> mipLevel);
+            return std::max(1u, _width >> mipLevel);
         }
 
         uint32_t GetLevelHeight(uint32_t mipLevel) const
         {
-            return std::max(1u, _description.height >> mipLevel);
+            return std::max(1u, _height >> mipLevel);
         }
 
         uint32_t GetLevelDepth(uint32_t mipLevel) const
         {
-            return std::max(1u, _description.depth >> mipLevel);
+            return std::max(1u, _depth >> mipLevel);
         }
 
     protected:
-        TextureDescription _description;
+        TextureType _type;
+        TextureUsageFlags _usage;
+        PixelFormat _format;
+        uint32_t _width, _height, _depth;
+        uint32_t _mipLevels;
+        uint32_t _arrayLayers;
+        SampleCount _samples;
+        TextureColorSpace _colorSpace;
     };
 }

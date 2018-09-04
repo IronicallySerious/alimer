@@ -22,46 +22,74 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
+#include "../Graphics/GpuResource.h"
 #include <vector>
 
 namespace Alimer
 {
-    /// Defines a GPU VertexFormat.
-    class VertexFormat final
+    struct VertexAttribute
     {
+        static constexpr uint32_t POSITION = 0;
+        static constexpr uint32_t NORMAL = 1;
+        static constexpr uint32_t TANGENT = 2;
+        static constexpr uint32_t COLOR = 3;
+        static constexpr uint32_t UV0 = 4;
+        static constexpr uint32_t UV1 = 5;
+        static constexpr uint32_t BONE_INDICES = 6;
+        static constexpr uint32_t ONE_WEIGHTS = 7;
+    };
+
+    struct VertexAttributeDescriptor
+    {
+        uint32_t        location;
+        uint32_t        bufferIndex;
+        VertexFormat    format;
+        uint32_t        offset;
+    };
+
+    struct VertexBufferLayoutDescriptor
+    {
+        uint32_t        bufferIndex;
+        uint32_t        stride;
+        VertexInputRate inputRate;
+    };
+
+    struct VertexInputFormatDescriptor
+    {
+        uint32_t attributesCount;
+        const VertexAttributeDescriptor* attributes;
+        uint32_t layoutsCount;
+        const VertexBufferLayoutDescriptor* layouts;
+    };
+
+    /// Defines a GPU VertexFormat.
+    class VertexInputFormat : public RefCounted
+    {
+    protected:
+        /// Constructor.
+        VertexInputFormat(const VertexInputFormatDescriptor* descriptor);
+
     public:
-        /// Constructor.
-        VertexFormat(const std::vector<VertexElement>& elements);
-
-        /// Constructor.
-        VertexFormat(const VertexElement* elements, size_t elementCount);
-
         /// Destructor.
-        ~VertexFormat();
+        virtual ~VertexInputFormat();
 
-        /// Return number of vertex elements.
-        uint32_t GetElementsCount() const { return static_cast<uint32_t>(_elements.size()); }
+        /// Return number of vertex attributes.
+        size_t GetAttributesCount() const { return _attributes.size(); }
 
-        /// Return vertex elements.
-        const std::vector<VertexElement>& GetElements() const { return _elements; }
+        /// Return attribute at index.
+        VertexAttributeDescriptor GetAttribute(size_t index) const { return _attributes[index]; }
 
-        /// Return the number of bytes from one vertex to the next.
-        uint32_t GetStride() const { return _stride; }
+        /// Return number of vertex layouts.
+        size_t GetLayoutsCount() const { return _layouts.size(); }
 
-        /// Return vertex declaration hash code.
-        uint64_t GetHash() const { return _hash; }
+        /// Return layout at index.
+        VertexBufferLayoutDescriptor GetLayout(size_t index) const { return _layouts[index]; }
 
-    private:
-        void Initialize(const VertexElement* elements, size_t elementCount);
-
+    protected:
         /// Vertex elements.
-        std::vector<VertexElement> _elements;
+        std::vector<VertexAttributeDescriptor> _attributes;
 
         /// VertexFormat stride.
-        uint32_t _stride;
-
-        /// Vertex element hash code.
-        uint64_t _hash;
+        std::vector<VertexBufferLayoutDescriptor> _layouts;
     };
 }

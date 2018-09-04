@@ -200,7 +200,7 @@ namespace Alimer
         passDescription.colorAttachments[0].texture = _backbufferTexture;
         passDescription.colorAttachments[0].loadAction = LoadAction::Clear;
         passDescription.colorAttachments[0].storeAction = StoreAction::Store;
-        _renderPass = new D3D11RenderPass(_graphics, passDescription);
+        _renderPass = new D3D11RenderPass(_graphics, &passDescription);
 
         // Set new size.
         _width = width;

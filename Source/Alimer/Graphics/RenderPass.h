@@ -67,11 +67,11 @@ namespace Alimer
     {
     protected:
         /// Constructor.
-        RenderPass(Graphics* graphics, const RenderPassDescription& description);
+        RenderPass(Graphics* graphics, const RenderPassDescription* descriptor);
 
     public:
         /// Destructor.
-        virtual ~RenderPass();
+        virtual ~RenderPass() = default;
 
         uint32_t GetWidth() const { return _width; }
         uint32_t GetHeight() const { return _height; }

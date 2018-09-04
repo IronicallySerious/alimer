@@ -729,9 +729,9 @@ namespace Alimer
         return _swapChain->GetRenderPass(_swapchainImageIndex);
     }
 
-    SharedPtr<RenderPass> VulkanGraphics::CreateRenderPass(const RenderPassDescription& description)
+    RenderPass* VulkanGraphics::CreateRenderPassImpl(const RenderPassDescription* descriptor)
     {
-        return MakeShared<VulkanRenderPass>(this, description);
+        return new VulkanRenderPass(this, descriptor);
     }
 
     GpuBuffer* VulkanGraphics::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
@@ -739,7 +739,17 @@ namespace Alimer
         return new VulkanBuffer(this, descriptor, initialData);
     }
 
-    Texture* VulkanGraphics::CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData)
+    VertexInputFormat* VulkanGraphics::CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor)
+    {
+        return nullptr;
+    }
+
+    ShaderModule* VulkanGraphics::CreateShaderModuleImpl(const std::vector<uint32_t>& spirv)
+    {
+        return new VulkanShaderModule(this, spirv);
+    }
+
+    Texture* VulkanGraphics::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         return new VulkanTexture(this, pDescription, initialData);
     }
@@ -877,13 +887,13 @@ namespace Alimer
         vk::SetImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
     }
 
-    VkRenderPass VulkanGraphics::GetVkRenderPass(const RenderPassDescription& description)
+    VkRenderPass VulkanGraphics::GetVkRenderPass(const RenderPassDescription* descriptor)
     {
         Hasher renderPassHasher;
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            const RenderPassAttachment& colorAttachment = description.colorAttachments[i];
+            const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
             Texture* texture = colorAttachment.texture;
             if (!texture)
                 continue;
@@ -906,7 +916,7 @@ namespace Alimer
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            const RenderPassAttachment& colorAttachment = description.colorAttachments[i];
+            const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
             Texture* texture = colorAttachment.texture;
             if (!texture)
                 continue;
@@ -925,12 +935,12 @@ namespace Alimer
             attachmentCount++;
         }
 
-        if (description.depthStencilAttachment.texture)
+        if (descriptor->depthStencilAttachment.texture)
         {
-            attachments[attachmentCount].format = vk::Convert(description.depthStencilAttachment.texture->GetFormat());
+            attachments[attachmentCount].format = vk::Convert(descriptor->depthStencilAttachment.texture->GetFormat());
             attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[attachmentCount].loadOp = vk::Convert(description.depthStencilAttachment.loadAction);
-            attachments[attachmentCount].storeOp = vk::Convert(description.depthStencilAttachment.storeAction);
+            attachments[attachmentCount].loadOp = vk::Convert(descriptor->depthStencilAttachment.loadAction);
+            attachments[attachmentCount].storeOp = vk::Convert(descriptor->depthStencilAttachment.storeAction);
             attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; // vk::Convert(descriptor.stencilAttachment.loadAction);
             attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;// vk::Convert(descriptor.stencilAttachment.storeAction);
             attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;

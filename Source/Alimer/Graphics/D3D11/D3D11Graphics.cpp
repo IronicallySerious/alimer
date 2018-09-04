@@ -28,6 +28,7 @@
 #include "D3D11GpuBuffer.h"
 #include "D3D11Shader.h"
 #include "D3D11PipelineState.h"
+#include "D3D11VertexInputFormat.h"
 #include "D3D11GpuAdapter.h"
 #include "../ShaderCompiler.h"
 #include "../../Core/Platform.h"
@@ -451,9 +452,9 @@ namespace Alimer
         return _swapChain->GetRenderPass();
     }
 
-    SharedPtr<RenderPass> D3D11Graphics::CreateRenderPass(const RenderPassDescription& description)
+    RenderPass* D3D11Graphics::CreateRenderPassImpl(const RenderPassDescription* descriptor)
     {
-        return MakeShared<D3D11RenderPass>(this, description);
+        return new D3D11RenderPass(this, descriptor);
     }
 
     GpuBuffer* D3D11Graphics::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
@@ -461,9 +462,19 @@ namespace Alimer
         return new D3D11GpuBuffer(this, descriptor, initialData);
     }
 
-    Texture* D3D11Graphics::CreateTexture(const TextureDescription* pDescription, const ImageLevel* initialData)
+    VertexInputFormat* D3D11Graphics::CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor)
     {
-        return new D3D11Texture(this, pDescription, initialData);
+        return new D3D11VertexInputFormat(this, descriptor);
+    }
+
+    ShaderModule* D3D11Graphics::CreateShaderModuleImpl(const std::vector<uint32_t>& spirv)
+    {
+        return new D3D11ShaderModule(this, spirv);
+    }
+
+    Texture* D3D11Graphics::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    {
+        return new D3D11Texture(this, descriptor, initialData, nullptr);
     }
 
     Shader* D3D11Graphics::CreateComputeShader(const void *pCode, size_t codeSize)

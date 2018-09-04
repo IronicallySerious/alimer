@@ -30,6 +30,7 @@ namespace Alimer
     class D3D11RenderPass;
     class D3D11Shader;
     class D3D11Graphics;
+    class D3D11VertexInputFormat;
 
     class D3D11CommandBuffer final : public CommandBuffer
     {
@@ -52,10 +53,12 @@ namespace Alimer
         void SetScissor(const Rectangle& scissor) override;
 
         void SetShaderCore(Shader* shader) override;
-        void SetVertexBufferCore(uint32_t binding, VertexBuffer* buffer, uint64_t offset, uint64_t stride, VertexInputRate inputRate) override;
-        void SetIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
-        void SetUniformBufferCore(uint32_t set, uint32_t binding, GpuBuffer* buffer, uint64_t offset, uint64_t range) override;
+        void BindVertexBufferImpl(uint32_t binding, GpuBuffer* buffer, GpuSize offset, uint64_t stride, VertexInputRate inputRate) override;
+        void SetVertexInputFormatImpl(VertexInputFormat* format) override;
+        void BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
+        void BindBufferImpl(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding) override;
         void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) override;
+
 
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
@@ -77,10 +80,11 @@ namespace Alimer
         ID3D11RasterizerState1* _currentRasterizerState;
         ID3D11DepthStencilState* _currentDepthStencilState;
         ID3D11BlendState1* _currentBlendState;
+        D3D11VertexInputFormat* _currentVertexInputFormat;
 
         struct VertexBindingState
         {
-            VertexBuffer* buffers[MaxVertexBufferBindings];
+            GpuBuffer* buffers[MaxVertexBufferBindings];
             ID3D11Buffer* d3dBuffers[MaxVertexBufferBindings];
             uint32_t offsets[MaxVertexBufferBindings];
             uint32_t strides[MaxVertexBufferBindings];

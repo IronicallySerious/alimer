@@ -44,6 +44,37 @@ namespace Alimer
         return shaderModule;
     }
 
+    VulkanShaderModule::VulkanShaderModule(VulkanGraphics* graphics, const std::vector<uint32_t>& spirv)
+        : ShaderModule(graphics, spirv)
+        , _logicalDevice(graphics->GetLogicalDevice())
+    {
+        VkShaderModuleCreateInfo createInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+        createInfo.codeSize = spirv.size() * sizeof(uint32_t);
+        createInfo.pCode = spirv.data();
+
+        vkThrowIfFailed(vkCreateShaderModule(
+            _logicalDevice,
+            &createInfo,
+            nullptr,
+            &_handle));
+    }
+
+    VulkanShaderModule::~VulkanShaderModule()
+    {
+        Destroy();
+    }
+
+    void VulkanShaderModule::Destroy()
+    {
+        if (_handle != VK_NULL_HANDLE)
+        {
+            vkDestroyShaderModule(_logicalDevice, _handle, nullptr);
+            _handle = VK_NULL_HANDLE;
+        }
+    }
+
     VulkanShader::VulkanShader(VulkanGraphics* graphics, const void *pCode, size_t codeSize)
         : Shader(graphics, pCode, codeSize)
         , _logicalDevice(graphics->GetLogicalDevice())

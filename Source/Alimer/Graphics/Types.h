@@ -35,6 +35,7 @@ namespace Alimer
     static constexpr uint32_t MaxVertexAttributes = 16u;
     static constexpr uint32_t MaxVertexBufferBindings = 4u;
     static constexpr uint32_t MaxColorAttachments = 8u;
+    static constexpr uint32_t MaxDescriptionSize = 256;
 
     using GpuSize = uint64_t;
 
@@ -112,9 +113,34 @@ namespace Alimer
         return ~(BufferUsageFlags(bits));
     }
 
-    enum class VertexElementFormat
+    /// Defines shader stage usage.
+    enum class ShaderStage : uint32_t
     {
-        Invalid,
+        None = 0,
+        Vertex = 1 << 0,
+        TessControl = 1 << 1,
+        TessEvaluation = 1 << 2,
+        Geometry = 1 << 3,
+        Fragment = 1 << 4,
+        Compute = 1 << 5,
+        AllGraphics = (Vertex | TessControl | TessEvaluation | Geometry | Fragment),
+        All = (AllGraphics | Compute),
+    };
+
+    using ShaderStageFlags = Flags<ShaderStage>;
+    ALIMER_FORCE_INLINE ShaderStageFlags operator|(ShaderStage bit0, ShaderStage bit1)
+    {
+        return ShaderStageFlags(bit0) | bit1;
+    }
+
+    ALIMER_FORCE_INLINE ShaderStageFlags operator~(ShaderStage bits)
+    {
+        return ~(ShaderStageFlags(bits));
+    }
+
+    enum class VertexFormat : uint32_t
+    {
+        Invalid = 0,
         Float,
         Float2,
         Float3,
@@ -137,26 +163,38 @@ namespace Alimer
         Instance
     };
 
+    enum class PipelineResourceBaseType
+    {
+        Unknown = 0,
+        Void,
+        Boolean,
+        Char,
+        Int,
+        UInt,
+        Int64,
+        UInt64,
+        Half,
+        Float,
+        Double,
+    };
+
+    enum class PipelineResourceType
+    {
+        Input = 0,
+        Output = 1,
+    };
+
+    enum class PipelineResourceAccess
+    {
+        Read,
+        Write,
+        ReadWrite
+    };
+
     enum class IndexType : uint32_t
     {
         UInt16,
         UInt32,
-    };
-
-   
-
-    /// Element semantics for vertex elements.
-    class ALIMER_API VertexElementSemantic
-    {
-    public:
-        static constexpr const char* POSITION = "POSITION";
-        static constexpr const char* NORMAL = "NORMAL";
-        static constexpr const char* BINORMAL = "BINORMAL";
-        static constexpr const char* TANGENT = "TANGENT";
-        static constexpr const char* TEXCOORD = "TEXCOORD";
-        static constexpr const char* COLOR = "COLOR";
-        static constexpr const char* BLENDWEIGHT = "BLENDWEIGHT";
-        static constexpr const char* BLENDINDICES = "BLENDINDICES";
     };
 
     struct BufferDescriptor
@@ -171,45 +209,20 @@ namespace Alimer
         uint32_t stride = 0;
     };
 
-
-    class ALIMER_API VertexElement
+    struct PipelineResource
     {
-    public:
-        /// Semantic of element.
-        const char* semanticName;
-        /// Semantic index of element, for example multi-texcoords.
-        uint32_t semanticIndex = 0;
-        /// Format of element.
-        VertexElementFormat format;
-        /// Offset of element from vertex start.
+        ShaderStageFlags stages;
+        PipelineResourceBaseType baseType;
+        PipelineResourceType resourceType;
+        PipelineResourceAccess access;
+        uint32_t set;
+        uint32_t binding;
+        uint32_t location;
+        uint32_t vecSize;
+        uint32_t arraySize;
         uint32_t offset;
-
-        VertexElement() noexcept
-            : semanticName(VertexElementSemantic::POSITION)
-            , semanticIndex(0)
-            , format(VertexElementFormat::Float3)
-            , offset(0)
-        {
-        }
-
-        /// Construct with type, semantic, index and whether is per-instance data.
-        VertexElement(
-            VertexElementFormat format_,
-            const char* semanticName_,
-            uint32_t semanticIndex_ = 0,
-            uint32_t offset_ = 0)
-            : format(format_)
-            , semanticName(semanticName_)
-            , semanticIndex(semanticIndex_)
-            , offset(offset_)
-        {
-        }
-
-        VertexElement(const VertexElement&) = default;
-        VertexElement& operator=(const VertexElement&) = default;
-
-        VertexElement(VertexElement&&) = default;
-        VertexElement& operator=(VertexElement&&) = default;
+        uint32_t size;
+        char name[MaxDescriptionSize];
     };
 
     struct Viewport
@@ -272,5 +285,5 @@ namespace Alimer
         }
     };
 
-    ALIMER_API uint32_t GetVertexFormatSize(VertexElementFormat format);
+    ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
 }

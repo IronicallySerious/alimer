@@ -26,17 +26,17 @@
 
 namespace Alimer
 {
-    RenderPass::RenderPass(Graphics* graphics, const RenderPassDescription& description)
+    RenderPass::RenderPass(Graphics* graphics, const RenderPassDescription* descriptor)
 		: GpuResource(graphics, GpuResourceType::RenderPass)
         , _colorAttachmentsCount(0)
 	{
-        _width = description.width;
-        _height = description.height;
-        _layers =  Max(description.layers, 1u);
+        _width = descriptor->width;
+        _height = descriptor->height;
+        _layers =  Max(descriptor->layers, 1u);
 
         for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
-            const RenderPassAttachment& colorAttachment = description.colorAttachments[i];
+            const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
             Texture* texture = colorAttachment.texture;
             if (!texture)
                 continue;
@@ -55,7 +55,7 @@ namespace Alimer
             _colorAttachments[_colorAttachmentsCount++] = colorAttachment;
         }
 
-        _depthStencilAttachment = description.depthStencilAttachment;
+        _depthStencilAttachment = descriptor->depthStencilAttachment;
         if (_depthStencilAttachment.texture)
         {
             if (!(_depthStencilAttachment.texture->GetUsage() & TextureUsage::RenderTarget))
@@ -63,9 +63,5 @@ namespace Alimer
                 ALIMER_LOGERROR("RenderPass depthstencil attachment must be created with RenderTarget usage");
             }
         }
-	}
-
-    RenderPass::~RenderPass()
-	{
 	}
 }
