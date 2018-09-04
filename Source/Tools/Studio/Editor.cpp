@@ -42,7 +42,9 @@ namespace Alimer
 
     void Editor::OnRenderFrame(double frameTime, double elapsedTime)
     {
-        auto context = _graphics->GetImmediateContext();
+        auto commandBuffer = _graphics->GetDefaultCommandBuffer();
+        commandBuffer->Begin();
+        commandBuffer->End();
     }
 }
 

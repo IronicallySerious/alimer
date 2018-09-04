@@ -24,6 +24,7 @@
 #include "D3D11Graphics.h"
 #include "D3D11Texture.h"
 #include "D3D11RenderPass.h"
+#include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
@@ -194,7 +195,44 @@ namespace Alimer
 
         ID3D11Texture2D* d3dBackbufferTexture;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&d3dBackbufferTexture)));
-        _backbufferTexture = new D3D11Texture(_graphics, d3dBackbufferTexture);
+
+        D3D11_TEXTURE2D_DESC d3dTextureDesc;
+        d3dBackbufferTexture->GetDesc(&d3dTextureDesc);
+
+        TextureDescriptor textureDesc = {};
+        textureDesc.type = TextureType::Type2D;
+        textureDesc.format = d3d::Convert(d3dTextureDesc.Format);
+        textureDesc.width = d3dTextureDesc.Width;
+        textureDesc.height = d3dTextureDesc.Height;
+        textureDesc.depth = 1;
+        if (d3dTextureDesc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
+        {
+            textureDesc.type = TextureType::TypeCube;
+            textureDesc.arrayLayers = d3dTextureDesc.ArraySize / 6;
+        }
+        else
+        {
+            textureDesc.arrayLayers = d3dTextureDesc.ArraySize;
+        }
+        textureDesc.mipLevels = d3dTextureDesc.MipLevels;
+        textureDesc.usage = TextureUsage::Unknown;
+        if (d3dTextureDesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+        {
+            textureDesc.usage |= TextureUsage::ShaderRead;
+        }
+
+        if (d3dTextureDesc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+        {
+            textureDesc.usage |= TextureUsage::ShaderWrite;
+        }
+
+        if (d3dTextureDesc.BindFlags & D3D11_BIND_RENDER_TARGET
+            || d3dTextureDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+        {
+            textureDesc.usage |= TextureUsage::RenderTarget;
+        }
+
+        _backbufferTexture = new D3D11Texture(_graphics, &textureDesc, nullptr, d3dBackbufferTexture);
 
         RenderPassDescription passDescription = {};
         passDescription.colorAttachments[0].texture = _backbufferTexture;

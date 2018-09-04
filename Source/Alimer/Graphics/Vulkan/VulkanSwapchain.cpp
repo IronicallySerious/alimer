@@ -357,7 +357,7 @@ namespace Alimer
 
 			_textures[i] = MakeUnique<VulkanTexture>(
 				_graphics,
-				textureDesc,
+				&textureDesc,
 				_images[i],
 				createInfo.imageUsage);
 

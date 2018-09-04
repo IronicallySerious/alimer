@@ -751,7 +751,7 @@ namespace Alimer
 
     Texture* VulkanGraphics::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
-        return new VulkanTexture(this, pDescription, initialData);
+        return new VulkanTexture(this, descriptor, initialData);
     }
 
     Shader* VulkanGraphics::CreateComputeShader(const void *pCode, size_t codeSize)

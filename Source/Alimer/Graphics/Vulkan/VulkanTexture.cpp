@@ -38,7 +38,7 @@ namespace Alimer
         {
             VkImageViewCreateInfo viewCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
             viewCreateInfo.image = vkImage;
-            viewCreateInfo.format = vk::Convert(description.format);
+            viewCreateInfo.format = vk::Convert(descriptor->format);
             viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
             viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
             viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
@@ -46,8 +46,8 @@ namespace Alimer
             viewCreateInfo.subresourceRange.aspectMask = vk::FormatToAspectMask(viewCreateInfo.format);
             viewCreateInfo.subresourceRange.baseMipLevel = 0;
             viewCreateInfo.subresourceRange.baseArrayLayer = 0;
-            viewCreateInfo.subresourceRange.levelCount = _description.mipLevels;
-            viewCreateInfo.subresourceRange.layerCount = _description.arrayLayers;
+            viewCreateInfo.subresourceRange.levelCount = descriptor->mipLevels;
+            viewCreateInfo.subresourceRange.layerCount = descriptor->arrayLayers;
             viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // get_image_view_type(tmpinfo, nullptr);
 
             if (vkCreateImageView(_logicalDevice, &viewCreateInfo, nullptr, &_defaultImageView) != VK_SUCCESS)
