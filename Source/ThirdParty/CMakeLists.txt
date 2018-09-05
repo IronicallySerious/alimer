@@ -30,6 +30,10 @@ add_subdirectory (STB)
 add_subdirectory (fmt EXCLUDE_FROM_ALL)
 add_subdirectory (SPIRV-Cross)
 
+if (ALIMER_SDL)
+    add_subdirectory(SDL2)
+endif ()
+
 if (ALIMER_GLFW)
     set (GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
     set (GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
