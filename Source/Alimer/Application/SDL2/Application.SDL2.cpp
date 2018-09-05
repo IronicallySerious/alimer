@@ -21,23 +21,15 @@
 //
 
 #include "../Application.h"
-#include "glfwWindow.h"
-#include "../../Core/Log.h"
-#include "../../Input/glfw/glfwInput.h"
+#include "Window.SDL2.h"
+#include "../../Input/SDL2/Input.SDL2.h"
 #include "../../Audio/WASAPI/AudioWASAPI.h"
-#define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
-
+#include "../../Core/Log.h"
+#include <SDL_syswm.h>
 using namespace std;
 
 namespace Alimer
 {
-    // GLFW3 Error Callback, runs on GLFW3 error
-    static void ErrorCallback(int error, const char *description)
-    {
-        ALIMER_LOGWARN("[GLFW3 Error] Code: {} Decription: {}", error, description);
-    }
-
 #if ALIMER_PLATFORM_WINDOWS
     bool Win32PlatformInitialize()
     {
@@ -123,12 +115,12 @@ namespace Alimer
 
     WindowPtr Application::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
     {
-        return MakeShared<glfwWindow>(title, width, height, fullscreen);
+        return MakeShared<SDL2Window>(title, width, height, fullscreen);
     }
 
     unique_ptr<Input> Application::CreateInput()
     {
-        return make_unique<glfwInput>();
+        return make_unique<SDL2Input>();
     }
 
     unique_ptr<Audio> Application::CreateAudio()
@@ -138,13 +130,21 @@ namespace Alimer
 
     int Application::Run()
     {
-        glfwSetErrorCallback(ErrorCallback);
-
-        if (!glfwInit())
+        int result = SDL_Init(
+            SDL_INIT_VIDEO
+            | SDL_INIT_GAMECONTROLLER
+            | SDL_INIT_HAPTIC
+            | SDL_INIT_TIMER);
+        if (result < 0)
         {
-            ALIMER_LOGWARN("Failed to initialize GLFW");
+            SDL_ShowSimpleMessageBox(
+                SDL_MESSAGEBOX_ERROR,
+                "SDL Init Errors",
+                SDL_GetError(), nullptr);
             return EXIT_FAILURE;
         }
+
+        SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 
 #if ALIMER_PLATFORM_WINDOWS
         if (!Win32PlatformInitialize())
@@ -154,25 +154,33 @@ namespace Alimer
         }
 #endif
 
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
         if (!InitializeBeforeRun())
         {
             return EXIT_FAILURE;
         }
 
-        glfwWindow* glfwMainWindow = static_cast<glfwWindow*>(_window.Get());
-        while (_running
-            && !glfwMainWindow->ShouldClose())
+        SDL_Event evt;
+        SDL2Window* glfwMainWindow = static_cast<SDL2Window*>(_window.Get());
+        while (_running)
         {
-            glfwPollEvents();
+            while (SDL_PollEvent(&evt))
+            {
+                switch (evt.type) {
+                case SDL_QUIT:
+                    _running = false;
+                    break;
+                }
+            }
 
             // Tick handles pause state.
             RunFrame();
         }
 
         OnExiting();
-        glfwTerminate();
+
+        // quit all subsystems and quit application.
+        SDL_QuitSubSystem(SDL_INIT_EVERYTHING);
+        SDL_Quit();
         return EXIT_SUCCESS;
     }
 }

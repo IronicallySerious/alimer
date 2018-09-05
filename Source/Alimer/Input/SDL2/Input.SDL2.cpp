@@ -20,28 +20,26 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Input.h"
-#define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
+#include "Input.SDL2.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {
-	/// glfw Input system implementation.
-	class glfwInput final : public Input
+    SDL2Input::SDL2Input()
 	{
-	public:
-		/// Constructor.
-        glfwInput();
+	}
 
-		/// Destructor.
-		~glfwInput() override;
+    SDL2Input::~SDL2Input()
+	{
+	}
 
-		bool IsCursorVisible() const override;
-		void SetCursorVisible(bool visible) override;
+	bool SDL2Input::IsCursorVisible() const
+	{
+		return _cursorVisible;
+	}
 
-	private:
-		bool _cursorVisible = true;
-	};
+	void SDL2Input::SetCursorVisible(bool visible)
+	{
+		_cursorVisible = visible;
+	}
 }

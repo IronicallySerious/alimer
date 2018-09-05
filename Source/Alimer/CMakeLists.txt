@@ -53,9 +53,9 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_B
 define_engine_source_files (NORECURSE . Core Util IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
 
-if (ALIMER_GLFW)
-    define_engine_source_files(Application/glfw)
-    define_engine_source_files(Input/glfw)
+if (ALIMER_SDL)
+    define_engine_source_files(Application/SDL2)
+    define_engine_source_files(Input/SDL2)
     if (PLATFORM_WINDOWS)
         define_engine_source_files(Audio/WASAPI)
     endif()
@@ -186,8 +186,8 @@ target_include_directories(libAlimer PUBLIC
 
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross glslang SPIRV)
-if (ALIMER_GLFW)
-    list (APPEND THIRD_PARTY_DEPENDENCIES glfw)
+if (ALIMER_SDL)
+    list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})

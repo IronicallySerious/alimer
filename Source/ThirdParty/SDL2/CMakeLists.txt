@@ -55,6 +55,41 @@ file(GLOB SRCS
     ${SRC_DIR}/video/dummy/*.c
 )
 
+###################################################################################################
+# Windows specific files
+if (WIN32)
+    file(GLOB SRCS_WIN32
+        ${SRC_DIR}/core/windows/*.c
+        ${SRC_DIR}/video/windows/*.c
+        ${SRC_DIR}/thread/windows/*.c
+        ${SRC_DIR}/thread/generic/SDL_syscond.c # Weird but this is how they do it on windows.
+        ${SRC_DIR}/power/windows/*.c
+        ${SRC_DIR}/filesystem/windows/*.c
+        ${SRC_DIR}/timer/windows/*.c
+        ${SRC_DIR}/joystick/windows/*.c
+        ${SRC_DIR}/haptic/windows/*.c
+        ${SRC_DIR}/loadso/windows/*.c
+        ${SRC_DIR}/audio/winmm/*.c
+        ${SRC_DIR}/audio/wasapi/*.c
+    )
+    set(SRCS ${SRCS} ${SRCS_WIN32})
+
+    list(APPEND EXTRA_LIBS dinput8)
+    list(APPEND EXTRA_LIBS dxguid)
+    list(APPEND EXTRA_LIBS gdi32)
+    list(APPEND EXTRA_LIBS imagehlp)
+    list(APPEND EXTRA_LIBS imm32)
+    list(APPEND EXTRA_LIBS ole32)
+    list(APPEND EXTRA_LIBS oleaut32)
+    list(APPEND EXTRA_LIBS shell32)
+    list(APPEND EXTRA_LIBS user32)
+    list(APPEND EXTRA_LIBS uuid)
+    list(APPEND EXTRA_LIBS version)
+    list(APPEND EXTRA_LIBS winmm)
+
+endif()
+###################################################################################################
+
 add_definitions(-D_THREAD_SAFE)
 
 # we're building a library

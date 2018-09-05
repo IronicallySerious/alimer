@@ -22,37 +22,25 @@
 
 #pragma once
 
-#include "../Window.h"
-
-struct GLFWwindow;
+#include "../Input.h"
+#include <SDL.h>
 
 namespace Alimer
 {
-	/// glfw OS window implementation.
-	class glfwWindow final : public Window
+	/// SDL2 Input system implementation.
+	class SDL2Input final : public Input
 	{
 	public:
-        glfwWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen);
-		~glfwWindow() override;
-		void Destroy();
-		void Activate(bool focused);
+		/// Constructor.
+        SDL2Input();
 
-        void Show() override;
-        void Hide() override;
-        void Minimize() override;
-        void Maximize() override;
-        void Restore() override;
-        void Close() override;
+		/// Destructor.
+		~SDL2Input() override;
 
-        bool IsVisible() const override { return _visible; }
-        bool IsMinimized() const override;
-        bool ShouldClose() const;
+		bool IsCursorVisible() const override;
+		void SetCursorVisible(bool visible) override;
 
 	private:
-        void HandleResize(const uvec2& newSize);
-
-        GLFWwindow* _window;
-        bool _visible = true;
-        bool _focused = false;
+		bool _cursorVisible = true;
 	};
 }
