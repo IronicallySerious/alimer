@@ -21,9 +21,7 @@
 #
 
 # Set CMake minimum version
-cmake_minimum_required (VERSION 3.5)
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_C_STANDARD 99)
+cmake_minimum_required (VERSION 3.1)
 
 # Alimer Version
 set (PRODUCT_NAME "Alimer")

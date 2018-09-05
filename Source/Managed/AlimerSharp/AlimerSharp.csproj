@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+  <PropertyGroup>
+    <AssemblyName>AlimerSharp</AssemblyName>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <LangVersion>7.2</LangVersion>
+  </PropertyGroup>
+</Project>

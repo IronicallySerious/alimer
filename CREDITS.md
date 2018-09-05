@@ -2,18 +2,18 @@
 
 Alimer uses the following open-source and third-party libraries:
 
+- [SDL 2.0.8](https://www.libsdl.org)
 - [Nothings](https://github.com/nothings/stb) single file libs.
   - [stb_image.h 2.19](https://github.com/nothings/stb/blob/master/stb_image.h)
   - [stb_image_write.h 1.09](https://github.com/nothings/stb/blob/master/stb_image_write.h)
-- [Vulkan SDK](https://lunarg.com/vulkan-sdk/)
-- [volk Metaloader for Vulkan](https://github.com/zeux/volk)
-- [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
-- [glslang](https://github.com/KhronosGroup/glslang)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [fmt 5.0.0](http://fmtlib.net)]
 - [rapidjson](https://github.com/Tencent/rapidjson)
-- [Granite](https://github.com/Themaister/Granite)
 - [CLI11 1.6](https://github.com/CLIUtils/CLI11)
+- [volk Metaloader for Vulkan](https://github.com/zeux/volk)
+- [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+- [glslang](https://github.com/KhronosGroup/glslang)
+- [Vulkan SDK](https://lunarg.com/vulkan-sdk/)
 
 Additional inspiration, research or code used:
 
@@ -23,5 +23,4 @@ Additional inspiration, research or code used:
 - Articles from (http://ourmachinery.com/)
 - Learn OpenGL (https://learnopengl.com/)
 - sokol (https://github.com/floooh/sokol)
-- EntityX (https://github.com/alecthomas/entityx)
 - DirectX Graphics samples (https://github.com/Microsoft/DirectX-Graphics-Samples)
