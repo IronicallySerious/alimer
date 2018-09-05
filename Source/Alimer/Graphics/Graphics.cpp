@@ -283,6 +283,106 @@ namespace Alimer
         return CreateShaderModuleImpl(spirv);
     }
 
+    ShaderModule* Graphics::CreateShaderModule(const std::string& file, const std::string& entryPoint)
+    {
+        // Load from spirv bytecode.
+        vector<uint32_t> spirv;
+
+        /*if (gResources()->Exists(file + ".spv"))
+        {
+            auto vertexShaderStream = FileSystem::Get().Open(vertexShaderFile + ".spv");
+            //auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".spv");
+            auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".spv");
+
+            // Lookup for SPIR-V compiled shader.
+            if (!vertexShaderStream)
+            {
+                ALIMER_LOGERROR("GLSL shader does not exists '{}'", vertexShaderFile.c_str());
+                return nullptr;
+            }
+
+            if (!fragmentShaderStream)
+            {
+                ALIMER_LOGERROR("GLSL shader does not exists '{}'", fragmentShaderFile.c_str());
+                return nullptr;
+            }
+
+            vertexByteCode = vertexShaderStream->ReadBytes();
+            fragmentByteCode = fragmentShaderStream->ReadBytes();
+        }
+        else*/
+        {
+            // Compile from source GLSL.
+            string errorLog;
+            if (!ShaderCompiler::Compile(file, entryPoint, spirv, errorLog))
+            {
+                ALIMER_LOGCRITICAL("Shader compilation failed: \n {}", errorLog);
+            }
+        }
+
+        return CreateShaderModule(spirv);
+    }
+
+    ShaderProgram* Graphics::CreateShaderProgram(const ShaderProgramDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+        if (!descriptor->stageCount)
+        {
+            ALIMER_LOGCRITICAL("Cannot create shader program with empty stages");
+        }
+
+        for (uint32_t i = 0; i < descriptor->stageCount; i++)
+        {
+            if (!descriptor->stages[i].module)
+            {
+                ALIMER_LOGCRITICAL("Cannot create shader program with invalid shader module at index {}", i);
+            }
+
+            if (descriptor->stages[i].module->GetStage() == ShaderStage::Compute
+                && descriptor->stageCount > 1)
+            {
+                ALIMER_LOGCRITICAL("Cannot create shader program with compute and graphics stages");
+            }
+        }
+
+        return CreateShaderProgramImpl(descriptor);
+    }
+
+    ShaderProgram* Graphics::CreateShaderProgram(const ShaderStageDescriptor* stage)
+    {
+        ALIMER_ASSERT(stage);
+
+        if (stage->module->GetStage() != ShaderStage::Compute)
+        {
+            ALIMER_LOGCRITICAL("Shader stage module is not compute");
+        }
+
+        ShaderProgramDescriptor descriptor = {};
+        descriptor.stageCount = 1;
+        descriptor.stages = stage;
+        return CreateShaderProgramImpl(&descriptor);
+    }
+
+    ShaderProgram* Graphics::CreateShaderProgram(ShaderModule* vertex, ShaderModule* fragment)
+    {
+        ALIMER_ASSERT(vertex);
+        ALIMER_ASSERT(fragment);
+
+        if (vertex->GetStage() != ShaderStage::Vertex)
+            ALIMER_LOGCRITICAL("Invalid vertex stage module");
+
+        if (fragment->GetStage() != ShaderStage::Fragment)
+            ALIMER_LOGCRITICAL("Invalid fragment stage module");
+
+        std::array<ShaderStageDescriptor, 2> stages;
+        stages[0].module = vertex;
+        stages[1].module = fragment;
+        ShaderProgramDescriptor descriptor = {};
+        descriptor.stageCount = 2;
+        descriptor.stages = stages.data();
+        return CreateShaderProgramImpl(&descriptor);
+    }
+
     Texture* Graphics::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         ALIMER_ASSERT(descriptor);
@@ -307,68 +407,6 @@ namespace Alimer
         //}
 
         return CreateTextureImpl(descriptor, initialData);
-    }
-
-    Shader* Graphics::CreateShader(const string& vertexShaderFile, const std::string& fragmentShaderFile)
-    {
-        // Load from spv bytecode.
-        vector<uint8_t> vertexByteCode;
-        vector<uint8_t> fragmentByteCode;
-
-        /*if (gResources()->Exists(vertexShaderFile + ".spv")
-            && gResources()->Exists(fragmentShaderFile + ".spv"))
-        {
-            auto vertexShaderStream = FileSystem::Get().Open(vertexShaderFile + ".spv");
-            //auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".spv");
-            auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".spv");
-
-            // Lookup for SPIR-V compiled shader.
-            if (!vertexShaderStream)
-            {
-                ALIMER_LOGERROR("GLSL shader does not exists '{}'", vertexShaderFile.c_str());
-                return nullptr;
-            }
-
-            if (!fragmentShaderStream)
-            {
-                ALIMER_LOGERROR("GLSL shader does not exists '{}'", fragmentShaderFile.c_str());
-                return nullptr;
-            }
-
-            vertexByteCode = vertexShaderStream->ReadBytes();
-            fragmentByteCode = fragmentShaderStream->ReadBytes();
-        }
-        else*/
-        {
-#if defined(ALIMER_DISABLE_SHADER_COMPILER)
-            ALIMER_LOGCRITICAL("Shader compilation is not allowed");
-            return nullptr;
-#else
-            auto vertexShaderStream = FileSystem::Get().Open(vertexShaderFile);
-            auto fragmentShaderStream = FileSystem::Get().Open(fragmentShaderFile);
-
-            // Compile from source GLSL.
-            string vertexShader = vertexShaderStream->ReadAllText();
-            string fragmentShader = fragmentShaderStream->ReadAllText();
-            string errorLog;
-            vertexByteCode = ShaderCompiler::Compile(vertexShader, vertexShaderStream->GetName(), ShaderStage::Vertex, errorLog);
-            if (!errorLog.empty())
-            {
-                ALIMER_LOGCRITICAL("Vertex shader compilation failed: \n {}", errorLog);
-            }
-
-            fragmentByteCode = ShaderCompiler::Compile(fragmentShader, fragmentShaderStream->GetName(), ShaderStage::Fragment, errorLog);
-            if (!errorLog.empty())
-            {
-                ALIMER_LOGCRITICAL("Fragment shader compilation failed: \n {}", errorLog);
-            }
-#endif
-        }
-
-        return CreateShader(
-            vertexByteCode.data(), vertexByteCode.size(),
-            fragmentByteCode.data(), fragmentByteCode.size()
-        );
     }
 
     void Graphics::AddGpuResource(GpuResource* resource)

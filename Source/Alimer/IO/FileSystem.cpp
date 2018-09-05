@@ -37,13 +37,13 @@ namespace Alimer
     FileSystem::FileSystem()
     {
         // Register default file protocol.
-        RegisterProtocol("file", unique_ptr<FileSystemProtocol>(new OSFileSystemProtocol(".")));
+        RegisterProtocol("file", UniquePtr<FileSystemProtocol>(new OSFileSystemProtocol(".")));
 
 #ifdef ALIMER_DEFAULT_ASSETS_DIRECTORY
         const char *assetsDir = ALIMER_DEFAULT_ASSETS_DIRECTORY;
         if (assetsDir)
         {
-            RegisterProtocol("assets", unique_ptr<FileSystemProtocol>(new OSFileSystemProtocol(assetsDir)));
+            RegisterProtocol("assets", UniquePtr<FileSystemProtocol>(new OSFileSystemProtocol(assetsDir)));
         }
 #else
         // Lookup assets folder
@@ -60,7 +60,7 @@ namespace Alimer
         return fs;
     }
 
-    void FileSystem::RegisterProtocol(const string &name, unique_ptr<FileSystemProtocol> protocol)
+    void FileSystem::RegisterProtocol(const string &name, UniquePtr<FileSystemProtocol> protocol)
     {
         protocol->SetName(name);
         // Dispatch event.
@@ -74,12 +74,12 @@ namespace Alimer
             it = _protocols.find("file");
 
         if (it != end(_protocols))
-            return it->second.get();
+            return it->second.Get();
 
         return nullptr;
     }
 
-    unique_ptr<Stream> FileSystem::Open(const std::string &path, StreamMode mode)
+    UniquePtr<Stream> FileSystem::Open(const std::string &path, StreamMode mode)
     {
         auto paths = Path::ProtocolSplit(path);
         auto *backend = GetProcotol(paths.first);
@@ -265,7 +265,7 @@ namespace Alimer
         return true;
     }
 
-    unique_ptr<Stream> OpenStream(const string &path, StreamMode mode)
+    UniquePtr<Stream> OpenStream(const string &path, StreamMode mode)
     {
         if (mode == StreamMode::ReadOnly
             && !FileExists(path))
@@ -275,7 +275,7 @@ namespace Alimer
 
         try
         {
-            unique_ptr<Stream> file(new WindowsFileStream(path, mode));
+            UniquePtr<Stream> file(new WindowsFileStream(path, mode));
             return file;
         }
         catch (const std::exception &e)

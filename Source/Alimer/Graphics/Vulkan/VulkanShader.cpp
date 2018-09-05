@@ -75,16 +75,16 @@ namespace Alimer
         }
     }
 
-    VulkanShader::VulkanShader(VulkanGraphics* graphics, const void *pCode, size_t codeSize)
-        : Shader(graphics, pCode, codeSize)
+    VulkanShader::VulkanShader(VulkanGraphics* graphics, const ShaderProgramDescriptor* descriptor)
+        : ShaderProgram(graphics, descriptor)
         , _logicalDevice(graphics->GetLogicalDevice())
     {
-        _shaderModules[static_cast<unsigned>(ShaderStage::Compute)] = CreateShaderModule(_logicalDevice, pCode, codeSize);
-        _pipelineLayout = graphics->RequestPipelineLayout(_layout);
+        //_shaderModules[static_cast<unsigned>(ShaderStage::Compute)] = CreateShaderModule(_logicalDevice, pCode, codeSize);
+        //_pipelineLayout = graphics->RequestPipelineLayout(_layout);
     }
 
     /// Constructor.
-    VulkanShader::VulkanShader(VulkanGraphics* graphics,
+    /*VulkanShader::VulkanShader(VulkanGraphics* graphics,
         const void *pVertexCode, size_t vertexCodeSize,
         const void *pFragmentCode, size_t fragmentCodeSize)
         : Shader(graphics, pVertexCode, vertexCodeSize, pFragmentCode, fragmentCodeSize)
@@ -94,9 +94,14 @@ namespace Alimer
         _shaderModules[static_cast<unsigned>(VulkanShaderStage::Fragment)] = CreateShaderModule(_logicalDevice, pFragmentCode, fragmentCodeSize);
 
         _pipelineLayout = graphics->RequestPipelineLayout(_layout);
-    }
+    }*/
 
     VulkanShader::~VulkanShader()
+    {
+        Destroy();
+    }
+
+    void VulkanShader::Destroy()
     {
         for (uint32_t i = 0; i < static_cast<unsigned>(VulkanShaderStage::Count); i++)
         {

@@ -25,10 +25,9 @@
 #include "../Shader.h"
 #include "VulkanPrerequisites.h"
 #include "../../Util/HashMap.h"
-#include "../../Util/ObjectPool.h"
-#include "../../Util/TemporaryHashmap.h"
 #include <vector>
 
+#if TODO
 namespace Alimer
 {
     class VulkanGraphics;
@@ -86,3 +85,5 @@ namespace Alimer
         VulkanDescriptorSetAllocator* _setAllocators[MaxDescriptorSets] = {};
     };
 }
+
+#endif // TODO

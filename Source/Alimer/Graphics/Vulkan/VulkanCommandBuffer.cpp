@@ -24,7 +24,6 @@
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
-#include "VulkanPipelineState.h"
 #include "VulkanRenderPass.h"
 #include "VulkanGraphics.h"
 #include "VulkanConvert.h"
@@ -199,17 +198,17 @@ namespace Alimer
         vkCmdSetScissor(_handle, 0, 1, &vkScissor);
     }
 
-    void VulkanCommandBuffer::SetShaderCore(Shader* shader)
+    void VulkanCommandBuffer::SetShaderProgramImpl(ShaderProgram* program)
     {
-        if (_currentShader == shader)
+        if (_currentShader == program)
             return;
 
-        _currentShader = static_cast<VulkanShader*>(shader);
+        _currentShader = static_cast<VulkanShader*>(program);
         _currentVkPipeline = VK_NULL_HANDLE;
 
         SetDirty(COMMAND_BUFFER_DIRTY_PIPELINE_BIT | COMMAND_BUFFER_DYNAMIC_BITS);
 
-        if (_currentPipelineLayout == nullptr)
+        /*if (_currentPipelineLayout == nullptr)
         {
             _dirtySets = ~0u;
             SetDirty(COMMAND_BUFFER_DIRTY_PUSH_CONSTANTS_BIT);
@@ -225,7 +224,7 @@ namespace Alimer
             // TODO: Invalidate sets
             _currentPipelineLayout = _currentShader->GetPipelineLayout();
             _currentVkPipelineLayout = _currentPipelineLayout->GetVkHandle();
-        }
+        }*/
     }
 
     void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
@@ -286,7 +285,7 @@ namespace Alimer
         attr.offset = offset;
     }
 
-    void VulkanCommandBuffer::BindVertexBufferImpl(uint32_t binding, GpuBuffer* buffer, GpuSize offset, uint64_t stride, VertexInputRate inputRate)
+    void VulkanCommandBuffer::BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, GpuSize offset, uint64_t stride, VertexInputRate inputRate)
     {
         //VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
         //if (_vbo.buffers[binding] != vkBuffer
@@ -354,7 +353,7 @@ namespace Alimer
         _dirtySets |= 1u << set;
     }
 
-    void VulkanCommandBuffer::SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    void VulkanCommandBuffer::BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding)
     {
 
     }
@@ -386,7 +385,7 @@ namespace Alimer
     {
         Hasher h;
         _activeVbos = 0;
-        auto &layout = _currentPipelineLayout->GetResourceLayout();
+        /*auto &layout = _currentPipelineLayout->GetResourceLayout();
         ForEachBit(layout.attributeMask, [&](uint32_t bit)
         {
             h.u32(bit);
@@ -394,7 +393,7 @@ namespace Alimer
             h.u32(_attribs[bit].binding);
             h.u32(_attribs[bit].format);
             h.u32(_attribs[bit].offset);
-        });
+        });*/
 
         ForEachBit(_activeVbos, [&](uint32_t bit)
         {
@@ -419,7 +418,7 @@ namespace Alimer
             VkVertexInputAttributeDescription vkAttribs[MaxVertexAttributes];
             vertexInputState.pVertexAttributeDescriptions = vkAttribs;
 
-            uint32_t attributeMask = _currentPipelineLayout->GetResourceLayout().attributeMask;
+            uint32_t attributeMask = 0; // _currentPipelineLayout->GetResourceLayout().attributeMask;
             uint32_t bindingMask = 0;
             ForEachBit(attributeMask, [&](uint32_t bit) {
                 auto &attr = vkAttribs[vertexInputState.vertexAttributeDescriptionCount++];
@@ -543,7 +542,7 @@ namespace Alimer
 
     void VulkanCommandBuffer::FlushDescriptorSet(uint32_t set)
     {
-        auto &layout = _currentPipelineLayout->GetResourceLayout();
+        /*auto &layout = _currentPipelineLayout->GetResourceLayout();
         auto &setLayout = layout.sets[set];
         uint32_t numDynamicOffsets = 0;
         uint32_t dynamicOffsets[MaxBindingsPerSet];
@@ -596,15 +595,15 @@ namespace Alimer
             set,
             1, &allocated.first,
             numDynamicOffsets,
-            dynamicOffsets);
+            dynamicOffsets);*/
     }
 
     void VulkanCommandBuffer::FlushDescriptorSets()
     {
-        auto &layout = _currentPipelineLayout->GetResourceLayout();
-        uint32_t updateSet = layout.descriptorSetMask & _dirtySets;
-        ForEachBit(updateSet, [&](uint32_t set) { FlushDescriptorSet(set); });
-        _dirtySets &= ~updateSet;
+        //auto &layout = _currentPipelineLayout->GetResourceLayout();
+        //uint32_t updateSet = layout.descriptorSetMask & _dirtySets;
+        //ForEachBit(updateSet, [&](uint32_t set) { FlushDescriptorSet(set); });
+        //_dirtySets &= ~updateSet;
     }
 }
 

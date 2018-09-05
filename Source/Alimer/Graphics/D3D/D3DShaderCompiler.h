@@ -30,6 +30,6 @@ namespace Alimer
 {
     namespace D3DShaderCompiler
     {
-        ALIMER_API std::vector<uint8_t> Compile(const std::string& hlslSource, ShaderStage stage, uint32_t major = 4, uint32_t minor = 0);
+        ALIMER_API ID3DBlob* Compile(const std::string& hlslSource, ShaderStage stage, uint32_t major = 4, uint32_t minor = 0);
     }
 }

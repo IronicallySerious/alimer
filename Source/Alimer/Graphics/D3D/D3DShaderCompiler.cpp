@@ -29,7 +29,7 @@ namespace Alimer
 {
     namespace D3DShaderCompiler
     {
-        std::vector<uint8_t> Compile(const std::string& hlslSource, ShaderStage stage, uint32_t major, uint32_t minor)
+        ID3DBlob* Compile(const std::string& hlslSource, ShaderStage stage, uint32_t major, uint32_t minor)
         {
             UINT compileFlags = 0;
 #if defined(_DEBUG)
@@ -85,9 +85,9 @@ namespace Alimer
                 return {};
             }
 
-            std::vector<uint8_t> byteCode(shaderBlob->GetBufferSize());
-            memcpy(byteCode.data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
-            return byteCode;
+            //std::vector<uint8_t> byteCode(shaderBlob->GetBufferSize());
+            //memcpy(byteCode.data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
+            return shaderBlob.Detach();
         }
     }
 }

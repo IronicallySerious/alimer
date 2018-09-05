@@ -25,7 +25,6 @@
 #include "D3D11Texture.h"
 #include "D3D11RenderPass.h"
 #include "D3D11Shader.h"
-#include "D3D11PipelineState.h"
 #include "D3D11GpuBuffer.h"
 #include "D3D11VertexInputFormat.h"
 #include "../D3D/D3DConvert.h"
@@ -160,16 +159,16 @@ namespace Alimer
         _context->RSSetScissorRects(1, &scissorD3D);
     }
 
-    void D3D11CommandBuffer::SetShaderCore(Shader* shader)
+    void D3D11CommandBuffer::SetShaderProgramImpl(ShaderProgram* program)
     {
-        if (_currentShader != shader)
+        if (_currentShader != program)
         {
-            _currentShader = static_cast<D3D11Shader*>(shader);
+            _currentShader = static_cast<D3D11Shader*>(program);
             _inputLayoutDirty = true;
         }
     }
 
-    void D3D11CommandBuffer::BindVertexBufferImpl(uint32_t binding, GpuBuffer* buffer, GpuSize offset, uint64_t stride, VertexInputRate inputRate)
+    void D3D11CommandBuffer::BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, GpuSize offset, uint64_t stride, VertexInputRate inputRate)
     {
         if (_vbo.buffers[binding] != buffer
             || _vbo.offsets[binding] != offset)
@@ -218,13 +217,13 @@ namespace Alimer
         _context->VSSetConstantBuffers(binding, 1, &d3dBuffer);
     }
 
-    void D3D11CommandBuffer::SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    void D3D11CommandBuffer::BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding)
     {
         auto d3d11Texture = static_cast<D3D11Texture*>(texture);
         ID3D11ShaderResourceView* shaderResourceView = d3d11Texture->GetShaderResourceView();
         ID3D11SamplerState* samplerState = d3d11Texture->GetSamplerState();
 
-        if (stage & ShaderStage::Compute)
+        /*if (stage & ShaderStage::Compute)
         {
             _context->CSSetShaderResources(binding, 1, &shaderResourceView);
             _context->CSSetSamplers(binding, 1, &samplerState);
@@ -236,7 +235,7 @@ namespace Alimer
             _context->VSSetSamplers(binding, 1, &samplerState);
         }
 
-        if (stage & ShaderStage::Fragment)
+        if (stage & ShaderStage::Fragment)*/
         {
             _context->PSSetShaderResources(binding, 1, &shaderResourceView);
             _context->PSSetSamplers(binding, 1, &samplerState);
@@ -306,7 +305,7 @@ namespace Alimer
 
             InputLayoutDesc newInputLayout;
             newInputLayout.first = reinterpret_cast<uint64_t>(_currentVertexInputFormat);
-            newInputLayout.second = _currentShader->GetVertexShaderHash();
+            newInputLayout.second = reinterpret_cast<uint64_t>(_currentShader->GetShader(ShaderStage::Vertex));
 
             if (_currentInputLayout != newInputLayout)
             {
@@ -328,17 +327,101 @@ namespace Alimer
                     else
                     {
                         // Generate vertex input format from shader reflection.
-                        _currentShader->GetResourceLayout();
+                        std::vector<PipelineResource> inputs;
+
+                        // Only consider input resources to vertex shader stage.
+                        auto& resources = _currentShader->GetShader(ShaderStage::Vertex)->GetResources();
+                        for (auto& resource : resources)
+                        {
+                            if (resource.resourceType == ResourceParamType::Input)
+                            {
+                                inputs.push_back(resource);
+                            }
+                        }
+
+                        // Sort the vertex inputs by location value.
+                        std::sort(inputs.begin(), inputs.end(), [](const PipelineResource& a, const PipelineResource& b) {
+                            return (a.location < b.location);
+                        });
+
+                        // Create the VkVertexInputAttributeDescription objects.
+                        uint32_t stride = 0;
+                        for (auto& input : inputs)
+                        {
+                            // Assume all attributes are interleaved in the same buffer bindings.
+                            D3D11_INPUT_ELEMENT_DESC inputElement = {};
+                            inputElement.SemanticName = "TEXCOORD";
+                            inputElement.SemanticIndex = input.location;
+                            inputElement.Format;
+                            inputElement.InputSlot = 0;
+                            inputElement.AlignedByteOffset = stride;
+                            inputElement.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+                            inputElement.InstanceDataStepRate = 0;
+
+                            uint32_t typeSize = 0;
+                            switch (input.dataType)
+                            {
+                            case ParamDataType::Char:
+                                typeSize = sizeof(char);
+                                if (input.vecSize == 1) inputElement.Format = DXGI_FORMAT_R8_SINT;
+                                else if (input.vecSize == 2) inputElement.Format = DXGI_FORMAT_R8G8_SINT;
+                                //else if (input.vecSize == 3) inputElement.Format = DXGI_FORMAT_R8G8B8_SINT;
+                                else if (input.vecSize == 4) inputElement.Format = DXGI_FORMAT_R8G8B8A8_SINT;
+                                break;
+
+                            case ParamDataType::Int:
+                                typeSize = sizeof(int32_t);
+                                if (input.vecSize == 1) inputElement.Format = DXGI_FORMAT_R32_SINT;
+                                else if (input.vecSize == 2) inputElement.Format = DXGI_FORMAT_R32G32_SINT;
+                                else if (input.vecSize == 3) inputElement.Format = DXGI_FORMAT_R32G32B32_SINT;
+                                else if (input.vecSize == 4) inputElement.Format = DXGI_FORMAT_R32G32B32A32_SINT;
+                                break;
+
+                            case ParamDataType::UInt:
+                                typeSize = sizeof(uint32_t);
+                                if (input.vecSize == 1) inputElement.Format = DXGI_FORMAT_R32_UINT;
+                                else if (input.vecSize == 2) inputElement.Format = DXGI_FORMAT_R32G32_UINT;
+                                else if (input.vecSize == 3) inputElement.Format = DXGI_FORMAT_R32G32B32_UINT;
+                                else if (input.vecSize == 4) inputElement.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+                                break;
+
+                            case ParamDataType::Half:
+                                typeSize = sizeof(uint16_t);
+                                if (input.vecSize == 1) inputElement.Format = DXGI_FORMAT_R16_FLOAT;
+                                else if (input.vecSize == 2) inputElement.Format = DXGI_FORMAT_R16G16_FLOAT;
+                                //else if (input.vecSize == 3) inputElement.Format = DXGI_FORMAT_R16G16B16_FLOAT;
+                                else if (input.vecSize == 4) inputElement.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+                                break;
+
+                            case ParamDataType::Float:
+                                typeSize = sizeof(float);
+                                if (input.vecSize == 1) inputElement.Format = DXGI_FORMAT_R32_FLOAT;
+                                else if (input.vecSize == 2) inputElement.Format = DXGI_FORMAT_R32G32_FLOAT;
+                                else if (input.vecSize == 3) inputElement.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+                                else if (input.vecSize == 4) inputElement.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+                                break;
+
+                            default:
+                                continue;
+                            }
+
+                            // Add the attribute description to the list.
+                            d3dElementDescs.push_back(inputElement);
+
+                            // Increase the stride for the next vertex attribute.
+                            stride += typeSize * input.vecSize;
+                        }
                     }
 
-                    auto vsByteCode = _currentShader->AcquireVertexShaderBytecode();
+                    ID3DBlob* vsBlob = _currentShader->GetVertexShaderBlob();
                     ID3D11InputLayout* d3dInputLayout = nullptr;
 
                     if (FAILED(_graphics->GetD3DDevice()->CreateInputLayout(
                         d3dElementDescs.data(),
                         static_cast<UINT>(d3dElementDescs.size()),
-                        vsByteCode.data(),
-                        vsByteCode.size(), &d3dInputLayout)))
+                        vsBlob->GetBufferPointer(),
+                        vsBlob->GetBufferSize(),
+                        &d3dInputLayout)))
                     {
                         ALIMER_LOGERROR("D3D11 - Failed to create input layout");
                     }

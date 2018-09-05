@@ -26,6 +26,7 @@
 #include "../Util/Util.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
+#include <string>
 
 namespace Alimer
 {
@@ -35,7 +36,6 @@ namespace Alimer
     static constexpr uint32_t MaxVertexAttributes = 16u;
     static constexpr uint32_t MaxVertexBufferBindings = 4u;
     static constexpr uint32_t MaxColorAttachments = 8u;
-    static constexpr uint32_t MaxDescriptionSize = 256;
 
     using GpuSize = uint64_t;
 
@@ -113,8 +113,20 @@ namespace Alimer
         return ~(BufferUsageFlags(bits));
     }
 
-    /// Defines shader stage usage.
+    /// Defines shader stage
     enum class ShaderStage : uint32_t
+    {
+        Vertex = 0,
+        TessControl = 1,
+        TessEvaluation = 2,
+        Geometry = 3,
+        Fragment = 4,
+        Compute = 5,
+        Count
+    };
+
+    /// Defines shader stage usage.
+    enum class ShaderStageUsage : uint32_t
     {
         None = 0,
         Vertex = 1 << 0,
@@ -127,13 +139,13 @@ namespace Alimer
         All = (AllGraphics | Compute),
     };
 
-    using ShaderStageFlags = Flags<ShaderStage>;
-    ALIMER_FORCE_INLINE ShaderStageFlags operator|(ShaderStage bit0, ShaderStage bit1)
+    using ShaderStageFlags = Flags<ShaderStageUsage>;
+    ALIMER_FORCE_INLINE ShaderStageFlags operator|(ShaderStageUsage bit0, ShaderStageUsage bit1)
     {
         return ShaderStageFlags(bit0) | bit1;
     }
 
-    ALIMER_FORCE_INLINE ShaderStageFlags operator~(ShaderStage bits)
+    ALIMER_FORCE_INLINE ShaderStageFlags operator~(ShaderStageUsage bits)
     {
         return ~(ShaderStageFlags(bits));
     }
@@ -163,7 +175,7 @@ namespace Alimer
         Instance
     };
 
-    enum class PipelineResourceBaseType
+    enum class ParamDataType
     {
         Unknown = 0,
         Void,
@@ -176,19 +188,20 @@ namespace Alimer
         Half,
         Float,
         Double,
+        Struct
     };
 
-    enum class PipelineResourceType
-    {
-        Input = 0,
-        Output = 1,
-    };
-
-    enum class PipelineResourceAccess
+    enum class ParamAccess
     {
         Read,
         Write,
         ReadWrite
+    };
+
+    enum class ResourceParamType
+    {
+        Input = 0,
+        Output = 1,
     };
 
     enum class IndexType : uint32_t
@@ -211,10 +224,11 @@ namespace Alimer
 
     struct PipelineResource
     {
+        std::string name;
         ShaderStageFlags stages;
-        PipelineResourceBaseType baseType;
-        PipelineResourceType resourceType;
-        PipelineResourceAccess access;
+        ResourceParamType resourceType;
+        ParamDataType dataType;
+        ParamAccess access;
         uint32_t set;
         uint32_t binding;
         uint32_t location;
@@ -222,7 +236,21 @@ namespace Alimer
         uint32_t arraySize;
         uint32_t offset;
         uint32_t size;
-        char name[MaxDescriptionSize];
+    };
+
+    class ShaderModule;
+    struct ShaderStageDescriptor
+    {
+        ShaderModule* module = nullptr;
+        std::string entryPoint = "main";
+        // TODO: Add specialization info.
+        //const VkSpecializationInfo* pSpecializationInfo;
+    };
+
+    struct ShaderProgramDescriptor
+    {
+        uint32_t stageCount;
+        const ShaderStageDescriptor* stages;
     };
 
     struct Viewport

@@ -33,21 +33,6 @@ namespace Alimer
 {
     class Graphics;
 
-    struct DescriptorSetLayout
-    {
-        uint32_t uniformBufferMask = 0;
-        uint32_t stages = 0;
-    };
-
-    struct ResourceLayout
-    {
-        uint32_t attributeMask = 0;
-        uint32_t renderTargetMask = 0;
-        DescriptorSetLayout sets[MaxDescriptorSets] = {};
-        uint32_t descriptorSetMask = 0;
-        //std::map<std::string, ShaderResourceParameter> resources;
-    };
-
     ALIMER_API void SPIRVReflectResources(const std::vector<uint32_t>& spirv, ShaderStage& stage, std::vector<PipelineResource>& shaderResources);
 
     /// Defines a shader module class.
@@ -55,49 +40,44 @@ namespace Alimer
     {
         ALIMER_OBJECT(ShaderModule, Resource);
 
-    protected:
+    public:
         /// Constructor.
         ShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv);
 
-    public:
         /// Destructor.
         virtual ~ShaderModule() = default;
 
         ShaderStage GetStage() const { return _stage; }
+        std::vector<uint32_t> AcquireBytecode();
+        const std::vector<PipelineResource>& GetResources() const { return _resources; }
 
     protected:
         std::vector<uint32_t> _spirv;
-        ShaderStage _stage = ShaderStage::None;
+        ShaderStage _stage = ShaderStage::Count;
         std::vector<PipelineResource> _resources;
     };
 
-    class ALIMER_API Shader : public Resource, public GpuResource
+    /// Defines a shader program class.
+    class ALIMER_API ShaderProgram : public GpuResource, public RefCounted
     {
-        ALIMER_OBJECT(Shader, Resource);
-
     protected:
         /// Constructor.
-        Shader(Graphics* graphics, const void *pCode, size_t codeSize);
-
-        /// Constructor.
-        Shader(Graphics* graphics,
-            const void *pVertexCode, size_t vertexCodeSize,
-            const void *pFragmentCode, size_t fragmentCodeSize);
+        ShaderProgram(Graphics* graphics, const ShaderProgramDescriptor* descriptor);
 
     public:
         /// Destructor.
-        virtual ~Shader();
+        virtual ~ShaderProgram() = default;
 
+        inline const ShaderModule *GetShader(ShaderStage stage) const
+        {
+            return _shaders[static_cast<uint32_t>(stage)];
+        }
+
+        /// Gets if this program is compute program.
         bool IsCompute() const { return _isCompute; }
-        const ResourceLayout& GetResourceLayout() const { return _layout; }
 
     protected:
-        void Reflect(ShaderStage stage, const void *pCode, size_t codeSize);
-
         bool _isCompute;
-        ResourceLayout _layout;
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Shader);
+        ShaderModule* _shaders[static_cast<uint32_t>(ShaderStage::Count)] = {};
     };
 }

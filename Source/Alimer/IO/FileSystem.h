@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Core/Flags.h"
+#include "../Core/Ptr.h"
 #include "../IO/Stream.h"
 #include <memory>
 #include <string>
@@ -83,7 +84,7 @@ namespace Alimer
     /// Return the executable application folder.
     ALIMER_API std::string GetExecutableFolder();
     /// Open stream from given path with given access mode.
-    ALIMER_API std::unique_ptr<Stream> OpenStream(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+    ALIMER_API UniquePtr<Stream> OpenStream(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
     /// Scan a directory for specified files.
     ALIMER_API void ScanDirectory(std::vector<std::string>& result, const std::string& pathName, const std::string& filter, ScanDirFlags flags, bool recursive);
 
@@ -93,7 +94,7 @@ namespace Alimer
     public:
         virtual ~FileSystemProtocol() = default;
 
-        virtual std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly) = 0;
+        virtual UniquePtr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly) = 0;
 
         inline virtual std::string GetFileSystemPath(const std::string&)
         {
@@ -118,18 +119,18 @@ namespace Alimer
         static FileSystem &Get();
 
         /// Register protocol with given name.
-        void RegisterProtocol(const std::string &name, std::unique_ptr<FileSystemProtocol> protocol);
+        void RegisterProtocol(const std::string &name, UniquePtr<FileSystemProtocol> protocol);
 
         /// Get protocol by name or empty for default protocol.
         FileSystemProtocol* GetProcotol(const std::string &name);
 
         /// Open stream from given path with given access mode.
-        std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+        UniquePtr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
 
     private:
         FileSystem();
 
-        std::unordered_map<std::string, std::unique_ptr<FileSystemProtocol>> _protocols;
+        std::unordered_map<std::string, UniquePtr<FileSystemProtocol>> _protocols;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(FileSystem);

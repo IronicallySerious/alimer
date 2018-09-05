@@ -25,6 +25,7 @@
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
+#if TODO
 namespace Alimer
 {
     VulkanDescriptorSetAllocator::VulkanDescriptorSetAllocator(VulkanGraphics* graphics, const DescriptorSetLayout &layout)
@@ -174,3 +175,5 @@ namespace Alimer
         }
     }
 }
+
+#endif // TODO

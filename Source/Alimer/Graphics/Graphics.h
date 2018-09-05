@@ -31,7 +31,6 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
-#include "../Graphics/PipelineState.h"
 #include "../Graphics/CommandBuffer.h"
 #include "../Graphics/VertexFormat.h"
 #include <vector>
@@ -87,21 +86,20 @@ namespace Alimer
         /// Create new shader module using SPIRV bytecode.
         ShaderModule* CreateShaderModule(const std::vector<uint32_t>& spirv);
 
+        /// Create new shader module from file and given entry point.
+        ShaderModule* CreateShaderModule(const std::string& file, const std::string& entryPoint = "main");
+
+        /// Create new shader program with descriptor.
+        ShaderProgram* CreateShaderProgram(const ShaderProgramDescriptor* descriptor);
+
+        /// Create new shader compute shader with descriptor.
+        ShaderProgram* CreateShaderProgram(const ShaderStageDescriptor* stage);
+
+        /// Create new shader program with vertex and fragment module.
+        ShaderProgram* CreateShaderProgram(ShaderModule* vertex, ShaderModule* fragment);
+
         /// Create new Texture with given descriptor and optional initial data.
         Texture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
-
-        // Shader
-        Shader* CreateShader(
-            const std::string& vertexShaderFile,
-            const std::string& fragmentShaderFile);
-
-        virtual Shader* CreateComputeShader(const void *pCode, size_t codeSize) = 0;
-        virtual Shader* CreateShader(
-            const void *pVertexCode, size_t vertexCodeSize,
-            const void *pFragmentCode, size_t fragmentCodeSize) = 0;
-
-        // PipelineState
-        virtual PipelineState* CreateRenderPipelineState(const RenderPipelineDescription& description) = 0;
 
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
@@ -139,6 +137,7 @@ namespace Alimer
         virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
         virtual VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) = 0;
         virtual ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) = 0;
+        virtual ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) = 0;
         virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr) = 0;
 
     protected:

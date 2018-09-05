@@ -75,7 +75,7 @@ namespace Alimer
         return true;
     }
 
-    unique_ptr<Stream> ResourceManager::Open(const string &assetName, StreamMode mode)
+    UniquePtr<Stream> ResourceManager::Open(const string &assetName, StreamMode mode)
     {
         lock_guard<mutex> guard(_resourceMutex);
 
@@ -83,7 +83,7 @@ namespace Alimer
 
         if (sanitatedName.length())
         {
-            unique_ptr<Stream> stream = {};
+            UniquePtr<Stream> stream = {};
 
             if (_searchPackagesFirst)
             {
@@ -192,7 +192,7 @@ namespace Alimer
         return cleanName;
     }
 
-    unique_ptr<Stream> ResourceManager::SearchResourceDirs(const string& name)
+    UniquePtr<Stream> ResourceManager::SearchResourceDirs(const string& name)
     {
         for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
@@ -209,7 +209,7 @@ namespace Alimer
         return {};
     }
 
-    unique_ptr<Stream> ResourceManager::SearchPackages(const string& name)
+    UniquePtr<Stream> ResourceManager::SearchPackages(const string& name)
     {
         // TODO:
         return {};

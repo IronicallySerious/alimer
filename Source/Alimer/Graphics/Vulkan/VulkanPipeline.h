@@ -22,55 +22,21 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
-#include "../Graphics/Types.h"
-#include "../Graphics/Shader.h"
+#include "VulkanPrerequisites.h"
 
 namespace Alimer
 {
-    class Graphics;
+	class VulkanGraphics;
+    class VulkanShader;
 
-    struct BlendState
-    {
+	class VulkanPipeline final 
+	{
+	public:
+        VulkanPipeline(VulkanGraphics* graphics);
+		~VulkanPipeline();
 
-    };
-
-    struct RasterizerState
-    {
-
-    };
-
-    struct DepthStencilState
-    {
-
-    };
-
-    struct RenderPipelineDescription
-    {
-        SharedPtr<Shader> shader;
-        BlendState blendState;
-        RasterizerState rasterizerState;
-        DepthStencilState depthStencilState;
-    };
-
-    /// Defines a PipelineState class.
-    class PipelineState : public RefCounted
-    {
-    protected:
-        /// Constructor.
-        PipelineState(Graphics* graphics, bool isGraphics);
-
-    public:
-        /// Destructor.
-        virtual ~PipelineState() = default;
-
-        bool IsGraphics() const { return _isGraphics; }
-
-    protected:
-        Graphics * _graphics;
-        bool _isGraphics;
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(PipelineState);
-    };
+	private:
+		VkDevice _logicalDevice;
+        VkPipelineCache _pipelineCache;
+	};
 }

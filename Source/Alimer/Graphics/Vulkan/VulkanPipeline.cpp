@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanPipelineState.h"
+#include "VulkanPipeline.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanGraphics.h"
 #include "VulkanShader.h"
@@ -29,15 +29,13 @@
 
 namespace Alimer
 {
-    VulkanPipelineState::VulkanPipelineState(VulkanGraphics* graphics, const RenderPipelineDescription& description)
-        : PipelineState(graphics, true)
-        , _logicalDevice(graphics->GetLogicalDevice())
+    VulkanPipeline::VulkanPipeline(VulkanGraphics* graphics)
+        : _logicalDevice(graphics->GetLogicalDevice())
         , _pipelineCache(graphics->GetPipelineCache())
     {
-        _shader = StaticCast<VulkanShader>(description.shader);
     }
 
-    VulkanPipelineState::~VulkanPipelineState()
+    VulkanPipeline::~VulkanPipeline()
     {
     }
 }

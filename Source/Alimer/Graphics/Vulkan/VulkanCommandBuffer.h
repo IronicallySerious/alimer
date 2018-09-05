@@ -81,7 +81,7 @@ namespace Alimer
         void SetViewport(const Viewport& viewport) override;
         void SetScissor(const Rectangle& scissor) override;
 
-        void SetShaderCore(Shader* shader) override;
+        void SetShaderProgramImpl(ShaderProgram* program) override;
 
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
         void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
@@ -90,11 +90,11 @@ namespace Alimer
 
         void SetVertexAttribute(uint32_t attrib, uint32_t binding, VkFormat format, VkDeviceSize offset);
 
-        void BindVertexBufferImpl(uint32_t binding, GpuBuffer* buffer, GpuSize offset, uint64_t stride, VertexInputRate inputRate) override;
+        void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, GpuSize offset, uint64_t stride, VertexInputRate inputRate) override;
         void SetVertexInputFormatImpl(VertexInputFormat* format) override;
         void BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
         void BindBufferImpl(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding) override;
-        void SetTextureCore(uint32_t binding, Texture* texture, ShaderStageFlags stage) override;
+        void BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding) override;
 
 
         inline void SetPrimitiveTopology(PrimitiveTopology topology)

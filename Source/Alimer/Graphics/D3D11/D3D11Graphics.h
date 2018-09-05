@@ -59,13 +59,10 @@ namespace Alimer
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
         VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) override;
         ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) override;
+        ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) override;
 
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
 
-        Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
-        Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,
-            const void *pFragmentCode, size_t fragmentCodeSize) override;
-        PipelineState* CreateRenderPipelineState(const RenderPipelineDescription& description) override;
 
         void HandleDeviceLost();
 

@@ -21,27 +21,9 @@
 //
 
 #include "../Graphics/ShaderCompiler.h"
-
 #include <fstream>
 using namespace std;
 
-#ifdef ALIMER_DISABLE_SHADER_COMPILER
-namespace Alimer
-{
-    namespace ShaderCompiler
-    {
-        vector<uint8_t> Compile(const std::string& filePath, std::string& errorLog)
-        {
-            return {};
-        }
-
-        vector<uint8_t> Compile(const std::string& shaderSource, const std::string& filePath, ShaderStage stage, std::string& errorLog)
-        {
-            return {};
-        }
-    }
-}
-#else
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
@@ -50,104 +32,6 @@ namespace Alimer
 
 namespace Alimer
 {
-    inline static void InitResources(TBuiltInResource & resources)
-    {
-        // These numbers come from the OpenGL 4.4 core profile specification Chapter 23
-        // unless otherwise specified.
-        resources.maxLights = 8;
-        resources.maxClipPlanes = 6;
-        resources.maxTextureUnits = 2;
-        resources.maxTextureCoords = 8;
-        resources.maxVertexAttribs = 16;
-        resources.maxVertexUniformComponents = 4096;
-        resources.maxVaryingFloats = 60;
-        resources.maxVertexTextureImageUnits = 16;
-        resources.maxCombinedTextureImageUnits = 80;
-        resources.maxTextureImageUnits = 16;
-        resources.maxFragmentUniformComponents = 1024;
-        resources.maxDrawBuffers = 8;
-        resources.maxVertexUniformVectors = 256;
-        resources.maxVaryingVectors = 15;
-        resources.maxFragmentUniformVectors = 256;
-        resources.maxVertexOutputVectors = 16;
-        resources.maxFragmentInputVectors = 15;
-        resources.minProgramTexelOffset = -8;
-        resources.maxProgramTexelOffset = 7;
-        resources.maxClipDistances = 8;
-        resources.maxComputeWorkGroupCountX = 65535;
-        resources.maxComputeWorkGroupCountY = 65535;
-        resources.maxComputeWorkGroupCountZ = 65535;
-        resources.maxComputeWorkGroupSizeX = 1024;
-        resources.maxComputeWorkGroupSizeY = 1024;
-        resources.maxComputeWorkGroupSizeZ = 64;
-        resources.maxComputeUniformComponents = 512;
-        resources.maxComputeTextureImageUnits = 16;
-        resources.maxComputeImageUniforms = 8;
-        resources.maxComputeAtomicCounters = 8;
-        resources.maxComputeAtomicCounterBuffers = 1;
-        resources.maxVaryingComponents = 60;
-        resources.maxVertexOutputComponents = 64;
-        resources.maxGeometryInputComponents = 64;
-        resources.maxGeometryOutputComponents = 128;
-        resources.maxFragmentInputComponents = 128;
-        resources.maxImageUnits = 8;
-        resources.maxCombinedImageUnitsAndFragmentOutputs = 8;
-        resources.maxCombinedShaderOutputResources = 8;
-        resources.maxImageSamples = 0;
-        resources.maxVertexImageUniforms = 0;
-        resources.maxTessControlImageUniforms = 0;
-        resources.maxTessEvaluationImageUniforms = 0;
-        resources.maxGeometryImageUniforms = 0;
-        resources.maxFragmentImageUniforms = 8;
-        resources.maxCombinedImageUniforms = 8;
-        resources.maxGeometryTextureImageUnits = 16;
-        resources.maxGeometryOutputVertices = 256;
-        resources.maxGeometryTotalOutputComponents = 1024;
-        resources.maxGeometryUniformComponents = 512;
-        resources.maxGeometryVaryingComponents = 60;
-        resources.maxTessControlInputComponents = 128;
-        resources.maxTessControlOutputComponents = 128;
-        resources.maxTessControlTextureImageUnits = 16;
-        resources.maxTessControlUniformComponents = 1024;
-        resources.maxTessControlTotalOutputComponents = 4096;
-        resources.maxTessEvaluationInputComponents = 128;
-        resources.maxTessEvaluationOutputComponents = 128;
-        resources.maxTessEvaluationTextureImageUnits = 16;
-        resources.maxTessEvaluationUniformComponents = 1024;
-        resources.maxTessPatchComponents = 120;
-        resources.maxPatchVertices = 32;
-        resources.maxTessGenLevel = 64;
-        resources.maxViewports = 16;
-        resources.maxVertexAtomicCounters = 0;
-        resources.maxTessControlAtomicCounters = 0;
-        resources.maxTessEvaluationAtomicCounters = 0;
-        resources.maxGeometryAtomicCounters = 0;
-        resources.maxFragmentAtomicCounters = 8;
-        resources.maxCombinedAtomicCounters = 8;
-        resources.maxAtomicCounterBindings = 1;
-        resources.maxVertexAtomicCounterBuffers = 0;
-        resources.maxTessControlAtomicCounterBuffers = 0;
-        resources.maxTessEvaluationAtomicCounterBuffers = 0;
-        resources.maxGeometryAtomicCounterBuffers = 0;
-        resources.maxFragmentAtomicCounterBuffers = 1;
-        resources.maxCombinedAtomicCounterBuffers = 1;
-        resources.maxAtomicCounterBufferSize = 32;
-        resources.maxTransformFeedbackBuffers = 4;
-        resources.maxTransformFeedbackInterleavedComponents = 64;
-        resources.maxCullDistances = 8;
-        resources.maxCombinedClipAndCullDistances = 8;
-        resources.maxSamples = 4;
-        resources.limits.nonInductiveForLoops = 1;
-        resources.limits.whileLoops = 1;
-        resources.limits.doWhileLoops = 1;
-        resources.limits.generalUniformIndexing = 1;
-        resources.limits.generalAttributeMatrixVectorIndexing = 1;
-        resources.limits.generalVaryingIndexing = 1;
-        resources.limits.generalSamplerIndexing = 1;
-        resources.limits.generalVariableIndexing = 1;
-        resources.limits.generalConstantMatrixVectorIndexing = 1;
-    }
-
     class AlimerIncluder : public glslang::TShader::Includer
     {
     public:
@@ -178,6 +62,11 @@ namespace Alimer
                 }
                 file.close();
             }
+            else
+            {
+                ALIMER_LOGCRITICAL("Cannot open include file '{}'", headerName);
+                return nullptr;
+            }
 
             string fileContent = content.str();
             char* heapContent = new char[fileContent.size() + 1];
@@ -193,32 +82,194 @@ namespace Alimer
         string _rootDirectory;
     };
 
-    class GlslangInitializer {
-    public:
-        GlslangInitializer() { glslang::InitializeProcess(); }
-
-        ~GlslangInitializer() { glslang::FinalizeProcess(); }
+    enum TOptions {
+        EOptionNone = 0,
+        EOptionIntermediate = (1 << 0),
+        EOptionSuppressInfolog = (1 << 1),
+        EOptionMemoryLeakMode = (1 << 2),
+        EOptionRelaxedErrors = (1 << 3),
+        EOptionGiveWarnings = (1 << 4),
+        EOptionLinkProgram = (1 << 5),
+        EOptionMultiThreaded = (1 << 6),
+        EOptionDumpConfig = (1 << 7),
+        EOptionDumpReflection = (1 << 8),
+        EOptionSuppressWarnings = (1 << 9),
+        EOptionDumpVersions = (1 << 10),
+        EOptionSpv = (1 << 11),
+        EOptionHumanReadableSpv = (1 << 12),
+        EOptionVulkanRules = (1 << 13),
+        EOptionDefaultDesktop = (1 << 14),
+        EOptionOutputPreprocessed = (1 << 15),
+        EOptionOutputHexadecimal = (1 << 16),
+        EOptionReadHlsl = (1 << 17),
+        EOptionCascadingErrors = (1 << 18),
+        EOptionAutoMapBindings = (1 << 19),
+        EOptionFlattenUniformArrays = (1 << 20),
+        EOptionNoStorageFormat = (1 << 21),
+        EOptionKeepUncalled = (1 << 22),
+        EOptionHlslOffsets = (1 << 23),
+        EOptionHlslIoMapping = (1 << 24),
+        EOptionAutoMapLocations = (1 << 25),
+        EOptionDebug = (1 << 26),
+        EOptionStdin = (1 << 27),
+        EOptionOptimizeDisable = (1 << 28),
+        EOptionOptimizeSize = (1 << 29),
     };
 
-    GlslangInitializer s_glslangInitializer;
+    void SetMessageOptions(int options, EShMessages& messages)
+    {
+        if (options & EOptionRelaxedErrors)
+            messages = (EShMessages)(messages | EShMsgRelaxedErrors);
+        if (options & EOptionIntermediate)
+            messages = (EShMessages)(messages | EShMsgAST);
+        if (options & EOptionSuppressWarnings)
+            messages = (EShMessages)(messages | EShMsgSuppressWarnings);
+        if (options & EOptionSpv)
+            messages = (EShMessages)(messages | EShMsgSpvRules);
+        if (options & EOptionVulkanRules)
+            messages = (EShMessages)(messages | EShMsgVulkanRules);
+        if (options & EOptionOutputPreprocessed)
+            messages = (EShMessages)(messages | EShMsgOnlyPreprocessor);
+        if (options & EOptionReadHlsl)
+            messages = (EShMessages)(messages | EShMsgReadHlsl);
+        if (options & EOptionCascadingErrors)
+            messages = (EShMessages)(messages | EShMsgCascadingErrors);
+        if (options & EOptionKeepUncalled)
+            messages = (EShMessages)(messages | EShMsgKeepUncalled);
+    }
+
+    EShLanguage MapShaderStage(ShaderStage stage)
+    {
+        switch (stage)
+        {
+        case ShaderStage::Vertex:
+            return EShLangVertex;
+
+        case ShaderStage::TessControl:
+            return EShLangTessControl;
+
+        case ShaderStage::TessEvaluation:
+            return EShLangTessEvaluation;
+
+        case ShaderStage::Geometry:
+            return EShLangGeometry;
+
+        case ShaderStage::Fragment:
+            return EShLangFragment;
+
+        case ShaderStage::Compute:
+            return EShLangCompute;
+
+        default:
+            return EShLangVertex;
+        }
+    }
+
+    const TBuiltInResource DefaultTBuiltInResource = {
+        /* .MaxLights = */ 32,
+        /* .MaxClipPlanes = */ 6,
+        /* .MaxTextureUnits = */ 32,
+        /* .MaxTextureCoords = */ 32,
+        /* .MaxVertexAttribs = */ 64,
+        /* .MaxVertexUniformComponents = */ 4096,
+        /* .MaxVaryingFloats = */ 64,
+        /* .MaxVertexTextureImageUnits = */ 32,
+        /* .MaxCombinedTextureImageUnits = */ 80,
+        /* .MaxTextureImageUnits = */ 32,
+        /* .MaxFragmentUniformComponents = */ 4096,
+        /* .MaxDrawBuffers = */ 32,
+        /* .MaxVertexUniformVectors = */ 128,
+        /* .MaxVaryingVectors = */ 8,
+        /* .MaxFragmentUniformVectors = */ 16,
+        /* .MaxVertexOutputVectors = */ 16,
+        /* .MaxFragmentInputVectors = */ 15,
+        /* .MinProgramTexelOffset = */ -8,
+        /* .MaxProgramTexelOffset = */ 7,
+        /* .MaxClipDistances = */ 8,
+        /* .MaxComputeWorkGroupCountX = */ 65535,
+        /* .MaxComputeWorkGroupCountY = */ 65535,
+        /* .MaxComputeWorkGroupCountZ = */ 65535,
+        /* .MaxComputeWorkGroupSizeX = */ 1024,
+        /* .MaxComputeWorkGroupSizeY = */ 1024,
+        /* .MaxComputeWorkGroupSizeZ = */ 64,
+        /* .MaxComputeUniformComponents = */ 1024,
+        /* .MaxComputeTextureImageUnits = */ 16,
+        /* .MaxComputeImageUniforms = */ 8,
+        /* .MaxComputeAtomicCounters = */ 8,
+        /* .MaxComputeAtomicCounterBuffers = */ 1,
+        /* .MaxVaryingComponents = */ 60,
+        /* .MaxVertexOutputComponents = */ 64,
+        /* .MaxGeometryInputComponents = */ 64,
+        /* .MaxGeometryOutputComponents = */ 128,
+        /* .MaxFragmentInputComponents = */ 128,
+        /* .MaxImageUnits = */ 8,
+        /* .MaxCombinedImageUnitsAndFragmentOutputs = */ 8,
+        /* .MaxCombinedShaderOutputResources = */ 8,
+        /* .MaxImageSamples = */ 0,
+        /* .MaxVertexImageUniforms = */ 0,
+        /* .MaxTessControlImageUniforms = */ 0,
+        /* .MaxTessEvaluationImageUniforms = */ 0,
+        /* .MaxGeometryImageUniforms = */ 0,
+        /* .MaxFragmentImageUniforms = */ 8,
+        /* .MaxCombinedImageUniforms = */ 8,
+        /* .MaxGeometryTextureImageUnits = */ 16,
+        /* .MaxGeometryOutputVertices = */ 256,
+        /* .MaxGeometryTotalOutputComponents = */ 1024,
+        /* .MaxGeometryUniformComponents = */ 1024,
+        /* .MaxGeometryVaryingComponents = */ 64,
+        /* .MaxTessControlInputComponents = */ 128,
+        /* .MaxTessControlOutputComponents = */ 128,
+        /* .MaxTessControlTextureImageUnits = */ 16,
+        /* .MaxTessControlUniformComponents = */ 1024,
+        /* .MaxTessControlTotalOutputComponents = */ 4096,
+        /* .MaxTessEvaluationInputComponents = */ 128,
+        /* .MaxTessEvaluationOutputComponents = */ 128,
+        /* .MaxTessEvaluationTextureImageUnits = */ 16,
+        /* .MaxTessEvaluationUniformComponents = */ 1024,
+        /* .MaxTessPatchComponents = */ 120,
+        /* .MaxPatchVertices = */ 32,
+        /* .MaxTessGenLevel = */ 64,
+        /* .MaxViewports = */ 16,
+        /* .MaxVertexAtomicCounters = */ 0,
+        /* .MaxTessControlAtomicCounters = */ 0,
+        /* .MaxTessEvaluationAtomicCounters = */ 0,
+        /* .MaxGeometryAtomicCounters = */ 0,
+        /* .MaxFragmentAtomicCounters = */ 8,
+        /* .MaxCombinedAtomicCounters = */ 8,
+        /* .MaxAtomicCounterBindings = */ 1,
+        /* .MaxVertexAtomicCounterBuffers = */ 0,
+        /* .MaxTessControlAtomicCounterBuffers = */ 0,
+        /* .MaxTessEvaluationAtomicCounterBuffers = */ 0,
+        /* .MaxGeometryAtomicCounterBuffers = */ 0,
+        /* .MaxFragmentAtomicCounterBuffers = */ 1,
+        /* .MaxCombinedAtomicCounterBuffers = */ 1,
+        /* .MaxAtomicCounterBufferSize = */ 16384,
+        /* .MaxTransformFeedbackBuffers = */ 4,
+        /* .MaxTransformFeedbackInterleavedComponents = */ 64,
+        /* .MaxCullDistances = */ 8,
+        /* .MaxCombinedClipAndCullDistances = */ 8,
+        /* .MaxSamples = */ 4,
+        /* .limits = */ {
+        /* .nonInductiveForLoops = */ 1,
+        /* .whileLoops = */ 1,
+        /* .doWhileLoops = */ 1,
+        /* .generalUniformIndexing = */ 1,
+        /* .generalAttributeMatrixVectorIndexing = */ 1,
+        /* .generalVaryingIndexing = */ 1,
+        /* .generalSamplerIndexing = */ 1,
+        /* .generalVariableIndexing = */ 1,
+        /* .generalConstantMatrixVectorIndexing = */ 1,
+    } };
 
     namespace ShaderCompiler
     {
-        vector<uint8_t> Compile(
-            const string& filePath,
-            string& errorLog)
+        bool Compile(const string& filePath, const string& entryPoint, vector<uint32_t>& spirv, string& infoLog)
         {
-            if (!FileExists(filePath))
-            {
-                ALIMER_LOGERROR("Shader file '{}' does not exists", filePath.c_str());
-                return {};
-            }
-
             auto stream = FileSystem::Get().Open(filePath);
             if (!stream)
             {
-                ALIMER_LOGERROR("Cannot open shader file '{}'", filePath.c_str());
-                return {};
+                infoLog = fmt::format("Shader file '{}' does not exists", filePath);
+                return false;
             }
 
             string shaderSource = stream->ReadAllText();
@@ -239,7 +290,7 @@ namespace Alimer
             else if (usesUnifiedExt && hasSecondExt)
                 stageName = filePath.substr(secondExtStart + 1, firstExtStart - secondExtStart - 1);
 
-            ShaderStage stage = ShaderStage::None;
+            ShaderStage stage = ShaderStage::Vertex;
             if (stageName == "vert")
                 stage = ShaderStage::Vertex;
             else if (stageName == "tesc")
@@ -253,101 +304,124 @@ namespace Alimer
             else if (stageName == "comp")
                 stage = ShaderStage::Compute;
 
-            return Compile(shaderSource, filePath, stage, errorLog);
+            return Compile(stage, shaderSource, entryPoint, spirv, stream->GetName(), infoLog);
         }
 
-        vector<uint8_t> Compile(const string& shaderSource, const std::string& filePath, ShaderStage stage, string& errorLog)
+        bool Compile(ShaderStage stage, const string& source, const string& entryPoint, vector<uint32_t>& spirv, const string& filePath, string& infoLog)
         {
-            TBuiltInResource resources;
-            InitResources(resources);
+            // Get default built in resource limits.
+            auto resourceLimits = DefaultTBuiltInResource;
+
+            // Initialize glslang library.
+            glslang::InitializeProcess();
 
             const string macroDefinitions = "";
-            const string poundExtension =
-                "#extension GL_GOOGLE_include_directive : enable\n";
+            const string poundExtension = "#extension GL_GOOGLE_include_directive : enable\n";
             const string preamble = macroDefinitions + poundExtension;
 
-            //
-            EShLanguage language = EShLangCount;
-            switch (stage)
-            {
-            case ShaderStage::Vertex:
-                language = EShLangVertex;
-                break;
-            case ShaderStage::TessControl:
-                language = EShLangTessControl;
-                break;
-            case ShaderStage::TessEvaluation:
-                language = EShLangTessEvaluation;
-                break;
-            case ShaderStage::Geometry:
-                language = EShLangGeometry;
-                break;
-            case ShaderStage::Fragment:
-                language = EShLangFragment;
-                break;
-            case ShaderStage::Compute:
-                language = EShLangCompute;
-                break;
-            default:
-                break;
-            }
-            glslang::TProgram program;
+            EShLanguage language = MapShaderStage(stage);
             glslang::TShader shader(language);
 
-            const char* shaderStrings = shaderSource.c_str();
-            const int shaderLengths = static_cast<int>(shaderSource.length());
+            const char* shaderStrings = source.c_str();
+            const int shaderLengths = static_cast<int>(source.length());
             const char* stringNames = filePath.c_str();
             shader.setStringsWithLengthsAndNames(
                 &shaderStrings,
                 &shaderLengths,
                 &stringNames, 1);
             shader.setPreamble(preamble.c_str());
-            shader.setEntryPoint("main");
-            //shader.setInvertY(true);
+            shader.setEntryPoint(entryPoint.c_str());
+            shader.setSourceEntryPoint(entryPoint.c_str());
+            shader.setShiftSamplerBinding(0);
+            shader.setShiftTextureBinding(0);
+            shader.setShiftImageBinding(0);
+            shader.setShiftUboBinding(0);
+            shader.setShiftSsboBinding(0);
+            shader.setFlattenUniformArrays(false);
+            shader.setNoStorageFormat(false);
 
-            EShMessages messages = static_cast<EShMessages>(EShMsgCascadingErrors | EShMsgSpvRules | EShMsgVulkanRules);
+            // Set message options.
+            int options = EOptionSpv | EOptionVulkanRules | EOptionLinkProgram;
+            EShMessages messages = EShMsgDefault;
+            SetMessageOptions(options, messages);
+
             AlimerIncluder includer(GetPath(filePath));
 
             const EProfile DefaultProfile = ENoProfile;
             const bool ForceVersionProfile = false;
             const bool NotForwardCompatible = false;
 
-            bool success = shader.parse(
-                &resources,
-                450,
+            bool parseSuccess = shader.parse(
+                &resourceLimits,
+                100,
                 DefaultProfile,
                 ForceVersionProfile,
                 NotForwardCompatible,
                 messages,
                 includer);
 
-            if (!success)
+            if (!parseSuccess)
             {
-                errorLog = shader.getInfoLog();
-                return {};
+                infoLog = shader.getInfoLog();
+
+                // Shutdown glslang library.
+                glslang::FinalizeProcess();
+
+                return false;
             }
 
+            glslang::TProgram program;
             program.addShader(&shader);
-            success = program.link(EShMsgDefault) && program.mapIO();
-            if (!success)
+            if (!program.link(messages))
             {
-                errorLog = program.getInfoLog();
-                return {};
+                infoLog = program.getInfoLog();
+
+                // Shutdown glslang library.
+                glslang::FinalizeProcess();
+
+                return false;
             }
 
-            vector<uint32_t> spirv;
-            glslang::SpvOptions options;
-            options.generateDebugInfo = false;
-            options.disableOptimizer = true;
-            options.optimizeSize = false;
-            glslang::GlslangToSpv(*program.getIntermediate(language), spirv, &options);
+            // Map IO for SPIRV generation.
+            if (!program.mapIO())
+            {
+                infoLog = program.getInfoLog();
 
+                // Shutdown glslang library.
+                glslang::FinalizeProcess();
 
-            vector<uint8_t> byteCode(spirv.size() * sizeof(uint32_t));
-            memcpy(byteCode.data(), spirv.data(), byteCode.size());
-            return byteCode;
+                return false;
+            }
+
+            // Save any info log that was generated.
+            if (strlen(shader.getInfoLog()))
+                infoLog += string(shader.getInfoLog()) + "\n" + string(shader.getInfoDebugLog()) + "\n";
+
+            if (strlen(program.getInfoLog()))
+                infoLog += string(program.getInfoLog()) + "\n" + string(program.getInfoDebugLog());
+
+            // Translate to SPIRV.
+            if (program.getIntermediate(language))
+            {
+                glslang::SpvOptions options;
+                options.generateDebugInfo = false;
+                options.disableOptimizer = true;
+                options.optimizeSize = false;
+
+                spv::SpvBuildLogger logger;
+
+                glslang::GlslangToSpv(*program.getIntermediate(language), spirv, &logger, &options);
+                auto spvMessages = logger.getAllMessages();
+                if (!spvMessages.empty())
+                {
+                    infoLog += spvMessages + "\n";
+                }
+            }
+
+            // Shutdown glslang library.
+            glslang::FinalizeProcess();
+
+            return true;
         }
     }
 }
-
-#endif

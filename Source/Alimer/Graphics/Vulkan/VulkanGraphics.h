@@ -56,13 +56,9 @@ namespace Alimer
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
         VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) override;
         ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) override;
+        ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) override;
 
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
-
-        Shader* CreateComputeShader(const void *pCode, size_t codeSize) override;
-        Shader* CreateShader(const void *pVertexCode, size_t vertexCodeSize,
-            const void *pFragmentCode, size_t fragmentCodeSize) override;
-        PipelineState* CreateRenderPipelineState(const RenderPipelineDescription& description) override;
 
 		VkInstance GetInstance() const { return _instance; }
 		VkPhysicalDevice GetPhysicalDevice() const { return _vkPhysicalDevice; }
@@ -77,8 +73,8 @@ namespace Alimer
 
 		VkRenderPass GetVkRenderPass(const RenderPassDescription* descriptor);
 
-        VulkanDescriptorSetAllocator* RequestDescriptorSetAllocator(const DescriptorSetLayout &layout);
-        VulkanPipelineLayout* RequestPipelineLayout(const ResourceLayout &layout);
+        //VulkanDescriptorSetAllocator* RequestDescriptorSetAllocator(const DescriptorSetLayout &layout);
+        //VulkanPipelineLayout* RequestPipelineLayout(const ResourceLayout &layout);
 
         uint32_t GetQueueFamilyIndex(VkQueueFlagBits queueFlags);
         VkCommandPool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags);
@@ -136,7 +132,7 @@ namespace Alimer
 		// Cache
 		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
 
-        HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
-        HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;
+        //HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
+        //HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;
 	};
 }

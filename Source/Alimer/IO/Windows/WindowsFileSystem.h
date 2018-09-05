@@ -51,7 +51,7 @@ namespace Alimer
 
         std::string GetFileSystemPath(const std::string& path) override;
 
-        std::unique_ptr<Stream> Open(const std::string &path, StreamMode mode) override;
+        UniquePtr<Stream> Open(const std::string &path, StreamMode mode) override;
 
     protected:
         std::string _rootDirectory;

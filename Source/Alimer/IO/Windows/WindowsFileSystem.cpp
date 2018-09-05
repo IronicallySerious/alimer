@@ -179,11 +179,11 @@ namespace Alimer
         return Path::Join(_rootDirectory, path);
     }
 
-    unique_ptr<Stream> OSFileSystemProtocol::Open(const string &path, StreamMode mode)
+    UniquePtr<Stream> OSFileSystemProtocol::Open(const string &path, StreamMode mode)
     {
         try
         {
-            unique_ptr<Stream> file(new WindowsFileStream(Path::Join(_rootDirectory, path), mode));
+            UniquePtr<Stream> file(new WindowsFileStream(Path::Join(_rootDirectory, path), mode));
             return file;
         }
         catch (const std::exception &e)

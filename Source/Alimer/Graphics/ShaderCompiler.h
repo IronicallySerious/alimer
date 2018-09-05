@@ -31,7 +31,7 @@ namespace Alimer
 	/// Class for shader compilation support.
 	namespace ShaderCompiler
 	{
-		ALIMER_API std::vector<uint8_t> Compile(const std::string& filePath, std::string& errorLog);
-        ALIMER_API std::vector<uint8_t> Compile(const std::string& shaderSource, const std::string& filePath, ShaderStage stage, std::string& errorLog);
+		ALIMER_API bool Compile(const std::string& filePath, const std::string& entryPoint, std::vector<uint32_t>& spirv, std::string& infoLog);
+        ALIMER_API bool Compile(ShaderStage stage, const std::string& source, const std::string& entryPoint, std::vector<uint32_t>& spirv, const std::string& filePath, std::string& infoLog);
 	}
 }

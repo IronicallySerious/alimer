@@ -23,15 +23,14 @@
 #include "D3D11Shader.h"
 #include "D3D11Graphics.h"
 #include "../D3D/D3DShaderCompiler.h"
-#include "../../Util/HashMap.h"
 #include "../../Core/Log.h"
 #include <spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    static std::vector<uint8_t> ConvertAndCompileHLSL(
-        const void *pCode, size_t codeSize,
+    static ID3DBlob* ConvertAndCompileHLSL(
+        const std::vector<uint32_t>& spirv,
         ShaderStage stage,
         uint32_t major, uint32_t minor)
     {
@@ -39,7 +38,7 @@ namespace Alimer
         //options_glsl.vertex.fixup_clipspace = true;
         //options_glsl.vertex.flip_vert_y = true;
 
-        spirv_cross::CompilerHLSL compiler(reinterpret_cast<const uint32_t*>(pCode), codeSize / sizeof(uint32_t));
+        spirv_cross::CompilerHLSL compiler(spirv);
         compiler.set_common_options(options_glsl);
 
         spirv_cross::CompilerHLSL::Options options_hlsl;
@@ -50,81 +49,49 @@ namespace Alimer
         return D3DShaderCompiler::Compile(hlslSource, stage, major, minor);
     }
 
-    D3D11ShaderModule::D3D11ShaderModule(D3D11Graphics* graphics, const std::vector<uint32_t>& spirv)
-        : ShaderModule(graphics, spirv)
+    D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const ShaderProgramDescriptor* descriptor)
+        : ShaderProgram(graphics, descriptor)
     {
-        std::vector<uint8_t> bytecode = ConvertAndCompileHLSL(
-            spirv.data(), spirv.size(),
-            _stage,
-            graphics->GetShaderModerMajor(),
-            graphics->GetShaderModerMinor());
-
-        switch (_stage)
+        for (uint32_t i = 0; i < descriptor->stageCount; ++i)
         {
-        case ShaderStage::Vertex:
-            graphics->GetD3DDevice()->CreateVertexShader(bytecode.data(), bytecode.size(), nullptr, &_vertex);
-            break;
-        case ShaderStage::TessControl:
-            break;
-        case ShaderStage::TessEvaluation:
-            break;
-        case ShaderStage::Geometry:
-            break;
-        case ShaderStage::Fragment:
-            graphics->GetD3DDevice()->CreatePixelShader(bytecode.data(), bytecode.size(), nullptr, &_pixel);
-            break;
-        case ShaderStage::Compute:
-            graphics->GetD3DDevice()->CreateComputeShader(bytecode.data(), bytecode.size(), nullptr, &_compute);
-            break;
-        default:
-            break;
+            auto stage = descriptor->stages[i];
+            auto spirv = stage.module->AcquireBytecode();
+
+            ID3DBlob* blob = ConvertAndCompileHLSL(
+                spirv,
+                stage.module->GetStage(),
+                graphics->GetShaderModerMajor(),
+                graphics->GetShaderModerMinor());
+
+            switch (stage.module->GetStage())
+            {
+            case ShaderStage::Vertex:
+            {
+                _vsBlob = blob;
+                graphics->GetD3DDevice()->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &_vertexShader);
+                break;
+            }
+            case ShaderStage::TessControl:
+                break;
+            case ShaderStage::TessEvaluation:
+                break;
+            case ShaderStage::Geometry:
+                break;
+            case ShaderStage::Fragment:
+                graphics->GetD3DDevice()->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &_pixelShader);
+                break;
+            case ShaderStage::Compute:
+                graphics->GetD3DDevice()->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &_computeShader);
+                break;
+            default:
+                break;
+            }
+
+            if (stage.module->GetStage() != ShaderStage::Vertex)
+            {
+                blob->Release();
+            }
         }
-    }
-
-    D3D11ShaderModule::~D3D11ShaderModule()
-    {
-        Destroy();
-    }
-
-    void D3D11ShaderModule::Destroy()
-    {
-
-    }
-
-    D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const void *pCode, size_t codeSize)
-        : Shader(graphics, pCode, codeSize)
-    {
-        auto byteCode = ConvertAndCompileHLSL(
-            pCode, codeSize,
-            ShaderStage::Compute,
-            graphics->GetShaderModerMajor(),
-            graphics->GetShaderModerMinor());
-
-        graphics->GetD3DDevice()->CreateComputeShader(byteCode.data(), byteCode.size(), nullptr, &_d3dComputeShader);
-    }
-
-    D3D11Shader::D3D11Shader(D3D11Graphics* graphics,
-        const void *pVertexCode, size_t vertexCodeSize,
-        const void *pFragmentCode, size_t fragmentCodeSize)
-        : Shader(graphics, pVertexCode, vertexCodeSize, pFragmentCode, fragmentCodeSize)
-    {
-        const D3D_FEATURE_LEVEL featureLevel = graphics->GetFeatureLevel();
-
-        _vsByteCode = ConvertAndCompileHLSL(
-            pVertexCode, vertexCodeSize, ShaderStage::Vertex,
-            graphics->GetShaderModerMajor(), graphics->GetShaderModerMinor()
-        );
-
-        auto fsByteCode = ConvertAndCompileHLSL(
-            pFragmentCode, fragmentCodeSize, ShaderStage::Fragment,
-            graphics->GetShaderModerMajor(), graphics->GetShaderModerMinor()
-        );
-
-        Hasher h;
-        h.data(_vsByteCode.data(), _vsByteCode.size());
-        _vertexShaderHash = h.get();
-        graphics->GetD3DDevice()->CreateVertexShader(_vsByteCode.data(), _vsByteCode.size(), nullptr, &_d3dVertexShader);
-        graphics->GetD3DDevice()->CreatePixelShader(fsByteCode.data(), fsByteCode.size(), nullptr, &_d3dPixelShader);
     }
 
     D3D11Shader::~D3D11Shader()
@@ -136,39 +103,41 @@ namespace Alimer
     {
         if (_isCompute)
         {
-            if (_d3dComputeShader)
+            if (_computeShader)
             {
 #if defined(_DEBUG)
-                ULONG refCount = GetRefCount(_d3dComputeShader);
-                ALIMER_ASSERT_MSG(refCount == 1, "D3D11Shader leakage");
+                ULONG refCount = GetRefCount(_computeShader);
+                ALIMER_ASSERT_MSG(refCount == 1, "D3D11ComputeShader leakage");
 #endif
 
-                _d3dComputeShader->Release();
-                _d3dComputeShader = nullptr;
+                _computeShader->Release();
+                _computeShader = nullptr;
             }
         }
         else
         {
-            if (_d3dVertexShader)
+            if (_vertexShader)
             {
 #if defined(_DEBUG)
-                ULONG refCount = GetRefCount(_d3dVertexShader);
-                ALIMER_ASSERT_MSG(refCount == 1, "D3D11Shader leakage");
+                ULONG refCount = GetRefCount(_vertexShader);
+                ALIMER_ASSERT_MSG(refCount == 1, "D3D11VertexShader leakage");
 #endif
 
-                _d3dVertexShader->Release();
-                _d3dVertexShader = nullptr;
+                _vertexShader->Release();
+                _vertexShader = nullptr;
+                _vsBlob->Release();
+                _vsBlob = nullptr;
             }
 
-            if (_d3dPixelShader)
+            if (_pixelShader)
             {
 #if defined(_DEBUG)
-                ULONG refCount = GetRefCount(_d3dPixelShader);
-                ALIMER_ASSERT_MSG(refCount == 1, "D3D11Shader leakage");
+                ULONG refCount = GetRefCount(_pixelShader);
+                ALIMER_ASSERT_MSG(refCount == 1, "D3D11PixelShader leakage");
 #endif
 
-                _d3dPixelShader->Release();
-                _d3dPixelShader = nullptr;
+                _pixelShader->Release();
+                _pixelShader = nullptr;
             }
         }
     }
@@ -177,17 +146,12 @@ namespace Alimer
     {
         if (_isCompute)
         {
-            context->CSSetShader(_d3dComputeShader, nullptr, 0);
+            context->CSSetShader(_computeShader, nullptr, 0);
         }
         else
         {
-            context->VSSetShader(_d3dVertexShader, nullptr, 0);
-            context->PSSetShader(_d3dPixelShader, nullptr, 0);
+            context->VSSetShader(_vertexShader, nullptr, 0);
+            context->PSSetShader(_pixelShader, nullptr, 0);
         }
-    }
-
-    std::vector<uint8_t> D3D11Shader::AcquireVertexShaderBytecode()
-    {
-        return std::move(_vsByteCode);
     }
 }

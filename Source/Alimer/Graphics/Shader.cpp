@@ -34,10 +34,9 @@ namespace Alimer
         CustomCompiler(const std::vector<uint32_t>& spirv)
             : spirv_cross::CompilerGLSL(spirv)
         {
-
         }
 
-        PipelineResourceAccess GetAccessFlags(const spirv_cross::SPIRType& type)
+        ParamAccess GetAccessFlags(const spirv_cross::SPIRType& type)
         {
             auto all_members_flag_mask = spirv_cross::Bitset(~0ULL);
             for (auto i = 0U; i < type.member_types.size(); ++i)
@@ -46,43 +45,44 @@ namespace Alimer
             auto base_flags = meta[type.self].decoration.decoration_flags;
             base_flags.merge_or(spirv_cross::Bitset(all_members_flag_mask));
 
-            PipelineResourceAccess access = PipelineResourceAccess::ReadWrite;
+            ParamAccess access = ParamAccess::ReadWrite;
             if (base_flags.get(spv::DecorationNonReadable))
-                access = PipelineResourceAccess::Write;
+                access = ParamAccess::Write;
             else if (base_flags.get(spv::DecorationNonWritable))
-                access = PipelineResourceAccess::Read;
+                access = ParamAccess::Read;
 
             return access;
         }
     };
 
-    static PipelineResourceBaseType SPIRVConvertBaseType(spirv_cross::SPIRType::BaseType type)
+    static ParamDataType SPIRVConvertBaseType(spirv_cross::SPIRType::BaseType type)
     {
         switch (type)
         {
         case spirv_cross::SPIRType::BaseType::Void:
-            return PipelineResourceBaseType::Void;
+            return ParamDataType::Void;
         case spirv_cross::SPIRType::BaseType::Boolean:
-            return PipelineResourceBaseType::Boolean;
+            return ParamDataType::Boolean;
         case spirv_cross::SPIRType::BaseType::Char:
-            return PipelineResourceBaseType::Char;
+            return ParamDataType::Char;
         case spirv_cross::SPIRType::BaseType::Int:
-            return PipelineResourceBaseType::Int;
+            return ParamDataType::Int;
         case spirv_cross::SPIRType::BaseType::UInt:
-            return PipelineResourceBaseType::UInt;
+            return ParamDataType::UInt;
         case spirv_cross::SPIRType::BaseType::Int64:
-            return PipelineResourceBaseType::Int64;
+            return ParamDataType::Int64;
         case spirv_cross::SPIRType::BaseType::UInt64:
-            return PipelineResourceBaseType::UInt64;
+            return ParamDataType::UInt64;
         case spirv_cross::SPIRType::BaseType::Half:
-            return PipelineResourceBaseType::Half;
-
+            return ParamDataType::Half;
         case spirv_cross::SPIRType::BaseType::Float:
-            return PipelineResourceBaseType::Float;
+            return ParamDataType::Float;
         case spirv_cross::SPIRType::BaseType::Double:
-            return PipelineResourceBaseType::Double;
+            return ParamDataType::Double;
+        case spirv_cross::SPIRType::BaseType::Struct:
+            return ParamDataType::Struct;
         default:
-            return PipelineResourceBaseType::Unknown;
+            return ParamDataType::Unknown;
         }
     }
 
@@ -126,30 +126,32 @@ namespace Alimer
             const ShaderStage& stage,
             const std::vector<spirv_cross::Resource>& resources,
             const spirv_cross::Compiler& compiler,
-            PipelineResourceType resourceType,
-            PipelineResourceAccess access,
+            ResourceParamType resourceType,
+            ParamAccess access,
             std::vector<PipelineResource>& shaderResources)
         {
+            uint32_t stageMask = 1u << static_cast<uint32_t>(stage);
+
             for (const auto& resource : resources)
             {
-                const auto& typeInfo = compiler.get_type_from_variable(resource.id);
+                const auto& spirType = compiler.get_type_from_variable(resource.id);
 
                 PipelineResource pipelineResource = {};
-                pipelineResource.stages = stage;
-                pipelineResource.baseType = SPIRVConvertBaseType(typeInfo.basetype);
+                pipelineResource.stages = static_cast<ShaderStageFlags>(stageMask);
+                pipelineResource.dataType = SPIRVConvertBaseType(spirType.basetype);
                 pipelineResource.resourceType = resourceType;
                 pipelineResource.access = access;
                 pipelineResource.location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-                pipelineResource.vecSize = typeInfo.vecsize;
-                pipelineResource.arraySize = (typeInfo.array.size() == 0) ? 1 : typeInfo.array[0];
+                pipelineResource.vecSize = spirType.vecsize;
+                pipelineResource.arraySize = (spirType.array.size() == 0) ? 1 : spirType.array[0];
 
-                memcpy(pipelineResource.name, resource.name.c_str(), std::min(sizeof(pipelineResource.name), resource.name.length()));
+                pipelineResource.name = std::string(resource.name);
                 shaderResources.push_back(pipelineResource);
             }
         };
 
-        ExtractInputOutputs(stage, resources.stage_inputs, compiler, PipelineResourceType::Input, PipelineResourceAccess::Read, shaderResources);
-        ExtractInputOutputs(stage, resources.stage_outputs, compiler, PipelineResourceType::Output, PipelineResourceAccess::Write, shaderResources);
+        ExtractInputOutputs(stage, resources.stage_inputs, compiler, ResourceParamType::Input, ParamAccess::Read, shaderResources);
+        ExtractInputOutputs(stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, shaderResources);
     }
 
     ShaderModule::ShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv)
@@ -160,107 +162,25 @@ namespace Alimer
          SPIRVReflectResources(spirv, _stage, _resources);
     }
 
-    Shader::Shader(Graphics* graphics, const void *pCode, size_t codeSize)
-        : GpuResource(graphics, GpuResourceType::Pipeline)
-        , _isCompute(true)
+    std::vector<uint32_t> ShaderModule::AcquireBytecode()
     {
-        Reflect(ShaderStage::Compute, pCode, codeSize);
-
-        for (uint32_t i = 0; i < MaxDescriptorSets; i++)
-        {
-            if (_layout.sets[i].stages != 0)
-                _layout.descriptorSetMask |= 1u << i;
-        }
+        return std::move(_spirv);
     }
 
-    Shader::Shader(Graphics* graphics,
-        const void *pVertexCode, size_t vertexCodeSize,
-        const void *pFragmentCode, size_t fragmentCodeSize)
-        : GpuResource(graphics, GpuResourceType::Pipeline)
+    ShaderProgram::ShaderProgram(Graphics* graphics, const ShaderProgramDescriptor* descriptor)
+        : GpuResource(graphics, GpuResourceType::ShaderProgram)
         , _isCompute(false)
     {
-        Reflect(ShaderStage::Vertex, pVertexCode, vertexCodeSize);
-        Reflect(ShaderStage::Fragment, pFragmentCode, fragmentCodeSize);
-
-        for (uint32_t i = 0; i < MaxDescriptorSets; i++)
+        if (descriptor->stageCount == 1
+            && descriptor->stages[0].module->GetStage() == ShaderStage::Compute)
         {
-            if (_layout.sets[i].stages != 0)
-                _layout.descriptorSetMask |= 1u << i;
-        }
-    }
-
-    Shader::~Shader()
-    {
-    }
-
-    void Shader::Reflect(ShaderStage stage, const void *pCode, size_t codeSize)
-    {
-        spirv_cross::Compiler compiler(reinterpret_cast<const uint32_t*>(pCode), codeSize / sizeof(uint32_t));
-        auto resources = compiler.get_shader_resources();
-
-        if (stage == ShaderStage::Vertex)
-        {
-            for (auto &attrib : resources.stage_inputs)
-            {
-                uint32_t location = compiler.get_decoration(attrib.id, spv::DecorationLocation);
-
-                if (location >= MaxVertexAttributes)
-                {
-                    ALIMER_LOGERROR("SPIRV attribute location higher than allowed one");
-                    return;
-                }
-
-                _layout.attributeMask |= 1u << location;
-            }
-        }
-        else if (stage == ShaderStage::Fragment)
-        {
-            for (auto &attrib : resources.stage_outputs)
-            {
-                uint32_t location = compiler.get_decoration(attrib.id, spv::DecorationLocation);
-                _layout.renderTargetMask |= 1u << location;
-            }
+            _isCompute = true;
         }
 
-        /*auto ExtractResourcesBinding = [this](
-            const ShaderStage& stage,
-            const std::vector<spirv_cross::Resource>& resources,
-            const spirv_cross::Compiler& compiler,
-            BindingType bindingType) {
-
-            for (const auto& resource : resources) {
-                auto bitSet = compiler.get_decoration_bitset(resource.id);
-                ALIMER_ASSERT(bitSet.get(spv::DecorationBinding) && bitSet.get(spv::DecorationDescriptorSet));
-                uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-                uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-
-                if (binding >= MaxBindingsPerSet || set >= MaxDescriptorSets) {
-                    ALIMER_LOGERROR("SPIRV binding or set higher than allowed one");
-                    continue;
-                }
-
-                switch (bindingType)
-                {
-                case BindingType::UniformBuffer:
-                    _layout.sets[set].uniformBufferMask |= 1u << binding;
-                    break;
-                case BindingType::SampledTexture:
-                    break;
-                case BindingType::Sampler:
-                    break;
-                case BindingType::StorageBuffer:
-                    break;
-                default:
-                    break;
-                }
-
-                _layout.sets[set].stages |= 1u << static_cast<unsigned>(stage);
-            }
-        };
-
-        ExtractResourcesBinding(stage, resources.uniform_buffers, compiler, BindingType::UniformBuffer);
-        ExtractResourcesBinding(stage, resources.separate_images, compiler, BindingType::SampledTexture);
-        ExtractResourcesBinding(stage, resources.separate_samplers, compiler, BindingType::Sampler);
-        ExtractResourcesBinding(stage, resources.storage_buffers, compiler, BindingType::StorageBuffer);*/
+        for (uint32_t i = 0; i < descriptor->stageCount; ++i)
+        {
+            auto stage = descriptor->stages[i];
+            _shaders[static_cast<uint32_t>(stage.module->GetStage())] = stage.module;
+        }
     }
 }

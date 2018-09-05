@@ -36,7 +36,7 @@ namespace Alimer
         Buffer,
         Texture,
         ShaderModule,
-        Pipeline,
+        ShaderProgram,
     };
 
 	/// Defines a base GPU Resource.

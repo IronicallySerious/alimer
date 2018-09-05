@@ -27,7 +27,6 @@
 #include "D3D11CommandBuffer.h"
 #include "D3D11GpuBuffer.h"
 #include "D3D11Shader.h"
-#include "D3D11PipelineState.h"
 #include "D3D11VertexInputFormat.h"
 #include "D3D11GpuAdapter.h"
 #include "../ShaderCompiler.h"
@@ -469,31 +468,16 @@ namespace Alimer
 
     ShaderModule* D3D11Graphics::CreateShaderModuleImpl(const std::vector<uint32_t>& spirv)
     {
-        return new D3D11ShaderModule(this, spirv);
+        return new ShaderModule(this, spirv);
+    }
+
+    ShaderProgram* D3D11Graphics::CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor)
+    {
+        return new D3D11Shader(this, descriptor);
     }
 
     Texture* D3D11Graphics::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         return new D3D11Texture(this, descriptor, initialData, nullptr);
-    }
-
-    Shader* D3D11Graphics::CreateComputeShader(const void *pCode, size_t codeSize)
-    {
-        return new D3D11Shader(this, pCode, codeSize);
-    }
-
-    Shader* D3D11Graphics::CreateShader(
-        const void *pVertexCode, size_t vertexCodeSize,
-        const void *pFragmentCode, size_t fragmentCodeSize)
-    {
-        return new D3D11Shader(this,
-            pVertexCode, vertexCodeSize,
-            pFragmentCode, fragmentCodeSize
-        );
-    }
-
-    PipelineState* D3D11Graphics::CreateRenderPipelineState(const RenderPipelineDescription& description)
-    {
-        return new D3D11PipelineState(this, description);
     }
 }

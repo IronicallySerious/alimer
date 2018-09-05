@@ -29,33 +29,11 @@ namespace Alimer
 {
 	class D3D11Graphics;
 
-    /// D3D11 ShaderModule implementation.
-    class D3D11ShaderModule final : public ShaderModule
-    {
-    public:
-        /// Constructor.
-        D3D11ShaderModule(D3D11Graphics* graphics, const std::vector<uint32_t>& spirv);
-        ~D3D11ShaderModule() override;
-
-        void Destroy() override;
-
-    private:
-        union {
-            ID3D11VertexShader* _vertex;
-            ID3D11PixelShader* _pixel;
-            ID3D11ComputeShader* _compute;
-        };
-    };
-
-	class D3D11Shader final : public Shader
+	class D3D11Shader final : public ShaderProgram
 	{
 	public:
 		/// Constructor.
-        D3D11Shader(D3D11Graphics* graphics, const void *pCode, size_t codeSize);
-		/// Constructor.
-        D3D11Shader(D3D11Graphics* graphics,
-            const void *pVertexCode, size_t vertexCodeSize,
-            const void *pFragmentCode, size_t fragmentCodeSize);
+        D3D11Shader(D3D11Graphics* graphics, const ShaderProgramDescriptor* descriptor);
 
 		/// Destructor.
 		~D3D11Shader() override;
@@ -64,17 +42,12 @@ namespace Alimer
 
         void Bind(ID3D11DeviceContext1* context);
 
-        std::vector<uint8_t> AcquireVertexShaderBytecode();
-        uint64_t GetVertexShaderHash() const { return _vertexShaderHash; }
-        ID3D11VertexShader* GetD3DVertexShader() const { return _d3dVertexShader; }
-        ID3D11PixelShader* GetD3DPixelShader() const { return _d3dPixelShader; }
-        ID3D11ComputeShader* GetD3DComputeShader() const { return _d3dComputeShader; }
+        ID3DBlob* GetVertexShaderBlob() const { return _vsBlob; }
 
 	private:
-        ID3D11VertexShader* _d3dVertexShader = nullptr;
-        ID3D11PixelShader* _d3dPixelShader = nullptr;
-        ID3D11ComputeShader* _d3dComputeShader = nullptr;
-        std::vector<uint8_t> _vsByteCode;
-        uint64_t _vertexShaderHash = 0;
+        ID3D11VertexShader* _vertexShader = nullptr;
+        ID3D11PixelShader* _pixelShader = nullptr;
+        ID3D11ComputeShader* _computeShader = nullptr;
+        ID3DBlob* _vsBlob = nullptr;
 	};
 }

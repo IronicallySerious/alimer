@@ -47,6 +47,7 @@ namespace Alimer
 
 	Scene::~Scene()
 	{
+        _systems.clear();
         _entityManager.ResetGroups();
 	}
 

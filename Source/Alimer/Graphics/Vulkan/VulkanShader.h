@@ -60,17 +60,14 @@ namespace Alimer
         VkShaderModule _handle = VK_NULL_HANDLE;
     };
 
-    class VulkanShader final : public Shader
+    class VulkanShader final : public ShaderProgram
     {
     public:
         /// Constructor.
-        VulkanShader(VulkanGraphics* graphics, const void *pCode, size_t codeSize);
-        /// Constructor.
-        VulkanShader(VulkanGraphics* graphics,
-            const void *pVertexCode, size_t vertexCodeSize,
-            const void *pFragmentCode, size_t fragmentCodeSize);
+        VulkanShader(VulkanGraphics* graphics, const ShaderProgramDescriptor* descriptor);
 
         ~VulkanShader() override;
+        void Destroy() override;
 
         VkShaderModule GetVkShaderModule(unsigned stage) const { return _shaderModules[stage]; }
         VkShaderModule GetVkShaderModule(ShaderStage stage) const;

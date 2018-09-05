@@ -185,7 +185,7 @@ target_include_directories(libAlimer PUBLIC
 )
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross)
+set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross glslang SPIRV)
 if (ALIMER_GLFW)
     list (APPEND THIRD_PARTY_DEPENDENCIES glfw)
 endif ()
@@ -214,12 +214,6 @@ endif()
 
 if (ALIMER_THREADING)
     target_compile_definitions(libAlimer PRIVATE -DALIMER_THREADING=1)
-endif ()
-
-if (NOT ALIMER_DISABLE_SHADER_COMPILER)
-    target_link_libraries(libAlimer glslang SPIRV)
-else()
-    target_compile_definitions(libAlimer PRIVATE -DALIMER_DISABLE_SHADER_COMPILER=1)
 endif ()
 
 if (ALIMER_SHARED)

@@ -100,19 +100,19 @@ namespace Alimer
         _state = State::Recording;
     }
 
-    void CommandBuffer::SetShader(Shader* shader)
+    void CommandBuffer::SetShaderProgram(ShaderProgram* program)
     {
-        ALIMER_ASSERT(shader);
-        SetShaderCore(shader);
+        ALIMER_ASSERT(program);
+        SetShaderProgramImpl(program);
     }
 
-    void CommandBuffer::BindVertexBuffer(uint32_t binding, GpuBuffer* buffer, GpuSize offset, VertexInputRate inputRate)
+    void CommandBuffer::BindVertexBuffer(GpuBuffer* buffer, uint32_t binding, GpuSize offset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Vertex);
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
 
-        BindVertexBufferImpl(binding, buffer, offset, buffer->GetStride(), inputRate);
+        BindVertexBufferImpl(buffer, binding, offset, buffer->GetStride(), inputRate);
     }
 
     void CommandBuffer::SetVertexInputFormat(VertexInputFormat* format)
@@ -147,10 +147,14 @@ namespace Alimer
         BindBufferImpl(buffer, offset, range, set, binding);
     }
 
-    void CommandBuffer::SetTexture(uint32_t binding, Texture* texture, ShaderStageFlags stage)
+    void CommandBuffer::BindTexture(Texture* texture, uint32_t set, uint32_t binding)
     {
+        ALIMER_ASSERT(texture);
+        ALIMER_ASSERT((texture->GetUsage() & TextureUsage::ShaderRead) || texture->GetUsage() & TextureUsage::ShaderWrite);
+        ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
-        SetTextureCore(binding, texture, stage);
+
+        BindTextureImpl(texture, set, binding);
     }
 
     void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)

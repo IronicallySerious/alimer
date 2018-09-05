@@ -34,7 +34,6 @@
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
-#include "VulkanPipelineState.h"
 #include "VulkanConvert.h"
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -388,8 +387,8 @@ namespace Alimer
         }
         _renderPassCache.clear();
 
-        _descriptorSetAllocators.clear();
-        _pipelineLayouts.clear();
+        //_descriptorSetAllocators.clear();
+        //_pipelineLayouts.clear();
 
         vkDestroyPipelineCache(_logicalDevice, _pipelineCache, nullptr);
 
@@ -657,10 +656,10 @@ namespace Alimer
             vkThrowIfFailed(result);
         }
 
-        for (auto &allocator : _descriptorSetAllocators)
+        /*for (auto &allocator : _descriptorSetAllocators)
         {
             allocator.second->BeginFrame();
-        }
+        }*/
 
         // Begin command buffer.
         _defaultCommandBuffer->Begin(nullptr);
@@ -749,29 +748,14 @@ namespace Alimer
         return new VulkanShaderModule(this, spirv);
     }
 
+    ShaderProgram* VulkanGraphics::CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor)
+    {
+        return new VulkanShader(this, descriptor);
+    }
+
     Texture* VulkanGraphics::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         return new VulkanTexture(this, descriptor, initialData);
-    }
-
-    Shader* VulkanGraphics::CreateComputeShader(const void *pCode, size_t codeSize)
-    {
-        return new VulkanShader(this, pCode, codeSize);
-    }
-
-    Shader* VulkanGraphics::CreateShader(
-        const void *pVertexCode, size_t vertexCodeSize,
-        const void *pFragmentCode, size_t fragmentCodeSize)
-    {
-        return new VulkanShader(this,
-            pVertexCode, vertexCodeSize,
-            pFragmentCode, fragmentCodeSize
-        );
-    }
-
-    PipelineState* VulkanGraphics::CreateRenderPipelineState(const RenderPipelineDescription& description)
-    {
-        return new VulkanPipelineState(this, description);
     }
 
     uint32_t VulkanGraphics::GetQueueFamilyIndex(VkQueueFlagBits queueFlags)
@@ -1014,6 +998,7 @@ namespace Alimer
         return renderPass;
     }
 
+#if TODO
     VulkanDescriptorSetAllocator* VulkanGraphics::RequestDescriptorSetAllocator(const DescriptorSetLayout &layout)
     {
         Hasher h;
@@ -1045,4 +1030,6 @@ namespace Alimer
         _pipelineLayouts.insert(make_pair(hash, unique_ptr<VulkanPipelineLayout>(newPipelineLayout)));
         return newPipelineLayout;
     }
+#endif // TODO
+
 }
