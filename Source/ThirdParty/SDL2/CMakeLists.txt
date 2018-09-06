@@ -37,7 +37,6 @@ file(GLOB SRCS
     ${SRC_DIR}/audio/dsp/*.c
     ${SRC_DIR}/audio/dummy/*.c
     ${SRC_DIR}/cpuinfo/*.c
-    ${SRC_DIR}/dynapi/*.c
     ${SRC_DIR}/events/*.c
     ${SRC_DIR}/file/*.c
     ${SRC_DIR}/joystick/*.c
@@ -55,7 +54,6 @@ file(GLOB SRCS
     ${SRC_DIR}/video/dummy/*.c
 )
 
-###################################################################################################
 # Windows specific files
 if (WIN32)
     file(GLOB SRCS_WIN32
@@ -74,26 +72,12 @@ if (WIN32)
     )
     set(SRCS ${SRCS} ${SRCS_WIN32})
 
-    list(APPEND EXTRA_LIBS dinput8)
-    list(APPEND EXTRA_LIBS dxguid)
-    list(APPEND EXTRA_LIBS gdi32)
-    list(APPEND EXTRA_LIBS imagehlp)
-    list(APPEND EXTRA_LIBS imm32)
-    list(APPEND EXTRA_LIBS ole32)
-    list(APPEND EXTRA_LIBS oleaut32)
-    list(APPEND EXTRA_LIBS shell32)
-    list(APPEND EXTRA_LIBS user32)
-    list(APPEND EXTRA_LIBS uuid)
-    list(APPEND EXTRA_LIBS version)
-    list(APPEND EXTRA_LIBS winmm)
-
+    list(APPEND EXTRA_LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 shell32)
 endif()
-###################################################################################################
-
-add_definitions(-D_THREAD_SAFE)
 
 # we're building a library
 add_library(${TARGET} ${SRCS})
 
 target_include_directories(${TARGET} PUBLIC ${HEADER_DIR})
+target_compile_definitions(${TARGET} PUBLIC -DSDL_MAIN_HANDLED=1)
 target_link_libraries(${TARGET} ${EXTRA_LIBS})

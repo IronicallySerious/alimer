@@ -165,6 +165,8 @@ typedef struct {
     int bytes_per_pixel;
 } SDL_WindowTextureData;
 
+// Alimer: check first if renderer is disabled
+#if !SDL_RENDER_DISABLED
 static SDL_bool
 ShouldUseTextureFramebuffer()
 {
@@ -413,7 +415,7 @@ SDL_DestroyWindowTexture(SDL_VideoDevice *unused, SDL_Window * window)
     SDL_free(data->pixels);
     SDL_free(data);
 }
-
+#endif
 
 static int
 cmpmodes(const void *A, const void *B)
@@ -541,11 +543,14 @@ SDL_VideoInit(const char *driver_name)
     }
 
     /* Add the renderer framebuffer emulation if desired */
+    // Alimer: check first if renderer is disabled
+#if !SDL_RENDER_DISABLED
     if (ShouldUseTextureFramebuffer()) {
         _this->CreateWindowFramebuffer = SDL_CreateWindowTexture;
         _this->UpdateWindowFramebuffer = SDL_UpdateWindowTexture;
         _this->DestroyWindowFramebuffer = SDL_DestroyWindowTexture;
     }
+#endif
 
     /* Disable the screen saver by default. This is a change from <= 2.0.1,
        but most things using SDL are games or media players; you wouldn't
