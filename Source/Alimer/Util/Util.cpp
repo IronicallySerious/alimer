@@ -103,7 +103,11 @@ namespace Alimer
 
         if (lowerCase)
         {
+#ifdef _MSC_VER
+            return _strnicmp(str.c_str(), pattern.c_str(), pattern.size()) == 0;
+#else
             return strnicmp(str.c_str(), pattern.c_str(), pattern.size()) == 0;
+#endif
         }
 
         return strncmp(str.c_str(), pattern.c_str(), pattern.size()) == 0;
@@ -115,7 +119,11 @@ namespace Alimer
 
         if (lowerCase)
         {
+#ifdef _MSC_VER
+            return _strnicmp(str.c_str() + offset, pattern.c_str(), pattern.size()) == 0;
+#else
             return strnicmp(str.c_str() + offset, pattern.c_str(), pattern.size()) == 0;
+#endif
         }
 
         return strncmp(str.c_str() + offset, pattern.c_str(), pattern.size()) == 0;

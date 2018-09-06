@@ -157,6 +157,9 @@ namespace Alimer
 
     void Application::OnRenderFrame(double frameTime, double elapsedTime)
     {
+        ALIMER_UNUSED(frameTime);
+        ALIMER_UNUSED(elapsedTime);
+
         // By default clear with some color.
         //auto commandBuffer = _graphics->GetDefaultCommandBuffer();
         //commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));

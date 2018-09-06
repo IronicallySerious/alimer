@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <utility>
 #define FMT_NO_FMT_STRING_ALIAS
+#define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
 namespace Alimer

@@ -33,7 +33,7 @@
 
 #if defined(_MSC_VER) && defined(_DEBUG) && !defined(ALIMER_WIN32_CONSOLE) && !ALIMER_PLATFORM_UWP
 #define ALIMER_APPLICATION(className) \
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int nShowCmd) { \
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) { \
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); \
 	Alimer::SharedPtr<className> application(new className()); \
 	return application->Run(); \
@@ -42,7 +42,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int nShowCmd) { \
 // MSVC release mode: write minidump on crash
 #elif defined(_MSC_VER) && defined(ALIMER_MINI_DUMPS) && !defined(ALIMER_WIN32_CONSOLE) && !ALIMER_PLATFORM_UWP
 #define ALIMER_APPLICATION(className) \
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int nShowCmd) { \
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) { \
 
 	int exitCode; \
 	__try \
@@ -58,7 +58,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int nShowCmd) { \
 // Other Win32 or minidumps disabled: just execute the function
 #elif defined(_WIN32) && !defined(ALIMER_WIN32_CONSOLE) && !ALIMER_PLATFORM_UWP
 #define ALIMER_APPLICATION(className) \
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int nShowCmd) { \
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) { \
 	Alimer::SharedPtr<className> application(new className()); \
 	return application->Run(); \
 }

@@ -22,6 +22,11 @@
 
 #pragma once
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4201 4203 4244 4702) 
+#endif
+
 #include <stdint.h>
 
 namespace Alimer
@@ -1004,3 +1009,7 @@ namespace Alimer
 }
 
 #include "../Math/math_impl.h"
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

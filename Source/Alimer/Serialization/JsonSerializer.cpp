@@ -146,8 +146,6 @@ namespace Alimer
 
         void BeginObject(const char* key, bool isArray)
         {
-            auto& object = GetObject();
-
             if (isArray)
             {
                 rapidjson::Value newObject(rapidjson::kArrayType);

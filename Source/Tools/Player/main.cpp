@@ -468,6 +468,9 @@ namespace Alimer
 
     void RuntimeApplication::OnRenderFrame(double frameTime, double elapsedTime)
     {
+        ALIMER_UNUSED(frameTime);
+        ALIMER_UNUSED(elapsedTime);
+
         auto commandBuffer = _graphics->GetDefaultCommandBuffer();
         commandBuffer->Begin();
         //_triangleExample.Render(commandBuffer);

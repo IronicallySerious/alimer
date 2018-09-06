@@ -67,7 +67,7 @@ namespace Alimer
     };
 
     /// Base class for objects with type identification and possibility to create through a factory.
-    class Object : public RefCounted
+    class ALIMER_API Object : public RefCounted
     {
     public:
         /// Destructor.

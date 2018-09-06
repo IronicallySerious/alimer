@@ -1,9 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
-
-if( _SETTINGS_GUARD )
-	return()
-endif()
-set(_SETTINGS_GUARD 1)
+cmake_minimum_required(VERSION 3.1)
 
 include(AlimerPlatforms)
 include(AlimerMacros)
@@ -16,14 +11,6 @@ if (ALIMER_SHARED)
     set (ALIMER_LIBRARY_TYPE SHARED)
 else ()
     set (ALIMER_LIBRARY_TYPE STATIC)
-endif ()
-
-if (PLATFORM_WINDOWS)
-    set (ALIMER_STATIC_RUNTIME_DEFAULT ON)
-elseif (PLATFORM_UWP)
-    set (ALIMER_STATIC_RUNTIME_DEFAULT OFF)
-else ()
-    set (ALIMER_STATIC_RUNTIME_DEFAULT OFF)
 endif ()
 
 # Threads are still experimental on emscripten.
@@ -73,11 +60,12 @@ else ()
     set (ALIMER_SDL_DEFAULT OFF)
 endif()
 
-if (PLATFORM_DESKTOP AND NOT DEFINED ENV{APPVEYOR})
-    set (ALIMER_CSHARP_DEFAULT ON)
-else ()
+# Disable C# for now
+# if (PLATFORM_DESKTOP AND NOT DEFINED ENV{APPVEYOR})
+#     set (ALIMER_CSHARP_DEFAULT ON)
+# else ()
     set (ALIMER_CSHARP_DEFAULT OFF)
-endif()
+# endif()
 
 # Tools
 if (PLATFORM_DESKTOP)
@@ -86,7 +74,6 @@ else ()
     set (ALIMER_TOOLS_DEFAULT OFF)
 endif()
 
-alimer_option (ALIMER_STATIC_RUNTIME "Enable link to static runtime")
 alimer_option (ALIMER_THREADING "Enable multithreading")
 alimer_option (ALIMER_GL "Enable OpenGL backend")
 alimer_option (ALIMER_VULKAN "Enable Vulkan backend")

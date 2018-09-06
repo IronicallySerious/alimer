@@ -5,6 +5,34 @@
 ** file 'LICENSE', which is part of this source code package.
 */
 
+#define SDL_MAIN_HANDLED
+#include <SDL.h>
+
+extern "C" __declspec(dllexport) int AlimerPluginLoad()
+{
+    SDL_SetMainReady();
+    int result = SDL_Init(
+        SDL_INIT_VIDEO
+        | SDL_INIT_GAMECONTROLLER
+        | SDL_INIT_HAPTIC
+        | SDL_INIT_TIMER);
+    return result;
+}
+
+namespace alimer
+{
+    class __declspec(dllexport) TestClass
+    {
+    public:
+        TestClass();
+    };
+
+    TestClass::TestClass() {
+
+    }
+}
+
+/*
 #include "Alimer.h"
 using namespace Alimer;
 
@@ -43,3 +71,4 @@ extern "C" ALIMER_INTERFACE_EXPORT void AlimerPluginUnload(Alimer::Plugin* plugi
 
 }
 #endif
+*/

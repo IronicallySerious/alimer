@@ -27,6 +27,7 @@ using namespace std;
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
+#if TODO_GLSLANG
 #include "glslang/Public/ShaderLang.h"
 #include "SPIRV/GlslangToSpv.h"
 
@@ -403,14 +404,14 @@ namespace Alimer
             // Translate to SPIRV.
             if (program.getIntermediate(language))
             {
-                glslang::SpvOptions options;
-                options.generateDebugInfo = false;
-                options.disableOptimizer = true;
-                options.optimizeSize = false;
+                glslang::SpvOptions spvOptions;
+                spvOptions.generateDebugInfo = false;
+                spvOptions.disableOptimizer = true;
+                spvOptions.optimizeSize = false;
 
                 spv::SpvBuildLogger logger;
 
-                glslang::GlslangToSpv(*program.getIntermediate(language), spirv, &logger, &options);
+                glslang::GlslangToSpv(*program.getIntermediate(language), spirv, &logger, &spvOptions);
                 auto spvMessages = logger.getAllMessages();
                 if (!spvMessages.empty())
                 {
@@ -425,3 +426,5 @@ namespace Alimer
         }
     }
 }
+
+#endif // TODO_GLSLANG

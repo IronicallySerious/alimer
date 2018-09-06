@@ -45,10 +45,10 @@ namespace Alimer
         virtual ~Serializable();
 
         /// Serialize. 
-        virtual void Serialize(Serializer& serializer) { }
+        virtual void Serialize(Serializer&) { }
 
         /// Serialize. 
-        virtual void Deserialize(Deserializer& serializer) { }
+        virtual void Deserialize(Deserializer&) { }
     protected:
 
     private:

@@ -39,7 +39,6 @@ namespace Alimer
         bool validFactory4 = SUCCEEDED(graphics->GetDXGIFactory()->QueryInterface(IID_PPV_ARGS(&factory4)));
 
         // Check tearing support.
-        HRESULT hr = S_FALSE;
         const bool isWindows10OrGreater = IsWindows10OrGreater();
         if (isWindows10OrGreater)
         {

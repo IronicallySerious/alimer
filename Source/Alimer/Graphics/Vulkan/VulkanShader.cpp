@@ -27,23 +27,6 @@
 
 namespace Alimer
 {
-    static VkShaderModule CreateShaderModule(VkDevice device, const void *pCode, size_t codeSize)
-    {
-        VkShaderModuleCreateInfo moduleCreateInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-        moduleCreateInfo.pNext = nullptr;
-        moduleCreateInfo.flags = 0;
-        moduleCreateInfo.codeSize = codeSize;
-        moduleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(pCode);
-
-        VkShaderModule shaderModule;
-        vkThrowIfFailed(vkCreateShaderModule(
-            device,
-            &moduleCreateInfo,
-            nullptr,
-            &shaderModule));
-        return shaderModule;
-    }
-
     VulkanShaderModule::VulkanShaderModule(VulkanGraphics* graphics, const std::vector<uint32_t>& spirv)
         : ShaderModule(graphics, spirv)
         , _logicalDevice(graphics->GetLogicalDevice())

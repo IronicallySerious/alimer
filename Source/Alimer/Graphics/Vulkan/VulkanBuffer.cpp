@@ -93,6 +93,5 @@ namespace Alimer
     {
         ALIMER_LOGCRITICAL("VulkanBuffer::SetData not implemented");
         //memcpy(_allocation->GetMappedData(), initialData, vmaAllocInfo.size);
-        return false;
     }
 }

@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Input.h"
-#include <SDL.h>
 
 namespace Alimer
 {

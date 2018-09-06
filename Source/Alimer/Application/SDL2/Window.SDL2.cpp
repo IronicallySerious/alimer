@@ -23,7 +23,8 @@
 #include "Window.SDL2.h"
 #include "../Application.h"
 #include "../../Core/Log.h"
-#define GLFW_INCLUDE_NONE
+#define SDL_MAIN_HANDLED
+#include <SDL.h>
 #include <SDL_syswm.h>
 
 namespace Alimer

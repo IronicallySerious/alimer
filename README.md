@@ -4,17 +4,18 @@
 [![Contribute!](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/amerkoleci/alimer/issues)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/amerkoleci/alimer/blob/master/LICENSE)
 
-**Alimer Engine** is a cross platform 2D and 3D game engine implemented in C++11, inspired by [Urho3D](https://github.com/urho3d/Urho3D) and [Ogre3D](http://www.ogre3d.org).
+**Alimer Engine** is a cross platform 2D and 3D game engine implemented in C++14, inspired by [Urho3D](https://github.com/urho3d/Urho3D) and [Ogre3D](http://www.ogre3d.org).
 
 ## Features
 
 - Cross-platform.
-- Modern graphics/rendering API using Vulkan.
-- Data-Driven engine.
+- Modern graphics/rendering API using Vulkan, DirectX12 and DirectX11.1.
+- Shader support using Vulkan GLSL and SPIRV.
 
 ## Goals/Planned Features
 
-- OpenGL 3.3 + and OpenGLES 2.0, 3.0+ support.
+- OpenGL 4.1+ Linux, macOS and Windows.
+- OpenGL ES 3.0+ for Android.
 - Extendible Asset Pipeline.
 - GLTF 2.0 support.
 - .NET Core/Standard, Mono/Xamarin scripting support.

@@ -32,11 +32,6 @@ macro (define_engine_source_files)
 		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.hpp ${path}/*.inl)
 		list (APPEND HEADER_FILES ${_files})
 
-        # Remove unsupported header to install.
-        list (REMOVE_ITEM _files
-			Graphics/GraphicsImpl.h
-		)
-
 		# Install them
 		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
 
@@ -167,12 +162,7 @@ endif()
 
 # Define the library target.
 add_library(libAlimer ${ALIMER_LIBRARY_TYPE} ${SOURCE_FILES} ${HEADER_FILES})
-
-set_target_properties(libAlimer PROPERTIES
-    CXX_STANDARD 11
-    CXX_STANDARD_REQUIRED YES
-    CXX_EXTENSIONS NO
-)
+target_compile_features(libAlimer PUBLIC cxx_std_14)
 
 target_include_directories(libAlimer PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
@@ -185,7 +175,8 @@ target_include_directories(libAlimer PUBLIC
 )
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross glslang SPIRV)
+#set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross glslang SPIRV)
+set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross)
 if (ALIMER_SDL)
     list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()
@@ -196,6 +187,12 @@ foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     endif ()
 endforeach()
 
+# Link universal crt libs (https://blogs.msdn.microsoft.com/vcblog/2015/03/03/introducing-the-universal-crt/)
+if( PLATFORM_WINDOWS )
+    target_link_libraries(libAlimer debug libcmtd libvcruntimed libucrtd)
+    target_link_libraries(libAlimer optimized libcmt libvcruntime libucrt)
+endif()
+
 target_compile_definitions(libAlimer PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
 
 if (ALIMER_D3D11 OR ALIMER_D3D12)
@@ -203,12 +200,11 @@ if (ALIMER_D3D11 OR ALIMER_D3D12)
 
     if (ALIMER_D3D11)
         target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D11)
-        target_link_libraries (libAlimer ${D3D11_LIBRARIES})
+        # target_link_libraries (libAlimer ${D3D11_LIBRARIES})
     endif()
 
     if (ALIMER_D3D12)
         target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D12)
-        # target_link_libraries (libAlimer ${D3D12_LIBRARIES})
     endif()
 endif()
 
@@ -216,8 +212,8 @@ if (ALIMER_THREADING)
     target_compile_definitions(libAlimer PRIVATE -DALIMER_THREADING=1)
 endif ()
 
-if (ALIMER_SHARED)
-	target_compile_definitions(libAlimer PRIVATE -DALIMER_SHARED=1)
+if (ALIMER_SHARED OR EMSCRIPTEN)
+	target_compile_definitions(libAlimer PRIVATE -DALIMER_SHARED INTERFACE -DALIMER_IMPORTS)
 endif ()
 
 if (ALIMER_GL)
@@ -241,10 +237,10 @@ endif ()
 
 # Add OS-specific library dependencies
 if (PLATFORM_WINDOWS)
-	target_compile_definitions (libAlimer PRIVATE -D_UNICODE -DNOMINMAX)
+	target_compile_definitions (libAlimer PRIVATE -DNOMINMAX)
 elseif (PLATFORM_UWP)
 	set_target_properties(libAlimer PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${PLATFORM_UWP_VERSION_MIN}")
-	target_compile_definitions (libAlimer PRIVATE -D_UNICODE -DNOMINMAX)
+	target_compile_definitions (libAlimer PRIVATE -DNOMINMAX)
 	target_link_libraries (libAlimer mincore ${D3D12_LIBRARIES} ${D3D11_LIBRARIES})
 else ()
 	target_link_libraries (libAlimer pthread)

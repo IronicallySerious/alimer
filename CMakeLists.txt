@@ -50,7 +50,6 @@ execute_process(
 # Set project name
 project (Alimer)
 
-set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set (CMAKE_INCLUDE_CURRENT_DIR ON)
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -68,8 +67,17 @@ endif ()
 # Set CMake modules search path
 set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 
+# Include cotire first.
+include (cotire)
+
+# Include ucm.
+include (ucm)
+
 # Include Alimer cmake module.
 include (Alimer)
+
+# Enable Unity build
+set(UCM_UNITY_BUILD ON)
 
 # Set alimer sdk path.
 set (ALIMER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -99,18 +107,12 @@ message(STATUS "Alimer Configuration:")
 message(STATUS "  Platform        ${PLATFORM_NAME}")
 message(STATUS "  Architecture    ${ARCH_NAME}")
 
-if (ALIMER_STATIC_RUNTIME)
-    message(STATUS "  Runtime         STATIC")
-else ()
-    message(STATUS "  Runtime         SHARED")
-endif ()
-
 message(STATUS "  Library         ${ALIMER_LIBRARY_TYPE}")
 message(STATUS "  Threading       ${ALIMER_THREADING}")
 message(STATUS "  GL              ${ALIMER_GL}")
 message(STATUS "  D3D11           ${ALIMER_D3D11}")
 message(STATUS "  D3D12           ${ALIMER_D3D12}")
 message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
-message(STATUS "  GLFW            ${ALIMER_GLFW}")
+message(STATUS "  SDL2            ${ALIMER_SDL}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")

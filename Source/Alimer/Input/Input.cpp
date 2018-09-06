@@ -54,7 +54,8 @@ namespace Alimer
 
 	void Input::SetCursorVisible(bool visible)
 	{
-		// Do nothing by default
+		// Do nothing by default.
+        ALIMER_UNUSED(visible);
 	}
 
     Input& gInput()

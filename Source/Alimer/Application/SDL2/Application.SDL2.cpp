@@ -25,7 +25,8 @@
 #include "../../Input/SDL2/Input.SDL2.h"
 #include "../../Audio/WASAPI/AudioWASAPI.h"
 #include "../../Core/Log.h"
-#include <SDL_syswm.h>
+#define SDL_MAIN_HANDLED
+#include <SDL.h>
 using namespace std;
 
 namespace Alimer
@@ -130,6 +131,7 @@ namespace Alimer
 
     int Application::Run()
     {
+        SDL_SetMainReady();
         int result = SDL_Init(
             SDL_INIT_VIDEO
             | SDL_INIT_GAMECONTROLLER
@@ -160,7 +162,7 @@ namespace Alimer
         }
 
         SDL_Event evt;
-        SDL2Window* glfwMainWindow = static_cast<SDL2Window*>(_window.Get());
+        //SDL2Window* sdlMainWindow = static_cast<SDL2Window*>(_window.Get());
         while (_running)
         {
             while (SDL_PollEvent(&evt))

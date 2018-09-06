@@ -2,10 +2,12 @@ include (AlimerOptions)
 
 # Setup global per-platform compiler/linker options
 if( PLATFORM_WINDOWS OR PLATFORM_UWP )
-    add_compile_options(-D_CRT_NONSTDC_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
+    add_definitions(-D_UNICODE)
+	add_compile_options(-D_CRT_NONSTDC_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
     add_compile_options($<$<CONFIG:DEBUG>:-D_SECURE_SCL_THROWS=0> $<$<CONFIG:DEBUG>:-D_SILENCE_DEPRECATION_OF_SECURE_SCL_THROWS>)
     add_compile_options(-D_HAS_ITERATOR_DEBUGGING=$<CONFIG:DEBUG> -D_SECURE_SCL=$<CONFIG:DEBUG>)
     #add_compile_options(-D_HAS_EXCEPTIONS=0)
+    add_compile_options(-D_USE_MATH_DEFINES=1)
 
     # Enable full optimization in dev/release
     add_compile_options($<$<CONFIG:DEBUG>:/Od> $<$<NOT:$<CONFIG:DEBUG>>:/Ox>)
@@ -23,19 +25,23 @@ if( PLATFORM_WINDOWS OR PLATFORM_UWP )
 	add_compile_options($<$<NOT:$<CONFIG:DEBUG>>:/GT>)
 
 	# Enable string pooling
-	add_compile_options(/GF)
+    add_compile_options(/GF)
 
-	# Select static/dynamic runtime library
-	if( PLATFORM_WINDOWS AND ALIMER_STATIC_RUNTIME)
-		add_compile_options($<$<CONFIG:DEBUG>:/MTd> $<$<NOT:$<CONFIG:DEBUG>>:/MT>)
-	else ()
-		add_compile_options($<$<CONFIG:DEBUG>:/MDd> $<$<NOT:$<CONFIG:DEBUG>>:/MD>)
-	endif()
+    # Select static/dynamic runtime library
+	if( PLATFORM_WINDOWS )
+        add_compile_options($<$<CONFIG:DEBUG>:/MTd> $<$<NOT:$<CONFIG:DEBUG>>:/MT>)
+    elseif ( PLATFORM_UWP )
+        add_compile_options($<$<CONFIG:DEBUG>:/MDd> $<$<NOT:$<CONFIG:DEBUG>>:/MD>)
+    endif()
 
-	# Disable specific link libraries
+    # Disable runtime checks.
+	STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+	STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+
+    # Disable specific link libraries
 	if ( PLATFORM_WINDOWS )
-		add_linker_flags(/NODEFAULTLIB:"MSVCRT.lib")
-	endif()
+        # ucm_add_linker_flags(EXE STATIC SHARED /NODEFAULTLIB:"MSVCRT.lib")
+    endif()
 
 	# Use security checks only in debug
 	if ( PLATFORM_UWP )
@@ -58,43 +64,37 @@ if( PLATFORM_WINDOWS OR PLATFORM_UWP )
 		endif()
 	endif()
 
-	# Use fast floating point model
-	add_compile_options(/fp:fast)
+    # Use fast floating point model
+    ucm_add_flags(C CXX /fp:fast)
 
-	# Disable run-time type information (RTTI)
-	# replace_compile_flags("/GR" "/GR-")
-
-	# Enable multi-processor compilation for Visual Studio 2012 and above
+    # Enable multi-processor compilation
 	add_compile_options(/MP)
 
 	# Set warning level 3
-	add_compile_options(/W3)
+	ucm_add_flags(CXX /W3)
+    ucm_add_flags(/W4 CONFIG Debug)
 
 	# Disable specific warnings
-	add_compile_options(/wd4351 /wd4005)
+	add_compile_options(/wd4127 /wd4351 /wd4005)
 
 	# Disable specific warnings for MSVC14 and above
 	if( (PLATFORM_WINDOWS OR PLATFORM_UWP) AND (NOT MSVC_VERSION LESS 1900) )
 		add_compile_options(/wd4838 /wd4312 /wd4477 /wd4244 /wd4091 /wd4311 /wd4302 /wd4476 /wd4474)
-		add_compile_options(/wd4309)	# truncation of constant value
+        add_compile_options(/wd4309)	# truncation of constant value
 	endif()
 
 	# Force specific warnings as errors
 	add_compile_options(/we4101)
 
 	# Treat all other warnings as errors
-	add_compile_options(/WX)
+    # add_compile_options(/WX)
 
 	if ( PLATFORM_UWP )
 	    # Consume Windows Runtime
 		add_compile_options(/ZW)
 		# C++ exceptions
 		add_compile_options(/EHsc)
-	endif()
-
-	# Clean-up linker flags case since VS IDE doesn't recognize them properly
-	replace_linker_flags("/debug" "/DEBUG" debug)
-    replace_linker_flags("/machine:x64" "/MACHINE:X64")
+    endif()
 
 elseif (PLATFORM_WEB)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-warn-absolute-paths -Wno-unknown-warning-option")
@@ -105,6 +105,9 @@ elseif (PLATFORM_WEB)
     endif ()
     set (CMAKE_C_FLAGS_RELEASE "-Oz -DNDEBUG")
     set (CMAKE_CXX_FLAGS_RELEASE "-Oz -DNDEBUG")
+else ()
+    # Use fast floating point model
+    ucm_add_flags(C CXX ffast-math)
 
 endif ()
 

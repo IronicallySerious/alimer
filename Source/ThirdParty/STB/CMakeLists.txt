@@ -20,8 +20,12 @@
 # THE SOFTWARE.
 #
 
-file (GLOB_RECURSE SOURCE_FILES *.h *.cpp)
-add_library(STB STATIC ${SOURCE_FILES})
+#file (GLOB_RECURSE SOURCE_FILES *.h *.cpp)
+
+ucm_add_dirs(. TO SOURCE_FILES)
+ucm_add_target(NAME STB TYPE STATIC SOURCES "${SOURCE_FILES}")
+
+#add_library(STB STATIC ${SOURCE_FILES})
 target_compile_definitions(STB PUBLIC -DSTB_VORBIS_HEADER_ONLY=1)
 
 target_include_directories(STB

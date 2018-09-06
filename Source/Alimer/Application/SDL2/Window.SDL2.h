@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Window.h"
-#include <SDL.h>
+struct SDL_Window;
 
 namespace Alimer
 {
