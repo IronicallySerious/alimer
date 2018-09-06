@@ -27,7 +27,6 @@ using namespace std;
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
-#if TODO_GLSLANG
 #include "glslang/Public/ShaderLang.h"
 #include "SPIRV/GlslangToSpv.h"
 
@@ -426,5 +425,3 @@ namespace Alimer
         }
     }
 }
-
-#endif // TODO_GLSLANG

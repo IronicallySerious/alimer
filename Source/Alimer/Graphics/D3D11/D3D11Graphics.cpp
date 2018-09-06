@@ -29,10 +29,10 @@
 #include "D3D11Shader.h"
 #include "D3D11VertexInputFormat.h"
 #include "D3D11GpuAdapter.h"
+#include "../D3D/D3DPlatformFunctions.h"
 #include "../ShaderCompiler.h"
 #include "../../Core/Platform.h"
 #include "../../Core/Log.h"
-#include "../../Application/Windows/WindowWindows.h"
 #include <STB/stb_image_write.h>
 
 using namespace Microsoft::WRL;
@@ -41,9 +41,9 @@ namespace Alimer
 {
 #if defined(_DEBUG)
     // Check for SDK Layer support.
-    inline bool SdkLayersAvailable()
+    inline bool SdkLayersAvailable(const D3DPlatformFunctions* functions)
     {
-        HRESULT hr = D3D11CreateDevice(
+        HRESULT hr = functions->D3D11CreateDevice(
             nullptr,
             D3D_DRIVER_TYPE_NULL,       // There is no need to create a real hardware device.
             0,
@@ -67,11 +67,17 @@ namespace Alimer
 
     D3D11Graphics::D3D11Graphics(bool validation)
         : Graphics(GraphicsDeviceType::Direct3D11, validation)
+        , _functions(new D3DPlatformFunctions())
     {
-        HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&_dxgiFactory));
+        if (!_functions->LoadFunctions(false))
+        {
+            ALIMER_LOGCRITICAL("D3D11 - Failed to load functions");
+        }
+
+        HRESULT hr = _functions->createDxgiFactory1(IID_PPV_ARGS(&_dxgiFactory));
         if (FAILED(hr))
         {
-            return;
+            ALIMER_LOGCRITICAL("D3D11 - Failed to create DXGI factory");
         }
 
         // Enumerate adapters.
@@ -96,6 +102,7 @@ namespace Alimer
     D3D11Graphics::~D3D11Graphics()
     {
         Finalize();
+        SafeDelete(_functions);
     }
 
     void D3D11Graphics::Finalize()
@@ -104,7 +111,7 @@ namespace Alimer
 
         SafeDelete(_swapChain);
         SafeDelete(_defaultCommandBuffer);
-
+        
         Graphics::Finalize();
     }
 
@@ -115,7 +122,7 @@ namespace Alimer
 #if defined(_DEBUG)
         if (_validation)
         {
-            if (SdkLayersAvailable())
+            if (SdkLayersAvailable(_functions))
             {
                 // If the project is in a debug build, enable debugging via SDK Layers with this flag.
                 creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -140,7 +147,7 @@ namespace Alimer
         ComPtr<ID3D11DeviceContext> context;
 
         HRESULT hr = E_FAIL;
-        hr = D3D11CreateDevice(
+        hr = _functions->D3D11CreateDevice(
             static_cast<D3D11GpuAdapter*>(_adapter)->GetDXGIAdapter(),
             D3D_DRIVER_TYPE_UNKNOWN,
             0,
@@ -158,7 +165,7 @@ namespace Alimer
             // If the initialization fails, fall back to the WARP device.
             // For more information on WARP, see: 
             // http://go.microsoft.com/fwlink/?LinkId=286690
-            hr = D3D11CreateDevice(
+            hr = _functions->D3D11CreateDevice(
                 nullptr,
                 D3D_DRIVER_TYPE_WARP, // Create a WARP device instead of a hardware device.
                 0,
@@ -194,8 +201,7 @@ namespace Alimer
         {
             Microsoft::WRL::ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
 
-            auto dxgiGetDebugInterface = reinterpret_cast<LPDXGIGETDEBUGINTERFACE>(
-                reinterpret_cast<void*>(GetProcAddress(dxgidebug, "DXGIGetDebugInterface")));
+            auto dxgiGetDebugInterface = reinterpret_cast<LPDXGIGETDEBUGINTERFACE>(GetProcAddress(dxgidebug, "DXGIGetDebugInterface"));
 
             if (SUCCEEDED(dxgiGetDebugInterface(IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf()))))
             {

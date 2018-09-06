@@ -42,7 +42,7 @@ namespace Alimer
 
 
     /// Defines a scene, which is a container of SceneObject's.
-    class Scene final : public Serializable
+    class ALIMER_API Scene final : public Serializable
     {
         ALIMER_OBJECT(Scene, Serializable);
 

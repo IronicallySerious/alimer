@@ -23,13 +23,12 @@
 #include "D3DShaderCompiler.h"
 #include "../../Core/String.h"
 #include "../../Core/Log.h"
-#include <d3dcompiler.h>
 
 namespace Alimer
 {
     namespace D3DShaderCompiler
     {
-        ID3DBlob* Compile(const std::string& hlslSource, ShaderStage stage, uint32_t major, uint32_t minor)
+        ID3DBlob* Compile(pD3DCompile d3dCompile, const std::string& hlslSource, ShaderStage stage, uint32_t major, uint32_t minor)
         {
             UINT compileFlags = 0;
 #if defined(_DEBUG)
@@ -69,7 +68,7 @@ namespace Alimer
 
             Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob;
             Microsoft::WRL::ComPtr<ID3DBlob> errors;
-            if (FAILED(D3DCompile(
+            if (FAILED(d3dCompile(
                 hlslSource.c_str(),
                 hlslSource.length(),
                 nullptr,

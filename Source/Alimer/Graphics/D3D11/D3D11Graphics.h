@@ -30,6 +30,7 @@
 
 namespace Alimer
 {
+    class D3DPlatformFunctions;
     class D3D11CommandBuffer;
     class D3D11Texture;
     class D3D11SwapChain;
@@ -78,6 +79,8 @@ namespace Alimer
         inline uint32_t GetShaderModerMinor() const { return _shaderModelMinor; }
         RenderPass* GetBackbufferRenderPass() const;
 
+        const D3DPlatformFunctions* GetFunctions() { return _functions; }
+
     private:
         void Finalize() override;
         bool BackendInitialize() override;
@@ -85,6 +88,7 @@ namespace Alimer
 
         void GenerateScreenshot(const std::string& fileName);
 
+        D3DPlatformFunctions* _functions = nullptr;
         Microsoft::WRL::ComPtr<IDXGIFactory2>               _dxgiFactory;
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
         Microsoft::WRL::ComPtr<ID3D11Device1>               _d3dDevice;

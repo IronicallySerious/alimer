@@ -34,6 +34,7 @@
 #endif
 
 #include <dxgi1_4.h>
+#include <d3dcompiler.h>
 
 #pragma warning(push)
 #pragma warning(disable : 4702)

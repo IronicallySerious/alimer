@@ -23,6 +23,7 @@
 #include "D3D11Shader.h"
 #include "D3D11Graphics.h"
 #include "../D3D/D3DShaderCompiler.h"
+#include "../D3D/D3DPlatformFunctions.h"
 #include "../../Core/Log.h"
 #include <spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
@@ -30,10 +31,11 @@ using namespace Microsoft::WRL;
 namespace Alimer
 {
     static ID3DBlob* ConvertAndCompileHLSL(
-        const std::vector<uint32_t>& spirv,
-        ShaderStage stage,
-        uint32_t major, uint32_t minor)
+        D3D11Graphics* graphics,
+        ShaderModule* shaderModule)
     {
+        auto spirv = shaderModule->AcquireBytecode();
+
         spirv_cross::CompilerGLSL::Options options_glsl;
         //options_glsl.vertex.fixup_clipspace = true;
         //options_glsl.vertex.flip_vert_y = true;
@@ -41,12 +43,14 @@ namespace Alimer
         spirv_cross::CompilerHLSL compiler(spirv);
         compiler.set_common_options(options_glsl);
 
+        const uint32_t major = graphics->GetShaderModerMajor();
+        const uint32_t minor = graphics->GetShaderModerMinor();
         spirv_cross::CompilerHLSL::Options options_hlsl;
         options_hlsl.shader_model = major * 10 + minor;
         compiler.set_hlsl_options(options_hlsl);
 
         std::string hlslSource = compiler.compile();
-        return D3DShaderCompiler::Compile(hlslSource, stage, major, minor);
+        return D3DShaderCompiler::Compile(graphics->GetFunctions()->d3dCompile, hlslSource, shaderModule->GetStage(), major, minor);
     }
 
     D3D11Shader::D3D11Shader(D3D11Graphics* graphics, const ShaderProgramDescriptor* descriptor)
@@ -55,13 +59,8 @@ namespace Alimer
         for (uint32_t i = 0; i < descriptor->stageCount; ++i)
         {
             auto stage = descriptor->stages[i];
-            auto spirv = stage.module->AcquireBytecode();
 
-            ID3DBlob* blob = ConvertAndCompileHLSL(
-                spirv,
-                stage.module->GetStage(),
-                graphics->GetShaderModerMajor(),
-                graphics->GetShaderModerMinor());
+            ID3DBlob* blob = ConvertAndCompileHLSL(graphics, stage.module);
 
             switch (stage.module->GetStage())
             {

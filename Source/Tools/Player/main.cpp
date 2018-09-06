@@ -255,8 +255,8 @@ namespace Alimer
             _indexBuffer = graphics->CreateBuffer(&indexBufferDesc, indices.data());
 
             // Uniform buffer
-            _camera.viewMatrix = lookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
-            _camera.projectionMatrix = perspective(M_PIDIV4, aspectRatio, 0.1f, 100, false);
+            //_camera.viewMatrix = lookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
+            //_camera.projectionMatrix = perspective(M_PIDIV4, aspectRatio, 0.1f, 100, false);
 
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
