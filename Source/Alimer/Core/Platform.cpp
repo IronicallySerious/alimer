@@ -29,29 +29,35 @@
 #endif
 
 #if ALIMER_PLATFORM_WINDOWS
+// ntdll.dll function pointer typedefs
 typedef LONG NTSTATUS, *PNTSTATUS;
-typedef NTSTATUS(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
+typedef NTSTATUS(WINAPI* PFN_RtlGetVersion)(PRTL_OSVERSIONINFOW);
+typedef LONG(WINAPI * PFN_RtlVerifyVersionInfo)(OSVERSIONINFOEXW*, ULONG, ULONGLONG);
 
-bool GetRealOSVersion(RTL_OSVERSIONINFOW* osvi)
+static HMODULE s_ntdllHandle = LoadLibraryA("ntdll.dll");
+
+bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wServicePackMajor)
 {
-    HMODULE handle = ::GetModuleHandleW(L"ntdll.dll");
-    if (handle)
+    RTL_OSVERSIONINFOEXW verInfo = { 0 };
+    verInfo.dwOSVersionInfoSize = sizeof(verInfo);
+
+    static PFN_RtlVerifyVersionInfo RtlVerifyVersionInfo_ = nullptr;
+
+    if (RtlVerifyVersionInfo_ == nullptr)
     {
-        RtlGetVersionPtr rtlGetVersionFunc = (RtlGetVersionPtr)::GetProcAddress(handle, "RtlGetVersion");
-        if (rtlGetVersionFunc != nullptr)
-        {
-            if (rtlGetVersionFunc(osvi) == 0)
-            {
-                return true;
-            }
-        }
+        RtlVerifyVersionInfo_ = reinterpret_cast<PFN_RtlVerifyVersionInfo>(GetProcAddress(s_ntdllHandle, "RtlVerifyVersionInfo"));
     }
 
-    return false;
-}
-#endif
+    std::string version = "Microsoft Windows";
 
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+    OSVERSIONINFOEXW osvi = { sizeof(osvi), wMajorVersion, wMinorVersion, 0, 0, {0}, wServicePackMajor };
+    DWORD mask = VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR;
+    ULONGLONG cond = VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL);
+    cond = VerSetConditionMask(cond, VER_MINORVERSION, VER_GREATER_EQUAL);
+    cond = VerSetConditionMask(cond, VER_SERVICEPACKMAJOR, VER_GREATER_EQUAL);
+    return RtlVerifyVersionInfo_(&osvi, mask, cond) == 0;
+}
+
 static const DWORD MS_VC_EXCEPTION = 0x406D1388;
 #pragma pack(push,8)
 typedef struct tagTHREADNAME_INFO
@@ -62,43 +68,6 @@ typedef struct tagTHREADNAME_INFO
     DWORD dwFlags; // Reserved for future use, must be zero.
 } THREADNAME_INFO;
 #pragma pack(pop)
-
-bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wServicePackMajor)
-{
-    RTL_OSVERSIONINFOEXW verInfo = { 0 };
-    verInfo.dwOSVersionInfoSize = sizeof(verInfo);
-
-    std::string version = "Microsoft Windows";
-
-    if (GetRealOSVersion((PRTL_OSVERSIONINFOW)&verInfo))
-    {
-        if (verInfo.dwMajorVersion > wMajorVersion)
-            return true;
-        else if (verInfo.dwMajorVersion < wMajorVersion)
-            return false;
-
-        if (verInfo.dwMinorVersion > wMinorVersion)
-            return true;
-        else if (verInfo.dwMinorVersion < wMinorVersion)
-            return false;
-
-        if (verInfo.wServicePackMajor >= wServicePackMajor)
-            return true;
-    }
-
-    OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0,{ 0 }, 0, 0 };
-    const DWORDLONG dwlConditionMask = VerSetConditionMask(
-        VerSetConditionMask(
-            VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL),
-            VER_MINORVERSION, VER_GREATER_EQUAL),
-        VER_SERVICEPACKMAJOR, VER_GREATER_EQUAL);
-
-    osvi.dwMajorVersion = wMajorVersion;
-    osvi.dwMinorVersion = wMinorVersion;
-    osvi.wServicePackMajor = wServicePackMajor;
-
-    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR, dwlConditionMask) != FALSE;
-}
 
 #endif
 
@@ -191,7 +160,14 @@ namespace Alimer
 
         std::string version = "Microsoft Windows";
 
-        if (GetRealOSVersion(&osvi))
+        static PFN_RtlGetVersion RtlGetVersion_ = nullptr;
+
+        if (RtlGetVersion_ == nullptr)
+        {
+            RtlGetVersion_ = reinterpret_cast<PFN_RtlGetVersion>(GetProcAddress(s_ntdllHandle, "RtlGetVersion"));
+        }
+
+        if (RtlGetVersion_(&osvi) == 0)
         {
             version = fmt::format("{} {}.{}.{} {}",
                 version,
@@ -243,7 +219,7 @@ namespace Alimer
 
     bool SetCurrentThreadName(const char* name)
     {
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+#if ALIMER_PLATFORM_WINDOWS
         THREADNAME_INFO info;
         info.dwType = 0x1000;
         info.szName = name;
