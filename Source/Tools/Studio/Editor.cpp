@@ -42,6 +42,14 @@ namespace Alimer
 
     void Editor::OnRenderFrame(double frameTime, double elapsedTime)
     {
+        ALIMER_UNUSED(frameTime);
+        ALIMER_UNUSED(elapsedTime);
+
+        if (_input->IsMouseButtonHeld(MouseButton::Left))
+        {
+            ALIMER_LOGINFO("Mouse left button is held");
+        }
+
         auto commandBuffer = _graphics->GetDefaultCommandBuffer();
         commandBuffer->Begin();
         commandBuffer->End();

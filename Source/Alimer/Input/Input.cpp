@@ -25,26 +25,15 @@
 
 namespace Alimer
 {
-    static Input* __inputInstance = nullptr;
-
 	Input::Input()
+        : _mouseButtons(static_cast<uint32_t>(MouseButton::Count))
 	{
-        __inputInstance = this;
 	}
-
-	Input::~Input()
-	{
-        __inputInstance = nullptr;
-	}
-
-    Input* Input::GetInstance()
-    {
-        return __inputInstance;
-    }
 
     void Input::Update()
     {
-
+        _mouseButtons.Update();
+        _previousMousePosition = _mousePosition;
     }
 
 	bool Input::IsCursorVisible() const
@@ -52,14 +41,116 @@ namespace Alimer
 		return true;
 	}
 
-	void Input::SetCursorVisible(bool visible)
+	void Input::SetCursorVisible(bool)
 	{
 		// Do nothing by default.
-        ALIMER_UNUSED(visible);
 	}
 
-    Input& gInput()
+    bool Input::IsMouseButtonDown(MouseButton button)
     {
-        return *__inputInstance;
+        return _mouseButtons.IsDown(static_cast<uint32_t>(button));
+    }
+
+    bool Input::IsMouseButtonUp(MouseButton button)
+    {
+        return _mouseButtons.IsUp(static_cast<uint32_t>(button));
+    }
+
+    bool Input::IsMouseButtonHeld(MouseButton button)
+    {
+        return _mouseButtons.IsHeld(static_cast<uint32_t>(button));
+    }
+
+    void Input::MouseButtonEvent(MouseButton button, float x, float y, bool pressed)
+    {
+        _mouseButtons.Post(static_cast<uint32_t>(button), pressed);
+        _mousePosition.x = x;
+        _mousePosition.y = x;
+    }
+
+    void Input::MouseMoveEvent(MouseButton button, float x, float y)
+    {
+        _mousePosition.x = x;
+        _mousePosition.y = x;
+    }
+
+    bool IsModifierOnlyButton(uint32_t button)
+    {
+        return button == 0;
+    }
+
+    static bool KeyModifiersMatch(uint32_t slot, KeyModifiers modifiers, KeyModifiers stateModifiers)
+    {
+        // TODO: better enum handle
+        const bool areModifiersActive = (ecast(modifiers) & ecast(stateModifiers)) == ecast(modifiers);
+        const bool areOnlyModifiersActive = modifiers == stateModifiers;
+        return IsModifierOnlyButton(slot) ? areModifiersActive : areOnlyModifiersActive;
+    }
+
+    // ActionState
+    Input::ActionState::ActionState(size_t count)
+        : _dirty(false)
+    {
+        _slots.resize(count);
+    }
+
+    void Input::ActionState::Update()
+    {
+        if (!_dirty)
+            return;
+
+        for (ActionSlot& slot : _slots)
+        {
+            if (slot.bits.any())
+            {
+                slot.bits.reset(static_cast<uint32_t>(ActionSlotBits::Down));
+                slot.bits.reset(static_cast<uint32_t>(ActionSlotBits::Up));
+                slot.modifiers = slot.bits.test(static_cast<uint32_t>(ActionSlotBits::Held)) ? slot.modifiers : KeyModifiers::None;
+            }
+        }
+
+        _dirty = false;
+    }
+
+    void Input::ActionState::Post(uint32_t slot, bool down, KeyModifiers modifiers)
+    {
+        ActionSlot& actionSlot = _slots[slot];
+        const bool wasHeld = actionSlot.bits.test(static_cast<uint32_t>(ActionSlotBits::Held));
+        const bool isReleasing = wasHeld && !down;
+        const bool hasModifiersRemaining = modifiers != KeyModifiers::None;
+        const bool isModifierUpdate = IsModifierOnlyButton(slot) && isReleasing && hasModifiersRemaining;
+        if (isModifierUpdate)
+        {
+            actionSlot.modifiers = modifiers;
+        }
+        else
+        {
+            _dirty = true;
+            actionSlot.bits.set(static_cast<uint32_t>(ActionSlotBits::Down), !wasHeld && down);
+            actionSlot.bits.set(static_cast<uint32_t>(ActionSlotBits::Held), down);
+            actionSlot.bits.set(static_cast<uint32_t>(ActionSlotBits::Up), wasHeld && !down);
+            actionSlot.modifiers = down ? modifiers : actionSlot.modifiers;
+        }
+    }
+
+    bool Input::ActionState::IsUp(uint32_t slot, KeyModifiers modifiers) const
+    {
+        return Test(slot, modifiers, ActionSlotBits::Up);
+    }
+
+    bool Input::ActionState::IsDown(uint32_t slot, KeyModifiers modifiers) const
+    {
+        return Test(slot, modifiers, ActionSlotBits::Down);
+    }
+
+    bool Input::ActionState::IsHeld(uint32_t slot, KeyModifiers modifiers) const
+    {
+        return Test(slot, modifiers, ActionSlotBits::Held);
+    }
+
+    bool Input::ActionState::Test(uint32_t slot, KeyModifiers modifiers, ActionSlotBits bit) const
+    {
+        const ActionSlot& actionSlotstate = _slots[slot];
+        return actionSlotstate.bits.test(static_cast<uint32_t>(bit)) && KeyModifiersMatch(slot, modifiers, actionSlotstate.modifiers);
     }
 }

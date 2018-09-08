@@ -131,6 +131,7 @@ namespace Alimer
 
     protected:
         virtual void Finalize();
+        void ClearAdapters();
         virtual bool BackendInitialize() = 0;
 
         virtual RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) = 0;

@@ -28,8 +28,11 @@ set (TARGET SDL2)
 set (HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set (SRC_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+# General header files
+file(GLOB HEADER_FILES ${HEADER_DIR}/*.h)
+
 # General source files
-file(GLOB SRCS
+file(GLOB SOURCE_FILES
     ${SRC_DIR}/*.c
     ${SRC_DIR}/atomic/*.c
     ${SRC_DIR}/audio/*.c
@@ -56,7 +59,17 @@ file(GLOB SRCS
 
 # Windows specific files
 if (WIN32)
-    file(GLOB SRCS_WIN32
+    file(GLOB HEADER_FILES_WIN32
+        ${SRC_DIR}/core/windows/*.h
+        ${SRC_DIR}/audio/winmm/*.h
+        ${SRC_DIR}/audio/wasapi/*.h
+        ${SRC_DIR}/thread/windows/*.h
+        ${SRC_DIR}/joystick/windows/*.h
+        ${SRC_DIR}/haptic/windows/*.h
+        ${SRC_DIR}/video/windows/*.h
+    )
+
+    file(GLOB SOURCE_FILES_WIN32
         ${SRC_DIR}/core/windows/*.c
         ${SRC_DIR}/video/windows/*.c
         ${SRC_DIR}/thread/windows/*.c
@@ -70,13 +83,14 @@ if (WIN32)
         ${SRC_DIR}/audio/winmm/*.c
         ${SRC_DIR}/audio/wasapi/*.c
     )
-    set(SRCS ${SRCS} ${SRCS_WIN32})
 
+    set(HEADER_DIR ${HEADER_DIR} ${HEADER_FILES_WIN32})
+    set(SOURCE_FILES ${SOURCE_FILES} ${SOURCE_FILES_WIN32})
     list(APPEND EXTRA_LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 shell32)
 endif()
 
 # we're building a library
-add_library(${TARGET} ${SRCS})
+add_library(${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(${TARGET} PUBLIC ${HEADER_DIR})
 target_compile_definitions(${TARGET} PUBLIC -DSDL_MAIN_HANDLED=1)

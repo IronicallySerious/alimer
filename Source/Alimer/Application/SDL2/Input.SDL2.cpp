@@ -20,26 +20,49 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Input.h"
+#include "Input.SDL2.h"
+#define SDL_MAIN_HANDLED
+#include <SDL.h>
 
 namespace Alimer
 {
-	/// SDL2 Input system implementation.
-	class SDL2Input final : public Input
-	{
-	public:
-		/// Constructor.
-        SDL2Input();
+    SDL2Input::SDL2Input()
+    {
 
-		/// Destructor.
-		~SDL2Input() override;
+    }
 
-		bool IsCursorVisible() const override;
-		void SetCursorVisible(bool visible) override;
+    SDL2Input::~SDL2Input()
+    {
 
-	private:
-		bool _cursorVisible = true;
-	};
+    }
+
+    bool SDL2Input::IsCursorVisible() const
+    {
+        return SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE;
+    }
+
+    void SDL2Input::SetCursorVisible(bool visible)
+    {
+        SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
+    }
+
+    MouseButton SDL2Input::ConvertMouseButton(uint8_t sdlButton)
+    {
+        switch (sdlButton)
+        {
+        case SDL_BUTTON_LEFT:
+            return MouseButton::Left;
+        case SDL_BUTTON_MIDDLE:
+            return MouseButton::Middle;
+        case SDL_BUTTON_RIGHT:
+            return MouseButton::Right;
+        case SDL_BUTTON_X1:
+            return MouseButton::X1;
+        case SDL_BUTTON_X2:
+            return MouseButton::X2;
+
+        default:
+            return MouseButton::None;
+        }
+    }
 }

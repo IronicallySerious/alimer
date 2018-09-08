@@ -63,12 +63,7 @@ namespace Alimer
     {
         Finalize();
 
-        // Clear adapters.
-        for (auto &adapter : _adapters)
-        {
-            SafeDelete(adapter);
-        }
-        _adapters.clear();
+        ClearAdapters();
     }
 
     void Graphics::Finalize()
@@ -94,6 +89,16 @@ namespace Alimer
 
             _gpuResources.clear();
         }
+    }
+
+    void Graphics::ClearAdapters()
+    {
+        // Clear adapters.
+        for (auto &adapter : _adapters)
+        {
+            SafeDelete(adapter);
+        }
+        _adapters.clear();
     }
 
     set<GraphicsDeviceType> Graphics::GetAvailableBackends()

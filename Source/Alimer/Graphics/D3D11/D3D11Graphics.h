@@ -71,10 +71,10 @@ namespace Alimer
         void StoreInputLayout(const InputLayoutDesc& desc, ID3D11InputLayout* layout);
 
         // Getters
-        inline IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory.Get(); }
+        inline IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory; }
         inline D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
-        inline ID3D11Device1* GetD3DDevice() const { return _d3dDevice.Get(); }
-        inline ID3D11DeviceContext1* GetD3DImmediateContext() const { return _d3dImmediateContext.Get(); }
+        inline ID3D11Device1* GetD3DDevice() const { return _d3dDevice; }
+        inline ID3D11DeviceContext1* GetD3DImmediateContext() const { return _d3dImmediateContext; }
         inline uint32_t GetShaderModerMajor() const { return _shaderModelMajor; }
         inline uint32_t GetShaderModerMinor() const { return _shaderModelMinor; }
         RenderPass* GetBackbufferRenderPass() const;
@@ -89,11 +89,11 @@ namespace Alimer
         void GenerateScreenshot(const std::string& fileName);
 
         D3DPlatformFunctions* _functions = nullptr;
-        Microsoft::WRL::ComPtr<IDXGIFactory2>               _dxgiFactory;
+        IDXGIFactory2* _dxgiFactory = nullptr;
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
-        Microsoft::WRL::ComPtr<ID3D11Device1>               _d3dDevice;
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext1>        _d3dImmediateContext;
-        Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
+        ID3D11Device1* _d3dDevice = nullptr;
+        ID3D11DeviceContext1* _d3dImmediateContext = nullptr;
+        ID3DUserDefinedAnnotation* _d3dAnnotation = nullptr;
 
         D3D11SwapChain* _swapChain = nullptr;
 

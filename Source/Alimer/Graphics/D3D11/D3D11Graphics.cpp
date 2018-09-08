@@ -81,7 +81,7 @@ namespace Alimer
         }
 
         // Enumerate adapters.
-        ComPtr<IDXGIAdapter1> adapter;
+        IDXGIAdapter1* adapter;
         for (UINT adapterIndex = 0;
             _dxgiFactory->EnumAdapters1(adapterIndex, &adapter) != DXGI_ERROR_NOT_FOUND; ++adapterIndex)
         {
@@ -102,6 +102,13 @@ namespace Alimer
     D3D11Graphics::~D3D11Graphics()
     {
         Finalize();
+
+        SafeRelease(_d3dAnnotation);
+        SafeRelease(_d3dImmediateContext);
+        SafeRelease(_d3dDevice);
+
+        ClearAdapters();
+        SafeRelease(_dxgiFactory);
         SafeDelete(_functions);
     }
 
@@ -246,9 +253,9 @@ namespace Alimer
         }
 #endif
 
-        ThrowIfFailed(device.As(&_d3dDevice));
-        ThrowIfFailed(context.As(&_d3dImmediateContext));
-        ThrowIfFailed(context.As(&_d3dAnnotation));
+        ThrowIfFailed(device->QueryInterface(&_d3dDevice));
+        ThrowIfFailed(context->QueryInterface(&_d3dImmediateContext));
+        context->QueryInterface(&_d3dAnnotation);
 
         if (!InitializeCaps())
             return false;
@@ -264,7 +271,7 @@ namespace Alimer
 #endif
 
         // Create default command buffer.
-        _defaultCommandBuffer = new D3D11CommandBuffer(this, _d3dImmediateContext.Get());
+        _defaultCommandBuffer = new D3D11CommandBuffer(this, _d3dImmediateContext);
 
         return true;
     }

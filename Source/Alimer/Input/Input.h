@@ -23,11 +23,32 @@
 #pragma once
 
 #include "../AlimerConfig.h"
+#include "../Math/Math.h"
 #include <string>
-#include <atomic>
+#include <vector>
+#include <bitset>
 
 namespace Alimer
 {
+    /// Defines input key modifiers.
+    enum class KeyModifiers : uint8_t
+    {
+        None = 0,
+    };
+
+    /// Defines input mouse buttons.
+    enum class MouseButton : uint32_t
+    {
+        None = 0,
+        Left,
+        Right,
+        Middle,
+        X1,
+        X2,
+        Count
+    };
+
+    /// Defines input cursor type
     enum class CursorType : uint32_t
     {
         Arrow = 0,
@@ -39,19 +60,23 @@ namespace Alimer
     /// Input system class.
     class ALIMER_API Input
     {
-    protected:
+        friend class Application;
+
+    public:
         /// Constructor.
         Input();
 
-    public:
         /// Destructor.
-        virtual ~Input();
+        virtual ~Input() = default;
 
-        /// Return the single instance of the Input.
-        static Input* GetInstance();
+        /// Get if given mouse button is down.
+        bool IsMouseButtonDown(MouseButton button);
 
-        /// Update input state and poll devices.
-        virtual void Update();
+        /// Get if given mouse button is up.
+        bool IsMouseButtonUp(MouseButton button);
+
+        /// Get if given mouse button is held.
+        bool IsMouseButtonHeld(MouseButton button);
 
         /// Is cursor visible.
         virtual bool IsCursorVisible() const;
@@ -59,10 +84,50 @@ namespace Alimer
         /// Set cursor visibility.
         virtual void SetCursorVisible(bool visible);
 
+        // Events
+        void MouseButtonEvent(MouseButton button, float x, float y, bool pressed);
+        void MouseMoveEvent(MouseButton button, float x, float y);
+
     private:
+        /// Update input state and poll devices.
+        void Update();
+
+        enum class ActionSlotBits
+        {
+            Up,
+            Down,
+            Held,
+            Count
+        };
+
+        class ActionState
+        {
+        public:
+            ActionState(size_t count);
+
+            void Update();
+            void Post(uint32_t slot, bool down, KeyModifiers modifiers = KeyModifiers::None);
+
+            bool IsUp(uint32_t slot, KeyModifiers modifiers = KeyModifiers::None) const;
+            bool IsDown(uint32_t slot, KeyModifiers modifiers = KeyModifiers::None) const;
+            bool IsHeld(uint32_t slot, KeyModifiers modifiers = KeyModifiers::None) const;
+
+        private:
+            bool Test(uint32_t slot, KeyModifiers modifiers, ActionSlotBits bit) const;
+
+            struct ActionSlot
+            {
+                KeyModifiers modifiers = KeyModifiers::None;
+                std::bitset<static_cast<uint32_t>(ActionSlotBits::Count)> bits;
+            };
+
+            bool _dirty = false;
+            std::vector<ActionSlot> _slots;
+        };
+
+        ActionState _mouseButtons;
+        Vector2 _mousePosition;
+        Vector2 _previousMousePosition;
         DISALLOW_COPY_MOVE_AND_ASSIGN(Input);
     };
-
-    /// Access to Input module.
-    ALIMER_API Input& gInput();
 }

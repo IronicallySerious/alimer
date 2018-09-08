@@ -36,7 +36,7 @@ namespace Alimer
 
         friend class Entity;
         friend class EntityManager;
-        friend class Scene;
+        friend class SceneObject;
 
     protected:
         /// Constructor.

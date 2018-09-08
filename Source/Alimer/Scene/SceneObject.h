@@ -20,26 +20,28 @@
 // THE SOFTWARE.
 //
 
-#include "Input.SDL2.h"
-#include "../../Core/Log.h"
+#pragma once
+
+#include "../Scene/Component.h"
+#include "../Math/Math.h"
 
 namespace Alimer
 {
-    SDL2Input::SDL2Input()
-	{
-	}
+    /// Defines an object in a scene.
+    class ALIMER_API SceneObject final : public Serializable
+    {
+        ALIMER_OBJECT(SceneObject, Serializable);
 
-    SDL2Input::~SDL2Input()
-	{
-	}
+    public:
+        /// Constructor.
+        SceneObject();
 
-	bool SDL2Input::IsCursorVisible() const
-	{
-		return _cursorVisible;
-	}
+        /// Destructor.
+        ~SceneObject();
 
-	void SDL2Input::SetCursorVisible(bool visible)
-	{
-		_cursorVisible = visible;
-	}
+    private:
+        WeakPtr<SceneObject> _parent;
+        std::vector<SharedPtr<SceneObject>> _children;
+        std::vector<SharedPtr<Component>> _components;
+    };
 }

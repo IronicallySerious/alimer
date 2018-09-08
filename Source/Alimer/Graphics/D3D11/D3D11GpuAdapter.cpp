@@ -26,7 +26,7 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11GpuAdapter::D3D11GpuAdapter(const ComPtr<IDXGIAdapter1>& adapter)
+    D3D11GpuAdapter::D3D11GpuAdapter(IDXGIAdapter1* adapter)
         : _adapter(adapter)
     {
         DXGI_ADAPTER_DESC1 desc;
@@ -64,6 +64,10 @@ namespace Alimer
 
     D3D11GpuAdapter::~D3D11GpuAdapter()
     {
-
+#if defined(_DEBUG)
+        ULONG refCount = GetRefCount(_adapter);
+        ALIMER_ASSERT_MSG(refCount == 1, "D3D11GpuAdapter leakage");
+#endif
+        SafeRelease(_adapter);
     }
 }

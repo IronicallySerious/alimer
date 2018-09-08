@@ -22,23 +22,22 @@
 
 #pragma once
 
-#include "../GpuAdapter.h"
-#include "D3D11Prerequisites.h"
+#include "Input/Input.h"
 
 namespace Alimer
 {
-	class D3D11GpuAdapter final : public GpuAdapter
+	/// SDL2 input implementation.
+	class SDL2Input final : public Input
 	{
-    public:
-		/// Constructor.
-        D3D11GpuAdapter(IDXGIAdapter1* adapter);
+	public:
+        SDL2Input();
+		~SDL2Input() override;
 
-		/// Destructor.
-		~D3D11GpuAdapter() override;
+        bool IsCursorVisible() const override;
 
-        IDXGIAdapter1* GetDXGIAdapter() const { return _adapter; }
+        /// Set cursor visibility.
+        void SetCursorVisible(bool visible) override;
 
-    protected:
-        IDXGIAdapter1* _adapter;
+        static MouseButton ConvertMouseButton(uint8_t sdlButton);
 	};
 }

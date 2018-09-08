@@ -909,12 +909,9 @@ namespace Alimer
     using bvec3 = tvec3<bool>;
     using bvec4 = tvec4<bool>;
 
-    using float2 = tvec2<float>;
-    using float3 = tvec3<float>;
-    using float4 = tvec4<float>;
-    using float2x2 = tmat2<float>;
-    using float3x3 = tmat3<float>;
-    using float4x4 = tmat4<float>;
+    using Vector2 = tvec2<float>;
+    using Vector3 = tvec3<float>;
+    using Vector4 = tvec4<float>;
 
     struct quat : private vec4
     {

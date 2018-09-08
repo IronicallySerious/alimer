@@ -20,13 +20,34 @@
 // THE SOFTWARE.
 //
 
-#include "../Application.h"
-#include "Window.SDL2.h"
-#include "../../Input/SDL2/Input.SDL2.h"
-#include "../../Audio/WASAPI/AudioWASAPI.h"
-#include "../../Core/Log.h"
+#include "Application/Application.h"
+#include "Application/SDL2/Window.SDL2.h"
+#include "Application/SDL2/Input.SDL2.h"
+#include "Audio/WASAPI/AudioWASAPI.h"
+#include "Core/Log.h"
+
+#if ALIMER_PLATFORM_WINDOWS
+#   include <ShellScalingAPI.h>
+#   include <shellapi.h>
+
+#ifndef DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((DPI_AWARENESS_CONTEXT) -4
+#endif
+
+// user32.dll function pointer typedefs
+typedef BOOL(WINAPI * PFN_SetProcessDPIAware)(void);
+typedef BOOL(WINAPI * PFN_SetProcessDpiAwarenessContext)(DPI_AWARENESS_CONTEXT);
+
+// shcore.dll function pointer typedefs
+typedef HRESULT(WINAPI * PFN_SetProcessDpiAwareness)(PROCESS_DPI_AWARENESS);
+typedef HRESULT(WINAPI * PFN_GetDpiForMonitor)(HMONITOR, MONITOR_DPI_TYPE, UINT*, UINT*);
+
+#endif // ALIMER_PLATFORM_WINDOWS
+
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+#include <SDL_syswm.h>
 using namespace std;
 
 namespace Alimer
@@ -44,49 +65,31 @@ namespace Alimer
             return false;
         }
 
-        // Enable high DPI as SDL not support.
-        /*if (HMODULE shCoreLibrary = ::LoadLibraryW(L"Shcore.dll"))
+        // Enable high DPI as SDL not support it on windows.
+        HMODULE user32Library = LoadLibraryA("user32.dll");
+        HMODULE shCore = LoadLibraryA("Shcore.dll");
+        if (auto SetProcessDpiAwarenessContext_ = (PFN_SetProcessDpiAwarenessContext)GetProcAddress(user32Library, "SetProcessDpiAwarenessContext"))
         {
-            if (auto fn = (decltype(&SetProcessDpiAwareness))GetProcAddress(shCoreLibrary, "SetProcessDpiAwareness"))
+            SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+        }
+        else if (shCore)
+        {
+            if (auto SetProcessDpiAwareness_ = (PFN_SetProcessDpiAwareness)GetProcAddress(shCore, "SetProcessDpiAwareness"))
             {
-                fn(PROCESS_PER_MONITOR_DPI_AWARE);
+                SetProcessDpiAwareness_(PROCESS_PER_MONITOR_DPI_AWARE);
             }
 
-            FreeLibrary(shCoreLibrary);
+            FreeLibrary(shCore);
         }
         else
         {
-            if (HMODULE user32Library = ::LoadLibraryW(L"user32.dll"))
+            if (auto SetProcessDPIAware_ = reinterpret_cast<PFN_SetProcessDPIAware>(GetProcAddress(user32Library, "SetProcessDPIAware")))
             {
-                if (auto fn = (decltype(&SetProcessDPIAware))GetProcAddress(user32Library, "SetProcessDPIAware"))
-                    fn();
-
-                FreeLibrary(user32Library);
-            }
-        }*/
-
-        static std::string osDescription;
-        if (osDescription.empty())
-        {
-            osDescription = "Microsoft Windows";
-            HMODULE ntdll = LoadLibraryW(L"ntdll.dll");
-            if (ntdll)
-            {
-                typedef int (WINAPI * RtlGetVersion_FUNC) (OSVERSIONINFOEXW *);
-                if (auto RtlGetVersion = (RtlGetVersion_FUNC)GetProcAddress(ntdll, "RtlGetVersion"))
-                {
-                    OSVERSIONINFOEX osvi = {};
-                    osvi.dwOSVersionInfoSize = sizeof(osvi);
-
-                    if (RtlGetVersion(&osvi) == 0)
-                    {
-                        //osDescription = osDescription + ""
-                    }
-                }
-
-                FreeLibrary(ntdll);
+                SetProcessDPIAware_();
             }
         }
+
+        FreeLibrary(user32Library);
 
         return true;
     }
@@ -131,6 +134,14 @@ namespace Alimer
 
     int Application::Run()
     {
+#if ALIMER_PLATFORM_WINDOWS
+        if (!Win32PlatformInitialize())
+        {
+            ALIMER_LOGERROR("[Win32] - Failed to setup");
+            return EXIT_FAILURE;
+        }
+#endif
+
         SDL_SetMainReady();
         int result = SDL_Init(
             SDL_INIT_VIDEO
@@ -148,14 +159,6 @@ namespace Alimer
 
         SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 
-#if ALIMER_PLATFORM_WINDOWS
-        if (!Win32PlatformInitialize())
-        {
-            ALIMER_LOGERROR("[Win32] - Failed to setup");
-            return EXIT_FAILURE;
-        }
-#endif
-
         if (!InitializeBeforeRun())
         {
             return EXIT_FAILURE;
@@ -167,10 +170,43 @@ namespace Alimer
         {
             while (SDL_PollEvent(&evt))
             {
-                switch (evt.type) {
+                switch (evt.type)
+                {
                 case SDL_QUIT:
                     _running = false;
                     break;
+
+                case SDL_MOUSEBUTTONDOWN:
+                case SDL_MOUSEBUTTONUP:
+                {
+                    const SDL_MouseButtonEvent& mouseEvent = evt.button;
+                    MouseButton button = SDL2Input::ConvertMouseButton(mouseEvent.button);
+                    _input->MouseButtonEvent(button,
+                        static_cast<float>(mouseEvent.x),
+                        static_cast<float>(mouseEvent.y),
+                        mouseEvent.type == SDL_MOUSEBUTTONDOWN);
+
+                    //OnMouseEvent(button,
+                    //    static_cast<float>(mouseEvent.x),
+                    //    static_cast<float>(mouseEvent.y),
+                    //    mouseEvent.type == SDL_MOUSEBUTTONDOWN);
+                }
+
+                case SDL_MOUSEMOTION:
+                {
+                    const SDL_MouseMotionEvent& motionEvt = evt.motion;
+                    MouseButton button = MouseButton::None;
+                    if (motionEvt.state & SDL_BUTTON(SDL_BUTTON_LEFT))
+                        button = MouseButton::Left;
+                    else if (motionEvt.state &SDL_BUTTON(SDL_BUTTON_RIGHT))
+                        button = MouseButton::Right;
+
+                    _input->MouseMoveEvent(button,
+                        static_cast<float>(motionEvt.x),
+                        static_cast<float>(motionEvt.y));
+                    //OnMouseMove(mx, my);
+                }
+                break;
                 }
             }
 
