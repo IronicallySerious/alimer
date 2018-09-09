@@ -70,7 +70,7 @@ namespace Alimer
         HMODULE shCore = LoadLibraryA("Shcore.dll");
         if (auto SetProcessDpiAwarenessContext_ = (PFN_SetProcessDpiAwarenessContext)GetProcAddress(user32Library, "SetProcessDpiAwarenessContext"))
         {
-            SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+            SetProcessDpiAwarenessContext_(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
         }
         else if (shCore)
         {
