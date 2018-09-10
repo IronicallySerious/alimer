@@ -285,7 +285,7 @@ namespace Alimer
         attr.offset = offset;
     }
 
-    void VulkanCommandBuffer::BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, GpuSize offset, uint64_t stride, VertexInputRate inputRate)
+    void VulkanCommandBuffer::BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
     {
         //VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetVkHandle();
         //if (_vbo.buffers[binding] != vkBuffer
@@ -337,7 +337,7 @@ namespace Alimer
         vkCmdBindIndexBuffer(_handle, vkBuffer, offset, vkIndexType);
     }
 
-    void VulkanCommandBuffer::BindBufferImpl(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding)
+    void VulkanCommandBuffer::BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {
         auto vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetHandle();
         auto &b = _bindings.bindings[set][binding];

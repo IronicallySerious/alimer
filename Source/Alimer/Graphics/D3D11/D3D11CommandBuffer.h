@@ -53,10 +53,10 @@ namespace Alimer
         void SetScissor(const Rectangle& scissor) override;
 
         void SetShaderProgramImpl(ShaderProgram* program) override;
-        void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, GpuSize offset, uint64_t stride, VertexInputRate inputRate) override;
+        void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
         void SetVertexInputFormatImpl(VertexInputFormat* format) override;
         void BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
-        void BindBufferImpl(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding) override;
+        void BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding) override;
         void BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding) override;
 
         void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
@@ -66,11 +66,14 @@ namespace Alimer
     private:
         bool PrepareDraw(PrimitiveTopology topology);
         void UpdateVbos(uint32_t binding, uint32_t count);
+        void FlushDescriptorSet(uint32_t set);
+        void FlushDescriptorSets();
 
     private:
         D3D11Graphics* _graphics;
         ID3D11DeviceContext1* _context;
         bool _immediate;
+        bool _needWorkaround = false;
 
         D3D11RenderPass* _currentRenderPass;
         uint32_t _currentColorAttachmentsBound;
@@ -90,8 +93,30 @@ namespace Alimer
             VertexInputRate inputRates[MaxVertexBufferBindings];
         };
 
+        struct BufferBindingInfo {
+            GpuBuffer*  buffer;
+            uint32_t    offset;
+            uint32_t    range;
+        };
+
+        struct ResourceBinding
+        {
+            union {
+                BufferBindingInfo buffer;
+            };
+        };
+
+        struct ResourceBindings
+        {
+            ResourceBinding bindings[MaxDescriptorSets][MaxBindingsPerSet];
+            uint8_t push_constant_data[MaxDescriptorSets];
+        };
+
+
         VertexBindingState _vbo = {};
         bool _inputLayoutDirty;
+        ResourceBindings _bindings;
+        uint32_t _dirtySets = 0;
         uint32_t _dirtyVbos = 0;
 
         /// Current input layout: vertex buffers' element mask and vertex shader's element mask combined.

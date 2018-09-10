@@ -410,8 +410,9 @@ namespace Alimer
         }
 
         D3D11_FEATURE_DATA_THREADING threadingFeature = { 0 };
-        ThrowIfFailed(_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingFeature, sizeof(threadingFeature)));
-        if (threadingFeature.DriverConcurrentCreates
+        HRESULT hr = _d3dDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingFeature, sizeof(threadingFeature));
+        if (SUCCEEDED(hr)
+            && threadingFeature.DriverConcurrentCreates
             && threadingFeature.DriverCommandLists)
         {
             _features.SetMultithreading(true);

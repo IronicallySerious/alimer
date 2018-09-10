@@ -23,44 +23,90 @@
 #pragma once
 
 #include "../Scene/Component.h"
-#include <vector>
-#include <typeindex>
+#include <cstdint>
+#include <unordered_map>
+#include <utility>
+#include <cassert>
 
 namespace Alimer
 {
     class Scene;
     class EntityManager;
 
-	/// Defines a base ComponentSystem class.
-    class ALIMER_API ComponentSystem
-	{
-        friend class Scene;
-
-    protected:
-        /// Constructor.
-        ComponentSystem(std::type_index type);
-
+    /// Defines a base System class.
+    class ALIMER_API System
+    {
     public:
+        /// Constructor.
+        System() = default;
+
         /// Destructor.
-        virtual ~ComponentSystem() = default;
+        virtual ~System() = default;
+
+        virtual void Configure(EntityManager &entities/*, EventManager &events*/)
+        {
+            ALIMER_UNUSED(entities);
+        }
 
         /// Updates the system
-        virtual void Update(double deltaTime);
-
-        /// Gets the unique type ID of the system.
-        std::type_index GetType() const { return _type; }
-
-        /// Gets true if the system is currently active.
-        bool IsActive() const { return _active; }
+        virtual void Update(EntityManager &entities, double deltaTime) = 0;
 
     protected:
-        void SetScene(Scene* scene);
+        template <typename T>
+        void RequireComponent()
+        {
+            _componentTypes.push_back(Detail::IDMapping::GetId<T>());
+        }
 
-        std::type_index _type;
-        Scene* _scene;
-        bool _active;
+        std::vector<uint32_t> _componentTypes;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(ComponentSystem);
-	};
+        DISALLOW_COPY_MOVE_AND_ASSIGN(System);
+    };
+
+    class ALIMER_API SystemManager final
+    {
+    public:
+        SystemManager(EntityManager &entityManager)
+            : _entityManager(entityManager)
+        {
+
+        }
+
+        ~SystemManager() = default;
+        SystemManager(const SystemManager&) = delete;
+        SystemManager(const SystemManager&&) = delete;
+        SystemManager& operator = (const SystemManager&) = delete;
+        SystemManager& operator = (const SystemManager&&) = delete;
+
+        /// Add new System.
+        template <typename S>
+        void Add(std::shared_ptr<S> system)
+        {
+            _systems.insert(std::make_pair(Detail::IDMapping::GetSystemId<S>(), system));
+        }
+
+        /// Creates and add new System.
+        template <typename S, typename ... Args>
+        std::shared_ptr<S> Add(Args && ... args)
+        {
+            std::shared_ptr<S> instance(new S(std::forward<Args>(args) ...));
+            Add(instance);
+            return instance;
+        }
+
+        ///  Configure the system. Call after adding all Systems.
+        void Configure();
+
+        /// Update all systems.
+        void Update(double deltaTime);
+
+        /// Submits an entity to all available systems
+        void AddToSystems(Entity entity);
+
+    private:
+        bool _initialized = false;
+        EntityManager &_entityManager;
+        std::unordered_map<uint32_t, std::shared_ptr<System>> _systems;
+    };
 }

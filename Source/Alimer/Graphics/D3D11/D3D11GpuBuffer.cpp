@@ -105,7 +105,7 @@ namespace Alimer
         }
     }
 
-    bool D3D11GpuBuffer::SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData)
+    bool D3D11GpuBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
     {
         ID3D11DeviceContext* d3dDeviceContext = StaticCast<D3D11Graphics>(_graphics)->GetD3DImmediateContext();
 
@@ -135,8 +135,8 @@ namespace Alimer
         else
         {
             D3D11_BOX destBox;
-            destBox.left = static_cast<UINT>(offset);
-            destBox.right = static_cast<UINT>(size);
+            destBox.left = offset;
+            destBox.right = size;
             destBox.top = destBox.front = 0;
             destBox.bottom = destBox.back = 1;
 

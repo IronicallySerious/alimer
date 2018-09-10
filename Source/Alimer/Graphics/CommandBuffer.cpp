@@ -137,7 +137,7 @@ namespace Alimer
         BindBuffer(buffer, 0, buffer->GetSize(), set, binding);
     }
 
-    void CommandBuffer::BindBuffer(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding)
+    void CommandBuffer::BindBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT((buffer->GetUsage() & BufferUsage::Uniform) || buffer->GetUsage() & BufferUsage::Storage);

@@ -25,8 +25,10 @@
 
 namespace Alimer
 {
-    uint32_t ComponentIDMapping::_ids;
-    uint32_t ComponentIDMapping::_groupIds;
+    const Entity::Id Entity::INVALID;
+
+    uint32_t Detail::IDMapping::_ids;
+    uint32_t Detail::IDMapping::_systemIds;
 
     void Entity::SetName(const std::string& name)
     {
@@ -34,23 +36,26 @@ namespace Alimer
     }
 
     EntityManager::EntityManager()
+        : _indexCounter(0)
     {
     }
 
     EntityManager::~EntityManager()
     {
+        Reset();
     }
 
-    EntityHandle EntityManager::CreateEntity()
+    void EntityManager::Reset()
     {
-        EntityHandle entity = EntityHandle(_pool.Allocate(this));
-        _entities.push_back(entity.Get());
-        return entity;
+        _entityComponentMask.clear();
+        _entityVersion.clear();
+        _freeList.clear();
+        _indexCounter = 0;
     }
 
     void EntityManager::DeleteEntity(Entity *entity)
     {
-        auto &components = entity->GetComponents();
+        /*auto &components = entity->GetComponents();
         for (auto &component : components)
         {
             if (component.second)
@@ -65,22 +70,12 @@ namespace Alimer
         {
             std::swap(_entities[offset], _entities.back());
         }
-        _entities.pop_back();
+        _entities.pop_back();*/
     }
 
 
     void EntityManager::FreeComponent(uint32_t id, Component *component)
     {
         _components[id]->FreeComponent(component);
-        for (auto &groupId : _componentToGroups[id])
-        {
-            _groups[groupId]->RemoveComponent(component);
-        }
-    }
-
-    void EntityManager::ResetGroups()
-    {
-        _componentToGroups.clear();
-        _groups.clear();
     }
 }

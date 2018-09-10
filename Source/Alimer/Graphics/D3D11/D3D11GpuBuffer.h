@@ -39,7 +39,7 @@ namespace Alimer
 		/// Destructor.
 		~D3D11GpuBuffer() override;
 
-        bool SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData) override;
+        bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
 
         ID3D11Buffer* GetHandle() const { return _handle; }
 

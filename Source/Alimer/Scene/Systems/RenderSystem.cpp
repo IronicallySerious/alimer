@@ -26,11 +26,11 @@
 
 namespace Alimer
 {
-    RenderSystem::RenderSystem(EntityManager& entityManager)
-        : ComponentSystem(typeid(RenderSystem))
-        , _renderables(entityManager.GetComponentGroup<TransformComponent, RenderableComponent>())
+    RenderSystem::RenderSystem()
+        : System()
     {
-
+        RequireComponent<TransformComponent>();
+        RequireComponent<RenderableComponent>();
     }
 
     // TODO: Add frustum
@@ -54,13 +54,13 @@ namespace Alimer
         }
     }
 
-    void RenderSystem::Update(double deltaTime)
+    void RenderSystem::Update(EntityManager &entities, double deltaTime)
     {
         // Gather visibles.
         _visibleSet.clear();
 
         // TODO: Add async culling.
-        if (_renderables.size())
+        /*if (_renderables.size())
         {
             CameraComponent* activeCamera = _scene->GetActiveCamera()->GetComponent<CameraComponent>();
             GatherVisibleRenderables(_visibleSet, _renderables);
@@ -68,7 +68,7 @@ namespace Alimer
             for (auto &visible : _visibleSet)
             {
             }
-        }
+        }*/
     }
 
     void RenderSystem::Render(CommandBuffer* context)

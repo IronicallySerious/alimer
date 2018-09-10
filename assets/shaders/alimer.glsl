@@ -1,12 +1,15 @@
 #ifndef ALIMER_GLSL
 #define ALIMER_GLSL
 
-#define DESCRIPTOR_SET_INDEX_COMMON	0
-
-layout (set = DESCRIPTOR_SET_INDEX_COMMON, binding = 0) uniform AlimerPerCamera
+layout (set = 0, binding = 0) uniform AlimerPerCamera
 {
 	mat4 viewMatrix;
 	mat4 projectionMatrix;
 } camera;
+
+layout (set = 0, binding = 1) uniform AlimerPerDraw
+{
+	mat4 worldMatrix;
+};
 
 #endif

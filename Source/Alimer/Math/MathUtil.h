@@ -31,6 +31,7 @@
 #	include <intrin.h>
 #endif
 
+#include <algorithm>
 #include <cstdlib>
 #include <cmath>
 #include <limits>
@@ -57,25 +58,91 @@ namespace Alimer
     template <class T>
     inline bool Equals(T lhs, T rhs) { return lhs + std::numeric_limits<T>::epsilon() >= rhs && lhs - std::numeric_limits<T>::epsilon() <= rhs; }
 
-    /// Linear interpolation between two values.
-    template <class T, class U>
-    inline T Lerp(T lhs, T rhs, U t) { return lhs * (1.0 - t) + rhs * t; }
-
     /// Return the smaller of two values.
-    template <class T, class U>
-    inline T Min(T lhs, U rhs) { return lhs < rhs ? lhs : rhs; }
+    template <typename T>
+    inline constexpr T Min(T a, T b) noexcept { return b < a ? b : a; }
 
-    /// Return the larger of two values.
-    template <class T, class U>
-    inline T Max(T lhs, U rhs) { return lhs > rhs ? lhs : rhs; }
+    template <typename T>
+    inline constexpr T Max(T a, T b) noexcept { return a < b ? b : a; }
+
+    template <typename T>
+    inline constexpr T Clamp(T v, T lo, T hi) noexcept { return v < lo ? lo : (v > hi ? hi : v); }
+
+    /// Return the sign of a float (-1, 0 or 1.)
+    template <typename T>
+    inline constexpr T Sign(T v) noexcept { return v < T(0) ? T(-1) : (v > T(0) ? T(1) : T(0)); }
 
     /// Return absolute value of a value
     template <class T>
-    inline T Abs(T value) { return value >= 0.0 ? value : -value; }
+    inline constexpr T Abs(T v) noexcept  { return std::abs(v); }
 
-    /// Return the sign of a float (-1, 0 or 1.)
+    template<typename T>
+    inline constexpr T Saturate(T v) noexcept { return T(Min(T(1), Max(T(0), v))); }
+
+    template<typename T>
+    inline constexpr T Mix(T x, T y, T a) noexcept { return x * (T(1) - a) + y * a; }
+
+    /// Linear interpolation between two values.
+    template<typename T>
+    inline constexpr T Lerp(T x, T y, T a) noexcept { return mix(x, y, a); }
+
+    /// Smoothly damp between values.
     template <class T>
-    inline T Sign(T value) { return value > 0.0 ? 1.0 : (value < 0.0 ? -1.0 : 0.0); }
+    inline constexpr T SmoothStep(T lhs, T rhs, T t) noexcept
+    {
+        t = Clamp((t - lhs) / (rhs - lhs), T(0.0), T(1.0)); // Saturate t
+        return t * t * (3.0 - 2.0 * t);
+    }
+
+    template <typename T> inline T Sin(T v) { return std::sin(v); }
+    template <typename T> inline T Cos(T v) { return std::cos(v); }
+    template <typename T> inline T Tan(T v) { return std::tan(v); }
+    template <typename T> inline T Asin(T v) { return std::asin(v); }
+    template <typename T> inline T Acos(T v) { return std::acos(v); }
+    template <typename T> inline T Atan(T v) { return std::atan(v); }
+    template <typename T> inline T Atan2(T y, T x) { return std::atan2(y, x); }
+    template <typename T> inline T Log2(T v) { return std::log2(v); }
+    template <typename T> inline T Log10(T v) { return std::log10(v); }
+    template <typename T> inline T Log(T v) { return std::log(v); }
+    template <typename T> inline T Exp2(T v) { return std::exp2(v); }
+    template <typename T> inline T Exp(T v) { return std::exp(v); }
+
+    /// Return X in power Y.
+    template <typename T> T inline Pow(T x, T y) { return std::pow(x, y); }
+
+    /// Return square root of X.
+    inline float Sqrt(float x) { return std::sqrt(x); }
+    inline double Sqrt(double x) { return std::sqrt(x); }
+
+    /// Return floating-point remainder of X/Y.
+    template <class T> inline T Mod(T x, T y) { return fmod(x, y); }
+
+    /// Return fractional part of passed value in range [0, 1).
+    template <class T> inline T Fract(T value) { return value - floor(value); }
+
+    /// Round value down.
+    template <class T> inline T Floor(T x) { return floor(x); }
+
+    /// Round value down. Returns integer value.
+    template <class T> inline int FloorToInt(T x) { return static_cast<int>(floor(x)); }
+
+    /// Round value to nearest integer.
+    template <class T> inline T Round(T x) { return round(x); }
+
+    /// Round value to nearest integer.
+    template <class T> inline int RoundToInt(T x) { return static_cast<int>(round(x)); }
+
+    /// Round value up.
+    template <class T> inline T Ceil(T x) { return ceil(x); }
+
+    /// Round value up.
+    template <class T> inline int CeilToInt(T x) { return static_cast<int>(ceil(x)); }
+
+    /// Converts from degrees to radians.
+    inline constexpr float ToRadians(float degrees) { return degrees * M_DEGTORAD; }
+
+    /// Converts from radians to degrees.
+    inline constexpr float ToDegrees(float radians) { return radians * M_RADTODEG; }
 
     /// Return a representation of the specified floating-point value as a single format bit layout.
     inline uint32_t FloatToRawIntBits(float value)
@@ -162,61 +229,7 @@ namespace Alimer
         return (reinterpret_cast<size_t>(ptr) & (alignment - 1)) == 0;
     }
 
-    /// Clamp a number to a range.
-    template <class T>
-    inline T Clamp(T value, T min, T max)
-    {
-        if (value < min)
-            return min;
-        else if (value > max)
-            return max;
-        else
-            return value;
-    }
-
-    /// Smoothly damp between values.
-    template <class T>
-    inline T SmoothStep(T lhs, T rhs, T t)
-    {
-        t = Clamp((t - lhs) / (rhs - lhs), T(0.0), T(1.0)); // Saturate t
-        return t * t * (3.0 - 2.0 * t);
-    }
-
-    /// Return X in power Y.
-    template <class T> inline T Pow(T x, T y) { return pow(x, y); }
-
-    /// Return natural logarithm of X.
-    template <class T> inline T Ln(T x) { return log(x); }
-
-    /// Return square root of X.
-    template <class T> inline T Sqrt(T x) { return sqrt(x); }
-
-    /// Return floating-point remainder of X/Y.
-    template <class T> inline T Mod(T x, T y) { return fmod(x, y); }
-
-    /// Return fractional part of passed value in range [0, 1).
-    template <class T> inline T Fract(T value) { return value - floor(value); }
-
-    /// Round value down.
-    template <class T> inline T Floor(T x) { return floor(x); }
-
-    /// Round value down. Returns integer value.
-    template <class T> inline int FloorToInt(T x) { return static_cast<int>(floor(x)); }
-
-    /// Round value to nearest integer.
-    template <class T> inline T Round(T x) { return round(x); }
-
-    /// Round value to nearest integer.
-    template <class T> inline int RoundToInt(T x) { return static_cast<int>(round(x)); }
-
-    /// Round value up.
-    template <class T> inline T Ceil(T x) { return ceil(x); }
-
-    /// Round value up.
-    template <class T> inline int CeilToInt(T x) { return static_cast<int>(ceil(x)); }
-
-    inline constexpr float ToRadians(float degrees) { return degrees * M_DEGTORAD; }
-    inline constexpr float ToDegrees(float radians) { return radians * M_RADTODEG; }
+    
 
     ALIMER_API bool IsZero(float value);
     ALIMER_API bool IsOne(float value);

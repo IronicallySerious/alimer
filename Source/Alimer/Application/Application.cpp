@@ -24,6 +24,8 @@
 #include "../Application/Application.h"
 #include "../IO/Path.h"
 #include "../Core/Platform.h"
+#include "../Scene/Systems/CameraSystem.h"
+#include "../Scene/Systems/RenderSystem.h"
 #include "../Core/Log.h"
 using namespace std;
 
@@ -37,6 +39,8 @@ namespace Alimer
         , _headless(false)
         , _settings{}
         , _log(new Logger())
+        , _entities()
+        , _systems(_entities)
     {
         PlatformConstruct();
 
@@ -91,6 +95,11 @@ namespace Alimer
 
         // Initialize this instance and all systems.
         Initialize();
+
+        // Setup and configure all systems.
+        _systems.Add<CameraSystem>();
+        _systems.Add<RenderSystem>();
+        _systems.Configure();
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;

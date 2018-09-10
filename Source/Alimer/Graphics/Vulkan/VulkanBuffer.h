@@ -37,7 +37,7 @@ namespace Alimer
         VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData);
 		~VulkanBuffer() override;
 
-        bool SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData) override;
+        bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
 
 		VkBuffer GetHandle() const { return _vkHandle; }
 

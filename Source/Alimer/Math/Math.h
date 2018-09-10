@@ -34,9 +34,7 @@ namespace Alimer
     template <typename T> struct tvec2;
     template <typename T> struct tvec3;
     template <typename T> struct tvec4;
-    template <typename T> struct tmat2;
     template <typename T> struct tmat3;
-    template <typename T> struct tmat4;
 
     template <typename T>
     struct tvec2
@@ -758,36 +756,7 @@ namespace Alimer
         inline tvec4 wwww() const;
     };
 
-    template <typename T>
-    struct tmat2
-    {
-        tmat2() = default;
-
-        explicit inline tmat2(T v)
-        {
-            vec[0] = tvec2<T>(v, T(0));
-            vec[1] = tvec2<T>(T(0), v);
-        }
-
-        inline tmat2(const tvec2<T> &a, const tvec2<T> &b)
-        {
-            vec[0] = a;
-            vec[1] = b;
-        }
-
-        inline tvec2<T> &operator[](int index)
-        {
-            return vec[index];
-        }
-
-        inline const tvec2<T> &operator[](int index) const
-        {
-            return vec[index];
-        }
-
-    private:
-        tvec2<T> vec[2];
-    };
+    
 
     template <typename T>
     struct tmat3
@@ -808,12 +777,12 @@ namespace Alimer
             vec[2] = c;
         }
 
-        explicit inline tmat3(const tmat4<T> &m)
+        /*explicit inline tmat3(const tmat4<T> &m)
         {
             for (int col = 0; col < 3; col++)
                 for (int row = 0; row < 3; row++)
                     vec[col][row] = m[col][row];
-        }
+        }*/
 
         inline tvec3<T> &operator[](int index)
         {
@@ -831,58 +800,12 @@ namespace Alimer
         tvec3<T> vec[3];
     };
 
-    template <typename T>
-    struct tmat4
-    {
-        tmat4() = default;
-
-        explicit inline tmat4(T v)
-        {
-            vec[0] = tvec4<T>(v, T(0), T(0), T(0));
-            vec[1] = tvec4<T>(T(0), v, T(0), T(0));
-            vec[2] = tvec4<T>(T(0), T(0), v, T(0));
-            vec[3] = tvec4<T>(T(0), T(0), T(0), v);
-        }
-
-        explicit inline tmat4(const tmat3<T> &m)
-        {
-            vec[0] = tvec4<T>(m[0], T(0));
-            vec[1] = tvec4<T>(m[1], T(0));
-            vec[2] = tvec4<T>(m[2], T(0));
-            vec[3] = tvec4<T>(T(0), T(0), T(0), T(1));
-        }
-
-        inline tmat4(const tvec4<T> &a, const tvec4<T> &b, const tvec4<T> &c, const tvec4<T> &d)
-        {
-            vec[0] = a;
-            vec[1] = b;
-            vec[2] = c;
-            vec[3] = d;
-        }
-
-        inline tvec4<T> &operator[](int index)
-        {
-            return vec[index];
-        }
-
-        inline const tvec4<T> &operator[](int index) const
-        {
-            return vec[index];
-        }
-
-        static constexpr tmat4 identity() { return tmat4(1); }
-
-    private:
-        tvec4<T> vec[4];
-    };
-
     using uint = uint32_t;
     using vec2 = tvec2<float>;
     using vec3 = tvec3<float>;
     using vec4 = tvec4<float>;
-    using mat2 = tmat2<float>;
     using mat3 = tmat3<float>;
-    using mat4 = tmat4<float>;
+    
 
     using ivec2 = tvec2<int32_t>;
     using ivec3 = tvec3<int32_t>;
@@ -990,19 +913,16 @@ namespace Alimer
         static const Rectangle Empty;
     };
 
-    mat4 mat4_cast(const quat &q);
+    //mat4 mat4_cast(const quat &q);
     mat3 mat3_cast(const quat &q);
-    mat4 translate(const vec3 &v);
-    mat4 scale(const vec3 &v);
-    mat4 frustum(float left, float right, float bottom, float top, float near, float far, bool flipY);
-    mat2 inverse(const mat2 &m);
+    //mat4 translate(const vec3 &v);
+    //mat4 scale(const vec3 &v);
+    //mat4 frustum(float left, float right, float bottom, float top, float near, float far, bool flipY);
     mat3 inverse(const mat3 &m);
-    mat4 inverse(const mat4 &m);
-    mat4 perspective(float fovy, float aspect, float near, float far, bool flipY);
-    mat4 ortho(float left, float right, float bottom, float top, float near, float far, bool flipY);
-    mat4 lookAt(const vec3 &eye, const vec3 &target, const vec3 &up);
+    //mat4 inverse(const mat4 &m);
+    //mat4 ortho(float left, float right, float bottom, float top, float near, float far, bool flipY);
 
-    void decompose(const mat4 &m, vec3 &scale, quat &rot, vec3 &trans);
+    //void decompose(const mat4 &m, vec3 &scale, quat &rot, vec3 &trans);
 }
 
 #include "../Math/math_impl.h"

@@ -30,9 +30,7 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    static ID3DBlob* ConvertAndCompileHLSL(
-        D3D11Graphics* graphics,
-        ShaderModule* shaderModule)
+    static ID3DBlob* ConvertAndCompileHLSL(D3D11Graphics* graphics, ShaderModule* shaderModule)
     {
         auto spirv = shaderModule->AcquireBytecode();
 

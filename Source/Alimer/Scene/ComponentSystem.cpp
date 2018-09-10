@@ -25,20 +25,34 @@
 
 namespace Alimer
 {
-    ComponentSystem::ComponentSystem(std::type_index type)
-        : _scene(nullptr)
-        , _type(type)
-        , _active(true)
+    void SystemManager::AddToSystems(Entity entity)
     {
+       /* const auto& entMask = entity.getComponentMask();
+        for (auto& pair : _systems)
+        {
+            const auto& sysMask = sys->getComponentMask();
+            if ((entMask & sysMask) == sysMask)
+            {
+                pair.second->AddEntity(entity);
+            }
+        }*/
     }
 
-    void ComponentSystem::Update(double deltaTime)
+    void SystemManager::Configure()
     {
-
+        for (auto &pair : _systems)
+        {
+            pair.second->Configure(_entityManager/*, _eventManager*/);
+        }
+        _initialized = true;
     }
 
-    void ComponentSystem::SetScene(Scene* scene)
+    void SystemManager::Update(double deltaTime)
     {
-        _scene = scene;
+        assert(_initialized && "SystemManager::Configure() must be called first");
+        for (auto &pair : _systems)
+        {
+            pair.second->Update(_entityManager, /*_eventManager,*/ deltaTime);
+        }
     }
 }

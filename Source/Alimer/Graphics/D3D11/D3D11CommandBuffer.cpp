@@ -29,7 +29,7 @@
 #include "D3D11VertexInputFormat.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Graphics/VertexFormat.h"
-#include "../../Util/HashMap.h"
+#include "../../Math/MathUtil.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
@@ -51,6 +51,20 @@ namespace Alimer
         , _context(context)
         , _immediate(context->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
     {
+        HRESULT hr = S_OK;
+
+        if (context->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+        {
+            D3D11_FEATURE_DATA_THREADING threadingCaps = { FALSE, FALSE };
+
+            hr = graphics->GetD3DDevice()->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingCaps, sizeof(threadingCaps));
+            if (SUCCEEDED(hr) && !threadingCaps.DriverCommandLists)
+            {
+                // The runtime emulates command lists.
+                _needWorkaround = true; 
+            }
+        }
+
         Reset();
     }
 
@@ -76,9 +90,11 @@ namespace Alimer
         _currentInputLayout.first = 0;
         _currentInputLayout.second = 0;
 
-        //_dirtyVbos = ~0u;
+        // _dirtySets= ~0u;
+        // _dirtyVbos = ~0u;
         memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
         memset(_vbo.d3dBuffers, 0, sizeof(_vbo.d3dBuffers));
+        memset(&_bindings, 0, sizeof(_bindings));
         _inputLayoutDirty = false;
     }
 
@@ -168,7 +184,7 @@ namespace Alimer
         }
     }
 
-    void D3D11CommandBuffer::BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, GpuSize offset, uint64_t stride, VertexInputRate inputRate)
+    void D3D11CommandBuffer::BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
     {
         if (_vbo.buffers[binding] != buffer
             || _vbo.offsets[binding] != offset)
@@ -211,10 +227,18 @@ namespace Alimer
         _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, static_cast<UINT>(offset));
     }
 
-    void D3D11CommandBuffer::BindBufferImpl(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding)
+    void D3D11CommandBuffer::BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetHandle();
-        _context->VSSetConstantBuffers(binding, 1, &d3dBuffer);
+        auto &b = _bindings.bindings[set][binding];
+        if (b.buffer.buffer == buffer
+            && b.buffer.offset == offset
+            && b.buffer.range == range)
+        {
+            return;
+        }
+
+        b.buffer = { buffer, offset,  Align(range, 16u) };
+        _dirtySets |= 1u << set;
     }
 
     void D3D11CommandBuffer::BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding)
@@ -279,6 +303,8 @@ namespace Alimer
             _currentBlendState = blendState;
             _context->OMSetBlendState(blendState, nullptr, 0xFFFFFFFF);
         }*/
+
+        FlushDescriptorSets();
 
         return true;
     }
@@ -434,6 +460,44 @@ namespace Alimer
                 }
             }
         }
+    }
+
+    void D3D11CommandBuffer::FlushDescriptorSet(uint32_t set)
+    {
+        // TODO: We need to remap from vulkan to d3d11 binding scheme.
+        if (_needWorkaround)
+        {
+            // Workaround for command list emulation
+            ID3D11Buffer* NullCBuf = nullptr;
+            _context->VSSetConstantBuffers(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, &NullCBuf);
+        }
+
+        ID3D11Buffer* buffers[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+        UINT offsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+        UINT ranges[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+
+        for (uint32_t binding = 0; binding < MaxBindingsPerSet; ++binding)
+        {
+            auto &b = _bindings.bindings[set][binding];
+
+            if (b.buffer.buffer == nullptr)
+                continue;
+
+            buffers[binding] = static_cast<D3D11GpuBuffer*>(b.buffer.buffer)->GetHandle();
+            offsets[binding] = b.buffer.offset;
+            ranges[binding] = b.buffer.range;
+        }
+
+        _context->VSSetConstantBuffers1(
+            0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT,
+            buffers, offsets, ranges);
+    }
+
+    void D3D11CommandBuffer::FlushDescriptorSets()
+    {
+        uint32_t updateSet = 1; // layout.descriptorSetMask & _dirtySets;
+        ForEachBit(updateSet, [&](uint32_t set) { FlushDescriptorSet(set); });
+        _dirtySets &= ~updateSet;
     }
 
     void D3D11CommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)

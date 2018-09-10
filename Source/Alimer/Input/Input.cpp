@@ -65,13 +65,13 @@ namespace Alimer
     {
         _mouseButtons.Post(static_cast<uint32_t>(button), pressed);
         _mousePosition.x = x;
-        _mousePosition.y = x;
+        _mousePosition.y = y;
     }
 
     void Input::MouseMoveEvent(MouseButton button, float x, float y)
     {
         _mousePosition.x = x;
-        _mousePosition.y = x;
+        _mousePosition.y = y;
     }
 
     bool IsModifierOnlyButton(uint32_t button)
