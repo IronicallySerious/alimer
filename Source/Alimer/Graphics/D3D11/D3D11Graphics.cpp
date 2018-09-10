@@ -103,6 +103,11 @@ namespace Alimer
     {
         Finalize();
 
+#if defined(_DEBUG)
+        //ULONG refCount = GetRefCount(_d3dAnnotation);
+        //ALIMER_ASSERT_MSG(refCount == 1, "ID3DUserDefinedAnnotation leakage");
+#endif
+
         SafeRelease(_d3dAnnotation);
         SafeRelease(_d3dImmediateContext);
         SafeRelease(_d3dDevice);

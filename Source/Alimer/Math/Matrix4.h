@@ -28,11 +28,11 @@
 
 namespace Alimer
 {
-    template <typename T>
-    class TMatrix4
+    /// A 4x4 column-major floating-point matrix class.
+    class Matrix4
     {
     private:
-        tvec4<T> vec[4];
+        tvec4<float> _values[4];
 
     public:
         enum NoInit { NO_INIT };
@@ -40,69 +40,65 @@ namespace Alimer
         static constexpr size_t NUM_COLS = 4;
 
         /// Create uninitialized matrix.
-        constexpr explicit TMatrix4(NoInit) {}
+        explicit inline Matrix4(NoInit) {}
 
         /// Create identity matrix.
-        constexpr TMatrix4()
+        inline Matrix4()
         {
-            vec[0] = tvec4<T>(1, 0, 0, 0);
-            vec[1] = tvec4<T>(0, 1, 0, 0);
-            vec[2] = tvec4<T>(0, 0, 1, 0);
-            vec[3] = tvec4<T>(0, 0, 0, 1);
+            _values[0] = vec4(1.0f, 0.0f, 0.0f, 0.0f);
+            _values[1] = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+            _values[2] = vec4(0.0f, 0.0f, 1.0f, 0.0f);
+            _values[3] = vec4(0.0f, 0.0f, 0.0f, 1.0f);
         }
 
-        template<typename U>
-        constexpr explicit TMatrix4(U v)
+        explicit inline Matrix4(float v)
         {
-            vec[0] = tvec4<T>(v, 0, 0, 0);
-            vec[1] = tvec4<T>(0, v, 0, 0);
-            vec[2] = tvec4<T>(0, 0, v, 0);
-            vec[3] = tvec4<T>(0, 0, 0, v);
+            _values[0] = vec4(v, 0.0f, 0.0f, 0.0f);
+            _values[1] = vec4(0.0f, v, 0.0f, 0.0f);
+            _values[2] = vec4(0.0f, 0.0f, v, 0.0f);
+            _values[3] = vec4(0.0f, 0.0f, 0.0f, v);
         }
 
-        inline TMatrix4(const tvec4<T> &a, const tvec4<T> &b, const tvec4<T> &c, const tvec4<T> &d)
+        inline Matrix4(const vec4 &a, const vec4 &b, const vec4 &c, const vec4 &d)
         {
-            vec[0] = a;
-            vec[1] = b;
-            vec[2] = c;
-            vec[3] = d;
+            _values[0] = a;
+            _values[1] = b;
+            _values[2] = c;
+            _values[3] = d;
         }
 
         /*explicit inline tmat4(const tmat3<T> &m)
         {
-            vec[0] = tvec4<T>(m[0], T(0));
-            vec[1] = tvec4<T>(m[1], T(0));
-            vec[2] = tvec4<T>(m[2], T(0));
-            vec[3] = tvec4<T>(T(0), T(0), T(0), T(1));
+            _values[0] = tvec4<T>(m[0], T(0));
+            _values[1] = tvec4<T>(m[1], T(0));
+            _values[2] = tvec4<T>(m[2], T(0));
+            _values[3] = tvec4<T>(T(0), T(0), T(0), T(1));
         }*/
 
-        inline constexpr tvec4<T> &operator[](size_t column)
+        inline vec4 &operator[](size_t column)
         {
             assert(column < NUM_COLS);
-            return vec[column];
+            return _values[column];
         }
 
-        inline constexpr const tvec4<T> operator[](size_t column) const
+        inline const vec4 operator[](size_t column) const
         {
             assert(column < NUM_COLS);
-            return vec[index];
+            return _values[column];
         }
 
-        template <typename U>
-        static constexpr TMatrix4 LookAt(const tvec3<U> &eye, const tvec3<U> &target, const tvec3<U> &up);
+        static inline Matrix4 LookAt(const vec3 &eye, const vec3 &target, const vec3 &up);
 
-        static constexpr TMatrix4 Perspective(T fovy, T aspect, T nearPlane, T far, bool flipY);
+        static inline Matrix4 Perspective(float fovy, float aspect, float nearPlane, float farPlane, bool flipY);
     };
 
-    template <typename T>
-    template <typename U>
-    constexpr TMatrix4<T> TMatrix4<T>::LookAt(const tvec3<U> &eye, const tvec3<U> &target, const tvec3<U> &up)
+    inline Matrix4 Matrix4::LookAt(const vec3 &eye, const vec3 &target, const vec3 &up)
     {
-        tvec3<U> const f(normalize(target - eye));
-        tvec3<U> const s(normalize(cross(f, up)));
-        tvec3<U> const u(cross(s, f));
+        vec3 const f(normalize(target - eye));
+        vec3 const s(normalize(cross(f, up)));
+        vec3 const u(cross(s, f));
 
-        TMatrix4<T> result;
+        Matrix4 result;
         result[0][0] = s.x;
         result[1][0] = s.y;
         result[2][0] = s.z;
@@ -118,64 +114,57 @@ namespace Alimer
         return result;
     }
 
-    template <typename T>
-    constexpr TMatrix4<T> TMatrix4<T>::Perspective(T fovy, T aspect, T nearPlane, T farPlane, bool flipY)
+    inline Matrix4 Matrix4::Perspective(float fovy, float aspect, float nearPlane, float farPlane, bool flipY)
     {
-        T const tanHalfFovy = Tan(fovy / T(2));
+        float const tanHalfFovy = Tan(fovy / 2.0f);
 
-        TMatrix4<T> result(NO_INIT);
-        result[0][0] = T(1) / (aspect * tanHalfFovy);
-        result[1][1] = T(1) / (tanHalfFovy);
+        Matrix4 result(NO_INIT);
+        result[0][0] = 1.0f / (aspect * tanHalfFovy);
+        result[1][1] = 1.0f / (tanHalfFovy);
         result[2][2] = farPlane / (nearPlane - farPlane);
-        result[2][3] = T(-1);
+        result[2][3] = -1.0f;
         result[3][2] = -(farPlane * nearPlane) / (farPlane - nearPlane);
 
         if (flipY)
         {
-            result[0].y *= T(-1);
-            result[1].y *= T(-1);
-            result[2].y *= T(-1);
-            result[3].y *= T(-1);
+            result[0].y *= -1.0f;
+            result[1].y *= -1.0f;
+            result[2].y *= -1.0f;
+            result[3].y *= -1.0f;
         }
 
         return result;
     }
 
-    template <typename T>
-    inline constexpr TMatrix4<T> operator +(const TMatrix4<T> &m, T s) { return TMatrix4<T>(m[0] + s, m[1] + s, m[2] + s, m[3] + s); }
+    inline Matrix4 operator +(const Matrix4 &m, float s) { return Matrix4(m[0] + s, m[1] + s, m[2] + s, m[3] + s); }
 
-    template <typename T>
-    inline constexpr TMatrix4<T> operator -(const TMatrix4<T> &m, T s) { return TMatrix4<T>(m[0] - s, m[1] - s, m[2] - s, m[3] - s); }
+    inline Matrix4 operator -(const Matrix4 &m, float s) { return Matrix4(m[0] - s, m[1] - s, m[2] - s, m[3] - s); }
 
-    template <typename T>
-    inline constexpr TMatrix4<T> operator *(const TMatrix4<T> &m, T s) { return TMatrix4<T>(m[0] * s, m[1] * s, m[2] * s, m[3] * s); }
+    inline Matrix4 operator *(const Matrix4 &m, float s) { return Matrix4(m[0] * s, m[1] * s, m[2] * s, m[3] * s); }
 
-    template <typename T>
-    inline constexpr TMatrix4<T> operator /(const TMatrix4<T> &m, T s) { return TMatrix4<T>(m[0] / s, m[1] / s, m[2] / s, m[3] / s); }
+    inline Matrix4 operator /(const Matrix4 &m, float s) { return Matrix4(m[0] / s, m[1] / s, m[2] / s, m[3] / s); }
 
-    template <typename T>
-    inline constexpr TMatrix4<T> operator*(const TMatrix4<T> &a, const TMatrix4<T> &b)
+    //inline Matrix4 operator*(const Matrix4 &a, const Matrix4 &b)
+    //{
+    //    return Matrix4(a * b[0], a * b[1], a * b[2], a * b[3]);
+    //}
+
+    //inline vec4 operator*(const Matrix4 &m, const vec4 &v)
+    //{
+    //    return m[0] * v.x + m[1] * v.y + m[2] * v.z + m[3] * v.w;
+    //}
+
+    inline Matrix4 Transpose(const Matrix4 &m)
     {
-        return TMatrix4<T>(a * b[0], a * b[1], a * b[2], a * b[3]);
-    }
-
-    template <typename T>
-    inline constexpr tvec4<T> operator*(const TMatrix4<T> &m, const tvec4<T> &v)
-    {
-        return m[0] * v.x + m[1] * v.y + m[2] * v.z + m[3] * v.w;
-    }
-
-    template <typename T>
-    inline constexpr TMatrix4<T> transpose(const TMatrix4<T> &m)
-    {
-        return TMatrix4<T>(
-            tvec4<T>(m[0].x, m[1].x, m[2].x, m[3].x),
-            tvec4<T>(m[0].y, m[1].y, m[2].y, m[3].y),
-            tvec4<T>(m[0].z, m[1].z, m[2].z, m[3].z),
-            tvec4<T>(m[0].w, m[1].w, m[2].w, m[3].w)
+        return Matrix4(
+            vec4(m[0].x, m[1].x, m[2].x, m[3].x),
+            vec4(m[0].y, m[1].y, m[2].y, m[3].y),
+            vec4(m[0].z, m[1].z, m[2].z, m[3].z),
+            vec4(m[0].w, m[1].w, m[2].w, m[3].w)
             );
     }
 
-    using Matrix4 = TMatrix4<float>;
-    using mat4 = TMatrix4<float>;
+    // GLSL/HLSL style
+    using mat4 = Matrix4;
+    using float4x4 = Matrix4;
 }

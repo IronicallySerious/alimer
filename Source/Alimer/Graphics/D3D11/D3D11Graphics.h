@@ -90,7 +90,7 @@ namespace Alimer
 
         D3DPlatformFunctions* _functions = nullptr;
         IDXGIFactory2* _dxgiFactory = nullptr;
-        D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
+        D3D_FEATURE_LEVEL _d3dFeatureLevel;
         ID3D11Device1* _d3dDevice = nullptr;
         ID3D11DeviceContext1* _d3dImmediateContext = nullptr;
         ID3DUserDefinedAnnotation* _d3dAnnotation = nullptr;
