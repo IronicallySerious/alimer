@@ -46,6 +46,8 @@ namespace Alimer
         bool IsVisible() const override { return _visible; }
         bool IsMinimized() const override;
 
+        void SetTitle(const std::string& newTitle) override;
+
 	private:
         void HandleResize(const uvec2& newSize);
 

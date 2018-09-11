@@ -22,7 +22,6 @@
 
 #include "../Graphics/ShaderCompiler.h"
 #include <fstream>
-using namespace std;
 
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
@@ -35,7 +34,7 @@ namespace Alimer
     class AlimerIncluder : public glslang::TShader::Includer
     {
     public:
-        AlimerIncluder(const string& from)
+        AlimerIncluder(const String& from)
         {
             _rootDirectory = from;
         }
@@ -50,10 +49,10 @@ namespace Alimer
             ALIMER_UNUSED(includerName);
             ALIMER_UNUSED(inclusionDepth);
 
-            string fullPath = Path::Join(_rootDirectory, headerName);
-            stringstream content;
-            string line;
-            ifstream file(fullPath);
+            String fullPath = Path::Join(_rootDirectory, headerName);
+            std::stringstream content;
+            std::string line;
+            std::ifstream file(fullPath.CString());
             if (file.is_open())
             {
                 while (getline(file, line))
@@ -64,14 +63,14 @@ namespace Alimer
             }
             else
             {
-                ALIMER_LOGCRITICAL("Cannot open include file '{}'", headerName);
+                ALIMER_LOGCRITICAL("Cannot open include file '{}'", fullPath.CString());
                 return nullptr;
             }
 
-            string fileContent = content.str();
-            char* heapContent = new char[fileContent.size() + 1];
-            strcpy(heapContent, fileContent.c_str());
-            return new IncludeResult(fullPath, heapContent, content.str().size(), heapContent);
+            String fileContent(content.str());
+            char* heapContent = new char[fileContent.Length() + 1];
+            strcpy(heapContent, fileContent.CString());
+            return new IncludeResult(fullPath.CString(), heapContent, content.str().size(), heapContent);
         }
 
         void releaseInclude(IncludeResult* result) override {
@@ -79,7 +78,7 @@ namespace Alimer
             delete result;
         }
     private:
-        string _rootDirectory;
+        String _rootDirectory;
     };
 
     enum TOptions {
@@ -263,32 +262,36 @@ namespace Alimer
 
     namespace ShaderCompiler
     {
-        bool Compile(const string& filePath, const string& entryPoint, vector<uint32_t>& spirv, string& infoLog)
+        bool Compile(
+            const String& filePath,
+            const String& entryPoint,
+            std::vector<uint32_t>& spirv,
+            String& infoLog)
         {
             auto stream = FileSystem::Get().Open(filePath);
             if (!stream)
             {
-                infoLog = fmt::format("Shader file '{}' does not exists", filePath);
+                infoLog = fmt::format("Shader file '{}' does not exists", filePath.CString());
                 return false;
             }
 
-            string shaderSource = stream->ReadAllText();
-            size_t firstExtStart = filePath.find_last_of(".");
-            bool hasFirstExt = firstExtStart != string::npos;
-            size_t secondExtStart = hasFirstExt ? filePath.find_last_of(".", firstExtStart - 1) : string::npos;
-            bool hasSecondExt = secondExtStart != string::npos;
-            string firstExt = filePath.substr(firstExtStart + 1, std::string::npos);
+            String shaderSource = stream->ReadAllText();
+            uint32_t firstExtStart = filePath.FindLast(".");
+            bool hasFirstExt = firstExtStart != String::NPOS;
+            uint32_t secondExtStart = hasFirstExt ? filePath.FindLast(".", firstExtStart - 1) : String::NPOS;
+            bool hasSecondExt = secondExtStart != String::NPOS;
+            String firstExt = filePath.Substring(firstExtStart + 1);
             bool usesUnifiedExt = hasFirstExt && (firstExt == "glsl" || firstExt == "hlsl");
             if (usesUnifiedExt && firstExt == "hlsl")
             {
                 // Add HLSL to glslang
             }
 
-            std::string stageName;
+            String stageName;
             if (hasFirstExt && !usesUnifiedExt)
                 stageName = firstExt;
             else if (usesUnifiedExt && hasSecondExt)
-                stageName = filePath.substr(secondExtStart + 1, firstExtStart - secondExtStart - 1);
+                stageName = filePath.Substring(secondExtStart + 1, firstExtStart - secondExtStart - 1);
 
             ShaderStage stage = ShaderStage::Vertex;
             if (stageName == "vert")
@@ -307,7 +310,13 @@ namespace Alimer
             return Compile(stage, shaderSource, entryPoint, spirv, stream->GetName(), infoLog);
         }
 
-        bool Compile(ShaderStage stage, const string& source, const string& entryPoint, vector<uint32_t>& spirv, const string& filePath, string& infoLog)
+        bool Compile(
+            ShaderStage stage,
+            const String& source,
+            const String& entryPoint,
+            std::vector<uint32_t>& spirv,
+            const String& filePath,
+            String& infoLog)
         {
             // Get default built in resource limits.
             auto resourceLimits = DefaultTBuiltInResource;
@@ -315,23 +324,23 @@ namespace Alimer
             // Initialize glslang library.
             glslang::InitializeProcess();
 
-            const string macroDefinitions = "";
-            const string poundExtension = "#extension GL_GOOGLE_include_directive : enable\n";
-            const string preamble = macroDefinitions + poundExtension;
+            const String macroDefinitions = "";
+            const String poundExtension = "#extension GL_GOOGLE_include_directive : enable\n";
+            const String preamble = macroDefinitions + poundExtension;
 
             EShLanguage language = MapShaderStage(stage);
             glslang::TShader shader(language);
 
-            const char* shaderStrings = source.c_str();
-            const int shaderLengths = static_cast<int>(source.length());
-            const char* stringNames = filePath.c_str();
+            const char* shaderStrings = source.CString();
+            const int shaderLengths = static_cast<int>(source.Length());
+            const char* stringNames = filePath.CString();
             shader.setStringsWithLengthsAndNames(
                 &shaderStrings,
                 &shaderLengths,
                 &stringNames, 1);
-            shader.setPreamble(preamble.c_str());
-            shader.setEntryPoint(entryPoint.c_str());
-            shader.setSourceEntryPoint(entryPoint.c_str());
+            shader.setPreamble(preamble.CString());
+            shader.setEntryPoint(entryPoint.CString());
+            shader.setSourceEntryPoint(entryPoint.CString());
             shader.setShiftSamplerBinding(0);
             shader.setShiftTextureBinding(0);
             shader.setShiftImageBinding(0);
@@ -395,10 +404,10 @@ namespace Alimer
 
             // Save any info log that was generated.
             if (strlen(shader.getInfoLog()))
-                infoLog += string(shader.getInfoLog()) + "\n" + string(shader.getInfoDebugLog()) + "\n";
+                infoLog += String(shader.getInfoLog()) + "\n" + String(shader.getInfoDebugLog()) + "\n";
 
             if (strlen(program.getInfoLog()))
-                infoLog += string(program.getInfoLog()) + "\n" + string(program.getInfoDebugLog());
+                infoLog += String(program.getInfoLog()) + "\n" + String(program.getInfoDebugLog());
 
             // Translate to SPIRV.
             if (program.getIntermediate(language))

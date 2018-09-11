@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
-#include <string>
+#include "../Base/String.h"
 
 namespace Alimer
 {
@@ -52,12 +51,12 @@ namespace Alimer
         uint32_t GetVendorID() const { return _vendorID; }
         GpuVendor GetVendor() const { return _vendor; }
         uint32_t GetDeviceID() const { return _deviceID; }
-        std::string GetDeviceName() const { return _deviceName; }
+        String GetDeviceName() const { return _deviceName; }
 
     protected:
         uint32_t _vendorID = 0;
         GpuVendor _vendor = GpuVendor::Unknown;
         uint32_t _deviceID = 0;
-        std::string _deviceName;
+        String _deviceName;
 	};
 }

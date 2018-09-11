@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Core/String.h"
+#include "../Base/String.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string>

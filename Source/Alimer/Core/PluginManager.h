@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "../Base/String.h"
 #include "../Core/Ptr.h"
 #include "../Core/Plugin.h"
 #include <vector>
@@ -41,8 +42,8 @@ namespace Alimer
         static void DeleteInstance();
 
         /// Load plugins from given path.
-        void LoadPlugins(const std::string& pluginPath);
-        bool LoadPlugin(const std::string& pluginName);
+        void LoadPlugins(const String& pluginPath);
+        bool LoadPlugin(const String& pluginName);
         void InstallPlugin(Plugin* plugin);
 
     private:

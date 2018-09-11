@@ -34,17 +34,18 @@ namespace Alimer
 	class VulkanBuffer final : public GpuBuffer
 	{
 	public:
-        VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData);
+        VulkanBuffer(VulkanGraphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData);
 		~VulkanBuffer() override;
 
         bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
 
-		VkBuffer GetHandle() const { return _vkHandle; }
+		VkBuffer GetHandle() const { return _handle; }
 
 	private:
 		VkDevice _logicalDevice;
         VmaAllocator _allocator;
-        VkBuffer _vkHandle = VK_NULL_HANDLE;
+        VkBuffer _handle = VK_NULL_HANDLE;
         VmaAllocation _allocation = VK_NULL_HANDLE;
+        VmaAllocationInfo _allocationInfo;
 	};
 }

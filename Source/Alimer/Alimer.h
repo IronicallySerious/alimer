@@ -30,12 +30,20 @@
 #include <vector>
 #include <string>
 
+#include "Base/Swap.h"
+#include "Base/String.h"
+#include "Base/StringHash.h"
+
 // Core
 #include "Core/Platform.h"
-#include "Core/String.h"
 #include "Core/Plugin.h"
 #include "Core/Log.h"
 #include "Util/Util.h"
+
+// IO
+#include "IO/Stream.h"
+#include "IO/FileSystem.h"
+#include "IO/Path.h"
 
 // Math
 #include "Math/MathUtil.h"

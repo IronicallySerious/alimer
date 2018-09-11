@@ -20,64 +20,24 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#pragma once
+
+#include "../AlimerConfig.h"
 
 namespace Alimer
 {
-    Window::Window()
-        : _title("Alimer")
-        , _size(800u, 600u)
-        , _resizable(true)
-        , _handle{}
+    //class HashBase;
+    //class ListBase;
+    //class VectorBase;
+    class String;
+
+    /// Swap two values.
+    template<class T> inline void Swap(T& first, T& second)
     {
+        T temp = first;
+        first = second;
+        second = temp;
     }
 
-    Window::~Window()
-    {
-    }
-
-    void Window::Show()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Hide()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Minimize()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Maximize()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Restore()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Close()
-    {
-        // Do nothing by default
-    }
-
-    bool Window::IsVisible() const
-    {
-        return true;
-    }
-
-    bool Window::IsMinimized() const
-    {
-        return false;
-    }
-
-    void Window::SetTitle(const std::string& newTitle)
-    {
-        _title = newTitle;
-    }
+    template <> ALIMER_API void Swap<String>(String& first, String& second);
 }

@@ -173,6 +173,9 @@ namespace Alimer
         return ++value;
     }
 
+    /// Update a hash with the given 8-bit value using the SDBM algorithm.
+    inline constexpr unsigned SDBMHash(unsigned hash, unsigned char c) { return c + (hash << 6u) + (hash << 16u) - hash; }
+
     inline uint32_t Align(uint32_t value, uint32_t alignment)
     {
         ALIMER_ASSERT(alignment <= UINT32_MAX);
@@ -228,8 +231,6 @@ namespace Alimer
         ALIMER_ASSERT(alignment != 0);
         return (reinterpret_cast<size_t>(ptr) & (alignment - 1)) == 0;
     }
-
-    
 
     ALIMER_API bool IsZero(float value);
     ALIMER_API bool IsOne(float value);

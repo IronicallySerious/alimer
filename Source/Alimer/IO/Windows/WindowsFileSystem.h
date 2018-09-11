@@ -30,7 +30,7 @@ namespace Alimer
     class WindowsFileStream final : public Stream
     {
     public:
-        WindowsFileStream(const std::string &path, StreamMode mode);
+        WindowsFileStream(const String &path, StreamMode mode);
         ~WindowsFileStream() override;
 
         bool CanSeek() const override { return _handle != nullptr; }
@@ -46,14 +46,14 @@ namespace Alimer
     class OSFileSystemProtocol final : public FileSystemProtocol
     {
     public:
-        OSFileSystemProtocol(const std::string &rootDirectory);
+        OSFileSystemProtocol(const String &rootDirectory);
         ~OSFileSystemProtocol();
 
-        std::string GetFileSystemPath(const std::string& path) override;
+        String GetFileSystemPath(const String& path) override;
 
-        UniquePtr<Stream> Open(const std::string &path, StreamMode mode) override;
+        UniquePtr<Stream> Open(const String &path, StreamMode mode) override;
 
     protected:
-        std::string _rootDirectory;
+        String _rootDirectory;
     };
 }

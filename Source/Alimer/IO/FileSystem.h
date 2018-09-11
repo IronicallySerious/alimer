@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Core/Flags.h"
+#include "../Base/String.h"
 #include "../Core/Ptr.h"
 #include "../IO/Stream.h"
 #include <memory>
@@ -32,7 +32,7 @@
 namespace Alimer
 {
     /// Return files.
-    enum class ScanDirMask : uint32_t
+    enum class ScanDirFlags : uint32_t
     {
         None = 0,
         /// Scan files.
@@ -42,51 +42,41 @@ namespace Alimer
         /// Scan also hidden files.
         Hidden = 0x4
     };
-
-    using ScanDirFlags = Flags<ScanDirMask, uint32_t>;
-    ALIMER_FORCE_INLINE ScanDirFlags operator|(ScanDirMask bit0, ScanDirMask bit1)
-    {
-        return ScanDirFlags(bit0) | bit1;
-    }
-
-    ALIMER_FORCE_INLINE ScanDirFlags operator~(ScanDirMask bits)
-    {
-        return ~(ScanDirFlags(bits));
-    }
+    ALIMER_BITMASK(ScanDirFlags);
 
     /// Add a slash at the end of the path if missing and convert to internal format (use slashes.)
-    ALIMER_API std::string AddTrailingSlash(const std::string& path);
+    ALIMER_API String AddTrailingSlash(const String& path);
     /// Remove the slash from the end of a path if exists and convert to internal format (use slashes.)
-    ALIMER_API std::string RemoveTrailingSlash(const std::string& path);
+    ALIMER_API String RemoveTrailingSlash(const String& path);
 
     /// Split a full path to path, filename and extension. The extension will be converted to lowercase by default.
-    ALIMER_API void SplitPath(const std::string& fullPath, std::string& pathName, std::string& fileName, std::string& extension, bool lowerCaseExtension = true);
+    ALIMER_API void SplitPath(const String& fullPath, String& pathName, String& fileName, String& extension, bool lowerCaseExtension = true);
 
     /// Return the path from a full path.
-    ALIMER_API std::string GetPath(const std::string& fullPath);
+    ALIMER_API String GetPath(const String& fullPath);
     /// Return the filename from a full path.
-    ALIMER_API std::string GetFileName(const std::string& fullPath);
+    ALIMER_API String GetFileName(const String& fullPath);
     /// Return the extension from a full path, converted to lowercase by default.
-    ALIMER_API std::string GetExtension(const std::string& fullPath, bool lowercaseExtension = true);
+    ALIMER_API String GetExtension(const String& fullPath, bool lowercaseExtension = true);
     /// Return the filename and extension from a full path. The case of the extension is preserved by default, so that the file can be opened in case-sensitive operating systems.
-    ALIMER_API std::string GetFileNameAndExtension(const std::string& fileName, bool lowercaseExtension = false);
+    ALIMER_API String GetFileNameAndExtension(const String& fileName, bool lowercaseExtension = false);
     /// Return the parent path, or the path itself if not available.
-    ALIMER_API std::string GetParentPath(const std::string& path);
+    ALIMER_API String GetParentPath(const String& path);
     /// Return whether a path is absolute.
-    ALIMER_API bool IsAbsolutePath(const std::string& pathName);
+    ALIMER_API bool IsAbsolutePath(const String& pathName);
 
     /// Check if a file exists.
-    ALIMER_API bool FileExists(const std::string& fileName);
+    ALIMER_API bool FileExists(const String& fileName);
     /// Check if a directory exists.
-    ALIMER_API bool DirectoryExists(const std::string& path);
+    ALIMER_API bool DirectoryExists(const String& path);
     /// Return the absolute current working directory.
-    ALIMER_API std::string GetCurrentDir();
+    ALIMER_API String GetCurrentDir();
     /// Return the executable application folder.
-    ALIMER_API std::string GetExecutableFolder();
+    ALIMER_API String GetExecutableFolder();
     /// Open stream from given path with given access mode.
-    ALIMER_API UniquePtr<Stream> OpenStream(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+    ALIMER_API UniquePtr<Stream> OpenStream(const String &path, StreamMode mode = StreamMode::ReadOnly);
     /// Scan a directory for specified files.
-    ALIMER_API void ScanDirectory(std::vector<std::string>& result, const std::string& pathName, const std::string& filter, ScanDirFlags flags, bool recursive);
+    ALIMER_API void ScanDirectory(std::vector<String>& result, const String& pathName, const String& filter, ScanDirFlags flags, bool recursive);
 
     /// Backend protocol for file system.
     class ALIMER_API FileSystemProtocol
@@ -94,21 +84,21 @@ namespace Alimer
     public:
         virtual ~FileSystemProtocol() = default;
 
-        virtual UniquePtr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly) = 0;
+        virtual UniquePtr<Stream> Open(const String &path, StreamMode mode = StreamMode::ReadOnly) = 0;
 
-        inline virtual std::string GetFileSystemPath(const std::string&)
+        inline virtual String GetFileSystemPath(const String&)
         {
             return "";
         }
 
         /// Gets the name.
-        std::string GetName() const { return _name; }
+        String GetName() const { return _name; }
 
         /// Set the name.
-        void SetName(const std::string &name) { _name = name; }
+        void SetName(const String &name) { _name = name; }
 
     protected:
-        std::string _name;
+        String _name;
     };
 
     /// Class for accessing File system.
@@ -119,18 +109,18 @@ namespace Alimer
         static FileSystem &Get();
 
         /// Register protocol with given name.
-        void RegisterProtocol(const std::string &name, UniquePtr<FileSystemProtocol> protocol);
+        void RegisterProtocol(const String &name, FileSystemProtocol* protocol);
 
         /// Get protocol by name or empty for default protocol.
-        FileSystemProtocol* GetProcotol(const std::string &name);
+        FileSystemProtocol* GetProcotol(const String &name);
 
         /// Open stream from given path with given access mode.
-        UniquePtr<Stream> Open(const std::string &path, StreamMode mode = StreamMode::ReadOnly);
+        UniquePtr<Stream> Open(const String &path, StreamMode mode = StreamMode::ReadOnly);
 
     private:
         FileSystem();
 
-        std::unordered_map<std::string, UniquePtr<FileSystemProtocol>> _protocols;
+        std::unordered_map<String, UniquePtr<FileSystemProtocol>> _protocols;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(FileSystem);

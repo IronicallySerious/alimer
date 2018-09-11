@@ -23,8 +23,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
-#include <string>
+#include "../Base/String.h"
 
 #if defined(__CYGWIN32__)
 #   define ALIMER_INTERFACE_EXPORT __declspec(dllexport)
@@ -47,7 +46,7 @@ namespace Alimer
         virtual ~Plugin() = default;
 
         /// Get the plugin name.
-        virtual const std::string& GetName() const = 0;
+        virtual const String& GetName() const = 0;
 
         /// Perform the plugin initial installation sequence. 
         virtual void Install() = 0;

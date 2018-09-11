@@ -86,6 +86,12 @@ namespace Alimer
         /// Return whether is currently minimized.
         virtual bool IsMinimized() const;
 
+        /// Set window title.
+        virtual void SetTitle(const std::string& newTitle);
+
+        /// Return window title.
+        const std::string& GetTitle() const { return _title; }
+
         /// Return window client area size.
         const uvec2& GetSize() const { return _size; }
         uint32_t GetWidth() const { return _size.x; }

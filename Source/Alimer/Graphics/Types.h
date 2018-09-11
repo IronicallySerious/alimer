@@ -71,13 +71,17 @@ namespace Alimer
         Count32 = 32,
     };
 
-    enum class ResourceUsage : uint32_t
+    enum class MemoryFlags : uint32_t
     {
-        Default,
-        Immutable,
-        Dynamic,
-        Staging
+        GpuOnly = 0,
+        CpuOnly = 1 << 0,
+        CpuToGpu = 1 << 1,
+        GpuToCpu = 1 << 2,
+        DedicatedAllocation = 1 << 3,
+        NoAllocation = 1 << 4,
     };
+
+    ALIMER_BITMASK(MemoryFlags);
 
     /// Primitive topology.
     enum class PrimitiveTopology : uint32_t

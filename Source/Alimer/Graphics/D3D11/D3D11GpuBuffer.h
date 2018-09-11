@@ -34,7 +34,7 @@ namespace Alimer
 	{
 	public:
 		/// Constructor.
-		D3D11GpuBuffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData);
+		D3D11GpuBuffer(D3D11Graphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData);
 
 		/// Destructor.
 		~D3D11GpuBuffer() override;

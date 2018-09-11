@@ -474,9 +474,9 @@ namespace Alimer
         return new D3D11RenderPass(this, descriptor);
     }
 
-    GpuBuffer* D3D11Graphics::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
+    GpuBuffer* D3D11Graphics::CreateBufferImpl(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
     {
-        return new D3D11GpuBuffer(this, descriptor, initialData);
+        return new D3D11GpuBuffer(this, memoryFlags, descriptor, initialData);
     }
 
     VertexInputFormat* D3D11Graphics::CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor)

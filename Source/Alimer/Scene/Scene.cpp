@@ -28,9 +28,8 @@ using namespace std;
 
 namespace Alimer
 {
-	Scene::Scene()
-        : _entityManager()
-        , _systemManager(_entityManager)
+	Scene::Scene(EntityManager& entities)
+        : _entities(entities)
 	{
         _defaultCamera = CreateEntity();
         //_defaultCamera.AddComponent<TransformComponent>();
@@ -46,33 +45,23 @@ namespace Alimer
 
     Entity Scene::CreateEntity()
     {
-        Entity entity = _entityManager.CreateEntity();
+        Entity entity = _entities.CreateEntity();
         _pendingEntities.push_back(entity);
         return entity;
     }
 
-    EntityManager &Scene::GetEntityManager()
-    {
-        return _entityManager;
-    }
-
     void Scene::Update(double deltaTime)
     {
-        for (const auto& entity : _pendingEntities)
-        {
-            _systemManager.AddToSystems(entity);
-        }
+        //for (const auto& entity : _pendingEntities)
+        //{
+        //    _systemManager.AddToSystems(entity);
+        //}
         _pendingEntities.clear();
 
         /*for (auto& system : _activeSystems)
         {
             system->Update(deltaTime);
         }*/
-    }
-
-    void Scene::Render(CommandBuffer* context)
-    {
-        //GetSystem<RenderSystem>().Render(context);
     }
 
     void Scene::UpdateCachedTransforms()

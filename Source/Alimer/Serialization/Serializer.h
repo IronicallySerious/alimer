@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Core/String.h"
+#include "../Base/String.h"
 #include "../Util/Util.h"
 #include "../IO/Stream.h"
 #include "../Math/Math.h"

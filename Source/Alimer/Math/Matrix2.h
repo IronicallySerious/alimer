@@ -29,7 +29,7 @@
 namespace Alimer
 {
     /// A 2x2 column-major floating-point matrix class.
-    class Matrix2
+    class ALIMER_API Matrix2
     {
     private:
         vec2 vec[2];
@@ -96,12 +96,12 @@ namespace Alimer
         return Matrix2(a * b[0], a * b[1]);
     }
 
-    Matrix2 Matrix2::Transpose() const
+    inline Matrix2 Matrix2::Transpose() const
     {
         return Matrix2(vec2(vec[0].x, vec[1].x), vec2(vec[0].y, vec[1].y));
     }
 
-    void Matrix2::Transpose(Matrix2* result) const
+    inline void Matrix2::Transpose(Matrix2* result) const
     {
         ALIMER_ASSERT(result);
         result->vec[0].x = vec[0].x;
@@ -110,14 +110,14 @@ namespace Alimer
         result->vec[1].y = vec[1].y; 
     }
 
-    Matrix2 Matrix2::Invert() const
+    inline Matrix2 Matrix2::Invert() const
     {
         Matrix2 result;
         Invert(&result);
         return result;
     }
 
-    void Matrix2::Invert(Matrix2* result) const
+    inline void Matrix2::Invert(Matrix2* result) const
     {
         const float a = vec[0].x;
         const float c = vec[0].y;

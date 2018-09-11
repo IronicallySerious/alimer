@@ -26,7 +26,6 @@
 #include "../IO/Path.h"
 #include "../Util/Util.h"
 #include "../Core/Log.h"
-using namespace std;
 
 namespace Alimer
 {
@@ -38,23 +37,23 @@ namespace Alimer
     {
     }
 
-    bool ResourceManager::AddResourceDir(const string& path, uint32_t priority)
+    bool ResourceManager::AddResourceDir(const String& path, uint32_t priority)
     {
-        lock_guard<mutex> guard(_resourceMutex);
+        std::lock_guard<std::mutex> guard(_resourceMutex);
 
         if (!DirectoryExists(path))
         {
-            ALIMER_LOGERROR("Directory '{}' does not exists", path.c_str());
+            ALIMER_LOGERROR("Directory '{}' does not exists", path.CString());
             return false;
         }
 
         // Convert path to absolute
-        string fixedPath = SanitateResourceDirName(path);
+        String fixedPath = SanitateResourceDirName(path);
 
         // Check that the same path does not already exist
         for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
-            if (!_resourceDirs[i].compare(fixedPath))
+            if (!_resourceDirs[i].Compare(fixedPath))
                 return true;
         }
 
@@ -71,17 +70,18 @@ namespace Alimer
             fileWatchers_.Push(watcher);
         }*/
 
-        ALIMER_LOGINFO("Added resource path '{}'", fixedPath);
+        ALIMER_LOGINFO("Added resource path '{}'", fixedPath.CString());
         return true;
     }
 
-    UniquePtr<Stream> ResourceManager::Open(const string &assetName, StreamMode mode)
+    UniquePtr<Stream> ResourceManager::Open(const String &assetName, StreamMode mode)
     {
-        lock_guard<mutex> guard(_resourceMutex);
+        ALIMER_UNUSED(mode);
+        std::lock_guard<std::mutex> guard(_resourceMutex);
 
-        string sanitatedName = SanitateResourceName(assetName);
+        String sanitatedName = SanitateResourceName(assetName);
 
-        if (sanitatedName.length())
+        if (sanitatedName.Length())
         {
             UniquePtr<Stream> stream = {};
 
@@ -104,13 +104,13 @@ namespace Alimer
         return {};
     }
 
-    bool ResourceManager::Exists(const std::string &assetName)
+    bool ResourceManager::Exists(const String &assetName)
     {
-        lock_guard<mutex> guard(_resourceMutex);
+        std::lock_guard<std::mutex> guard(_resourceMutex);
 
-        string sanitatedName = SanitateResourceName(assetName);
+        String sanitatedName = SanitateResourceName(assetName);
 
-        if (sanitatedName.length())
+        if (sanitatedName.Length())
         {
             bool exists = false;
             if (_searchPackagesFirst)
@@ -132,8 +132,9 @@ namespace Alimer
         return false;
     }
 
-    SharedPtr<Resource> ResourceManager::LoadResource(const string& assetName)
+    SharedPtr<Resource> ResourceManager::LoadResource(const String& assetName)
     {
+        ALIMER_UNUSED(assetName);
         /*auto paths = Path::ProtocolSplit(assetName);
         string fullPath = Path::Join(_dataDirectory, paths.second);
         string compiledAssetName = fullPath + ".alb";
@@ -150,49 +151,47 @@ namespace Alimer
         return nullptr;
     }
 
-    string ResourceManager::SanitateResourceName(const string& name) const
+    String ResourceManager::SanitateResourceName(const String& name) const
     {
         // Sanitate unsupported constructs from the resource name
-        string sanitatedName = str::Replace(name, "../", "");
-        sanitatedName = str::Replace(sanitatedName, "./", "");
+        String sanitatedName = name.Replaced("../", "");
+        sanitatedName.Replace("./", "");
 
         // If the path refers to one of the resource directories, normalize the resource name
         if (_resourceDirs.size())
         {
-            string namePath = GetPath(sanitatedName);
-            string exePath = str::Replace(GetExecutableFolder(), "/./", "/");
+            String namePath = GetPath(sanitatedName);
+            String exePath = GetExecutableFolder().Replaced("/./", "/");
             for (size_t i = 0; i < _resourceDirs.size(); ++i)
             {
-                string relativeResourcePath = _resourceDirs[i];
-                if (str::StartsWith(relativeResourcePath, exePath))
-                    relativeResourcePath = relativeResourcePath.substr(exePath.length());
+                String relativeResourcePath = _resourceDirs[i];
+                if (relativeResourcePath.StartsWith(exePath))
+                    relativeResourcePath = relativeResourcePath.Substring(exePath.Length());
 
-                if (str::StartsWith(namePath, _resourceDirs[i], false))
-                    namePath = namePath.substr(_resourceDirs[i].length());
-                else if (str::StartsWith(namePath, relativeResourcePath, false))
-                    namePath = namePath.substr(relativeResourcePath.length());
+                if (namePath.StartsWith(_resourceDirs[i], false))
+                    namePath = namePath.Substring(_resourceDirs[i].Length());
+                else if (namePath.StartsWith(relativeResourcePath, false))
+                    namePath = namePath.Substring(relativeResourcePath.Length());
             }
 
             sanitatedName = namePath + GetFileNameAndExtension(sanitatedName);
         }
 
-        str::Trim(sanitatedName);
-        return sanitatedName;
+        return sanitatedName.Trimmed();
     }
 
-    string ResourceManager::SanitateResourceDirName(const string& name) const
+    String ResourceManager::SanitateResourceDirName(const String& name) const
     {
-        string cleanName = AddTrailingSlash(name);
+        String cleanName = AddTrailingSlash(name);
         if (!IsAbsolutePath(name))
             cleanName = Path::Join(GetCurrentDir(), name);
 
         // Sanitate away /./ construct
-        str::Replace(cleanName, "/./", "/");
-        str::Trim(cleanName);
+        cleanName = cleanName.Replaced("/./", "/").Trimmed();
         return cleanName;
     }
 
-    UniquePtr<Stream> ResourceManager::SearchResourceDirs(const string& name)
+    UniquePtr<Stream> ResourceManager::SearchResourceDirs(const String& name)
     {
         for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
@@ -209,13 +208,14 @@ namespace Alimer
         return {};
     }
 
-    UniquePtr<Stream> ResourceManager::SearchPackages(const string& name)
+    UniquePtr<Stream> ResourceManager::SearchPackages(const String& name)
     {
+        ALIMER_UNUSED(name);
         // TODO:
         return {};
     }
 
-    bool ResourceManager::ExistsInResourceDirs(const string& name)
+    bool ResourceManager::ExistsInResourceDirs(const String& name)
     {
         for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
@@ -232,8 +232,9 @@ namespace Alimer
         return false;
     }
 
-    bool ResourceManager::ExistsInPackages(const string& name)
+    bool ResourceManager::ExistsInPackages(const String& name)
     {
+        ALIMER_UNUSED(name);
         // TODO:
         return false;
     }

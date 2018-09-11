@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Graphics/Shader.h"
-#include <string>
 #include <vector>
 
 namespace Alimer
@@ -31,7 +30,7 @@ namespace Alimer
 	/// Class for shader compilation support.
 	namespace ShaderCompiler
 	{
-		ALIMER_API bool Compile(const std::string& filePath, const std::string& entryPoint, std::vector<uint32_t>& spirv, std::string& infoLog);
-        ALIMER_API bool Compile(ShaderStage stage, const std::string& source, const std::string& entryPoint, std::vector<uint32_t>& spirv, const std::string& filePath, std::string& infoLog);
+		ALIMER_API bool Compile(const String& filePath, const String& entryPoint, std::vector<uint32_t>& spirv, String& infoLog);
+        ALIMER_API bool Compile(ShaderStage stage, const String& source, const String& entryPoint, std::vector<uint32_t>& spirv, const String& filePath, String& infoLog);
 	}
 }

@@ -29,7 +29,7 @@
 namespace Alimer
 {
     /// A 4x4 column-major floating-point matrix class.
-    class Matrix4
+    class ALIMER_API Matrix4
     {
     private:
         tvec4<float> _values[4];

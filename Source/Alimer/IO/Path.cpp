@@ -21,137 +21,139 @@
 //
 
 #include "../IO/Path.h"
-#include "../Core/String.h"
+#include "../Base/String.h"
 #include "../Util/Util.h"
 #include <algorithm>
-using namespace std;
 
 namespace Alimer
 {
 	namespace Path
 	{
-		static size_t FindLastSlash(const string &str)
+		static uint32_t FindLastSlash(const String &str)
 		{
 #ifdef _WIN32
-			auto index = str.find_last_of("/\\");
+			auto index = str.FindLast("/\\");
 #else
-			auto index = str.find_last_of('/');
+			auto index = str.FindLast('/');
 #endif
 			return index;
 		}
 
-		bool IsAbsolutePath(const string &path)
+		bool IsAbsolutePath(const String &path)
 		{
-			if (path.empty())
+			if (path.IsEmpty())
 				return false;
-			if (path.front() == '/')
+			if (path.Front() == '/')
 				return true;
 
 #ifdef _WIN32
 			{
-				auto index = std::min(path.find(":/"), path.find(":\\"));
-				if (index != string::npos)
+				auto index = std::min(path.Find(":/"), path.Find(":\\"));
+				if (index != String::NPOS)
 					return true;
 			}
 #endif
 
-			return path.find("://") != string::npos;
+			return path.Find("://") != String::NPOS;
 		}
 
-		bool IsRootPath(const string &path)
+		bool IsRootPath(const String &path)
 		{
-			if (path.empty())
+			if (path.IsEmpty())
 				return false;
 
-			if (path.front() == '/' && path.size() == 1)
+			if (path.Front() == '/' && path.Length() == 1)
 				return true;
 
 #ifdef _WIN32
 			{
-				auto index = std::min(path.find(":/"), path.find(":\\"));
-				if (index != string::npos && (index + 2) == path.size())
+				auto index = std::min(path.Find(":/"), path.Find(":\\"));
+				if (index != String::NPOS && (index + 2) == path.Length())
 					return true;
 			}
 #endif
 
-			auto index = path.find("://");
-			return index != string::npos && (index + 3) == path.size();
+			auto index = path.Find("://");
+			return index != String::NPOS && (index + 3) == path.Length();
 		}
 
-		string Join(const string &base, const string &path)
+        String Join(const String &base, const String &path)
 		{
-			if (base.empty())
+			if (base.IsEmpty())
 				return path;
-			if (path.empty())
+			if (path.IsEmpty())
 				return base;
 
 			if (IsAbsolutePath(path))
 				return path;
 
-			size_t index = FindLastSlash(base);
-			bool needSlash = index != base.size() - 1;
-			return str::Join(base, needSlash ? "/" : "", path);
+            auto index = FindLastSlash(base);
+			bool needSlash = index != base.Length() - 1;
+            return String::Joined({ base, path }, needSlash ? "/" : "");
 		}
 
-		string GetBaseDir(const string &path)
+        String GetBaseDir(const String &path)
 		{
-			if (path.empty())
+			if (path.IsEmpty())
 				return "";
 
 			if (IsRootPath(path))
 				return path;
 
-			size_t index = FindLastSlash(path);
-			if (index == string::npos)
+			auto index = FindLastSlash(path);
+			if (index == String::NPOS)
 				return ".";
 
 			// Preserve the first slash.
 			if (index == 0 && IsAbsolutePath(path))
 				index++;
 
-			string ret = path.substr(0, index + 1);
-			if (!IsRootPath(ret))
-				ret.pop_back();
+            String ret = path.Substring(0, index + 1);
+            if (!IsRootPath(ret))
+            {
+                ret.Erase(ret.Length() - 1);
+            }
+
 			return ret;
 		}
 
-		string GetBaseName(const string &path)
+        String GetBaseName(const String &path)
 		{
-			if (path.empty())
-				return "";
+			if (path.IsEmpty())
+				return String::EMPTY;
 
-			size_t index = FindLastSlash(path);
-			if (index == string::npos)
+			auto index = FindLastSlash(path);
+			if (index == String::NPOS)
 				return path;
 
-			string base = path.substr(index + 1, string::npos);
+            String base = path.Substring(index + 1);
 			return base;
 		}
 
-		string GetRelativePath(const string &base, const string &path)
+        String GetRelativePath(const String &base, const String &path)
 		{
 			return Path::Join(GetBaseDir(base), path);
 		}
 
-		string GetExtension(const string &path)
+        String GetExtension(const String &path)
 		{
-			auto index = path.find_last_of('.');
-			if (index == string::npos)
-				return "";
+			auto index = path.FindLast('.');
+			if (index == String::NPOS)
+				return String::EMPTY;
 
-			return path.substr(index + 1, string::npos);
+			return path.Substring(index + 1);
 		}
 
-		pair<string, string> ProtocolSplit(const string &path)
+		std::pair<String, String> ProtocolSplit(const String &path)
 		{
-			if (path.empty())
-				return make_pair(string(""), string(""));
+			if (path.IsEmpty())
+				return std::make_pair(String::EMPTY, String::EMPTY);
 
-			size_t index = path.find("://");
-			if (index == string::npos)
-				return make_pair(string(""), path);
+			auto index = path.Find("://");
+			if (index == String::NPOS)
+				return std::make_pair(String::EMPTY, path);
 
-			return make_pair(path.substr(0, index), path.substr(index + 3, string::npos));
+			return std::make_pair(path.Substring(0, index), path.Substring(index + 3));
 		}
 	}
 }

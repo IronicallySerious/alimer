@@ -26,7 +26,6 @@
 #include "../Resource/ResourceLoader.h"
 #include <mutex>
 #include <atomic>
-#include <string>
 #include <vector>
 #include <map>
 
@@ -46,43 +45,43 @@ namespace Alimer
 		~ResourceManager();
 
         /// Add a resource load directory. Optional priority parameter which will control search order.
-        bool AddResourceDir(const std::string& assetName, uint32_t priority = PRIORITY_LAST);
+        bool AddResourceDir(const String& assetName, uint32_t priority = PRIORITY_LAST);
 
-        UniquePtr<Stream> Open(const std::string &assetName, StreamMode mode = StreamMode::ReadOnly);
-        bool Exists(const std::string &assetName);
+        UniquePtr<Stream> Open(const String &assetName, StreamMode mode = StreamMode::ReadOnly);
+        bool Exists(const String &assetName);
 
-        SharedPtr<Resource> LoadResource(const std::string& assetName);
+        SharedPtr<Resource> LoadResource(const String& assetName);
 
-		template <class T> SharedPtr<T> Load(const std::string& assetName)
+		template <class T> SharedPtr<T> Load(const String& assetName)
 		{
 			return StaticCast<T>(LoadResource(assetName));
 		}
 
         /// Remove unsupported constructs from the resource name to prevent ambiguity, and normalize absolute filename to resource path relative if possible.
-        std::string SanitateResourceName(const std::string& name) const;
+        String SanitateResourceName(const String& name) const;
 
         /// Remove unnecessary constructs from a resource directory name and ensure it to be an absolute path.
-        std::string SanitateResourceDirName(const std::string& name) const;
+        String SanitateResourceDirName(const String& name) const;
 
 	private:
         /// Search FileSystem for file.
-        UniquePtr<Stream> SearchResourceDirs(const std::string& name);
+        UniquePtr<Stream> SearchResourceDirs(const String& name);
         /// Search resource packages for file.
-        UniquePtr<Stream> SearchPackages(const std::string& name);
+        UniquePtr<Stream> SearchPackages(const String& name);
 
         /// Search FileSystem for file.
-        bool ExistsInResourceDirs(const std::string& name);
+        bool ExistsInResourceDirs(const String& name);
 
         /// Search resource packages for file.
-        bool ExistsInPackages(const std::string& name);
+        bool ExistsInPackages(const String& name);
 
         /// Mutex for thread-safe access to the resource directories, resource packages and resource dependencies.
         mutable std::mutex _resourceMutex;
 
         /// Resource load directories.
-        std::vector<std::string> _resourceDirs;
+        std::vector<String> _resourceDirs;
 
-		std::map<std::string, SharedPtr<Resource>> _resources;
+		std::map<String, SharedPtr<Resource>> _resources;
 
         /// Search priority flag.
         bool _searchPackagesFirst{ true };

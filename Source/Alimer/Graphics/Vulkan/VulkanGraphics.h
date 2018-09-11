@@ -39,7 +39,7 @@ namespace Alimer
         static bool IsSupported();
 
 		/// Construct. Set parent shader and defines but do not compile yet.
-		VulkanGraphics(bool validation, const std::string& applicationName);
+		VulkanGraphics(bool validation, const String& applicationName);
 		/// Destruct.
 		~VulkanGraphics() override;
 
@@ -53,7 +53,7 @@ namespace Alimer
         RenderPass* GetBackbufferRenderPass() const;
 
         RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) override;
-        GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
+        GpuBuffer* CreateBufferImpl(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData) override;
         VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) override;
         ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) override;
         ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) override;

@@ -24,7 +24,7 @@
 #define VMA_IMPLEMENTATION
 
 #include "../../Core/Log.h"
-#include "../../Core/String.h"
+#include "../../Base/String.h"
 #include "../../Application/Window.h"
 #include "VulkanGraphics.h"
 #include "VulkanGpuAdapter.h"
@@ -226,7 +226,7 @@ namespace Alimer
         return true;
     }
 
-    VulkanGraphics::VulkanGraphics(bool validation, const string& applicationName)
+    VulkanGraphics::VulkanGraphics(bool validation, const String& applicationName)
         : Graphics(GraphicsDeviceType::Vulkan, validation)
     {
         std::vector<LayerProperties> instanceLayerProperties;
@@ -251,7 +251,7 @@ namespace Alimer
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = applicationName.c_str();
+        appInfo.pApplicationName = applicationName.CString();
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Alimer Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
@@ -733,9 +733,9 @@ namespace Alimer
         return new VulkanRenderPass(this, descriptor);
     }
 
-    GpuBuffer* VulkanGraphics::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
+    GpuBuffer* VulkanGraphics::CreateBufferImpl(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
     {
-        return new VulkanBuffer(this, descriptor, initialData);
+        return new VulkanBuffer(this, memoryFlags, descriptor, initialData);
     }
 
     VertexInputFormat* VulkanGraphics::CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor)

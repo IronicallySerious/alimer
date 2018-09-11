@@ -21,41 +21,38 @@
 // THE SOFTWARE.
 //
 
-#include "../Core/StringHash.h"
-#include "../Core/String.h"
+#include "../Base/StringHash.h"
+#include "../Base/String.h"
 
 namespace Alimer
 {
 	const StringHash StringHash::ZERO;
 
-	StringHash::StringHash(const char* str) noexcept
-		: _value(Calculate(str))
+	StringHash::StringHash(const String& str) noexcept
+		: _value(Calculate(str.CString()))
 	{
 	}
 
-	StringHash::StringHash(const std::string& str) noexcept
-		: _value(Calculate(str.c_str()))
+	String StringHash::ToString() const
 	{
-	}
-
-	uint32_t StringHash::Calculate(const char* str, uint32_t hash)
-	{
-		if (!str)
-			return hash;
-
-		while (*str)
-		{
-			hash = (Alimer::ToLower(*str)) + (hash << 6) + (hash << 16) - hash;
-			++str;
-		}
-
-		return hash;
-	}
-
-	std::string StringHash::ToString() const
-	{
-		char tempBuffer[str::ConversionBufferLength];
+		char tempBuffer[CONVERSION_BUFFER_LENGTH];
 		sprintf(tempBuffer, "%08X", _value);
-		return std::string(tempBuffer);
+		return String(tempBuffer);
 	}
+
+    uint32_t StringHash::Calculate(void* data, uint32_t length, uint32_t hash)
+    {
+        if (!data)
+            return hash;
+
+        auto* bytes = static_cast<uint8_t*>(data);
+        auto* end = bytes + length;
+        while (bytes < end)
+        {
+            hash = SDBMHash(hash, *bytes);
+            ++bytes;
+        }
+
+        return hash;
+    }
 }

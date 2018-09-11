@@ -285,7 +285,7 @@ namespace Alimer
     private:
         using ComponentMask = std::bitset<Detail::MaxComponents>;
 
-        uint32_t _indexCounter;
+        uint32_t _indexCounter = 0;
 
         // Vector of entity version numbers. Incremented each time an entity is destroyed
         std::vector<uint32_t> _entityVersion;

@@ -44,6 +44,8 @@ namespace Alimer
 		Fail = 4
 	};
 
+    class Stream;
+
 	/// Runtime resource class.
 	class ALIMER_API Resource : public Object
 	{

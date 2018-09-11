@@ -135,7 +135,7 @@ namespace Alimer
         return availableBackends;
     }
 
-    Graphics* Graphics::Create(GraphicsDeviceType deviceType, bool validation, const std::string& applicationName)
+    Graphics* Graphics::Create(GraphicsDeviceType deviceType, bool validation, const String& applicationName)
     {
         if (deviceType == GraphicsDeviceType::Default)
         {
@@ -244,7 +244,7 @@ namespace Alimer
         return CreateRenderPassImpl(descriptor);
     }
 
-    GpuBuffer* Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
+    GpuBuffer* Graphics::CreateBuffer(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
     {
         ALIMER_ASSERT(descriptor);
 
@@ -263,7 +263,7 @@ namespace Alimer
             ALIMER_LOGCRITICAL("Buffer needs the transfer dest usage when creating with initial data.");
         }
 
-        return CreateBufferImpl(descriptor, initialData);
+        return CreateBufferImpl(memoryFlags, descriptor, initialData);
     }
 
     VertexInputFormat* Graphics::CreateVertexInputFormat(const VertexInputFormatDescriptor* descriptor)
@@ -288,7 +288,7 @@ namespace Alimer
         return CreateShaderModuleImpl(spirv);
     }
 
-    ShaderModule* Graphics::CreateShaderModule(const std::string& file, const std::string& entryPoint)
+    ShaderModule* Graphics::CreateShaderModule(const String& file, const String& entryPoint)
     {
         // Load from spirv bytecode.
         vector<uint32_t> spirv;
@@ -318,7 +318,7 @@ namespace Alimer
         else*/
         {
             // Compile from source GLSL.
-            string errorLog;
+            String errorLog;
             if (!ShaderCompiler::Compile(file, entryPoint, spirv, errorLog))
             {
                 ALIMER_LOGCRITICAL("Shader compilation failed: \n {}", errorLog);

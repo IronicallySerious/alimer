@@ -29,8 +29,8 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
-        : GpuBuffer(graphics, descriptor)
+    D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
+        : GpuBuffer(graphics, memoryFlags, descriptor)
     {
         if (descriptor->usage & BufferUsage::TransferDest
             || descriptor->usage & BufferUsage::TransferSrc)

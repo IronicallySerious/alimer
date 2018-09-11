@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
-#include <string>
+#include "../Base/String.h"
 #include <vector>
 
 namespace Alimer
@@ -76,7 +75,7 @@ namespace Alimer
 		virtual void Write(const void* data, size_t size) = 0;
 
 		/// Read entire file as text.
-		std::string ReadAllText();
+		String ReadAllText();
 
 		/// Read content as vector bytes.
 		std::vector<uint8_t> ReadBytes(size_t count = 0);
@@ -97,13 +96,13 @@ namespace Alimer
 		bool IsEof() const { return _position >= _size; }
 
         /// Gets the name of this object.
-        std::string GetName() const { return _name; }
+        String GetName() const { return _name; }
 
         /// Sets the name of this object.
-        void SetName(const std::string& name);
+        void SetName(const String& name);
 
 	protected:
-        std::string _name;
+        String _name;
 		StreamMode _mode;
 		size_t _position = 0;
 		size_t _size = 0;

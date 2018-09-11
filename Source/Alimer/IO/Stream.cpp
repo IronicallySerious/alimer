@@ -30,18 +30,18 @@ namespace Alimer
 	{
 	}
 
-    void Stream::SetName(const std::string& name)
+    void Stream::SetName(const String& name)
     {
         _name = name;
     }
 
-	std::string Stream::ReadAllText()
+	String Stream::ReadAllText()
 	{
-		std::string content;
+		String content;
 		uint64_t length = _size;
 		if (length)
 		{
-			content.resize(length);
+			content.Resize(length);
 			Read(&content[0], length);
 		}
 

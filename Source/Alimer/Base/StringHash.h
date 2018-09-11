@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
-#include <string>
+#include "../Base/String.h"
+#include "../Math/MathUtil.h"
 
 namespace Alimer
 {
@@ -36,53 +36,36 @@ namespace Alimer
 		StringHash() noexcept : _value(0) {}
 
 		/// Copy-construct.
-		StringHash(const StringHash& rhs) noexcept : _value(rhs._value) { }
+		StringHash(const StringHash& rhs) noexcept = default;
 
 		/// Construct with an initial value.
 		explicit StringHash(uint32_t value) noexcept : _value(value) { }
 
 		/// Construct from a C string case-insensitively.
-		StringHash(const char* str) noexcept;        // NOLINT(google-explicit-constructor)
+		StringHash(const char* str) noexcept // NOLINT(google-explicit-constructor)
+            : _value(Calculate(str))
+        {
+        }
 
 		/// Construct from a string case-insensitively.
-		StringHash(const std::string& str) noexcept;      // NOLINT(google-explicit-constructor)
+		StringHash(const String& str) noexcept;      // NOLINT(google-explicit-constructor)
 
-		/// Assign from another hash.
-		StringHash& operator = (const StringHash& rhs) noexcept
-		{
-			_value = rhs._value;
-			return *this;
-		}
+        /// Add a hash.
+        StringHash operator +(const StringHash& rhs) const
+        {
+            StringHash ret;
+            ret._value = _value + rhs._value;
+            return ret;
+        }
 
-		/// Assign from a string.
-		StringHash& operator = (const std::string& rhs)
-		{
-			_value = StringHash::Calculate(rhs.c_str());
-			return *this;
-		}
+        /// Add-assign a hash.
+        StringHash& operator +=(const StringHash& rhs)
+        {
+            _value += rhs._value;
+            return *this;
+        }
 
-		/// Assign from a C string.
-		StringHash& operator = (const char* rhs)
-		{
-			_value = StringHash::Calculate(rhs);
-			return *this;
-		}
-
-		/// Add a hash.
-		StringHash operator + (const StringHash& rhs) const
-		{
-			StringHash ret(_value + rhs._value);
-			return ret;
-		}
-
-		/// Add-assign a hash.
-		StringHash& operator += (const StringHash& rhs)
-		{
-			_value += rhs._value;
-			return *this;
-		}
-
-		// Test for equality with another hash.
+		/// Test for equality with another hash.
 		bool operator == (const StringHash& rhs) const { return _value == rhs._value; }
 		/// Test for inequality with another hash.
 		bool operator != (const StringHash& rhs) const { return _value != rhs._value; }
@@ -95,12 +78,19 @@ namespace Alimer
 		/// Return hash value.
 		uint32_t Value() const { return _value; }
 		/// Return as string.
-		std::string ToString() const;
+		String ToString() const;
+
 		/// Return hash value for HashSet & HashMap.
 		uint32_t ToHash() const { return _value; }
 
-		/// Calculate hash value case-insensitively from a C string.
-		static uint32_t Calculate(const char* str, uint32_t hash = 0);
+        /// Calculate hash value case-insensitively from a C string.
+        static constexpr uint32_t Calculate(const char* str, uint32_t hash = 0)
+        {
+            return str == nullptr || *str == 0 ? hash : Calculate(str + 1, SDBMHash(hash, (unsigned char)(((*str) >= 'A' && (*str) <= 'Z') ? (*str) + ('a' - 'A') : (*str))));
+        }
+
+        /// Calculate hash value from binary data.
+        static uint32_t Calculate(void* data, uint32_t length, uint32_t hash = 0);
 
 		/// Zero hash.
 		static const StringHash ZERO;

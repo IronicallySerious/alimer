@@ -21,16 +21,13 @@
 //
 
 #include "WindowsFileSystem.h"
-//#include "../../Util/Util.h"
-#include "../../Core/String.h"
+#include "../../Base/String.h"
 #include "../../IO/Path.h"
 #include "../../Core/Log.h"
 
-using namespace std;
-
 namespace Alimer
 {
-    static bool EnsureDirectoryExistsInner(const string &path)
+    static bool EnsureDirectoryExistsInner(const String &path)
     {
         if (Path::IsRootPath(path))
             return false;
@@ -42,7 +39,7 @@ namespace Alimer
         if (!EnsureDirectoryExistsInner(basedir))
             return false;
 
-        if (!CreateDirectoryA(path.c_str(), nullptr))
+        if (!CreateDirectoryA(path.CString(), nullptr))
         {
             return GetLastError() == ERROR_ALREADY_EXISTS;
         }
@@ -50,13 +47,13 @@ namespace Alimer
         return true;
     }
 
-    static bool EnsureDirectoryExists(const std::string &path)
+    static bool EnsureDirectoryExists(const String &path)
     {
-        string basedir = Path::GetBaseDir(path);
+        String basedir = Path::GetBaseDir(path);
         return EnsureDirectoryExistsInner(basedir);
     }
 
-    WindowsFileStream::WindowsFileStream(const string &path, StreamMode mode)
+    WindowsFileStream::WindowsFileStream(const String &path, StreamMode mode)
     {
         _name = path;
         DWORD access = 0;
@@ -72,7 +69,7 @@ namespace Alimer
         case StreamMode::ReadWrite:
             if (!EnsureDirectoryExists(path))
             {
-                throw runtime_error("Win32 Stream failed to create directory.");
+                throw std::runtime_error("Win32 Stream failed to create directory.");
             }
 
             access = GENERIC_READ | GENERIC_WRITE;
@@ -82,7 +79,7 @@ namespace Alimer
         case StreamMode::WriteOnly:
             if (!EnsureDirectoryExists(path))
             {
-                throw runtime_error("Win32 Stream failed to create directory.");
+                throw std::runtime_error("Win32 Stream failed to create directory.");
             }
 
             access = GENERIC_READ | GENERIC_WRITE;
@@ -91,7 +88,7 @@ namespace Alimer
         }
 
         _handle = CreateFileW(
-            str::ToWide(path).c_str(),
+            WString(path).CString(),
             access,
             FILE_SHARE_READ,
             nullptr,
@@ -100,8 +97,8 @@ namespace Alimer
         );
         if (_handle == INVALID_HANDLE_VALUE)
         {
-            ALIMER_LOGERROR("Failed to open file: '{}'.", path.c_str());
-            throw runtime_error("WindowsFileStream::WindowsFileStream()");
+            ALIMER_LOGERROR("Failed to open file: '{}'.", path.CString());
+            throw std::runtime_error("WindowsFileStream::WindowsFileStream()");
         }
 
 
@@ -110,7 +107,7 @@ namespace Alimer
             LARGE_INTEGER size;
             if (!GetFileSizeEx(_handle, &size))
             {
-                throw runtime_error("[Win32] - GetFileSizeEx: failed");
+                throw std::runtime_error("[Win32] - GetFileSizeEx: failed");
             }
 
             _size = static_cast<size_t>(size.QuadPart);
@@ -163,7 +160,7 @@ namespace Alimer
             _size = _position;
     }
 
-    OSFileSystemProtocol::OSFileSystemProtocol(const string &rootDirectory)
+    OSFileSystemProtocol::OSFileSystemProtocol(const String &rootDirectory)
         : _rootDirectory(rootDirectory)
     {
 
@@ -174,12 +171,12 @@ namespace Alimer
 
     }
 
-    string OSFileSystemProtocol::GetFileSystemPath(const string& path)
+    String OSFileSystemProtocol::GetFileSystemPath(const String& path)
     {
         return Path::Join(_rootDirectory, path);
     }
 
-    UniquePtr<Stream> OSFileSystemProtocol::Open(const string &path, StreamMode mode)
+    UniquePtr<Stream> OSFileSystemProtocol::Open(const String &path, StreamMode mode)
     {
         try
         {

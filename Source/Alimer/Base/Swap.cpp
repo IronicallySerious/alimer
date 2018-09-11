@@ -1,4 +1,5 @@
 //
+// Alimer is based on the Turso3D codebase.
 // Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,64 +21,13 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Window.h"
+#include "../Base/Swap.h"
+#include "../Base/String.h"
 
 namespace Alimer
 {
-    Window::Window()
-        : _title("Alimer")
-        , _size(800u, 600u)
-        , _resizable(true)
-        , _handle{}
+    template <> void Swap<String>(String& first, String& second)
     {
-    }
-
-    Window::~Window()
-    {
-    }
-
-    void Window::Show()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Hide()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Minimize()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Maximize()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Restore()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Close()
-    {
-        // Do nothing by default
-    }
-
-    bool Window::IsVisible() const
-    {
-        return true;
-    }
-
-    bool Window::IsMinimized() const
-    {
-        return false;
-    }
-
-    void Window::SetTitle(const std::string& newTitle)
-    {
-        _title = newTitle;
+        first.Swap(second);
     }
 }

@@ -674,6 +674,88 @@ namespace Alimer
         T * _ptr;
     };
 
+    /// Pointer which takes ownership of an array allocated with new[] and deletes it when the pointer goes out of scope.
+    template <class T> class AutoArrayPtr
+    {
+    public:
+        /// Construct a null pointer.
+        AutoArrayPtr() :  _array(nullptr)
+        {
+        }
+
+        /// Copy-construct. Ownership is transferred, making the source pointer null.
+        AutoArrayPtr(AutoArrayPtr<T>& ptr) : _array(ptr._array)
+        {
+            ptr._array = nullptr;
+        }
+
+        /// Construct and take ownership of the array.
+        AutoArrayPtr(T* array_) : _array(array_)
+        {
+        }
+
+        /// Destruct. Delete the array pointed to.
+        ~AutoArrayPtr()
+        {
+            delete[] _array;
+        }
+
+        /// Assign from a pointer. Existing array is deleted and ownership is transferred from the source pointer, which becomes null.
+        AutoArrayPtr<T>& operator = (AutoArrayPtr<T>& rhs)
+        {
+            delete _array;
+            _array = rhs._array;
+            rhs._array = nullptr;
+            return *this;
+        }
+
+        /// Assign a new array. Existing array is deleted.
+        AutoArrayPtr<T>& operator = (T* rhs)
+        {
+            delete _array;
+            _array = rhs;
+            return *this;
+        }
+
+        /// Detach the array from the pointer without destroying it and return it. The pointer becomes null.
+        T* Detach()
+        {
+            T* ret = _array;
+            _array = nullptr;
+            return ret;
+        }
+
+        /// Reset to null. Destroys the array.
+        void Reset()
+        {
+            *this = nullptr;
+        }
+
+        /// Point to the array.
+        T* operator -> () const { assert(_array); return _array; }
+        /// Dereference the array.
+        T& operator * () const { assert(_array); return *_array; }
+        /// Index the array.
+        T& operator [] (size_t index) { assert(_array); return _array[index]; }
+        /// Const-index the array.
+        const T& operator [] (size_t index) const { assert(_array); return _array[index]; }
+        /// Convert to bool.
+        operator bool() const { return _array != nullptr; }
+
+        /// Return the array.
+        T* Get() const { return _array; }
+
+        /// Return whether is a null pointer.
+        bool IsNull() const { return _array == nullptr; }
+
+        /// Check if the pointer is not null.
+        bool IsNotNull() const { return _array != nullptr; }
+
+    private:
+        /// Array pointer.
+        T* _array;
+    };
+
     /// Swap two UniquePtr-s.
     template <class T> void Swap(UniquePtr<T>& first, UniquePtr<T>& second)
     {

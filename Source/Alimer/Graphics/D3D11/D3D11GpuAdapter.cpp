@@ -21,7 +21,7 @@
 //
 
 #include "D3D11GpuAdapter.h"
-#include "../../Core/String.h"
+#include "../../Base/String.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
@@ -59,14 +59,14 @@ namespace Alimer
 
         _vendorID = desc.VendorId;
         _deviceID = desc.DeviceId;
-        _deviceName = str::FromWide(desc.Description);
+        _deviceName.SetUTF8FromWChar(desc.Description);
     }
 
     D3D11GpuAdapter::~D3D11GpuAdapter()
     {
 #if defined(_DEBUG)
-        //ULONG refCount = GetRefCount(_adapter);
-        //ALIMER_ASSERT_MSG(refCount == 1, "D3D11GpuAdapter leakage");
+        ULONG refCount = GetRefCount(_adapter);
+        ALIMER_ASSERT_MSG(refCount == 1, "D3D11GpuAdapter leakage");
 #endif
         SafeRelease(_adapter);
     }

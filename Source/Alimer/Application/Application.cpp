@@ -41,6 +41,7 @@ namespace Alimer
         , _log(new Logger())
         , _entities()
         , _systems(_entities)
+        , _scene(_entities)
     {
         PlatformConstruct();
 
@@ -53,7 +54,6 @@ namespace Alimer
         _running = false;
 
         PluginManager::DeleteInstance();
-        _scene.Reset();
 
         __appInstance = nullptr;
     }
@@ -98,7 +98,7 @@ namespace Alimer
 
         // Setup and configure all systems.
         _systems.Add<CameraSystem>();
-        _systems.Add<RenderSystem>();
+        _renderSystem = _systems.Add<RenderSystem>();
         _systems.Configure();
 
         ALIMER_LOGINFO("Engine initialized with success.");
@@ -121,25 +121,24 @@ namespace Alimer
 
     void Application::RunFrame()
     {
-        if (_paused)
-        {
-            // When paused still update input logic.
-            _input->Update();
-        }
-        else
+        if (!_paused)
         {
             // Tick timer.
             double frameTime = _timer.Frame();
             double deltaTime = _timer.GetElapsed();
 
-            if (_scene)
-            {
-                _scene->Update(deltaTime);
-            }
+            // Update all systems.
+            _systems.Update(deltaTime);
 
+            // Update scene.
+            _scene.Update(deltaTime);
+
+            // Render single frame.
             RenderFrame(frameTime, deltaTime);
-            _input->Update();
         }
+
+        // Update input, even when paused.
+        _input->Update();
     }
 
     void Application::RenderFrame(double frameTime, double elapsedTime)
@@ -149,14 +148,12 @@ namespace Alimer
 
         if (_graphics->BeginFrame())
         {
-            if (_scene)
-            {
-                CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
+            CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
 
-                // Render scene to default command buffer.
-                _scene->Render(commandBuffer);
-            }
+            // Render scene to default command buffer.
+            _renderSystem->Render(commandBuffer);
 
+            // Call OnRenderFrame for custom rendering frame logic.
             OnRenderFrame(frameTime, elapsedTime);
 
             // End rendering frame.
@@ -202,11 +199,6 @@ namespace Alimer
             // TODO: Fire event.
             _paused = false;
         }
-    }
-
-    void Application::SetScene(Scene* scene)
-    {
-        _scene = scene;
     }
 
     Application& gApplication()

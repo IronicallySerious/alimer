@@ -44,7 +44,7 @@ namespace Alimer
 	{
 	protected:
         /// Constructor.
-        GpuResource(Graphics* graphics, GpuResourceType resourceType, ResourceUsage resourceUsage = ResourceUsage::Default);
+        GpuResource(Graphics* graphics, GpuResourceType resourceType);
 
 	public:
 		/// Destructor.
@@ -59,14 +59,10 @@ namespace Alimer
         /// Get the resource type.
         GpuResourceType GetResourceType() const { return _resourceType; }
 
-        /// Get the resource usage.
-        ResourceUsage GetResourceUsage() const { return _resourceUsage; }
-
     protected:
         /// Graphics subsystem.
         WeakPtr<Graphics> _graphics;
         GpuResourceType _resourceType;
-        ResourceUsage _resourceUsage;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);

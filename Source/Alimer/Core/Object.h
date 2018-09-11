@@ -24,7 +24,7 @@
 
 
 #include "../Core/Ptr.h"
-#include "../Core/StringHash.h"
+#include "../Base/StringHash.h"
 #include "../Core/Event.h"
 
 namespace Alimer

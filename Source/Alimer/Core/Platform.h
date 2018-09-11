@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
-#include <string>
+#include "../Base/String.h"
 
 namespace Alimer
 {
@@ -103,7 +102,7 @@ namespace Alimer
     ALIMER_API const char* GetPlatformName();
 
     /// Get the operating system description.
-    ALIMER_API std::string GetOSDescription();
+    ALIMER_API String GetOSDescription();
 
     /// Load native library
     ALIMER_API void* LoadNativeLibrary(const char* name);

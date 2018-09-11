@@ -60,7 +60,7 @@ namespace Alimer
         static std::set<GraphicsDeviceType> GetAvailableBackends();
 
         /// Factory method for Graphics creation.
-        static Graphics* Create(GraphicsDeviceType deviceType, bool validation = false, const std::string& applicationName = "Alimer");
+        static Graphics* Create(GraphicsDeviceType deviceType, bool validation = false, const String& applicationName = "Alimer");
 
         /// Initialize graphics with given adapter and window.
         bool Initialize(GpuAdapter* adapter, WindowPtr window);
@@ -78,7 +78,7 @@ namespace Alimer
         RenderPass* CreateRenderPass(const RenderPassDescription* descriptor);
 
         /// Create new buffer with given descriptor and optional initial data.
-        GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
+        GpuBuffer* CreateBuffer(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData = nullptr);
 
         /// Create new VertexInputFormat with given descriptor.
         VertexInputFormat* CreateVertexInputFormat(const VertexInputFormatDescriptor* descriptor);
@@ -87,7 +87,7 @@ namespace Alimer
         ShaderModule* CreateShaderModule(const std::vector<uint32_t>& spirv);
 
         /// Create new shader module from file and given entry point.
-        ShaderModule* CreateShaderModule(const std::string& file, const std::string& entryPoint = "main");
+        ShaderModule* CreateShaderModule(const String& file, const String& entryPoint = "main");
 
         /// Create new shader program with descriptor.
         ShaderProgram* CreateShaderProgram(const ShaderProgramDescriptor* descriptor);
@@ -135,7 +135,7 @@ namespace Alimer
         virtual bool BackendInitialize() = 0;
 
         virtual RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) = 0;
-        virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
+        virtual GpuBuffer* CreateBufferImpl(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData) = 0;
         virtual VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) = 0;
         virtual ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) = 0;
         virtual ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) = 0;

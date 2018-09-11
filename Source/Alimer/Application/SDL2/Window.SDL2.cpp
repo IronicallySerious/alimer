@@ -127,6 +127,12 @@ namespace Alimer
         return false;
     }
 
+    void SDL2Window::SetTitle(const std::string& newTitle)
+    {
+        Window::SetTitle(newTitle);
+        SDL_SetWindowTitle(_window, newTitle.c_str());
+    }
+
     void SDL2Window::HandleResize(const uvec2& newSize)
     {
         _size = newSize;

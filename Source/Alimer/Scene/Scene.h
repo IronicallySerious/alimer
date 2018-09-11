@@ -25,7 +25,6 @@
 #include "../Scene/Entity.h"
 #include "../Scene/ComponentSystem.h"
 #include "../Math/MathUtil.h"
-#include "../Graphics/Graphics.h"
 
 namespace Alimer
 {
@@ -48,7 +47,7 @@ namespace Alimer
 
     public:
         /// Constructor.
-        Scene();
+        explicit Scene(EntityManager& entities);
 
         /// Destructor.
         ~Scene();
@@ -62,20 +61,14 @@ namespace Alimer
         /// Return the Entity containing the active camera.
         Entity GetActiveCamera() const { return _activeCamera; }
 
-        EntityManager &GetEntityManager();
-
         /// Update scene 
         void Update(double deltaTime);
-
-        /// Render the scene to given command buffer.
-        void Render(CommandBuffer* context);
 
     private:
         void UpdateCachedTransforms();
 
     protected:
-        EntityManager _entityManager;
-        SystemManager _systemManager;
+        EntityManager& _entities;
 
         Entity _defaultCamera;
         Entity _activeCamera;

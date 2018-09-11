@@ -21,7 +21,7 @@
 //
 
 #include "D3DShaderCompiler.h"
-#include "../../Core/String.h"
+#include "../../Base/String.h"
 #include "../../Core/Log.h"
 
 namespace Alimer

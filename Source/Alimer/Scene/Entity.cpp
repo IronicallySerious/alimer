@@ -36,7 +36,6 @@ namespace Alimer
     }
 
     EntityManager::EntityManager()
-        : _indexCounter(0)
     {
     }
 

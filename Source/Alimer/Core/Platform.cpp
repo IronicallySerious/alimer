@@ -22,7 +22,7 @@
 
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
-#include "../Core/String.h"
+#include "../Base/String.h"
 
 #if !ALIMER_WINDOWS_FAMILY
 #   include <dlfcn.h>
@@ -152,13 +152,13 @@ namespace Alimer
         }
     }
 
-    std::string GetOSDescription()
+    String GetOSDescription()
     {
 #if ALIMER_PLATFORM_WINDOWS
         RTL_OSVERSIONINFOW osvi = { 0 };
         osvi.dwOSVersionInfoSize = sizeof(osvi);
 
-        std::string version = "Microsoft Windows";
+        String version = "Microsoft Windows";
 
         static PFN_RtlGetVersion RtlGetVersion_ = nullptr;
 
@@ -169,12 +169,12 @@ namespace Alimer
 
         if (RtlGetVersion_(&osvi) == 0)
         {
-            version = fmt::format("{} {}.{}.{} {}",
-                version,
+            version = String::Format("%s %d.%d.%d %s",
+                version.CString(),
                 osvi.dwMajorVersion,
                 osvi.dwMinorVersion,
                 osvi.dwBuildNumber,
-                str::FromWide(osvi.szCSDVersion)
+                String(osvi.szCSDVersion).CString()
             );
         }
 
@@ -187,12 +187,12 @@ namespace Alimer
     void* LoadNativeLibrary(const char* name)
     {
 #if ALIMER_PLATFORM_WINDOWS
-        auto wideName = str::ToWide(name);
-        HMODULE handle = LoadLibraryW(wideName.c_str());
+        auto wideName = WString(name);
+        HMODULE handle = LoadLibraryW(wideName.CString());
         return handle;
 #elif ALIMER_PLATFORM_UWP
-        auto wideName = str::ToWide(name);
-        HMODULE handle = LoadPackagedLibrary(wideName.c_str(), 0);
+        auto wideName = WString(name);
+        HMODULE handle = LoadPackagedLibrary(wideName.CString(), 0);
         return handle;
 #else
         return ::dlopen(name, RTLD_LOCAL | RTLD_LAZY);

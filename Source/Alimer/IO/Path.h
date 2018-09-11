@@ -22,22 +22,22 @@
 
 #pragma once
 
-#include <string>
+#include "../Base/String.h"
 #include <utility>
 
 namespace Alimer
 {
 	namespace Path
 	{
-		bool IsAbsolutePath(const std::string &path);
-		bool IsRootPath(const std::string &path);
+		bool IsAbsolutePath(const String &path);
+		bool IsRootPath(const String &path);
 
-		std::string Join(const std::string &base, const std::string &path);
-		std::string GetBaseDir(const std::string &path);
-		std::string GetBaseName(const std::string &path);
-		std::string GetRelativePath(const std::string &base, const std::string &path);
-		std::string GetExtension(const std::string &path);
+		String Join(const String &base, const String &path);
+        String GetBaseDir(const String &path);
+        String GetBaseName(const String &path);
+        String GetRelativePath(const String &base, const String &path);
+        String GetExtension(const String &path);
 
-		std::pair<std::string, std::string> ProtocolSplit(const std::string &path);
+		std::pair<String, String> ProtocolSplit(const String &path);
 	}
 }

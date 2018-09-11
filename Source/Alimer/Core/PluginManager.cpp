@@ -25,9 +25,6 @@
 #include "../Core/Log.h"
 #include "../Core/Platform.h"
 
-
-using namespace std;
-
 #if WIN32
 #   define PLUGIN_EXT ".dll"
 #elif APPLE
@@ -63,15 +60,15 @@ namespace Alimer
         _instance = nullptr;
     }
 
-    void PluginManager::LoadPlugins(const string& pluginPath)
+    void PluginManager::LoadPlugins(const String& pluginPath)
     {
         ALIMER_LOGTRACE("Initializing Plugin System...");
-        ALIMER_LOGDEBUG("Scanning for plugins in directory '{}'", pluginPath);
+        ALIMER_LOGDEBUG("Scanning for plugins in directory '{}'", pluginPath.CString());
 
-        vector<string> files;
-        ScanDirectory(files, pluginPath, PLUGIN_EXT, ScanDirMask::Files, false);
+        std::vector<String> files;
+        ScanDirectory(files, pluginPath, PLUGIN_EXT, ScanDirFlags::Files, false);
 
-        for (const string& pluginFile : files)
+        for (const String& pluginFile : files)
         {
             LoadPlugin(pluginFile);
         }
@@ -87,9 +84,9 @@ namespace Alimer
         }*/
     }
 
-    bool PluginManager::LoadPlugin(const std::string& pluginName)
+    bool PluginManager::LoadPlugin(const String& pluginName)
     {
-        void* libHandle = LoadNativeLibrary(pluginName.c_str());
+        void* libHandle = LoadNativeLibrary(pluginName.CString());
         if (!libHandle)
         {
             return false;
@@ -111,18 +108,17 @@ namespace Alimer
             return true;
         }
 
-
         return false;
     }
 
     void PluginManager::InstallPlugin(Plugin* plugin)
     {
-        ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName());
+        ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName().CString());
 
         _plugins.push_back(UniquePtr<Plugin>(plugin));
         plugin->Install();
 
-        //if (_initialised)
+        //if (_initialized)
         {
             plugin->Initialize();
         }

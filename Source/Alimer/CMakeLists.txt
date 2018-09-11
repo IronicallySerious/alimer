@@ -45,7 +45,7 @@ endmacro()
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerVersion.h)
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . Core Util IO Math Graphics Input Audio Application)
+define_engine_source_files (NORECURSE . Base Core Util IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
 
 if (ALIMER_SDL)
@@ -162,7 +162,6 @@ endif()
 
 # Define the library target.
 add_library(libAlimer ${ALIMER_LIBRARY_TYPE} ${SOURCE_FILES} ${HEADER_FILES})
-target_compile_features(libAlimer PUBLIC cxx_std_14)
 
 target_include_directories(libAlimer
     PUBLIC

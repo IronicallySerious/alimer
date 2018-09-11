@@ -45,6 +45,8 @@
 
 namespace Alimer
 {
+    class RenderSystem;
+
     class ApplicationSettings : public Serializable
     {
     public:
@@ -98,12 +100,6 @@ namespace Alimer
         inline Input* GetInput() const { return _input.get(); }
         inline Audio* GetAudio() const { return _audio.get(); }
 
-        /// Sets the current scene to be active and rendered.
-        void SetScene(Scene* scene);
-
-        /// Get the active scene.
-        Scene* GetScene() const { return _scene.Get(); }
-
     private:
         void PlatformConstruct();
         bool InitializeBeforeRun();
@@ -139,10 +135,11 @@ namespace Alimer
         std::unique_ptr<Input> _input;
         std::unique_ptr<Audio> _audio;
 
-        SharedPtr<Scene> _scene;
 
         EntityManager _entities;
         SystemManager _systems;
+        Scene _scene;
+        std::shared_ptr<RenderSystem> _renderSystem;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

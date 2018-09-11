@@ -27,8 +27,20 @@
 
 namespace Alimer
 {
-    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
-        : GpuBuffer(graphics, descriptor)
+    static std::unordered_map<MemoryFlags, VmaMemoryUsage> memoryFlagsToVmaMemoryUsage = {
+        { MemoryFlags::GpuOnly, VMA_MEMORY_USAGE_GPU_ONLY },
+        { MemoryFlags::CpuOnly, VMA_MEMORY_USAGE_CPU_ONLY },
+        { MemoryFlags::CpuToGpu, VMA_MEMORY_USAGE_CPU_TO_GPU },
+        { MemoryFlags::GpuToCpu, VMA_MEMORY_USAGE_GPU_TO_CPU },
+    };
+
+    static std::unordered_map<MemoryFlags, VmaAllocationCreateFlagBits> memoryFlagsToVmaMemoryCreateFlag = {
+        { MemoryFlags(0), static_cast<VmaAllocationCreateFlagBits>(0) },
+        { MemoryFlags::DedicatedAllocation , VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT }
+    };
+
+    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
+        : GpuBuffer(graphics, memoryFlags, descriptor)
         , _logicalDevice(graphics->GetLogicalDevice())
         , _allocator(graphics->GetAllocator())
     {
@@ -60,33 +72,56 @@ namespace Alimer
         createInfo.flags = 0;
         createInfo.size = descriptor->size;
         createInfo.usage = vkUsage;
+
+        // TODO: Handle queue and sharing.
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.queueFamilyIndexCount = 0;
         createInfo.pQueueFamilyIndices = nullptr;
 
-        // TODO:
-        VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
-        allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        // Allocate memory from the Vulkan Memory Allocator.
+        VkResult result = VK_SUCCESS;
+        if (static_cast<uint32_t>(memoryFlags & MemoryFlags::NoAllocation) == 0)
+        {
+            // Determine appropriate memory usage flags.
+            VmaAllocationCreateInfo allocCreateInfo = {};
+            MemoryFlags flagsNoDedicated = MemoryFlags(static_cast<uint32_t>(MemoryFlags::DedicatedAllocation) - 1U);
+            allocCreateInfo.usage = memoryFlagsToVmaMemoryUsage.at(memoryFlags & flagsNoDedicated);
+            allocCreateInfo.flags = memoryFlagsToVmaMemoryCreateFlag.at(memoryFlags & ~flagsNoDedicated);
 
-        VmaAllocationInfo vmaAllocInfo = {};
-        VkResult result = vmaCreateBuffer(
-            _allocator,
-            &createInfo,
-            &allocInfo,
-            &_vkHandle,
-            &_allocation,
-            &vmaAllocInfo);
+            result = vmaCreateBuffer(_allocator, &createInfo, &allocCreateInfo, &_handle, &_allocation, &_allocationInfo);
+        }
+        else
+        {
+            result = vkCreateBuffer(_logicalDevice, &createInfo, nullptr, &_handle);
+        }
 
+        // Handle
         if (initialData != nullptr)
         {
-            memcpy(vmaAllocInfo.pMappedData, initialData, vmaAllocInfo.size);
+            if (any(memoryFlags & MemoryFlags::GpuOnly))
+            {
+                SetSubData(0, _allocationInfo.size, initialData);
+            }
+            else
+            {
+                void *data;
+                vmaMapMemory(_allocator, _allocation, &data);
+                memcpy(data, initialData, _allocationInfo.size);
+                vmaUnmapMemory(_allocator, _allocation);
+            }
         }
     }
 
     VulkanBuffer::~VulkanBuffer()
     {
-        vmaDestroyBuffer(_allocator, _vkHandle, _allocation);
+        if (_allocation != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(_allocator, _handle, _allocation);
+        }
+        else
+        {
+            vkDestroyBuffer(_logicalDevice, _handle, nullptr);
+        }
     }
 
     bool VulkanBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)

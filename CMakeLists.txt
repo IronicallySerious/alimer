@@ -21,7 +21,7 @@
 #
 
 # Set CMake minimum version
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.5)
 
 # Alimer Version
 set (PRODUCT_NAME "Alimer")
@@ -47,11 +47,16 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-# Set project name
-project (Alimer)
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
+set (CMAKE_C_STANDARD 99)
 
 set (CMAKE_INCLUDE_CURRENT_DIR ON)
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Set project name
+project (Alimer LANGUAGES CXX C)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Define standard configurations

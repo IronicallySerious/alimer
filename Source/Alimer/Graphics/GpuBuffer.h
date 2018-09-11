@@ -31,7 +31,7 @@ namespace Alimer
 	{
 	protected:
 		/// Constructor.
-		GpuBuffer(Graphics* graphics, const BufferDescriptor* descriptor);
+		GpuBuffer(Graphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor);
 
 	public:
 		/// Destructor.
@@ -43,8 +43,11 @@ namespace Alimer
         /// Replace buffer data in synchronous way.
         bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
 
+        /// Get the buffer memory flags.
+        MemoryFlags GetMemoryFlags() const { return _memoryFlags; }
+
         /// Get the buffer usage flags.
-		BufferUsageFlags GetUsage() const { return _usage; }
+        BufferUsageFlags GetUsage() const { return _usage; }
 
         /// Get size in bytes of the buffer.
         uint64_t GetSize() const { return _size; }
@@ -55,6 +58,7 @@ namespace Alimer
 	private:
         virtual bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) = 0;
 
+        MemoryFlags _memoryFlags;
         BufferUsageFlags _usage;
 		uint64_t _size;
         uint32_t _stride;
