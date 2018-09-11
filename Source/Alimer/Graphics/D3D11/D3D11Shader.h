@@ -24,6 +24,7 @@
 
 #include "Graphics/Shader.h"
 #include "D3D11Prerequisites.h"
+#include <array>
 
 namespace Alimer
 {
@@ -44,10 +45,14 @@ namespace Alimer
 
         ID3DBlob* GetVertexShaderBlob() const { return _vsBlob; }
 
+        using BindingIndexInfo = std::array<std::array<uint32_t, MaxBindingsPerSet>, MaxDescriptorSets>;
+        const BindingIndexInfo& GetBindingIndexInfo() const { return _indexInfo; }
+
 	private:
         ID3D11VertexShader* _vertexShader = nullptr;
         ID3D11PixelShader* _pixelShader = nullptr;
         ID3D11ComputeShader* _computeShader = nullptr;
         ID3DBlob* _vsBlob = nullptr;
+        BindingIndexInfo _indexInfo;
 	};
 }

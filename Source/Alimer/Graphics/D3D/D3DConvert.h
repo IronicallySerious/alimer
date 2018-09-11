@@ -58,7 +58,6 @@ namespace Alimer
 
             default:
                 ALIMER_UNREACHABLE();
-                return DXGI_FORMAT_UNKNOWN;
             }
         }
 

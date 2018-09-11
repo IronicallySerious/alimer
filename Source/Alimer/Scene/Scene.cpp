@@ -23,38 +23,31 @@
 #include "../Scene/Scene.h"
 #include "../Scene/Components/TransformComponent.h"
 #include "../Scene/Components/CameraComponent.h"
-#include "../Scene/Systems/CameraSystem.h"
-#include "../Scene/Systems/RenderSystem.h"
 #include "../Core/Log.h"
 using namespace std;
 
 namespace Alimer
 {
 	Scene::Scene()
-        : _spatials(_entityManager.GetComponentGroup<TransformComponent>())
+        : _entityManager()
+        , _systemManager(_entityManager)
 	{
         _defaultCamera = CreateEntity();
-        _defaultCamera->AddComponent<TransformComponent>();
-        _defaultCamera->AddComponent<CameraComponent>();
+        //_defaultCamera.AddComponent<TransformComponent>();
+        //_defaultCamera.AddComponent<CameraComponent>();
         //_defaultCamera->AddComponent<AudioListener>();
 
         _activeCamera = _defaultCamera;
-
-        // Setup systems.
-        AddSystem<CameraSystem>(_entityManager);
-        AddSystem<RenderSystem>(_entityManager);
 	}
 
 	Scene::~Scene()
 	{
-        _systems.clear();
-        _entityManager.ResetGroups();
 	}
 
-    EntityHandle Scene::CreateEntity()
+    Entity Scene::CreateEntity()
     {
-        EntityHandle entity = _entityManager.CreateEntity();
-        _entities.push_back(entity);
+        Entity entity = _entityManager.CreateEntity();
+        _pendingEntities.push_back(entity);
         return entity;
     }
 
@@ -65,15 +58,21 @@ namespace Alimer
 
     void Scene::Update(double deltaTime)
     {
-        for (auto& system : _activeSystems)
+        for (const auto& entity : _pendingEntities)
+        {
+            _systemManager.AddToSystems(entity);
+        }
+        _pendingEntities.clear();
+
+        /*for (auto& system : _activeSystems)
         {
             system->Update(deltaTime);
-        }
+        }*/
     }
 
     void Scene::Render(CommandBuffer* context)
     {
-        GetSystem<RenderSystem>().Render(context);
+        //GetSystem<RenderSystem>().Render(context);
     }
 
     void Scene::UpdateCachedTransforms()

@@ -138,7 +138,7 @@ namespace Alimer
         return res;
     }
 
-    mat4 mat4_cast(const quat &q)
+    /*mat4 mat4_cast(const quat &q)
     {
         return mat4(mat3_cast(q));
     }
@@ -159,20 +159,8 @@ namespace Alimer
             vec4(0.0f, v.y, 0.0f, 0.0f),
             vec4(0.0f, 0.0f, v.z, 0.0f),
             vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    }
+    }*/
 
-    mat2 inverse(const mat2 &m)
-    {
-        float OneOverDeterminant = 1.0f / (m[0][0] * m[1][1] - m[1][0] * m[0][1]);
-
-        mat2 Inverse(
-            vec2(m[1][1] * OneOverDeterminant,
-                -m[0][1] * OneOverDeterminant),
-            vec2(-m[1][0] * OneOverDeterminant,
-                m[0][0] * OneOverDeterminant));
-
-        return Inverse;
-    }
 
     mat3 inverse(const mat3 &m)
     {
@@ -195,7 +183,7 @@ namespace Alimer
         return Inverse;
     }
 
-    mat4 inverse(const mat4 &m)
+    /*mat4 inverse(const mat4 &m)
     {
         float Coef00 = m[2][2] * m[3][3] - m[3][2] * m[2][3];
         float Coef02 = m[1][2] * m[3][3] - m[3][2] * m[1][3];
@@ -363,27 +351,6 @@ namespace Alimer
         return result;
     }
 
-    mat4 perspective(float fovy, float aspect, float near, float far, bool flipY)
-    {
-        float const tanHalfFovy = tan(fovy / 2.0f);
-
-        mat4 result(0.0f);
-        result[0][0] = 1.0f / (aspect * tanHalfFovy);
-        result[1][1] = 1.0f / (tanHalfFovy);
-        result[2][2] = far / (near - far);
-        result[2][3] = -1.0f;
-        result[3][2] = -(far * near) / (far - near);
-
-        if (flipY)
-        {
-            result[0].y *= -1.0f;
-            result[1].y *= -1.0f;
-            result[2].y *= -1.0f;
-            result[3].y *= -1.0f;
-        }
-
-        return result;
-    }
 
     mat4 ortho(float left, float right, float bottom, float top, float near, float far, bool flipY)
     {
@@ -404,5 +371,5 @@ namespace Alimer
         }
 
         return result;
-    }
+    }*/
 }

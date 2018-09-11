@@ -67,7 +67,7 @@ namespace Alimer
         void BindIndexBuffer(GpuBuffer* buffer, GpuSize offset, IndexType indexType);
         
         void BindBuffer(GpuBuffer* buffer, uint32_t set, uint32_t binding);
-        void BindBuffer(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding);
+        void BindBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding);
         void BindTexture(Texture* texture, uint32_t set, uint32_t binding);
 
         // Draw methods
@@ -83,13 +83,13 @@ namespace Alimer
         virtual void EndRenderPassCore() = 0;
         //virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
-        virtual void BindBufferImpl(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding) = 0;
+        virtual void BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding) = 0;
         virtual void BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding) = 0;
 
         virtual void SetShaderProgramImpl(ShaderProgram* program) = 0;
         virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
         virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
-        virtual void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, GpuSize offset, uint64_t stride, VertexInputRate inputRate) = 0;
+        virtual void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
         virtual void BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) = 0;
         virtual void SetVertexInputFormatImpl(VertexInputFormat* format) = 0;
 

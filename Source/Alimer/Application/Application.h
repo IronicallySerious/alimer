@@ -141,6 +141,9 @@ namespace Alimer
 
         SharedPtr<Scene> _scene;
 
+        EntityManager _entities;
+        SystemManager _systems;
+
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);
     };

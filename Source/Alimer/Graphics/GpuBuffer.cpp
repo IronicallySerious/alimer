@@ -39,7 +39,7 @@ namespace Alimer
         Destroy();
     }
 
-    static const char* BufferUsageToString(BufferUsageFlags usage)
+    /*static const char* BufferUsageToString(BufferUsageFlags usage)
     {
         if (usage & BufferUsage::Vertex)
             return "vertex";
@@ -49,9 +49,20 @@ namespace Alimer
             return "uniform";
 
         return "unknown";
+    }*/
+
+    bool GpuBuffer::SetSubData(const void* pData)
+    {
+        if (!(_usage & BufferUsage::TransferDest))
+        {
+            ALIMER_LOGERROR("Buffer needs 'TransferDest' usage");
+            return false;
+        }
+
+        return SetSubDataImpl(0, _size, pData);
     }
 
-    bool GpuBuffer::SetSubData(GpuSize offset, GpuSize size, const void* pData)
+    bool GpuBuffer::SetSubData(uint32_t offset, uint32_t size, const void* pData)
     {
         if (offset + size > GetSize())
         {

@@ -25,21 +25,20 @@
 
 namespace Alimer
 {
-    CameraSystem::CameraSystem(EntityManager& entityManager)
-        : ComponentSystem(typeid(CameraSystem))
-        , _cameras(entityManager.GetComponentGroup<CameraComponent, TransformComponent>())
+    CameraSystem::CameraSystem()
     {
-        
+        RequireComponent<TransformComponent>();
+        RequireComponent<CameraComponent>();
     }
 
-    void CameraSystem::Update(double deltaTime)
+    void CameraSystem::Update(EntityManager &entities, double deltaTime)
     {
-        for (auto &c : _cameras)
-        {
-            CameraComponent *camera;
-            TransformComponent *transform;
-            std::tie(camera, transform) = c;
+        //for (auto &c : _cameras)
+        //{
+        //    CameraComponent *camera;
+        //    TransformComponent *transform;
+        //    std::tie(camera, transform) = c;
             //camera->Update(transform->worldTransform);
-        }
+        //}
     }
 }

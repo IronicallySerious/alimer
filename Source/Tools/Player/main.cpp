@@ -38,6 +38,17 @@ namespace Alimer
         vec2 textureCoordinate;
     };
 
+    struct PerCameraCBuffer
+    {
+        mat4 viewMatrix;
+        mat4 projectionMatrix;
+    };
+
+    struct PerVertexData
+    {
+        mat4 worldMatrix;
+    };
+
     class TriangleExample
     {
     public:
@@ -78,8 +89,8 @@ namespace Alimer
             auto fragmentShader = graphics->CreateShaderModule("assets://shaders/color.frag");
             _program = graphics->CreateShaderProgram(vertexShader, fragmentShader);
 
-            _camera.viewMatrix = mat4::identity();
-            _camera.projectionMatrix = mat4::identity();
+            _camera.viewMatrix = Matrix4();
+            _camera.projectionMatrix = Matrix4();
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
@@ -109,7 +120,7 @@ namespace Alimer
             mat4 projectionMatrix;
         };
 
-        PerCameraCBuffer _camera;
+        PerCameraCBuffer _camera{};
     };
 
     class QuadExample
@@ -146,9 +157,6 @@ namespace Alimer
             auto vertexShader = graphics->CreateShaderModule("assets://shaders/color.vert");
             auto fragmentShader = graphics->CreateShaderModule("assets://shaders/color.frag");
             _program = graphics->CreateShaderProgram(vertexShader, fragmentShader);
-
-            _camera.viewMatrix = mat4::identity();
-            _camera.projectionMatrix = mat4::identity();
 
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
@@ -255,14 +263,19 @@ namespace Alimer
             _indexBuffer = graphics->CreateBuffer(&indexBufferDesc, indices.data());
 
             // Uniform buffer
-            //_camera.viewMatrix = lookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
-            //_camera.projectionMatrix = perspective(M_PIDIV4, aspectRatio, 0.1f, 100, false);
+            _camera.viewMatrix = Matrix4::LookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
+            _camera.projectionMatrix = Matrix4::Perspective(M_PIDIV4, aspectRatio, 0.1f, 100, false);
 
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
             uboBufferDesc.stride = sizeof(PerCameraCBuffer);
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
             _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
+
+            // Per draw ubo.
+            uboBufferDesc.stride = sizeof(PerVertexData);
+            uboBufferDesc.size = sizeof(PerVertexData);
+            _perDrawUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_perDrawData);
 
             // Shader program
             auto vertexShader = graphics->CreateShaderModule("assets://shaders/color.vert");
@@ -272,11 +285,14 @@ namespace Alimer
 
         void Render(CommandBuffer* context)
         {
+            _perDrawUboBuffer->SetSubData(&_perDrawData);
+
             context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             context->SetShaderProgram(_program.Get());
             context->BindVertexBuffer(_vertexBuffer.Get(), 0);
             context->BindIndexBuffer(_indexBuffer.Get(), 0, IndexType::UInt16);
             context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
+            context->BindBuffer(_perDrawUboBuffer.Get(), 0, 1);
             context->DrawIndexed(PrimitiveTopology::Triangles, 6);
             context->EndRenderPass();
         }
@@ -286,14 +302,10 @@ namespace Alimer
         SharedPtr<GpuBuffer> _indexBuffer;
         SharedPtr<ShaderProgram> _program;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
-
-        struct PerCameraCBuffer
-        {
-            mat4 viewMatrix;
-            mat4 projectionMatrix;
-        };
+        SharedPtr<GpuBuffer> _perDrawUboBuffer;
 
         PerCameraCBuffer _camera;
+        PerVertexData _perDrawData;
     };
 
 #if TODO
@@ -426,8 +438,6 @@ namespace Alimer
         PerCameraCBuffer _camera;
     };
 #endif // TODO
-
-
 
     class RuntimeApplication final : public Application
     {

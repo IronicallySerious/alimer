@@ -102,9 +102,17 @@ namespace Alimer
             return false;  // Not a plugin
         }
 
-        InstallPlugin(loadFunc());
-        //UnloadNativeLibrary(libHandle);
-        return true;
+        // Try to instance the plugin being loaded
+        Plugin* plugin = loadFunc();
+        if (plugin)
+        {
+            InstallPlugin(plugin);
+            //UnloadNativeLibrary(libHandle);
+            return true;
+        }
+
+
+        return false;
     }
 
     void PluginManager::InstallPlugin(Plugin* plugin)

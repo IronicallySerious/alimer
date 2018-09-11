@@ -542,13 +542,11 @@ template <typename T> inline tvec4<T> operator op(T a, const tvec4<T> &b) { retu
         MATH_DEFINE_ARITH_OP(<< )
 
 #define MATH_DEFINE_MATRIX_SCALAR_OP(op) \
-template <typename T> inline tmat2<T> operator op(const tmat2<T> &m, T s) { return tmat2<T>(m[0] op s, m[1] op s); } \
-template <typename T> inline tmat3<T> operator op(const tmat3<T> &m, T s) { return tmat3<T>(m[0] op s, m[1] op s, m[2] op s); } \
-template <typename T> inline tmat4<T> operator op(const tmat4<T> &m, T s) { return tmat4<T>(m[0] op s, m[1] op s, m[2] op s, m[3] op s); }
+template <typename T> inline tmat3<T> operator op(const tmat3<T> &m, T s) { return tmat3<T>(m[0] op s, m[1] op s, m[2] op s); } 
         MATH_DEFINE_MATRIX_SCALAR_OP(+)
         MATH_DEFINE_MATRIX_SCALAR_OP(-)
         MATH_DEFINE_MATRIX_SCALAR_OP(*)
-        MATH_DEFINE_MATRIX_SCALAR_OP(/ )
+        MATH_DEFINE_MATRIX_SCALAR_OP(/)
 
 #define MATH_DEFINE_BOOL_OP(bop, op) \
 template <typename T> inline bvec2 bop(const tvec2<T> &a, const tvec2<T> &b) { return bvec2(a.x op b.x, a.y op b.y); } \
@@ -594,40 +592,15 @@ template <typename T> inline tvec4<T> &operator op(tvec4<T> &a, T b) { a.x op b;
         MATH_DEFINE_ARITH_MOD_OP(<<= )
 
         // matrix multiply
-        inline vec2 operator*(const mat2 &m, const vec2 &v)
-    {
-        return m[0] * v.x + m[1] * v.y;
-    }
-
+        
     inline vec3 operator*(const mat3 &m, const vec3 &v)
     {
         return m[0] * v.x + m[1] * v.y + m[2] * v.z;
     }
 
-    inline vec4 operator*(const mat4 &m, const vec4 &v)
-    {
-        return m[0] * v.x + m[1] * v.y + m[2] * v.z + m[3] * v.w;
-    }
-
-    inline mat2 operator*(const mat2 &a, const mat2 &b)
-    {
-        return mat2(a * b[0], a * b[1]);
-    }
-
     inline mat3 operator*(const mat3 &a, const mat3 &b)
     {
         return mat3(a * b[0], a * b[1], a * b[2]);
-    }
-
-    inline mat4 operator*(const mat4 &a, const mat4 &b)
-    {
-        return mat4(a * b[0], a * b[1], a * b[2], a * b[3]);
-    }
-
-    inline mat2 transpose(const mat2 &m)
-    {
-        return mat2(vec2(m[0].x, m[1].x),
-            vec2(m[0].y, m[1].y));
     }
 
     inline mat3 transpose(const mat3 &m)
@@ -637,14 +610,6 @@ template <typename T> inline tvec4<T> &operator op(tvec4<T> &a, T b) { a.x op b;
             vec3(m[0].z, m[1].z, m[2].z));
     }
 
-    inline mat4 transpose(const mat4 &m)
-    {
-        return mat4(vec4(m[0].x, m[1].x, m[2].x, m[3].x),
-            vec4(m[0].y, m[1].y, m[2].y, m[3].y),
-            vec4(m[0].z, m[1].z, m[2].z, m[3].z),
-            vec4(m[0].w, m[1].w, m[2].w, m[3].w));
-    }
-
     // dot
     inline float dot(const vec2 &a, const vec2 &b) { return a.x * b.x + a.y * b.y; }
     inline float dot(const vec3 &a, const vec3 &b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
@@ -652,27 +617,6 @@ template <typename T> inline tvec4<T> &operator op(tvec4<T> &a, T b) { a.x op b;
 
     // cross
     inline vec3 cross(const vec3 &a, const vec3 &b) { return vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x); }
-
-    // min, max, clamp
-    template <typename T> T min(T a, T b) { return b < a ? b : a; }
-    template <typename T> T max(T a, T b) { return a < b ? b : a; }
-    template <typename T> T clamp(T v, T lo, T hi) { return v < lo ? lo : (v > hi ? hi : v); }
-    template <typename T> T sign(T v) { return v < T(0) ? T(-1) : (v > T(0) ? T(1) : T(0)); }
-    template <typename T> T sin(T v) { return std::sin(v); }
-    template <typename T> T cos(T v) { return std::cos(v); }
-    template <typename T> T tan(T v) { return std::tan(v); }
-    template <typename T> T asin(T v) { return std::asin(v); }
-    template <typename T> T acos(T v) { return std::acos(v); }
-    template <typename T> T atan(T v) { return std::atan(v); }
-    template <typename T> T log2(T v) { return std::log2(v); }
-    template <typename T> T log10(T v) { return std::log10(v); }
-    template <typename T> T log(T v) { return std::log(v); }
-    template <typename T> T exp2(T v) { return std::exp2(v); }
-    template <typename T> T exp(T v) { return std::exp(v); }
-    template <typename T> T pow(T a, T b) { return std::pow(a, b); }
-
-    // mix
-    template <typename T, typename TLerp> inline T mix(const T &a, const T &b, const TLerp &amount) { return a + (b - a) * amount; }
 
 #define MATH_VECTORIZED_FUNC1(func) \
 template <typename T> inline tvec2<T> func(const tvec2<T> &a) { return tvec2<T>(func(a.x), func(a.y)); } \
@@ -838,7 +782,7 @@ template <typename T> inline tvec4<T> func(const tvec4<T> &a, const tvec4<T> &b,
         return quat(w, x, y, z);
     }
 
-    inline quat slerp(const quat &x, const quat &y, float l)
+    /*inline quat slerp(const quat &x, const quat &y, float l)
     {
         quat z = y;
         float cos_theta = dot(x.as_vec4(), y.as_vec4());
@@ -862,7 +806,7 @@ template <typename T> inline tvec4<T> func(const tvec4<T> &a, const tvec4<T> &b,
     inline quat angleAxis(float angle, const vec3 &axis)
     {
         return quat(cos(0.5f * angle), sin(0.5f * angle) * normalize(axis));
-    }
+    }*/
 
     inline quat conjugate(const quat &q)
     {

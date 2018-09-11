@@ -31,18 +31,17 @@ namespace Alimer
 {
     class CommandBuffer;
 
-	/// System that manages renderable components with transform.
-    class ALIMER_API RenderSystem final : public ComponentSystem
-	{
+    /// System that manages renderable components with transform.
+    class ALIMER_API RenderSystem final : public System
+    {
     public:
-        RenderSystem(EntityManager& entityManager);
+        RenderSystem();
 
-        void Update(double deltaTime) override;
+        void Update(EntityManager &entities, double deltaTime) override;
 
         void Render(CommandBuffer* context);
 
     private:
-        std::vector<std::tuple<TransformComponent*, RenderableComponent*>> &_renderables;
         VisibilitySet _visibleSet;
-	};
+    };
 }

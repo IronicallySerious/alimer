@@ -37,19 +37,23 @@ namespace Alimer
 		/// Destructor.
 		virtual ~GpuBuffer();
 
-        bool SetSubData(GpuSize offset, GpuSize size, const void* pData);
+        /// Replace entire buffer data in synchronous way.
+        bool SetSubData(const void* pData);
+
+        /// Replace buffer data in synchronous way.
+        bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
 
         /// Get the buffer usage flags.
 		BufferUsageFlags GetUsage() const { return _usage; }
 
         /// Get size in bytes of the buffer.
-        GpuSize GetSize() const { return _size; }
+        uint64_t GetSize() const { return _size; }
 
         /// Get single element size in bytes.
 		uint32_t GetStride() const { return _stride; }
 
 	private:
-        virtual bool SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData) = 0;
+        virtual bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) = 0;
 
         BufferUsageFlags _usage;
 		uint64_t _size;

@@ -30,14 +30,11 @@ namespace Alimer
 {
 	/// System that manages updates of any camera components
     /// which are attached to entities that also have a transform.
-    class ALIMER_API CameraSystem final : public ComponentSystem
+    class ALIMER_API CameraSystem final : public System
 	{
     public:
-        CameraSystem(EntityManager& entityManager);
+        CameraSystem();
 
-        void Update(double deltaTime) override;
-
-    private:
-        std::vector<std::tuple<CameraComponent*, TransformComponent*>> &_cameras;
+        void Update(EntityManager &entities, double deltaTime) override;
 	};
 }

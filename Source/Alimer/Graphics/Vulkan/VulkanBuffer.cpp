@@ -89,7 +89,7 @@ namespace Alimer
         vmaDestroyBuffer(_allocator, _vkHandle, _allocation);
     }
 
-    bool VulkanBuffer::SetSubDataImpl(GpuSize offset, GpuSize size, const void* pData)
+    bool VulkanBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
     {
         ALIMER_LOGCRITICAL("VulkanBuffer::SetData not implemented");
         //memcpy(_allocation->GetMappedData(), initialData, vmaAllocInfo.size);

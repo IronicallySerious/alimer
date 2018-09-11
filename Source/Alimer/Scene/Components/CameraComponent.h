@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../../Scene/Component.h"
-#include "../../Math/Math.h"
+#include "../../Math/Matrix4.h"
 
 namespace Alimer
 {

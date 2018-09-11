@@ -90,10 +90,10 @@ namespace Alimer
 
         void SetVertexAttribute(uint32_t attrib, uint32_t binding, VkFormat format, VkDeviceSize offset);
 
-        void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, GpuSize offset, uint64_t stride, VertexInputRate inputRate) override;
+        void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
         void SetVertexInputFormatImpl(VertexInputFormat* format) override;
         void BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
-        void BindBufferImpl(GpuBuffer* buffer, GpuSize offset, GpuSize range, uint32_t set, uint32_t binding) override;
+        void BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding) override;
         void BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding) override;
 
 

@@ -103,6 +103,11 @@ namespace Alimer
     {
         Finalize();
 
+#if defined(_DEBUG)
+        //ULONG refCount = GetRefCount(_d3dAnnotation);
+        //ALIMER_ASSERT_MSG(refCount == 1, "ID3DUserDefinedAnnotation leakage");
+#endif
+
         SafeRelease(_d3dAnnotation);
         SafeRelease(_d3dImmediateContext);
         SafeRelease(_d3dDevice);
@@ -410,8 +415,9 @@ namespace Alimer
         }
 
         D3D11_FEATURE_DATA_THREADING threadingFeature = { 0 };
-        ThrowIfFailed(_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingFeature, sizeof(threadingFeature)));
-        if (threadingFeature.DriverConcurrentCreates
+        HRESULT hr = _d3dDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingFeature, sizeof(threadingFeature));
+        if (SUCCEEDED(hr)
+            && threadingFeature.DriverConcurrentCreates
             && threadingFeature.DriverCommandLists)
         {
             _features.SetMultithreading(true);
