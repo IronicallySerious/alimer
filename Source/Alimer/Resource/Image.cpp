@@ -22,12 +22,112 @@
 
 #include "../Resource/Image.h"
 #include "../Core/Log.h"
+#include "../IO/Stream.h"
 #include <STB/stb_image.h>
 #include <STB/stb_image_write.h>
 
 namespace Alimer
 {
     Image::Image()
-	{
-	}
+    {
+    }
+
+    void Image::Define(const uvec2& newSize, PixelFormat newFormat)
+    {
+        if (all(equal(newSize, _size)) && newFormat == _format)
+            return;
+
+        const uint32_t formatSize = GetPixelFormatSize(newFormat);
+        if (formatSize == 0)
+        {
+            ALIMER_LOGERROR("Can not set image size with unspecified pixel byte size (including compressed formats)");
+            return;
+        }
+
+        _memorySize = newSize.x * newSize.y * formatSize;
+        _data = new uint8_t[_memorySize];
+        _size = newSize;
+        _format = newFormat;
+        _mipLevels = 1;
+    }
+
+    void Image::SetData(const uint8_t* pixelData)
+    {
+        if (!IsCompressed(_format))
+        {
+            memcpy(_data.Get(), pixelData, _memorySize);
+        }
+        else
+        {
+            ALIMER_LOGERROR("Can not set pixel data of a compressed image");
+        }
+    }
+
+    void StbiWriteCallback(void *context, void *data, int len)
+    {
+        Stream* stream = reinterpret_cast<Stream*>(context);
+        stream->Write(data, len);
+    }
+
+    bool Image::Save(Stream* dest, ImageFormat format) const
+    {
+        //ALIMER_PROFILE(SaveImageBMP);
+        ALIMER_ASSERT(dest);
+
+        if (IsCompressed(_format))
+        {
+            ALIMER_LOGERROR("Can not save compressed image {}", GetName());
+            return false;
+        }
+
+        if (!_data)
+        {
+            ALIMER_LOGERROR("Can not save zero-sized image {}", GetName());
+            return false;
+        }
+
+        uint32_t components = GetPixelFormatSize(_format);
+        if (components < 1 || components > 4)
+        {
+            ALIMER_LOGERROR("Unsupported pixel format for PNG save on image " + GetName());
+            return false;
+        }
+
+        switch (format)
+        {
+        case ImageFormat::Bmp:
+            return SaveBmp(dest);
+        case ImageFormat::Png:
+            return SavePng(dest);
+        default:
+            return false;
+        }
+    }
+
+    bool Image::SaveBmp(Stream* dest) const
+    {
+        uint32_t components = GetPixelFormatSize(_format);
+
+        return stbi_write_bmp_to_func(
+            StbiWriteCallback,
+            dest,
+            static_cast<int>(_size.x),
+            static_cast<int>(_size.y),
+            static_cast<int>(components),
+            _data.Get()) != 0;
+    }
+
+    bool Image::SavePng(Stream* dest) const
+    {
+        uint32_t components = GetPixelFormatSize(_format);
+
+        return stbi_write_png_to_func(
+            StbiWriteCallback,
+            dest,
+            static_cast<int>(_size.x),
+            static_cast<int>(_size.y),
+            static_cast<int>(components),
+            _data.Get(),
+            0) != 0;
+    }
 }

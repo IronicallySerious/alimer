@@ -21,23 +21,22 @@
 //
 
 #pragma once
-#include "UI/UI.hpp"
+#include "Alimer.h"
 
 namespace Alimer
 {
-    class Editor final : public Application
+    class UI final : public Object
     {
-        ALIMER_OBJECT(Editor, Application);
+        ALIMER_OBJECT(UI, Object);
 
     public:
-        explicit Editor();
-        ~Editor() override;
+        explicit UI(Graphics* graphics);
+        ~UI() override;
 
     private:
-        void Initialize() override;
-        void OnRenderFrame(double frameTime, double elapsedTime) override;
+        void UpdateFontTexture();
 
-    private:
-        SharedPtr<UI> _ui;
+        WeakPtr<Graphics> _graphics;
+        SharedPtr<Texture> _fontTexture;
     };
 }

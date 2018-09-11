@@ -24,8 +24,13 @@ file (GLOB_RECURSE HEADER_FILES *.h *.hpp)
 file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
 
 # Define the target.
-add_alimer_executable(AlimerStudio ${SOURCE_FILES} ${HEADER_FILES})
-set_target_properties(AlimerStudio PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
-set_target_properties(AlimerStudio PROPERTIES FOLDER "Editor")
+set (TARGET AlimerStudio)
+add_alimer_executable(${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
+target_link_libraries(${TARGET} ImGui)
 
-install(TARGETS AlimerStudio RUNTIME DESTINATION ${DEST_TOOLS_DIR})
+# Set properties
+set_target_properties(${TARGET} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+set_target_properties(${TARGET} PROPERTIES FOLDER "Editor")
+
+# Install under tools
+install(TARGETS ${TARGET} RUNTIME DESTINATION ${DEST_TOOLS_DIR})

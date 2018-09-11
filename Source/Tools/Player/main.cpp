@@ -82,7 +82,7 @@ namespace Alimer
             vertexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Vertex;
             vertexBufferDesc.size = sizeof(triangleVertices);
             vertexBufferDesc.stride = sizeof(VertexColor);
-            _vertexBuffer = graphics->CreateBuffer(&vertexBufferDesc, triangleVertices);
+            _vertexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &vertexBufferDesc, triangleVertices);
 
             // Create shader program.
             auto vertexShader = graphics->CreateShaderModule("assets://shaders/color.vert");
@@ -94,7 +94,7 @@ namespace Alimer
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
+            _perCameraUboBuffer = graphics->CreateBuffer(MemoryFlags::CpuToGpu, &uboBufferDesc, &_camera);
         }
 
         void Render(CommandBuffer* context)
@@ -113,12 +113,6 @@ namespace Alimer
         SharedPtr<GpuBuffer> _vertexBuffer;
         SharedPtr<ShaderProgram> _program;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
-
-        struct PerCameraCBuffer
-        {
-            mat4 viewMatrix;
-            mat4 projectionMatrix;
-        };
 
         PerCameraCBuffer _camera{};
     };
@@ -140,7 +134,7 @@ namespace Alimer
             vertexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Vertex;
             vertexBufferDesc.size = sizeof(triangleVertices);
             vertexBufferDesc.stride = sizeof(VertexColor);
-            _vertexBuffer = graphics->CreateBuffer(&vertexBufferDesc, triangleVertices);
+            _vertexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &vertexBufferDesc, triangleVertices);
 
             // Create index buffer.
             const uint16_t indices[] = {
@@ -151,7 +145,7 @@ namespace Alimer
             indexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Index;
             indexBufferDesc.size = sizeof(indices);
             indexBufferDesc.stride = sizeof(uint16_t);
-            _indexBuffer = graphics->CreateBuffer(&indexBufferDesc, indices);
+            _indexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &indexBufferDesc, indices);
 
             // Create shader program.
             auto vertexShader = graphics->CreateShaderModule("assets://shaders/color.vert");
@@ -161,7 +155,7 @@ namespace Alimer
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
+            _perCameraUboBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &uboBufferDesc, &_camera);
         }
 
         void Render(CommandBuffer* context)
@@ -180,12 +174,6 @@ namespace Alimer
         SharedPtr<GpuBuffer> _indexBuffer;
         SharedPtr<ShaderProgram> _program;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
-
-        struct PerCameraCBuffer
-        {
-            mat4 viewMatrix;
-            mat4 projectionMatrix;
-        };
 
         PerCameraCBuffer _camera;
     };
@@ -253,14 +241,14 @@ namespace Alimer
             vertexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Vertex;
             vertexBufferDesc.size = vertices.size() * sizeof(VertexColor);
             vertexBufferDesc.stride = sizeof(VertexColor);
-            _vertexBuffer = graphics->CreateBuffer(&vertexBufferDesc, vertices.data());
+            _vertexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &vertexBufferDesc, vertices.data());
 
             // Index
             BufferDescriptor indexBufferDesc = {};
             indexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Index;
             indexBufferDesc.size = indices.size() * sizeof(uint16_t);
             indexBufferDesc.stride = sizeof(uint16_t);
-            _indexBuffer = graphics->CreateBuffer(&indexBufferDesc, indices.data());
+            _indexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &indexBufferDesc, indices.data());
 
             // Uniform buffer
             _camera.viewMatrix = Matrix4::LookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
@@ -270,12 +258,12 @@ namespace Alimer
             uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
             uboBufferDesc.stride = sizeof(PerCameraCBuffer);
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
+            _perCameraUboBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &uboBufferDesc, &_camera);
 
             // Per draw ubo.
             uboBufferDesc.stride = sizeof(PerVertexData);
             uboBufferDesc.size = sizeof(PerVertexData);
-            _perDrawUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_perDrawData);
+            _perDrawUboBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &uboBufferDesc, &_perDrawData);
 
             // Shader program
             auto vertexShader = graphics->CreateShaderModule("assets://shaders/color.vert");
@@ -429,12 +417,6 @@ namespace Alimer
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
         SharedPtr<Texture> _texture;
 
-        struct PerCameraCBuffer
-        {
-            mat4 viewMatrix;
-            mat4 projectionMatrix;
-        };
-
         PerCameraCBuffer _camera;
     };
 #endif // TODO
@@ -464,13 +446,13 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        //_triangleExample.Initialize(_graphics);
+        _triangleExample.Initialize(_graphics);
         //_quadExample.Initialize(_graphics);
-        _cubeExample.Initialize(_graphics, _window->GetAspectRatio());
+        //_cubeExample.Initialize(_graphics, _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphics, _window->getAspectRatio());
 
         // Create scene
-        _scene = new Scene();
+        //_scene = new Scene();
         //auto triangleEntity = _scene->CreateEntity();
         //triangleEntity->AddComponent<TransformComponent>();
         //triangleEntity->AddComponent<RenderableComponent>();
@@ -481,13 +463,13 @@ namespace Alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        auto commandBuffer = _graphics->GetDefaultCommandBuffer();
-        commandBuffer->Begin();
+        //auto commandBuffer = _graphics->GetDefaultCommandBuffer();
+        //commandBuffer->Begin();
         //_triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);
-        _cubeExample.Render(commandBuffer);
+        //_cubeExample.Render(commandBuffer);
         //_texturedCubeExample.Render(commandBuffer);
-        commandBuffer->End();
+        //commandBuffer->End();
     }
 }
 

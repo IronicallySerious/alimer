@@ -321,7 +321,7 @@ namespace Alimer
             String errorLog;
             if (!ShaderCompiler::Compile(file, entryPoint, spirv, errorLog))
             {
-                ALIMER_LOGCRITICAL("Shader compilation failed: \n {}", errorLog);
+                ALIMER_LOGCRITICAL("Shader compilation failed: \n {}", errorLog.CString());
             }
         }
 

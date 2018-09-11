@@ -44,4 +44,8 @@ if (NOT ALIMER_DISABLE_SHADER_COMPILER)
     add_subdirectory (glslang EXCLUDE_FROM_ALL)
 endif ()
 
+if (PLATFORM_DESKTOP)
+    add_subdirectory(imgui)
+endif (PLATFORM_DESKTOP)
+
 vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} ThirdParty)
