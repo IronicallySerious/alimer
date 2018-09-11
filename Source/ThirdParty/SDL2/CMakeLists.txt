@@ -47,8 +47,6 @@ file(GLOB SOURCE_FILES
     ${SRC_DIR}/haptic/*.c
     ${SRC_DIR}/libm/*.c
     ${SRC_DIR}/power/*.c
-    ${SRC_DIR}/render/*.c
-    ${SRC_DIR}/render/*/*.c
     ${SRC_DIR}/stdlib/*.c
     ${SRC_DIR}/thread/*.c
     ${SRC_DIR}/timer/*.c
@@ -93,5 +91,5 @@ endif()
 add_library(${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(${TARGET} PUBLIC ${HEADER_DIR})
-target_compile_definitions(${TARGET} PUBLIC -DSDL_MAIN_HANDLED=1)
+target_compile_definitions(${TARGET} PUBLIC -DSDL_MAIN_HANDLED=1 -DSDL_RENDER_DISABLED=1)
 target_link_libraries(${TARGET} ${EXTRA_LIBS})
