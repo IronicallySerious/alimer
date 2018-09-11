@@ -6,9 +6,13 @@ Alimer uses the following open-source and third-party libraries:
 - [Nothings](https://github.com/nothings/stb) single file libs.
   - [stb_image.h 2.19](https://github.com/nothings/stb/blob/master/stb_image.h)
   - [stb_image_write.h 1.09](https://github.com/nothings/stb/blob/master/stb_image_write.h)
+  - [stb_rect_pack.h 0.11](https://github.com/nothings/stb/blob/master/stb_rect_pack.h)
+  - [stb_textedit.h 1.12](https://github.com/nothings/stb/blob/master/stb_textedit.h)
+  - [stb_truetype.h 1.19](https://github.com/nothings/stb/blob/master/stb_truetype.h)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [fmt 5.1.0](http://fmtlib.net)]
 - [rapidjson](https://github.com/Tencent/rapidjson)
+- [imgui 1.65](https://github.com/ocornut/imgui)
 - [CLI11 1.6](https://github.com/CLIUtils/CLI11)
 - [volk Metaloader for Vulkan](https://github.com/zeux/volk)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
