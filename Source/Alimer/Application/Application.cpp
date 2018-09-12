@@ -150,26 +150,35 @@ namespace Alimer
         {
             CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
 
+            // Begin recording.
+            commandBuffer->Begin();
+            commandBuffer->BeginRenderPass(nullptr, Color4(0.0f, 0.2f, 0.4f, 1.0f));
+
+            // Call OnRenderFrame for custom rendering frame logic.
+            OnRenderFrame(commandBuffer, frameTime, elapsedTime);
+
             // Render scene to default command buffer.
             _renderSystem->Render(commandBuffer);
 
-            // Call OnRenderFrame for custom rendering frame logic.
-            OnRenderFrame(frameTime, elapsedTime);
+            // End swap chain render pass.
+            commandBuffer->EndRenderPass();
+
+            // End recording.
+            commandBuffer->End();
 
             // End rendering frame.
             _graphics->EndFrame();
         }
     }
 
-    void Application::OnRenderFrame(double frameTime, double elapsedTime)
+    void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
     {
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
         // By default clear with some color.
-        //auto commandBuffer = _graphics->GetDefaultCommandBuffer();
-        //commandBuffer->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
-        //commandBuffer->EndRenderPass();
+        commandBuffer->BeginRenderPass(nullptr, Color4(0.0f, 0.2f, 0.4f, 1.0f));
+        commandBuffer->EndRenderPass();
     }
 
     void Application::Exit()

@@ -25,6 +25,8 @@
 
 namespace Alimer
 {
+    uint32_t Detail::IDMapping::_systemIds;
+
     void SystemManager::AddToSystems(Entity entity)
     {
        /* const auto& entMask = entity.getComponentMask();

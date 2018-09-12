@@ -25,10 +25,6 @@
 
 namespace Alimer
 {
-    CameraComponent::CameraComponent()
-    {
-    }
-
     /*void CameraComponent::Update(const glm::mat4& worldTransform)
     {
         _projection = glm::perspective(glm::radians(_fovy), _aspect, _znear, _zfar);

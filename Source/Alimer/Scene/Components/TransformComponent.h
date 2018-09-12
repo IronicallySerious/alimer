@@ -22,29 +22,20 @@
 
 #pragma once
 
-#include "../../Math/MathUtil.h"
-#include "../../Scene/Component.h"
+#include "../../Math/Math.h"
 
 namespace Alimer
 {
-    struct Transform
-    {
-        //glm::vec3 scale = glm::vec3(1.0f);
-        //glm::vec3 translation = glm::vec3(0.0f);
-        //glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-    };
-
 	/// Defines a Transform Component.
-    class ALIMER_API TransformComponent : public Component
+    struct TransformComponent
 	{
-    public:
-        TransformComponent();
-        virtual ~TransformComponent() = default;
-
-        Transform transform;
+        vec3 scale = vec3(1.0f);
+        vec3 translation = vec3(0.0f);
+        quat rotation = quat(1.0f, 0.0f, 0.0f, 0.0f);
 
         //glm::mat4 worldTransform;
 
+    private:
         uint32_t lastTimestamp = ~0u;
         const uint32_t *currentTimestamp = nullptr;
 	};

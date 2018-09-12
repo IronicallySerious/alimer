@@ -21,24 +21,20 @@
 //
 
 #include "../Systems/CameraSystem.h"
-#include "../Scene.h"
+#include "../Components/TransformComponent.h"
+#include "../Components/CameraComponent.h"
 
 namespace Alimer
 {
-    CameraSystem::CameraSystem()
-    {
-        RequireComponent<TransformComponent>();
-        RequireComponent<CameraComponent>();
-    }
-
     void CameraSystem::Update(EntityManager &entities, double deltaTime)
     {
-        //for (auto &c : _cameras)
-        //{
-        //    CameraComponent *camera;
-        //    TransformComponent *transform;
-        //    std::tie(camera, transform) = c;
-            //camera->Update(transform->worldTransform);
-        //}
+        auto view = entities.view<TransformComponent, CameraComponent>();
+
+        // Update view and projection matrix.
+        for (auto entity : view)
+        {
+            auto &camera = view.get<CameraComponent>(entity);
+            camera.projection = Matrix4::Perspective(camera.fovy, camera.aspect, camera.znear, camera.zfar, false);
+        }
     }
 }

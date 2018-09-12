@@ -46,7 +46,7 @@ namespace Alimer
 
         void Reset();
 
-        void BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
 
         void SetViewport(const Viewport& viewport) override;

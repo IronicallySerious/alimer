@@ -175,7 +175,7 @@ target_include_directories(libAlimer
 )
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross glslang SPIRV)
+set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross glslang SPIRV EnTT)
 if (ALIMER_SDL)
     list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()

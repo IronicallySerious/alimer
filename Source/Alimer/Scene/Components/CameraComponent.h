@@ -22,32 +22,22 @@
 
 #pragma once
 
-#include "../../Scene/Component.h"
+#include "../../Math/Math.h"
 #include "../../Math/Matrix4.h"
 
 namespace Alimer
 {
 	/// Defines a Camera Component class.
-    class ALIMER_API CameraComponent final : public Component
+    struct CameraComponent 
 	{
-    public:
-        CameraComponent();
-        ~CameraComponent() = default;
-
-        //void Update(const glm::mat4& worldTransform);
-
-        //glm::mat4 GetView() const;
-        //glm::mat4 GetProjection() const;
-
-    private:
         // Field of view (in degrees)
-        float _fovy = 60.0f;
-        float _aspect = 16.0f / 9.0f;
-        float _znear = 1.0f;
-        float _zfar  = 1000.0f;
+        float fovy = 60.0f;
+        float aspect = 16.0f / 9.0f;
+        float znear = 1.0f;
+        float zfar = 1000.0f;
 
         // Calculated values.
-        mat4 _view;
-        mat4 _projection;
+        mat4 view;
+        mat4 projection;
 	};
 }

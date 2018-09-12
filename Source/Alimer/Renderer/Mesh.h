@@ -23,22 +23,69 @@
 #pragma once
 
 #include "../Resource/Resource.h"
+#include "../Graphics/VertexFormat.h"
 
 namespace Alimer
 {
+    class GpuBuffer;
+    class CommandBuffer;
     class Graphics;
 
-	/// Defines a Mesh.
+    enum class MeshAttribute : unsigned
+    {
+        Position = 0,
+        UV = 1,
+        Normal = 2,
+        Tangent = 3,
+        BoneIndex = 4,
+        BoneWeights = 5,
+        VertexColor = 6,
+        Count,
+        None
+    };
+
+    struct MeshAttributeLayout
+    {
+        VertexFormat format = VertexFormat::Invalid;
+        uint32_t offset = 0;
+    };
+
+    /// Defines a Mesh.
     class ALIMER_API Mesh final : public Resource
-	{
+    {
         ALIMER_OBJECT(Mesh, Resource);
 
     public:
         Mesh(Graphics* graphics);
-        ~Mesh() = default;
+        ~Mesh() override;
+
+        bool Define(const std::vector<vec3>& positions, const std::vector<Color4>& colors, const std::vector<uint16_t>& indices);
+
+        void SetVertexData(const void* vertexData, uint32_t vertexStart = 0, uint32_t vertexCount = 0);
+
+        void Draw(CommandBuffer* context, uint32_t instanceCount = 1);
+
+        uint32_t GetIndexCount() { return _indexCount; }
+        uint32_t GetVertexCount() { return _vertexCount; }
+
+        GpuBuffer* GetVertexBuffer() const { return _vertexBuffer; }
+        GpuBuffer* GetIndexBuffer() const { return _indexBuffer; }
+
+        static Mesh* CreateCube(Graphics* graphics, float size = 1.0f);
+        static Mesh* CreateBox(Graphics* graphics, const vec3& size = vec3(1.0f));
 
     private:
         /// Graphics subsystem.
         WeakPtr<Graphics> _graphics;
-	};
+
+        MeshAttributeLayout _attributes[ecast(MeshAttribute::Count)];
+
+        GpuBuffer* _vertexBuffer = nullptr;
+        GpuBuffer* _indexBuffer = nullptr;
+
+        uint32_t _vertexCount = 0;
+        uint32_t _vertexStride = 0;
+        uint32_t _indexCount = 0;
+        IndexType _indexType = IndexType::UInt16;
+    };
 }

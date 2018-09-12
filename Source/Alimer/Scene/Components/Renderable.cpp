@@ -23,50 +23,13 @@
 #include "Scene/Components/Renderable.h"
 #include "Scene/Components/TransformComponent.h"
 #include "Scene/Scene.h"
+#include "Renderer/Mesh.h"
 
 namespace Alimer
 {
-    TriangleRenderable::TriangleRenderable()
-    {
-        /*struct Vertex
-        {
-            glm::vec3 position;
-            Color color;
-        };
-
-        const float aspectRatio = 800.0f / 600.0f;
-
-        Vertex triangleVertices[] =
-        {
-            { glm::vec3(0.0f, 0.25f * aspectRatio, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f) },
-            { glm::vec3(0.25f, -0.25f * aspectRatio, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
-            { glm::vec3(-0.25f, -0.25f * aspectRatio, 0.0f),Color(0.0f, 0.0f, 1.0f, 1.0f) }
-        };
-
-        GpuBufferDescription vertexBufferDesc = {};
-        vertexBufferDesc.usage = BufferUsage::Vertex;
-        vertexBufferDesc.elementCount = 3;
-        vertexBufferDesc.elementSize = sizeof(Vertex);
-        _vertexBuffer = gGraphics().CreateBuffer(vertexBufferDesc, triangleVertices);*/
-
-        /*RenderPipelineDescription renderPipelineDescriptor;
-        renderPipelineDescriptor.shader = gGraphics().CreateShader("color.vert", "color.frag");
-        renderPipelineDescriptor.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
-        renderPipelineDescriptor.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
-        renderPipelineDescriptor.vertexDescriptor.attributes[1].offset = 12;
-        renderPipelineDescriptor.vertexDescriptor.layouts[0].stride = _vertexBuffer->GetElementSize();
-        _renderPipeline = gGraphics().CreateRenderPipelineState(renderPipelineDescriptor);*/
-    }
-
-    TriangleRenderable::~TriangleRenderable()
+    MeshRenderable::MeshRenderable(Mesh* mesh)
+        : _mesh(mesh)
     {
 
     }
-
-    //void TriangleRenderable::Render(CommandBuffer* commandBuffer)
-    //{
-        /*commandBuffer->SetVertexBuffer(_vertexBuffer.Get(), 0);
-        commandBuffer->SetPipeline(_renderPipeline);
-        commandBuffer->Draw(PrimitiveTopology::Triangles, 3);*/
-    //}
 }

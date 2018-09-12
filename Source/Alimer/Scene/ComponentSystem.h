@@ -22,16 +22,30 @@
 
 #pragma once
 
-#include "../Scene/Component.h"
-#include <cstdint>
-#include <unordered_map>
-#include <utility>
-#include <cassert>
+#include "../AlimerConfig.h"
+#include "../Scene/Entity.h"
 
 namespace Alimer
 {
     class Scene;
-    class EntityManager;
+
+    namespace Detail
+    {
+        struct IDMapping
+        {
+        public:
+
+            template <typename TSystem>
+            static uint32_t GetSystemId()
+            {
+                static uint32_t id = _systemIds++;
+                return id;
+            }
+
+        private:
+            static uint32_t _systemIds;
+        };
+    }
 
     /// Defines a base System class.
     class ALIMER_API System
@@ -50,15 +64,6 @@ namespace Alimer
 
         /// Updates the system
         virtual void Update(EntityManager &entities, double deltaTime) = 0;
-
-    protected:
-        template <typename T>
-        void RequireComponent()
-        {
-            _componentTypes.push_back(Detail::IDMapping::GetId<T>());
-        }
-
-        std::vector<uint32_t> _componentTypes;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(System);

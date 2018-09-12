@@ -35,7 +35,7 @@ namespace Alimer
     class ALIMER_API RenderSystem final : public System
     {
     public:
-        RenderSystem();
+        RenderSystem() = default;
 
         void Update(EntityManager &entities, double deltaTime) override;
 

@@ -60,7 +60,7 @@ namespace Alimer
         virtual void Serialize(const char* key, vec3& value);
         virtual void Serialize(const char* key, vec4& value);
         virtual void Serialize(const char* key, quat& value);
-        virtual void Serialize(const char* key, const Color& value);
+        virtual void Serialize(const char* key, const Color4& value);
         virtual void Serialize(const char* key, const float* values, uint32_t count) = 0;
 
         virtual void BeginObject(const char* key, bool isArray = false) = 0;

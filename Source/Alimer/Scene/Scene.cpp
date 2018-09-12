@@ -32,8 +32,8 @@ namespace Alimer
         : _entities(entities)
 	{
         _defaultCamera = CreateEntity();
-        //_defaultCamera.AddComponent<TransformComponent>();
-        //_defaultCamera.AddComponent<CameraComponent>();
+        entities.assign<TransformComponent>(_defaultCamera);
+        entities.assign<CameraComponent>(_defaultCamera);
         //_defaultCamera->AddComponent<AudioListener>();
 
         _activeCamera = _defaultCamera;
@@ -45,13 +45,15 @@ namespace Alimer
 
     Entity Scene::CreateEntity()
     {
-        Entity entity = _entities.CreateEntity();
+        Entity entity = _entities.create();
         _pendingEntities.push_back(entity);
         return entity;
     }
 
     void Scene::Update(double deltaTime)
     {
+        auto &camera = _entities.get<CameraComponent>(_defaultCamera);
+
         //for (const auto& entity : _pendingEntities)
         //{
         //    _systemManager.AddToSystems(entity);

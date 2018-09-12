@@ -121,7 +121,7 @@ namespace Alimer
         vkThrowIfFailed(vkBeginCommandBuffer(_handle, &beginInfo));
     }
 
-    void VulkanCommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    void VulkanCommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         if (!renderPass)
         {

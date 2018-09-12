@@ -22,26 +22,42 @@
 
 #pragma once
 
-#include "../../Scene/Component.h"
+#include "../../Base/IntrusivePtr.h"
 #include "../../Graphics/Graphics.h"
 #include "../../Math/MathUtil.h"
 
 namespace Alimer
 {
-    class ALIMER_API RenderableComponent : public Component
+    enum class DrawPipeline : unsigned
     {
-    public:
+        Opaque,
+        AlphaTest,
+        AlphaBlend,
     };
 
-    class ALIMER_API TriangleRenderable final : public RenderableComponent
+    class ALIMER_API Renderable : public IntrusivePtrEnabled<Renderable>
     {
     public:
-        TriangleRenderable();
-        virtual ~TriangleRenderable();
+        virtual DrawPipeline getDrawPipeline() const
+        {
+            return DrawPipeline::Opaque;
+        }
+    };
 
-        //void Render(CommandBuffer* commandBuffer) override;
+    class Mesh;
+    class ALIMER_API MeshRenderable : public Renderable
+    {
+    public:
+        MeshRenderable(Mesh* mesh);
+
     private:
-        //SharedPtr<GpuBuffer> _vertexBuffer;
-        //SharedPtr<PipelineState> _renderPipeline;
+        Mesh* _mesh;
+    };
+
+    using RenderableHandle = IntrusivePtr<Renderable>;
+
+    struct RenderableComponent 
+    {
+        RenderableHandle renderable;
     };
 }

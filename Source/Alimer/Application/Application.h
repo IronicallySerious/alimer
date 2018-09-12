@@ -116,7 +116,7 @@ namespace Alimer
         void RenderFrame(double frameTime, double elapsedTime);
 
         /// Called during rendering single frame.
-        virtual void OnRenderFrame(double frameTime, double elapsedTime);
+        virtual void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime);
 
         virtual std::unique_ptr<Input> CreateInput();
         virtual std::unique_ptr<Audio> CreateAudio();
@@ -138,6 +138,7 @@ namespace Alimer
 
         EntityManager _entities;
         SystemManager _systems;
+        entt::DefaultRegistry _registry;
         Scene _scene;
         std::shared_ptr<RenderSystem> _renderSystem;
 

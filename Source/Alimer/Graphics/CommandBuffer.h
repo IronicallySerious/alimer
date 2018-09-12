@@ -49,10 +49,10 @@ namespace Alimer
 
         /// End command recording.
         bool End();
-        void BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
+        void BeginRenderPass(RenderPass* renderPass, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
         void BeginRenderPass(RenderPass* renderPass,
-            const Color* clearColors, uint32_t numClearColors,
+            const Color4* clearColors, uint32_t numClearColors,
             float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
         void EndRenderPass();
@@ -79,7 +79,7 @@ namespace Alimer
     protected:
         virtual bool BeginCore() = 0;
         virtual bool EndCore() = 0;
-        virtual void BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
+        virtual void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
         virtual void EndRenderPassCore() = 0;
         //virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 

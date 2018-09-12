@@ -99,13 +99,11 @@ namespace Alimer
 
         void Render(CommandBuffer* context)
         {
-            context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             context->SetShaderProgram(_program.Get());
             //context->SetVertexInputFormat(_vertexInputFormat.Get());
             context->BindVertexBuffer(_vertexBuffer.Get(), 0);
             context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
             context->Draw(PrimitiveTopology::Triangles, 3);
-            context->EndRenderPass();
         }
 
     private:
@@ -160,13 +158,11 @@ namespace Alimer
 
         void Render(CommandBuffer* context)
         {
-            context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             context->SetShaderProgram(_program.Get());
             context->BindVertexBuffer(_vertexBuffer.Get(), 0);
             context->BindIndexBuffer(_indexBuffer.Get(), 0, IndexType::UInt16);
             context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
             context->DrawIndexed(PrimitiveTopology::Triangles, 6);
-            context->EndRenderPass();
         }
 
     private:
@@ -183,72 +179,7 @@ namespace Alimer
     public:
         void Initialize(Graphics* graphics, float aspectRatio)
         {
-            // A box has six faces, each one pointing in a different direction.
-            const int FaceCount = 6;
-
-            static const vec3 faceNormals[FaceCount] =
-            {
-                vec3(0,  0,  1),
-                vec3(0,  0, -1),
-                vec3(1,  0,  0),
-                vec3(-1,  0,  0),
-                vec3(0,  1,  0),
-                vec3(0, -1,  0),
-            };
-
-            std::vector<VertexColor> vertices;
-            std::vector<uint16_t> indices;
-
-            vec3 tsize(1.0f, 1.0f, 1.0f);
-            tsize = tsize / 2.0f;
-
-            // Create each face in turn.
-            for (int i = 0; i < FaceCount; i++)
-            {
-                vec3 normal = faceNormals[i];
-
-                // Get two vectors perpendicular both to the face normal and to each other.
-                vec3 basis = (i >= 4) ? vec3::unit_z() : vec3::unit_y();
-
-                vec3 side1 = cross(normal, basis);
-                vec3 side2 = cross(normal, side1);
-
-                // Six indices (two triangles) per face.
-                size_t vbase = vertices.size();
-                indices.push_back(static_cast<uint16_t>(vbase + 0));
-                indices.push_back(static_cast<uint16_t>(vbase + 1));
-                indices.push_back(static_cast<uint16_t>(vbase + 2));
-
-                indices.push_back(static_cast<uint16_t>(vbase + 0));
-                indices.push_back(static_cast<uint16_t>(vbase + 2));
-                indices.push_back(static_cast<uint16_t>(vbase + 3));
-
-                // Four vertices per face.
-                // (normal - side1 - side2) * tsize // normal // t0
-                vertices.push_back({ (normal - side1 - side2) * tsize, Color(1.0f, 0.0f, 0.0f) });
-
-                // (normal - side1 + side2) * tsize // normal // t1
-                vertices.push_back({ (normal - side1 + side2) * tsize, Color(0.0f, 1.0f, 0.0f) });
-
-                // (normal + side1 + side2) * tsize // normal // t2
-                vertices.push_back({ (normal + side1 + side2) * tsize, Color(0.0f, 0.0f, 1.0f) });
-
-                // (normal + side1 - side2) * tsize // normal // t3
-                vertices.push_back({ (normal + side1 - side2) * tsize, Color(1.0f, 0.0f, 1.0f) });
-            }
-
-            BufferDescriptor vertexBufferDesc = {};
-            vertexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Vertex;
-            vertexBufferDesc.size = vertices.size() * sizeof(VertexColor);
-            vertexBufferDesc.stride = sizeof(VertexColor);
-            _vertexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &vertexBufferDesc, vertices.data());
-
-            // Index
-            BufferDescriptor indexBufferDesc = {};
-            indexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Index;
-            indexBufferDesc.size = indices.size() * sizeof(uint16_t);
-            indexBufferDesc.stride = sizeof(uint16_t);
-            _indexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &indexBufferDesc, indices.data());
+            _mesh = Mesh::CreateCube(graphics);
 
             // Uniform buffer
             _camera.viewMatrix = Matrix4::LookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
@@ -275,19 +206,17 @@ namespace Alimer
         {
             _perDrawUboBuffer->SetSubData(&_perDrawData);
 
-            context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+            // Bind shader program.
             context->SetShaderProgram(_program.Get());
-            context->BindVertexBuffer(_vertexBuffer.Get(), 0);
-            context->BindIndexBuffer(_indexBuffer.Get(), 0, IndexType::UInt16);
             context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
             context->BindBuffer(_perDrawUboBuffer.Get(), 0, 1);
-            context->DrawIndexed(PrimitiveTopology::Triangles, 6);
-            context->EndRenderPass();
+
+            // Draw mesh.
+            _mesh->Draw(context);
         }
 
     private:
-        SharedPtr<GpuBuffer> _vertexBuffer;
-        SharedPtr<GpuBuffer> _indexBuffer;
+        SharedPtr<Mesh> _mesh;
         SharedPtr<ShaderProgram> _program;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
         SharedPtr<GpuBuffer> _perDrawUboBuffer;
@@ -400,14 +329,12 @@ namespace Alimer
 
         void Render(CommandContexzt* context)
         {
-            context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
             context->SetShader(_shader.Get());
             context->SetVertexBuffer(0, _vertexBuffer.Get());
             context->SetIndexBuffer(_indexBuffer.Get());
             context->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
             context->SetTexture(0, _texture.Get(), ShaderStage::Fragment);
             context->DrawIndexed(PrimitiveTopology::Triangles, 6);
-            context->EndRenderPass();
         }
 
     private:
@@ -429,7 +356,7 @@ namespace Alimer
 
     private:
         void Initialize() override;
-        void OnRenderFrame(double frameTime, double elapsedTime) override;
+        void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime) override;
 
     private:
         TriangleExample _triangleExample;
@@ -446,30 +373,29 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_graphics);
+        //_triangleExample.Initialize(_graphics);
         //_quadExample.Initialize(_graphics);
-        //_cubeExample.Initialize(_graphics, _window->GetAspectRatio());
+        _cubeExample.Initialize(_graphics, _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphics, _window->getAspectRatio());
 
-        // Create scene
-        //_scene = new Scene();
-        //auto triangleEntity = _scene->CreateEntity();
-        //triangleEntity->AddComponent<TransformComponent>();
+        // Create triangle scene
+        auto triangleEntity = _scene.CreateEntity();
+        _entities.assign<TransformComponent>(triangleEntity);
+        auto renderable =  _entities.assign<RenderableComponent>(triangleEntity);
+        auto mesh = new Mesh(_graphics.Get());
+        renderable.renderable = MakeDerivedHandle<Renderable, MeshRenderable>(mesh);
         //triangleEntity->AddComponent<RenderableComponent>();
     }
 
-    void RuntimeApplication::OnRenderFrame(double frameTime, double elapsedTime)
+    void RuntimeApplication::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
     {
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        //auto commandBuffer = _graphics->GetDefaultCommandBuffer();
-        //commandBuffer->Begin();
         //_triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);
-        //_cubeExample.Render(commandBuffer);
+        _cubeExample.Render(commandBuffer);
         //_texturedCubeExample.Render(commandBuffer);
-        //commandBuffer->End();
     }
 }
 

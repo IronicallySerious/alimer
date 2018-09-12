@@ -113,7 +113,7 @@ namespace Alimer
         return true;
     }
 
-    void D3D11CommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    void D3D11CommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
         if (!renderPass)
         {

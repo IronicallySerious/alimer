@@ -23,8 +23,6 @@
 #pragma once
 
 #include "../ComponentSystem.h"
-#include "../Components/TransformComponent.h"
-#include "../Components//CameraComponent.h"
 
 namespace Alimer
 {
@@ -33,7 +31,7 @@ namespace Alimer
     class ALIMER_API CameraSystem final : public System
 	{
     public:
-        CameraSystem();
+        CameraSystem() = default;
 
         void Update(EntityManager &entities, double deltaTime) override;
 	};

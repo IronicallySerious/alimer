@@ -22,19 +22,20 @@
 
 #pragma once
 
+#include "../Serialization/Serializable.h"
 #include "../Scene/Entity.h"
 #include "../Scene/ComponentSystem.h"
 #include "../Math/MathUtil.h"
 
 namespace Alimer
 {
-    class TransformComponent;
-    class CameraComponent;
-    class RenderableComponent;
+    struct TransformComponent;
+    struct CameraComponent;
+    class Renderable;
 
     struct RenderableInfo
     {
-        RenderableComponent *renderable;
+        Renderable *renderable;
         const TransformComponent *transform;
     };
     using VisibilitySet = std::vector<RenderableInfo>;

@@ -55,7 +55,7 @@ namespace Alimer
         Serialize(key, &value.x, 4);
     }
 
-    void Serializer::Serialize(const char* key, const Color& value)
+    void Serializer::Serialize(const char* key, const Color4& value)
     {
         Serialize(key, &value.r, 4);
     }

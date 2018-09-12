@@ -69,13 +69,13 @@ namespace Alimer
         }
     }
 
-    void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color& clearColor, float clearDepth, uint8_t clearStencil)
+    void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
         BeginRenderPass(renderPass, &clearColor, 1, clearDepth, clearStencil);
     }
 
     void CommandBuffer::BeginRenderPass(RenderPass* renderPass,
-        const Color* clearColors, uint32_t numClearColors,
+        const Color4* clearColors, uint32_t numClearColors,
         float clearDepth, uint8_t clearStencil)
     {
         EnsureIsRecording();

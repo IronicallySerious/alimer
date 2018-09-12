@@ -24,8 +24,4 @@
 
 namespace Alimer
 {
-    TransformComponent::TransformComponent()
-    {
-        
-    }
 }

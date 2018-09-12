@@ -26,13 +26,6 @@
 
 namespace Alimer
 {
-    RenderSystem::RenderSystem()
-        : System()
-    {
-        RequireComponent<TransformComponent>();
-        RequireComponent<RenderableComponent>();
-    }
-
     // TODO: Add frustum
     template <typename T>
     static void GatherVisibleRenderables(VisibilitySet &list, const T &objects)
@@ -59,22 +52,37 @@ namespace Alimer
         // Gather visibles.
         _visibleSet.clear();
 
-        // TODO: Add async culling.
-        /*if (_renderables.size())
-        {
-            CameraComponent* activeCamera = _scene->GetActiveCamera()->GetComponent<CameraComponent>();
-            GatherVisibleRenderables(_visibleSet, _renderables);
+        auto view = entities.view<TransformComponent, RenderableComponent>();
 
+        // TODO: Add async culling.
+        for (auto entity : view)
+        {
+            auto &transformComponent = view.get<TransformComponent>(entity);
+            auto &renderableComponent = view.get<RenderableComponent>(entity);
+
+            //if (transformComponent)
+            {
+                // if (frustum.intersects_fast(transform->world_aabb))
+                _visibleSet.push_back({ renderableComponent.renderable.Get(), nullptr });
+            }
+            //else
+            //{
+            //    _visibleSet.push_back({ renderableComponent.renderable.Get(), nullptr });
+            //}
+        }
+
+        
+        if (_visibleSet.size())
+        {
             for (auto &visible : _visibleSet)
             {
             }
-        }*/
+        }
     }
 
     void RenderSystem::Render(CommandBuffer* context)
     {
-        context->Begin();
-        context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
+        //context->BeginRenderPass(nullptr, Color(0.0f, 0.2f, 0.4f, 1.0f));
 
         // Bind per camera UBO
         //context->SetUniformBuffer(0, 0, _perCameraUboBuffer.Get());
@@ -85,7 +93,6 @@ namespace Alimer
             //visible.renderable->Render(context, vis.transform, queue);
         }
 
-        context->EndRenderPass();
-        context->End();
+        //context->EndRenderPass();
     }
 }
