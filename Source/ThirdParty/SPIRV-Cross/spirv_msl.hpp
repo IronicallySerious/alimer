@@ -222,7 +222,15 @@ public:
 		SPVFuncImplFindILsb,
 		SPVFuncImplFindSMsb,
 		SPVFuncImplFindUMsb,
-		SPVFuncImplArrayCopy,
+		SPVFuncImplArrayCopyMultidimBase,
+		// Unfortunately, we cannot use recursive templates in the MSL compiler properly,
+		// so stamp out variants up to some arbitrary maximum.
+		SPVFuncImplArrayCopy = SPVFuncImplArrayCopyMultidimBase + 1,
+		SPVFuncImplArrayOfArrayCopy2Dim = SPVFuncImplArrayCopyMultidimBase + 2,
+		SPVFuncImplArrayOfArrayCopy3Dim = SPVFuncImplArrayCopyMultidimBase + 3,
+		SPVFuncImplArrayOfArrayCopy4Dim = SPVFuncImplArrayCopyMultidimBase + 4,
+		SPVFuncImplArrayOfArrayCopy5Dim = SPVFuncImplArrayCopyMultidimBase + 5,
+		SPVFuncImplArrayOfArrayCopy6Dim = SPVFuncImplArrayCopyMultidimBase + 6,
 		SPVFuncImplTexelBufferCoords,
 		SPVFuncImplInverse4x4,
 		SPVFuncImplInverse3x3,
@@ -233,6 +241,7 @@ public:
 		SPVFuncImplRowMajor3x4,
 		SPVFuncImplRowMajor4x2,
 		SPVFuncImplRowMajor4x3,
+		SPVFuncImplArrayCopyMultidimMax = 6
 	};
 
 	// Constructs an instance to compile the SPIR-V code into Metal Shading Language,
@@ -290,7 +299,6 @@ protected:
 	std::string image_type_glsl(const SPIRType &type, uint32_t id = 0) override;
 	std::string sampler_type(const SPIRType &type);
 	std::string builtin_to_glsl(spv::BuiltIn builtin, spv::StorageClass storage) override;
-	std::string constant_expression(const SPIRConstant &c) override;
 	size_t get_declared_struct_member_size(const SPIRType &struct_type, uint32_t index) const override;
 	std::string to_func_call_arg(uint32_t id) override;
 	std::string to_name(uint32_t id, bool allow_alias = true) const override;
@@ -348,7 +356,7 @@ protected:
 	std::string argument_decl(const SPIRFunction::Parameter &arg);
 	std::string round_fp_tex_coords(std::string tex_coords, bool coord_is_fp);
 	uint32_t get_metal_resource_index(SPIRVariable &var, SPIRType::BaseType basetype);
-	uint32_t get_ordered_member_location(uint32_t type_id, uint32_t index);
+	uint32_t get_ordered_member_location(uint32_t type_id, uint32_t index, uint32_t *comp = nullptr);
 	size_t get_declared_struct_member_alignment(const SPIRType &struct_type, uint32_t index) const;
 	std::string to_component_argument(uint32_t id);
 	void align_struct(SPIRType &ib_type);

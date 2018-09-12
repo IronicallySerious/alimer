@@ -82,7 +82,7 @@ if (WIN32)
         ${SRC_DIR}/audio/wasapi/*.c
     )
 
-    set(HEADER_DIR ${HEADER_DIR} ${HEADER_FILES_WIN32})
+    set(HEADER_FILES ${HEADER_FILES} ${HEADER_FILES_WIN32})
     set(SOURCE_FILES ${SOURCE_FILES} ${SOURCE_FILES_WIN32})
     list(APPEND EXTRA_LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 shell32)
 endif()

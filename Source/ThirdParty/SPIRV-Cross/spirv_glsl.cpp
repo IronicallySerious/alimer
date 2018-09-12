@@ -775,6 +775,21 @@ string CompilerGLSL::layout_for_member(const SPIRType &type, uint32_t index)
 	if (dec.decoration_flags.get(DecorationLocation) && can_use_io_location(type.storage, true))
 		attr.push_back(join("location = ", dec.location));
 
+	// Can only declare component if we can declare location.
+	if (dec.decoration_flags.get(DecorationComponent) && can_use_io_location(type.storage, true))
+	{
+		if (!options.es)
+		{
+			if (options.version < 440 && options.version >= 140)
+				require_extension_internal("GL_ARB_enhanced_layouts");
+			else if (options.version < 140)
+				SPIRV_CROSS_THROW("Component decoration is not supported in targets below GLSL 1.40.");
+			attr.push_back(join("component = ", dec.component));
+		}
+		else
+			SPIRV_CROSS_THROW("Component decoration is not supported in ES targets.");
+	}
+
 	// DecorationCPacked is set by layout_for_variable earlier to mark that we need to emit offset qualifiers.
 	// This is only done selectively in GLSL as needed.
 	if (has_decoration(type.self, DecorationCPacked) && dec.decoration_flags.get(DecorationOffset))
@@ -1236,6 +1251,21 @@ string CompilerGLSL::layout_for_variable(const SPIRVariable &var)
 		// emit location decorations at the top as well (looks weird).
 		if (!combined_decoration.get(DecorationLocation))
 			attr.push_back(join("location = ", dec.location));
+	}
+
+	// Can only declare Component if we can declare location.
+	if (flags.get(DecorationComponent) && can_use_io_location(var.storage, is_block))
+	{
+		if (!options.es)
+		{
+			if (options.version < 440 && options.version >= 140)
+				require_extension_internal("GL_ARB_enhanced_layouts");
+			else if (options.version < 140)
+				SPIRV_CROSS_THROW("Component decoration is not supported in targets below GLSL 1.40.");
+			attr.push_back(join("component = ", dec.component));
+		}
+		else
+			SPIRV_CROSS_THROW("Component decoration is not supported in ES targets.");
 	}
 
 	if (flags.get(DecorationIndex))
@@ -2709,12 +2739,23 @@ string CompilerGLSL::constant_expression(const SPIRConstant &c)
 {
 	if (!c.subconstants.empty())
 	{
+		auto &type = get<SPIRType>(c.constant_type);
+
 		// Handles Arrays and structures.
 		string res;
-		if (backend.use_initializer_list)
+		if (backend.use_initializer_list && backend.use_typed_initializer_list && type.basetype == SPIRType::Struct &&
+		    type.array.empty())
+		{
+			res = type_to_glsl_constructor(type) + "{ ";
+		}
+		else if (backend.use_initializer_list)
+		{
 			res = "{ ";
+		}
 		else
-			res = type_to_glsl_constructor(get<SPIRType>(c.constant_type)) + "(";
+		{
+			res = type_to_glsl_constructor(type) + "(";
+		}
 
 		for (auto &elem : c.subconstants)
 		{
@@ -6474,11 +6515,22 @@ void CompilerGLSL::emit_instruction(const Instruction &instruction)
 			forward = false;
 
 		string constructor_op;
-		if (backend.use_initializer_list && composite)
+		if (!backend.array_is_value_type && out_type.array.size() > 1)
+		{
+			// We cannot construct array of arrays because we cannot treat the inputs
+			// as value types. Need to declare the array-of-arrays, and copy in elements one by one.
+			forced_temporaries.insert(id);
+			auto flags = meta[id].decoration.decoration_flags;
+			statement(flags_to_precision_qualifiers_glsl(out_type, flags), variable_decl(out_type, to_name(id)), ";");
+			set<SPIRExpression>(id, to_name(id), result_type, true);
+			for (uint32_t i = 0; i < length; i++)
+				emit_array_copy(join(to_expression(id), "[", i, "]"), elems[i]);
+		}
+		else if (backend.use_initializer_list && composite)
 		{
 			// Only use this path if we are building composites.
 			// This path cannot be used for arithmetic.
-			if (backend.use_typed_initializer_list && out_type.basetype == SPIRType::Struct)
+			if (backend.use_typed_initializer_list && out_type.basetype == SPIRType::Struct && out_type.array.empty())
 				constructor_op += type_to_glsl_constructor(get<SPIRType>(result_type));
 			constructor_op += "{ ";
 			if (type_is_empty(out_type) && !backend.supports_empty_struct)
@@ -6505,9 +6557,12 @@ void CompilerGLSL::emit_instruction(const Instruction &instruction)
 			constructor_op += ")";
 		}
 
-		emit_op(result_type, id, constructor_op, forward);
-		for (uint32_t i = 0; i < length; i++)
-			inherit_expression_dependencies(id, elems[i]);
+		if (!constructor_op.empty())
+		{
+			emit_op(result_type, id, constructor_op, forward);
+			for (uint32_t i = 0; i < length; i++)
+				inherit_expression_dependencies(id, elems[i]);
+		}
 		break;
 	}
 
@@ -9062,7 +9117,7 @@ void CompilerGLSL::emit_function(SPIRFunction &func, const Bitset &return_flags)
 	for (auto &line : current_function->fixup_statements_in)
 		statement(line);
 
-	entry_block.loop_dominator = static_cast<uint32_t>(SPIRBlock::NoDominator);
+	entry_block.loop_dominator = SPIRBlock::NoDominator;
 	emit_block_chain(entry_block);
 
 	end_scope();
@@ -10029,6 +10084,10 @@ void CompilerGLSL::emit_array_copy(const string &lhs, uint32_t rhs_id)
 void CompilerGLSL::bitcast_from_builtin_load(uint32_t source_id, std::string &expr,
                                              const spirv_cross::SPIRType &expr_type)
 {
+	auto *var = maybe_get_backing_variable(source_id);
+	if (var)
+		source_id = var->self;
+
 	// Only interested in standalone builtin variables.
 	if (!has_decoration(source_id, DecorationBuiltIn))
 		return;
@@ -10051,6 +10110,15 @@ void CompilerGLSL::bitcast_from_builtin_load(uint32_t source_id, std::string &ex
 	case BuiltInBaseInstance:
 	case BuiltInDrawIndex:
 		expected_type = SPIRType::Int;
+		break;
+
+	case BuiltInGlobalInvocationId:
+	case BuiltInLocalInvocationId:
+	case BuiltInWorkgroupId:
+	case BuiltInLocalInvocationIndex:
+	case BuiltInWorkgroupSize:
+	case BuiltInNumWorkgroups:
+		expected_type = SPIRType::UInt;
 		break;
 
 	default:

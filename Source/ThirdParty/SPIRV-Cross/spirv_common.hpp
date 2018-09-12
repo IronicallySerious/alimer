@@ -1217,6 +1217,7 @@ struct Meta
 		Bitset decoration_flags;
 		spv::BuiltIn builtin_type;
 		uint32_t location = 0;
+		uint32_t component = 0;
 		uint32_t set = 0;
 		uint32_t binding = 0;
 		uint32_t offset = 0;
@@ -1290,6 +1291,12 @@ private:
 static inline bool type_is_floating_point(const SPIRType &type)
 {
 	return type.basetype == SPIRType::Half || type.basetype == SPIRType::Float || type.basetype == SPIRType::Double;
+}
+
+static inline bool type_is_integral(const SPIRType &type)
+{
+	return type.basetype == SPIRType::Int || type.basetype == SPIRType::UInt || type.basetype == SPIRType::Int64 ||
+	       type.basetype == SPIRType::UInt64;
 }
 } // namespace spirv_cross
 

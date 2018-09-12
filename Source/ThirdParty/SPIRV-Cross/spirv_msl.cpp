@@ -26,6 +26,7 @@ using namespace spirv_cross;
 using namespace std;
 
 static const uint32_t k_unknown_location = ~0u;
+static const uint32_t k_unknown_component = ~0u;
 
 CompilerMSL::CompilerMSL(vector<uint32_t> spirv_, vector<MSLVertexAttr> *p_vtx_attrs,
                          vector<MSLResourceBinding> *p_res_bindings)
@@ -275,6 +276,7 @@ string CompilerMSL::compile()
 	backend.can_return_array = false;
 	backend.boolean_mix_support = false;
 	backend.allow_truncated_access_chain = true;
+	backend.array_is_value_type = false;
 
 	is_rasterization_disabled = msl_options.disable_rasterization;
 
@@ -753,6 +755,14 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 			{
 				BuiltIn builtin;
 				bool is_builtin = is_member_builtin(type, mbr_idx, &builtin);
+				bool is_flat = has_member_decoration(type.self, mbr_idx, DecorationFlat) ||
+				               has_decoration(p_var->self, DecorationFlat);
+				bool is_noperspective = has_member_decoration(type.self, mbr_idx, DecorationNoPerspective) ||
+				                        has_decoration(p_var->self, DecorationNoPerspective);
+				bool is_centroid = has_member_decoration(type.self, mbr_idx, DecorationCentroid) ||
+				                   has_decoration(p_var->self, DecorationCentroid);
+				bool is_sample = has_member_decoration(type.self, mbr_idx, DecorationSample) ||
+				                 has_decoration(p_var->self, DecorationSample);
 
 				if (!is_builtin || has_active_builtin(builtin, storage))
 				{
@@ -786,6 +796,13 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 						mark_location_as_used_by_shader(locn, storage);
 					}
 
+					// Copy the component location, if present.
+					if (has_member_decoration(type_id, mbr_idx, DecorationComponent))
+					{
+						uint32_t comp = get_member_decoration(type_id, mbr_idx, DecorationComponent);
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationComponent, comp);
+					}
+
 					// Mark the member as builtin if needed
 					if (is_builtin)
 					{
@@ -793,6 +810,16 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 						if (builtin == BuiltInPosition)
 							qual_pos_var_name = qual_var_name;
 					}
+
+					// Copy interpolation decorations if needed
+					if (is_flat)
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationFlat);
+					if (is_noperspective)
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationNoPerspective);
+					if (is_centroid)
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationCentroid);
+					if (is_sample)
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationSample);
 				}
 				mbr_idx++;
 			}
@@ -804,6 +831,10 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 		{
 			bool is_builtin = is_builtin_variable(*p_var);
 			BuiltIn builtin = BuiltIn(get_decoration(p_var->self, DecorationBuiltIn));
+			bool is_flat = has_decoration(p_var->self, DecorationFlat);
+			bool is_noperspective = has_decoration(p_var->self, DecorationNoPerspective);
+			bool is_centroid = has_decoration(p_var->self, DecorationCentroid);
+			bool is_sample = has_decoration(p_var->self, DecorationSample);
 
 			if (!is_builtin || has_active_builtin(builtin, storage))
 			{
@@ -863,6 +894,16 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 							set_member_decoration(ib_type_id, ib_mbr_idx, DecorationIndex, index);
 						}
 
+						// Copy interpolation decorations if needed
+						if (is_flat)
+							set_member_decoration(ib_type_id, ib_mbr_idx, DecorationFlat);
+						if (is_noperspective)
+							set_member_decoration(ib_type_id, ib_mbr_idx, DecorationNoPerspective);
+						if (is_centroid)
+							set_member_decoration(ib_type_id, ib_mbr_idx, DecorationCentroid);
+						if (is_sample)
+							set_member_decoration(ib_type_id, ib_mbr_idx, DecorationSample);
+
 						switch (storage)
 						{
 						case StorageClassInput:
@@ -904,6 +945,12 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 						mark_location_as_used_by_shader(locn, storage);
 					}
 
+					if (get_decoration_bitset(p_var->self).get(DecorationComponent))
+					{
+						uint32_t comp = get_decoration(p_var->self, DecorationComponent);
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationComponent, comp);
+					}
+
 					if (get_decoration_bitset(p_var->self).get(DecorationIndex))
 					{
 						uint32_t index = get_decoration(p_var->self, DecorationIndex);
@@ -917,6 +964,16 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 						if (builtin == BuiltInPosition)
 							qual_pos_var_name = qual_var_name;
 					}
+
+					// Copy interpolation decorations if needed
+					if (is_flat)
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationFlat);
+					if (is_noperspective)
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationNoPerspective);
+					if (is_centroid)
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationCentroid);
+					if (is_sample)
+						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationSample);
 				}
 			}
 		}
@@ -1112,6 +1169,10 @@ void CompilerMSL::add_typedef_line(const string &line)
 // Emits any needed custom function bodies.
 void CompilerMSL::emit_custom_functions()
 {
+	for (uint32_t i = SPVFuncImplArrayCopyMultidimMax; i >= 2; i--)
+		if (spv_function_implementations.count(static_cast<SPVFuncImpl>(SPVFuncImplArrayCopyMultidimBase + i)))
+			spv_function_implementations.insert(static_cast<SPVFuncImpl>(SPVFuncImplArrayCopyMultidimBase + i - 1));
+
 	for (auto &spv_func : spv_function_implementations)
 	{
 		switch (spv_func)
@@ -1181,20 +1242,69 @@ void CompilerMSL::emit_custom_functions()
 			statement("// Implementation of an array copy function to cover GLSL's ability to copy an array via "
 			          "assignment.");
 			statement("template<typename T, uint N>");
-			statement("void spvArrayCopy(thread T (&dst)[N], thread const T (&src)[N])");
+			statement("void spvArrayCopyFromStack1(thread T (&dst)[N], thread const T (&src)[N])");
 			begin_scope();
 			statement("for (uint i = 0; i < N; dst[i] = src[i], i++);");
 			end_scope();
 			statement("");
 
-			statement("// An overload for constant arrays.");
 			statement("template<typename T, uint N>");
-			statement("void spvArrayCopyConstant(thread T (&dst)[N], constant T (&src)[N])");
+			statement("void spvArrayCopyFromConstant1(thread T (&dst)[N], constant T (&src)[N])");
 			begin_scope();
 			statement("for (uint i = 0; i < N; dst[i] = src[i], i++);");
 			end_scope();
 			statement("");
 			break;
+
+		case SPVFuncImplArrayOfArrayCopy2Dim:
+		case SPVFuncImplArrayOfArrayCopy3Dim:
+		case SPVFuncImplArrayOfArrayCopy4Dim:
+		case SPVFuncImplArrayOfArrayCopy5Dim:
+		case SPVFuncImplArrayOfArrayCopy6Dim:
+		{
+			static const char *function_name_tags[] = {
+				"FromStack",
+				"FromConstant",
+			};
+
+			static const char *src_address_space[] = {
+				"thread const",
+				"constant",
+			};
+
+			for (uint32_t variant = 0; variant < 2; variant++)
+			{
+				uint32_t dimensions = spv_func - SPVFuncImplArrayCopyMultidimBase;
+				string tmp = "template<typename T";
+				for (uint32_t i = 0; i < dimensions; i++)
+				{
+					tmp += ", uint ";
+					tmp += 'A' + i;
+				}
+				tmp += ">";
+				statement(tmp);
+
+				string array_arg;
+				for (uint32_t i = 0; i < dimensions; i++)
+				{
+					array_arg += "[";
+					array_arg += 'A' + i;
+					array_arg += "]";
+				}
+
+				statement("void spvArrayCopy", function_name_tags[variant], dimensions, "(thread T (&dst)", array_arg,
+				          ", ", src_address_space[variant], " T (&src)", array_arg, ")");
+
+				begin_scope();
+				statement("for (uint i = 0; i < A; i++)");
+				begin_scope();
+				statement("spvArrayCopy", function_name_tags[variant], dimensions - 1, "(dst[i], src[i]);");
+				end_scope();
+				end_scope();
+				statement("");
+			}
+			break;
+		}
 
 		case SPVFuncImplTexelBufferCoords:
 		{
@@ -1523,7 +1633,10 @@ void CompilerMSL::emit_specialization_constants()
 			string sc_name = to_name(c.self);
 			string sc_tmp_name = sc_name + "_tmp";
 
-			if (has_decoration(c.self, DecorationSpecId))
+			// Function constants are only supported in MSL 1.2 and later.
+			// If we don't support it just declare the "default" directly.
+			// This "default" value can be overridden to the true specialization constant by the API user.
+			if (msl_options.supports_msl_version(1, 2) && has_decoration(c.self, DecorationSpecId))
 			{
 				uint32_t constant_id = get_decoration(c.self, DecorationSpecId);
 				// Only scalar, non-composite values can be function constants.
@@ -1833,7 +1946,7 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 		uint32_t coord_id = ops[1];
 		uint32_t texel_id = ops[2];
 		const uint32_t *opt = &ops[3];
-		uint32_t length = instruction.length - 4;
+		uint32_t length = instruction.length - 3;
 
 		// Bypass pointers because we need the real image struct
 		auto &type = expression_type(img_id);
@@ -2153,10 +2266,24 @@ bool CompilerMSL::maybe_emit_input_struct_assignment(uint32_t id_lhs, uint32_t i
 void CompilerMSL::emit_array_copy(const string &lhs, uint32_t rhs_id)
 {
 	// Assignment from an array initializer is fine.
+	auto &type = expression_type(rhs_id);
+	auto *var = maybe_get_backing_variable(rhs_id);
+
+	// Unfortunately, we cannot template on address space in MSL,
+	// so explicit address space redirection it is ...
+	bool is_constant = false;
 	if (ids[rhs_id].get_type() == TypeConstant)
-		statement("spvArrayCopyConstant(", lhs, ", ", to_expression(rhs_id), ");");
-	else
-		statement("spvArrayCopy(", lhs, ", ", to_expression(rhs_id), ");");
+	{
+		is_constant = true;
+	}
+	else if (var && var->remapped_variable && var->statically_assigned &&
+	         ids[var->static_expression].get_type() == TypeConstant)
+	{
+		is_constant = true;
+	}
+
+	const char *tag = is_constant ? "FromConstant" : "FromStack";
+	statement("spvArrayCopy", tag, type.array.size(), "(", lhs, ", ", to_expression(rhs_id), ");");
 }
 
 // Since MSL does not allow arrays to be copied via simple variable assignment,
@@ -3087,14 +3214,21 @@ string CompilerMSL::member_attribute_qualifier(const SPIRType &type, uint32_t in
 				return "";
 			}
 		}
-		uint32_t locn = get_ordered_member_location(type.self, index);
+		uint32_t comp;
+		uint32_t locn = get_ordered_member_location(type.self, index, &comp);
 		if (locn != k_unknown_location)
-			return string(" [[user(locn") + convert_to_string(locn) + ")]]";
+		{
+			if (comp != k_unknown_component)
+				return string(" [[user(locn") + convert_to_string(locn) + "_" + convert_to_string(comp) + ")]]";
+			else
+				return string(" [[user(locn") + convert_to_string(locn) + ")]]";
+		}
 	}
 
 	// Fragment function inputs
 	if (execution.model == ExecutionModelFragment && type.storage == StorageClassInput)
 	{
+		string quals = "";
 		if (is_builtin)
 		{
 			switch (builtin)
@@ -3105,15 +3239,62 @@ string CompilerMSL::member_attribute_qualifier(const SPIRType &type, uint32_t in
 			case BuiltInSampleId:
 			case BuiltInSampleMask:
 			case BuiltInLayer:
-				return string(" [[") + builtin_qualifier(builtin) + "]]";
+				quals = builtin_qualifier(builtin);
 
 			default:
-				return "";
+				break;
 			}
 		}
-		uint32_t locn = get_ordered_member_location(type.self, index);
-		if (locn != k_unknown_location)
-			return string(" [[user(locn") + convert_to_string(locn) + ")]]";
+		else
+		{
+			uint32_t comp;
+			uint32_t locn = get_ordered_member_location(type.self, index, &comp);
+			if (locn != k_unknown_location)
+			{
+				if (comp != k_unknown_component)
+					quals = string("user(locn") + convert_to_string(locn) + "_" + convert_to_string(comp) + ")";
+				else
+					quals = string("user(locn") + convert_to_string(locn) + ")";
+			}
+		}
+		// Don't bother decorating integers with the 'flat' attribute; it's
+		// the default (in fact, the only option). Also don't bother with the
+		// FragCoord builtin; it's always noperspective on Metal.
+		if (!type_is_integral(mbr_type) && (!is_builtin || builtin != BuiltInFragCoord))
+		{
+			if (has_member_decoration(type.self, index, DecorationFlat))
+			{
+				if (!quals.empty())
+					quals += ", ";
+				quals += "flat";
+			}
+			else if (has_member_decoration(type.self, index, DecorationCentroid))
+			{
+				if (!quals.empty())
+					quals += ", ";
+				if (has_member_decoration(type.self, index, DecorationNoPerspective))
+					quals += "centroid_no_perspective";
+				else
+					quals += "centroid_perspective";
+			}
+			else if (has_member_decoration(type.self, index, DecorationSample))
+			{
+				if (!quals.empty())
+					quals += ", ";
+				if (has_member_decoration(type.self, index, DecorationNoPerspective))
+					quals += "sample_no_perspective";
+				else
+					quals += "sample_perspective";
+			}
+			else if (has_member_decoration(type.self, index, DecorationNoPerspective))
+			{
+				if (!quals.empty())
+					quals += ", ";
+				quals += "center_no_perspective";
+			}
+		}
+		if (!quals.empty())
+			return " [[" + quals + "]]";
 	}
 
 	// Fragment function outputs
@@ -3170,50 +3351,24 @@ string CompilerMSL::member_attribute_qualifier(const SPIRType &type, uint32_t in
 // If the location of the member has been explicitly set, that location is used. If not, this
 // function assumes the members are ordered in their location order, and simply returns the
 // index as the location.
-uint32_t CompilerMSL::get_ordered_member_location(uint32_t type_id, uint32_t index)
+uint32_t CompilerMSL::get_ordered_member_location(uint32_t type_id, uint32_t index, uint32_t *comp)
 {
 	auto &m = meta.at(type_id);
 	if (index < m.members.size())
 	{
 		auto &dec = m.members[index];
+		if (comp)
+		{
+			if (dec.decoration_flags.get(DecorationComponent))
+				*comp = dec.component;
+			else
+				*comp = k_unknown_component;
+		}
 		if (dec.decoration_flags.get(DecorationLocation))
 			return dec.location;
 	}
 
 	return index;
-}
-
-string CompilerMSL::constant_expression(const SPIRConstant &c)
-{
-	if (!c.subconstants.empty())
-	{
-		// Handles Arrays and structures.
-		string res = "{";
-		for (auto &elem : c.subconstants)
-		{
-			res += constant_expression(get<SPIRConstant>(elem));
-			if (&elem != &c.subconstants.back())
-				res += ", ";
-		}
-		res += "}";
-		return res;
-	}
-	else if (c.columns() == 1)
-	{
-		return constant_expression_vector(c, 0);
-	}
-	else
-	{
-		string res = type_to_glsl(get<SPIRType>(c.constant_type)) + "(";
-		for (uint32_t col = 0; col < c.columns(); col++)
-		{
-			res += constant_expression_vector(c, col);
-			if (col + 1 < c.columns())
-				res += ", ";
-		}
-		res += ")";
-		return res;
-	}
 }
 
 // Returns the type declaration for a function, including the
@@ -4293,7 +4448,13 @@ CompilerMSL::SPVFuncImpl CompilerMSL::OpCodePreprocessor::get_spv_func_impl(Op o
 	case OpFunctionCall:
 	{
 		auto &return_type = compiler.get<SPIRType>(args[0]);
-		if (!return_type.array.empty())
+		if (return_type.array.size() > 1)
+		{
+			if (return_type.array.size() > SPVFuncImplArrayCopyMultidimMax)
+				SPIRV_CROSS_THROW("Cannot support this many dimensions for arrays of arrays.");
+			return static_cast<SPVFuncImpl>(SPVFuncImplArrayCopyMultidimBase + return_type.array.size());
+		}
+		else if (return_type.array.size() > 0)
 			return SPVFuncImplArrayCopy;
 
 		break;
@@ -4327,18 +4488,36 @@ CompilerMSL::SPVFuncImpl CompilerMSL::OpCodePreprocessor::get_spv_func_impl(Op o
 		bool static_expression_lhs =
 		    var && var->storage == StorageClassFunction && var->statically_assigned && var->remapped_variable;
 		if (type && compiler.is_array(*type) && !static_expression_lhs)
-			return SPVFuncImplArrayCopy;
+		{
+			if (type->array.size() > 1)
+			{
+				if (type->array.size() > SPVFuncImplArrayCopyMultidimMax)
+					SPIRV_CROSS_THROW("Cannot support this many dimensions for arrays of arrays.");
+				return static_cast<SPVFuncImpl>(SPVFuncImplArrayCopyMultidimBase + type->array.size());
+			}
+			else
+				return SPVFuncImplArrayCopy;
+		}
 
 		break;
 	}
 
 	case OpImageFetch:
+	case OpImageWrite:
 	{
 		// Retrieve the image type, and if it's a Buffer, emit a texel coordinate function
-		uint32_t tid = result_types[args[2]];
+		uint32_t tid = result_types[args[opcode == OpImageWrite ? 0 : 2]];
 		if (tid && compiler.get<SPIRType>(tid).image.dim == DimBuffer)
 			return SPVFuncImplTexelBufferCoords;
 
+		break;
+	}
+
+	case OpCompositeConstruct:
+	{
+		auto &type = compiler.get<SPIRType>(args[0]);
+		if (type.array.size() > 1) // We need to use copies to build the composite.
+			return static_cast<SPVFuncImpl>(SPVFuncImplArrayCopyMultidimBase + type.array.size() - 1);
 		break;
 	}
 
@@ -4457,11 +4636,38 @@ void CompilerMSL::remap_constexpr_sampler(uint32_t id, const MSLConstexprSampler
 	constexpr_samplers[id] = sampler;
 }
 
-// MSL always declares builtins with their SPIR-V type.
-void CompilerMSL::bitcast_from_builtin_load(uint32_t, std::string &, const SPIRType &)
+void CompilerMSL::bitcast_from_builtin_load(uint32_t source_id, std::string &expr, const SPIRType &expr_type)
 {
+	auto *var = maybe_get_backing_variable(source_id);
+	if (var)
+		source_id = var->self;
+
+	// Only interested in standalone builtin variables.
+	if (!has_decoration(source_id, DecorationBuiltIn))
+		return;
+
+	auto builtin = static_cast<BuiltIn>(get_decoration(source_id, DecorationBuiltIn));
+	auto expected_type = expr_type.basetype;
+	switch (builtin)
+	{
+	case BuiltInGlobalInvocationId:
+	case BuiltInLocalInvocationId:
+	case BuiltInWorkgroupId:
+	case BuiltInLocalInvocationIndex:
+	case BuiltInWorkgroupSize:
+	case BuiltInNumWorkgroups:
+		expected_type = SPIRType::UInt;
+		break;
+
+	default:
+		break;
+	}
+
+	if (expected_type != expr_type.basetype)
+		expr = bitcast_expression(expr_type, expected_type, expr);
 }
 
+// MSL always declares output builtins with the SPIR-V type.
 void CompilerMSL::bitcast_to_builtin_store(uint32_t, std::string &, const SPIRType &)
 {
 }
