@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Graphics.h"
-#include "../../Util/HashMap.h"
+#include "../../Base/HashMap.h"
 #include "VulkanSwapchain.h"
 
 namespace Alimer
@@ -53,7 +53,7 @@ namespace Alimer
         RenderPass* GetBackbufferRenderPass() const;
 
         RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) override;
-        GpuBuffer* CreateBufferImpl(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData) override;
+        GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
         VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) override;
         ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) override;
         ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) override;

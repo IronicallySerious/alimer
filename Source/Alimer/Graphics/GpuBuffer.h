@@ -26,12 +26,27 @@
 
 namespace Alimer
 {
+    struct BufferDescriptor
+    {
+        /// Buffer resource usage.
+        ResourceUsage resourceUsage = ResourceUsage::Default;
+
+        /// Buffer usage.
+        BufferUsageFlags usage = BufferUsage::None;
+
+        /// Size in bytes of buffer.
+        uint64_t size = 0;
+
+        /// Size of each individual element in the buffer, in bytes. 
+        uint32_t stride = 0;
+    };
+
 	/// Defines a GPU Buffer class.
 	class GpuBuffer : public GpuResource, public RefCounted
 	{
 	protected:
 		/// Constructor.
-		GpuBuffer(Graphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor);
+		GpuBuffer(Graphics* graphics, const BufferDescriptor* descriptor);
 
 	public:
 		/// Destructor.
@@ -44,7 +59,7 @@ namespace Alimer
         bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
 
         /// Get the buffer memory flags.
-        MemoryFlags GetMemoryFlags() const { return _memoryFlags; }
+        ResourceUsage GetResourceUsage() const { return _resourceUsage; }
 
         /// Get the buffer usage flags.
         BufferUsageFlags GetUsage() const { return _usage; }
@@ -55,10 +70,10 @@ namespace Alimer
         /// Get single element size in bytes.
 		uint32_t GetStride() const { return _stride; }
 
-	private:
+	protected:
         virtual bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) = 0;
 
-        MemoryFlags _memoryFlags;
+        ResourceUsage _resourceUsage;
         BufferUsageFlags _usage;
 		uint64_t _size;
         uint32_t _stride;

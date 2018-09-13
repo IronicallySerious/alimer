@@ -22,11 +22,10 @@
 
 #pragma once
 
+#include "../Base/String.h"
 #include "../Core/Flags.h"
-#include "../Util/Util.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
-#include <string>
 
 namespace Alimer
 {
@@ -71,17 +70,13 @@ namespace Alimer
         Count32 = 32,
     };
 
-    enum class MemoryFlags : uint32_t
+    enum class ResourceUsage : unsigned
     {
-        GpuOnly = 0,
-        CpuOnly = 1 << 0,
-        CpuToGpu = 1 << 1,
-        GpuToCpu = 1 << 2,
-        DedicatedAllocation = 1 << 3,
-        NoAllocation = 1 << 4,
+        Default,
+        Immutable,
+        Dynamic,
+        Staging
     };
-
-    ALIMER_BITMASK(MemoryFlags);
 
     /// Primitive topology.
     enum class PrimitiveTopology : uint32_t
@@ -97,13 +92,11 @@ namespace Alimer
     enum class BufferUsage : uint32_t
     {
         None = 0,
-        TransferSrc = 1 << 0,
-        TransferDest = 1 << 1,
-        Vertex = 1 << 2,
-        Index = 1 << 3,
-        Uniform = 1 << 4,
-        Storage = 1 << 5,
-        Indirect = 1 << 6,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        Uniform = 1 << 2,
+        Storage = 1 << 3,
+        Indirect = 1 << 4,
     };
 
     using BufferUsageFlags = Flags<BufferUsage, uint32_t>;
@@ -214,21 +207,9 @@ namespace Alimer
         UInt32,
     };
 
-    struct BufferDescriptor
-    {
-        /// Buffer usage.
-        BufferUsageFlags usage = BufferUsage::None;
-
-        /// Size in bytes of buffer.
-        uint64_t size = 0;
-
-        /// Size of each individual element in the buffer, in bytes. 
-        uint32_t stride = 0;
-    };
-
     struct PipelineResource
     {
-        std::string name;
+        String name;
         ShaderStageFlags stages;
         ResourceParamType resourceType;
         ParamDataType dataType;
@@ -246,7 +227,7 @@ namespace Alimer
     struct ShaderStageDescriptor
     {
         ShaderModule* module = nullptr;
-        std::string entryPoint = "main";
+        String entryPoint = "main";
         // TODO: Add specialization info.
         //const VkSpecializationInfo* pSpecializationInfo;
     };

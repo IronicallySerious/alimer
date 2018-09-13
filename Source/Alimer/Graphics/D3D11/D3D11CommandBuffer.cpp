@@ -189,7 +189,7 @@ namespace Alimer
         if (_vbo.buffers[binding] != buffer
             || _vbo.offsets[binding] != offset)
         {
-            _vbo.d3dBuffers[binding] = static_cast<D3D11GpuBuffer*>(buffer)->GetHandle();
+            _vbo.d3dBuffers[binding] = static_cast<D3D11Buffer*>(buffer)->GetHandle();
 
             _dirtyVbos |= 1u << binding;
         }
@@ -217,7 +217,7 @@ namespace Alimer
 
     void D3D11CommandBuffer::BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<D3D11GpuBuffer*>(buffer)->GetHandle();
+        ID3D11Buffer* d3dBuffer = static_cast<D3D11Buffer*>(buffer)->GetHandle();
         DXGI_FORMAT dxgiFormat = DXGI_FORMAT_R16_UINT;
         if (indexType == IndexType::UInt32)
         {
@@ -483,7 +483,7 @@ namespace Alimer
             if (b.buffer.buffer == nullptr)
                 continue;
 
-            buffers[binding] = static_cast<D3D11GpuBuffer*>(b.buffer.buffer)->GetHandle();
+            buffers[binding] = static_cast<D3D11Buffer*>(b.buffer.buffer)->GetHandle();
             offsets[binding] = b.buffer.offset;
             ranges[binding] = b.buffer.range;
         }

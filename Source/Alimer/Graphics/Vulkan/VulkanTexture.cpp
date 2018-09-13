@@ -23,8 +23,8 @@
 #include "VulkanTexture.h"
 #include "VulkanGraphics.h"
 #include "VulkanConvert.h"
+#include "../../Base/HashMap.h"
 #include "../../Core/Log.h"
-#include "../../Util/HashMap.h"
 
 namespace Alimer
 {

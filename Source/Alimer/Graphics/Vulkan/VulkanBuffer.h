@@ -34,7 +34,7 @@ namespace Alimer
 	class VulkanBuffer final : public GpuBuffer
 	{
 	public:
-        VulkanBuffer(VulkanGraphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData);
+        VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData);
 		~VulkanBuffer() override;
 
         bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;

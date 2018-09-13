@@ -145,7 +145,7 @@ namespace Alimer
 
             if (!found)
             {
-                ALIMER_LOGDEBUG("[Vulkan] - Cannot find layer: {}", layerNames[i]);
+                ALIMER_LOGDEBUG("[Vulkan] - Cannot find layer: %s", layerNames[i]);
                 return false;
             }
         }
@@ -165,27 +165,27 @@ namespace Alimer
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
         {
-            ALIMER_LOGERROR("[Vulkan] - [{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGERROR("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
         {
-            ALIMER_LOGWARN("[Vulkan] - [{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGWARN("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
         {
-            ALIMER_LOGERROR("[Vulkan] - PERFORMANCE WARNING: [{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGERROR("[Vulkan] - PERFORMANCE WARNING: [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
         {
-            ALIMER_LOGINFO("[Vulkan] - [{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGINFO("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
         {
-            ALIMER_LOGDEBUG("[{}] Code {} : {}", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGDEBUG("[%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else
         {
-            ALIMER_LOGINFO("{}: {}", pLayerPrefix, pMessage);
+            ALIMER_LOGINFO("%s: %s", pLayerPrefix, pMessage);
         }
 
         return VK_FALSE;
@@ -240,7 +240,7 @@ namespace Alimer
             if (vkEnumerateInstanceVersion(&checkApiVersion) == VK_SUCCESS)
             {
                 // Translate the version into major/minor for easier comparison
-                ALIMER_LOGDEBUG("Loader/Runtime support detected for Vulkan {}.{}.{}",
+                ALIMER_LOGDEBUG("Loader/Runtime support detected for Vulkan %u.%u.%u",
                     VK_VERSION_MAJOR(checkApiVersion),
                     VK_VERSION_MINOR(checkApiVersion),
                     VK_VERSION_PATCH(checkApiVersion));
@@ -483,16 +483,16 @@ namespace Alimer
                 switch (queryDeviceExtension.type)
                 {
                 case VkExtensionType::Optional:
-                    ALIMER_LOGDEBUG("Optional Vulkan extension {} not supported", queryDeviceExtension.name);
+                    ALIMER_LOGDEBUG("Optional Vulkan extension %s not supported", queryDeviceExtension.name);
                     break;
 
                 case VkExtensionType::Desired:
-                    ALIMER_LOGWARN("Vulkan extension {} not supported", queryDeviceExtension.name);
+                    ALIMER_LOGWARN("Vulkan extension %s not supported", queryDeviceExtension.name);
                     break;
 
                 case VkExtensionType::Required:
                     requiredExtensionsEnabled = false;
-                    ALIMER_LOGERROR("Required Vulkan extension {} not supported", queryDeviceExtension.name);
+                    ALIMER_LOGERROR("Required Vulkan extension %s not supported", queryDeviceExtension.name);
                     break;
                 default:
                     break;
@@ -733,9 +733,9 @@ namespace Alimer
         return new VulkanRenderPass(this, descriptor);
     }
 
-    GpuBuffer* VulkanGraphics::CreateBufferImpl(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
+    GpuBuffer* VulkanGraphics::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
-        return new VulkanBuffer(this, memoryFlags, descriptor, initialData);
+        return new VulkanBuffer(this, descriptor, initialData);
     }
 
     VertexInputFormat* VulkanGraphics::CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor)

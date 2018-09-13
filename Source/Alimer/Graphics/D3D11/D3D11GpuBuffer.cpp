@@ -29,28 +29,21 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11GpuBuffer::D3D11GpuBuffer(D3D11Graphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
-        : GpuBuffer(graphics, memoryFlags, descriptor)
+    D3D11Buffer::D3D11Buffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
+        : GpuBuffer(graphics, descriptor)
     {
-        if (descriptor->usage & BufferUsage::TransferDest
-            || descriptor->usage & BufferUsage::TransferSrc)
-        {
-            _isDynamic = true;
-        }
-
         D3D11_BUFFER_DESC bufferDesc = {};
         bufferDesc.ByteWidth = static_cast<UINT>(descriptor->size);
         bufferDesc.StructureByteStride = descriptor->stride;
-        bufferDesc.Usage = _isDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+        bufferDesc.Usage = d3d11::Convert(descriptor->resourceUsage);
         bufferDesc.CPUAccessFlags = 0;
-        if (descriptor->usage & BufferUsage::TransferDest)
-        {
-            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        }
 
-        if (descriptor->usage & BufferUsage::TransferSrc)
+        if (descriptor->resourceUsage == ResourceUsage::Dynamic)
+            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        if (descriptor->resourceUsage == ResourceUsage::Staging)
         {
-            bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
+            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
         }
 
         if (descriptor->usage & BufferUsage::Uniform)
@@ -91,13 +84,18 @@ namespace Alimer
         );
     }
 
-    D3D11GpuBuffer::~D3D11GpuBuffer()
+    D3D11Buffer::~D3D11Buffer()
+    {
+        Destroy();
+    }
+
+    void D3D11Buffer::Destroy()
     {
         if (_handle)
         {
 #if defined(_DEBUG)
             ULONG refCount = GetRefCount(_handle);
-            ALIMER_ASSERT_MSG(refCount == 1, "D3D11GpuBuffer leakage");
+            ALIMER_ASSERT_MSG(refCount == 1, "D3D11Buffer leakage");
 #endif
 
             _handle->Release();
@@ -105,11 +103,11 @@ namespace Alimer
         }
     }
 
-    bool D3D11GpuBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
+    bool D3D11Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
     {
         ID3D11DeviceContext* d3dDeviceContext = StaticCast<D3D11Graphics>(_graphics)->GetD3DImmediateContext();
 
-        if (_isDynamic)
+        if (_resourceUsage == ResourceUsage::Dynamic)
         {
             D3D11_MAPPED_SUBRESOURCE mappedResource;
             HRESULT hr = d3dDeviceContext->Map(

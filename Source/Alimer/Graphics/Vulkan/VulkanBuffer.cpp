@@ -27,30 +27,12 @@
 
 namespace Alimer
 {
-    static std::unordered_map<MemoryFlags, VmaMemoryUsage> memoryFlagsToVmaMemoryUsage = {
-        { MemoryFlags::GpuOnly, VMA_MEMORY_USAGE_GPU_ONLY },
-        { MemoryFlags::CpuOnly, VMA_MEMORY_USAGE_CPU_ONLY },
-        { MemoryFlags::CpuToGpu, VMA_MEMORY_USAGE_CPU_TO_GPU },
-        { MemoryFlags::GpuToCpu, VMA_MEMORY_USAGE_GPU_TO_CPU },
-    };
-
-    static std::unordered_map<MemoryFlags, VmaAllocationCreateFlagBits> memoryFlagsToVmaMemoryCreateFlag = {
-        { MemoryFlags(0), static_cast<VmaAllocationCreateFlagBits>(0) },
-        { MemoryFlags::DedicatedAllocation , VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT }
-    };
-
-    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
-        : GpuBuffer(graphics, memoryFlags, descriptor)
+    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
+        : GpuBuffer(graphics, descriptor)
         , _logicalDevice(graphics->GetLogicalDevice())
         , _allocator(graphics->GetAllocator())
     {
         VkBufferUsageFlags vkUsage = 0;
-
-        if (descriptor->usage & BufferUsage::TransferSrc)
-            vkUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-        if (descriptor->usage & BufferUsage::TransferDest)
-            vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
         if (descriptor->usage & BufferUsage::Vertex)
             vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -80,25 +62,46 @@ namespace Alimer
 
         // Allocate memory from the Vulkan Memory Allocator.
         VkResult result = VK_SUCCESS;
-        if (static_cast<uint32_t>(memoryFlags & MemoryFlags::NoAllocation) == 0)
+        const bool noAllocation = false;
+        bool staticBuffer = false;
+        if (noAllocation)
         {
-            // Determine appropriate memory usage flags.
-            VmaAllocationCreateInfo allocCreateInfo = {};
-            MemoryFlags flagsNoDedicated = MemoryFlags(static_cast<uint32_t>(MemoryFlags::DedicatedAllocation) - 1U);
-            allocCreateInfo.usage = memoryFlagsToVmaMemoryUsage.at(memoryFlags & flagsNoDedicated);
-            allocCreateInfo.flags = memoryFlagsToVmaMemoryCreateFlag.at(memoryFlags & ~flagsNoDedicated);
-
-            result = vmaCreateBuffer(_allocator, &createInfo, &allocCreateInfo, &_handle, &_allocation, &_allocationInfo);
+            result = vkCreateBuffer(_logicalDevice, &createInfo, nullptr, &_handle);
         }
         else
         {
-            result = vkCreateBuffer(_logicalDevice, &createInfo, nullptr, &_handle);
+            // Determine appropriate memory usage flags.
+            VmaAllocationCreateInfo allocCreateInfo = {};
+            switch (descriptor->resourceUsage)
+            {
+            case ResourceUsage::Default:
+            case ResourceUsage::Immutable:
+                vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+                staticBuffer = true;
+                break;
+
+            case ResourceUsage::Dynamic:
+                allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+                allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+                break;
+
+            case ResourceUsage::Staging:
+                vkUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+                break;
+
+            default:
+                break;
+            }
+
+            result = vmaCreateBuffer(_allocator, &createInfo, &allocCreateInfo, &_handle, &_allocation, &_allocationInfo);
         }
 
         // Handle
         if (initialData != nullptr)
         {
-            if (any(memoryFlags & MemoryFlags::GpuOnly))
+            if (staticBuffer)
             {
                 SetSubData(0, _allocationInfo.size, initialData);
             }

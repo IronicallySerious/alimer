@@ -26,9 +26,9 @@
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor)
+    GpuBuffer::GpuBuffer(Graphics* graphics, const BufferDescriptor* descriptor)
         : GpuResource(graphics, GpuResourceType::Buffer)
-        , _memoryFlags(memoryFlags)
+        , _resourceUsage(descriptor->resourceUsage)
         , _usage(descriptor->usage)
         , _size(descriptor->size)
         , _stride(descriptor->stride)
@@ -54,9 +54,9 @@ namespace Alimer
 
     bool GpuBuffer::SetSubData(const void* pData)
     {
-        if (!(_usage & BufferUsage::TransferDest))
+        if (_resourceUsage == ResourceUsage::Immutable)
         {
-            ALIMER_LOGERROR("Buffer needs 'TransferDest' usage");
+            ALIMER_LOGERROR("Cannot change immutable buffer");
             return false;
         }
 
@@ -68,12 +68,6 @@ namespace Alimer
         if (offset + size > GetSize())
         {
             ALIMER_LOGERROR("Buffer subdata out of range");
-            return false;
-        }
-
-        if (!(_usage & BufferUsage::TransferDest))
-        {
-            ALIMER_LOGERROR("Buffer needs 'TransferDest' usage");
             return false;
         }
 

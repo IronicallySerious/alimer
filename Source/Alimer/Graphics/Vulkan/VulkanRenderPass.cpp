@@ -25,7 +25,7 @@
 #include "VulkanGraphics.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
-#include "../../Util/HashMap.h"
+#include "../../Base/HashMap.h"
 
 namespace Alimer
 {

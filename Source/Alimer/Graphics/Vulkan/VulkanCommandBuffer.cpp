@@ -27,8 +27,8 @@
 #include "VulkanRenderPass.h"
 #include "VulkanGraphics.h"
 #include "VulkanConvert.h"
+#include "../../Base/HashMap.h"
 #include "../../Core/Log.h"
-#include "../../Util/HashMap.h"
 
 static_assert(sizeof(VkViewport) == sizeof(Alimer::Viewport), "VkViewport mismatch");
 static_assert(offsetof(Alimer::Viewport, x) == offsetof(VkViewport, x), "VkViewport x offset mismatch");

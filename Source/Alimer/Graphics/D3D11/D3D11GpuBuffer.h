@@ -30,21 +30,22 @@ namespace Alimer
 	class D3D11Graphics;
 
 	/// D3D11 GpuBuffer implementation.
-	class D3D11GpuBuffer final : public GpuBuffer
+	class D3D11Buffer final : public GpuBuffer
 	{
 	public:
 		/// Constructor.
-		D3D11GpuBuffer(D3D11Graphics* graphics, MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData);
+        D3D11Buffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData);
 
 		/// Destructor.
-		~D3D11GpuBuffer() override;
+		~D3D11Buffer() override;
+
+        void Destroy() override;
 
         bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
 
         ID3D11Buffer* GetHandle() const { return _handle; }
 
 	private:
-        bool _isDynamic;
         ID3D11Buffer* _handle;
 	};
 }

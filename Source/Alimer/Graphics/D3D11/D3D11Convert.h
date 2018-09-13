@@ -31,6 +31,17 @@ namespace Alimer
 {
     namespace d3d11
     {
-        
+        static inline D3D11_USAGE Convert(ResourceUsage usage)
+        {
+            switch (usage)
+            {
+            case ResourceUsage::Default:    return D3D11_USAGE_DEFAULT;
+            case ResourceUsage::Immutable:  return D3D11_USAGE_IMMUTABLE;
+            case ResourceUsage::Dynamic:    return D3D11_USAGE_DYNAMIC;
+            case ResourceUsage::Staging:    return D3D11_USAGE_STAGING;
+            default:
+                return D3D11_USAGE_DEFAULT;
+            }
+        }
     }
 }

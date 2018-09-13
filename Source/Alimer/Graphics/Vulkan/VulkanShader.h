@@ -24,7 +24,7 @@
 
 #include "../Shader.h"
 #include "VulkanPrerequisites.h"
-#include "../../Util/HashMap.h"
+#include "../../Base/HashMap.h"
 #include <vector>
 
 namespace Alimer

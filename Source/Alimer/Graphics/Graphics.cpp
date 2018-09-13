@@ -244,7 +244,7 @@ namespace Alimer
         return CreateRenderPassImpl(descriptor);
     }
 
-    GpuBuffer* Graphics::CreateBuffer(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
+    GpuBuffer* Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
     {
         ALIMER_ASSERT(descriptor);
 
@@ -258,12 +258,13 @@ namespace Alimer
             ALIMER_LOGCRITICAL("Cannot create empty buffer");
         }
 
-        if (initialData && !(descriptor->usage & BufferUsage::TransferDest))
+        if (descriptor->resourceUsage == ResourceUsage::Immutable
+            && initialData == nullptr)
         {
-            ALIMER_LOGCRITICAL("Buffer needs the transfer dest usage when creating with initial data.");
+            ALIMER_LOGCRITICAL("Immutable Buffer needs valid initial data.");
         }
 
-        return CreateBufferImpl(memoryFlags, descriptor, initialData);
+        return CreateBufferImpl(descriptor, initialData);
     }
 
     VertexInputFormat* Graphics::CreateVertexInputFormat(const VertexInputFormatDescriptor* descriptor)
@@ -302,13 +303,13 @@ namespace Alimer
             // Lookup for SPIR-V compiled shader.
             if (!vertexShaderStream)
             {
-                ALIMER_LOGERROR("GLSL shader does not exists '{}'", vertexShaderFile.c_str());
+                ALIMER_LOGERROR("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
                 return nullptr;
             }
 
             if (!fragmentShaderStream)
             {
-                ALIMER_LOGERROR("GLSL shader does not exists '{}'", fragmentShaderFile.c_str());
+                ALIMER_LOGERROR("GLSL shader does not exists '%s'", fragmentShaderFile.c_str());
                 return nullptr;
             }
 
@@ -321,7 +322,7 @@ namespace Alimer
             String errorLog;
             if (!ShaderCompiler::Compile(file, entryPoint, spirv, errorLog))
             {
-                ALIMER_LOGCRITICAL("Shader compilation failed: \n {}", errorLog.CString());
+                ALIMER_LOGCRITICAL("Shader compilation failed: %s", errorLog.CString());
             }
         }
 
@@ -340,7 +341,7 @@ namespace Alimer
         {
             if (!descriptor->stages[i].module)
             {
-                ALIMER_LOGCRITICAL("Cannot create shader program with invalid shader module at index {}", i);
+                ALIMER_LOGCRITICAL("Cannot create shader program with invalid shader module at index %s", i);
             }
 
             if (descriptor->stages[i].module->GetStage() == ShaderStage::Compute

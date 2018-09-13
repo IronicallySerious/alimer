@@ -321,7 +321,7 @@ namespace Alimer
 
         if (FAILED(hr))
         {
-            ALIMER_LOGCRITICAL("D3D11 - Failed to create texture, error: {}", std::to_string(hr));
+            ALIMER_LOGCRITICAL("D3D11 - Failed to create texture, error: %08X", static_cast<uint32_t>(hr));
         }
 
         // Resolve multisample texture.
@@ -346,7 +346,7 @@ namespace Alimer
             if (FAILED(hr))
             {
                 texture->Release();
-                ALIMER_LOGCRITICAL("D3D11 - Failed to create texture, error: {}", std::to_string(hr));
+                ALIMER_LOGCRITICAL("D3D11 - Failed to create texture, error: %08X", static_cast<uint32_t>(hr));
             }
 
             _d3dImmediateContext->ResolveSubresource(resolveTexture, 0, backBufferTexture->GetResource(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -363,7 +363,7 @@ namespace Alimer
         if (FAILED(hr))
         {
             texture->Release();
-            ALIMER_LOGCRITICAL("D3D11 - Failed to map resource, error: {}", std::to_string(hr));
+            ALIMER_LOGCRITICAL("D3D11 - Failed to map resource, error: %08X", static_cast<uint32_t>(hr));
         }
 
         if (!stbi_write_png(fileName.c_str(), textureDesc.Width, textureDesc.Height, 4, mappedSubresource.pData, static_cast<int>(mappedSubresource.RowPitch)))
@@ -474,9 +474,9 @@ namespace Alimer
         return new D3D11RenderPass(this, descriptor);
     }
 
-    GpuBuffer* D3D11Graphics::CreateBufferImpl(MemoryFlags memoryFlags, const BufferDescriptor* descriptor, const void* initialData)
+    GpuBuffer* D3D11Graphics::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
-        return new D3D11GpuBuffer(this, memoryFlags, descriptor, initialData);
+        return new D3D11Buffer(this, descriptor, initialData);
     }
 
     VertexInputFormat* D3D11Graphics::CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor)

@@ -100,10 +100,10 @@ namespace Alimer
             _vertexInputFormat = graphics->CreateVertexInputFormat(&inputFormatDescriptor);
 
             BufferDescriptor vertexBufferDesc = {};
-            vertexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Vertex;
+            vertexBufferDesc.usage = BufferUsage::Vertex;
             vertexBufferDesc.size = sizeof(triangleVertices);
             vertexBufferDesc.stride = sizeof(VertexColor);
-            _vertexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &vertexBufferDesc, triangleVertices);
+            _vertexBuffer = graphics->CreateBuffer(&vertexBufferDesc, triangleVertices);
 
             // Create shader program.
             auto vertexShader = graphics->CreateShaderModule("assets://shaders/color.vert");
@@ -114,7 +114,7 @@ namespace Alimer
             _camera.projectionMatrix = Matrix4();
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
-            uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
+            uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
             _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
         }
@@ -151,10 +151,10 @@ namespace Alimer
             };
 
             BufferDescriptor vertexBufferDesc = {};
-            vertexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Vertex;
+            vertexBufferDesc.usage = BufferUsage::Vertex;
             vertexBufferDesc.size = sizeof(triangleVertices);
             vertexBufferDesc.stride = sizeof(VertexColor);
-            _vertexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &vertexBufferDesc, triangleVertices);
+            _vertexBuffer = graphics->CreateBuffer(&vertexBufferDesc, triangleVertices);
 
             // Create index buffer.
             const uint16_t indices[] = {
@@ -162,10 +162,10 @@ namespace Alimer
             };
 
             BufferDescriptor indexBufferDesc = {};
-            indexBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Index;
+            indexBufferDesc.usage = BufferUsage::Index;
             indexBufferDesc.size = sizeof(indices);
             indexBufferDesc.stride = sizeof(uint16_t);
-            _indexBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &indexBufferDesc, indices);
+            _indexBuffer = graphics->CreateBuffer(&indexBufferDesc, indices);
 
             // Create shader program.
             auto vertexShader = graphics->CreateShaderModule("assets://shaders/color.vert");
@@ -173,9 +173,10 @@ namespace Alimer
             _program = graphics->CreateShaderProgram(vertexShader, fragmentShader);
 
             BufferDescriptor uboBufferDesc = {};
-            uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
+            uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
+            uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &uboBufferDesc, &_camera);
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
         }
 
         void Render(CommandBuffer* context)
@@ -208,15 +209,16 @@ namespace Alimer
             _camera.projectionMatrix = Matrix4::Perspective(M_PIDIV4, aspectRatio, 0.1f, 100, false);
 
             BufferDescriptor uboBufferDesc = {};
-            uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
+            uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
+            uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.stride = sizeof(PerCameraCBuffer);
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &uboBufferDesc, &_camera);
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
 
             // Per draw ubo.
             uboBufferDesc.stride = sizeof(PerVertexData);
             uboBufferDesc.size = sizeof(PerVertexData);
-            _perDrawUboBuffer = graphics->CreateBuffer(MemoryFlags::GpuOnly, &uboBufferDesc, &_perDrawData);
+            _perDrawUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_perDrawData);
 
             // Shader program
             auto vertexShader = graphics->CreateShaderModule("assets://shaders/color.vert");
