@@ -29,6 +29,9 @@
 #endif
 
 #if ALIMER_PLATFORM_WINDOWS
+
+#include <windows.h>
+
 // ntdll.dll function pointer typedefs
 typedef LONG NTSTATUS, *PNTSTATUS;
 typedef NTSTATUS(WINAPI* PFN_RtlGetVersion)(PRTL_OSVERSIONINFOW);

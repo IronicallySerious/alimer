@@ -57,14 +57,14 @@ namespace Alimer
     }
 #endif
 
-    std::string GetTimeStamp()
+    String GetTimeStamp()
     {
         char dateTime[20];
         time_t sysTime;
         time(&sysTime);
         tm* timeInfo = localtime(&sysTime);
         strftime(dateTime, sizeof(dateTime), "%Y-%m-%d %H:%M:%S", timeInfo);
-        return dateTime;
+        return String(dateTime);
     }
 
     static Alimer::Logger* __logInstance = nullptr;
@@ -94,7 +94,7 @@ namespace Alimer
         _level = newLevel;
     }
 
-    void Logger::Log(LogLevel level, const std::string& message)
+    void Logger::Log(LogLevel level, const String& message)
     {
         if (level == LogLevel::Off || _level > level)
             return;
@@ -103,7 +103,7 @@ namespace Alimer
         OnLog(level, message);
     }
 
-    void Logger::Trace(const std::string& message)
+    void Logger::Trace(const String& message)
     {
         if (_level > LogLevel::Trace)
             return;
@@ -111,7 +111,7 @@ namespace Alimer
         OnLog(LogLevel::Trace, message);
     }
 
-    void Logger::Debug(const std::string& message)
+    void Logger::Debug(const String& message)
     {
         if (_level > LogLevel::Debug)
             return;
@@ -119,15 +119,15 @@ namespace Alimer
         OnLog(LogLevel::Debug, message);
     }
 
-    void Logger::Info(const std::string& message)
+    void Logger::Info(const String& message)
     {
         if (_level > LogLevel::Info)
             return;
 
-        OnLog(LogLevel::Info, message.c_str());
+        OnLog(LogLevel::Info, message);
     }
 
-    void Logger::Warn(const std::string& message)
+    void Logger::Warn(const String& message)
     {
         if (_level > LogLevel::Warn)
             return;
@@ -135,7 +135,7 @@ namespace Alimer
         OnLog(LogLevel::Warn, message);
     }
 
-    void Logger::Error(const std::string& message)
+    void Logger::Error(const String& message)
     {
         if (_level > LogLevel::Error)
             return;
@@ -165,12 +165,12 @@ namespace Alimer
         }
     }
 
-    void Logger::OnLog(LogLevel level, const std::string& message)
+    void Logger::OnLog(LogLevel level, const String& message)
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        size_t length = strlen(LogLevelPrefix[static_cast<unsigned>(level)]) + 2 + message.length() + 1 + 1 + 1;
+        size_t length = strlen(LogLevelPrefix[static_cast<unsigned>(level)]) + 2 + message.Length() + 1 + 1 + 1;
         char* output = new char[length];
-        snprintf(output, length, "%s: %s\r\n", LogLevelPrefix[static_cast<unsigned>(level)], message.c_str());
+        snprintf(output, length, "%s: %s\r\n", LogLevelPrefix[static_cast<unsigned>(level)], message.CString());
 
         std::vector<wchar_t> szBuffer(length);
         if (MultiByteToWideChar(CP_UTF8, 0, output, -1, szBuffer.data(), static_cast<int>(szBuffer.size())) == 0)
@@ -199,12 +199,12 @@ namespace Alimer
         {
             DWORD bytesWritten;
 
-            std::string timeStamp = GetTimeStamp();
+            String timeStamp = GetTimeStamp();
             timeStamp += " [";
 
             WriteConsoleA(handle,
-                timeStamp.c_str(),
-                static_cast<DWORD>(timeStamp.length()),
+                timeStamp.CString(),
+                static_cast<DWORD>(timeStamp.Length()),
                 &bytesWritten,
                 nullptr);
 
@@ -254,13 +254,13 @@ namespace Alimer
                 nullptr);
             ::SetConsoleTextAttribute(handle, origAttribs); // Reset to original colors
 
-            std::string printMessage = "] ";
+            String printMessage = "] ";
             printMessage += message;
             printMessage += "\r\n";
 
             WriteConsoleA(handle,
-                printMessage.data(),
-                static_cast<DWORD>(printMessage.size()),
+                printMessage.CString(),
+                static_cast<DWORD>(printMessage.Length()),
                 &bytesWritten,
                 nullptr);
         }

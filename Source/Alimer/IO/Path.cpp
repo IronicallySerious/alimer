@@ -22,7 +22,6 @@
 
 #include "../IO/Path.h"
 #include "../Base/String.h"
-#include "../Util/Util.h"
 #include <algorithm>
 
 namespace Alimer

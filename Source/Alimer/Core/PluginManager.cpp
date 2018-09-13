@@ -63,7 +63,7 @@ namespace Alimer
     void PluginManager::LoadPlugins(const String& pluginPath)
     {
         ALIMER_LOGTRACE("Initializing Plugin System...");
-        ALIMER_LOGDEBUG("Scanning for plugins in directory '{}'", pluginPath.CString());
+        ALIMER_LOGDEBUG("Scanning for plugins in directory '%s'", pluginPath.CString());
 
         std::vector<String> files;
         ScanDirectory(files, pluginPath, PLUGIN_EXT, ScanDirFlags::Files, false);
@@ -77,7 +77,7 @@ namespace Alimer
         /*for (auto it : _plugins)
         {
             const PluginDesc& desc = it.second;
-            ALIMER_LOGINFO("Loaded plugin => Name: '{}', Version: '{}.{}'",
+            ALIMER_LOGINFO("Loaded plugin => Name: '%s', Version: '%u.%u'",
                 desc.name,
                 ALIMER_VERSION_MAJOR(desc.version),
                 ALIMER_VERSION_MAJOR(desc.version));
@@ -113,7 +113,7 @@ namespace Alimer
 
     void PluginManager::InstallPlugin(Plugin* plugin)
     {
-        ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName().CString());
+        ALIMER_LOGINFO("Installing plugin: %s", plugin->GetName().CString());
 
         _plugins.push_back(UniquePtr<Plugin>(plugin));
         plugin->Install();

@@ -22,7 +22,6 @@
 
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
-#include "../Util/Util.h"
 #include "../Base/String.h"
 #include "../Core/Log.h"
 
@@ -269,7 +268,7 @@ namespace Alimer
         }
         catch (const std::exception &e)
         {
-            ALIMER_LOGERROR("OSFileSystem::Open(): {}", e.what());
+            ALIMER_LOGERROR("OSFileSystem::Open(): %s", e.what());
             return {};
         }
     }

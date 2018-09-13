@@ -45,7 +45,7 @@ endmacro()
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerVersion.h)
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . Base Core Util IO Math Graphics Input Audio Application)
+define_engine_source_files (NORECURSE . Base Core IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
 
 if (ALIMER_SDL)
@@ -175,7 +175,7 @@ target_include_directories(libAlimer
 )
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES STB fmt spirv_cross glslang SPIRV EnTT)
+set (THIRD_PARTY_DEPENDENCIES STB spirv_cross glslang SPIRV)
 if (ALIMER_SDL)
     list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()

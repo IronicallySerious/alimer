@@ -241,6 +241,61 @@ namespace Alimer
     /// Calculate both sine and cosine, with angle in radians.
     ALIMER_API void SinCos(float angle, float* sin, float* cos);
 
+
+#ifdef __GNUC__
+#	define leading_zeroes(x) ((x) == 0 ? 32 : __builtin_clz(x))
+#	define trailing_zeroes(x) ((x) == 0 ? 32 : __builtin_ctz(x))
+#	define trailing_ones(x) __builtin_ctz(~(x))
+#elif defined(_MSC_VER)
+    namespace Internal
+    {
+        static inline uint32_t clz(uint32_t x)
+        {
+            unsigned long result;
+            if (_BitScanReverse(&result, x))
+                return 31 - result;
+            else
+                return 32;
+        }
+
+        static inline uint32_t ctz(uint32_t x)
+        {
+            unsigned long result;
+            if (_BitScanForward(&result, x))
+                return result;
+            else
+                return 32;
+        }
+    }
+
+#define leading_zeroes(x) ::Alimer::Internal::clz(x)
+#define trailing_zeroes(x) ::Alimer::Internal::ctz(x)
+#define trailing_ones(x) ::Alimer::Internal::ctz(~(x))
+#endif
+
+    template<typename T>
+    inline void ForEachBit(uint32_t value, const T &func)
+    {
+        while (value)
+        {
+            uint32_t bit = trailing_zeroes(value);
+            func(bit);
+            value &= ~(1u << bit);
+        }
+    }
+
+    template<typename T>
+    inline void ForEachBitRange(uint32_t value, const T &func)
+    {
+        while (value)
+        {
+            uint32_t bit = trailing_zeroes(value);
+            uint32_t range = trailing_ones(value >> bit);
+            func(bit, range);
+            value &= ~((1u << (bit + range)) - 1);
+        }
+    }
+
     //void ComputeTransform(glm::vec3 translation, glm::quat rotation, glm::vec3 scale, glm::mat4 &world, const glm::mat4 &parent);
 }
 

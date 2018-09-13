@@ -38,7 +38,6 @@
 #include "Core/Platform.h"
 #include "Core/Plugin.h"
 #include "Core/Log.h"
-#include "Util/Util.h"
 
 // IO
 #include "IO/Stream.h"

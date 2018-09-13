@@ -22,12 +22,9 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "../Base/String.h"
 #include <memory>
-#include <string>
 #include <vector>
-#define FMT_NO_FMT_STRING_ALIAS
-#include <fmt/format.h>
 
 namespace Alimer
 {
@@ -49,7 +46,7 @@ namespace Alimer
         virtual ~LogListener() { }
 
         /// Called when message is being logged.
-        virtual void MessageLogged(LogLevel level, const std::string& message) = 0;
+        virtual void MessageLogged(LogLevel level, const String& message) = 0;
     };
 
     /// Class for logging functionalities.
@@ -68,12 +65,12 @@ namespace Alimer
         /// Return logging level.
         LogLevel GetLevel() const { return _level; }
 
-        void Log(LogLevel level, const std::string& message);
-        void Trace(const std::string& message);
-        void Debug(const std::string& message);
-        void Info(const std::string& message);
-        void Warn(const std::string& message);
-        void Error(const std::string& message);
+        void Log(LogLevel level, const String& message);
+        void Trace(const String& message);
+        void Debug(const String& message);
+        void Info(const String& message);
+        void Warn(const String& message);
+        void Error(const String& message);
 
         /// Adds a log listener.
         void AddListener(LogListener* listener);
@@ -82,7 +79,7 @@ namespace Alimer
         void RemoveListener(LogListener* listener);
 
     private:
-        void OnLog(LogLevel level, const std::string& message);
+        void OnLog(LogLevel level, const String& message);
 
     private:
         LogLevel _level;
@@ -99,14 +96,14 @@ namespace Alimer
 
 #ifndef ALIMER_DISABLE_LOGGING
 
-#	define ALIMER_LOGTRACE(...) Alimer::gLog().Log(Alimer::LogLevel::Trace, fmt::format(__VA_ARGS__))
-#	define ALIMER_LOGDEBUG(...) Alimer::gLog().Log(Alimer::LogLevel::Debug, fmt::format(__VA_ARGS__))
-#	define ALIMER_LOGINFO(...) Alimer::gLog().Log(Alimer::LogLevel::Info, fmt::format(__VA_ARGS__))
-#	define ALIMER_LOGWARN(...) Alimer::gLog().Log(Alimer::LogLevel::Warn, fmt::format(__VA_ARGS__))
-#	define ALIMER_LOGERROR(...) Alimer::gLog().Log(Alimer::LogLevel::Error, fmt::format(__VA_ARGS__))
-#	define ALIMER_LOGCRITICAL(...) do \
+#	define ALIMER_LOGTRACE(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Trace, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGDEBUG(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Debug, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGINFO(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Info, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGWARN(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Warn, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGERROR(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Error, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGCRITICAL(format, ...) do \
 { \
-	Alimer::gLog().Log(Alimer::LogLevel::Critical, fmt::format(__VA_ARGS__)); \
+	Alimer::gLog().Log(Alimer::LogLevel::Critical, Alimer::String::Format(format, __VA_ARGS__)); \
 	ALIMER_BREAKPOINT(); \
 	ALIMER_UNREACHABLE(); \
 } while (0)

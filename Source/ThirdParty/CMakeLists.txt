@@ -21,7 +21,6 @@
 #
 
 add_subdirectory (STB)
-add_subdirectory (fmt EXCLUDE_FROM_ALL)
 add_subdirectory (SPIRV-Cross)
 add_subdirectory (entt)
 

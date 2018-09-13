@@ -23,8 +23,8 @@
 // Adopted from Granite: https://github.com/Themaister/Granite
 // Licensed under MIT: https://github.com/Themaister/Granite/blob/master/LICENSE
 
-#pragma once
 #include <memory>
+#include <mutex>
 #include <vector>
 #include <stdlib.h>
 
@@ -39,12 +39,12 @@ namespace Alimer
         {
             if (_vacants.empty())
             {
-                size_t num_objects = 64u << _memory.size();
-                T *ptr = static_cast<T *>(malloc(num_objects * sizeof(T)));
+                size_t count = 64u << _memory.size();
+                T *ptr = static_cast<T *>(malloc(count * sizeof(T)));
                 if (!ptr)
                     return nullptr;
 
-                for (size_t i = 0; i < num_objects; i++)
+                for (size_t i = 0; i < count; i++)
                 {
                     _vacants.push_back(&ptr[i]);
                 }
@@ -79,7 +79,7 @@ namespace Alimer
             }
         };
 
-        std::vector<T *> _vacants;
+        std::vector<T*> _vacants;
         std::vector<std::unique_ptr<T, MallocDeleter>> _memory;
     };
 }
