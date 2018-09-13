@@ -20,16 +20,36 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/ComponentSystem.h"
-#include "../Scene/Scene.h"
+#include "../Scene/Entity.h"
+#include "../Core/Log.h"
+using namespace std;
 
 namespace Alimer
 {
-    void SystemManager::Update(double deltaTime)
+    Family Detail::IDMapping::ids;
+    Family Detail::IDMapping::groupIds;
+    Family Detail::IDMapping::systemIds;
+
+    const EntityId Entity::Invalid;
+
+    void EntityDeleter::operator()(Entity* entity)
     {
-        for (auto &pair : _systems)
-        {
-            pair.second->Update(/*_eventManager,*/ deltaTime);
-        }
+        entity->GetManager()->DeleteEntity(entity);
+    }
+
+    EntityManager::EntityManager()
+    {
+
+    }
+
+    EntityManager::~EntityManager()
+    {
+        Reset();
+    }
+
+    void EntityManager::Reset()
+    {
+        _componentToGroups.clear();
+        _groups.clear();
     }
 }

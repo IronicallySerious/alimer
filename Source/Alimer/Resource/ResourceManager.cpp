@@ -24,7 +24,6 @@
 #include "../Application/Application.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
-#include "../Util/Util.h"
 #include "../Core/Log.h"
 
 namespace Alimer
@@ -43,7 +42,7 @@ namespace Alimer
 
         if (!DirectoryExists(path))
         {
-            ALIMER_LOGERROR("Directory '{}' does not exists", path.CString());
+            ALIMER_LOGERROR("Directory '%s' does not exists", path.CString());
             return false;
         }
 
@@ -70,7 +69,7 @@ namespace Alimer
             fileWatchers_.Push(watcher);
         }*/
 
-        ALIMER_LOGINFO("Added resource path '{}'", fixedPath.CString());
+        ALIMER_LOGINFO("Added resource path '%s'", fixedPath.CString());
         return true;
     }
 

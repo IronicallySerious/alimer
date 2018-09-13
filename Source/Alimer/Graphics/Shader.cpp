@@ -20,8 +20,9 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
+#include "../Graphics/Shader.h"
+#include "../Graphics/Graphics.h"
+#include "../Core/Log.h"
 #include <spirv_glsl.hpp>
 #include <vector>
 using namespace std;

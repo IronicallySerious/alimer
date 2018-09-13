@@ -76,20 +76,20 @@ namespace Alimer
 
         if (IsCompressed(_format))
         {
-            ALIMER_LOGERROR("Can not save compressed image {}", GetName());
+            ALIMER_LOGERROR("Can not save compressed image '%s'", GetName().CString());
             return false;
         }
 
         if (!_data)
         {
-            ALIMER_LOGERROR("Can not save zero-sized image {}", GetName());
+            ALIMER_LOGERROR("Can not save zero-sized image '%s'", GetName().CString());
             return false;
         }
 
         uint32_t components = GetPixelFormatSize(_format);
         if (components < 1 || components > 4)
         {
-            ALIMER_LOGERROR("Unsupported pixel format for PNG save on image " + GetName());
+            ALIMER_LOGERROR("Unsupported pixel format for PNG save on image '%s'", GetName().CString());
             return false;
         }
 

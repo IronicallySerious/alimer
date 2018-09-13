@@ -22,7 +22,6 @@
 
 add_subdirectory (STB)
 add_subdirectory (SPIRV-Cross)
-add_subdirectory (entt)
 
 if (ALIMER_SDL)
     add_subdirectory(SDL2)

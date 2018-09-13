@@ -42,7 +42,7 @@ namespace Alimer
         _ui = new UI(_graphics.Get());
     }
 
-    void Editor::OnRenderFrame(double frameTime, double elapsedTime)
+    void Editor::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
     {
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
@@ -52,7 +52,6 @@ namespace Alimer
             ALIMER_LOGINFO("Mouse left button is held");
         }
 
-        auto commandBuffer = _graphics->GetDefaultCommandBuffer();
         commandBuffer->Begin();
         commandBuffer->End();
     }

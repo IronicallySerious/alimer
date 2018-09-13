@@ -22,20 +22,30 @@
 
 #pragma once
 
+#include "../Entity.h"
 #include "../../Math/Math.h"
 
 namespace Alimer
 {
-	/// Defines a Transform Component.
-    struct TransformComponent
-	{
+    struct Transform
+    {
         vec3 scale = vec3(1.0f);
         vec3 translation = vec3(0.0f);
         quat rotation = quat(1.0f, 0.0f, 0.0f, 0.0f);
+    };
+
+	/// Defines a Transform Component.
+    class ALIMER_API TransformComponent : public Component
+	{
+        ALIMER_OBJECT(TransformComponent, Component);
+
+    public:
+        const Transform& GetLocalTransform() const;
 
         //glm::mat4 worldTransform;
 
     private:
+        Transform _localTransform;
         uint32_t lastTimestamp = ~0u;
         const uint32_t *currentTimestamp = nullptr;
 	};

@@ -28,13 +28,13 @@ namespace Alimer
     struct VertexColor
     {
         vec3 position;
-        Color color;
+        Color4 color;
     };
 
     struct VertexColorTexture
     {
         vec3 position;
-        Color color;
+        Color4 color;
         vec2 textureCoordinate;
     };
 
@@ -49,6 +49,27 @@ namespace Alimer
         mat4 worldMatrix;
     };
 
+    void TestNewECS()
+    {
+        EntityManager pool;
+        {
+            auto ent1 = pool.CreateEntity();
+            ent1->AddComponent<TransformComponent>();
+            ent1->AddComponent<TransformComponent>();
+            ent1->AddComponent<CameraComponent>();
+
+            for (auto it : ent1->GetComponentsMap())
+            {
+                String test = it.second->GetTypeName();
+                //it.second->Serialize();
+            }
+        }
+
+        {
+            auto ent2 = pool.CreateEntity();
+        }
+    }
+
     class TriangleExample
     {
     public:
@@ -56,9 +77,9 @@ namespace Alimer
         {
             VertexColor triangleVertices[] =
             {
-                { vec3(0.0f, 0.5f, 0.0f), Color::Red },
-                { vec3(0.5f, -0.5f, 0.0f), Color::Lime },
-                { vec3(-0.5f, -0.5f, 0.0f), Color::Blue }
+                { vec3(0.0f, 0.5f, 0.0f), Color4::Red },
+                { vec3(0.5f, -0.5f, 0.0f), Color4::Lime },
+                { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
             std::array<VertexAttributeDescriptor, 2> vertexInputAttributs;
@@ -92,9 +113,10 @@ namespace Alimer
             _camera.viewMatrix = Matrix4();
             _camera.projectionMatrix = Matrix4();
             BufferDescriptor uboBufferDesc = {};
+            uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::TransferDest | BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(MemoryFlags::CpuToGpu, &uboBufferDesc, &_camera);
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
         }
 
         void Render(CommandBuffer* context)
@@ -122,10 +144,10 @@ namespace Alimer
         {
             VertexColor triangleVertices[] =
             {
-                { vec3(-0.5f, 0.5f, 0.0f), Color(0.0f, 0.0f, 1.0f, 1.0f) },
-                { vec3(0.5f, 0.5f, 0.0f), Color(1.0f, 0.0f, 0.0f, 1.0f) },
-                { vec3(0.5f, -0.5f, 0.0f), Color(0.0f, 1.0f, 0.0f, 1.0f) },
-                { vec3(-0.5f, -0.5f, 0.0f), Color(1.0f, 1.0f, 0.0f, 1.0f) },
+                { vec3(-0.5f, 0.5f, 0.0f), Color4(0.0f, 0.0f, 1.0f, 1.0f) },
+                { vec3(0.5f, 0.5f, 0.0f), Color4(1.0f, 0.0f, 0.0f, 1.0f) },
+                { vec3(0.5f, -0.5f, 0.0f), Color4(0.0f, 1.0f, 0.0f, 1.0f) },
+                { vec3(-0.5f, -0.5f, 0.0f), Color4(1.0f, 1.0f, 0.0f, 1.0f) },
             };
 
             BufferDescriptor vertexBufferDesc = {};
@@ -367,6 +389,7 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
+        TestNewECS();
         _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
         //_settings.graphicsDeviceType = GraphicsDeviceType::Vulkan;
     }
@@ -380,10 +403,10 @@ namespace Alimer
 
         // Create triangle scene
         auto triangleEntity = _scene.CreateEntity();
-        _entities.assign<TransformComponent>(triangleEntity);
-        auto renderable =  _entities.assign<RenderableComponent>(triangleEntity);
-        auto mesh = new Mesh(_graphics.Get());
-        renderable.renderable = MakeDerivedHandle<Renderable, MeshRenderable>(mesh);
+        triangleEntity->AddComponent<TransformComponent>();
+        //auto renderable = triangleEntity->AddComponent<RenderableComponent>();
+        //auto mesh = new Mesh(_graphics.Get());
+        //renderable->renderable = MakeDerivedHandle<Renderable, MeshRenderable>(mesh);
         //triangleEntity->AddComponent<RenderableComponent>();
     }
 

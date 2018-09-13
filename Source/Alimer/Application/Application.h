@@ -138,9 +138,8 @@ namespace Alimer
 
         EntityManager _entities;
         SystemManager _systems;
-        entt::DefaultRegistry _registry;
         Scene _scene;
-        std::shared_ptr<RenderSystem> _renderSystem;
+        IntrusivePtr<RenderSystem> _renderSystem;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

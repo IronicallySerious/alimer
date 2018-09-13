@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../../Base/IntrusivePtr.h"
+#include "../Entity.h"
 #include "../../Graphics/Graphics.h"
 #include "../../Math/MathUtil.h"
 
@@ -56,8 +56,12 @@ namespace Alimer
 
     using RenderableHandle = IntrusivePtr<Renderable>;
 
-    struct RenderableComponent 
+    class ALIMER_API RenderableComponent : public Component
     {
+        ALIMER_OBJECT(RenderableComponent, Component);
+
+    public:
+
         RenderableHandle renderable;
     };
 }

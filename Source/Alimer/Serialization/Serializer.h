@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Base/String.h"
-#include "../Util/Util.h"
 #include "../IO/Stream.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"

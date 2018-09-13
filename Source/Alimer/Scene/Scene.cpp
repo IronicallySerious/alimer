@@ -29,11 +29,12 @@ using namespace std;
 namespace Alimer
 {
 	Scene::Scene(EntityManager& entities)
-        : _entities(entities)
+        : _manager(entities)
+        , _cameras(entities.GetComponentGroup<CameraComponent, TransformComponent>())
 	{
         _defaultCamera = CreateEntity();
-        entities.assign<TransformComponent>(_defaultCamera);
-        entities.assign<CameraComponent>(_defaultCamera);
+        _defaultCamera->AddComponent<TransformComponent>();
+        _defaultCamera->AddComponent<CameraComponent>();
         //_defaultCamera->AddComponent<AudioListener>();
 
         _activeCamera = _defaultCamera;
@@ -43,27 +44,16 @@ namespace Alimer
 	{
 	}
 
-    Entity Scene::CreateEntity()
+    EntityHandle Scene::CreateEntity()
     {
-        Entity entity = _entities.create();
-        _pendingEntities.push_back(entity);
+        EntityHandle entity = _manager.CreateEntity();
+        _entities.push_back(entity);
         return entity;
     }
 
     void Scene::Update(double deltaTime)
     {
-        auto &camera = _entities.get<CameraComponent>(_defaultCamera);
-
-        //for (const auto& entity : _pendingEntities)
-        //{
-        //    _systemManager.AddToSystems(entity);
-        //}
-        _pendingEntities.clear();
-
-        /*for (auto& system : _activeSystems)
-        {
-            system->Update(deltaTime);
-        }*/
+        UpdateCachedTransforms();
     }
 
     void Scene::UpdateCachedTransforms()
@@ -85,5 +75,17 @@ namespace Alimer
             //    transform->lastTimestamp = *transform->currentTimestamp;
             //}
         }*/
+
+        // Update cameras.
+        for (auto &c : _cameras)
+        {
+            CameraComponent* camera;
+            TransformComponent* transform;
+            std::tie(camera, transform) = c;
+
+            //camera->Update(transform->GetLocalTransform());
+            Matrix4 world;
+            camera->Update(world);
+        }
     }
 }

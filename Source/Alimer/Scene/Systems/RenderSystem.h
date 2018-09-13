@@ -35,13 +35,15 @@ namespace Alimer
     class ALIMER_API RenderSystem final : public System
     {
     public:
-        RenderSystem() = default;
+        RenderSystem(EntityManager &entities);
 
-        void Update(EntityManager &entities, double deltaTime) override;
+        void Update(double deltaTime) override;
 
         void Render(CommandBuffer* context);
 
     private:
+        std::vector<std::tuple<RenderableComponent*, TransformComponent*>> &_renderable;
+
         VisibilitySet _visibleSet;
     };
 }

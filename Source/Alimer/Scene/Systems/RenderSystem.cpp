@@ -47,12 +47,18 @@ namespace Alimer
         }
     }
 
-    void RenderSystem::Update(EntityManager &entities, double deltaTime)
+    RenderSystem::RenderSystem(EntityManager &entities)
+        : _renderable(entities.GetComponentGroup<RenderableComponent, TransformComponent>())
+    {
+
+    }
+
+    void RenderSystem::Update(double deltaTime)
     {
         // Gather visibles.
         _visibleSet.clear();
 
-        auto view = entities.view<TransformComponent, RenderableComponent>();
+        /*auto view = entities.view<TransformComponent, RenderableComponent>();
 
         // TODO: Add async culling.
         for (auto entity : view)
@@ -69,8 +75,7 @@ namespace Alimer
             //{
             //    _visibleSet.push_back({ renderableComponent.renderable.Get(), nullptr });
             //}
-        }
-
+        }*/
         
         if (_visibleSet.size())
         {

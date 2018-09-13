@@ -26,15 +26,12 @@
 
 namespace Alimer
 {
-    void CameraSystem::Update(EntityManager &entities, double deltaTime)
+    CameraSystem::CameraSystem(EntityManager &entities)
+        : _cameras(entities.GetComponentGroup<CameraComponent, TransformComponent>())
     {
-        auto view = entities.view<TransformComponent, CameraComponent>();
+    }
 
-        // Update view and projection matrix.
-        for (auto entity : view)
-        {
-            auto &camera = view.get<CameraComponent>(entity);
-            camera.projection = Matrix4::Perspective(camera.fovy, camera.aspect, camera.znear, camera.zfar, false);
-        }
+    void CameraSystem::Update(double deltaTime)
+    {
     }
 }

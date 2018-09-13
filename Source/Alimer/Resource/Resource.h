@@ -24,7 +24,6 @@
 
 #include "../Core/Object.h"
 #include <memory>
-#include <string>
 #include <atomic>
 
 namespace Alimer
@@ -60,19 +59,16 @@ namespace Alimer
 		virtual ~Resource() = default;
 
 		/// Set name.
-		void SetName(const std::string& name);
+		void SetName(const String& name);
 
 		/// Return name.
-		const std::string& GetName() const { return _name; }
+		const String& GetName() const { return _name; }
 
 		/// Return the asynchronous loading state.
 		AsyncLoadState GetAsyncLoadState() const { return _asyncLoadState; }
 
 	protected:
-		std::string _name;
+        String _name;
 		AsyncLoadState _asyncLoadState;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Resource);
 	};
 }

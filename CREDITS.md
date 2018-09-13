@@ -12,7 +12,6 @@ Alimer uses the following open-source and third-party libraries:
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [rapidjson](https://github.com/Tencent/rapidjson)
 - [imgui v1.65](https://github.com/ocornut/imgui)
-- [EnTT v2.7.3](https://github.com/skypjack/entt)
 - [CLI11 v1.6](https://github.com/CLIUtils/CLI11)
 - [volk Metaloader for Vulkan](https://github.com/zeux/volk)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
@@ -28,3 +27,5 @@ Additional inspiration, research or code used:
 - Learn OpenGL (https://learnopengl.com/)
 - sokol (https://github.com/floooh/sokol)
 - DirectX Graphics samples (https://github.com/Microsoft/DirectX-Graphics-Samples)
+- EntityX (https://github.com/alecthomas/entityx)
+- EnTT (https://github.com/skypjack/entt)

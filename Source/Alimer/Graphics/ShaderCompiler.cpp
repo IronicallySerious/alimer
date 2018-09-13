@@ -21,13 +21,13 @@
 //
 
 #include "../Graphics/ShaderCompiler.h"
-#include <fstream>
-
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
 #include "glslang/Public/ShaderLang.h"
 #include "SPIRV/GlslangToSpv.h"
+#include <fstream>
+#include <sstream>
 
 namespace Alimer
 {
@@ -63,7 +63,7 @@ namespace Alimer
             }
             else
             {
-                ALIMER_LOGCRITICAL("Cannot open include file '{}'", fullPath.CString());
+                ALIMER_LOGCRITICAL("Cannot open include file '%s'", fullPath.CString());
                 return nullptr;
             }
 
@@ -271,7 +271,7 @@ namespace Alimer
             auto stream = FileSystem::Get().Open(filePath);
             if (!stream)
             {
-                infoLog = fmt::format("Shader file '{}' does not exists", filePath.CString());
+                infoLog = String::Format("Shader file '%s' does not exists", filePath.CString());
                 return false;
             }
 

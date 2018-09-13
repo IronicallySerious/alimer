@@ -40,7 +40,7 @@ namespace Alimer
         , _settings{}
         , _log(new Logger())
         , _entities()
-        , _systems(_entities)
+        , _systems()
         , _scene(_entities)
     {
         PlatformConstruct();
@@ -67,7 +67,7 @@ namespace Alimer
     {
         SetCurrentThreadName("Main");
 
-        ALIMER_LOGINFO("Initializing engine {}...", ALIMER_VERSION_STR);
+        ALIMER_LOGINFO("Initializing engine %s...", ALIMER_VERSION_STR);
 
         // Init Window and Gpu.
         if (!_headless)
@@ -97,9 +97,8 @@ namespace Alimer
         Initialize();
 
         // Setup and configure all systems.
-        _systems.Add<CameraSystem>();
-        _renderSystem = _systems.Add<RenderSystem>();
-        _systems.Configure();
+        _systems.Add<CameraSystem>(_entities);
+        _renderSystem = _systems.Add<RenderSystem>(_entities);
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;

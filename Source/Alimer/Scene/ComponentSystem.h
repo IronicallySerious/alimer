@@ -22,33 +22,12 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
 #include "../Scene/Entity.h"
 
 namespace Alimer
 {
-    class Scene;
-
-    namespace Detail
-    {
-        struct IDMapping
-        {
-        public:
-
-            template <typename TSystem>
-            static uint32_t GetSystemId()
-            {
-                static uint32_t id = _systemIds++;
-                return id;
-            }
-
-        private:
-            static uint32_t _systemIds;
-        };
-    }
-
     /// Defines a base System class.
-    class ALIMER_API System
+    class ALIMER_API System : public IntrusivePtrEnabled<System>
     {
     public:
         /// Constructor.
@@ -57,27 +36,14 @@ namespace Alimer
         /// Destructor.
         virtual ~System() = default;
 
-        virtual void Configure(EntityManager &entities/*, EventManager &events*/)
-        {
-            ALIMER_UNUSED(entities);
-        }
-
         /// Updates the system
-        virtual void Update(EntityManager &entities, double deltaTime) = 0;
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(System);
+        virtual void Update(double deltaTime) = 0;
     };
 
     class ALIMER_API SystemManager final
     {
     public:
-        SystemManager(EntityManager &entityManager)
-            : _entityManager(entityManager)
-        {
-
-        }
-
+        SystemManager() = default;
         ~SystemManager() = default;
         SystemManager(const SystemManager&) = delete;
         SystemManager(const SystemManager&&) = delete;
@@ -86,32 +52,34 @@ namespace Alimer
 
         /// Add new System.
         template <typename S>
-        void Add(std::shared_ptr<S> system)
+        void Add(const IntrusivePtr<S> system)
         {
             _systems.insert(std::make_pair(Detail::IDMapping::GetSystemId<S>(), system));
         }
 
         /// Creates and add new System.
         template <typename S, typename ... Args>
-        std::shared_ptr<S> Add(Args && ... args)
+        IntrusivePtr<S> Add(Args && ... args)
         {
-            std::shared_ptr<S> instance(new S(std::forward<Args>(args) ...));
+            IntrusivePtr<S> instance(new S(std::forward<Args>(args) ...));
             Add(instance);
             return instance;
         }
 
-        ///  Configure the system. Call after adding all Systems.
-        void Configure();
+        template <typename S>
+        IntrusivePtr<S> GetSystem()
+        {
+            auto it = _systems.find(Detail::IDMapping::GetSystemId<S>());
+            assert(it != _systems.end());
+            return it == _systems.end()
+                ? IntrusivePtr<S>()
+                : IntrusivePtr<S>(std::static_pointer_cast<S>(it->second));
+        }
 
         /// Update all systems.
         void Update(double deltaTime);
 
-        /// Submits an entity to all available systems
-        void AddToSystems(Entity entity);
-
     private:
-        bool _initialized = false;
-        EntityManager &_entityManager;
-        std::unordered_map<uint32_t, std::shared_ptr<System>> _systems;
+        std::unordered_map<uint32_t, IntrusivePtr<System>> _systems;
     };
 }

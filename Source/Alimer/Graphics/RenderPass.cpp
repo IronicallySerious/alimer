@@ -23,6 +23,7 @@
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Graphics.h"
 #include "../Math/MathUtil.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -43,7 +44,7 @@ namespace Alimer
 
             if (!(texture->GetUsage() & TextureUsage::RenderTarget))
             {
-                ALIMER_LOGERROR("RenderPass color attachment at index {} must be created with RenderTarget usage", i);
+                ALIMER_LOGERROR("RenderPass color attachment at index %u must be created with RenderTarget usage", i);
             }
 
             if(!_width)

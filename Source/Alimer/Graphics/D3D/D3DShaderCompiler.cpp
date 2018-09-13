@@ -41,26 +41,26 @@ namespace Alimer
             // SPRIV-cross does matrix multiplication expecting row major matrices
             compileFlags |= D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
 
-            std::string compileTarget;
+            String compileTarget;
             switch (stage)
             {
             case ShaderStage::Vertex:
-                compileTarget = fmt::format("vs_{}_{}", major, minor);
+                compileTarget = String::Format("vs_%u_%u", major, minor);
                 break;
             case ShaderStage::TessControl:
-                compileTarget = fmt::format("hs_{}_{}", major, minor);
+                compileTarget = String::Format("hs_%u_%u", major, minor);
                 break;
             case ShaderStage::TessEvaluation:
-                compileTarget = fmt::format("ds_{}_{}", major, minor);
+                compileTarget = String::Format("ds_%u_%u", major, minor);
                 break;
             case ShaderStage::Geometry:
-                compileTarget = fmt::format("gs_{}_{}", major, minor);
+                compileTarget = String::Format("gs_%u_%u", major, minor);
                 break;
             case ShaderStage::Fragment:
-                compileTarget = fmt::format("ps_{}_{}", major, minor);
+                compileTarget = String::Format("ps_%u_%u", major, minor);
                 break;
             case ShaderStage::Compute:
-                compileTarget = fmt::format("cs_{}_{}", major, minor);
+                compileTarget = String::Format("cs_%u_%u", major, minor);
                 break;
             default:
                 break;
@@ -75,7 +75,7 @@ namespace Alimer
                 nullptr,
                 nullptr,
                 "main",
-                compileTarget.c_str(),
+                compileTarget.CString(),
                 compileFlags, 0,
                 shaderBlob.ReleaseAndGetAddressOf(),
                 errors.ReleaseAndGetAddressOf())))
@@ -84,8 +84,6 @@ namespace Alimer
                 return {};
             }
 
-            //std::vector<uint8_t> byteCode(shaderBlob->GetBufferSize());
-            //memcpy(byteCode.data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
             return shaderBlob.Detach();
         }
     }

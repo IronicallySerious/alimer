@@ -29,8 +29,8 @@
 
 namespace Alimer
 {
-    struct TransformComponent;
-    struct CameraComponent;
+    class TransformComponent;
+    class CameraComponent;
     class Renderable;
 
     struct RenderableInfo
@@ -54,13 +54,13 @@ namespace Alimer
         ~Scene();
 
         /// Creates a new entity in the Scene.
-        Entity CreateEntity();
+        EntityHandle CreateEntity();
 
         /// Return the Entity containing the default camera.
-        Entity GetDefaultCamera() const { return _defaultCamera; }
+        EntityHandle GetDefaultCamera() const { return _defaultCamera; }
 
         /// Return the Entity containing the active camera.
-        Entity GetActiveCamera() const { return _activeCamera; }
+        EntityHandle GetActiveCamera() const { return _activeCamera; }
 
         /// Update scene 
         void Update(double deltaTime);
@@ -69,12 +69,12 @@ namespace Alimer
         void UpdateCachedTransforms();
 
     protected:
-        EntityManager& _entities;
+        EntityManager& _manager;
+        std::vector<EntityHandle> _entities;
 
-        Entity _defaultCamera;
-        Entity _activeCamera;
-        
-        std::vector<Entity> _pendingEntities;
+        EntityHandle _defaultCamera;
+        EntityHandle _activeCamera;
+        std::vector<std::tuple<CameraComponent*, TransformComponent*>> &_cameras;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);

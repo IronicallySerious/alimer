@@ -24,4 +24,8 @@
 
 namespace Alimer
 {
+    const Transform& TransformComponent::GetLocalTransform() const
+    {
+        return _localTransform;
+    }
 }
