@@ -49,30 +49,11 @@ namespace Alimer
         mat4 worldMatrix;
     };
 
-    void TestNewECS()
-    {
-        EntityManager pool;
-        {
-            auto ent1 = pool.CreateEntity();
-            ent1->AddComponent<TransformComponent>();
-            ent1->AddComponent<TransformComponent>();
-            ent1->AddComponent<CameraComponent>();
-
-            for (auto it : ent1->GetComponentsMap())
-            {
-                String test = it.second->GetTypeName();
-                //it.second->Serialize();
-            }
-        }
-
-        {
-            auto ent2 = pool.CreateEntity();
-        }
-    }
-
     class TriangleExample
     {
     public:
+        ~TriangleExample() = default;
+
         void Initialize(Graphics* graphics)
         {
             VertexColor triangleVertices[] =
@@ -110,8 +91,8 @@ namespace Alimer
             auto fragmentShader = graphics->CreateShaderModule("assets://shaders/color.frag");
             _program = graphics->CreateShaderProgram(vertexShader, fragmentShader);
 
-            _camera.viewMatrix = Matrix4();
-            _camera.projectionMatrix = Matrix4();
+            _camera.viewMatrix = Matrix4x4::Identity;
+            _camera.projectionMatrix = Matrix4x4::Identity;
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
@@ -205,8 +186,8 @@ namespace Alimer
             _mesh = Mesh::CreateCube(graphics);
 
             // Uniform buffer
-            _camera.viewMatrix = Matrix4::LookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
-            _camera.projectionMatrix = Matrix4::Perspective(M_PIDIV4, aspectRatio, 0.1f, 100, false);
+            _camera.viewMatrix = Matrix4x4::CreateLookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
+            _camera.projectionMatrix = Matrix4x4::CreatePerspectiveFieldOfView(M_PIDIV4, aspectRatio, 0.1f, 100);
 
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -226,8 +207,10 @@ namespace Alimer
             _program = graphics->CreateShaderProgram(vertexShader, fragmentShader);
         }
 
-        void Render(CommandBuffer* context)
+        void Render(CommandBuffer* context, double deltaTime)
         {
+            float time = static_cast<float>(deltaTime);
+            _perDrawData.worldMatrix = Matrix4x4::CreateRotationX(time) * Matrix4x4::CreateRotationY(time * 2) * Matrix4x4::CreateRotationZ(time * .7f);
             _perDrawUboBuffer->SetSubData(&_perDrawData);
 
             // Bind shader program.
@@ -391,7 +374,6 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
-        TestNewECS();
         _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
         //_settings.graphicsDeviceType = GraphicsDeviceType::Vulkan;
     }
@@ -404,8 +386,8 @@ namespace Alimer
         //_texturedCubeExample.Initialize(_graphics, _window->getAspectRatio());
 
         // Create triangle scene
-        auto triangleEntity = _scene.CreateEntity();
-        triangleEntity->AddComponent<TransformComponent>();
+        //auto triangleEntity = _entities.CreateEntity();
+        //triangleEntity->AddComponent<TransformComponent>();
         //auto renderable = triangleEntity->AddComponent<RenderableComponent>();
         //auto mesh = new Mesh(_graphics.Get());
         //renderable->renderable = MakeDerivedHandle<Renderable, MeshRenderable>(mesh);
@@ -419,7 +401,7 @@ namespace Alimer
 
         //_triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);
-        _cubeExample.Render(commandBuffer);
+        _cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);
     }
 }

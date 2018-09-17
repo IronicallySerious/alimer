@@ -51,9 +51,6 @@ namespace Alimer
         {
             ALIMER_LOGINFO("Mouse left button is held");
         }
-
-        commandBuffer->Begin();
-        commandBuffer->End();
     }
 }
 

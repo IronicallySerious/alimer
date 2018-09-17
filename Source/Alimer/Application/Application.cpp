@@ -39,8 +39,6 @@ namespace Alimer
         , _headless(false)
         , _settings{}
         , _log(new Logger())
-        , _entities()
-        , _systems()
         , _scene(_entities)
     {
         PlatformConstruct();
@@ -128,9 +126,6 @@ namespace Alimer
 
             // Update all systems.
             _systems.Update(deltaTime);
-
-            // Update scene.
-            _scene.Update(deltaTime);
 
             // Render single frame.
             RenderFrame(frameTime, deltaTime);

@@ -318,9 +318,9 @@ extern void __cdecl __debugbreak(void);
 #	define ALIMER_DLL_IMPORT
 #endif
 
-#ifdef _MSC_VER
-// SAL 
-#define _In_reads_(size)
+#ifndef _MSC_VER
+// SAL annotations
+#   define _In_reads_(size)
 #endif
 
 #ifdef __cplusplus

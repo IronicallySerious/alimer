@@ -30,7 +30,6 @@ namespace Alimer
 {
 	Scene::Scene(EntityManager& entities)
         : _manager(entities)
-        , _cameras(entities.GetComponentGroup<CameraComponent, TransformComponent>())
 	{
         _defaultCamera = CreateEntity();
         _defaultCamera->AddComponent<TransformComponent>();
@@ -49,43 +48,5 @@ namespace Alimer
         EntityHandle entity = _manager.CreateEntity();
         _entities.push_back(entity);
         return entity;
-    }
-
-    void Scene::Update(double deltaTime)
-    {
-        UpdateCachedTransforms();
-    }
-
-    void Scene::UpdateCachedTransforms()
-    {
-        /*const glm::mat4 &parentTransform = glm::mat4(1.0f);
-
-        for (auto &s : _spatials)
-        {
-            TransformComponent *transform;
-            tie(transform) = s;
-            //transform->Update();
-            ComputeTransform(
-                transform->transform.translation, transform->transform.rotation, transform->transform.scale,
-                transform->worldTransform,
-                parentTransform);
-            //std::tie(aabb, cached_transform, timestamp) = s;
-            //if (transform->lastTimestamp != *transform->currentTimestamp)
-            //{
-            //    transform->lastTimestamp = *transform->currentTimestamp;
-            //}
-        }*/
-
-        // Update cameras.
-        for (auto &c : _cameras)
-        {
-            CameraComponent* camera;
-            TransformComponent* transform;
-            std::tie(camera, transform) = c;
-
-            //camera->Update(transform->GetLocalTransform());
-            Matrix4 world;
-            camera->Update(world);
-        }
     }
 }

@@ -62,19 +62,12 @@ namespace Alimer
         /// Return the Entity containing the active camera.
         EntityHandle GetActiveCamera() const { return _activeCamera; }
 
-        /// Update scene 
-        void Update(double deltaTime);
-
     private:
-        void UpdateCachedTransforms();
-
-    protected:
         EntityManager& _manager;
         std::vector<EntityHandle> _entities;
 
         EntityHandle _defaultCamera;
         EntityHandle _activeCamera;
-        std::vector<std::tuple<CameraComponent*, TransformComponent*>> &_cameras;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);

@@ -30,18 +30,18 @@ namespace Alimer
 
     }
 
-    void CameraComponent::Update(const Matrix4& world)
+    void CameraComponent::Update(const Matrix4x4& world)
     {
-        _projection = Matrix4::Perspective(ToRadians(fovy), aspect, znear, zfar, false);
-        //_view = glm::inverse(world);
+        _projection = Matrix4x4::CreatePerspectiveFieldOfView(ToRadians(fovy), aspect, znear, zfar);
+        _view = world.Inverse();
     }
 
-    Matrix4 CameraComponent::GetView() const
+    Matrix4x4 CameraComponent::GetView() const
     {
         return _view;
     }
 
-    Matrix4 CameraComponent::GetProjection() const
+    Matrix4x4 CameraComponent::GetProjection() const
     {
         return _projection;
     }

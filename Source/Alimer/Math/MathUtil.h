@@ -239,7 +239,7 @@ namespace Alimer
     ALIMER_API bool ScalarNearEqual(float scalar1, float scalar2, float epsilon = std::numeric_limits<float>::epsilon());
 
     /// Calculate both sine and cosine, with angle in radians.
-    ALIMER_API void SinCos(float angle, float* sin, float* cos);
+    ALIMER_API void ScalarSinCos(float angle, float* sin, float* cos);
 
 
 #ifdef __GNUC__

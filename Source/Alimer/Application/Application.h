@@ -135,7 +135,7 @@ namespace Alimer
         std::unique_ptr<Input> _input;
         std::unique_ptr<Audio> _audio;
 
-
+        // 
         EntityManager _entities;
         SystemManager _systems;
         Scene _scene;

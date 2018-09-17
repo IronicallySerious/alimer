@@ -9117,7 +9117,7 @@ void CompilerGLSL::emit_function(SPIRFunction &func, const Bitset &return_flags)
 	for (auto &line : current_function->fixup_statements_in)
 		statement(line);
 
-	entry_block.loop_dominator = SPIRBlock::NoDominator;
+	entry_block.loop_dominator = static_cast<uint32_t>(SPIRBlock::NoDominator);
 	emit_block_chain(entry_block);
 
 	end_scope();

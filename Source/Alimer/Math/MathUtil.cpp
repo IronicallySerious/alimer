@@ -40,7 +40,7 @@ namespace Alimer
         return (fabsf(delta) <= epsilon);
     }
 
-    void SinCos(float angle, float* sin, float* cos)
+    void ScalarSinCos(float angle, float* sin, float* cos)
     {
 #if defined(HAVE_SINCOSF)
         sincosf(angle, sin, &cos);
