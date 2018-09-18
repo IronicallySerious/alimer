@@ -301,7 +301,6 @@ string CompilerMSL::compile()
 	qual_pos_var_name = "";
 	stage_out_var_id = add_interface_block(StorageClassOutput);
 	stage_in_var_id = add_interface_block(StorageClassInput);
-	stage_uniforms_var_id = add_interface_block(StorageClassUniformConstant);
 
 	// Metal vertex functions that define no output must disable rasterization and return void.
 	if (!stage_out_var_id)
@@ -729,13 +728,6 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 		break;
 	}
 
-	case StorageClassUniformConstant:
-	{
-		ib_var_ref = stage_uniform_var_name;
-		active_interface_variables.insert(ib_var_id); // Ensure will be emitted
-		break;
-	}
-
 	default:
 		break;
 	}
@@ -743,12 +735,27 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 	set_name(ib_type_id, to_name(entry_point) + "_" + ib_var_ref);
 	set_name(ib_var_id, ib_var_ref);
 
+	auto &entry_func = get<SPIRFunction>(entry_point);
+
 	for (auto p_var : vars)
 	{
 		uint32_t type_id = p_var->basetype;
 		auto &type = get<SPIRType>(type_id);
+
 		if (type.basetype == SPIRType::Struct)
 		{
+			if (!is_builtin_type(type))
+			{
+				// For I/O blocks or structs, we will need to pass the block itself around
+				// to functions if they are used globally in leaf functions.
+				// Rather than passing down member by member,
+				// we unflatten I/O blocks while running the shader,
+				// and pass the actual struct type down to leaf functions.
+				// We then unflatten inputs, and flatten outputs in the "fixup" stages.
+				entry_func.add_local_variable(p_var->self);
+				vars_needing_early_declaration.push_back(p_var->self);
+			}
+
 			// Flatten the struct members into the interface struct
 			uint32_t mbr_idx = 0;
 			for (auto &mbr_type_id : type.member_types)
@@ -778,7 +785,36 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 
 					// Update the original variable reference to include the structure reference
 					string qual_var_name = ib_var_ref + "." + mbr_name;
-					set_member_qualified_name(type_id, mbr_idx, qual_var_name);
+
+					if (is_builtin)
+					{
+						// For the builtin gl_PerVertex, we cannot treat it as a block anyways,
+						// so redirect to qualified name.
+						set_member_qualified_name(type_id, mbr_idx, qual_var_name);
+					}
+					else
+					{
+						// Unflatten or flatten from [[stage_in]] or [[stage_out]] as appropriate.
+						switch (storage)
+						{
+						case StorageClassInput:
+							entry_func.fixup_hooks_in.push_back([=]() {
+								statement(to_name(p_var->self), ".", to_member_name(type, mbr_idx), " = ",
+								          qual_var_name, ";");
+							});
+							break;
+
+						case StorageClassOutput:
+							entry_func.fixup_hooks_out.push_back([=]() {
+								statement(qual_var_name, " = ", to_name(p_var->self), ".",
+								          to_member_name(type, mbr_idx), ";");
+							});
+							break;
+
+						default:
+							break;
+						}
+					}
 
 					// Copy the variable location from the original variable to the member
 					if (has_member_decoration(type_id, mbr_idx, DecorationLocation))
@@ -864,7 +900,6 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 					while (is_array(*usable_type) || is_matrix(*usable_type))
 						usable_type = &get<SPIRType>(usable_type->parent_type);
 
-					auto &entry_func = get<SPIRFunction>(entry_point);
 					entry_func.add_local_variable(p_var->self);
 
 					// We need to declare the variable early and at entry-point scope.
@@ -907,13 +942,15 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 						switch (storage)
 						{
 						case StorageClassInput:
-							entry_func.fixup_statements_in.push_back(
-							    join(to_name(p_var->self), "[", i, "] = ", ib_var_ref, ".", mbr_name, ";"));
+							entry_func.fixup_hooks_in.push_back([=]() {
+								statement(to_name(p_var->self), "[", i, "] = ", ib_var_ref, ".", mbr_name, ";");
+							});
 							break;
 
 						case StorageClassOutput:
-							entry_func.fixup_statements_out.push_back(
-							    join(ib_var_ref, ".", mbr_name, " = ", to_name(p_var->self), "[", i, "];"));
+							entry_func.fixup_hooks_out.push_back([=]() {
+								statement(ib_var_ref, ".", mbr_name, " = ", to_name(p_var->self), "[", i, "];");
+							});
 							break;
 
 						default:
@@ -1566,7 +1603,7 @@ void CompilerMSL::declare_constant_arrays()
 
 void CompilerMSL::emit_resources()
 {
-	// Output non-interface structs. These include local function structs
+	// Output non-builtin interface structs. These include local function structs
 	// and structs nested within uniform and read-write buffers.
 	unordered_set<uint32_t> declared_structs;
 	for (auto &id : ids)
@@ -1579,13 +1616,15 @@ void CompilerMSL::emit_resources()
 			bool is_struct = (type.basetype == SPIRType::Struct) && type.array.empty();
 			bool is_block =
 			    has_decoration(type.self, DecorationBlock) || has_decoration(type.self, DecorationBufferBlock);
-			bool is_basic_struct = is_struct && !type.pointer && !is_block;
 
-			bool is_interface = (type.storage == StorageClassInput || type.storage == StorageClassOutput ||
-			                     type.storage == StorageClassUniformConstant);
-			bool is_non_interface_block = is_struct && type.pointer && is_block && !is_interface;
+			bool is_builtin_block = is_block && is_builtin_type(type);
+			bool is_declarable_struct = is_struct && !is_builtin_block;
 
-			bool is_declarable_struct = is_basic_struct || is_non_interface_block;
+			// We'll declare this later.
+			if (stage_out_var_id && get<SPIRVariable>(stage_out_var_id).basetype == type_id)
+				is_declarable_struct = false;
+			if (stage_in_var_id && get<SPIRVariable>(stage_in_var_id).basetype == type_id)
+				is_declarable_struct = false;
 
 			// Align and emit declarable structs...but avoid declaring each more than once.
 			if (is_declarable_struct && declared_structs.count(type_id) == 0)
@@ -1603,10 +1642,9 @@ void CompilerMSL::emit_resources()
 	declare_constant_arrays();
 	declare_undefined_values();
 
-	// Output interface structs.
+	// Emit the special [[stage_in]] and [[stage_out]] interface blocks which we created.
 	emit_interface_block(stage_out_var_id);
 	emit_interface_block(stage_in_var_id);
-	emit_interface_block(stage_uniforms_var_id);
 }
 
 // Emit declarations for the specialization Metal function constants
@@ -1838,7 +1876,7 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 		uint32_t val = ops[6];
 		uint32_t comp = ops[7];
 		emit_atomic_func_op(result_type, id, "atomic_compare_exchange_weak_explicit", mem_sem_pass, mem_sem_fail, true,
-		                    ptr, comp, true, val);
+		                    ptr, comp, true, false, val);
 		break;
 	}
 
@@ -1866,19 +1904,20 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 		break;
 	}
 
-#define MSL_AFMO_IMPL(op, valsrc)                                                                                 \
-	do                                                                                                            \
-	{                                                                                                             \
-		uint32_t result_type = ops[0];                                                                            \
-		uint32_t id = ops[1];                                                                                     \
-		uint32_t ptr = ops[2];                                                                                    \
-		uint32_t mem_sem = ops[4];                                                                                \
-		uint32_t val = valsrc;                                                                                    \
-		emit_atomic_func_op(result_type, id, "atomic_fetch_" #op "_explicit", mem_sem, mem_sem, false, ptr, val); \
+#define MSL_AFMO_IMPL(op, valsrc, valconst)                                                                      \
+	do                                                                                                           \
+	{                                                                                                            \
+		uint32_t result_type = ops[0];                                                                           \
+		uint32_t id = ops[1];                                                                                    \
+		uint32_t ptr = ops[2];                                                                                   \
+		uint32_t mem_sem = ops[4];                                                                               \
+		uint32_t val = valsrc;                                                                                   \
+		emit_atomic_func_op(result_type, id, "atomic_fetch_" #op "_explicit", mem_sem, mem_sem, false, ptr, val, \
+		                    false, valconst);                                                                    \
 	} while (false)
 
-#define MSL_AFMO(op) MSL_AFMO_IMPL(op, ops[5])
-#define MSL_AFMIO(op) MSL_AFMO_IMPL(op, 1)
+#define MSL_AFMO(op) MSL_AFMO_IMPL(op, ops[5], false)
+#define MSL_AFMIO(op) MSL_AFMO_IMPL(op, 1, true)
 
 	case OpAtomicIIncrement:
 		MSL_AFMIO(add);
@@ -2039,6 +2078,9 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 		break;
 	}
 
+	case OpImageQueryLod:
+		SPIRV_CROSS_THROW("MSL does not support textureQueryLod().");
+
 #define MSL_ImgQry(qrytype)                                                                 \
 	do                                                                                      \
 	{                                                                                       \
@@ -2092,9 +2134,6 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 	}
 
 	case OpStore:
-		if (maybe_emit_input_struct_assignment(ops[0], ops[1]))
-			break;
-
 		if (maybe_emit_array_assignment(ops[0], ops[1]))
 			break;
 
@@ -2207,62 +2246,6 @@ void CompilerMSL::emit_barrier(uint32_t id_exe_scope, uint32_t id_mem_scope, uin
 	flush_all_active_variables();
 }
 
-// Since MSL does not allow structs to be nested within the stage_in struct, the original input
-// structs are flattened into a single stage_in struct by add_interface_block. As a result,
-// if the LHS and RHS represent an assignment of an entire input struct, we must perform this
-// member-by-member, mapping each RHS member to its name in the flattened stage_in struct.
-// Returns whether the struct assignment was emitted.
-bool CompilerMSL::maybe_emit_input_struct_assignment(uint32_t id_lhs, uint32_t id_rhs)
-{
-	// We only care about assignments of an entire struct
-	uint32_t type_id = expression_type_id(id_rhs);
-	auto &type = get<SPIRType>(type_id);
-	if (type.basetype != SPIRType::Struct)
-		return false;
-
-	// We only care about assignments from Input variables
-	auto *p_v_rhs = maybe_get_backing_variable(id_rhs);
-	if (!(p_v_rhs && p_v_rhs->storage == StorageClassInput))
-		return false;
-
-	// Get the ID of the type of the underlying RHS variable.
-	// This will be an Input OpTypePointer containing the qualified member names.
-	uint32_t tid_v_rhs = p_v_rhs->basetype;
-
-	// Ensure the LHS variable has been declared
-	auto *p_v_lhs = maybe_get_backing_variable(id_lhs);
-	if (p_v_lhs)
-		flush_variable_declaration(p_v_lhs->self);
-
-	size_t mbr_cnt = type.member_types.size();
-	for (uint32_t mbr_idx = 0; mbr_idx < mbr_cnt; mbr_idx++)
-	{
-		string expr;
-
-		//LHS
-		expr += to_name(id_lhs);
-		expr += ".";
-		expr += to_member_name(type, mbr_idx);
-
-		expr += " = ";
-
-		//RHS
-		string qual_mbr_name = get_member_qualified_name(tid_v_rhs, mbr_idx);
-		if (qual_mbr_name.empty())
-		{
-			expr += to_name(id_rhs);
-			expr += ".";
-			expr += to_member_name(type, mbr_idx);
-		}
-		else
-			expr += qual_mbr_name;
-
-		statement(expr, ";");
-	}
-
-	return true;
-}
-
 void CompilerMSL::emit_array_copy(const string &lhs, uint32_t rhs_id)
 {
 	// Assignment from an array initializer is fine.
@@ -2328,7 +2311,7 @@ bool CompilerMSL::maybe_emit_array_assignment(uint32_t id_lhs, uint32_t id_rhs)
 // Emits one of the atomic functions. In MSL, the atomic functions operate on pointers
 void CompilerMSL::emit_atomic_func_op(uint32_t result_type, uint32_t result_id, const char *op, uint32_t mem_order_1,
                                       uint32_t mem_order_2, bool has_mem_order_2, uint32_t obj, uint32_t op1,
-                                      bool op1_is_pointer, uint32_t op2)
+                                      bool op1_is_pointer, bool op1_is_literal, uint32_t op2)
 {
 	forced_temporaries.insert(result_id);
 
@@ -2377,7 +2360,12 @@ void CompilerMSL::emit_atomic_func_op(uint32_t result_type, uint32_t result_id, 
 	{
 		assert(strcmp(op, "atomic_compare_exchange_weak_explicit") != 0);
 		if (op1)
-			exp += ", " + to_expression(op1);
+		{
+			if (op1_is_literal)
+				exp += join(", ", op1);
+			else
+				exp += ", " + to_expression(op1);
+		}
 		if (op2)
 			exp += ", " + to_expression(op2);
 
@@ -2556,9 +2544,8 @@ void CompilerMSL::emit_interface_block(uint32_t ib_var_id)
 	{
 		auto &ib_var = get<SPIRVariable>(ib_var_id);
 		auto &ib_type = get<SPIRType>(ib_var.basetype);
-		auto &m = meta.at(ib_type.self);
-		if (m.members.size() > 0)
-			emit_struct(ib_type);
+		assert(ib_type.basetype == SPIRType::Struct && !ib_type.member_types.empty());
+		emit_struct(ib_type);
 	}
 }
 

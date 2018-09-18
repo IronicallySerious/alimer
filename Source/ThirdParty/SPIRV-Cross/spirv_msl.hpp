@@ -340,7 +340,6 @@ protected:
 	void emit_resources();
 	void emit_specialization_constants();
 	void emit_interface_block(uint32_t ib_var_id);
-	bool maybe_emit_input_struct_assignment(uint32_t id_lhs, uint32_t id_rhs);
 	bool maybe_emit_array_assignment(uint32_t id_lhs, uint32_t id_rhs);
 	void add_convert_row_major_matrix_function(uint32_t cols, uint32_t rows);
 
@@ -365,7 +364,7 @@ protected:
 	std::string get_argument_address_space(const SPIRVariable &argument);
 	void emit_atomic_func_op(uint32_t result_type, uint32_t result_id, const char *op, uint32_t mem_order_1,
 	                         uint32_t mem_order_2, bool has_mem_order_2, uint32_t op0, uint32_t op1 = 0,
-	                         bool op1_is_pointer = false, uint32_t op2 = 0);
+	                         bool op1_is_pointer = false, bool op1_is_literal = false, uint32_t op2 = 0);
 	const char *get_memory_order(uint32_t spv_mem_sem);
 	void add_pragma_line(const std::string &line);
 	void add_typedef_line(const std::string &line);
@@ -389,14 +388,12 @@ protected:
 	MSLResourceBinding next_metal_resource_index;
 	uint32_t stage_in_var_id = 0;
 	uint32_t stage_out_var_id = 0;
-	uint32_t stage_uniforms_var_id = 0;
 	bool needs_vertex_idx_arg = false;
 	bool needs_instance_idx_arg = false;
 	bool is_rasterization_disabled = false;
 	std::string qual_pos_var_name;
 	std::string stage_in_var_name = "in";
 	std::string stage_out_var_name = "out";
-	std::string stage_uniform_var_name = "uniforms";
 	std::string sampler_name_suffix = "Smplr";
 	spv::Op previous_instruction_opcode = spv::OpNop;
 
