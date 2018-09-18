@@ -373,6 +373,17 @@ namespace Alimer
 #endif
         }
 
+        /**
+        * Sets this matrix to the identity matrix.
+        */
+        void SetIdentity();
+
+        /**
+        * Sets all elements of the current matrix to zero.
+        */
+        void SetZero();
+
+
         /// Return float data.
         const float* Data() const { return &m11; }
 

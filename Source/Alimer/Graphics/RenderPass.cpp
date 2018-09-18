@@ -21,14 +21,14 @@
 //
 
 #include "../Graphics/RenderPass.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    RenderPass::RenderPass(Graphics* graphics, const RenderPassDescription* descriptor)
-		: GpuResource(graphics, GpuResourceType::RenderPass)
+    RenderPass::RenderPass(GraphicsDevice* device, const RenderPassDescription* descriptor)
+		: GpuResource(device, GpuResourceType::RenderPass)
         , _colorAttachmentsCount(0)
 	{
         _width = descriptor->width;

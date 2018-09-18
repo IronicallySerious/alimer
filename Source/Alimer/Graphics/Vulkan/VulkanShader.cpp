@@ -21,7 +21,7 @@
 //
 
 #include "VulkanShader.h"
-#include "VulkanGraphics.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"
 

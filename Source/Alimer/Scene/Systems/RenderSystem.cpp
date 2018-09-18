@@ -22,7 +22,7 @@
 
 #include "../Systems/RenderSystem.h"
 #include "../Scene.h"
-#include "../../Graphics/Graphics.h"
+#include "../../Graphics/GraphicsDevice.h"
 
 namespace Alimer
 {

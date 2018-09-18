@@ -22,7 +22,7 @@
 
 #include "VulkanPipeline.h"
 #include "VulkanPipelineLayout.h"
-#include "VulkanGraphics.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanShader.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"

@@ -67,7 +67,7 @@ namespace Alimer
     {
     protected:
         /// Constructor.
-        RenderPass(Graphics* graphics, const RenderPassDescription* descriptor);
+        RenderPass(GraphicsDevice* device, const RenderPassDescription* descriptor);
 
     public:
         /// Destructor.

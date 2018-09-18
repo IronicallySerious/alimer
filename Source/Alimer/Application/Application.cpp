@@ -73,11 +73,11 @@ namespace Alimer
             _window = MakeWindow("Alimer", 800, 600);
 
             // Create and init graphics.
-            _graphics = Graphics::Create(_settings.graphicsDeviceType, _settings.validation);
+            _graphicsDevice = GraphicsDevice::Create(_settings.graphicsDeviceType, _settings.validation);
             GpuAdapter* adapter = nullptr;
-            if (!_graphics->Initialize(adapter, _window))
+            if (!_graphicsDevice->Initialize(adapter, _window))
             {
-                ALIMER_LOGERROR("Failed to initialize Graphics.");
+                ALIMER_LOGERROR("Failed to initialize GraphicsDevice.");
                 return false;
             }
         }
@@ -140,9 +140,9 @@ namespace Alimer
         if (_headless)
             return;
 
-        if (_graphics->BeginFrame())
+        if (_graphicsDevice->BeginFrame())
         {
-            CommandBuffer* commandBuffer = _graphics->GetDefaultCommandBuffer();
+            CommandBuffer* commandBuffer = _graphicsDevice->GetDefaultCommandBuffer();
 
             // Begin recording.
             commandBuffer->Begin();
@@ -161,7 +161,7 @@ namespace Alimer
             commandBuffer->End();
 
             // End rendering frame.
-            _graphics->EndFrame();
+            _graphicsDevice->EndFrame();
         }
     }
 

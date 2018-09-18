@@ -30,13 +30,13 @@ namespace Alimer
         ALIMER_OBJECT(UI, Object);
 
     public:
-        explicit UI(Graphics* graphics);
+        explicit UI(GraphicsDevice* device);
         ~UI() override;
 
     private:
         void UpdateFontTexture();
 
-        WeakPtr<Graphics> _graphics;
+        GraphicsDevice* _graphicsDevice;
         SharedPtr<Texture> _fontTexture;
     };
 }

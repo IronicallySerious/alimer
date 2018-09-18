@@ -21,7 +21,7 @@
 //
 
 #include "D3D11VertexInputFormat.h"
-#include "D3D11Graphics.h"
+#include "D3D11GraphicsDevice.h"
 #include "D3D11Convert.h"
 #include "../D3D/D3DConvert.h"
 

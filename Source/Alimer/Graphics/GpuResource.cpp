@@ -21,22 +21,24 @@
 //
 
 #include "../Graphics/GpuResource.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    GpuResource::GpuResource(Graphics* graphics, GpuResourceType resourceType)
-        : _graphics(graphics)
+    GpuResource::GpuResource(GraphicsDevice* device, GpuResourceType resourceType)
+        : _graphicsDevice(device)
         , _resourceType(resourceType)
     {
-        if (_graphics)
-            _graphics->AddGpuResource(this);
+        if (device)
+            device->AddGpuResource(this);
     }
 
     GpuResource::~GpuResource()
     {
-        if (_graphics)
-            _graphics->RemoveGpuResource(this);
+        if (_graphicsDevice)
+            _graphicsDevice->RemoveGpuResource(this);
+
+        _graphicsDevice = nullptr;
     }
 }

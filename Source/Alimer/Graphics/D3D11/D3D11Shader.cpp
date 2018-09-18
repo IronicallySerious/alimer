@@ -21,7 +21,7 @@
 //
 
 #include "D3D11Shader.h"
-#include "D3D11Graphics.h"
+#include "D3D11GraphicsDevice.h"
 #include "../D3D/D3DShaderCompiler.h"
 #include "../D3D/D3DPlatformFunctions.h"
 #include "../../Core/Log.h"

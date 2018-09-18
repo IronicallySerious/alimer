@@ -21,7 +21,7 @@
 //
 
 #include "VulkanSwapchain.h"
-#include "VulkanGraphics.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanTexture.h"
 #include "VulkanRenderPass.h"

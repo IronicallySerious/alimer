@@ -41,26 +41,24 @@
 
 namespace Alimer
 {
-    /// Low-level 3D graphics API class.
-    class ALIMER_API Graphics : public Object
+    /// Low-level 3D graphics device class.
+    class ALIMER_API GraphicsDevice 
     {
         friend class GpuResource;
 
-        ALIMER_OBJECT(Graphics, Object);
-
     protected:
         /// Constructor.
-        Graphics(GraphicsDeviceType deviceType, bool validation = false);
+        GraphicsDevice(GraphicsDeviceType deviceType, bool validation = false);
 
     public:
         /// Destructor.
-        virtual ~Graphics();
+        virtual ~GraphicsDevice();
 
         /// Get supported graphics backends.
         static std::set<GraphicsDeviceType> GetAvailableBackends();
 
         /// Factory method for Graphics creation.
-        static Graphics* Create(GraphicsDeviceType deviceType, bool validation = false, const String& applicationName = "Alimer");
+        static GraphicsDevice* Create(GraphicsDeviceType deviceType, bool validation = false, const String& applicationName = "Alimer");
 
         /// Initialize graphics with given adapter and window.
         bool Initialize(GpuAdapter* adapter, WindowPtr window);
@@ -156,6 +154,6 @@ namespace Alimer
         std::vector<GpuResource*> _gpuResources;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Graphics);
+        DISALLOW_COPY_MOVE_AND_ASSIGN(GraphicsDevice);
     };
 }

@@ -40,7 +40,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Scene/Scene.h"
 
 namespace Alimer
@@ -96,9 +96,9 @@ namespace Alimer
 
         inline ResourceManager* GetResources() { return &_resources; }
         inline const Window* GetMainWindow() const { return _window.Get(); }
-        inline const Graphics* GetGraphics() const { return _graphics.Get(); }
-        inline Input* GetInput() const { return _input.get(); }
-        inline Audio* GetAudio() const { return _audio.get(); }
+        inline const GraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice.Get(); }
+        inline Input* GetInput() const { return _input.Get(); }
+        inline Audio* GetAudio() const { return _audio.Get(); }
 
     private:
         void PlatformConstruct();
@@ -118,8 +118,8 @@ namespace Alimer
         /// Called during rendering single frame.
         virtual void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime);
 
-        virtual std::unique_ptr<Input> CreateInput();
-        virtual std::unique_ptr<Audio> CreateAudio();
+        virtual Input* CreateInput();
+        virtual Audio* CreateAudio();
 
         std::vector<std::string> _args;
         std::atomic<bool> _running;
@@ -127,13 +127,13 @@ namespace Alimer
         std::atomic<bool> _headless;
         ApplicationSettings _settings;
 
-        std::unique_ptr<Logger> _log;
+        UniquePtr<Logger> _log;
         Timer _timer;
         ResourceManager _resources;
         WindowPtr _window;
-        SharedPtr<Graphics> _graphics;
-        std::unique_ptr<Input> _input;
-        std::unique_ptr<Audio> _audio;
+        UniquePtr<GraphicsDevice> _graphicsDevice;
+        UniquePtr<Input> _input;
+        UniquePtr<Audio> _audio;
 
         // 
         EntityManager _entities;

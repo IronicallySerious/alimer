@@ -20,8 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/CommandBuffer.h"
-#include "Graphics/Graphics.h"
+#include "../Graphics/CommandBuffer.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 #include "../Math/MathUtil.h"
 

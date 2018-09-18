@@ -54,7 +54,7 @@ namespace Alimer
     public:
         ~TriangleExample() = default;
 
-        void Initialize(Graphics* graphics)
+        void Initialize(GraphicsDevice* graphics)
         {
             VertexColor triangleVertices[] =
             {
@@ -121,7 +121,7 @@ namespace Alimer
     class QuadExample
     {
     public:
-        void Initialize(Graphics* graphics)
+        void Initialize(GraphicsDevice* graphics)
         {
             VertexColor triangleVertices[] =
             {
@@ -181,7 +181,7 @@ namespace Alimer
     class CubeExample
     {
     public:
-        void Initialize(Graphics* graphics, float aspectRatio)
+        void Initialize(GraphicsDevice* graphics, float aspectRatio)
         {
             _mesh = Mesh::CreateCube(graphics);
 
@@ -380,10 +380,10 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        //_triangleExample.Initialize(_graphics);
-        //_quadExample.Initialize(_graphics);
-        _cubeExample.Initialize(_graphics, _window->GetAspectRatio());
-        //_texturedCubeExample.Initialize(_graphics, _window->getAspectRatio());
+        //_triangleExample.Initialize(_graphicsDevice.Get());
+        //_quadExample.Initialize(_graphicsDevice.Get());
+        _cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
+        //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
 
         // Create triangle scene
         //auto triangleEntity = _entities.CreateEntity();

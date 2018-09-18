@@ -21,7 +21,7 @@
 //
 
 #include "D3D11SwapChain.h"
-#include "D3D11Graphics.h"
+#include "D3D11GraphicsDevice.h"
 #include "D3D11Texture.h"
 #include "D3D11RenderPass.h"
 #include "../D3D/D3DConvert.h"
@@ -32,56 +32,8 @@ namespace Alimer
 {
     D3D11SwapChain::D3D11SwapChain(D3D11Graphics* graphics)
         : _graphics(graphics)
+        , _allowTearing(graphics->GetAllowTearing())
     {
-        // Determines whether tearing support is available for fullscreen borderless windows.
-        ComPtr<IDXGIFactory4> factory4;
-
-        bool validFactory4 = SUCCEEDED(graphics->GetDXGIFactory()->QueryInterface(IID_PPV_ARGS(&factory4)));
-
-        // Check tearing support.
-        const bool isWindows10OrGreater = IsWindows10OrGreater();
-        if (isWindows10OrGreater)
-        {
-            ComPtr<IDXGIFactory5> factory5;
-            ThrowIfFailed(graphics->GetDXGIFactory()->QueryInterface(IID_PPV_ARGS(&factory5)));
-            BOOL allowTearing = FALSE;
-            factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
-            if (allowTearing)
-            {
-                ALIMER_LOGTRACE("Tearing is supported.");
-                _allowTearing = true;
-            }
-            else
-            {
-                _allowTearing = false;
-                ALIMER_LOGTRACE("Tearing is supported.");
-            }
-        }
-        else
-        {
-            _allowTearing = false;
-        }
-
-        // Disable HDR if we are on an OS that can't support FLIP swap effects
-        if (_swapchainFlags & SwapchainFlagBits::EnableHDR)
-        {
-            ComPtr<IDXGIFactory5> factory5;
-            if (!isWindows10OrGreater)
-            {
-                _swapchainFlags &= ~SwapchainFlagBits::EnableHDR;
-                ALIMER_LOGWARN("D3D11: HDR swap chains not supported");
-            }
-        }
-
-        // Disable FLIP if not on a supporting OS
-        if (_swapchainFlags & SwapchainFlagBits::FlipPresent)
-        {
-            if (!validFactory4)
-            {
-                _swapchainFlags &= ~SwapchainFlagBits::FlipPresent;
-                ALIMER_LOGWARN("D3D11: Flip swap effects not supported");
-            }
-        }
     }
 
     D3D11SwapChain::~D3D11SwapChain()

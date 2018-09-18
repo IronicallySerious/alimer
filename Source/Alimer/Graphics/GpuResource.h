@@ -27,7 +27,7 @@
 
 namespace Alimer
 {
-	class Graphics;
+	class GraphicsDevice;
 
     enum class GpuResourceType : uint32_t
     {
@@ -44,7 +44,7 @@ namespace Alimer
 	{
 	protected:
         /// Constructor.
-        GpuResource(Graphics* graphics, GpuResourceType resourceType);
+        GpuResource(GraphicsDevice* device, GpuResourceType resourceType);
 
 	public:
 		/// Destructor.
@@ -54,14 +54,14 @@ namespace Alimer
         virtual void Destroy() {}
 
         /// Return the graphics subsystem associated with this GPU object.
-        Graphics* GetGraphics() const { return _graphics.Get(); }
+        GraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice; }
 
         /// Get the resource type.
         GpuResourceType GetResourceType() const { return _resourceType; }
 
     protected:
         /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
+        GraphicsDevice* _graphicsDevice = nullptr;
         GpuResourceType _resourceType;
 
 	private:

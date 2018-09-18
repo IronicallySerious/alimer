@@ -27,8 +27,8 @@
 
 namespace Alimer
 {
-    UI::UI(Graphics* graphics)
-        : _graphics(graphics)
+    UI::UI(GraphicsDevice* device)
+        : _graphicsDevice(device)
     {
         ImGui::CreateContext();
 
@@ -107,7 +107,7 @@ namespace Alimer
             descriptor.width = fontWidth;
             descriptor.height = fontHeight;
             descriptor.format = PixelFormat::RGBA8UNorm;
-            _fontTexture = _graphics->CreateTexture(&descriptor, &imageData);
+            _fontTexture = _graphicsDevice->CreateTexture(&descriptor, &imageData);
         }
 
         // Store our identifier

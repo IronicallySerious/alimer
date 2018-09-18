@@ -48,7 +48,6 @@ typedef HRESULT(WINAPI * PFN_GetDpiForMonitor)(HMONITOR, MONITOR_DPI_TYPE, UINT*
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_syswm.h>
-using namespace std;
 
 namespace Alimer
 {
@@ -122,14 +121,14 @@ namespace Alimer
         return MakeShared<SDL2Window>(title, width, height, fullscreen);
     }
 
-    unique_ptr<Input> Application::CreateInput()
+    Input* Application::CreateInput()
     {
-        return make_unique<SDL2Input>();
+        return new SDL2Input();
     }
 
-    unique_ptr<Audio> Application::CreateAudio()
+    Audio* Application::CreateAudio()
     {
-        return make_unique<AudioWASAPI>();
+        return new AudioWASAPI();
     }
 
     int Application::Run()

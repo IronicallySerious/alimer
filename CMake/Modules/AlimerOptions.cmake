@@ -60,12 +60,12 @@ else ()
     set (ALIMER_SDL_DEFAULT OFF)
 endif()
 
-# Disable C# for now
-# if (PLATFORM_DESKTOP AND NOT DEFINED ENV{APPVEYOR})
-#     set (ALIMER_CSHARP_DEFAULT ON)
-# else ()
+# Build C# on desktop platforms for now
+if (PLATFORM_DESKTOP AND NOT DEFINED ENV{APPVEYOR})
+     set (ALIMER_CSHARP_DEFAULT ON)
+ else ()
     set (ALIMER_CSHARP_DEFAULT OFF)
-# endif()
+ endif()
 
 # Tools
 if (PLATFORM_DESKTOP)

@@ -31,7 +31,7 @@
 
 namespace Alimer
 {
-    class Graphics;
+    class GraphicsDevice;
 
     ALIMER_API void SPIRVReflectResources(const std::vector<uint32_t>& spirv, ShaderStage& stage, std::vector<PipelineResource>& shaderResources);
 
@@ -42,7 +42,7 @@ namespace Alimer
 
     public:
         /// Constructor.
-        ShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv);
+        ShaderModule(GraphicsDevice* GraphicsDevice, const std::vector<uint32_t>& spirv);
 
         /// Destructor.
         virtual ~ShaderModule() = default;
@@ -62,7 +62,7 @@ namespace Alimer
     {
     protected:
         /// Constructor.
-        ShaderProgram(Graphics* graphics, const ShaderProgramDescriptor* descriptor);
+        ShaderProgram(GraphicsDevice* device, const ShaderProgramDescriptor* descriptor);
 
     public:
         /// Destructor.

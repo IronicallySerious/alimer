@@ -45,24 +45,35 @@ macro (add_alimer_plugin TARGET)
 endmacro ()
 
 macro (add_target_csharp TARGET PROJECT_FILE)
-	if (WIN32 AND NOT ALIMER_WITH_MONO)
-        include_external_msproject(${TARGET} ${PROJECT_FILE} PLATFORM "Any CPU")
-    else ()
+    if (NOT ALIMER_CSHARP)
+        return ()
+    endif ()
 
+    # Restore nuget packages first.
+    execute_process(COMMAND ${DOTNET_BINARY} restore ${PROJECT_FILE})
+
+    if (DEFINED ENV{APPVEYOR})
+        # Under appveyor pack.
+        execute_process(COMMAND ${DOTNET_BINARY} pack -c Release ${PROJECT_FILE})
+    else()
+        if (WIN32 AND NOT ALIMER_WITH_MONO)
+            include_external_msproject(${TARGET} ${PROJECT_FILE} TYPE {FAE04EC0-301F-11D3-BF4B-00C04F79EFBC})
+        else ()
+
+        endif()
+
+        if (MSVC)
+            set (NET_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>)
+        else ()
+            set (NET_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+        endif()
+
+        #if(EXISTS ${NET_OUTPUT_DIRECTORY}/${TARGET}.dll)
+        #    install (FILES ${NET_OUTPUT_DIRECTORY}/${TARGET}.dll DESTINATION ${DEST_LIBRARY_DIR})
+        #elseif (EXISTS ${NET_OUTPUT_DIRECTORY}/${TARGET}.exe)
+        #    install (FILES ${NET_OUTPUT_DIRECTORY}/${TARGET}.exe DESTINATION ${DEST_LIBRARY_DIR})
+        #endif()
     endif()
-
-    if (MSVC)
-        set (NET_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>)
-    else ()
-        set (NET_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-    endif()
-
-    if(EXISTS ${NET_OUTPUT_DIRECTORY}/${TARGET}.dll)
-        install (FILES ${NET_OUTPUT_DIRECTORY}/${TARGET}.dll DESTINATION ${DEST_LIBRARY_DIR})
-    elseif (EXISTS ${NET_OUTPUT_DIRECTORY}/${TARGET}.exe)
-        install (FILES ${NET_OUTPUT_DIRECTORY}/${TARGET}.exe DESTINATION ${DEST_LIBRARY_DIR})
-    endif()
-
 endmacro()
 
 function(vs_group_subdirectory_targets DIR FOLDER_NAME)

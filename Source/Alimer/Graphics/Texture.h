@@ -84,7 +84,7 @@ namespace Alimer
 
     protected:
         /// Constructor.
-        Texture(Graphics* graphics, const TextureDescriptor* descriptor);
+        Texture(GraphicsDevice* device, const TextureDescriptor* descriptor);
 
     public:
         /// Destructor.

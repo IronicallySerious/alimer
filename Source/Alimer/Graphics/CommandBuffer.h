@@ -33,7 +33,7 @@
 
 namespace Alimer
 {
-    class Graphics;
+    class GraphicsDevice;
 
     /// Defines a command buffer for recording gpu commands.
     class ALIMER_API CommandBuffer 

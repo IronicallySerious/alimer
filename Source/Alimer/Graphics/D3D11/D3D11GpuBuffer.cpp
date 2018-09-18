@@ -21,7 +21,7 @@
 //
 
 #include "D3D11GpuBuffer.h"
-#include "D3D11Graphics.h"
+#include "D3D11GraphicsDevice.h"
 #include "D3D11Convert.h"
 #include "../../Math/MathUtil.h"
 #include "../../Core/Log.h"
@@ -105,7 +105,7 @@ namespace Alimer
 
     bool D3D11Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
     {
-        ID3D11DeviceContext* d3dDeviceContext = StaticCast<D3D11Graphics>(_graphics)->GetD3DImmediateContext();
+        ID3D11DeviceContext* d3dDeviceContext = static_cast<D3D11Graphics*>(_graphicsDevice)->GetD3DImmediateContext();
 
         if (_resourceUsage == ResourceUsage::Dynamic)
         {

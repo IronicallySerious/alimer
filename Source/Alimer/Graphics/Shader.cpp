@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/Shader.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 #include <spirv_glsl.hpp>
 #include <vector>
@@ -155,8 +155,8 @@ namespace Alimer
         ExtractInputOutputs(stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, shaderResources);
     }
 
-    ShaderModule::ShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv)
-        : GpuResource(graphics, GpuResourceType::ShaderModule)
+    ShaderModule::ShaderModule(GraphicsDevice* device, const std::vector<uint32_t>& spirv)
+        : GpuResource(device, GpuResourceType::ShaderModule)
         , _spirv(std::move(spirv))
     {
         // Reflection all shader resouces.
@@ -168,8 +168,8 @@ namespace Alimer
         return std::move(_spirv);
     }
 
-    ShaderProgram::ShaderProgram(Graphics* graphics, const ShaderProgramDescriptor* descriptor)
-        : GpuResource(graphics, GpuResourceType::ShaderProgram)
+    ShaderProgram::ShaderProgram(GraphicsDevice* device, const ShaderProgramDescriptor* descriptor)
+        : GpuResource(device, GpuResourceType::ShaderProgram)
         , _isCompute(false)
     {
         if (descriptor->stageCount == 1

@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Entity.h"
-#include "../../Graphics/Graphics.h"
+#include "../../Graphics/GraphicsDevice.h"
 #include "../../Math/MathUtil.h"
 
 namespace Alimer

@@ -20,12 +20,81 @@
 // THE SOFTWARE.
 //
 
+// SIMD code adopte from DirectXMath: https://github.com/Microsoft/DirectXMath
+
 #include "../Math/Matrix4x4.h"
 #include "../Core/Log.h"
 #include <cstdio>
 
+#if defined(__AVX2__)
+#   define SIMD_PERMUTE_PS( v, c ) _mm_permute_ps( v, c )
+#elif defined(ALIMER_SSE2)
+#   define SIMD_PERMUTE_PS( v, c ) _mm_shuffle_ps( v, v, c )
+#endif
+
+#if ALIMER_SSE2
 namespace Alimer
 {
+    __declspec(align(16)) struct SimdFloat32
+    {
+        union
+        {
+            float f[4];
+            __m128 v;
+        };
+
+        inline operator __m128() const { return v; }
+        inline operator const float*() const { return f; }
+        inline operator __m128i() const { return _mm_castps_si128(v); }
+        inline operator __m128d() const { return _mm_castps_pd(v); }
+    };
+
+    __declspec(align(16)) struct SimdMatrix
+    {
+        __m128 data[4];
+
+        SimdMatrix() = default;
+
+        SimdMatrix(const SimdMatrix&) = default;
+
+        SimdMatrix& operator=(const SimdMatrix&) = default;
+
+        SimdMatrix(SimdMatrix&&) = default;
+        SimdMatrix& operator=(SimdMatrix&&) = default;
+    };
+
+
+    static constexpr SimdFloat32 g_XMIdentityR0 = { { { 1.0f, 0.0f, 0.0f, 0.0f } } };
+    static constexpr SimdFloat32 g_XMIdentityR1 = { { { 0.0f, 1.0f, 0.0f, 0.0f } } };
+    static constexpr SimdFloat32 g_XMIdentityR2 = { { { 0.0f, 0.0f, 1.0f, 0.0f } } };
+    static constexpr SimdFloat32 g_XMIdentityR3 = { { { 0.0f, 0.0f, 0.0f, 1.0f } } };
+
+    static constexpr SimdFloat32 g_XMNegateX = { { { -1.0f, 1.0f, 1.0f, 1.0f } } };
+    static constexpr SimdFloat32 g_XMNegateY = { { { 1.0f, -1.0f, 1.0f, 1.0f } } };
+    static constexpr SimdFloat32 g_XMNegateZ = { { { 1.0f, 1.0f, -1.0f, 1.0f } } };
+    static constexpr SimdFloat32 g_XMNegateW = { { { 1.0f, 1.0f, 1.0f, -1.0f } } };
+
+    static inline void StoreFloat4x4(const SimdMatrix simd, Matrix4x4* destination)
+    {
+        assert(destination);
+        _mm_storeu_ps(&destination->m11, simd.data[0]);
+        _mm_storeu_ps(&destination->m21, simd.data[1]);
+        _mm_storeu_ps(&destination->m31, simd.data[2]);
+        _mm_storeu_ps(&destination->m41, simd.data[3]);
+    }
+}
+#endif
+
+namespace Alimer
+{
+    static const float MATRIX_IDENTITY[16] =
+    {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+
     const Matrix4x4 Matrix4x4::Zero(
         0.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 0.0f,
@@ -37,6 +106,16 @@ namespace Alimer
         0.0f, 1.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
+
+    void Matrix4x4::SetIdentity()
+    {
+        memcpy(&m11, MATRIX_IDENTITY, sizeof(Matrix4x4));
+    }
+
+    void Matrix4x4::SetZero()
+    {
+        memset(&m11, 0, sizeof(Matrix4x4));
+    }
 
     String Matrix4x4::ToString() const
     {
@@ -208,12 +287,30 @@ namespace Alimer
         // [  0  c  s  0 ]
         // [  0 -s  c  0 ]
         // [  0  0  0  1 ]
+#if ALIMER_SSE2
+        __m128 vSin = _mm_set_ss(sinAngle);
+        __m128 vCos = _mm_set_ss(cosAngle);
+
+        vCos = _mm_shuffle_ps(vCos, vSin, _MM_SHUFFLE(3, 0, 0, 3));
+        SimdMatrix matrix;
+        matrix.data[0] = g_XMIdentityR0;
+        matrix.data[1] = vCos;
+        vCos = SIMD_PERMUTE_PS(vCos, _MM_SHUFFLE(3, 1, 2, 0));
+        vCos = _mm_mul_ps(vCos, g_XMNegateY);
+        matrix.data[2] = vCos;
+        matrix.data[3] = g_XMIdentityR3;
+
+        Matrix4x4 result;
+        StoreFloat4x4(matrix, &result);
+        return result;
+#else
         Matrix4x4 result(1.0f);
         result.m22 = cosAngle;
         result.m23 = sinAngle;
         result.m32 = -sinAngle;
         result.m33 = cosAngle;
         return result;
+#endif
     }
 
     Matrix4x4 Matrix4x4::CreateRotationY(float radians)
@@ -225,19 +322,37 @@ namespace Alimer
         // [  0  1  0  0 ]
         // [  s  0  c  0 ]
         // [  0  0  0  1 ]
+#if ALIMER_SSE2
+        __m128 vSin = _mm_set_ss(sinAngle);
+        __m128 vCos = _mm_set_ss(cosAngle);
+        vSin = _mm_shuffle_ps(vSin, vCos, _MM_SHUFFLE(3, 0, 3, 0));
+
+        SimdMatrix simdMatrix;
+        simdMatrix.data[2] = vSin;
+        simdMatrix.data[1] = g_XMIdentityR1;
+        vSin = SIMD_PERMUTE_PS(vSin, _MM_SHUFFLE(3, 0, 1, 2));
+        vSin = _mm_mul_ps(vSin, g_XMNegateZ);
+        simdMatrix.data[0] = vSin;
+        simdMatrix.data[3] = g_XMIdentityR3;
+
+        Matrix4x4 result;
+        StoreFloat4x4(simdMatrix, &result);
+        return result;
+#else
         Matrix4x4 result(1.0f);
         result.m11 = cosAngle;
         result.m13 = -sinAngle;
         result.m31 = sinAngle;
         result.m33 = cosAngle;
         return result;
+#endif
     }
 
     Matrix4x4 Matrix4x4::CreateRotationZ(float radians)
     {
         float sinAngle, cosAngle;
         ScalarSinCos(radians, &sinAngle, &cosAngle);
-        
+
         // [  c  s  0  0 ]
         // [ -s  c  0  0 ]
         // [  0  0  1  0 ]

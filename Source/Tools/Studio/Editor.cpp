@@ -39,7 +39,7 @@ namespace Alimer
     {
         _window->SetTitle("Alimer Studio 2018");
 
-        _ui = new UI(_graphics.Get());
+        _ui = new UI(_graphicsDevice.Get());
     }
 
     void Editor::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)

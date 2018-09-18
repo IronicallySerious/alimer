@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../../Core/Flags.h"
-#include "../../Graphics/Graphics.h"
+#include "../../Graphics/GraphicsDevice.h"
 #include "D3D11Prerequisites.h"
 #include <array>
 #include <thread>
@@ -36,7 +36,7 @@ namespace Alimer
     class D3D11SwapChain;
 
     /// D3D11 Low-level 3D graphics API class.
-    class D3D11Graphics final : public Graphics
+    class D3D11Graphics final : public GraphicsDevice
     {
     public:
         /// Is backend supported?
@@ -71,12 +71,13 @@ namespace Alimer
         void StoreInputLayout(const InputLayoutDesc& desc, ID3D11InputLayout* layout);
 
         // Getters
-        inline IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory; }
-        inline D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
-        inline ID3D11Device1* GetD3DDevice() const { return _d3dDevice; }
-        inline ID3D11DeviceContext1* GetD3DImmediateContext() const { return _d3dImmediateContext; }
-        inline uint32_t GetShaderModerMajor() const { return _shaderModelMajor; }
-        inline uint32_t GetShaderModerMinor() const { return _shaderModelMinor; }
+        IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory.Get(); }
+        D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
+        ID3D11Device1* GetD3DDevice() const { return _d3dDevice; }
+        ID3D11DeviceContext1* GetD3DImmediateContext() const { return _d3dImmediateContext; }
+        uint32_t GetShaderModerMajor() const { return _shaderModelMajor; }
+        uint32_t GetShaderModerMinor() const { return _shaderModelMinor; }
+        BOOL GetAllowTearing() const { return _allowTearing; }
         RenderPass* GetBackbufferRenderPass() const;
 
         const D3DPlatformFunctions* GetFunctions() { return _functions; }
@@ -89,7 +90,7 @@ namespace Alimer
         void GenerateScreenshot(const std::string& fileName);
 
         D3DPlatformFunctions* _functions = nullptr;
-        IDXGIFactory2* _dxgiFactory = nullptr;
+        Microsoft::WRL::ComPtr<IDXGIFactory2> _dxgiFactory;
         D3D_FEATURE_LEVEL _d3dFeatureLevel;
         ID3D11Device1* _d3dDevice = nullptr;
         ID3D11DeviceContext1* _d3dImmediateContext = nullptr;
@@ -99,6 +100,7 @@ namespace Alimer
 
         uint32_t _shaderModelMajor = 4;
         uint32_t _shaderModelMinor = 0;
+        BOOL _allowTearing = FALSE;
 
         D3D11CommandBuffer* _defaultCommandBuffer;
 

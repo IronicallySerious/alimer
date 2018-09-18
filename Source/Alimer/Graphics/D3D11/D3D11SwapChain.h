@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Graphics.h"
+#include "../GraphicsDevice.h"
 #include "../../Application/Window.h"
 #include "D3D11Prerequisites.h"
 
@@ -31,23 +31,6 @@ namespace Alimer
     class D3D11Texture;
     class D3D11RenderPass;
     class D3D11Graphics;
-
-    enum class SwapchainFlagBits : uint32_t
-    {
-        None = 0,
-        FlipPresent = 0x1,
-        EnableHDR = 0x2,
-    };
-    using SwapchainFlags = Flags<SwapchainFlagBits, uint32_t>;
-    ALIMER_FORCE_INLINE SwapchainFlags operator|(SwapchainFlagBits bit0, SwapchainFlagBits bit1)
-    {
-        return SwapchainFlags(bit0) | bit1;
-    }
-
-    ALIMER_FORCE_INLINE SwapchainFlags operator~(SwapchainFlagBits bits)
-    {
-        return ~(SwapchainFlags(bits));
-    }
 
     /// D3D11 SwapChain implementation.
     class D3D11SwapChain final
@@ -76,8 +59,7 @@ namespace Alimer
         HWND _hwnd = nullptr;
         IUnknown* _window = nullptr;
         DXGI_FORMAT _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-        bool _allowTearing;
-        SwapchainFlags _swapchainFlags = SwapchainFlagBits::FlipPresent;
+        BOOL _allowTearing = FALSE;
 
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain;
         D3D11Texture* _backbufferTexture = nullptr;

@@ -26,7 +26,7 @@
 #include "../../Core/Log.h"
 #include "../../Base/String.h"
 #include "../../Application/Window.h"
-#include "VulkanGraphics.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanGpuAdapter.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanRenderPass.h"
@@ -227,7 +227,7 @@ namespace Alimer
     }
 
     VulkanGraphics::VulkanGraphics(bool validation, const String& applicationName)
-        : Graphics(GraphicsDeviceType::Vulkan, validation)
+        : GraphicsDevice(GraphicsDeviceType::Vulkan, validation)
     {
         std::vector<LayerProperties> instanceLayerProperties;
         VkResult result = InitGlobalLayerProperties(instanceLayerProperties);
@@ -376,7 +376,7 @@ namespace Alimer
     void VulkanGraphics::Finalize()
     {
         WaitIdle();
-        Graphics::Finalize();
+        GraphicsDevice::Finalize();
 
         // Destroy main swap chain.
         SafeDelete(_swapChain);

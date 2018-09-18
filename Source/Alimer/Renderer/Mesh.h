@@ -29,7 +29,7 @@ namespace Alimer
 {
     class GpuBuffer;
     class CommandBuffer;
-    class Graphics;
+    class GraphicsDevice;
 
     enum class MeshAttribute : unsigned
     {
@@ -56,7 +56,7 @@ namespace Alimer
         ALIMER_OBJECT(Mesh, Resource);
 
     public:
-        Mesh(Graphics* graphics);
+        Mesh(GraphicsDevice* graphicsDevice);
         ~Mesh() override;
 
         bool Define(const std::vector<vec3>& positions, const std::vector<Color4>& colors, const std::vector<uint16_t>& indices);
@@ -71,12 +71,12 @@ namespace Alimer
         GpuBuffer* GetVertexBuffer() const { return _vertexBuffer; }
         GpuBuffer* GetIndexBuffer() const { return _indexBuffer; }
 
-        static Mesh* CreateCube(Graphics* graphics, float size = 1.0f);
-        static Mesh* CreateBox(Graphics* graphics, const vec3& size = vec3(1.0f));
+        static Mesh* CreateCube(GraphicsDevice* graphicsDevice, float size = 1.0f);
+        static Mesh* CreateBox(GraphicsDevice* graphicsDevice, const vec3& size = vec3(1.0f));
 
     private:
         /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
+        GraphicsDevice* _graphicsDevice;
 
         MeshAttributeLayout _attributes[ecast(MeshAttribute::Count)];
 

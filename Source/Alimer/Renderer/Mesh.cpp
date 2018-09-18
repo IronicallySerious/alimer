@@ -21,12 +21,12 @@
 //
 
 #include "../Renderer/Mesh.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 
 namespace Alimer
 {
-    Mesh::Mesh(Graphics* graphics)
-        : _graphics(graphics)
+    Mesh::Mesh(GraphicsDevice* graphicsDevice)
+        : _graphicsDevice(graphicsDevice)
     {
         
     }
@@ -66,7 +66,7 @@ namespace Alimer
         vertexBufferDesc.usage = BufferUsage::Vertex;
         vertexBufferDesc.size = positions.size() * _vertexStride;
         vertexBufferDesc.stride = _vertexStride;
-        _vertexBuffer = _graphics->CreateBuffer( &vertexBufferDesc, vertices.data());
+        _vertexBuffer = _graphicsDevice->CreateBuffer( &vertexBufferDesc, vertices.data());
 
         // Create index buffer.
         if (indices.size())
@@ -76,7 +76,7 @@ namespace Alimer
             indexBufferDesc.usage = BufferUsage::Index;
             indexBufferDesc.size = indices.size() * sizeof(uint16_t);
             indexBufferDesc.stride = sizeof(uint16_t);
-            _indexBuffer = _graphics->CreateBuffer(&indexBufferDesc, indices.data());
+            _indexBuffer = _graphicsDevice->CreateBuffer(&indexBufferDesc, indices.data());
         }
 
         return true;
@@ -121,13 +121,15 @@ namespace Alimer
         }
     }
 
-    Mesh* Mesh::CreateCube(Graphics* graphics, float size)
+    Mesh* Mesh::CreateCube(GraphicsDevice* graphicsDevice, float size)
     {
-        return CreateBox(graphics, vec3(size));
+        return CreateBox(graphicsDevice, vec3(size));
     }
 
-    Mesh* Mesh::CreateBox(Graphics* graphics, const vec3& size)
+    Mesh* Mesh::CreateBox(GraphicsDevice* graphicsDevice, const vec3& size)
     {
+        ALIMER_ASSERT(graphicsDevice);
+
         // A box has six faces, each one pointing in a different direction.
         const int FaceCount = 6;
 
@@ -186,7 +188,7 @@ namespace Alimer
             colors.push_back(Color4(1.0f, 0.0f, 1.0f));
         }
 
-        Mesh* newMesh = new Mesh(graphics);
+        Mesh* newMesh = new Mesh(graphicsDevice);
         newMesh->Define(positions, colors, indices);
         return newMesh;
     }

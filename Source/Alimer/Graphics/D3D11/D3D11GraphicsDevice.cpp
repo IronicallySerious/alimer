@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "D3D11Graphics.h"
+#include "D3D11GraphicsDevice.h"
 #include "D3D11SwapChain.h"
 #include "D3D11RenderPass.h"
 #include "D3D11Texture.h"
@@ -66,7 +66,7 @@ namespace Alimer
     }
 
     D3D11Graphics::D3D11Graphics(bool validation)
-        : Graphics(GraphicsDeviceType::Direct3D11, validation)
+        : GraphicsDevice(GraphicsDeviceType::Direct3D11, validation)
         , _functions(new D3DPlatformFunctions())
     {
         if (!_functions->LoadFunctions(false))
@@ -113,7 +113,12 @@ namespace Alimer
         SafeRelease(_d3dDevice);
 
         ClearAdapters();
-        SafeRelease(_dxgiFactory);
+
+#if defined(_DEBUG)
+        ULONG refCount = GetRefCount(_dxgiFactory.Get());
+        ALIMER_ASSERT_MSG(refCount == 1, "IDXGIFactory leakage");
+#endif
+        //SafeRelease(_dxgiFactory);
         SafeDelete(_functions);
     }
 
@@ -123,8 +128,8 @@ namespace Alimer
 
         SafeDelete(_swapChain);
         SafeDelete(_defaultCommandBuffer);
-        
-        Graphics::Finalize();
+
+        GraphicsDevice::Finalize();
     }
 
     bool D3D11Graphics::BackendInitialize()
@@ -421,6 +426,19 @@ namespace Alimer
             && threadingFeature.DriverCommandLists)
         {
             _features.SetMultithreading(true);
+        }
+
+        ComPtr<IDXGIFactory5> factory5;
+        hr = _dxgiFactory.As(&factory5);
+        if (SUCCEEDED(hr))
+        {
+            hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &_allowTearing, sizeof(_allowTearing));
+            if (FAILED(hr) || !_allowTearing)
+            {
+#ifdef _DEBUG
+                ALIMER_LOGWARN("Variable refresh rate displays not supported.");
+#endif
+            }
         }
 
         return true;

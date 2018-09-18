@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Graphics.h"
+#include "../GraphicsDevice.h"
 #include "../../Base/HashMap.h"
 #include "VulkanSwapchain.h"
 
@@ -33,7 +33,7 @@ namespace Alimer
     class VulkanPipelineLayout;
 
 	/// Vulkan graphics backend.
-	class VulkanGraphics final : public Graphics
+	class VulkanGraphics final : public GraphicsDevice
 	{
 	public:
         static bool IsSupported();

@@ -21,7 +21,7 @@
 //
 
 #include "D3D11RenderPass.h"
-#include "D3D11Graphics.h"
+#include "D3D11GraphicsDevice.h"
 #include "D3D11Texture.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"

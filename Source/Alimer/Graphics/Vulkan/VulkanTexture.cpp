@@ -21,7 +21,7 @@
 //
 
 #include "VulkanTexture.h"
-#include "VulkanGraphics.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanConvert.h"
 #include "../../Base/HashMap.h"
 #include "../../Core/Log.h"
