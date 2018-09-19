@@ -1,3 +1,6 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
 *.c   eol=lf
 *.cpp eol=lf
 *.h   eol=lf
@@ -9,3 +12,19 @@
 *.lua eol=lf
 *.mk  eol=lf
 makefile eol=lf
+
+*.sln     text eol=crlf
+*.vcproj  text eof=crlf
+*.vcxproj text eof=crlf
+*.bat     text eol=crlf
+
+*.so  binary
+*.dll binary
+*.exe binary
+*.png binary
+*.tga binary
+*.dds binary
+*.ktx binary
+*.pvr binary
+*.wav binary
+*.ogg binary
