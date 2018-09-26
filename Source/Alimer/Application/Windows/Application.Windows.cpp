@@ -30,13 +30,6 @@
 #include <Ole2.h>
 #include <oleidl.h>
 
-// Prefer the high-performance GPU on switchable GPU systems
-extern "C"
-{
-    __declspec(dllexport) DWORD NvOptimusEnablement = 1;
-    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-}
-
 using namespace std;
 
 namespace Alimer
@@ -126,14 +119,14 @@ namespace Alimer
         return MakeShared<Win32Window>(title, width, height, fullscreen);
     }
 
-    unique_ptr<Input> Application::CreateInput()
+    Input* Application::CreateInput()
     {
-        return make_unique<InputWindows>();
+        return new InputWindows();
     }
 
-    unique_ptr<Audio> Application::CreateAudio()
+    Audio* Application::CreateAudio()
     {
-        return make_unique<AudioWASAPI>();
+        return new AudioWASAPI();
     }
 
     int Application::Run()
@@ -165,9 +158,6 @@ namespace Alimer
                         break;
                     }
                 }
-
-                // Tick handles pause state.
-                RunOneFrame();
             }
             else
             {
@@ -188,10 +178,10 @@ namespace Alimer
                     TranslateMessage(&msg);
                     DispatchMessageW(&msg);
                 }
-
-                // Tick handles pause state.
-                RunOneFrame();
             }
+
+            // Tick handles pause state.
+            RunFrame();
         }
 
         OnExiting();

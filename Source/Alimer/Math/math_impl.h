@@ -23,6 +23,12 @@
 #pragma once
 #include <cmath>
 
+#if defined(_WIN32)
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#endif
+
 namespace Alimer
 {
 #define IMPL_SWIZZLE(ret_type, self_type, swiz, ...) template <typename T> t##ret_type<T> t##self_type<T>::swiz() const { return t##ret_type<T>(__VA_ARGS__); }
@@ -645,8 +651,8 @@ template <typename T> inline tvec4<T> func(const tvec4<T> &a, const tvec4<T> &b,
         MATH_VECTORIZED_FUNC1(log)
         MATH_VECTORIZED_FUNC1(exp2)
         MATH_VECTORIZED_FUNC1(exp)
-        MATH_VECTORIZED_FUNC2(min)
-        MATH_VECTORIZED_FUNC2(max)
+        //MATH_VECTORIZED_FUNC2(min)
+        //MATH_VECTORIZED_FUNC2(max)
         MATH_VECTORIZED_FUNC2(pow)
         MATH_VECTORIZED_FUNC3(clamp)
 

@@ -52,9 +52,6 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 set (CMAKE_C_STANDARD 99)
 
-set (CMAKE_INCLUDE_CURRENT_DIR ON)
-set (CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 # Set project name
 project (Alimer LANGUAGES CXX C)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -72,17 +69,8 @@ endif ()
 # Set CMake modules search path
 set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 
-# Include cotire first.
-include (cotire)
-
-# Include ucm.
-include (ucm)
-
 # Include Alimer cmake module.
 include (Alimer)
-
-# Enable Unity build
-set(UCM_UNITY_BUILD ON)
 
 # Set alimer sdk path.
 set (ALIMER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -118,6 +106,5 @@ message(STATUS "  GL              ${ALIMER_GL}")
 message(STATUS "  D3D11           ${ALIMER_D3D11}")
 message(STATUS "  D3D12           ${ALIMER_D3D12}")
 message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
-message(STATUS "  SDL2            ${ALIMER_SDL}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")

@@ -24,6 +24,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
+#if SHADER_COMPILER
 #include "glslang/Public/ShaderLang.h"
 #include "SPIRV/GlslangToSpv.h"
 #include <fstream>
@@ -434,3 +435,5 @@ namespace Alimer
         }
     }
 }
+
+#endif // SHADER_COMPILER

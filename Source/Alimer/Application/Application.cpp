@@ -43,6 +43,10 @@ namespace Alimer
     {
         PlatformConstruct();
 
+#if _DEBUG
+        _settings.validation = true;
+#endif
+
         __appInstance = this;
     }
 
@@ -73,7 +77,7 @@ namespace Alimer
             _window = MakeWindow("Alimer", 800, 600);
 
             // Create and init graphics.
-            _graphicsDevice = GraphicsDevice::Create(_settings.graphicsDeviceType, _settings.validation);
+            _graphicsDevice = GraphicsDevice::Create(_settings.deviceType, _settings.validation);
             GpuAdapter* adapter = nullptr;
             if (!_graphicsDevice->Initialize(adapter, _window))
             {

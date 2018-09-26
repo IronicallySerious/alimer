@@ -50,13 +50,8 @@ namespace Alimer
     class ApplicationSettings : public Serializable
     {
     public:
-        GraphicsDeviceType graphicsDeviceType = GraphicsDeviceType::Default;
-
-#ifdef _DEBUG
-        bool validation = true;
-#else
-        bool validation = false;
-#endif
+        GraphicsDeviceType deviceType;
+        bool validation;
     };
 
     /// Application for main loop and all modules and OS setup.

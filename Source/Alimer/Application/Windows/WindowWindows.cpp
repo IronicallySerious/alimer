@@ -302,10 +302,8 @@ namespace Alimer
 			return;
 		}
 
-        _handle.type = WINDOW_HANDLE_WINDOWS;
-        _handle.info.win.window = _hwnd;
-        _handle.info.win.hdc = GetDC(_hwnd);
-        _handle.info.win.hInstance = _hInstance;
+        _handle.connection = _hInstance;
+        _handle.handle = _hwnd;
 
 		//_created = true;
 		_windowCount++;
@@ -327,8 +325,8 @@ namespace Alimer
 
 		RECT windowRect;
 		GetClientRect(_hwnd, &windowRect);
-		_width = static_cast<uint32_t>(windowRect.right - windowRect.left);
-		_height = static_cast<uint32_t>(windowRect.bottom - windowRect.top);
+        _size.x = static_cast<uint32_t>(windowRect.right - windowRect.left);
+        _size.y = static_cast<uint32_t>(windowRect.bottom - windowRect.top);
 
 		if (RegisterTouchWindow(_hwnd, 0) == FALSE)
 		{
@@ -410,7 +408,6 @@ namespace Alimer
 
 		HWND destroyHandle = _hwnd;
 		_hwnd = nullptr;
-        ::ReleaseDC(destroyHandle, _handle.info.win.hdc);
 		::DestroyWindow(destroyHandle);
 	}
 
@@ -427,12 +424,13 @@ namespace Alimer
         return !!::IsIconic(_hwnd);
     }
 
-    void Win32Window::HandleResize(const Vector2& newSize)
+    void Win32Window::HandleResize(uint32_t width, uint32_t height)
     {
         _monitor = MonitorFromWindow(_hwnd, MONITOR_DEFAULTTONEAREST);
 
-        //_size = newSize;
-        resizeEvent.size = newSize;
+        _size.x = width;
+        _size.y = height;
+        resizeEvent.size = _size;
         SendEvent(resizeEvent);
     }
 
@@ -465,7 +463,7 @@ namespace Alimer
 			{
 				if (LOWORD(lParam) == HTCLIENT)
 				{
-					static_cast<InputWindows*>(Input::GetInstance())->UpdateCursor();
+					//static_cast<InputWindows*>(Input::GetInstance())->UpdateCursor();
 					return TRUE;
 				}
 				break;
@@ -480,12 +478,16 @@ namespace Alimer
                     break;
                 case SIZE_RESTORED:
                     gApplication().Resume();
-                    HandleResize(Vector2(static_cast<float>(LOWORD(lParam)),
-                        static_cast<float>(HIWORD(lParam))));
+                    HandleResize(
+                        static_cast<uint32_t>(LOWORD(lParam)),
+                        static_cast<uint32_t>(HIWORD(lParam))
+                    );
                     break;
                 case SIZE_MAXIMIZED:
-                    HandleResize(Vector2(static_cast<float>(LOWORD(lParam)),
-                        static_cast<float>(HIWORD(lParam))));
+                    HandleResize(
+                        static_cast<uint32_t>(LOWORD(lParam)),
+                        static_cast<uint32_t>(HIWORD(lParam))
+                    );
                     break;
                 }
                 return 0;

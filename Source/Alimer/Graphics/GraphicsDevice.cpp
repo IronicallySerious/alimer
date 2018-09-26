@@ -316,7 +316,7 @@ namespace Alimer
             vertexByteCode = vertexShaderStream->ReadBytes();
             fragmentByteCode = fragmentShaderStream->ReadBytes();
         }
-        else*/
+        else
         {
             // Compile from source GLSL.
             String errorLog;
@@ -324,7 +324,7 @@ namespace Alimer
             {
                 ALIMER_LOGCRITICAL("Shader compilation failed: %s", errorLog.CString());
             }
-        }
+        }*/
 
         return CreateShaderModule(spirv);
     }

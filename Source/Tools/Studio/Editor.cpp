@@ -26,8 +26,8 @@ namespace Alimer
 {
     Editor::Editor()
     {
-        _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
-        //_settings.graphicsDeviceType = GraphicsDeviceType::Vulkan;
+        _settings.deviceType = GraphicsDeviceType::Direct3D11;
+        //_settings.deviceType = GraphicsDeviceType::Vulkan;
     }
 
     Editor::~Editor()

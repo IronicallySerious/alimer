@@ -2,7 +2,6 @@
 
 Alimer uses the following open-source and third-party libraries:
 
-- [SDL v2.0.8](https://www.libsdl.org)
 - [Nothings](https://github.com/nothings/stb) single file libs.
   - [stb_image.h v2.19](https://github.com/nothings/stb/blob/master/stb_image.h)
   - [stb_image_write.h v1.09](https://github.com/nothings/stb/blob/master/stb_image_write.h)

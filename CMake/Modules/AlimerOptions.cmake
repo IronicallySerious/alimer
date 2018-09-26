@@ -54,19 +54,6 @@ endif ()
     set (ALIMER_D3D12_DEFAULT OFF)
 #endif ()
 
-if (PLATFORM_DESKTOP)
-    set (ALIMER_SDL_DEFAULT ON)
-else ()
-    set (ALIMER_SDL_DEFAULT OFF)
-endif()
-
-# Build C# on desktop platforms for now
-if (PLATFORM_DESKTOP AND NOT DEFINED ENV{APPVEYOR})
-     set (ALIMER_CSHARP_DEFAULT ON)
- else ()
-    set (ALIMER_CSHARP_DEFAULT OFF)
- endif()
-
 # Tools
 if (PLATFORM_DESKTOP)
     set (ALIMER_TOOLS_DEFAULT ON)
@@ -79,6 +66,4 @@ alimer_option (ALIMER_GL "Enable OpenGL backend")
 alimer_option (ALIMER_VULKAN "Enable Vulkan backend")
 alimer_option (ALIMER_D3D11 "Enable D3D11 backend")
 alimer_option (ALIMER_D3D12 "Enable D3D12 backend")
-alimer_option (ALIMER_SDL "Enable SDL2 support")
-alimer_option (ALIMER_CSHARP "Enable C# support")
 alimer_option (ALIMER_TOOLS "Enable Tools")

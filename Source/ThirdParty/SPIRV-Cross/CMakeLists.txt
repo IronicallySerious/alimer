@@ -55,5 +55,5 @@ if (ALIMER_VULKAN OR ALIMER_OPENGL OR NEED_SPIRV_CROSS_GLSL)
 	)
 endif()
 
-ucm_add_target(NAME spirv_cross TYPE STATIC UNITY CPP_PER_UNITY 4 SOURCES "${SPIRV_CROSS_SOURCES}")
+add_library (spirv_cross STATIC ${SPIRV_CROSS_SOURCES})
 target_include_directories(spirv_cross PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)

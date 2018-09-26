@@ -36,10 +36,12 @@ macro (define_engine_source_files)
 		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
 
 		# Get source files
-		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.cpp)
+		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.c ${path}/*.cpp)
 		list (APPEND SOURCE_FILES ${_files})
 	endforeach ()
 endmacro()
+
+set (TARGET_NAME libAlimer)
 
 # Generate the AlimerVersion.h file
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerVersion.h)
@@ -47,14 +49,9 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_B
 # Add source files from subdirectories
 define_engine_source_files (NORECURSE . Base Core IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
+define_engine_source_files (NORECURSE experimental)
 
-if (ALIMER_SDL)
-    define_engine_source_files(Application/SDL2)
-    define_engine_source_files(Input/SDL2)
-    if (PLATFORM_WINDOWS)
-        define_engine_source_files(Audio/WASAPI)
-    endif()
-elseif (PLATFORM_WINDOWS)
+if (PLATFORM_WINDOWS)
 	define_engine_source_files(Application/Windows)
 	define_engine_source_files(Input/Windows)
 	define_engine_source_files(Audio/WASAPI)
@@ -93,73 +90,6 @@ endif ()
 # Group source code in VS solution
 group_sources()
 
-if (ALIMER_D3D11 OR ALIMER_D3D12)
-    # WIN10_SDK_PATH will be something like C:\Program Files (x86)\Windows Kits\10
-    get_filename_component(WIN10_SDK_PATH "[HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0;InstallationFolder]" ABSOLUTE CACHE)
-
-    # TEMP_WIN10_SDK_VERSION will be something like ${CMAKE_CURRENT_SOURCE_DIR}\10.0.14393 or ${CMAKE_CURRENT_SOURCE_DIR}\10.0.14393.0
-    get_filename_component(TEMP_WIN10_SDK_VERSION "[HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0;ProductVersion]" ABSOLUTE CACHE)
-
-    # strip off ${CMAKE_CURRENT_SOURCE_DIR} to get just the version number
-    get_filename_component(WIN10_SDK_VERSION ${TEMP_WIN10_SDK_VERSION} NAME)
-    # WIN10_SDK_VERSION will be something like 10.0.14393 or 10.0.14393.0; we need the one that matches the directory name.
-    if (IS_DIRECTORY "${WIN10_SDK_PATH}/Include/${WIN10_SDK_VERSION}.0")
-        set(WIN10_SDK_VERSION "${WIN10_SDK_VERSION}.0")
-    endif()
-
-    # Find the dxgi, d3d11 and d3d12 include path, it will typically look something like this.
-    # C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\shared\dxgi1_4.h
-    # C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\um\d3d11_4.h
-    # C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\um\d3d12.h
-    find_path(DXGI_INCLUDE_DIR      # Set variable DXGI_INCLUDE_DIR
-        dxgi1_4.h                   # Find a path with dxgi1_4.h
-        HINTS "${WIN10_SDK_PATH}/Include/${WIN10_SDK_VERSION}/shared"
-        DOC "path to WIN10 SDK header files"
-        HINTS
-    )
-
-    find_path(D3D11_INCLUDE_DIR     # Set variable D3D12_INCLUDE_DIR
-        d3d11_4.h                   # Find a path with d3d11_4.h
-        HINTS "${WIN10_SDK_PATH}/Include/${WIN10_SDK_VERSION}/um"
-        DOC "path to WIN10 SDK header files"
-        HINTS
-    )
-
-    find_path(D3D12_INCLUDE_DIR     # Set variable D3D12_INCLUDE_DIR
-        d3d12.h                     # Find a path with d3d12.h
-        HINTS "${WIN10_SDK_PATH}/Include/${WIN10_SDK_VERSION}/um"
-        DOC "path to WIN10 SDK header files"
-        HINTS
-    )
-
-    if (CMAKE_GENERATOR MATCHES "Visual Studio.*ARM" )
-        set(WIN10_SDK_LIB_PATH ${WIN10_SDK_PATH}/Lib/${WIN10_SDK_VERSION}/um/arm)
-    elseif (CMAKE_GENERATOR MATCHES "Visual Studio.*ARM64" )
-        set(WIN10_SDK_LIB_PATH ${WIN10_SDK_PATH}/Lib/${WIN10_SDK_VERSION}/um/arm64)
-    elseif (CMAKE_GENERATOR MATCHES "Visual Studio.*Win64" )
-        set(WIN10_SDK_LIB_PATH ${WIN10_SDK_PATH}/Lib/${WIN10_SDK_VERSION}/um/x64)
-    else()
-        set(WIN10_SDK_LIB_PATH ${WIN10_SDK_PATH}/Lib/${WIN10_SDK_VERSION}/um/x86)
-    endif()
-
-    find_library(D3D11_LIBRARY NAMES d3d11.lib HINTS ${WIN10_SDK_LIB_PATH})
-    find_library(D3D12_LIBRARY NAMES d3d12.lib HINTS ${WIN10_SDK_LIB_PATH})
-    find_library(DXGI_LIBRARY NAMES dxgi.lib HINTS ${WIN10_SDK_LIB_PATH})
-    find_library(D3DCOMPILER_LIBRARY NAMES d3dcompiler.lib HINTS ${WIN10_SDK_LIB_PATH})
-
-    list(APPEND D3D11_LIBRARIES
-        ${D3D11_LIBRARY}
-        ${DXGI_LIBRARY}
-        ${D3DCOMPILER_LIBRARY}
-    )
-
-    list(APPEND D3D12_LIBRARIES
-        ${D3D12_LIBRARY}
-        ${DXGI_LIBRARY}
-        ${D3DCOMPILER_LIBRARY}
-    )
-endif()
-
 # Define the library target.
 add_library(libAlimer ${ALIMER_LIBRARY_TYPE} ${SOURCE_FILES} ${HEADER_FILES})
 
@@ -172,12 +102,13 @@ target_include_directories(libAlimer
 	PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
+        $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>/khronos
 )
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES STB spirv_cross glslang SPIRV)
-if (ALIMER_SDL)
-    list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
+set (THIRD_PARTY_DEPENDENCIES STB spirv_cross)
+if (ALIMER_CAN_COMPILE)
+    list (APPEND THIRD_PARTY_DEPENDENCIES glslang SPIRV)
 endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
@@ -186,25 +117,13 @@ foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     endif ()
 endforeach()
 
-# Link universal crt libs (https://blogs.msdn.microsoft.com/vcblog/2015/03/03/introducing-the-universal-crt/)
-if( PLATFORM_WINDOWS )
-    target_link_libraries(libAlimer debug libcmtd libvcruntimed libucrtd)
-    target_link_libraries(libAlimer optimized libcmt libvcruntime libucrt)
+target_compile_definitions(libAlimer PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
+if (ALIMER_D3D11)
+    target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D11)
 endif()
 
-target_compile_definitions(libAlimer PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
-
-if (ALIMER_D3D11 OR ALIMER_D3D12)
-    target_include_directories(libAlimer SYSTEM PRIVATE ${D3D12_INCLUDE_DIR} ${D3D11_INCLUDE_DIR} ${DXGI_INCLUDE_DIR})
-
-    if (ALIMER_D3D11)
-        target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D11)
-        # target_link_libraries (libAlimer ${D3D11_LIBRARIES})
-    endif()
-
-    if (ALIMER_D3D12)
-        target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D12)
-    endif()
+if (ALIMER_D3D12)
+    target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D12)
 endif()
 
 if (ALIMER_THREADING)
@@ -236,17 +155,41 @@ endif ()
 
 # Add OS-specific library dependencies
 if (PLATFORM_WINDOWS)
-	target_compile_definitions (libAlimer PRIVATE -DNOMINMAX)
+    target_link_libraries (${TARGET_NAME} winmm ws2_32)
 elseif (PLATFORM_UWP)
-	set_target_properties(libAlimer PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${PLATFORM_UWP_VERSION_MIN}")
-	target_compile_definitions (libAlimer PRIVATE -DNOMINMAX)
-	target_link_libraries (libAlimer mincore ${D3D12_LIBRARIES} ${D3D11_LIBRARIES})
+	set_target_properties(${TARGET_NAME} PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${PLATFORM_UWP_VERSION_MIN}")
+
+    if (ALIMER_D3D11 OR ALIMER_D3D12)
+        target_link_libraries (${TARGET_NAME} PRIVATE dxgi d3dcompiler)
+    endif ()
+
+    if (ALIMER_D3D11)
+        target_link_libraries (${TARGET_NAME} PRIVATE d3d11)
+    endif() 
+
+    if (ALIMER_D3D12)
+        target_link_libraries (${TARGET_NAME} PRIVATE d3d12)
+    endif ()
+
+elseif (PLATFORM_ANDROID)
+    if (${ANDROID_PLATFORM_LEVEL} LESS 12)
+        message(FATAL_ERROR "OpenGLES 2 is not supported before API level 11 (currently using ${ANDROID_PLATFORM_LEVEL}).")
+        return()
+    elseif (${ANDROID_PLATFORM_LEVEL} LESS 18)
+        add_definitions("-DDYNAMIC_ES3")
+        set(GL3STUB_SRC gl3stub.c)
+        set(OPENGL_LIB GLESv2)
+    else ()
+        set(OPENGL_LIB GLESv3)
+    endif ()
+
+    target_link_libraries (${TARGET_NAME} ${OPENGL_LIB} android EGL log m)
 else ()
-	target_link_libraries (libAlimer pthread)
+	target_link_libraries (${TARGET_NAME} pthread)
 endif ()
 
 if (ALIMER_CSHARP)
-	target_compile_definitions(libAlimer PRIVATE -DALIMER_CSHARP)
+	target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_CSHARP)
 endif ()
 
 # SDK installation

@@ -10,6 +10,4 @@ file(GLOB SOURCE_FILES
     ${PLUGIN_DIR}/*.cpp
 )
 
-add_library(${TARGET} SHARED ${SOURCE_FILES})
-target_link_libraries(${TARGET} SDL2)
-# add_alimer_plugin(${TARGET} ${SOURCE_FILES})
+add_alimer_plugin(${TARGET} ${SOURCE_FILES})

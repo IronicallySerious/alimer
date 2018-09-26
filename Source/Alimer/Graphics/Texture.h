@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Core/Flags.h"
+#include "../Math/MathUtil.h"
 #include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
 #include "../Resource/Image.h"
@@ -102,17 +103,17 @@ namespace Alimer
 
         uint32_t GetLevelWidth(uint32_t mipLevel) const
         {
-            return std::max(1u, _width >> mipLevel);
+            return Max(1u, _width >> mipLevel);
         }
 
         uint32_t GetLevelHeight(uint32_t mipLevel) const
         {
-            return std::max(1u, _height >> mipLevel);
+            return Max(1u, _height >> mipLevel);
         }
 
         uint32_t GetLevelDepth(uint32_t mipLevel) const
         {
-            return std::max(1u, _depth >> mipLevel);
+            return Max(1u, _depth >> mipLevel);
         }
 
     protected:

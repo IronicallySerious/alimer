@@ -1,4 +1,22 @@
+cmake_minimum_required(VERSION 3.5)
+
+# Source environment
+if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+    execute_process(COMMAND cmd /c set OUTPUT_VARIABLE ENVIRONMENT)
+else ()
+    execute_process(COMMAND env OUTPUT_VARIABLE ENVIRONMENT)
+endif ()
+
+# Configure CMake global variables
+set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set (CMAKE_INCLUDE_CURRENT_DIR ON)
+set (CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Define CMake options
 include (AlimerOptions)
+include (CMakeDependentOption)
+option (ALIMER_CSHARP "Enable C# support" OFF)
+option (ALIMER_USE_DEBUG_INFO   "Enable debug information in all configurations." ON)
 
 # Setup global per-platform compiler/linker options
 if( PLATFORM_WINDOWS OR PLATFORM_UWP )
@@ -65,14 +83,14 @@ if( PLATFORM_WINDOWS OR PLATFORM_UWP )
 	endif()
 
     # Use fast floating point model
-    ucm_add_flags(C CXX /fp:fast)
+    add_compile_options(/fp:fast)
 
     # Enable multi-processor compilation
 	add_compile_options(/MP)
 
 	# Set warning level 3
-	ucm_add_flags(CXX /W3)
-    ucm_add_flags(/W4 CONFIG Debug)
+	add_compile_options(/W3)
+    # ucm_add_flags(/W4 CONFIG Debug)
 
 	# Disable specific warnings
 	add_compile_options(/wd4127 /wd4351 /wd4005)
@@ -107,7 +125,7 @@ elseif (PLATFORM_WEB)
     set (CMAKE_CXX_FLAGS_RELEASE "-Oz -DNDEBUG")
 else ()
     # Use fast floating point model
-    ucm_add_flags(C CXX ffast-math)
+    add_compile_options(-ffast-math)
 
 endif ()
 

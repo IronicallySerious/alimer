@@ -23,10 +23,6 @@
 add_subdirectory (STB)
 add_subdirectory (SPIRV-Cross)
 
-if (ALIMER_SDL)
-    add_subdirectory(SDL2)
-endif ()
-
 if (NOT ALIMER_DISABLE_SHADER_COMPILER)
     option(BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
     set(LIB_TYPE STATIC)

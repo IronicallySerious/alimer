@@ -374,15 +374,15 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
-        _settings.graphicsDeviceType = GraphicsDeviceType::Direct3D11;
-        //_settings.graphicsDeviceType = GraphicsDeviceType::Vulkan;
+        _settings.deviceType = GraphicsDeviceType::Direct3D11;
+        //_settings.deviceType = GraphicsDeviceType::Vulkan;
     }
 
     void RuntimeApplication::Initialize()
     {
         //_triangleExample.Initialize(_graphicsDevice.Get());
         //_quadExample.Initialize(_graphicsDevice.Get());
-        _cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
+        //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
 
         // Create triangle scene
@@ -401,7 +401,7 @@ namespace Alimer
 
         //_triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);
-        _cubeExample.Render(commandBuffer, elapsedTime);
+        //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);
     }
 }
