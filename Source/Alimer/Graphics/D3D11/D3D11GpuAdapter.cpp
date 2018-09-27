@@ -64,10 +64,6 @@ namespace Alimer
 
     D3D11GpuAdapter::~D3D11GpuAdapter()
     {
-#if defined(_DEBUG)
-        ULONG refCount = GetRefCount(_adapter);
-        ALIMER_ASSERT_MSG(refCount == 1, "D3D11GpuAdapter leakage");
-#endif
-        SafeRelease(_adapter);
+        SafeRelease(_adapter, "IDXGIAdapter1");
     }
 }

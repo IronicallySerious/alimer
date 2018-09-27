@@ -38,6 +38,7 @@ namespace Alimer
 
     D3D11SwapChain::~D3D11SwapChain()
     {
+        _swapChain->SetFullscreenState(false, nullptr);
         SafeDelete(_backbufferTexture);
         _renderPass.Reset();
         _swapChain.Reset();

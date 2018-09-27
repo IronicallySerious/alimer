@@ -22,7 +22,10 @@
 
 #pragma once
 
-#include "../../PlatformIncl.h"
+#ifndef NOMINMAX
+#  define NOMINMAX
+#endif
+#include <Windows.h>
 
 #define D3D11_NO_HELPERS
 
@@ -91,17 +94,28 @@ namespace Alimer
         }
     }
 
-    inline ULONG GetRefCount(IUnknown* _interface)
-    {
-        _interface->AddRef();
-        return _interface->Release();
-    }
-
     template <typename T>
-    void SafeRelease(T& resource)
+    void SafeRelease(T& resource, const char* typeName = nullptr)
     {
         if (resource)
         {
+#if defined(_DEBUG)
+            resource->AddRef();
+            ULONG refCount = resource->Release();
+            if (refCount > 1)
+            {
+                if (typeName)
+                {
+                    OutputDebugStringA(typeName);
+                    OutputDebugStringA(" Leakage found\n");
+                }
+                else
+                {
+                    OutputDebugStringA("IUnknown leakage found\n");
+                }
+            }
+#endif
+
             resource->Release();
             resource = nullptr;
         }

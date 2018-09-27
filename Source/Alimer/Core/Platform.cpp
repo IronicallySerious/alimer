@@ -24,7 +24,7 @@
 #include "../Core/Log.h"
 #include "../Base/String.h"
 
-#if !ALIMER_WINDOWS_FAMILY
+#if !defined(_WIN32)
 #   include <dlfcn.h>
 #endif
 

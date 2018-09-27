@@ -74,8 +74,7 @@ namespace Alimer
             ALIMER_LOGCRITICAL("D3D11 - Failed to load functions");
         }
 
-        HRESULT hr = _functions->createDxgiFactory1(IID_PPV_ARGS(&_dxgiFactory));
-        if (FAILED(hr))
+        if (FAILED(_functions->createDxgiFactory1(IID_PPV_ARGS(&_dxgiFactory))))
         {
             ALIMER_LOGCRITICAL("D3D11 - Failed to create DXGI factory");
         }
@@ -103,22 +102,21 @@ namespace Alimer
     {
         Finalize();
 
-#if defined(_DEBUG)
-        //ULONG refCount = GetRefCount(_d3dAnnotation);
-        //ALIMER_ASSERT_MSG(refCount == 1, "ID3DUserDefinedAnnotation leakage");
-#endif
+        SafeRelease(_d3dAnnotation, "ID3DUserDefinedAnnotation");
+        SafeRelease(_d3dImmediateContext, "ID3D11DeviceContext");
 
-        SafeRelease(_d3dAnnotation);
-        SafeRelease(_d3dImmediateContext);
-        SafeRelease(_d3dDevice);
+        ID3D11Debug* d3dDebug;
+        if (SUCCEEDED(_d3dDevice->QueryInterface(&d3dDebug)))
+        {
+            d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+            d3dDebug->Release();
+        }
+
+        SafeRelease(_d3dDevice, "ID3D11Device");
 
         ClearAdapters();
 
-#if defined(_DEBUG)
-        ULONG refCount = GetRefCount(_dxgiFactory.Get());
-        ALIMER_ASSERT_MSG(refCount == 1, "IDXGIFactory leakage");
-#endif
-        //SafeRelease(_dxgiFactory);
+        SafeRelease(_dxgiFactory, "IDXGIFactory");
         SafeDelete(_functions);
     }
 
@@ -265,7 +263,7 @@ namespace Alimer
 
         ThrowIfFailed(device->QueryInterface(&_d3dDevice));
         ThrowIfFailed(context->QueryInterface(&_d3dImmediateContext));
-        context->QueryInterface(&_d3dAnnotation);
+        //context->QueryInterface(&_d3dAnnotation);
 
         if (!InitializeCaps())
             return false;
@@ -428,9 +426,8 @@ namespace Alimer
             _features.SetMultithreading(true);
         }
 
-        ComPtr<IDXGIFactory5> factory5;
-        hr = _dxgiFactory.As(&factory5);
-        if (SUCCEEDED(hr))
+        IDXGIFactory5* factory5;
+        if (SUCCEEDED(_dxgiFactory->QueryInterface(&factory5)))
         {
             hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &_allowTearing, sizeof(_allowTearing));
             if (FAILED(hr) || !_allowTearing)
@@ -439,6 +436,8 @@ namespace Alimer
                 ALIMER_LOGWARN("Variable refresh rate displays not supported.");
 #endif
             }
+
+            factory5->Release();
         }
 
         return true;

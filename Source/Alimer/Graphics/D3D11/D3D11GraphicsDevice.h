@@ -71,7 +71,7 @@ namespace Alimer
         void StoreInputLayout(const InputLayoutDesc& desc, ID3D11InputLayout* layout);
 
         // Getters
-        IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory.Get(); }
+        IDXGIFactory2* GetDXGIFactory() const { return _dxgiFactory; }
         D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
         ID3D11Device1* GetD3DDevice() const { return _d3dDevice; }
         ID3D11DeviceContext1* GetD3DImmediateContext() const { return _d3dImmediateContext; }
@@ -90,7 +90,7 @@ namespace Alimer
         void GenerateScreenshot(const std::string& fileName);
 
         D3DPlatformFunctions* _functions = nullptr;
-        Microsoft::WRL::ComPtr<IDXGIFactory2> _dxgiFactory;
+        IDXGIFactory2* _dxgiFactory;
         D3D_FEATURE_LEVEL _d3dFeatureLevel;
         ID3D11Device1* _d3dDevice = nullptr;
         ID3D11DeviceContext1* _d3dImmediateContext = nullptr;

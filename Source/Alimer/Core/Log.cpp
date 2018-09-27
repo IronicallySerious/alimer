@@ -27,8 +27,16 @@
 #include <vector>
 #include <ctime>
 
+#if VORTEX_PLATFORM_IOS || ALIMER_PLATFORM_TVOS
+#include <sys/syslog.h>
+#endif
+
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-#include "../PlatformIncl.h"
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#   include <Windows.h>
+#   include <strsafe.h>
 #endif
 
 namespace Alimer

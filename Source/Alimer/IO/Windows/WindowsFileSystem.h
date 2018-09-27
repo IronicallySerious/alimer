@@ -22,8 +22,11 @@
 
 #pragma once
 
-#include "../../PlatformIncl.h"
 #include "../FileSystem.h"
+#ifndef NOMINMAX
+#   define NOMINMAX
+#endif
+#include <Windows.h>
 
 namespace Alimer
 {

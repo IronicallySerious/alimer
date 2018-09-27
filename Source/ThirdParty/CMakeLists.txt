@@ -22,19 +22,23 @@
 
 add_subdirectory (STB)
 add_subdirectory (SPIRV-Cross)
+add_subdirectory (rttr)
 
 if (NOT ALIMER_DISABLE_SHADER_COMPILER)
-    option(BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
-    set(LIB_TYPE STATIC)
-    set(ENABLE_GLSLANG_INSTALL OFF)
+    option (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
+    set (LIB_TYPE STATIC)
+    set (ENABLE_GLSLANG_INSTALL OFF)
     set (ENABLE_HLSL OFF CACHE BOOL "Enables HLSL input support")
     set (ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Enable glslang binaries")
 	set (SKIP_GLSLANG_INSTALL ON CACHE BOOL "Skip glslang installation")
     add_subdirectory (glslang EXCLUDE_FROM_ALL)
 endif ()
 
-if (PLATFORM_DESKTOP)
+if (ALIMER_DESKTOP AND ALIMER_TOOLS)
     add_subdirectory(imgui)
-endif (PLATFORM_DESKTOP)
+endif ()
 
-vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} ThirdParty)
+# Set folders
+set_target_properties (STB PROPERTIES FOLDER "ThirdParty")
+set_target_properties (spirv_cross PROPERTIES FOLDER "ThirdParty")
+set_target_properties (ImGui PROPERTIES FOLDER "ThirdParty")

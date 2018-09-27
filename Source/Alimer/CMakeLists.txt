@@ -41,6 +41,18 @@ macro (define_engine_source_files)
 	endforeach ()
 endmacro()
 
+# Groups sources into subfolders.
+macro(group_sources)
+    file (GLOB_RECURSE children LIST_DIRECTORIES true RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/**)
+    foreach (child ${children})
+        if (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
+            string(REPLACE "/" "\\" groupname "${child}")
+            file (GLOB files LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/${child}/*)
+            source_group(${groupname} FILES ${files})
+        endif ()
+    endforeach ()
+endmacro()
+
 set (TARGET_NAME libAlimer)
 
 # Generate the AlimerVersion.h file
@@ -51,16 +63,16 @@ define_engine_source_files (NORECURSE . Base Core IO Math Graphics Input Audio A
 define_engine_source_files (Resource Serialization Scene Renderer)
 define_engine_source_files (NORECURSE experimental)
 
-if (PLATFORM_WINDOWS)
+if (ALIMER_WINDOWS)
 	define_engine_source_files(Application/Windows)
 	define_engine_source_files(Input/Windows)
 	define_engine_source_files(Audio/WASAPI)
-elseif (PLATFORM_UWP)
+elseif (ALIMER_UWP)
 	define_engine_source_files(Application/UWP)
 	define_engine_source_files(Audio/WASAPI)
 endif ()
 
-if (PLATFORM_WINDOWS OR PLATFORM_UWP)
+if (ALIMER_WINDOWS OR ALIMER_UWP)
     define_engine_source_files(IO/Windows)
 endif()
 
@@ -91,7 +103,7 @@ endif ()
 group_sources()
 
 # Define the library target.
-add_library(libAlimer ${ALIMER_LIBRARY_TYPE} ${SOURCE_FILES} ${HEADER_FILES})
+add_alimer_library(libAlimer ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(libAlimer
     PUBLIC
@@ -140,25 +152,23 @@ endif (ALIMER_GL)
 
 if (ALIMER_VULKAN)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_VULKAN)
-	if (PLATFORM_WINDOWS)
+	if (ALIMER_WINDOWS)
 		target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_WIN32_KHR)
-	elseif (PLATFORM_LINUX)
+	elseif (ALIMER_LINUX)
 		if(ALIMER_LINUX_WAYLAND)
 			target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_WAYLAND_KHR)
 		else()
 			target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_XCB_KHR)
 		endif()
-	elseif (PLATFORM_ANDROID)
+	elseif (ALIMER_ANDROID)
 		target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
 	endif()
 endif ()
 
 # Add OS-specific library dependencies
-if (PLATFORM_WINDOWS)
+if (ALIMER_WINDOWS)
     target_link_libraries (${TARGET_NAME} winmm ws2_32)
-elseif (PLATFORM_UWP)
-	set_target_properties(${TARGET_NAME} PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${PLATFORM_UWP_VERSION_MIN}")
-
+elseif (ALIMER_UWP)
     if (ALIMER_D3D11 OR ALIMER_D3D12)
         target_link_libraries (${TARGET_NAME} PRIVATE dxgi d3dcompiler)
     endif ()
@@ -171,7 +181,7 @@ elseif (PLATFORM_UWP)
         target_link_libraries (${TARGET_NAME} PRIVATE d3d12)
     endif ()
 
-elseif (PLATFORM_ANDROID)
+elseif (ALIMER_ANDROID)
     if (${ANDROID_PLATFORM_LEVEL} LESS 12)
         message(FATAL_ERROR "OpenGLES 2 is not supported before API level 11 (currently using ${ANDROID_PLATFORM_LEVEL}).")
         return()
@@ -193,9 +203,11 @@ if (ALIMER_CSHARP)
 endif ()
 
 # SDK installation
-install(TARGETS libAlimer
-	EXPORT Alimer
-	LIBRARY DESTINATION ${DEST_LIBRARY_DIR}
-	RUNTIME DESTINATION ${DEST_BIN_DIR}
-	ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR}
-)
+if (NOT ALIMER_SKIP_INSTALL)
+    install(TARGETS libAlimer
+	    EXPORT Alimer
+	    LIBRARY DESTINATION ${DEST_LIBRARY_DIR}
+	    RUNTIME DESTINATION ${DEST_BIN_DIR}
+	    ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR}
+    )
+endif ()

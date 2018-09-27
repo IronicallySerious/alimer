@@ -22,7 +22,6 @@
 
 #include "AudioWASAPI.h"
 #include "../../Core/Log.h"
-#include "../../Graphics/D3D/D3DPrerequisites.h"
 #include <functiondiscoverykeys_devpkey.h>
 
 namespace Alimer
@@ -150,10 +149,20 @@ namespace Alimer
 		if (_deviceEnumerator)
 		{
 			_deviceEnumerator->UnregisterEndpointNotificationCallback(_notificationClient);
-			SafeRelease(_deviceEnumerator);
+            _deviceEnumerator->Release();
+            _deviceEnumerator = nullptr;
 		}
 
-		SafeRelease(_audioRender);
-		SafeRelease(_renderAudioClient);
+        if (_audioRender)
+        {
+            _audioRender->Release();
+            _audioRender = nullptr;
+        }
+
+        if (_renderAudioClient)
+        {
+            _renderAudioClient->Release();
+            _renderAudioClient = nullptr;
+        }
 	}
 }

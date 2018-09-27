@@ -459,7 +459,7 @@ namespace Alimer
 			}
 			break;
 
-			case WM_SETCURSOR:
+			/*case WM_SETCURSOR:
 			{
 				if (LOWORD(lParam) == HTCLIENT)
 				{
@@ -467,7 +467,7 @@ namespace Alimer
 					return TRUE;
 				}
 				break;
-			}
+			}*/
 
             case WM_SIZE:
             {

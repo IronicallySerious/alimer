@@ -24,6 +24,7 @@
 
 #include "../Base/Swap.h"
 #include "../Base/Iterator.h"
+#include <cassert>
 #include <cstdarg>
 #include <cstring>
 #include <cctype>

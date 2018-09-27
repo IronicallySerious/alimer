@@ -134,12 +134,7 @@ namespace Alimer
     {
         for (ID3D11RenderTargetView* view : _views)
         {
-#if defined(_DEBUG)
-            ULONG refCount = GetRefCount(view);
-            ALIMER_ASSERT_MSG(refCount == 1, "D3D11RenderPass view leakage");
-#endif
-
-            view->Release();
+            SafeRelease(view, "ID3D11RenderTargetView");
         }
 
         _views.clear();

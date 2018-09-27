@@ -172,26 +172,7 @@ namespace Alimer
 
     void D3D11Texture::Destroy()
     {
-        if (_shaderResourceView)
-        {
-#if defined(_DEBUG)
-            ULONG refCount = GetRefCount(_shaderResourceView);
-            ALIMER_ASSERT_MSG(refCount == 1, "ID3D11ShaderResourceView leakage");
-#endif
-
-            _shaderResourceView->Release();
-            _shaderResourceView = nullptr;
-        }
-
-        if (_resource)
-        {
-#if defined(_DEBUG)
-            ULONG refCount = GetRefCount(_resource);
-            ALIMER_ASSERT_MSG(refCount == 1, "D3D11Texture leakage");
-#endif
-
-            _resource->Release();
-            _resource = nullptr;
-        }
+        SafeRelease(_shaderResourceView, "ID3D11ShaderResourceView");
+        SafeRelease(_resource, "ID3D11Texture");
     }
 }

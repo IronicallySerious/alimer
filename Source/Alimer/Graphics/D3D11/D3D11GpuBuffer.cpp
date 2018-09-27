@@ -91,16 +91,7 @@ namespace Alimer
 
     void D3D11Buffer::Destroy()
     {
-        if (_handle)
-        {
-#if defined(_DEBUG)
-            ULONG refCount = GetRefCount(_handle);
-            ALIMER_ASSERT_MSG(refCount == 1, "D3D11Buffer leakage");
-#endif
-
-            _handle->Release();
-            _handle = nullptr;
-        }
+        SafeRelease(_handle, "ID3D11Buffer");
     }
 
     bool D3D11Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)

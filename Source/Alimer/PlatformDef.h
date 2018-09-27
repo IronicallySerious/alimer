@@ -58,13 +58,12 @@
 
 #define ALIMER_PLATFORM_UWP 0
 #define ALIMER_PLATFORM_WINDOWS 0
+#define ALIMER_PLATFORM_IOS 0
+#define ALIMER_PLATFORM_TVOS 0
+#define ALIMER_PLATFORM_MACOS 0
 #define ALIMER_PLATFORM_ANDROID 0
 #define ALIMER_PLATFORM_LINUX 0
 #define ALIMER_PLATFORM_WEB 0
-#define ALIMER_PLATFORM_APPLE 0
-#define ALIMER_PLATFORM_APPLE_TV 0
-#define ALIMER_PLATFORM_APPLE_IOS 0
-#define ALIMER_PLATFORM_APPLE_OSX 0
 
 /**
 * Operating system defines, see http://sourceforge.net/p/predef/wiki/OperatingSystems/
@@ -72,38 +71,30 @@
 #if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
 #	undef ALIMER_PLATFORM_UWP
 #	define ALIMER_PLATFORM_UWP 1 // Universal Windows platform
-#elif defined(_WIN64) 
+#elif defined(_WIN64) || defined(_WIN32) // Windows
 #	undef ALIMER_PLATFORM_WINDOWS
 #	define ALIMER_PLATFORM_WINDOWS 1
-#elif defined(_WIN32) // note: _M_PPC implies _WIN32
-#	undef ALIMER_PLATFORM_WINDOWS
-#	define ALIMER_PLATFORM_WINDOWS 1
+#elif defined(__APPLE__) // macOS, iOS, tvOS
+#   include <TargetConditionals.h>
+#   if TARGET_OS_IOS
+#       undef ALIMER_PLATFORM_IOS
+#       define ALIMER_PLATFORM_IOS 1
+#   elif TARGET_OS_TV
+#       undef ALIMER_PLATFORM_TVOS
+#       define ALIMER_PLATFORM_TVOS 1
+#   elif TARGET_OS_MAC
+#       undef ALIMER_PLATFORM_MACOS 
+#       define ALIMER_PLATFORM_MACOS 1
+#   endif
 #elif defined(__ANDROID__)
 #	undef ALIMER_PLATFORM_ANDROID
 #	define ALIMER_PLATFORM_ANDROID 1
-#elif defined(__linux__) || defined (__EMSCRIPTEN__) // note: __ANDROID__ implies __linux__
+#elif defined(__linux__) 
 #	undef ALIMER_PLATFORM_LINUX
 #	define ALIMER_PLATFORM_LINUX 1
-#	if defined(__EMSCRIPTEN__)
-#		undef ALIMER_PLATFORM_WEB
-#		define ALIMER_PLATFORM_WEB 1
-#	endif
-#elif defined(__APPLE__)
-#	include <TargetConditionals.h>
-#	undef ALIMER_PLATFORM_APPLE
-#	define ALIMER_PLATFORM_APPLE 1
-#	if (TARGET_OS_TV)
-#		undef ALIMER_PLATFORM_APPLE_TV
-#		define ALIMER_PLATFORM_APPLE_TV 1
-#	elif (TARGET_OS_IPHONE)
-#		undef ALIMER_PLATFORM_APPLE_IOS
-#		define ALIMER_PLATFORM_APPLE_IOS 1
-#	elif (TARGET_OS_MAC)
-#		undef ALIMER_PLATFORM_APPLE_OSX
-#		define ALIMER_PLATFORM_APPLE_OSX 1
-#	else
-#		error Unknown Apple platform
-#	endif
+#elif defined(__EMSCRIPTEN__) // Emscripten
+#   undef ALIMER_PLATFORM_WEB
+#   define ALIMER_PLATFORM_WEB 1
 #endif
 
 /**
@@ -158,24 +149,12 @@
 #	define ALIMER_VMX 1
 #endif
 
-// Compiler shortcut
-#define ALIMER_GCC_FAMILY (ALIMER_CLANG || ALIMER_GCC)
-// OS shortcut
-#define ALIMER_WINDOWS_FAMILY (ALIMER_PLATFORM_UWP || ALIMER_PLATFORM_WINDOWS)
-#define ALIMER_LINUX_FAMILY (ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_ANDROID)
-#define ALIMER_APPLE_FAMILY (ALIMER_PLATFORM_APPLE)
-#define ALIMER_UNIX_FAMILY (ALIMER_LINUX_FAMILY || ALIMER_PLATFORM_APPLE)
-// Architecture shortcut
-#define ALIMER_INTEL_FAMILY (ALIMER_X64 || ALIMER_X86)
-#define ALIMER_ARM_FAMILY (ALIMER_ARM || ALIMER_A64)
-#define ALIMER_64BIT (ALIMER_X64 || ALIMER_A64)
-
 /**
 * noinline macro
 */
-#if ALIMER_WINDOWS_FAMILY
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
 #	define ALIMER_NOINLINE __declspec(noinline)
-#elif ALIMER_GCC_FAMILY
+#elif ALIMER_CLANG || ALIMER_GCC
 #	define ALIMER_NOINLINE __attribute__((noinline))
 #else
 #	define ALIMER_NOINLINE
@@ -184,7 +163,7 @@
 /**
 * noalias macro
 */
-#if ALIMER_WINDOWS_FAMILY
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
 #	define ALIMER_NOALIAS __declspec(noalias)
 #else
 #	define ALIMER_NOALIAS
@@ -194,7 +173,7 @@
 * Inline macro
 */
 #define ALIMER_INLINE inline
-#if ALIMER_WINDOWS_FAMILY
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
 #	pragma inline_depth( 255 )
 #endif
 

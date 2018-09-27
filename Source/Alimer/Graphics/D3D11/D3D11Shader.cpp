@@ -100,42 +100,13 @@ namespace Alimer
     {
         if (_isCompute)
         {
-            if (_computeShader)
-            {
-#if defined(_DEBUG)
-                ULONG refCount = GetRefCount(_computeShader);
-                ALIMER_ASSERT_MSG(refCount == 1, "D3D11ComputeShader leakage");
-#endif
-
-                _computeShader->Release();
-                _computeShader = nullptr;
-            }
+            SafeRelease(_computeShader, "ID3D11ComputeShader");
         }
         else
         {
-            if (_vertexShader)
-            {
-#if defined(_DEBUG)
-                ULONG refCount = GetRefCount(_vertexShader);
-                ALIMER_ASSERT_MSG(refCount == 1, "D3D11VertexShader leakage");
-#endif
-
-                _vertexShader->Release();
-                _vertexShader = nullptr;
-                _vsBlob->Release();
-                _vsBlob = nullptr;
-            }
-
-            if (_pixelShader)
-            {
-#if defined(_DEBUG)
-                ULONG refCount = GetRefCount(_pixelShader);
-                ALIMER_ASSERT_MSG(refCount == 1, "D3D11PixelShader leakage");
-#endif
-
-                _pixelShader->Release();
-                _pixelShader = nullptr;
-            }
+            SafeRelease(_vertexShader, "ID3D11VertexShader");
+            SafeRelease(_vsBlob, "ID3DBlob");
+            SafeRelease(_pixelShader, "ID3D11PixelShader");
         }
     }
 

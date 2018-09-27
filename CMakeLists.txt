@@ -23,6 +23,9 @@
 # Set CMake minimum version
 cmake_minimum_required (VERSION 3.5)
 
+# Set project name
+project (Alimer)
+
 # Alimer Version
 set (PRODUCT_NAME "Alimer")
 set (PRODUCT_COMPANY "Amer Koleci")
@@ -47,13 +50,24 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+# Configure CMake global variables
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
-set (CMAKE_C_STANDARD 99)
+set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set (CMAKE_INCLUDE_CURRENT_DIR ON)
+set (CMAKE_POSITION_INDEPENDENT_CODE ON)
+set (CMAKE_INSTALL_MESSAGE LAZY)
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
+set (CMAKE_PDB_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
+set (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin/libs")
+set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin/lib")
 
-# Set project name
-project (Alimer LANGUAGES CXX C)
+if( ALIMER_WINDOWS )
+	set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
+endif()
+
+# Enable solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Define standard configurations
@@ -69,8 +83,11 @@ endif ()
 # Set CMake modules search path
 set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 
-# Include Alimer cmake module.
+# Include Alimer module.
 include (Alimer)
+
+# Include Alimer packaging module.
+include (AlimerPackaging)
 
 # Set alimer sdk path.
 set (ALIMER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -78,13 +95,52 @@ set (ALIMER_SDK_SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Source/Alimer)
 set (ALIMER_THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source/ThirdParty)
 set (ALIMER_ASSETS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
+# Workarounds
+if (EMSCRIPTEN OR APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++${CMAKE_CXX_STANDARD}")
+endif ()
+
+if (APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+endif ()
+
+if (MSVC)
+    # In DEBUG, avoid generating a PDB file which seems to mess with incremental compilation.
+    # Instead generate debug info directly inside obj files.
+    set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Z7")
+    set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Z7")
+
+    set(CMAKE_C_FLAGS_DEV "${CMAKE_C_FLAGS_DEV} /Z7")
+    set(CMAKE_CXX_FLAGS_DEV "${CMAKE_CXX_FLAGS_DEV} /Z7")
+
+    set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /Zi")
+    set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
+endif ()
+
+# Initialize the Dev configuration from release configuration.
+set(CMAKE_C_FLAGS_DEV "${CMAKE_C_FLAGS_RELEASE}")
+set(CMAKE_CXX_FLAGS_DEV "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_STATIC_LINKER_FLAGS_DEV "${CMAKE_STATIC_LINKER_FLAGS_RELEASE}")
+set(CMAKE_SHARED_LINKER_FLAGS_DEV "${CMAKE_SHARED_LINKER_FLAGS_RELEASE}")
+set(CMAKE_MODULE_LINKER_FLAGS_DEV "${CMAKE_MODULE_LINKER_FLAGS_RELEASE}")
+set(CMAKE_EXE_LINKER_FLAGS_DEV "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
+
+set(DEBUG_COMPILE_OPTIONS "-DALIMER_DEV=1")
+add_compile_options("$<$<CONFIG:Debug>:${DEBUG_COMPILE_OPTIONS}>")
+
+set(DEV_COMPILE_OPTIONS "-DALIMER_DEV=1" )
+add_compile_options("$<$<CONFIG:Dev>:${DEV_COMPILE_OPTIONS}>")
+
+set(RELEASE_COMPILE_OPTIONS "-DALIMER_DEV=0")
+add_compile_options("$<$<CONFIG:Release>:${RELEASE_COMPILE_OPTIONS}>")
+
 # Source
 add_subdirectory (Source)
 
-include(AlimerPackaging)
-
-# Install CMake modules and toolchains provided by and for Alimer
-install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant
+if (NOT ALIMER_SKIP_INSTALL)
+    # Install CMake modules and toolchains provided by and for Alimer
+    install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant
+endif()
 
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER "3.6")
@@ -96,11 +152,18 @@ if(CMAKE_VERSION VERSION_GREATER "3.6")
 endif()
 
 # Print current build configuration
-message(STATUS "Alimer Configuration:")
-message(STATUS "  Platform        ${PLATFORM_NAME}")
-message(STATUS "  Architecture    ${ARCH_NAME}")
+message (STATUS "Build Configuration:")
+message (STATUS "  Host            ${ALIMER_HOST_NAME}")
+message (STATUS "  C++ Compiler    ${ALIMER_COMPILER_NAME}")
+message (STATUS "  Platform        ${ALIMER_PLATFORM_NAME}")
+message (STATUS "  Architecture    ${ALIMER_ARCH_NAME}")
 
-message(STATUS "  Library         ${ALIMER_LIBRARY_TYPE}")
+if (ALIMER_SHARED)
+    message(STATUS "  Library         SHARED")
+else()
+    message(STATUS "  Library         STATIC")
+endif()
+
 message(STATUS "  Threading       ${ALIMER_THREADING}")
 message(STATUS "  GL              ${ALIMER_GL}")
 message(STATUS "  D3D11           ${ALIMER_D3D11}")
