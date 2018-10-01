@@ -20,8 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/ComponentSystem.h"
-#include "../Scene/Scene.h"
+#include "../Application//GameSystem.h"
 
 namespace Alimer
 {

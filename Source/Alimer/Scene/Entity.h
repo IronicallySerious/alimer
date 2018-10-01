@@ -33,457 +33,302 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <algorithm>
+#include <bitset>
 
 namespace Alimer
 {
-    using Family = uint32_t;
-    class Component;
-
-    namespace Detail
+    struct ComponentIDMapping
     {
-        struct IDMapping
-        {
-        public:
-            template <typename T>
-            static Family GetId()
-            {
-                static Family id = ids++;
-                return id;
-            }
-
-            template <typename... TComponent>
-            static Family GetGroupId()
-            {
-                static uint32_t id = groupIds++;
-                return id;
-            }
-
-            template <typename TSystem>
-            static Family GetSystemId()
-            {
-                static uint32_t id = systemIds++;
-                return id;
-            }
-
-        private:
-            static Family ids;
-            static Family groupIds;
-            static Family systemIds;
-        };
-
-        template <size_t Index>
-        struct HasComponent
-        {
-            template <typename T>
-            static bool Contains(const T &t, const Component *component)
-            {
-                return static_cast<Component*>(
-                    std::get<Index>(t)) == component
-                    || HasComponent<Index - 1>::Contains(t, component);
-            }
-        };
-
-        template <>
-        struct HasComponent<0>
-        {
-            template <typename T>
-            static bool Contains(const T &t, const Component *component)
-            {
-                return static_cast<Component*>(std::get<0>(t)) == component;
-            }
-        };
-    }
-
-    
-
-    /// Base component class.
-    class ALIMER_API Component : public Serializable
-    {
-        ALIMER_OBJECT(Component, Serializable);
-
     public:
-        /// Destruct.
-        virtual ~Component() = default;
-    };
-
-    /// Entity id
-    struct EntityId
-    {
-        EntityId() : _id(0) {}
-        explicit EntityId(uint64_t id) : _id(id) {}
-        EntityId(uint32_t index, uint32_t version) : _id(uint64_t(index) | uint64_t(version) << 32UL) {}
-
-        uint64_t id() const { return _id; }
-
-        bool operator == (const EntityId &other) const { return _id == other._id; }
-        bool operator != (const EntityId &other) const { return _id != other._id; }
-        bool operator < (const EntityId &other) const { return _id < other._id; }
-
-        uint32_t index() const { return _id & 0xffffffffUL; }
-        uint32_t version() const { return _id >> 32; }
+        template <typename T>
+        static uint32_t GetId()
+        {
+            static uint32_t id = ids++;
+            return id;
+        }
 
     private:
-        friend class EntityManager;
-
-        uint64_t _id;
+        static uint32_t ids;
     };
 
-    class Entity;
-    class EntityManager;
-
-    struct EntityDeleter
-    {
-        void operator()(Entity* entity);
-    };
-
-    class ALIMER_API Entity final : public IntrusivePtrEnabled<Entity, EntityDeleter>
+    class BaseComponent;
+    class ComponentStorage
     {
     public:
+        ComponentStorage(std::size_t size = 100);
+
+        inline std::size_t size() const
+        {
+            return _data.size();
+        }
+        inline std::size_t capacity() const
+        {
+            return _data.capacity();
+        }
+        /// Ensure at least n elements will fit in the pool.
+        void Expand(std::size_t size);
+        void Reserve(std::size_t size);
+        IntrusivePtr<BaseComponent> Get(std::size_t index) const;
+
+        template <typename T>
+        IntrusivePtr<T> Get(std::size_t index) const
+        {
+            static_assert(std::is_base_of<Component, T>::value, "Invalid component type.");
+
+            return IntrusivePtr<T>(Get(index));
+        }
+
+        void Destroy(std::size_t index);
+
+        template <typename T, typename... Args>
+        IntrusivePtr<T> Set(uint32_t index, Args&&... args)
+        {
+            auto element = MakeHandle<T>(std::forward<Args>(args)...);
+            _data[index] = element;
+            return element;
+        }
+
+        void Set(uint32_t index, const IntrusivePtr<BaseComponent>& component);
+
+    private:
+        std::vector<IntrusivePtr<BaseComponent>> _data;
+    };
+
+    /// Base component class.
+    class ALIMER_API BaseComponent : public IntrusivePtrEnabled<BaseComponent>
+    {
+        friend class EntityManager;
+    public:
+        BaseComponent() = default;
+        virtual ~BaseComponent() = default;
+
+    protected:
+        virtual uint32_t GetFamily() const = 0;
+    };
+
+    template <typename T>
+    class Component : public BaseComponent
+    {
+    private:
+        uint32_t GetFamily() const override
+        {
+            return GetStaticFamilyId();
+        }
+
+    public:
+        Component() = default;
+        Component(Component& rhs) = delete;
+        Component& operator=(Component& rhs) = delete;
+
+        static uint32_t GetStaticFamilyId()
+        {
+            return ComponentIDMapping::GetId<T>();
+        }
+    };
+
+    using ComponentHandle = IntrusivePtr<BaseComponent>;
+
+    class ALIMER_API Entity final
+    {
+    public:
+        struct Id {
+            Id() : _id(0) {}
+            explicit Id(uint64_t id) : _id(id) {}
+            Id(uint32_t index, uint32_t version) : _id(uint64_t(index) | uint64_t(version) << 32UL) {}
+
+            uint64_t id() const { return _id; }
+
+            bool operator == (const Id &other) const { return _id == other._id; }
+            bool operator != (const Id &other) const { return _id != other._id; }
+            bool operator < (const Id &other) const { return _id < other._id; }
+
+            uint32_t index() const { return _id & 0xffffffffUL; }
+            uint32_t version() const { return _id >> 32; }
+
+        private:
+            friend class EntityManager;
+
+            uint64_t _id;
+        };
+
         /// Id of an invalid Entity.
-        static const EntityId Invalid;
+        static const Id INVALID;
 
         Entity() = default;
+        Entity(EntityManager *manager, Entity::Id id) : _manager(manager), _id(id) {}
         Entity(const Entity &other) = default;
         Entity &operator = (const Entity &other) = default;
 
-        Entity(EntityManager* manager, EntityId id)
-            : _manager(manager)
-            , _id(id)
-        {
+        /// Is this Entity handle valid?
+        bool IsValid() const;
+
+        /// Check if Entity handle is invalid.
+        operator bool() const {
+            return IsValid();
         }
 
-        bool HasComponent(Family family) const
-        {
-            auto it = _componentsMap.find(family);
-            return it != std::end(_componentsMap) && it->second;
+        bool operator == (const Entity &other) const {
+            return other._manager == _manager && other._id == _id;
         }
 
-        template <typename T>
-        bool HasComponent() const
-        {
-            return HasComponent(Detail::IDMapping::GetId<T>());
+        bool operator != (const Entity &other) const {
+            return !(other == *this);
         }
 
-        template <typename T>
-        T* GetComponent()
-        {
-            auto it = _componentsMap.find(Detail::IDMapping::GetId<T>());
-            if (it == std::end(_componentsMap))
-                return nullptr;
-
-            return static_cast<T*>(it->second);
+        bool operator < (const Entity &other) const {
+            return other._id < _id;
         }
 
-        template <typename T>
-        const T* GetComponent() const
-        {
-            auto it = _componentsMap.find(Detail::IDMapping::GetId<T>());
-            if (it == std::end(_componentsMap))
-                return nullptr;
+        Id GetId() const { return _id; }
 
-            return static_cast<T*>(it->second);
-        }
+        void SetName(const std::string& name);
+        const std::string& GetName() const;
 
-
-        template <typename T, typename... Args>
-        T* AddComponent(Args&&... args);
-
-        EntityManager* GetManager() const {
-            return _manager;
-        }
-
-        EntityId GetId() const { return _id; }
-
-        std::unordered_map<uint32_t, Component*> &GetComponentsMap() {
-            return _componentsMap;
-        }
-
-    private:
-        void Invalidate()
-        {
-            _manager = nullptr;
-            _id = Invalid;
-        }
+        /// Assign component to entity.
+        template <typename C, typename... Args>
+        IntrusivePtr<C> Assign(Args&&... args);
 
     private:
         friend class EntityManager;
 
-        EntityManager* _manager;
-        EntityId _id = Invalid;
-        std::unordered_map<Family, Component*> _componentsMap;
-    };
-    using EntityHandle = IntrusivePtr<Entity>;
-
-    class ComponentAllocatorBase
-    {
-    public:
-        virtual ~ComponentAllocatorBase() = default;
-        virtual void Free(Component* component) = 0;
-    };
-
-    template <typename TComponent>
-    struct ComponentAllocator : public ComponentAllocatorBase
-    {
-        ObjectPool<TComponent> pool;
-
-        void Free(Component* component) override final
-        {
-            pool.Free(static_cast<TComponent*>(component));
-        }
-    };
-
-    class EntityGroupBase
-    {
-    public:
-        virtual ~EntityGroupBase() = default;
-        virtual void AddEntity(Entity &entity) = 0;
-        virtual void RemoveComponent(Component* component) = 0;
-    };
-
-    template <typename... TComponent>
-    class EntityGroup : public EntityGroupBase
-    {
-    public:
-        void AddEntity(Entity &entity) override final
-        {
-            if (has_all_components<TComponent...>(entity))
-            {
-                _entities.push_back(&entity);
-                _groups.push_back(std::make_tuple(entity.GetComponent<TComponent>()...));
-            }
-        }
-
-        void RemoveComponent(Component* component) override final
-        {
-            auto it = std::find_if(std::begin(_groups), std::end(_groups), [&](const std::tuple<TComponent*...> &t)
-            {
-                return HasComponent(t, component);
-            });
-
-            if (it == _groups.end())
-                return;
-
-            auto offset = size_t(it - begin(_groups));
-            if (offset != _groups.size() - 1)
-            {
-                std::swap(_groups[offset], _groups.back());
-                std::swap(_entities[offset], _entities.back());
-            }
-            _groups.pop_back();
-            _entities.pop_back();
-        }
-
-        std::vector<std::tuple<TComponent*...>> &GetGroups()
-        {
-            return _groups;
-        }
-
-    private:
-        std::vector<std::tuple<TComponent*...>> _groups;
-        std::vector<Entity*> _entities;
-
-        template <typename... Us>
-        struct HasAllComponents;
-
-        template <typename U, typename... Us>
-        struct HasAllComponents<U, Us...>
-        {
-            static bool Contains(const Entity &entity)
-            {
-                return entity.HasComponent(Detail::IDMapping::GetId<U>())
-                    && HasAllComponents<Us...>::Contains(entity);
-            }
-        };
-
-        template <typename U>
-        struct HasAllComponents<U>
-        {
-            static bool Contains(const Entity &entity)
-            {
-                return entity.HasComponent(Detail::IDMapping::GetId<U>());
-            }
-        };
-
-        template <typename... Us>
-        bool has_all_components(const Entity &entity)
-        {
-            return HasAllComponents<Us...>::Contains(entity);
-        }
-
-        template <typename... Us>
-        static bool HasComponent(const std::tuple<Us *...> &t, const Component* component)
-        {
-            return Detail::HasComponent<sizeof...(Us) - 1>::Contains(t, component);
-        }
+        EntityManager* _manager = nullptr;
+        Entity::Id _id = INVALID;
     };
 
     /// Manages the relationship between an Entity and its components
+    static const std::size_t MAX_COMPONENTS = 64;
     class ALIMER_API EntityManager final
     {
     public:
+        using ComponentMask = std::bitset<MAX_COMPONENTS>;
+
         explicit EntityManager();
         ~EntityManager();
         void Reset();
 
-        EntityHandle CreateEntity()
+        /// Create a new entity.
+        Entity Create();
+
+        /// Number of managed entities.
+        size_t GetSize() const { return _entityComponentMask.size() - _freeList.size(); }
+
+        /// Gets the current entity capacity.
+        size_t GetCapacity() const { return _entityComponentMask.size(); }
+
+        /// Return true if the given entity ID is still valid.
+        bool IsValid(Entity::Id id) const
         {
-            uint32_t index, version;
-            if (_freeList.empty())
-            {
-                index = _indexCounter++;
-                _entityVersion.resize(index + 1);
-                version = _entityVersion[index] = 1;
-            }
-            else {
-                index = _freeList.back();
-                _freeList.pop_back();
-                version = _entityVersion[index];
-            }
-
-            auto itr = EntityHandle(_pool.Allocate(this, EntityId(index, version)));
-            _entities.push_back(itr.Get());
-            return itr;
-        }
-
-        void DeleteEntity(Entity *entity)
-        {
-            // Free id first.
-            entity->Invalidate();
-            uint32_t index = entity->GetId().index();
-            _entityVersion[index]++;
-            _freeList.push_back(index);
-
-            auto &components = entity->GetComponentsMap();
-            for (auto &component : components)
-            {
-                if (component.second)
-                {
-                    FreeComponent(component.first, component.second);
-                }
-            }
-            _pool.Free(entity);
-
-            auto itr = std::find(std::begin(_entities), std::end(_entities), entity);
-            auto offset = size_t(itr - std::begin(_entities));
-            if (offset != _entities.size() - 1)
-            {
-                std::swap(_entities[offset], _entities.back());
-            }
-            _entities.pop_back();
-        }
-
-        template <typename... TComponent>
-        std::vector<std::tuple<TComponent*...>> &GetComponentGroup()
-        {
-            Family family = Detail::IDMapping::GetGroupId<TComponent...>();
-            auto it = _groups.find(family);
-            if (it == _groups.end())
-            {
-                RegisterGroup<TComponent...>(family);
-                auto tmp = _groups.insert(std::make_pair(family, std::unique_ptr<EntityGroupBase>(new EntityGroup<TComponent...>())));
-                it = tmp.first;
-
-                auto *group = static_cast<EntityGroup<TComponent...> *>(it->second.get());
-                for (auto &entity : _entities)
-                {
-                    group->AddEntity(*entity);
-                }
-            }
-
-            auto *group = static_cast<EntityGroup<TComponent...>*>(it->second.get());
-            return group->GetGroups();
+            return id.index() < _entityVersion.size() && _entityVersion[id.index()] == id.version();
         }
 
         template <typename T, typename... Args>
-        T* AllocateComponent(Entity &entity, Args&&... args)
+        IntrusivePtr<T> Assign(Entity::Id id, Args&&... args)
         {
-            Family id = Detail::IDMapping::GetId<T>();
-            auto itr = _components.find(id);
-            if (itr == std::end(_components))
-            {
-                auto tmp = _components.insert(std::make_pair(id, std::unique_ptr<ComponentAllocatorBase>(new ComponentAllocator<T>)));
-                itr = tmp.first;
-            }
+            static_assert(std::is_base_of<BaseComponent, T>(), "T is not a component, cannot add T to entity");
 
-            auto *allocator = static_cast<ComponentAllocator<T> *>(itr->second.get());
-            auto &component = entity.GetComponentsMap()[id];
-            if (component)
-            {
-                // Found: Free old one.
-                FreeComponent(id, component);
-            }
-
-            // Allocate new
-            component = allocator->pool.Allocate(std::forward<Args>(args)...);
-            for (auto &group : _componentToGroups[id])
-            {
-                _groups[group]->AddEntity(entity);
-            }
-
-            return static_cast<T*>(component);
+            IntrusivePtr<T> handle = MakeHandle<T>(std::forward<Args>(args)...);
+            Assign(id, handle);
+            return handle;
         }
 
-        void FreeComponent(uint32_t id, Component* component)
-        {
-            _components[id]->Free(component);
-            for (auto &group : _componentToGroups[id])
-            {
-                _groups[group]->RemoveComponent(component);
-            }
-        }
+        IntrusivePtr<BaseComponent> Assign(Entity::Id id, const ComponentHandle& component);
+
+        void SetEntityName(Entity::Id id, const std::string& name);
+        const std::string& GetEntityName(Entity::Id id);
 
     private:
-        ObjectPool<Entity> _pool;
-        std::vector<Entity*> _entities;
-        std::unordered_map<Family, std::unique_ptr<ComponentAllocatorBase>> _components;
-        std::unordered_map<Family, std::unique_ptr<EntityGroupBase>> _groups;
-        std::unordered_map<uint32_t, std::unordered_set<uint32_t>> _componentToGroups;
+        friend class Entity;
 
-        template <typename... Us>
-        struct GroupRegisters;
-
-        template <typename U, typename... Us>
-        struct GroupRegisters<U, Us...>
+        inline void AssertValid(Entity::Id id) const
         {
-            static void RegisterGroup(
-                std::unordered_map<uint32_t, std::unordered_set<uint32_t>> &groups,
-                uint32_t groupId)
-            {
-                groups[Detail::IDMapping::GetId<U>()].insert(groupId);
-                GroupRegisters<Us...>::RegisterGroup(groups, groupId);
-            }
-        };
-
-        template <typename U>
-        struct GroupRegisters<U>
-        {
-            static void RegisterGroup(
-                std::unordered_map<uint32_t, std::unordered_set<uint32_t>> &groups,
-                uint32_t groupId)
-            {
-                groups[Detail::IDMapping::GetId<U>()].insert(groupId);
-            }
-        };
-
-        template <typename U, typename... Us>
-        void RegisterGroup(uint32_t groupId)
-        {
-            GroupRegisters<U, Us...>::RegisterGroup(_componentToGroups, groupId);
+            assert(id.index() < _entityComponentMask.size() && "entity::Id ID outside entity vector range");
+            assert(_entityVersion[id.index()] == id.version() &&
+                "Attempt to access entity via a stale entity::Id");
         }
 
-        uint32_t _indexCounter = 0;
+        inline void AccomodateEntity(std::uint32_t index)
+        {
+            if (_entityComponentMask.size() <= index)
+            {
+                _entityComponentMask.resize(index + 1);
+                _entityVersion.resize(index + 1);
+                for (auto& pool : _componentPools)
+                {
+                    if (pool)
+                    {
+                        pool->Expand(index + 1);
+                    }
+                }
+            }
+        }
 
-        // List of available entity slots.
-        std::vector<uint32_t> _freeList;
+        template <typename C>
+        ComponentStorage& AccomodateComponent()
+        {
+            auto family = rtti::type_index_sequential_t::id<Component, C>();
+            return AccomodateComponent(family);
+        }
+
+        ComponentStorage& AccomodateComponent(uint32_t family)
+        {
+            if (_componentPools.size() <= family)
+            {
+                _componentPools.resize(family + 1);
+            }
+
+            auto& pool = _componentPools[family];
+            if (!pool)
+            {
+                pool = std::make_unique<ComponentStorage>();
+                pool->Expand(_indexCounter);
+            }
+
+            return *pool;
+        }
+
+        std::uint32_t _indexCounter = 0;
+        // Each element in component_pools_ corresponds to a Pool for a component.
+        // The index into the vector is the component::family().
+        std::vector<std::unique_ptr<ComponentStorage>> _componentPools;
+        // Bitmask of components associated with each entity. Index into the vector is
+        // the entity::Id.
+        std::vector<ComponentMask> _entityComponentMask;
         // Vector of entity version numbers. Incremented each time an entity is destroyed
         std::vector<uint32_t> _entityVersion;
+        // List of available entity slots.
+        std::vector<uint32_t> _freeList;
+        /// Map of entity names.
+        std::unordered_map<std::uint64_t, std::string> _entityNames;
 
         DISALLOW_COPY_MOVE_AND_ASSIGN(EntityManager);
     };
 
-    template <typename T, typename... Args>
-    T* Entity::AddComponent(Args&&... args)
+    inline bool Entity::IsValid() const
     {
-        return _manager->AllocateComponent<T>(*this, std::forward<Args>(args)...);
+        return (_manager != nullptr) && _manager->IsValid(_id);
     }
+
+    template <typename C, typename... Args>
+    IntrusivePtr<C> Entity::Assign(Args&&... args)
+    {
+        ALIMER_ASSERT(IsValid());
+        return _manager->Assign<C>(_id, std::forward<Args>(args)...);
+    }
+}
+
+namespace std
+{
+    template <> struct hash<Alimer::Entity>
+    {
+        std::size_t operator () (const Alimer::Entity &entity) const {
+            return static_cast<std::size_t>(entity.GetId().index() ^ entity.GetId().version());
+        }
+    };
+
+    template <> struct hash<const Alimer::Entity>
+    {
+        std::size_t operator () (const Alimer::Entity &entity) const {
+            return static_cast<std::size_t>(entity.GetId().index() ^ entity.GetId().version());
+        }
+    };
 }

@@ -26,18 +26,60 @@ using namespace std;
 
 namespace Alimer
 {
-    Family Detail::IDMapping::ids;
-    Family Detail::IDMapping::groupIds;
-    Family Detail::IDMapping::systemIds;
+    uint32_t ComponentIDMapping::ids;
 
-    const EntityId Entity::Invalid;
-
-    void EntityDeleter::operator()(Entity* entity)
+    // ComponentStorage
+    ComponentStorage::ComponentStorage(std::size_t size)
     {
-        entity->GetManager()->DeleteEntity(entity);
+        Expand(size);
     }
 
+    void ComponentStorage::Expand(std::size_t size)
+    {
+        _data.resize(size);
+    }
+
+    void ComponentStorage::Reserve(std::size_t size)
+    {
+        _data.reserve(size);
+    }
+
+    IntrusivePtr<BaseComponent> ComponentStorage::Get(std::size_t index) const
+    {
+        assert(index < size());
+        return _data[index];
+    }
+
+    void ComponentStorage::Destroy(std::size_t index)
+    {
+        assert(index < size());
+        auto& element = _data[index];
+        element.Reset();
+    }
+
+    void ComponentStorage::Set(uint32_t index, const IntrusivePtr<BaseComponent>& component)
+    {
+        _data[index] = component;
+    }
+
+    // Entity
+    const Entity::Id Entity::INVALID;
+
+    void Entity::SetName(const std::string& name)
+    {
+        ALIMER_ASSERT(IsValid());
+        _manager->SetEntityName(_id, name);
+    }
+
+    const std::string& Entity::GetName() const
+    {
+        ALIMER_ASSERT(IsValid());
+        return _manager->GetEntityName(_id);
+    }
+
+    // EntityManager
     EntityManager::EntityManager()
+        : _indexCounter(0)
     {
 
     }
@@ -49,7 +91,67 @@ namespace Alimer
 
     void EntityManager::Reset()
     {
-        _componentToGroups.clear();
-        _groups.clear();
+        //for (entity entity : all_entities())
+        //{
+        //    entity.destroy();
+        //}
+
+        _componentPools.clear();
+        _entityComponentMask.clear();
+
+        _entityVersion.clear();
+        _freeList.clear();
+        _indexCounter = 0;
+    }
+
+    Entity EntityManager::Create()
+    {
+        std::uint32_t index, version;
+        if (_freeList.empty())
+        {
+            index = _indexCounter++;
+            AccomodateEntity(index);
+            version = _entityVersion[index] = 1;
+        }
+        else
+        {
+            index = _freeList.back();
+            _freeList.pop_back();
+            version = _entityVersion[index];
+        }
+
+        Entity entity(this, Entity::Id(index, version));
+        // TODO: Fire event
+        //onEntityCreated(entity);
+        return entity;
+    }
+
+    IntrusivePtr<BaseComponent> EntityManager::Assign(Entity::Id id, const ComponentHandle& component)
+    {
+        AssertValid(id);
+        const auto family = component->GetFamily();
+
+        // Placement new into the component pool.
+        auto& pool = AccomodateComponent(family);
+
+        pool.Set(id.index(), component);
+        // Set the bit for this component.
+        _entityComponentMask[id.index()].set(family);
+
+        // Create and return handle.
+        //component->entity_ = get(id);
+        //component->on_entity_set();
+        //on_component_added(get(id), handle);
+        return component;
+    }
+
+    void EntityManager::SetEntityName(Entity::Id id, const std::string& name)
+    {
+        _entityNames[id.id()] = name;
+    }
+
+    const std::string& EntityManager::GetEntityName(Entity::Id id)
+    {
+        return _entityNames[id.id()];
     }
 }

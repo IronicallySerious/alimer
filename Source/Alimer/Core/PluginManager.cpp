@@ -100,12 +100,19 @@ namespace Alimer
         }
 
         // Try to instance the plugin being loaded
-        Plugin* plugin = loadFunc();
-        if (plugin)
+        try
         {
-            InstallPlugin(plugin);
-            //UnloadNativeLibrary(libHandle);
-            return true;
+            Plugin* plugin = loadFunc();
+            if (plugin)
+            {
+                InstallPlugin(plugin);
+                //UnloadNativeLibrary(libHandle);
+                return true;
+            }
+        }
+        catch (...)
+        {
+
         }
 
         return false;

@@ -22,23 +22,17 @@
 
 #pragma once
 
-#include "../ComponentSystem.h"
+#include "../../Application/GameSystem.h"
 
 namespace Alimer
 {
-    class TransformComponent;
-    class CameraComponent;
-
 	/// System that manages updates of any camera components
     /// which are attached to entities that also have a transform.
-    class ALIMER_API CameraSystem final : public System
+    class ALIMER_API CameraSystem final : public GameSystem
 	{
     public:
-        CameraSystem(EntityManager &entities);
+        CameraSystem() = default;
 
         void Update(double deltaTime) override;
-
-    private:
-        std::vector<std::tuple<CameraComponent*, TransformComponent*>> &_cameras;
 	};
 }

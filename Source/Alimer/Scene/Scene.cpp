@@ -24,16 +24,14 @@
 #include "../Scene/Components/TransformComponent.h"
 #include "../Scene/Components/CameraComponent.h"
 #include "../Core/Log.h"
-using namespace std;
 
 namespace Alimer
 {
-	Scene::Scene(EntityManager& entities)
-        : _manager(entities)
+	Scene::Scene()
 	{
-        _defaultCamera = CreateEntity();
-        _defaultCamera->AddComponent<TransformComponent>();
-        _defaultCamera->AddComponent<CameraComponent>();
+        _defaultCamera = CreateEntity("Default Camera");
+        _defaultCamera.Assign<TransformComponent>();
+        _defaultCamera.Assign<CameraComponent>();
         //_defaultCamera->AddComponent<AudioListener>();
 
         _activeCamera = _defaultCamera;
@@ -43,10 +41,14 @@ namespace Alimer
 	{
 	}
 
-    EntityHandle Scene::CreateEntity()
+    Entity Scene::CreateEntity(const std::string& name)
     {
-        EntityHandle entity = _manager.CreateEntity();
-        _entities.push_back(entity);
+        Entity entity = _entities.Create();
+        entity.SetName(name);
         return entity;
+    }
+
+    void Scene::UpdateCachedTransforms()
+    {
     }
 }

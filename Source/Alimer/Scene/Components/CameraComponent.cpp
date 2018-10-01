@@ -25,7 +25,7 @@
 
 namespace Alimer
 {
-    CameraComponent::CameraComponent()
+    CameraComponent::~CameraComponent()
     {
 
     }

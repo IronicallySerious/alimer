@@ -24,8 +24,6 @@
 
 #include <new>
 #include <memory>
-#include <string>
-#include <cstring>
 #include <array>
 #include <vector>
 #include <string>
@@ -35,6 +33,7 @@
 #include "../Core/Timer.h"
 #include "../Core/PluginManager.h"
 #include "../Application/Window.h"
+#include "../Application/GameSystem.h"
 #include "../Serialization/Serializable.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceManager.h"
@@ -42,11 +41,11 @@
 #include "../Audio/Audio.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Scene/Scene.h"
+#include "../Renderer/RenderContext.h"
+#include "../Renderer/RenderPipeline.h"
 
 namespace Alimer
 {
-    class RenderSystem;
-
     class ApplicationSettings : public Serializable
     {
     public:
@@ -131,10 +130,10 @@ namespace Alimer
         UniquePtr<Audio> _audio;
 
         // 
-        EntityManager _entities;
         SystemManager _systems;
         Scene _scene;
-        IntrusivePtr<RenderSystem> _renderSystem;
+        RenderContext _renderContext;
+        RenderPipeline* _renderPipeline = nullptr;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

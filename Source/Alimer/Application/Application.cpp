@@ -24,8 +24,6 @@
 #include "../Application/Application.h"
 #include "../IO/Path.h"
 #include "../Core/Platform.h"
-#include "../Scene/Systems/CameraSystem.h"
-#include "../Scene/Systems/RenderSystem.h"
 #include "../Core/Log.h"
 using namespace std;
 
@@ -39,7 +37,6 @@ namespace Alimer
         , _headless(false)
         , _settings{}
         , _log(new Logger())
-        , _scene(_entities)
     {
         PlatformConstruct();
 
@@ -98,9 +95,8 @@ namespace Alimer
         // Initialize this instance and all systems.
         Initialize();
 
-        // Setup and configure all systems.
-        _systems.Add<CameraSystem>(_entities);
-        _renderSystem = _systems.Add<RenderSystem>(_entities);
+        // Setup and render syttem.
+        _renderContext.SetDevice(_graphicsDevice.Get());
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;
@@ -129,6 +125,7 @@ namespace Alimer
             double deltaTime = _timer.GetElapsed();
 
             // Update all systems.
+            _scene.UpdateCachedTransforms();
             _systems.Update(deltaTime);
 
             // Render single frame.
@@ -156,7 +153,11 @@ namespace Alimer
             OnRenderFrame(commandBuffer, frameTime, elapsedTime);
 
             // Render scene to default command buffer.
-            _renderSystem->Render(commandBuffer);
+            if (_renderPipeline)
+            {
+                //auto camera = _scene.GetActiveCamera()->GetComponent<CameraComponent>()->camera;
+                //_renderPipeline->Render(_renderContext, { camera });
+            }
 
             // End swap chain render pass.
             commandBuffer->EndRenderPass();

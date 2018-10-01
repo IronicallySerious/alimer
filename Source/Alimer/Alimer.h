@@ -72,7 +72,7 @@
 #include "Scene/Entity.h"
 #include "Scene/Components/TransformComponent.h"
 #include "Scene/Components/CameraComponent.h"
-#include "Scene/Components/Renderable.h"
+//#include "Scene/Components/Renderable.h"
 
 // Renderer
 #include "Renderer/Material.h"

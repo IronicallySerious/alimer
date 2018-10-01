@@ -119,6 +119,7 @@ target_include_directories(libAlimer
 
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES STB spirv_cross)
+
 if (ALIMER_CAN_COMPILE)
     list (APPEND THIRD_PARTY_DEPENDENCIES glslang SPIRV)
 endif ()
@@ -167,6 +168,13 @@ endif ()
 
 # Add OS-specific library dependencies
 if (ALIMER_WINDOWS)
+    # Link universal crt libs (https://blogs.msdn.microsoft.com/vcblog/2015/03/03/introducing-the-universal-crt/)
+    # To avoid SDL2 linking issues.
+    if (ALIMER_WINDOWS_CRT)
+        target_link_libraries(${TARGET_NAME} debug libcmtd libvcruntimed libucrtd)
+        target_link_libraries(${TARGET_NAME} optimized libcmt libvcruntime libucrt)
+    endif ()
+
     target_link_libraries (${TARGET_NAME} winmm ws2_32)
 elseif (ALIMER_UWP)
     if (ALIMER_D3D11 OR ALIMER_D3D12)

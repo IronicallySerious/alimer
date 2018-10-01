@@ -170,13 +170,6 @@ alimer_option (ALIMER_TOOLS "Enable Tools")
 
 # Setup global per-platform compiler/linker options
 if( MSVC )
-    add_definitions(-D_UNICODE)
-	add_compile_options(-D_CRT_NONSTDC_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
-    add_compile_options($<$<CONFIG:DEBUG>:-D_SECURE_SCL_THROWS=0> $<$<CONFIG:DEBUG>:-D_SILENCE_DEPRECATION_OF_SECURE_SCL_THROWS>)
-    add_compile_options(-D_HAS_ITERATOR_DEBUGGING=$<CONFIG:DEBUG> -D_SECURE_SCL=$<CONFIG:DEBUG>)
-    #add_compile_options(-D_HAS_EXCEPTIONS=0)
-    add_compile_options(-D_USE_MATH_DEFINES=1)
-
     # Enable full optimization in dev/release
     add_compile_options($<$<CONFIG:DEBUG>:/Od> $<$<NOT:$<CONFIG:DEBUG>>:/Ox>)
 
@@ -297,6 +290,12 @@ endif ()
 
 # Functions and macros
 function(alimer_setup_common_properties target)
+    if (MSVC)
+        target_compile_definitions(${target} PRIVATE _SCL_SECURE_NO_WARNINGS _CRT_SECURE_NO_WARNINGS NOMINMAX WIN32_LEAN_AND_MEAN)
+        target_compile_definitions(${target} PRIVATE _UNICODE)
+    elseif (CMAKE_COMPILER_IS_GNUCXX OR (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
+    endif()
+
     # Define 32 versus 64 bit architecture
     if( ALIMER_64BIT )
         target_compile_definitions(${target} PRIVATE ALIMER_64BIT)

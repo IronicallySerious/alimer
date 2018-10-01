@@ -24,29 +24,31 @@
 
 #include "../Entity.h"
 #include "../../Math/Math.h"
+#include "../../Math/Matrix4x4.h"
 
 namespace Alimer
 {
-    struct Transform
+    class Transform
     {
-        vec3 scale = vec3(1.0f);
-        vec3 translation = vec3(0.0f);
+    private:
+        mutable mat4 matrix_ = mat4::Identity;
+        vec3 position = vec3(0.0f, 0.0f, 0.0f);
         quat rotation = quat(1.0f, 0.0f, 0.0f, 0.0f);
+        vec3 scale = vec3(1.0f);
+
+        mutable bool _dirty = false;
     };
 
 	/// Defines a Transform Component.
-    class ALIMER_API TransformComponent : public Component
+    class ALIMER_API TransformComponent final : public Component<TransformComponent>
 	{
-        ALIMER_OBJECT(TransformComponent, Component);
+        //ALIMER_OBJECT(TransformComponent, Component);
 
     public:
         const Transform& GetLocalTransform() const;
-
         //glm::mat4 worldTransform;
 
     private:
         Transform _localTransform;
-        uint32_t lastTimestamp = ~0u;
-        const uint32_t *currentTimestamp = nullptr;
 	};
 }

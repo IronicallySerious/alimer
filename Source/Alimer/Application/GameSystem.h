@@ -26,15 +26,15 @@
 
 namespace Alimer
 {
-    /// Defines a base System class.
-    class ALIMER_API System : public IntrusivePtrEnabled<System>
+    /// Defines a base Game System class.
+    class ALIMER_API GameSystem : public IntrusivePtrEnabled<GameSystem>
     {
     public:
         /// Constructor.
-        System() = default;
+        GameSystem() = default;
 
         /// Destructor.
-        virtual ~System() = default;
+        virtual ~GameSystem() = default;
 
         /// Updates the system
         virtual void Update(double deltaTime) = 0;
@@ -45,10 +45,6 @@ namespace Alimer
     public:
         SystemManager() = default;
         ~SystemManager() = default;
-        SystemManager(const SystemManager&) = delete;
-        SystemManager(const SystemManager&&) = delete;
-        SystemManager& operator = (const SystemManager&) = delete;
-        SystemManager& operator = (const SystemManager&&) = delete;
 
         /// Add new System.
         template <typename S>
@@ -80,6 +76,8 @@ namespace Alimer
         void Update(double deltaTime);
 
     private:
-        std::unordered_map<uint32_t, IntrusivePtr<System>> _systems;
+        std::unordered_map<uint32_t, IntrusivePtr<GameSystem>> _systems;
+
+        DISALLOW_COPY_MOVE_AND_ASSIGN(SystemManager);
     };
 }

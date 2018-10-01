@@ -26,25 +26,8 @@
 
 namespace Alimer
 {
-    CameraSystem::CameraSystem(EntityManager &entities)
-        : _cameras(entities.GetComponentGroup<CameraComponent, TransformComponent>())
-    {
-    }
-
     void CameraSystem::Update(double deltaTime)
     {
         ALIMER_UNUSED(deltaTime);
-
-        // Update cameras.
-        for (auto &c : _cameras)
-        {
-            CameraComponent* camera;
-            TransformComponent* transform;
-            std::tie(camera, transform) = c;
-
-            //camera->Update(transform->GetLocalTransform());
-            Matrix4x4 world;
-            camera->Update(world);
-        }
     }
 }

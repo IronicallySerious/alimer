@@ -35,7 +35,8 @@ public:
 #if !defined(ALIMER_STATIC_PLUGIN)
 extern "C" ALIMER_INTERFACE_EXPORT Alimer::Plugin* AlimerPluginLoad()
 {
-    return new TestPlugin();
+    return nullptr;
+    //return new TestPlugin();
 }
 
 extern "C" ALIMER_INTERFACE_EXPORT void AlimerPluginUnload(Alimer::Plugin* plugin)

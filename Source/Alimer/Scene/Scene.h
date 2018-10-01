@@ -24,22 +24,41 @@
 
 #include "../Serialization/Serializable.h"
 #include "../Scene/Entity.h"
-#include "../Scene/ComponentSystem.h"
-#include "../Math/MathUtil.h"
 
 namespace Alimer
 {
-    class TransformComponent;
-    class CameraComponent;
-    class Renderable;
-
-    struct RenderableInfo
+    enum class DrawPipeline : unsigned
     {
-        Renderable *renderable;
-        const TransformComponent *transform;
+        Opaque,
+        AlphaTest,
+        AlphaBlend,
     };
-    using VisibilitySet = std::vector<RenderableInfo>;
 
+    class ALIMER_API Renderable : public IntrusivePtrEnabled<Renderable>
+    {
+    public:
+        virtual DrawPipeline getDrawPipeline() const
+        {
+            return DrawPipeline::Opaque;
+        }
+    };
+
+    class Mesh;
+    class ALIMER_API MeshRenderable : public Renderable
+    {
+    public:
+        MeshRenderable(Mesh* mesh);
+
+    private:
+        Mesh* _mesh;
+    };
+
+    using RenderableHandle = IntrusivePtr<Renderable>;
+
+    struct RenderableComponent : public Component<RenderableComponent>
+    {
+        RenderableHandle renderable;
+    };
 
     /// Defines a scene, which is a container of SceneObject's.
     class ALIMER_API Scene final : public Serializable
@@ -48,26 +67,27 @@ namespace Alimer
 
     public:
         /// Constructor.
-        explicit Scene(EntityManager& entities);
+        explicit Scene();
 
         /// Destructor.
         ~Scene();
 
         /// Creates a new entity in the Scene.
-        EntityHandle CreateEntity();
+        Entity CreateEntity(const std::string& name);
 
         /// Return the Entity containing the default camera.
-        EntityHandle GetDefaultCamera() const { return _defaultCamera; }
+        Entity GetDefaultCamera() const { return _defaultCamera; }
 
         /// Return the Entity containing the active camera.
-        EntityHandle GetActiveCamera() const { return _activeCamera; }
+        Entity GetActiveCamera() const { return _activeCamera; }
+
+        void UpdateCachedTransforms();
 
     private:
-        EntityManager& _manager;
-        std::vector<EntityHandle> _entities;
-
-        EntityHandle _defaultCamera;
-        EntityHandle _activeCamera;
+        EntityManager _entities;
+        //ComponentManager<NameComponent> _names;
+        Entity _defaultCamera;
+        Entity _activeCamera;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);

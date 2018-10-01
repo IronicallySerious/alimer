@@ -22,69 +22,6 @@
 
 #include "Alimer.h"
 using namespace Alimer;
-#include <rttr/registration>
-using namespace rttr;
-
-namespace cereal
-{
-    template <typename Archive, typename T>
-    void CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, Alimer::tvec2<T>& obj)
-    {
-        try_serialize(ar, cereal::make_nvp("x", obj.x));
-        try_serialize(ar, cereal::make_nvp("y", obj.y));
-    }
-
-    template<class Archive, typename T>
-    void CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, Alimer::tvec3<T>& obj)
-    {
-        ar(
-            cereal::make_nvp("x", obj.x),
-            cereal::make_nvp("y", obj.y),
-            cereal::make_nvp("z", obj.z)
-        );
-    }
-}
-
-struct TestTransformComponent
-{
-    std::string name;
-    vec3 position = vec3(1.0f);
-
-    //RTTR_ENABLE();
-};
-
-RTTR_REGISTRATION
-{
-    registration::class_<TestTransformComponent>("TransformComponent")
-         .constructor<>()(rttr::policy::ctor::as_raw_ptr)
-         .property("name", &TestTransformComponent::name)
-         .property("position", &TestTransformComponent::position)
-    //.method("func", &MyStruct::func)
-;
-}
-
-struct TestCameraComponent
-{
-
-};
-
-template<class Archive>
-void CEREAL_SERIALIZE_FUNCTION_NAME(Archive &archive, TestTransformComponent &transform)
-{
-    archive(cereal::make_nvp("name", transform.name));
-    archive(cereal::make_nvp("position", transform.position));
-}
-
-static void TestEntt()
-{
-    type t = type::get<TestTransformComponent>();
-    for (auto& prop : t.get_properties())
-        ALIMER_LOGINFO("property name: %s", prop.get_name().to_string().c_str());
-
-    type tName = type::get_by_name("TransformComponent");
-    variant var = tName.create();
-    ALIMER_LOGINFO("Created %s", var.get_type().get_name().to_string().c_str());
-}
 
 namespace Alimer
 {
@@ -437,7 +374,6 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
-        TestEntt();
         _settings.deviceType = GraphicsDeviceType::Direct3D11;
         //_settings.deviceType = GraphicsDeviceType::Vulkan;
     }

@@ -23,18 +23,21 @@
 #pragma once
 
 #include "../Entity.h"
+#include "../../Renderer/Camera.h"
 #include "../../Math/Math.h"
 #include "../../Math/Matrix4x4.h"
 
 namespace Alimer
 {
 	/// Defines a Camera Component class.
-    class ALIMER_API CameraComponent : public Component
+    class ALIMER_API CameraComponent final : public Component<CameraComponent>
 	{
-        ALIMER_OBJECT(CameraComponent, Component);
+        // ALIMER_OBJECT(CameraComponent, Component);
 
     public:
-        explicit CameraComponent();
+        CameraComponent() = default;
+        virtual ~CameraComponent();
+
         void Update(const Matrix4x4& world);
 
         Matrix4x4 GetView() const;
@@ -48,6 +51,8 @@ namespace Alimer
         float zfar = 1000.0f;
 
     private:
+        Camera _camera;
+
         // Calculated values.
         Matrix4x4 _view;
         Matrix4x4 _projection;

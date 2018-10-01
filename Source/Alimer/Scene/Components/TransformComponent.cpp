@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "Scene/Components/TransformComponent.h"
+#include "../Components/TransformComponent.h"
 
 namespace Alimer
 {
