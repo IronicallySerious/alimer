@@ -25,6 +25,10 @@ add_library(STB STATIC ${SOURCE_FILES})
 
 target_compile_definitions(STB PUBLIC -DSTB_VORBIS_HEADER_ONLY=1)
 
+if (MSVC)
+    target_compile_definitions(STB PUBLIC -DSTBI_MSC_SECURE_CRT=1)
+endif()
+
 target_include_directories(STB
     INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/STB>

@@ -152,9 +152,11 @@ public:
 		Platform platform = macOS;
 		uint32_t msl_version = make_msl_version(1, 2);
 		uint32_t texel_buffer_texture_width = 4096; // Width of 2D Metal textures used as 1D texel buffers
+		uint32_t aux_buffer_index = 0;
 		bool enable_point_size_builtin = true;
 		bool disable_rasterization = false;
 		bool resolve_specialized_array_lengths = true;
+		bool swizzle_texture_samples = false;
 
 		bool is_ios()
 		{
@@ -211,6 +213,13 @@ public:
 		return is_rasterization_disabled && (get_entry_point().model == spv::ExecutionModelVertex);
 	}
 
+	// Provide feedback to calling API to allow it to pass an auxiliary
+	// buffer if the shader needs it.
+	bool needs_aux_buffer() const
+	{
+		return used_aux_buffer;
+	}
+
 	// An enum of SPIR-V functions that are implemented in additional
 	// source code that is added to the shader if necessary.
 	enum SPVFuncImpl
@@ -241,6 +250,7 @@ public:
 		SPVFuncImplRowMajor3x4,
 		SPVFuncImplRowMajor4x2,
 		SPVFuncImplRowMajor4x3,
+		SPVFuncImplTextureSwizzle,
 		SPVFuncImplArrayCopyMultidimMax = 6
 	};
 
@@ -313,6 +323,7 @@ protected:
 	std::string unpack_expression_type(std::string expr_str, const SPIRType &type) override;
 	std::string bitcast_glsl_op(const SPIRType &result_type, const SPIRType &argument_type) override;
 	bool skip_argument(uint32_t id) const override;
+	std::string to_member_reference(const SPIRVariable *var, const SPIRType &type, uint32_t index) override;
 	std::string to_qualifiers_glsl(uint32_t id) override;
 	void replace_illegal_names() override;
 	void declare_undefined_values() override;
@@ -374,9 +385,12 @@ protected:
 	void emit_entry_point_declarations() override;
 	uint32_t builtin_frag_coord_id = 0;
 	uint32_t builtin_sample_id_id = 0;
+	uint32_t aux_buffer_id = 0;
 
 	void bitcast_to_builtin_store(uint32_t target_id, std::string &expr, const SPIRType &expr_type) override;
 	void bitcast_from_builtin_load(uint32_t source_id, std::string &expr, const SPIRType &expr_type) override;
+
+	void analyze_sampled_image_usage();
 
 	Options msl_options;
 	std::set<SPVFuncImpl> spv_function_implementations;
@@ -389,9 +403,11 @@ protected:
 	MSLResourceBinding next_metal_resource_index;
 	uint32_t stage_in_var_id = 0;
 	uint32_t stage_out_var_id = 0;
+	bool has_sampled_images = false;
 	bool needs_vertex_idx_arg = false;
 	bool needs_instance_idx_arg = false;
 	bool is_rasterization_disabled = false;
+	bool used_aux_buffer = false;
 	std::string qual_pos_var_name;
 	std::string stage_in_var_name = "in";
 	std::string stage_out_var_name = "out";
@@ -399,6 +415,7 @@ protected:
 	spv::Op previous_instruction_opcode = spv::OpNop;
 
 	std::unordered_map<uint32_t, MSLConstexprSampler> constexpr_samplers;
+	std::vector<uint32_t> buffer_arrays;
 
 	// OpcodeHandler that handles several MSL preprocessing operations.
 	struct OpCodePreprocessor : OpcodeHandler
@@ -417,6 +434,19 @@ protected:
 		bool suppress_missing_prototypes = false;
 		bool uses_atomics = false;
 		bool uses_resource_write = false;
+	};
+
+	// OpcodeHandler that scans for uses of sampled images
+	struct SampledImageScanner : OpcodeHandler
+	{
+		SampledImageScanner(CompilerMSL &compiler_)
+		    : compiler(compiler_)
+		{
+		}
+
+		bool handle(spv::Op opcode, const uint32_t *args, uint32_t) override;
+
+		CompilerMSL &compiler;
 	};
 
 	// Sorts the members of a SPIRType and associated Meta info based on a settable sorting
