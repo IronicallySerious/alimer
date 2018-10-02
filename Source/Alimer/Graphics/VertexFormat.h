@@ -27,24 +27,35 @@
 
 namespace Alimer
 {
-    struct VertexAttribute
+    enum class VertexElementSemantic : uint32_t
     {
-        static constexpr uint32_t POSITION = 0;
-        static constexpr uint32_t NORMAL = 1;
-        static constexpr uint32_t TANGENT = 2;
-        static constexpr uint32_t COLOR = 3;
-        static constexpr uint32_t UV0 = 4;
-        static constexpr uint32_t UV1 = 5;
-        static constexpr uint32_t BONE_INDICES = 6;
-        static constexpr uint32_t ONE_WEIGHTS = 7;
+        Position = 0,
+        Normal,
+        Binormal,
+        Tangent,
+        BlendWeight,
+        BlendIndices,
+        Color0,
+        Color1,
+        Color2,
+        Color3,
+        Texcoord0,
+        Texcoord1,
+        Texcoord2,
+        Texcoord3,
+        Texcoord4,
+        Texcoord5,
+        Texcoord6,
+        Texcoord7,
+        Count
     };
 
     struct VertexAttributeDescriptor
     {
-        uint32_t        location;
-        uint32_t        bufferIndex;
-        VertexFormat    format;
-        uint32_t        offset;
+        VertexElementSemantic   semantic = VertexElementSemantic::Position;
+        VertexFormat            format = VertexFormat::Float3;
+        uint32_t                offset = 0;
+        uint32_t                bufferIndex = 0;
     };
 
     struct VertexBufferLayoutDescriptor

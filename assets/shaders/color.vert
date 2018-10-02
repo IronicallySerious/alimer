@@ -1,13 +1,10 @@
 #version 450
 
-#extension GL_GOOGLE_include_directive : enable
-
 #include "alimer.glsl"
 
-layout (location = 0) in vec3 inPosition;
-layout (location = 1) in vec4 inColor;
-
-layout (location = 0) out vec4 outColor;
+layout (location = POSITION) in vec3 inPosition;
+layout (location = COLOR0) in vec4 inColor;
+layout (location = COLOR0) out vec4 outColor;
 
 out gl_PerVertex
 {

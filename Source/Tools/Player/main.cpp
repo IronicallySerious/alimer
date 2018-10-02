@@ -65,13 +65,12 @@ namespace Alimer
 
             std::array<VertexAttributeDescriptor, 2> vertexInputAttributs;
             // Attribute location 0: Position
-            vertexInputAttributs[0].bufferIndex = 0;
-            vertexInputAttributs[0].location = 0;
+            vertexInputAttributs[0].semantic = VertexElementSemantic::Position;
             vertexInputAttributs[0].format = VertexFormat::Float3;
             vertexInputAttributs[0].offset = offsetof(VertexColor, position);
             // Attribute location 1: Color
             vertexInputAttributs[1].bufferIndex = 0;
-            vertexInputAttributs[1].location = 1;
+            vertexInputAttributs[1].semantic = VertexElementSemantic::Color0;
             vertexInputAttributs[1].format = VertexFormat::Float4;
             vertexInputAttributs[1].offset = offsetof(VertexColor, color);
 
