@@ -22,10 +22,26 @@
 
 #pragma once
 
-#include "../Scene/Entity.h"
+#include  "../AlimerConfig.h"
+#include  "../Scene/Entity.h"
+#include  <unordered_map>
 
 namespace Alimer
 {
+    struct GameSystemIDMapping
+    {
+    public:
+        template <typename T>
+        static uint32_t GetId()
+        {
+            static uint32_t id = ids++;
+            return id;
+        }
+
+    private:
+        static uint32_t ids;
+    };
+
     /// Defines a base Game System class.
     class ALIMER_API GameSystem : public IntrusivePtrEnabled<GameSystem>
     {
@@ -37,20 +53,25 @@ namespace Alimer
         virtual ~GameSystem() = default;
 
         /// Updates the system
-        virtual void Update(double deltaTime) = 0;
+        virtual void Update(EntityManager &entities, double deltaTime) = 0;
     };
 
     class ALIMER_API SystemManager final
     {
     public:
-        SystemManager() = default;
+        SystemManager(EntityManager& entities)
+            : _entities(entities)
+        {
+
+        }
+
         ~SystemManager() = default;
 
         /// Add new System.
         template <typename S>
         void Add(const IntrusivePtr<S> system)
         {
-            _systems.insert(std::make_pair(Detail::IDMapping::GetSystemId<S>(), system));
+            _systems.insert(std::make_pair(GameSystemIDMapping::GetId<S>(), system));
         }
 
         /// Creates and add new System.
@@ -65,7 +86,7 @@ namespace Alimer
         template <typename S>
         IntrusivePtr<S> GetSystem()
         {
-            auto it = _systems.find(Detail::IDMapping::GetSystemId<S>());
+            auto it = _systems.find(GameSystemIDMapping::GetId<S>());
             assert(it != _systems.end());
             return it == _systems.end()
                 ? IntrusivePtr<S>()
@@ -76,6 +97,7 @@ namespace Alimer
         void Update(double deltaTime);
 
     private:
+        EntityManager& _entities;
         std::unordered_map<uint32_t, IntrusivePtr<GameSystem>> _systems;
 
         DISALLOW_COPY_MOVE_AND_ASSIGN(SystemManager);

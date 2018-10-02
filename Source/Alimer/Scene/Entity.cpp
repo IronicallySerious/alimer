@@ -44,10 +44,10 @@ namespace Alimer
         _data.reserve(size);
     }
 
-    IntrusivePtr<BaseComponent> ComponentStorage::Get(std::size_t index) const
+    BaseComponent* ComponentStorage::Get(std::size_t index)
     {
         assert(index < size());
-        return _data[index];
+        return _data[index].Get();
     }
 
     void ComponentStorage::Destroy(std::size_t index)
@@ -126,6 +126,39 @@ namespace Alimer
         return entity;
     }
 
+    void EntityManager::Destroy(Entity::Id id)
+    {
+        AssertValid(id);
+        
+        std::uint32_t index = id.index();
+        auto mask = _entityComponentMask[index];
+        for (size_t i = 0; i < _componentPools.size(); ++i)
+        {
+            if (mask.test(i))
+            {
+                auto& pool = _componentPools[i];
+                if (pool)
+                {
+                    BaseComponent* component = pool->Get(index);
+                    Remove(id, *component);
+                }
+            }
+        }
+
+        //OnEntityDestroyed(Get(id));
+        _entityComponentMask[index].reset();
+        _entityVersion[index]++;
+        _freeList.push_back(index);
+        // Remove name
+        _entityNames[id.id()].clear();
+    }
+
+    Entity EntityManager::Get(Entity::Id id)
+    {
+        AssertValid(id);
+        return Entity(this, id);
+    }
+
     IntrusivePtr<BaseComponent> EntityManager::Assign(Entity::Id id, const ComponentHandle& component)
     {
         AssertValid(id);
@@ -139,10 +172,67 @@ namespace Alimer
         _entityComponentMask[id.index()].set(family);
 
         // Create and return handle.
-        //component->entity_ = get(id);
-        //component->on_entity_set();
-        //on_component_added(get(id), handle);
+        //component->_entity = Get(id);
+        //component->OnEntitySet();
+        //OnComponentAdded(Get(id), handle);
         return component;
+    }
+
+    void EntityManager::Remove(Entity::Id id, const BaseComponent& component)
+    {
+        Remove(id, component.GetFamily());
+    }
+
+    void EntityManager::Remove(Entity::Id id, uint32_t family)
+    {
+        AssertValid(id);
+        const std::uint32_t index = id.index();
+
+        // Find the pool for this component family.
+        auto& pool = _componentPools[family];
+        BaseComponent* handle = pool->Get(id.index());
+        //OnComponentRemoved(Get(id), handle);
+        // Remove component bit.
+        _entityComponentMask[id.index()].reset(family);
+
+        // Call destructor.
+        pool->Destroy(index);
+    }
+
+    bool EntityManager::HasComponent(Entity::Id id, const BaseComponent& component) const
+    {
+        return HasComponent(id, component.GetFamily());
+    }
+
+    bool EntityManager::HasComponent(Entity::Id id, uint32_t family) const
+    {
+        AssertValid(id);
+
+        // We don't bother checking the component mask, as we return a nullptr anyway.
+        if (family >= _componentPools.size())
+        {
+            return false;
+        }
+        auto& pool = _componentPools[family];
+        return !(!pool || !_entityComponentMask[id.index()][family]);
+    }
+
+    std::vector<BaseComponent*> EntityManager::GetAllComponents(Entity::Id id) const
+    {
+        std::vector<BaseComponent*> components;
+        auto mask = component_mask(id);
+        for (size_t i = 0; i < _componentPools.size(); ++i)
+        {
+            if (mask.test(i))
+            {
+                auto& pool = _componentPools[i];
+                if (pool)
+                {
+                    components.push_back(pool->Get(id.index()));
+                }
+            }
+        }
+        return components;
     }
 
     void EntityManager::SetEntityName(Entity::Id id, const std::string& name)

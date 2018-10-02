@@ -120,8 +120,8 @@ namespace Alimer
 
         T &operator*() { return *_ptr; }
         const T &operator*() const { return *_ptr; }
-        T *operator->() { return _ptr; }
-        const T *operator->() const { return _ptr; }
+        T* operator->() { return _ptr; }
+        const T* operator->() const { return _ptr; }
 
         explicit operator bool() const { return _ptr != nullptr; }
 
@@ -135,9 +135,9 @@ namespace Alimer
             return _ptr != other._ptr;
         }
 
-        T *Get() { return _ptr; }
+        T* Get() { return _ptr; }
 
-        const T *Get() const { return _ptr; }
+        const T* Get() const { return _ptr; }
 
         void Reset()
         {
@@ -150,7 +150,7 @@ namespace Alimer
             // Also makes sure that the pointer type actually inherits from this type.
             if (_ptr)
             {
-                static_cast<ReferenceBase *>(_ptr)->Release();
+                static_cast<ReferenceBase*>(_ptr)->Release();
             }
 
             _ptr = nullptr;
@@ -168,7 +168,7 @@ namespace Alimer
                 typename T::EnabledReferenceOp>;
 
             Reset();
-            _ptr = static_cast<T *>(other._ptr);
+            _ptr = static_cast<T*>(other._ptr);
 
             // Static up-cast here to avoid potential issues with multiple intrusive inheritance.
             // Also makes sure that the pointer type actually inherits from this type.
@@ -243,14 +243,14 @@ namespace Alimer
         }
 
     private:
-        T *_ptr = nullptr;
+        T* _ptr = nullptr;
     };
 
     template <typename T, typename Deleter, typename ReferenceOps>
     IntrusivePtr<T> IntrusivePtrEnabled<T, Deleter, ReferenceOps>::ReferenceFromThis()
     {
         AddReference();
-        return IntrusivePtr<T>(static_cast<T *>(this));
+        return IntrusivePtr<T>(static_cast<T*>(this));
     }
 
     template <typename Derived>

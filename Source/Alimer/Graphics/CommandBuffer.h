@@ -57,8 +57,8 @@ namespace Alimer
 
         void EndRenderPass();
 
-        virtual void SetViewport(const Viewport& viewport) = 0;
-        virtual void SetScissor(const Rectangle& scissor) = 0;
+        virtual void SetViewport(const rect& viewport) = 0;
+        virtual void SetScissor(const irect& scissor) = 0;
 
         void SetShaderProgram(ShaderProgram* program);
 

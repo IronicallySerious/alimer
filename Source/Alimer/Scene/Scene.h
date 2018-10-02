@@ -67,7 +67,7 @@ namespace Alimer
 
     public:
         /// Constructor.
-        explicit Scene();
+        explicit Scene(EntityManager& entities);
 
         /// Destructor.
         ~Scene();
@@ -81,10 +81,8 @@ namespace Alimer
         /// Return the Entity containing the active camera.
         Entity GetActiveCamera() const { return _activeCamera; }
 
-        void UpdateCachedTransforms();
-
     private:
-        EntityManager _entities;
+        EntityManager& _entities;
         //ComponentManager<NameComponent> _names;
         Entity _defaultCamera;
         Entity _activeCamera;

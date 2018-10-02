@@ -117,6 +117,73 @@ namespace Alimer
         memset(&m11, 0, sizeof(Matrix4x4));
     }
 
+    void Matrix4x4::Decompose(vec3 &scale, quat &rotation, vec3 &trans)
+    {
+        vec4 rot;
+
+        // Make a lot of assumptions.
+        // We don't need skew, nor perspective.
+
+        // Isolate translation.
+        trans = Column(3).xyz();
+
+        /*vec3 cols[3];
+        cols[0] = Column(0).xyz();
+        cols[1] = Column(1).xyz();
+        cols[2] = Column(2).xyz();
+
+        scale.x = length(cols[0]);
+        scale.y = length(cols[1]);
+        scale.z = length(cols[2]);
+
+        // Isolate scale.
+        cols[0] /= scale.x;
+        cols[1] /= scale.y;
+        cols[2] /= scale.z;
+
+        vec3 pdum3 = cross(cols[1], cols[2]);
+        if (dot(cols[0], pdum3) < 0.0f)
+        {
+            scale = -scale;
+            cols[0] = -cols[0];
+            cols[1] = -cols[1];
+            cols[2] = -cols[2];
+        }
+
+        int i, j, k = 0;
+        float root, trace = cols[0].x + cols[1].y + cols[2].z;
+        if (trace > 0.0f)
+        {
+            root = sqrt(trace + 1.0f);
+            rot.w = 0.5f * root;
+            root = 0.5f / root;
+            rot.x = root * (cols[1].z - cols[2].y);
+            rot.y = root * (cols[2].x - cols[0].z);
+            rot.z = root * (cols[0].y - cols[1].x);
+        }
+        else
+        {
+            static const int Next[3] = { 1, 2, 0 };
+
+            i = 0;
+            if (cols[1].y > cols[0].x) i = 1;
+            if (cols[2].z > cols[i][i]) i = 2;
+
+            j = Next[i];
+            k = Next[j];
+
+            root = sqrt(cols[i][i] - cols[j][j] - cols[k][k] + 1.0f);
+
+            rot[i] = 0.5f * root;
+            root = 0.5f / root;
+            rot[j] = root * (cols[i][j] + cols[j][i]);
+            rot[k] = root * (cols[i][k] + cols[k][i]);
+            rot.w = root * (cols[j][k] - cols[k][j]);
+        }*/
+
+        rotation = quat(rot);
+    }
+
     String Matrix4x4::ToString() const
     {
         char tempBuffer[256];
@@ -226,12 +293,12 @@ namespace Alimer
 
     Matrix4x4 Matrix4x4::CreateLookAt(const vec3 &eye, const vec3 &target, const vec3 &up)
     {
-        vec3 const f(normalize(target - eye));
+        /*vec3 const f(normalize(target - eye));
         vec3 const s(normalize(cross(f, up)));
-        vec3 const u(cross(s, f));
+        vec3 const u(cross(s, f));*/
 
         Matrix4x4 result;
-        result.data[0][0] = s.x;
+        /*result.data[0][0] = s.x;
         result.data[1][0] = s.y;
         result.data[2][0] = s.z;
         result.data[0][1] = u.x;
@@ -242,7 +309,7 @@ namespace Alimer
         result.data[2][2] = -f.z;
         result.data[3][0] = -dot(s, eye);
         result.data[3][1] = -dot(u, eye);
-        result.data[3][2] = dot(f, eye);
+        result.data[3][2] = dot(f, eye);*/
         return result;
     }
 

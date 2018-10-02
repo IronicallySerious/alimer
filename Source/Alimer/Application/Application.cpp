@@ -22,6 +22,7 @@
 
 #include "AlimerVersion.h"
 #include "../Application/Application.h"
+#include "../Scene/Systems/CameraSystem.h"
 #include "../IO/Path.h"
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
@@ -37,6 +38,9 @@ namespace Alimer
         , _headless(false)
         , _settings{}
         , _log(new Logger())
+        , _entities{}
+        , _systems(_entities)
+        , _scene(_entities)
     {
         PlatformConstruct();
 
@@ -95,7 +99,8 @@ namespace Alimer
         // Initialize this instance and all systems.
         Initialize();
 
-        // Setup and render syttem.
+        // Setup and configure all systems.
+        _systems.Add<CameraSystem>();
         _renderContext.SetDevice(_graphicsDevice.Get());
 
         ALIMER_LOGINFO("Engine initialized with success.");
@@ -125,7 +130,6 @@ namespace Alimer
             double deltaTime = _timer.GetElapsed();
 
             // Update all systems.
-            _scene.UpdateCachedTransforms();
             _systems.Update(deltaTime);
 
             // Render single frame.

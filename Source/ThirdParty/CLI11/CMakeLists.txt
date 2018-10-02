@@ -20,39 +20,9 @@
 # THE SOFTWARE.
 #
 
-file (GLOB_RECURSE HEADER_FILES *.h *.hpp)
-file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
-
-set(GLSLANG_HEADER_FILES
-	${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
-	${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.h
-	${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/Worklist.h
+add_library(CLI11 INTERFACE)
+target_include_directories(CLI11
+    INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-set(GLSLANG_SOURCE_FILES
-	${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.cpp
-)
-
-list (APPEND HEADER_FILES ${GLSLANG_HEADER_FILES})
-list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
-
-# Define the target.
-add_executable(shaderc ${SOURCE_FILES} ${HEADER_FILES})
-
-set_target_properties(shaderc PROPERTIES
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED YES
-    CXX_EXTENSIONS NO
-)
-
-target_include_directories(shaderc PRIVATE
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-	$<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
-)
-
-target_link_libraries(shaderc glslang SPIRV)
-
-set_target_properties(shaderc PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
-set_target_properties(shaderc PROPERTIES FOLDER "Tools")
-
-install(TARGETS shaderc RUNTIME DESTINATION ${DEST_TOOLS_DIR})
+# install (DIRECTORY include/ DESTINATION ${DEST_THIRDPARTY_HEADERS_DIR}/ FILES_MATCHING PATTERN *.hpp)

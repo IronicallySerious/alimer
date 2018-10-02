@@ -85,8 +85,8 @@ namespace Alimer
         virtual void SetCursorVisible(bool visible);
 
         // Events
-        void MouseButtonEvent(MouseButton button, float x, float y, bool pressed);
-        void MouseMoveEvent(MouseButton button, float x, float y);
+        void MouseButtonEvent(MouseButton button, int32_t x, int32_t y, bool pressed);
+        void MouseMoveEvent(MouseButton button, int32_t x, int32_t y);
 
     private:
         /// Update input state and poll devices.
@@ -126,8 +126,8 @@ namespace Alimer
         };
 
         ActionState _mouseButtons;
-        Vector2 _mousePosition;
-        Vector2 _previousMousePosition;
+        ivec2 _mousePosition;
+        ivec2 _previousMousePosition;
         DISALLOW_COPY_MOVE_AND_ASSIGN(Input);
     };
 }

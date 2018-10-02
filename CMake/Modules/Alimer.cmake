@@ -274,19 +274,8 @@ endif ()
 # Setup SDK install destinations
 set (DEST_BASE_INCLUDE_DIR include)
 set (DEST_INCLUDE_DIR ${DEST_BASE_INCLUDE_DIR}/Alimer)
-set (DEST_ARCHIVE_DIR lib)
-set (DEST_BIN_DIR bin)
-set (DEST_TOOLS_DIR ${DEST_BIN_DIR})
 set (DEST_SHARE_DIR share)
 set (DEST_ASSETS_DIR ${DEST_BIN_DIR})
-set (DEST_THIRDPARTY_HEADERS_DIR ${DEST_INCLUDE_DIR}/ThirdParty)
-
-if (ANDROID)
-    set (DEST_LIBRARY_DIR ${DEST_ARCHIVE_DIR})
-else ()
-    set (DEST_LIBRARY_DIR bin)
-endif ()
-
 
 # Functions and macros
 function(alimer_setup_common_properties target)

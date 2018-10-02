@@ -22,56 +22,52 @@
 
 #pragma once
 
+#include "../Base/String.h"
 #include "../Math/Math.h"
-#include "../Graphics/Types.h"
-#include <vector>
+#include "../Math/Matrix4x4.h"
 
 namespace Alimer
 {
-    class RenderPass;
-
-    struct Command
+    /// Defines a transform in space.
+    class ALIMER_API Transform
     {
-        enum class Type
-        {
-            Invalid,
-            BeginRenderPass,
-            EndRenderPass,
-            SetViewport,
-        };
+    public:
+        Transform() = default;
+        Transform(const Transform& t) = default;
+        Transform(Transform&& t) = default;
+        Transform& operator=(const Transform& m) = default;
+        Transform& operator=(Transform&& m) = default;
 
-        Command(Type type_) : type(type_)
+        Transform(const mat4& m);
+
+        const vec3& GetPosition() const { return _position; }
+        void SetPosition(const vec3& position);
+
+        const quat& GetRotation() const { return _rotation; }
+        void SetRotation(const quat& rotation);
+
+        const vec3&  GetScale() const { return _scale; }
+        void SetScale(const vec3& scale);
+
+        const mat4& GetMatrix() const
         {
+            Update();
+            return _matrix;
         }
 
-        const Type type;
-    };
+        // Constants
+        static const Transform Identity;
 
-    struct BeginRenderPassCommand : public Command
-    {
-        BeginRenderPassCommand(
-            RenderPass* renderPass_,
-            const Color4* clearColors_, uint32_t numClearColors_,
-            float clearDepth_, uint8_t clearStencil_)
-            : Command(Command::Type::BeginRenderPass)
-            , renderPass(renderPass_)
-            , clearColors(clearColors_, clearColors_ + numClearColors_)
-            , clearDepth(clearDepth_)
-            , clearStencil(clearStencil_)
-        {
-        }
+    private:
+        void Decompose();
+        void Update() const;
 
-        RenderPass* renderPass;
-        std::vector<Color4> clearColors;
-        float clearDepth;
-        uint8_t clearStencil;
-    };
+        mutable mat4 _matrix = mat4::identity();
+        vec3 _position = vec3(0.0f, 0.0f, 0.0f);
+        quat _rotation = quat(1.0f, 0.0f, 0.0f, 0.0f);
+        vec3 _scale = vec3(1.0f);
 
-    struct EndRenderPassCommand : public Command
-    {
-        EndRenderPassCommand()
-            : Command(Command::Type::EndRenderPass)
-        {
-        }
+        mutable bool _dirty = false;
     };
 }
+

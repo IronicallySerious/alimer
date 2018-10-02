@@ -24,31 +24,56 @@
 
 #include "../Entity.h"
 #include "../../Math/Math.h"
-#include "../../Math/Matrix4x4.h"
+#include "../../Math/Transform.h"
+#include <vector>
 
 namespace Alimer
 {
-    class Transform
-    {
-    private:
-        mutable mat4 matrix_ = mat4::Identity;
-        vec3 position = vec3(0.0f, 0.0f, 0.0f);
-        quat rotation = quat(1.0f, 0.0f, 0.0f, 0.0f);
-        vec3 scale = vec3(1.0f);
-
-        mutable bool _dirty = false;
-    };
-
 	/// Defines a Transform Component.
     class ALIMER_API TransformComponent final : public Component<TransformComponent>
 	{
         //ALIMER_OBJECT(TransformComponent, Component);
 
     public:
+        TransformComponent() = default;
+        virtual ~TransformComponent();
+
+        void UpdateWorldTransform(bool force = false);
+
+        /// Set parent entity
+        void SetParent(Entity parent);
+
+        /// Get all chidrens.
+        const std::vector<Entity>& GetChildren() const { return _children; }
+
+        void SetDirty(bool dirty);
+        bool IsDirty() const { return _dirty; }
+
+        /// Set transform in world space.
+        void SetTransform(const Transform& transform);
+
+        /// Set transform in local space.
+        void SetLocalTransform(const Transform& transform);
+
+        /// Get transform in world space.
+        const Transform& GetTransform();
+
+        /// Get transform in local space.
         const Transform& GetLocalTransform() const;
-        //glm::mat4 worldTransform;
 
     private:
+        void AddChild(const Entity& child);
+        void RemoveChild(const Entity& child);
+
+        /// Parent entity.
+        Entity _parent;
+        /// Children entitites.
+        std::vector<Entity> _children;
+        /// Local transformation relative to the parent
         Transform _localTransform;
+        /// Cached world transformation at pivot point.
+        Transform _worldTransform;
+        /// Transform dirty state.
+        bool _dirty = true;
 	};
 }

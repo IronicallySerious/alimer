@@ -30,14 +30,6 @@
 #include "../../Base/HashMap.h"
 #include "../../Core/Log.h"
 
-static_assert(sizeof(VkViewport) == sizeof(Alimer::Viewport), "VkViewport mismatch");
-static_assert(offsetof(Alimer::Viewport, x) == offsetof(VkViewport, x), "VkViewport x offset mismatch");
-static_assert(offsetof(Alimer::Viewport, y) == offsetof(VkViewport, y), "VkViewport y offset mismatch");
-static_assert(offsetof(Alimer::Viewport, width) == offsetof(VkViewport, width), "VkViewport width offset mismatch");
-static_assert(offsetof(Alimer::Viewport, height) == offsetof(VkViewport, height), "VkViewport height offset mismatch");
-static_assert(offsetof(Alimer::Viewport, minDepth) == offsetof(VkViewport, minDepth), "VkViewport minDepth offset mismatch");
-static_assert(offsetof(Alimer::Viewport, maxDepth) == offsetof(VkViewport, maxDepth), "VkViewport maxDepth offset mismatch");
-
 namespace Alimer
 {
     VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary)
@@ -178,19 +170,19 @@ namespace Alimer
         vkCmdExecuteCommands(_vkCommandBuffer, commandBufferCount, vkCommandBuffers.data());
     }*/
 
-    void VulkanCommandBuffer::SetViewport(const Viewport& viewport)
+    void VulkanCommandBuffer::SetViewport(const rect& viewport)
     {
         // Flip to match DirectX coordinate system.
         _currentViewport = VkViewport{
             viewport.x, viewport.height + viewport.y,
             viewport.width,   -viewport.height,
-            viewport.minDepth, viewport.maxDepth,
+            0.0f, 1.0f,
         };
 
         vkCmdSetViewport(_handle, 0, 1, &_currentViewport);
     }
 
-    void VulkanCommandBuffer::SetScissor(const Rectangle& scissor)
+    void VulkanCommandBuffer::SetScissor(const irect& scissor)
     {
         VkRect2D vkScissor = {};
         vkScissor.offset = { scissor.x, scissor.y };

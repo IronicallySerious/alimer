@@ -24,11 +24,13 @@
 
 namespace Alimer
 {
+    uint32_t GameSystemIDMapping::ids;
+
     void SystemManager::Update(double deltaTime)
     {
         for (auto &pair : _systems)
         {
-            pair.second->Update(/*_eventManager,*/ deltaTime);
+            pair.second->Update(_entities, deltaTime);
         }
     }
 }

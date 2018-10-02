@@ -33,14 +33,6 @@
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
-static_assert(sizeof(D3D11_VIEWPORT) == sizeof(Alimer::Viewport), "D3D11_VIEWPORT mismatch");
-static_assert(offsetof(Alimer::Viewport, x) == offsetof(D3D11_VIEWPORT, TopLeftX), "D3D11_VIEWPORT TopLeftX offset mismatch");
-static_assert(offsetof(Alimer::Viewport, y) == offsetof(D3D11_VIEWPORT, TopLeftY), "D3D11_VIEWPORT TopLeftY offset mismatch");
-static_assert(offsetof(Alimer::Viewport, width) == offsetof(D3D11_VIEWPORT, Width), "D3D11_VIEWPORT Width offset mismatch");
-static_assert(offsetof(Alimer::Viewport, height) == offsetof(D3D11_VIEWPORT, Height), "D3D11_VIEWPORT Height offset mismatch");
-static_assert(offsetof(Alimer::Viewport, minDepth) == offsetof(D3D11_VIEWPORT, MinDepth), "D3D11_VIEWPORT MinDepth offset mismatch");
-static_assert(offsetof(Alimer::Viewport, maxDepth) == offsetof(D3D11_VIEWPORT, MaxDepth), "D3D11_VIEWPORT MaxDepth offset mismatch");
-
 namespace Alimer
 {
     static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
@@ -160,12 +152,17 @@ namespace Alimer
         _currentRenderPass = nullptr;
     }
 
-    void D3D11CommandBuffer::SetViewport(const Viewport& viewport)
+    void D3D11CommandBuffer::SetViewport(const rect& viewport)
     {
-        _context->RSSetViewports(1, (D3D11_VIEWPORT*)&viewport);
+        D3D11_VIEWPORT d3dViewport = {
+            viewport.x, viewport.y,
+            viewport.width, viewport.height,
+            D3D11_MIN_DEPTH, D3D11_MAX_DEPTH
+        };
+        _context->RSSetViewports(1, &d3dViewport);
     }
 
-    void D3D11CommandBuffer::SetScissor(const Rectangle& scissor)
+    void D3D11CommandBuffer::SetScissor(const irect& scissor)
     {
         D3D11_RECT scissorD3D;
         scissorD3D.left = scissor.x;

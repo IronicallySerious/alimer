@@ -27,4 +27,4 @@ file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
 add_alimer_executable(Alimer ${SOURCE_FILES} ${HEADER_FILES})
 set_target_properties(Alimer PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
 
-install(TARGETS Alimer RUNTIME DESTINATION ${DEST_TOOLS_DIR})
+install(TARGETS Alimer RUNTIME DESTINATION bin)

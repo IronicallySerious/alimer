@@ -120,8 +120,8 @@ namespace Alimer
 		constexpr Color4(float r_, float g_, float b_) : r(r_), g(g_), b(b_), a(1.0f) {}
 		constexpr Color4(float r_, float g_, float b_, float a_) : r(r_), g(g_), b(b_), a(a_) {}
 
-        explicit Color4(const Vector3& vector) : r(vector.x), g(vector.y), b(vector.z), a(1.0f) {}
-        explicit Color4(const Vector4& vector) : r(vector.x), g(vector.y), b(vector.z), a(vector.w) {}
+        explicit Color4(const vec3& vector) : r(vector.x), g(vector.y), b(vector.z), a(1.0f) {}
+        explicit Color4(const vec4& vector) : r(vector.x), g(vector.y), b(vector.z), a(vector.w) {}
 
         Color4(const Color4&) = default;
         Color4& operator=(const Color4&) = default;

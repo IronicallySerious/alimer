@@ -30,4 +30,4 @@ target_link_libraries (libAlimerSharp libAlimer)
 # Set Solution folder.
 set_target_properties(libAlimerSharp PROPERTIES FOLDER Managed)
 
-install(TARGETS libAlimerSharp RUNTIME DESTINATION ${DEST_BIN_DIR})
+install(TARGETS libAlimerSharp RUNTIME DESTINATION bin)

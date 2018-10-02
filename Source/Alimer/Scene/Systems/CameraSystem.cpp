@@ -26,8 +26,13 @@
 
 namespace Alimer
 {
-    void CameraSystem::Update(double deltaTime)
+    void CameraSystem::Update(EntityManager &entities, double deltaTime)
     {
         ALIMER_UNUSED(deltaTime);
+
+        entities.Each<TransformComponent, CameraComponent>(
+            [](Entity e, TransformComponent& transform, CameraComponent& camera) {
+            camera.Update(transform.GetTransform());
+        });
     }
 }

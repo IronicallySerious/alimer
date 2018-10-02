@@ -24,8 +24,7 @@
 
 #include "../Entity.h"
 #include "../../Renderer/Camera.h"
-#include "../../Math/Math.h"
-#include "../../Math/Matrix4x4.h"
+#include "../../Math/Transform.h"
 
 namespace Alimer
 {
@@ -38,10 +37,10 @@ namespace Alimer
         CameraComponent() = default;
         virtual ~CameraComponent();
 
-        void Update(const Matrix4x4& world);
+        void Update(const Transform& transform);
 
-        Matrix4x4 GetView() const;
-        Matrix4x4 GetProjection() const;
+        mat4 GetView() const;
+        mat4 GetProjection() const;
 
     public:
         // Field of view (in degrees)
@@ -54,7 +53,7 @@ namespace Alimer
         Camera _camera;
 
         // Calculated values.
-        Matrix4x4 _view;
-        Matrix4x4 _projection;
+        mat4 _view;
+        mat4 _projection;
 	};
 }

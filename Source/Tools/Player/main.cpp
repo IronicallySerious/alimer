@@ -91,8 +91,6 @@ namespace Alimer
             auto fragmentShader = graphics->CreateShaderModule("assets://shaders/color.frag");
             _program = graphics->CreateShaderProgram(vertexShader, fragmentShader);
 
-            _camera.viewMatrix = Matrix4x4::Identity;
-            _camera.projectionMatrix = Matrix4x4::Identity;
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
@@ -186,8 +184,8 @@ namespace Alimer
             _mesh = Mesh::CreateCube(graphics);
 
             // Uniform buffer
-            _camera.viewMatrix = Matrix4x4::CreateLookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
-            _camera.projectionMatrix = Matrix4x4::CreatePerspectiveFieldOfView(M_PIDIV4, aspectRatio, 0.1f, 100);
+            //_camera.viewMatrix = Matrix4x4::CreateLookAt(vec3(0, 0, 5), vec3::zero(), vec3::unit_y());
+            //_camera.projectionMatrix = Matrix4x4::CreatePerspectiveFieldOfView(M_PIDIV4, aspectRatio, 0.1f, 100);
 
             BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -210,8 +208,8 @@ namespace Alimer
         void Render(CommandBuffer* context, double deltaTime)
         {
             float time = static_cast<float>(deltaTime);
-            _perDrawData.worldMatrix = Matrix4x4::CreateRotationX(time) * Matrix4x4::CreateRotationY(time * 2) * Matrix4x4::CreateRotationZ(time * .7f);
-            _perDrawUboBuffer->SetSubData(&_perDrawData);
+            //_perDrawData.worldMatrix = Matrix4x4::CreateRotationX(time) * Matrix4x4::CreateRotationY(time * 2) * Matrix4x4::CreateRotationZ(time * .7f);
+            //_perDrawUboBuffer->SetSubData(&_perDrawData);
 
             // Bind shader program.
             context->SetShaderProgram(_program.Get());
@@ -380,7 +378,7 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        //_triangleExample.Initialize(_graphicsDevice.Get());
+        _triangleExample.Initialize(_graphicsDevice.Get());
         //_quadExample.Initialize(_graphicsDevice.Get());
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
@@ -399,7 +397,7 @@ namespace Alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        //_triangleExample.Render(commandBuffer);
+        _triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);

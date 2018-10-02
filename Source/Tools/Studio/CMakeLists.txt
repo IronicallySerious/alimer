@@ -33,4 +33,4 @@ set_target_properties(${TARGET} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutD
 set_target_properties(${TARGET} PROPERTIES FOLDER "Editor")
 
 # Install under tools
-install(TARGETS ${TARGET} RUNTIME DESTINATION ${DEST_TOOLS_DIR})
+install(TARGETS ${TARGET} RUNTIME DESTINATION bin)

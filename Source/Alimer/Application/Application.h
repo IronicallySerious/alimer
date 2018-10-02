@@ -129,7 +129,8 @@ namespace Alimer
         UniquePtr<Input> _input;
         UniquePtr<Audio> _audio;
 
-        // 
+        //
+        EntityManager _entities;
         SystemManager _systems;
         Scene _scene;
         RenderContext _renderContext;

@@ -20,33 +20,57 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Scene.h"
-#include "../Scene/Components/TransformComponent.h"
-#include "../Scene/Components/CameraComponent.h"
-#include "../Core/Log.h"
+#pragma once
+#include <stdint.h>
+#include <string>
+#include <vector>
+#include <unordered_map>
 
 namespace Alimer
 {
-    Scene::Scene(EntityManager& entities)
-        : _entities(entities)
+    enum class CompilerShaderLang : uint32_t
     {
-        _defaultCamera = CreateEntity("Default Camera");
-        _defaultCamera.Assign<TransformComponent>();
-        _defaultCamera.Assign<CameraComponent>();
-        ALIMER_ASSERT(_defaultCamera.HasComponent<TransformComponent>());
-        ALIMER_ASSERT(_defaultCamera.HasComponent<CameraComponent>());
-        //_defaultCamera->AddComponent<AudioListener>();
-        _activeCamera = _defaultCamera;
-    }
+        GLSL,
+        GLES,
+        HLSL,
+        METAL
+    };
 
-    Scene::~Scene()
+    enum class CompilerShaderStage : uint32_t
     {
-    }
+        Vertex = 0,
+        TessControl = 1,
+        TessEvaluation = 2,
+        Geometry = 3,
+        Fragment = 4,
+        Compute = 5,
+        Count
+    };
 
-    Entity Scene::CreateEntity(const std::string& name)
+    struct CompilerStageOptions
     {
-        Entity entity = _entities.Create();
-        entity.SetName(name);
-        return entity;
-    }
+        std::string file;
+        std::string entryPoint = "main";
+    };
+
+    class CompilerOptions
+    {
+    public:
+        CompilerShaderLang language = CompilerShaderLang::GLSL;
+        bool invertY = false;
+        bool preprocess = false;
+        std::unordered_map<std::string, std::string> defines;
+        CompilerStageOptions shaders[static_cast<uint32_t>(CompilerShaderStage::Count)] = {};
+        std::vector<std::string> includeDirs;
+        std::string outputFile;
+    };
+
+    class Compiler final 
+    {
+    public:
+        Compiler();
+        ~Compiler();
+
+        bool Compile(const CompilerOptions& options);
+    };
 }

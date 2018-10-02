@@ -23,6 +23,7 @@
 add_subdirectory (STB)
 add_subdirectory (SPIRV-Cross)
 add_subdirectory (rttr)
+add_subdirectory (CLI11)
 
 if (NOT ALIMER_DISABLE_SHADER_COMPILER)
     option (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)

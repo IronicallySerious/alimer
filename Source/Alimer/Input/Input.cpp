@@ -61,14 +61,14 @@ namespace Alimer
         return _mouseButtons.IsHeld(static_cast<uint32_t>(button));
     }
 
-    void Input::MouseButtonEvent(MouseButton button, float x, float y, bool pressed)
+    void Input::MouseButtonEvent(MouseButton button, int32_t x, int32_t y, bool pressed)
     {
         _mouseButtons.Post(static_cast<uint32_t>(button), pressed);
         _mousePosition.x = x;
         _mousePosition.y = y;
     }
 
-    void Input::MouseMoveEvent(MouseButton button, float x, float y)
+    void Input::MouseMoveEvent(MouseButton button, int32_t x, int32_t y)
     {
         _mousePosition.x = x;
         _mousePosition.y = y;

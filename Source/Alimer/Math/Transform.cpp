@@ -20,33 +20,55 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Scene.h"
-#include "../Scene/Components/TransformComponent.h"
-#include "../Scene/Components/CameraComponent.h"
+#include "../Math/Transform.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    Scene::Scene(EntityManager& entities)
-        : _entities(entities)
+    const Transform Transform::Identity;
+
+    Transform::Transform(const mat4& m)
+        : _matrix(m)
+        , _dirty(false)
     {
-        _defaultCamera = CreateEntity("Default Camera");
-        _defaultCamera.Assign<TransformComponent>();
-        _defaultCamera.Assign<CameraComponent>();
-        ALIMER_ASSERT(_defaultCamera.HasComponent<TransformComponent>());
-        ALIMER_ASSERT(_defaultCamera.HasComponent<CameraComponent>());
-        //_defaultCamera->AddComponent<AudioListener>();
-        _activeCamera = _defaultCamera;
+        Decompose();
     }
 
-    Scene::~Scene()
+    void Transform::SetPosition(const vec3& position)
     {
+        _position = position;
+        _dirty = true;
     }
 
-    Entity Scene::CreateEntity(const std::string& name)
+    void Transform::SetRotation(const quat& rotation)
     {
-        Entity entity = _entities.Create();
-        entity.SetName(name);
-        return entity;
+        _rotation = rotation;
+        _dirty = true;
+    }
+
+    void Transform::SetScale(const vec3& scale)
+    {
+        _scale = scale;
+        _dirty = true;
+    }
+
+    void Transform::Decompose()
+    {
+        //_matrix.Decompose(_scale, _rotation, _position);
+    }
+
+    void Transform::Update() const
+    {
+        if (!_dirty)
+            return;
+
+        mat4 S; // = glm::scale(_scale);
+        mat4 R; // = glm::mat4_cast(rotation_);
+        mat4 T = mat4::translate(_position);
+
+        mat4 model = R * S;
+        _matrix = T * model;
+
+        _dirty = false;
     }
 }

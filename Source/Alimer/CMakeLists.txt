@@ -119,10 +119,9 @@ target_include_directories(libAlimer
 
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES STB spirv_cross)
-
-if (ALIMER_CAN_COMPILE)
+# if (ALIMER_CAN_COMPILE)
     list (APPEND THIRD_PARTY_DEPENDENCIES glslang SPIRV)
-endif ()
+# endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     if (TARGET "${dep}")
@@ -183,7 +182,7 @@ elseif (ALIMER_UWP)
 
     if (ALIMER_D3D11)
         target_link_libraries (${TARGET_NAME} PRIVATE d3d11)
-    endif() 
+    endif()
 
     if (ALIMER_D3D12)
         target_link_libraries (${TARGET_NAME} PRIVATE d3d12)
@@ -212,10 +211,10 @@ endif ()
 
 # SDK installation
 if (NOT ALIMER_SKIP_INSTALL)
-    install(TARGETS libAlimer
-	    EXPORT Alimer
-	    LIBRARY DESTINATION ${DEST_LIBRARY_DIR}
-	    RUNTIME DESTINATION ${DEST_BIN_DIR}
-	    ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR}
+    install(TARGETS ${TARGET_NAME}
+	    EXPORT ${TARGET_NAME}
+	    LIBRARY DESTINATION lib
+	    RUNTIME DESTINATION bin
+	    ARCHIVE DESTINATION lib
     )
 endif ()

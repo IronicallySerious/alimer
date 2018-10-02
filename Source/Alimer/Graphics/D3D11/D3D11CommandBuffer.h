@@ -49,8 +49,8 @@ namespace Alimer
         void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
 
-        void SetViewport(const Viewport& viewport) override;
-        void SetScissor(const Rectangle& scissor) override;
+        void SetViewport(const rect& viewport) override;
+        void SetScissor(const irect& scissor) override;
 
         void SetShaderProgramImpl(ShaderProgram* program) override;
         void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;

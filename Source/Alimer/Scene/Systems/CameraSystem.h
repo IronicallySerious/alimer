@@ -33,6 +33,6 @@ namespace Alimer
     public:
         CameraSystem() = default;
 
-        void Update(double deltaTime) override;
+        void Update(EntityManager &entities, double deltaTime) override;
 	};
 }
