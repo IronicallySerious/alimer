@@ -103,4 +103,6 @@ namespace Alimer
         /// VertexFormat stride.
         std::vector<VertexBufferLayoutDescriptor> _layouts;
     };
+
+    ALIMER_API const char* VertexElementSemanticToString(VertexElementSemantic semantic);
 }

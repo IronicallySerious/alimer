@@ -29,7 +29,7 @@ namespace Alimer
 	/**
 	* Identifiers the running platform type.
 	*/
-	enum class PlatformId : uint32_t
+	enum class PlatformType : uint32_t
 	{
 		/**
 		* Unknown platform.
@@ -40,9 +40,9 @@ namespace Alimer
 		*/
 		Windows,
 		/**
-		* Windows universal platform (UWP).
+		* Windows universal platform.
 		*/
-		WindowsUniversal,
+        UWP,
 		/**
 		* Linux platform.
 		*/
@@ -50,7 +50,7 @@ namespace Alimer
 		/**
 		* Apple OSX platform.
 		*/
-		MacOS,
+        macOS,
 		/**
 		* Android platform.
 		*/
@@ -93,7 +93,7 @@ namespace Alimer
 	};
 
 	/// Get the running platform type.
-	ALIMER_API PlatformId GetPlatformId();
+	ALIMER_API PlatformType GetPlatformType();
 
 	/// Get the running platform family.
     ALIMER_API PlatformFamily GetPlatformFamily();

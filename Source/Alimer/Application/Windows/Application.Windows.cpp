@@ -114,9 +114,9 @@ namespace Alimer
         }
     }
 
-    WindowPtr Application::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
+    Window* Application::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
     {
-        return MakeShared<Win32Window>(title, width, height, fullscreen);
+        return new Win32Window(title, width, height, fullscreen);
     }
 
     Input* Application::CreateInput()

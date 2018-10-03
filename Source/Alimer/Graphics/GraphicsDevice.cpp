@@ -22,6 +22,8 @@
 
 #include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/ShaderCompiler.h"
+#include "../Graphics/Swapchain.h"
+#include "../Graphics/GraphicsImpl.h"
 #include "../Resource/ResourceManager.h"
 #include "../Core/Log.h"
 
@@ -50,20 +52,19 @@ extern "C"
 
 namespace Alimer
 {
-    GraphicsDevice::GraphicsDevice(GraphicsDeviceType deviceType, bool validation)
-        : _deviceType(deviceType)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation)
+        : _backend(backend)
         , _validation(validation)
         , _initialized(false)
-        , _adapter(nullptr)
         , _features{}
     {
+        AddSubsystem(this);
     }
 
     GraphicsDevice::~GraphicsDevice()
     {
         Finalize();
-
-        ClearAdapters();
+        RemoveSubsystem(this);
     }
 
     void GraphicsDevice::Finalize()
@@ -91,42 +92,32 @@ namespace Alimer
         }
     }
 
-    void GraphicsDevice::ClearAdapters()
+    set<GraphicsBackend> GraphicsDevice::GetAvailableBackends()
     {
-        // Clear adapters.
-        for (auto &adapter : _adapters)
-        {
-            SafeDelete(adapter);
-        }
-        _adapters.clear();
-    }
-
-    set<GraphicsDeviceType> GraphicsDevice::GetAvailableBackends()
-    {
-        static set<GraphicsDeviceType> availableBackends;
+        static set<GraphicsBackend> availableBackends;
 
         if (availableBackends.empty())
         {
-            availableBackends.insert(GraphicsDeviceType::Empty);
+            availableBackends.insert(GraphicsBackend::Empty);
 
 #if ALIMER_VULKAN
             if (VulkanGraphics::IsSupported())
             {
-                availableBackends.insert(GraphicsDeviceType::Vulkan);
+                availableBackends.insert(GraphicsBackend::Vulkan);
             }
 #endif
 
 #if ALIMER_D3D12
             if (D3D12Graphics::IsSupported())
             {
-                availableBackends.insert(GraphicsDeviceType::Direct3D12);
+                availableBackends.insert(GraphicsBackend::Direct3D12);
             }
 #endif
 
 #if ALIMER_D3D11
             if (D3D11Graphics::IsSupported())
             {
-                availableBackends.insert(GraphicsDeviceType::Direct3D11);
+                availableBackends.insert(GraphicsBackend::Direct3D11);
             }
 #endif
 
@@ -135,35 +126,40 @@ namespace Alimer
         return availableBackends;
     }
 
-    GraphicsDevice* GraphicsDevice::Create(GraphicsDeviceType deviceType, bool validation, const String& applicationName)
+    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend deviceType, bool validation, const String& applicationName)
     {
-        if (deviceType == GraphicsDeviceType::Default)
+        if (deviceType == GraphicsBackend::Default)
         {
             auto availableDrivers = GraphicsDevice::GetAvailableBackends();
 
-            if (availableDrivers.find(GraphicsDeviceType::Vulkan) != availableDrivers.end())
+            if (availableDrivers.find(GraphicsBackend::Vulkan) != availableDrivers.end())
             {
-                deviceType = GraphicsDeviceType::Vulkan;
+                deviceType = GraphicsBackend::Vulkan;
             }
-            else if (availableDrivers.find(GraphicsDeviceType::Direct3D12) != availableDrivers.end())
+            else if (availableDrivers.find(GraphicsBackend::Direct3D12) != availableDrivers.end())
             {
-                deviceType = GraphicsDeviceType::Direct3D12;
+                deviceType = GraphicsBackend::Direct3D12;
+            }
+            else if (availableDrivers.find(GraphicsBackend::Direct3D11) != availableDrivers.end())
+            {
+                deviceType = GraphicsBackend::Direct3D11;
             }
             else
             {
-                deviceType = GraphicsDeviceType::Empty;
+                deviceType = GraphicsBackend::Empty;
             }
         }
 
         GraphicsDevice* device = nullptr;
         switch (deviceType)
         {
-        case GraphicsDeviceType::Vulkan:
+        case GraphicsBackend::Vulkan:
 #if ALIMER_VULKAN
             if (VulkanGraphics::IsSupported())
             {
                 ALIMER_LOGINFO("Using Vulkan graphics backend");
                 device = new VulkanGraphics(validation, applicationName);
+                device->_impl = static_cast<VulkanGraphics*>(device);
             }
             else
 #endif
@@ -173,7 +169,7 @@ namespace Alimer
 
             break;
 
-        case GraphicsDeviceType::Direct3D12:
+        case GraphicsBackend::Direct3D12:
 #if ALIMER_D3D12
             if (D3D12Graphics::IsSupported())
             {
@@ -183,12 +179,13 @@ namespace Alimer
             else
 #endif
             {
-                ALIMER_LOGERROR("Direct3D 12 graphics backend not supported");
+                ALIMER_LOGWARN("Direct3D 12 graphics backend not supported, fallback to default");
+                return Create(GraphicsBackend::Default, validation, applicationName);
             }
 
             break;
 
-        case GraphicsDeviceType::Direct3D11:
+        case GraphicsBackend::Direct3D11:
 #if ALIMER_D3D11
             if (D3D11Graphics::IsSupported())
             {
@@ -198,15 +195,16 @@ namespace Alimer
             else
 #endif
             {
-                ALIMER_LOGERROR("Direct3D 11 graphics backend not supported");
+                ALIMER_LOGWARN("Direct3D 11 graphics backend not supported, fallback to default");
+                return Create(GraphicsBackend::Default, validation, applicationName);
             }
 
             break;
 
-        case GraphicsDeviceType::Default:
+        case GraphicsBackend::Default:
             break;
 
-        case GraphicsDeviceType::Empty:
+        case GraphicsBackend::Empty:
         default:
             break;
         }
@@ -214,7 +212,7 @@ namespace Alimer
         return device;
     }
 
-    bool GraphicsDevice::Initialize(GpuAdapter* adapter, WindowPtr window)
+    bool GraphicsDevice::Initialize(Window* window)
     {
         if (_initialized)
         {
@@ -222,19 +220,28 @@ namespace Alimer
             return false;
         }
 
-        if (!adapter)
+        ALIMER_ASSERT_MSG(window, "Invalid window for graphics creation");
+        _initialized = BackendInitialize();
+
+        if (_initialized)
         {
-            _adapter = GetDefaultAdapter();
-        }
-        else
-        {
-            _adapter = adapter;
+            // Create main swap chain.
+            // TODO: Handle headless.
+            _swapchain.Reset(new Swapchain());
+            _swapchain->Define(window->GetHandle().handle, window->GetSize());
         }
 
-        ALIMER_ASSERT_MSG(window.Get(), "Invalid window for graphics creation");
-        _window = window;
-        _initialized = BackendInitialize();
         return _initialized;
+    }
+
+    void GraphicsDevice::WaitIdle()
+    {
+        _impl->WaitIdle();
+    }
+
+    void GraphicsDevice::Commit()
+    {
+        _impl->Commit();
     }
 
     RenderPass* GraphicsDevice::CreateRenderPass(const RenderPassDescription* descriptor)
@@ -414,6 +421,8 @@ namespace Alimer
 
         return CreateTextureImpl(descriptor, initialData);
     }
+
+    GraphicsBackend GraphicsDevice::GetBackend() const { return _impl->GetBackend(); }
 
     void GraphicsDevice::AddGpuResource(GpuResource* resource)
     {

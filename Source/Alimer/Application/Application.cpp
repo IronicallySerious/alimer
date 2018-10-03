@@ -22,6 +22,7 @@
 
 #include "AlimerVersion.h"
 #include "../Application/Application.h"
+#include "../Graphics/Swapchain.h"
 #include "../Scene/Systems/CameraSystem.h"
 #include "../IO/Path.h"
 #include "../Core/Platform.h"
@@ -78,9 +79,8 @@ namespace Alimer
             _window = MakeWindow("Alimer", 800, 600);
 
             // Create and init graphics.
-            _graphicsDevice = GraphicsDevice::Create(_settings.deviceType, _settings.validation);
-            GpuAdapter* adapter = nullptr;
-            if (!_graphicsDevice->Initialize(adapter, _window))
+            _graphicsDevice = GraphicsDevice::Create(_settings.graphicsBackend, _settings.validation);
+            if (!_graphicsDevice->Initialize(_window.Get()))
             {
                 ALIMER_LOGERROR("Failed to initialize GraphicsDevice.");
                 return false;
@@ -145,33 +145,30 @@ namespace Alimer
         if (_headless)
             return;
 
-        if (_graphicsDevice->BeginFrame())
+        /*CommandBuffer* commandBuffer = _graphicsDevice->GetDefaultCommandBuffer();
+
+        // Begin recording.
+        commandBuffer->Begin();
+        commandBuffer->BeginRenderPass(nullptr, Color4(0.0f, 0.2f, 0.4f, 1.0f));
+
+        // Call OnRenderFrame for custom rendering frame logic.
+        OnRenderFrame(commandBuffer, frameTime, elapsedTime);
+
+        // Render scene to default command buffer.
+        if (_renderPipeline)
         {
-            CommandBuffer* commandBuffer = _graphicsDevice->GetDefaultCommandBuffer();
-
-            // Begin recording.
-            commandBuffer->Begin();
-            commandBuffer->BeginRenderPass(nullptr, Color4(0.0f, 0.2f, 0.4f, 1.0f));
-
-            // Call OnRenderFrame for custom rendering frame logic.
-            OnRenderFrame(commandBuffer, frameTime, elapsedTime);
-
-            // Render scene to default command buffer.
-            if (_renderPipeline)
-            {
-                //auto camera = _scene.GetActiveCamera()->GetComponent<CameraComponent>()->camera;
-                //_renderPipeline->Render(_renderContext, { camera });
-            }
-
-            // End swap chain render pass.
-            commandBuffer->EndRenderPass();
-
-            // End recording.
-            commandBuffer->End();
-
-            // End rendering frame.
-            _graphicsDevice->EndFrame();
+            //auto camera = _scene.GetActiveCamera()->GetComponent<CameraComponent>()->camera;
+            //_renderPipeline->Render(_renderContext, { camera });
         }
+
+        // End swap chain render pass.
+        commandBuffer->EndRenderPass();
+
+        // End recording.
+        commandBuffer->End();
+        */
+        // Commit rendering frame.
+        _graphicsDevice->Commit();
     }
 
     void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)

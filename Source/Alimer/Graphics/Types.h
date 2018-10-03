@@ -38,21 +38,6 @@ namespace Alimer
 
     using GpuSize = uint64_t;
 
-    /// Enum describing the Graphics backend type.
-    enum class GraphicsDeviceType
-    {
-        /// Best device supported for running platform.
-        Default,
-        /// Empty/Headless device type.
-        Empty,
-        /// Vulkan backend.
-        Vulkan,
-        /// DirectX 11.1+ backend.
-        Direct3D11,
-        /// DirectX 12 backend.
-        Direct3D12,
-    };
-
     /// Enum describing the number of samples.
     enum class SampleCount : uint32_t
     {

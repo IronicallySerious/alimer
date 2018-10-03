@@ -27,7 +27,6 @@
 #include "../../Base/String.h"
 #include "../../Application/Window.h"
 #include "VulkanGraphicsDevice.h"
-#include "VulkanGpuAdapter.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanRenderPass.h"
 #include "VulkanTexture.h"
@@ -227,7 +226,7 @@ namespace Alimer
     }
 
     VulkanGraphics::VulkanGraphics(bool validation, const String& applicationName)
-        : GraphicsDevice(GraphicsDeviceType::Vulkan, validation)
+        : GraphicsDevice(GraphicsBackend::Vulkan, validation)
     {
         std::vector<LayerProperties> instanceLayerProperties;
         VkResult result = InitGlobalLayerProperties(instanceLayerProperties);
@@ -322,6 +321,20 @@ namespace Alimer
         // Now load vk symbols.
         volkLoadInstance(_instance);
 
+        // Setup debug callback
+        if (validation && hasValidationLayer)
+        {
+            VkDebugReportCallbackCreateInfoEXT debugCreateInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
+            debugCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+            debugCreateInfo.pfnCallback = VkDebugCallback;
+            debugCreateInfo.pUserData = nullptr;
+            if (vkCreateDebugReportCallbackEXT(
+                _instance, &debugCreateInfo, nullptr, &_debugCallback) != VK_SUCCESS)
+            {
+                ALIMER_LOGWARN("vkCreateDebugReportCallbackEXT failed: %s.", vkGetVulkanResultString(result));
+            }
+        }
+
         // Enumerate physical devices.
         uint32_t gpuCount = 0;
         vkThrowIfFailed(vkEnumeratePhysicalDevices(_instance, &gpuCount, nullptr));
@@ -330,13 +343,23 @@ namespace Alimer
         vector<VkPhysicalDevice> physicalDevices(gpuCount);
         vkEnumeratePhysicalDevices(_instance, &gpuCount, physicalDevices.data());
 
+        ALIMER_LOGTRACE("Enumerating physical devices");
         std::map<int, VkPhysicalDevice> physicalDevicesRated;
-        for (const VkPhysicalDevice& physicalDevice : physicalDevices)
+        for (uint32_t i = 0; i < gpuCount; i++)
         {
             VkPhysicalDeviceProperties properties;
-            vkGetPhysicalDeviceProperties(physicalDevice, &properties);
             VkPhysicalDeviceFeatures features;
-            vkGetPhysicalDeviceFeatures(physicalDevice, &features);
+            vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
+            vkGetPhysicalDeviceFeatures(physicalDevices[i], &features);
+
+            ALIMER_LOGTRACE("Physical device %d:", i);
+            ALIMER_LOGTRACE("\t          Name: %s", properties.deviceName);
+            ALIMER_LOGTRACE("\t   API version: %x", properties.apiVersion);
+            ALIMER_LOGTRACE("\tDriver version: %x", properties.driverVersion);
+            ALIMER_LOGTRACE("\t      VendorId: %x", properties.vendorID);
+            ALIMER_LOGTRACE("\t      DeviceId: %x", properties.deviceID);
+            ALIMER_LOGTRACE("\t          Type: %d", properties.deviceType);
+
             int score = 0;
             if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
             {
@@ -347,24 +370,15 @@ namespace Alimer
             {
                 score = 0;
             }
-            physicalDevicesRated[score] = physicalDevice;
+            physicalDevicesRated[score] = physicalDevices[i];
         }
 
         // Take the first device from rated devices that support our queue requirements
         for (const auto& physicalDeviceRated : physicalDevicesRated)
         {
             VkPhysicalDevice physicalDevice = physicalDeviceRated.second;
-            _adapters.push_back(new VulkanGpuAdapter(physicalDevice));
-        }
-
-        // Setup debug callback
-        if (validation && hasValidationLayer)
-        {
-            VkDebugReportCallbackCreateInfoEXT debugCreateInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
-            debugCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-            debugCreateInfo.pfnCallback = VkDebugCallback;
-            debugCreateInfo.pUserData = nullptr;
-            result = vkCreateDebugReportCallbackEXT(_instance, &debugCreateInfo, nullptr, &_debugCallback);
+            _physicalDevice = physicalDevice;
+            break;
         }
     }
 
@@ -426,35 +440,39 @@ namespace Alimer
         _instance = VK_NULL_HANDLE;
     }
 
-    void VulkanGraphics::WaitIdle()
+    bool VulkanGraphics::WaitIdle()
     {
         VkResult result = vkDeviceWaitIdle(_logicalDevice);
         if (result < VK_SUCCESS)
         {
-            ALIMER_LOGERROR("vkDeviceWaitIdle failed");
+            ALIMER_LOGTRACE("[Vulkan] - vkDeviceWaitIdle failed");
+            return false;
         }
+
+        return true;
     }
 
     bool VulkanGraphics::BackendInitialize()
     {
-        auto vkGpuAdapter = static_cast<VulkanGpuAdapter*>(_adapter);
-        _vkPhysicalDevice = vkGpuAdapter->GetVkHandle();
-
-        vkGetPhysicalDeviceMemoryProperties(_vkPhysicalDevice, &_deviceMemoryProperties);
+        vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
+        vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
+        vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
 
         // Queue props.
         uint32_t queueFamilyCount;
-        vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyCount, nullptr);
         _queueFamilyProperties.resize(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, _queueFamilyProperties.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyCount, _queueFamilyProperties.data());
 
         // Enumerate device extensions.
         uint32_t extCount = 0;
-        if (vkEnumerateDeviceExtensionProperties(_vkPhysicalDevice, nullptr, &extCount, nullptr) != VK_SUCCESS)
+        if (vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &extCount, nullptr) != VK_SUCCESS)
+        {
             ALIMER_LOGCRITICAL("Vulkan: Failed to query device extensions");
+        }
 
         vector<VkExtensionProperties> extensions(extCount);
-        vkEnumerateDeviceExtensionProperties(_vkPhysicalDevice, nullptr, &extCount, extensions.data());
+        vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &extCount, extensions.data());
 
         vector<VkExtension> queryDeviceExtensions = {
             { VK_KHR_SWAPCHAIN_EXTENSION_NAME,VkExtensionType::Required, false},
@@ -507,8 +525,30 @@ namespace Alimer
         if (!requiredExtensionsEnabled)
             return false;
 
+        // Find vendor.
+        _vendorID = _deviceProperties.vendorID;
+        switch (_vendorID)
+        {
+        case 0x13B5:
+            _vendor = GpuVendor::Arm;
+            break;
+        case 0x10DE:
+            _vendor = GpuVendor::Nvidia;
+            break;
+        case 0x1002:
+        case 0x1022:
+            _vendor = GpuVendor::Amd;
+            break;
+        case 0x8086:
+            _vendor = GpuVendor::Intel;
+            break;
+        default:
+            _vendor = GpuVendor::Unknown;
+            break;
+        }
+
         // Now create logical device.
-        vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+        vector<VkDeviceQueueCreateInfo> queueCreateInfos = {};
 
         const float defaultQueuePriority(0.0f);
 
@@ -544,9 +584,8 @@ namespace Alimer
         }
 
         // Create the logical device representation
-        VkPhysicalDeviceFeatures gpuFeatures = vkGpuAdapter->GetFeatures();
         VkPhysicalDeviceFeatures enabledFeatures = {};
-        if (gpuFeatures.samplerAnisotropy)
+        if (_deviceFeatures.samplerAnisotropy)
         {
             enabledFeatures.samplerAnisotropy = VK_TRUE;
         }
@@ -562,7 +601,7 @@ namespace Alimer
             deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
         }
 
-        VkResult result = vkCreateDevice(_vkPhysicalDevice, &deviceCreateInfo, nullptr, &_logicalDevice);
+        VkResult result = vkCreateDevice(_physicalDevice, &deviceCreateInfo, nullptr, &_logicalDevice);
         vkThrowIfFailed(result);
 
         CreateAllocator();
@@ -586,7 +625,7 @@ namespace Alimer
         _defaultCommandBuffer = new VulkanCommandBuffer(this, _commandPool, false);
 
         // Create the main swap chain.
-        _swapChain = new VulkanSwapchain(this, _window.Get());
+        //_swapChain = new VulkanSwapchain(this, _window);
 
         // Create sync primitives
         VkSemaphoreCreateInfo semaphoreCreateInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
@@ -609,7 +648,7 @@ namespace Alimer
     void VulkanGraphics::CreateAllocator()
     {
         VmaAllocatorCreateInfo createInfo = {};
-        createInfo.physicalDevice = _vkPhysicalDevice;
+        createInfo.physicalDevice = _physicalDevice;
         createInfo.device = _logicalDevice;
 
         VmaVulkanFunctions vulkanFunctions = {};
@@ -643,33 +682,9 @@ namespace Alimer
     {
     }
 
-    bool VulkanGraphics::BeginFrame()
+    void VulkanGraphics::Commit()
     {
-        // Acquire the next image from the swap chain
-        VkResult result = _swapChain->AcquireNextImage(_semaphores.presentComplete, &_swapchainImageIndex);
-        // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-        if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
-        {
-            //WindowResize();
-        }
-        else {
-            vkThrowIfFailed(result);
-        }
-
-        /*for (auto &allocator : _descriptorSetAllocators)
-        {
-            allocator.second->BeginFrame();
-        }*/
-
-        // Begin command buffer.
-        _defaultCommandBuffer->Begin(nullptr);
-
-        return true;
-    }
-
-    void VulkanGraphics::EndFrame()
-    {
-        _defaultCommandBuffer->End();
+        /*_defaultCommandBuffer->End();
 
         VkCommandBuffer commandBuffer = _defaultCommandBuffer->GetHandle();
 
@@ -709,7 +724,7 @@ namespace Alimer
                 vkThrowIfFailed(result);
             }
         }
-
+        */
         // DestroyPendingResources();
     }
 
@@ -723,9 +738,9 @@ namespace Alimer
         return nullptr;
     }
 
-    RenderPass* VulkanGraphics::GetBackbufferRenderPass() const
+    SwapchainImpl* VulkanGraphics::CreateSwapchain(void* windowHandle, const uvec2& size)
     {
-        return _swapChain->GetRenderPass(_swapchainImageIndex);
+        return new VulkanSwapchain(this, windowHandle, size);
     }
 
     RenderPass* VulkanGraphics::CreateRenderPassImpl(const RenderPassDescription* descriptor)
@@ -1031,5 +1046,6 @@ namespace Alimer
         return newPipelineLayout;
     }
 #endif // TODO
-
 }
+
+#include "../../../ThirdParty/volk/volk.c"

@@ -24,11 +24,7 @@
 #include "../Core/Log.h"
 #include "../Base/String.h"
 
-#if !defined(_WIN32)
-#   include <dlfcn.h>
-#endif
-
-#if ALIMER_PLATFORM_WINDOWS
+#if defined(_WIN32)
 
 #include <windows.h>
 
@@ -72,30 +68,37 @@ typedef struct tagTHREADNAME_INFO
 } THREADNAME_INFO;
 #pragma pack(pop)
 
+#elif defined(__APPLE__) 
+#   include <TargetConditionals.h>
+#   include <dlfcn.h>
+#else
+#   include <dlfcn.h>
 #endif
 
 namespace Alimer
 {
-    PlatformId GetPlatformId()
+    PlatformType GetPlatformType()
     {
-#if __ANDROID__
-        return PlatformId::Android;
-#elif ALIMER_PLATFORM_APPLE_IOS
-        return PlatformId::iOS;
-#elif ALIMER_PLATFORM_APPLE_TV
-        return PlatformId::AppleTV;
-#elif ALIMER_PLATFORM_APPLE_OSX
-        return PlatformId::MacOS;
-#elif ALIMER_PLATFORM_WINDOWS
-        return PlatformId::Windows;
-#elif ALIMER_PLATFORM_UWP
-        return PlatformId::WindowsUniversal;
-#elif ALIMER_PLATFORM_WEB
-        return PlatformId::Web;
-#elif ALIMER_PLATFORM_LINUX
-        return PlatformId::Linux;
+#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
+        return PlatformType::UWP;
+#elif defined(_WIN64) || defined(_WIN32) 
+        return PlatformType::Windows;
+#elif defined(__APPLE__)
+#   if TARGET_OS_IOS
+#       return PlatformType::iOS;
+#   elif TARGET_OS_TV
+        return PlatformType::AppleTV;
+#   elif TARGET_OS_MAC
+        return PlatformType::macOS;
+#   endif
+#elif defined(__ANDROID__)
+        return PlatformType::Android;
+#elif defined(__linux__)
+        return PlatformType::Linux;
+#elif defined(__EMSCRIPTEN__)
+        return PlatformType::Web;
 #else
-        return PlatformId::Unknown;
+        return PlatformType::Unknown;
 #endif
     }
 
@@ -131,24 +134,24 @@ namespace Alimer
 
     const char* GetPlatformName()
     {
-        PlatformId platform = GetPlatformId();
+        PlatformType platform = GetPlatformType();
         switch (platform)
         {
-        case PlatformId::Windows:
+        case PlatformType::Windows:
             return "Windows";
-        case PlatformId::WindowsUniversal:
+        case PlatformType::UWP:
             return "UWP";
-        case PlatformId::Linux:
+        case PlatformType::Linux:
             return "Linux";
-        case PlatformId::MacOS:
-            return "MacOS";
-        case PlatformId::Android:
+        case PlatformType::macOS:
+            return "macOS";
+        case PlatformType::Android:
             return "Android";
-        case PlatformId::iOS:
+        case PlatformType::iOS:
             return "iOS";
-        case PlatformId::AppleTV:
+        case PlatformType::AppleTV:
             return "AppleTV";
-        case PlatformId::Web:
+        case PlatformType::Web:
             return "Web";
         default:
             return "Unknown";

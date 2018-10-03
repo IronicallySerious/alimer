@@ -115,11 +115,6 @@ namespace Alimer
 
     void VulkanCommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
     {
-        if (!renderPass)
-        {
-            renderPass = _graphics->GetBackbufferRenderPass();
-        }
-
         _currentRenderPass = static_cast<VulkanRenderPass*>(renderPass);
 
         std::vector<VkClearValue> clearValues(numClearColors + 1);

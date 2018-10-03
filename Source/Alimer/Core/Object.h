@@ -94,6 +94,18 @@ namespace Alimer
         /// Cast the object to specified most derived class.
         template<typename T> const T* Cast() const { return IsInstanceOf<T>() ? static_cast<const T*>(this) : nullptr; }
 
+        /// Add a subsystem that can be accessed globally. Note that the subsystems container does not own the objects.
+        static void AddSubsystem(Object* subsystem);
+        /// Remove a subsystem by object pointer.
+        static void RemoveSubsystem(Object* subsystem);
+        /// Remove a subsystem by type.
+        static void RemoveSubsystem(StringHash type);
+        /// Return a subsystem by type, or null if not registered.
+        static Object* GetSubsystem(StringHash type);
+
+        /// Return a subsystem, template version.
+        template <class T> static T* GetSubsystem() { return static_cast<T*>(GetSubsystem(T::GetTypeStatic())); }
+
         /// Subscribe to an event.
         void SubscribeToEvent(Event& event, EventHandler* handler);
         /// Unsubscribe from an event.

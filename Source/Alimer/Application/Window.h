@@ -115,5 +115,4 @@ namespace Alimer
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Window);
     };
-    using WindowPtr = SharedPtr<Window>;
 }

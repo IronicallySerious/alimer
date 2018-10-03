@@ -100,7 +100,7 @@ namespace Alimer
         void Render(CommandBuffer* context)
         {
             context->SetShaderProgram(_program.Get());
-            //context->SetVertexInputFormat(_vertexInputFormat.Get());
+            context->SetVertexInputFormat(_vertexInputFormat.Get());
             context->BindVertexBuffer(_vertexBuffer.Get(), 0);
             context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
             context->Draw(PrimitiveTopology::Triangles, 3);
@@ -371,13 +371,13 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
-        _settings.deviceType = GraphicsDeviceType::Direct3D11;
-        //_settings.deviceType = GraphicsDeviceType::Vulkan;
+        _settings.graphicsBackend = GraphicsBackend::Direct3D11;
+        //_settings.graphicsBackend = GraphicsBackend::Vulkan;
     }
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_graphicsDevice.Get());
+        //_triangleExample.Initialize(_graphicsDevice.Get());
         //_quadExample.Initialize(_graphicsDevice.Get());
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
@@ -396,7 +396,7 @@ namespace Alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        _triangleExample.Render(commandBuffer);
+        //_triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);

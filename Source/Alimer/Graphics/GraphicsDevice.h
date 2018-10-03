@@ -26,7 +26,6 @@
 #include "../Application/Window.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/GpuDeviceFeatures.h"
-#include "../Graphics/GpuAdapter.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/RenderPass.h"
@@ -35,42 +34,71 @@
 #include "../Graphics/VertexFormat.h"
 #include <vector>
 #include <set>
-#include <queue>
 #include <mutex>
-#include <atomic>
 
 namespace Alimer
 {
+    /// Enum describing the Graphics backend.
+    enum class GraphicsBackend : uint32_t
+    {
+        /// Best device supported for running platform.
+        Default,
+        /// Empty/Headless device type.
+        Empty,
+        /// Vulkan backend.
+        Vulkan,
+        /// DirectX 11.1+ backend.
+        Direct3D11,
+        /// DirectX 12 backend.
+        Direct3D12,
+    };
+
+    enum class GpuVendor : uint8_t
+    {
+        Unknown,
+        Arm,
+        Nvidia,
+        Amd,
+        Intel,
+        Warp,
+        Count
+    };
+
+    class GraphicsImpl;
+    class Swapchain;
+
     /// Low-level 3D graphics device class.
-    class ALIMER_API GraphicsDevice 
+    class ALIMER_API GraphicsDevice : public Object
     {
         friend class GpuResource;
 
+        ALIMER_OBJECT(GraphicsDevice, Object);
+
     protected:
         /// Constructor.
-        GraphicsDevice(GraphicsDeviceType deviceType, bool validation = false);
+        GraphicsDevice(GraphicsBackend backend, bool validation = false);
 
     public:
         /// Destructor.
         virtual ~GraphicsDevice();
 
         /// Get supported graphics backends.
-        static std::set<GraphicsDeviceType> GetAvailableBackends();
+        static std::set<GraphicsBackend> GetAvailableBackends();
 
         /// Factory method for Graphics creation.
-        static GraphicsDevice* Create(GraphicsDeviceType deviceType, bool validation = false, const String& applicationName = "Alimer");
+        static GraphicsDevice* Create(GraphicsBackend backend, bool validation = false, const String& applicationName = "Alimer");
 
         /// Initialize graphics with given adapter and window.
-        bool Initialize(GpuAdapter* adapter, WindowPtr window);
+        bool Initialize(Window* window);
 
         /// Wait for a device to become idle.
-        virtual void WaitIdle() = 0;
+        void WaitIdle();
 
-        /// Begin frame rendering.
-        virtual bool BeginFrame() = 0;
+        /// Commit rendering frame.
+        void Commit();
 
-        /// End and present frame.
-        virtual void EndFrame() = 0;
+        /// Get backend implementation.
+        GraphicsImpl *GetImplementation() const { return _impl; }
 
         /// Create new RenderPass given descriptor
         RenderPass* CreateRenderPass(const RenderPassDescription* descriptor);
@@ -103,16 +131,13 @@ namespace Alimer
         bool IsInitialized() const { return _initialized; }
 
         /// Get the type of device.
-        GraphicsDeviceType GetDeviceType() const { return _deviceType; }
-
-        /// Get supported adapters.
-        const std::vector<GpuAdapter*>& GetAdapters() const { return _adapters; }
-
-        /// Get the default and best adapter.
-        GpuAdapter* GetDefaultAdapter() const { return _adapters[0]; }
+        GraphicsBackend GetBackend() const;
 
         /// Get the device features.
         const GpuDeviceFeatures& GetFeatures() const { return _features; }
+
+        /// Get the main create swap chain.
+        Swapchain* GetMainSwapchain() const { return _swapchain.Get(); }
 
         /// Get the default command buffer.
         virtual CommandBuffer* GetDefaultCommandBuffer() const = 0;
@@ -129,7 +154,6 @@ namespace Alimer
 
     protected:
         virtual void Finalize();
-        void ClearAdapters();
         virtual bool BackendInitialize() = 0;
 
         virtual RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) = 0;
@@ -140,16 +164,15 @@ namespace Alimer
         virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr) = 0;
 
     protected:
-        GraphicsDeviceType _deviceType;
+        GraphicsBackend _backend;
         bool _validation;
         bool _initialized;
-        std::vector<GpuAdapter*> _adapters;
         GpuDeviceFeatures _features;
 
-        WindowPtr _window{};
-        GpuAdapter* _adapter;
+        UniquePtr<Swapchain> _swapchain;
 
     private:
+        GraphicsImpl* _impl = nullptr;
         std::mutex _gpuResourceMutex;
         std::vector<GpuResource*> _gpuResources;
 

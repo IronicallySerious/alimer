@@ -22,30 +22,48 @@
 
 #pragma once
 
-#include "../GpuAdapter.h"
-#include "VulkanPrerequisites.h"
+#include "../Graphics/Texture.h"
+#include "../Math/Math.h"
 
 namespace Alimer
 {
-	class VulkanGpuAdapter final : public GpuAdapter
-	{
+    class SwapchainImpl;
+    class GraphicsDevice;
+
+    /// Defines a Swapchain class.
+    class ALIMER_API Swapchain final
+    {
     public:
-		/// Constructor.
-        VulkanGpuAdapter(VkPhysicalDevice handle);
+        /// Constructor.
+        Swapchain();
 
-		/// Destructor.
-		~VulkanGpuAdapter() override;
+        /// Destructor.
+        ~Swapchain();
 
-        VkPhysicalDevice GetVkHandle() const { return _vkHandle; }
-        inline const VkPhysicalDeviceProperties& GetProperties() const { return _properties; }
-        inline const VkPhysicalDeviceLimits& GetLimits() const { return _properties.limits; }
-        inline const VkPhysicalDeviceFeatures& GetFeatures() const { return _features; }
+        /// Native window handle.
+        /// Define Swapchain. Return true on success.
+        bool Define(void* windowHandle, const uvec2& size);
 
-    protected:
-        VkPhysicalDevice _vkHandle;
-        VkPhysicalDeviceProperties _properties;
-        VkPhysicalDeviceFeatures _features;
-        VkPhysicalDeviceMemoryProperties _memoryProperties;
-        std::vector<VkQueueFamilyProperties> _queueFamilyProperties;
-	};
+        /// Return image dimensions in pixels.
+        const uvec2& GetSize() const { return _size; }
+        uint32_t GetWidth() const { return _size.x; }
+        uint32_t GetHeight() const { return _size.y; }
+        PixelFormat GetFormat() const { return _format; }
+
+        Texture* GetNextTexture();
+        void Present();
+
+    private:
+        /// Graphics subsystem pointer.
+        WeakPtr<GraphicsDevice> _graphics;
+
+        /// Implementation.
+        SwapchainImpl* _impl = nullptr;
+
+        uvec2 _size;
+        PixelFormat _format = PixelFormat::Undefined;
+        uint32_t _textureCount = 0;
+        uint32_t _textureIndex = 0;
+        std::vector<SharedPtr<Texture>> _textures;
+    };
 }

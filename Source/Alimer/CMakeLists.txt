@@ -29,14 +29,20 @@ macro (define_engine_source_files)
 	endif ()
 	foreach (path ${DEFINE_SRC_FILES_UNPARSED_ARGUMENTS})
 		# Get header files
-		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.hpp ${path}/*.inl)
+		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.inl)
+        
 		list (APPEND HEADER_FILES ${_files})
+
+        # Remove unsupported files for install.
+        list (REMOVE_ITEM _files
+            Graphics/GraphicsImpl.h
+        )
 
 		# Install them
 		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
 
 		# Get source files
-		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.c ${path}/*.cpp)
+		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.cpp)
 		list (APPEND SOURCE_FILES ${_files})
 	endforeach ()
 endmacro()
@@ -82,9 +88,6 @@ endif (ALIMER_GL)
 
 if (ALIMER_VULKAN)
     define_engine_source_files(Graphics/Vulkan)
-
-    # volk
-	list (APPEND SOURCE_FILES ${ALIMER_THIRD_PARTY_DIR}/volk/volk.c)
 endif (ALIMER_VULKAN)
 
 if (ALIMER_D3D11 OR ALIMER_D3D12)
@@ -152,17 +155,6 @@ endif (ALIMER_GL)
 
 if (ALIMER_VULKAN)
 	target_compile_definitions(libAlimer PRIVATE -DALIMER_VULKAN)
-	if (ALIMER_WINDOWS)
-		target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_WIN32_KHR)
-	elseif (ALIMER_LINUX)
-		if(ALIMER_LINUX_WAYLAND)
-			target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_WAYLAND_KHR)
-		else()
-			target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_XCB_KHR)
-		endif()
-	elseif (ALIMER_ANDROID)
-		target_compile_definitions (libAlimer PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
-	endif()
 endif ()
 
 # Add OS-specific library dependencies

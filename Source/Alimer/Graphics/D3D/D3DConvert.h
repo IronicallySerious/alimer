@@ -137,5 +137,40 @@ namespace Alimer
                 return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
             }
         }
+
+        static inline const char* Convert(VertexElementSemantic semantic, uint32_t& semanticIndex)
+        {
+            semanticIndex = 0;
+            switch (semantic)
+            {
+            case VertexElementSemantic::Position:       return "POSITION";
+            case VertexElementSemantic::Normal:         return "NORMAL";
+            case VertexElementSemantic::Binormal:       return "BINORMAL";
+            case VertexElementSemantic::Tangent:        return "TANGENT";
+            case VertexElementSemantic::BlendWeight:    return "BLENDWEIGHT";
+            case VertexElementSemantic::BlendIndices:   return "BLENDINDICES";
+            case VertexElementSemantic::Color0:
+            case VertexElementSemantic::Color1:
+            case VertexElementSemantic::Color2:
+            case VertexElementSemantic::Color3:
+            {
+                semanticIndex = static_cast<uint32_t>(semantic) - static_cast<uint32_t>(VertexElementSemantic::Color0);
+                return "COLOR";
+            }
+            case VertexElementSemantic::Texcoord0:
+            case VertexElementSemantic::Texcoord1:
+            case VertexElementSemantic::Texcoord2:
+            case VertexElementSemantic::Texcoord3:
+            case VertexElementSemantic::Texcoord4:
+            case VertexElementSemantic::Texcoord5:
+            case VertexElementSemantic::Texcoord6:
+            case VertexElementSemantic::Texcoord7:
+            {
+                semanticIndex = static_cast<uint32_t>(semantic) - static_cast<uint32_t>(VertexElementSemantic::Texcoord0);
+                return "TEXCOORD";
+            }
+            default: return nullptr;
+            }
+        }
     }
 }

@@ -57,4 +57,30 @@ namespace Alimer
     VertexInputFormat::~VertexInputFormat()
     {
     }
+
+    const char* VertexElementSemanticToString(VertexElementSemantic semantic)
+    {
+        switch (semantic)
+        {
+        case VertexElementSemantic::Position:       return "POSITION";
+        case VertexElementSemantic::Normal:         return "NORMAL";
+        case VertexElementSemantic::Binormal:       return "BINORMAL";
+        case VertexElementSemantic::Tangent:        return "TANGENT";
+        case VertexElementSemantic::BlendWeight:    return "BLENDWEIGHT";
+        case VertexElementSemantic::BlendIndices:   return "BLENDINDICES";
+        case VertexElementSemantic::Color0:         return "COLOR0";
+        case VertexElementSemantic::Color1:         return "COLOR1";
+        case VertexElementSemantic::Color2:         return "COLOR2";
+        case VertexElementSemantic::Color3:         return "COLOR3";
+        case VertexElementSemantic::Texcoord0:      return "TEXCOORD0";
+        case VertexElementSemantic::Texcoord1:      return "TEXCOORD1";
+        case VertexElementSemantic::Texcoord2:      return "TEXCOORD2";
+        case VertexElementSemantic::Texcoord3:      return "TEXCOORD3";
+        case VertexElementSemantic::Texcoord4:      return "TEXCOORD4";
+        case VertexElementSemantic::Texcoord5:      return "TEXCOORD5";
+        case VertexElementSemantic::Texcoord6:      return "TEXCOORD6";
+        case VertexElementSemantic::Texcoord7:      return "TEXCOORD7";
+        default: return nullptr;
+        }
+    }
 }

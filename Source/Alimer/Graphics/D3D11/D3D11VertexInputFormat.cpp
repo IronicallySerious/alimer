@@ -27,27 +27,6 @@
 
 namespace Alimer
 {
-    static const char* d3d11_SemanticNames[static_cast<uint32_t>(VertexElementSemantic::Count)] = {
-        "POSITION",
-        "NORMAL",
-        "BINORMAL",
-        "TANGENT",
-        "BLENDWEIGHT",
-        "BLENDINDICES",
-        "COLOR0",
-        "COLOR1",
-        "COLOR2",
-        "COLOR3",
-        "TEXCOORD0",
-        "TEXCOORD1",
-        "TEXCOORD2",
-        "TEXCOORD3",
-        "TEXCOORD4",
-        "TEXCOORD5",
-        "TEXCOORD6",
-        "TEXCOORD7",
-    };
-
     static int d3d11_SemanticIndices[static_cast<uint32_t>(VertexElementSemantic::Count)] = {
         0,
         0,
@@ -78,8 +57,7 @@ namespace Alimer
         {
             const VertexAttributeDescriptor& attribute = _attributes[i];
 
-            _inputElements[i].SemanticName = "TEXCOORD";
-            _inputElements[i].SemanticIndex = d3d11_SemanticIndices[static_cast<uint32_t>(attribute.semantic)];
+            _inputElements[i].SemanticName = d3d::Convert(attribute.semantic, _inputElements[i].SemanticIndex);
             _inputElements[i].Format = d3d::Convert(attribute.format);
             _inputElements[i].InputSlot = attribute.bufferIndex;
             _inputElements[i].AlignedByteOffset = attribute.offset;

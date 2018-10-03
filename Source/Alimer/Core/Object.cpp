@@ -21,9 +21,47 @@
 //
 
 #include "../Core/Object.h"
+#include <unordered_map>
 
 namespace Alimer
 {
+    namespace details
+    {
+        struct SubSystemContext
+        {
+            void AddSubsystem(Object* subsystem)
+            {
+                _subsystems.emplace(std::make_pair(subsystem->GetType(), subsystem));
+            }
+
+            void RemoveSubsystem(Object* subsystem)
+            {
+                _subsystems.erase(subsystem->GetType());
+            }
+
+            void RemoveSubsystem(StringHash type)
+            {
+                _subsystems.erase(type);
+            }
+
+            Object* GetSubsystem(StringHash type)
+            {
+                auto it = _subsystems.find(type);
+                return it != _subsystems.end() ? it->second : nullptr;
+            }
+
+        private:
+            /// Registered subsystems.
+            std::unordered_map<StringHash, Object*> _subsystems;
+        };
+
+        SubSystemContext& Context()
+        {
+            static SubSystemContext s_context;
+            return s_context;
+        }
+    }
+
     TypeInfo::TypeInfo(const char* typeName, const TypeInfo* baseTypeInfo)
         : _type(typeName)
         , _typeName(typeName)
@@ -64,9 +102,31 @@ namespace Alimer
         return GetTypeInfo()->IsTypeOf(type);
     }
 
+
+
     bool Object::IsInstanceOf(const TypeInfo* typeInfo) const
     {
         return GetTypeInfo()->IsTypeOf(typeInfo);
+    }
+
+    void Object::AddSubsystem(Object* subsystem)
+    {
+        details::Context().AddSubsystem(subsystem);
+    }
+
+    void Object::RemoveSubsystem(Object* subsystem)
+    {
+        details::Context().RemoveSubsystem(subsystem);
+    }
+
+    void Object::RemoveSubsystem(StringHash type)
+    {
+        details::Context().RemoveSubsystem(type);
+    }
+
+    Object* Object::GetSubsystem(StringHash type)
+    {
+        return details::Context().GetSubsystem(type);
     }
 
     void Object::SubscribeToEvent(Event& event, EventHandler* handler)

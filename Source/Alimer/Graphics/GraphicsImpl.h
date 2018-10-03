@@ -20,12 +20,43 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/GpuAdapter.h"
+#pragma once
+#include "../Graphics/GraphicsDevice.h"
 
 namespace Alimer
 {
-    GpuAdapter::GpuAdapter()
+    class BufferImpl
     {
+    public:
+        virtual ~BufferImpl() = default;
 
-    }
+        virtual bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) = 0;
+    };
+
+    class SwapchainImpl
+    {
+    public:
+        virtual ~SwapchainImpl() = default;
+
+        virtual uint32_t GetTextureCount() const = 0;
+        virtual PixelFormat GetFormat() const = 0;
+
+        virtual bool AcquireNextTexture(uint32_t* textureIndex) = 0;
+        virtual void Present() = 0;
+    };
+
+    class GraphicsImpl
+    {
+    public:
+        virtual ~GraphicsImpl() = default;
+
+        virtual GraphicsBackend GetBackend() const = 0;
+        virtual uint32_t GetVendorID() const = 0;
+        virtual GpuVendor GetVendor() const = 0;
+
+        virtual bool WaitIdle() = 0;
+        virtual void Commit() = 0;
+
+        virtual SwapchainImpl* CreateSwapchain(void* windowHandle, const uvec2& size) = 0;
+    };
 }

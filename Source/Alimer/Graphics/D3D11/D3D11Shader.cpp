@@ -25,6 +25,7 @@
 #include "../D3D/D3DShaderCompiler.h"
 #include "../D3D/D3DPlatformFunctions.h"
 #include "../../Core/Log.h"
+#include "../../Graphics/VertexFormat.h"
 #include <spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
 
@@ -47,7 +48,16 @@ namespace Alimer
         options_hlsl.shader_model = major * 10 + minor;
         compiler.set_hlsl_options(options_hlsl);
 
-        std::string hlslSource = compiler.compile();
+        // Remap attributes with HLSL semantic.
+        std::vector<spirv_cross::HLSLVertexAttributeRemap> remaps;
+        for (int i = 0; i < static_cast<uint32_t>(VertexElementSemantic::Count); i++)
+        {
+            VertexElementSemantic semantic = static_cast<VertexElementSemantic>(i);
+            spirv_cross::HLSLVertexAttributeRemap remap = { (uint32_t)i , VertexElementSemanticToString(semantic) };
+            remaps.push_back(std::move(remap));
+        }
+
+        std::string hlslSource = compiler.compile(std::move(remaps));
         return D3DShaderCompiler::Compile(graphics->GetFunctions()->d3dCompile, hlslSource, shaderModule->GetStage(), major, minor);
     }
 

@@ -22,56 +22,59 @@
 
 #pragma once
 
-#include "../../Application/Window.h"
+#include "../GraphicsImpl.h"
 #include "VulkanPrerequisites.h"
 #include <vector>
 
 namespace Alimer
 {
-	class VulkanTexture;
+    class VulkanTexture;
     class VulkanRenderPass;
-	class VulkanGraphics;
+    class VulkanGraphics;
 
-	/// Vulkan Swapchain.
-	class VulkanSwapchain final
-	{
-	public:
-		/// Construct. Set parent shader and defines but do not compile yet.
-		VulkanSwapchain(VulkanGraphics* graphics, Window* window);
-		/// Destruct.
-		~VulkanSwapchain();
+    /// Vulkan Swapchain.
+    class VulkanSwapchain final : public SwapchainImpl
+    {
+    public:
+        /// Construct. Set parent shader and defines but do not compile yet.
+        VulkanSwapchain(VulkanGraphics* graphics, void* windowHandle, const uvec2& size);
+        /// Destruct.
+        ~VulkanSwapchain();
 
-		void Resize(uint32_t width, uint32_t height, bool force = false);
+        void Resize(uint32_t width, uint32_t height, bool force = false);
 
+        bool AcquireNextTexture(uint32_t* textureIndex) override;
+        void Present() override;
         VkResult AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex);
-		VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
+        VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 
-		uint32_t GetImageCount() const { return _imageCount; }
+        uint32_t GetTextureCount() const override { return _imageCount; }
+        PixelFormat GetFormat() const override { return _format; }
         VulkanRenderPass* GetRenderPass(uint32_t index) const { return _renderPasses[index].Get(); }
 
-	private:
-		/// Graphics subsystem.
-		VulkanGraphics* _graphics;
+    private:
+        /// Graphics subsystem.
+        VulkanGraphics* _graphics;
 
-		VkInstance _instance;
-		VkPhysicalDevice _physicalDevice;
-		VkDevice _logicalDevice;
+        VkInstance _instance;
+        VkPhysicalDevice _physicalDevice;
+        VkDevice _logicalDevice;
 
-		VkSurfaceKHR _surface;
-		VkSurfaceFormatKHR _swapchainFormat{};
-		VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
-		
-		std::vector<VkImage> _images;
+        VkSurfaceKHR _surface;
+        VkSurfaceFormatKHR _swapchainFormat{};
+        VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
+
+        std::vector<VkImage> _images;
         std::vector<UniquePtr<VulkanTexture>> _textures;
-		std::vector<UniquePtr<VulkanRenderPass>> _renderPasses;
+        std::vector<UniquePtr<VulkanRenderPass>> _renderPasses;
         std::vector<VkSemaphore> _semaphores;
 
         uint32_t _imageCount;
+        PixelFormat _format = PixelFormat::Undefined;
         uint32_t _currentSemaphoreIndex;
         uint32_t _currentBackBufferIndex;
 
-		uint32_t _width{};
-		uint32_t _height{};
-		bool _vsync{ false };
-	};
+        uvec2 _size;
+        bool _vsync{ false };
+    };
 }

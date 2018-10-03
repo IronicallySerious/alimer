@@ -46,11 +46,14 @@
 
 namespace Alimer
 {
-    class ApplicationSettings : public Serializable
+    struct ApplicationSettings
     {
-    public:
-        GraphicsDeviceType deviceType;
-        bool validation;
+        GraphicsBackend graphicsBackend = GraphicsBackend::Default;
+#if defined(_DEBUG)
+        bool validation = true;
+#else
+        bool validation = false;
+#endif
     };
 
     /// Application for main loop and all modules and OS setup.
@@ -84,7 +87,7 @@ namespace Alimer
         /// Resume the main execution loop.
         void Resume();
 
-        WindowPtr MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
+        Window* MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
 
         Timer &GetFrameTimer() { return _timer; }
 
@@ -124,7 +127,7 @@ namespace Alimer
         UniquePtr<Logger> _log;
         Timer _timer;
         ResourceManager _resources;
-        WindowPtr _window;
+        UniquePtr<Window> _window;
         UniquePtr<GraphicsDevice> _graphicsDevice;
         UniquePtr<Input> _input;
         UniquePtr<Audio> _audio;

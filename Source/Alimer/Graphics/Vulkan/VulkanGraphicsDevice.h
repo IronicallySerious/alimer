@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../GraphicsImpl.h"
 #include "../GraphicsDevice.h"
 #include "../../Base/HashMap.h"
 #include "VulkanSwapchain.h"
@@ -33,7 +34,7 @@ namespace Alimer
     class VulkanPipelineLayout;
 
 	/// Vulkan graphics backend.
-	class VulkanGraphics final : public GraphicsDevice
+	class VulkanGraphics final : public GraphicsDevice, public GraphicsImpl
 	{
 	public:
         static bool IsSupported();
@@ -43,14 +44,18 @@ namespace Alimer
 		/// Destruct.
 		~VulkanGraphics() override;
 
-        void WaitIdle() override;
+        GraphicsBackend GetBackend() const override { return GraphicsBackend::Vulkan; }
+        virtual uint32_t GetVendorID() const override { return _vendorID; }
+        virtual GpuVendor GetVendor() const override { return _vendor; }
 
-        bool BeginFrame() override;
-        void EndFrame() override;
+        bool WaitIdle() override;
+
+        void Commit() override;
+
+        SwapchainImpl* CreateSwapchain(void* windowHandle, const uvec2& size) override;
 
         CommandBuffer* GetDefaultCommandBuffer() const override;
         CommandBuffer* CreateCommandBuffer() override;
-        RenderPass* GetBackbufferRenderPass() const;
 
         RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) override;
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
@@ -61,7 +66,7 @@ namespace Alimer
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
 
 		VkInstance GetInstance() const { return _instance; }
-		VkPhysicalDevice GetPhysicalDevice() const { return _vkPhysicalDevice; }
+		VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
 		VkDevice GetLogicalDevice() const { return _logicalDevice; }
         VmaAllocator GetAllocator() const { return _allocator; }
         VkPipelineCache GetPipelineCache() const { return _pipelineCache; }
@@ -90,9 +95,15 @@ namespace Alimer
 		VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
 
 		// PhysicalDevice
-		VkPhysicalDevice _vkPhysicalDevice = VK_NULL_HANDLE;
+		VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
+        VkPhysicalDeviceProperties _deviceProperties;
 		VkPhysicalDeviceMemoryProperties _deviceMemoryProperties;
+        VkPhysicalDeviceFeatures _deviceFeatures;
 		std::vector<VkQueueFamilyProperties> _queueFamilyProperties;
+        uint32_t _vendorID = 0;
+        GpuVendor _vendor = GpuVendor::Unknown;
+        uint32_t _deviceID = 0;
+        String _deviceName;
 
 		// LogicalDevice
 		struct {

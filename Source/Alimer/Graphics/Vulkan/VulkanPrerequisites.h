@@ -25,11 +25,15 @@
 #include "../../Core/Log.h"
 
 #if defined(_WIN32)
-#	ifndef VK_USE_PLATFORM_WIN32_KHR
-#		define VK_USE_PLATFORM_WIN32_KHR
-#	endif
+#	define VK_USE_PLATFORM_WIN32_KHR 1
 #elif defined(__linux__)
-#	define VK_USE_PLATFORM_XLIB_KHR
+#   ifdef ALIMER_LINUX_WAYLAND)
+#       define VK_USE_PLATFORM_WAYLAND_KHR 1
+#   else
+#	    define VK_USE_PLATFORM_XCB_KHR 1
+#   endif
+#elif defined(__ANDROID__)
+#   define VK_USE_PLATFORM_ANDROID_KHR 1
 #endif
 
 #define VK_NO_PROTOTYPES 0

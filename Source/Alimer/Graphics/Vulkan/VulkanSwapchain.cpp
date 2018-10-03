@@ -30,8 +30,9 @@
 
 namespace Alimer
 {
-	VulkanSwapchain::VulkanSwapchain(VulkanGraphics* graphics, Window* window)
+	VulkanSwapchain::VulkanSwapchain(VulkanGraphics* graphics, void* windowHandle, const uvec2& size)
 		: _graphics(graphics)
+        , _size(size)
 		, _instance(graphics->GetInstance())
 		, _physicalDevice(graphics->GetPhysicalDevice())
 		, _logicalDevice(graphics->GetLogicalDevice())
@@ -42,20 +43,26 @@ namespace Alimer
 		VkResult result = VK_SUCCESS;
 
 		// Create the os-specific surface.
-        const WindowHandle& handle = window->GetHandle();
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-		surfaceCreateInfo.hinstance = static_cast<HINSTANCE>(handle.connection);
-		surfaceCreateInfo.hwnd = static_cast<HWND>(handle.handle);
+		surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
+		surfaceCreateInfo.hwnd = static_cast<HWND>(windowHandle);
 		result = vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
-#elif defined(VK_USE_PLATFORM_XLIB_KHR)
-		VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR };
-		surfaceCreateInfo.dpy = static_cast<Display*>(handle.connection);
-        surfaceCreateInfo.window = static_cast<Window>(handle.handle);
-		result = vkCreateXlibSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+        VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.display = display;
+        surfaceCreateInfo.surface = window;
+        err = vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+        VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.connection = connection;
+        surfaceCreateInfo.window = window;
+        err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR };
-		surfaceCreateInfo.window = static_cast<ANativeWindow*>(handle.handle);
+		surfaceCreateInfo.window = static_cast<ANativeWindow*>(windowHandle);
 		result = vkCreateAndroidSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
 #endif
 		vkThrowIfFailed(result);
@@ -186,8 +193,8 @@ namespace Alimer
 
 	void VulkanSwapchain::Resize(uint32_t width, uint32_t height, bool force)
 	{
-		if (_width == width &&
-			_height == height &&
+		if (_size.x == width &&
+            _size.y == height &&
 			!force) {
 			return;
 		}
@@ -314,8 +321,9 @@ namespace Alimer
 
 		vkThrowIfFailed(vkCreateSwapchainKHR(_logicalDevice, &createInfo, nullptr, &_swapchain));
 
-		_width = width;
-		_height = height;
+        _format = vk::Convert(_swapchainFormat.format);;
+        _size.x = width;
+        _size.y = height;
 
 		// If an existing swap chain is re-created, destroy the old swap chain
 		// This also cleans up all the presentable images
@@ -347,9 +355,9 @@ namespace Alimer
 		TextureDescriptor textureDesc = {};
 		textureDesc.type = TextureType::Type2D;
 		textureDesc.usage = TextureUsage::RenderTarget;
-		textureDesc.format = vk::Convert(_swapchainFormat.format);
-		textureDesc.width = _width;
-		textureDesc.height = _height;
+		textureDesc.format = _format;
+		textureDesc.width = _size.x;
+		textureDesc.height = _size.y;
 
 		for (uint32_t i = 0; i < _imageCount; i++)
 		{
@@ -422,6 +430,24 @@ namespace Alimer
         _graphics->AddWaitSemaphore(semaphore);
 		return _renderPasses[_currentBackBufferIndex];
 	}*/
+
+    bool VulkanSwapchain::AcquireNextTexture(uint32_t* textureIndex)
+    {
+        VkResult result = vkAcquireNextImageKHR(
+            _logicalDevice,
+            _swapchain,
+            UINT64_MAX,
+            (VkSemaphore)nullptr,
+            (VkFence)nullptr,
+            textureIndex);
+
+        return result == VK_SUCCESS;
+    }
+
+    void VulkanSwapchain::Present()
+    {
+
+    }
 
     VkResult VulkanSwapchain::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex)
     {

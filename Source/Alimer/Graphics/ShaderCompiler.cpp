@@ -21,6 +21,7 @@
 //
 
 #include "../Graphics/ShaderCompiler.h"
+#include "../Graphics/VertexFormat.h"
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
@@ -324,8 +325,24 @@ namespace Alimer
             // Initialize glslang library.
             glslang::InitializeProcess();
 
+            // construct semantics mapping defines
+            // to be used in layout(location = SEMANTIC) inside GLSL
+            String semanticsDef;
+            for (uint32_t i = 0; i < static_cast<uint32_t>(VertexElementSemantic::Count); i++)
+            {
+                VertexElementSemantic semantic = static_cast<VertexElementSemantic>(i);
+                semanticsDef += String::Format("#define %s %d\n", VertexElementSemanticToString(semantic), i);
+            }
+
+            // Add SV_Target semantics for more HLSL compatibility
+            for (int i = 0; i < 8; i++)
+            {
+                semanticsDef += String::Format("#define SV_Target%d %d\n", i, i);
+            }
+
             const String macroDefinitions = "";
-            const String poundExtension = "#extension GL_GOOGLE_include_directive : enable\n";
+            String poundExtension = "#extension GL_GOOGLE_include_directive : require\n";
+            poundExtension += semanticsDef;
             const String preamble = macroDefinitions + poundExtension;
 
             EShLanguage language = MapShaderStage(stage);
