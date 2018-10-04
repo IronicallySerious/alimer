@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../Core/Flags.h"
 #include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
 #include <string>
@@ -32,6 +31,49 @@
 namespace Alimer
 {
     class GraphicsDevice;
+
+    /// Defines shader stage
+    enum class ShaderStage : uint32_t
+    {
+        Vertex = 0,
+        TessControl = 1,
+        TessEvaluation = 2,
+        Geometry = 3,
+        Fragment = 4,
+        Compute = 5,
+        Count
+    };
+
+    /// Defines shader stage usage.
+    enum class ShaderStageUsage : uint32_t
+    {
+        None = 0,
+        Vertex = 1 << 0,
+        TessControl = 1 << 1,
+        TessEvaluation = 1 << 2,
+        Geometry = 1 << 3,
+        Fragment = 1 << 4,
+        Compute = 1 << 5,
+        AllGraphics = (Vertex | TessControl | TessEvaluation | Geometry | Fragment),
+        All = (AllGraphics | Compute),
+    };
+    ALIMER_BITMASK(ShaderStageUsage);
+
+    struct PipelineResource
+    {
+        std::string name;
+        ShaderStageUsage stages;
+        ResourceParamType resourceType;
+        ParamDataType dataType;
+        ParamAccess access;
+        uint32_t set;
+        uint32_t binding;
+        uint32_t location;
+        uint32_t vecSize;
+        uint32_t arraySize;
+        uint32_t offset;
+        uint32_t size;
+    };
 
     ALIMER_API void SPIRVReflectResources(const std::vector<uint32_t>& spirv, ShaderStage& stage, std::vector<PipelineResource>& shaderResources);
 

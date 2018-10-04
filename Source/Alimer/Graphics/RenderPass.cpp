@@ -42,7 +42,7 @@ namespace Alimer
             if (!texture)
                 continue;
 
-            if (!(texture->GetUsage() & TextureUsage::RenderTarget))
+            if (!any(texture->GetUsage() & TextureUsage::RenderTarget))
             {
                 ALIMER_LOGERROR("RenderPass color attachment at index %u must be created with RenderTarget usage", i);
             }
@@ -59,7 +59,7 @@ namespace Alimer
         _depthStencilAttachment = descriptor->depthStencilAttachment;
         if (_depthStencilAttachment.texture)
         {
-            if (!(_depthStencilAttachment.texture->GetUsage() & TextureUsage::RenderTarget))
+            if (!any(_depthStencilAttachment.texture->GetUsage() & TextureUsage::RenderTarget))
             {
                 ALIMER_LOGERROR("RenderPass depthstencil attachment must be created with RenderTarget usage");
             }

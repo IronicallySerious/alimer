@@ -28,8 +28,8 @@
 namespace Alimer
 {
     VulkanShaderModule::VulkanShaderModule(VulkanGraphics* graphics, const std::vector<uint32_t>& spirv)
-        : ShaderModule(graphics, spirv)
-        , _logicalDevice(graphics->GetLogicalDevice())
+        : ShaderModule(nullptr, spirv)
+        , _logicalDevice(graphics->GetDevice())
     {
         VkShaderModuleCreateInfo createInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
         createInfo.pNext = nullptr;
@@ -59,8 +59,8 @@ namespace Alimer
     }
 
     VulkanShader::VulkanShader(VulkanGraphics* graphics, const ShaderProgramDescriptor* descriptor)
-        : ShaderProgram(graphics, descriptor)
-        , _logicalDevice(graphics->GetLogicalDevice())
+        : ShaderProgram(nullptr, descriptor)
+        , _logicalDevice(graphics->GetDevice())
     {
         //_shaderModules[static_cast<unsigned>(ShaderStage::Compute)] = CreateShaderModule(_logicalDevice, pCode, codeSize);
         //_pipelineLayout = graphics->RequestPipelineLayout(_layout);

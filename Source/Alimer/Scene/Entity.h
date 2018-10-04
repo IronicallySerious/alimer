@@ -27,13 +27,27 @@
 // EntityX: https://github.com/alecthomas/entityx
 // Granite: https://github.com/Themaister/Granite
 
-#include  "../Serialization/Serializable.h"
-#include  "../Base/ObjectPool.h"
-#include  "../Base/IntrusivePtr.h"
-#include <unordered_set>
-#include <unordered_map>
+#include <cstdint>
+#include <tuple>
+#include <new>
+#include <cstdlib>
 #include <algorithm>
 #include <bitset>
+#include <cassert>
+#include <iostream>
+#include <iterator>
+#include <list>
+#include <memory>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+#include <unordered_map>
+#include <type_traits>
+#include <functional>
+
+#include  "../Serialization/Serializable.h"
+#include  "../Base/IntrusivePtr.h"
 
 namespace Alimer
 {

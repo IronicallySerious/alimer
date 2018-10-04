@@ -38,6 +38,7 @@ namespace Alimer
 
     GpuBuffer::~GpuBuffer()
     {
+        SafeDelete(_impl);
         Destroy();
     }
 

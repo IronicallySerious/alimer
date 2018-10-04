@@ -27,6 +27,7 @@
 #include "../../Base/String.h"
 #include "../../Application/Window.h"
 #include "VulkanGraphicsDevice.h"
+#include "VulkanSwapchain.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanRenderPass.h"
 #include "VulkanTexture.h"
@@ -34,13 +35,9 @@
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"
-
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-#	include "../../Application/Windows/WindowWindows.h"
-#endif
+#include "../../Math/Math.h"
 
 #include "AlimerVersion.h"
-#include <map>
 using namespace std;
 
 namespace Alimer
@@ -225,8 +222,7 @@ namespace Alimer
         return true;
     }
 
-    VulkanGraphics::VulkanGraphics(bool validation, const String& applicationName)
-        : GraphicsDevice(GraphicsBackend::Vulkan, validation)
+    VulkanGraphics::VulkanGraphics(const RenderingSettings& settings)
     {
         std::vector<LayerProperties> instanceLayerProperties;
         VkResult result = InitGlobalLayerProperties(instanceLayerProperties);
@@ -250,7 +246,7 @@ namespace Alimer
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = applicationName.CString();
+        appInfo.pApplicationName = "Alimer";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Alimer Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
@@ -275,7 +271,7 @@ namespace Alimer
 
         vector<const char*> instanceLayerNames;
         bool hasValidationLayer = false;
-        if (validation)
+        if (settings.validation)
         {
             instanceExtensionNames.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
@@ -322,7 +318,7 @@ namespace Alimer
         volkLoadInstance(_instance);
 
         // Setup debug callback
-        if (validation && hasValidationLayer)
+        if (settings.validation && hasValidationLayer)
         {
             VkDebugReportCallbackCreateInfoEXT debugCreateInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
             debugCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
@@ -384,27 +380,18 @@ namespace Alimer
 
     VulkanGraphics::~VulkanGraphics()
     {
-        Finalize();
-    }
-
-    void VulkanGraphics::Finalize()
-    {
-        WaitIdle();
-        GraphicsDevice::Finalize();
-
-        // Destroy main swap chain.
-        SafeDelete(_swapChain);
+        waitIdle();
 
         for (auto& it : _renderPassCache)
         {
-            vkDestroyRenderPass(_logicalDevice, it.second, nullptr);
+            vkDestroyRenderPass(_device, it.second, nullptr);
         }
         _renderPassCache.clear();
 
         //_descriptorSetAllocators.clear();
         //_pipelineLayouts.clear();
 
-        vkDestroyPipelineCache(_logicalDevice, _pipelineCache, nullptr);
+        vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
 
         // Destroy default command buffer.
         SafeDelete(_defaultCommandBuffer);
@@ -412,22 +399,32 @@ namespace Alimer
         // Destroy default command pool.
         if (_commandPool != VK_NULL_HANDLE)
         {
-            vkDestroyCommandPool(_logicalDevice, _commandPool, nullptr);
+            vkDestroyCommandPool(_device, _commandPool, nullptr);
             _commandPool = VK_NULL_HANDLE;
         }
 
-        vkDestroySemaphore(_logicalDevice, _semaphores.presentComplete, nullptr);
-        vkDestroySemaphore(_logicalDevice, _semaphores.renderComplete, nullptr);
-        vkDestroyFence(_logicalDevice, _frameFence, nullptr);
+        // Destroy all created fences.
+        for (auto fence : _allFences)
+        {
+            vkDestroyFence(_device, fence, nullptr);
+        }
+        _allFences.clear();
+
+        // Destroy all created semaphores.
+        for (auto semaphore : _allSemaphores)
+        {
+            vkDestroySemaphore(_device, semaphore, nullptr);
+        }
+        _allSemaphores.clear();
 
         // Destroy memory allocator.
         vmaDestroyAllocator(_allocator);
 
         // Destroy logical device.
-        if (_logicalDevice != VK_NULL_HANDLE)
+        if (_device != VK_NULL_HANDLE)
         {
-            vkDestroyDevice(_logicalDevice, nullptr);
-            _logicalDevice = VK_NULL_HANDLE;
+            vkDestroyDevice(_device, nullptr);
+            _device = VK_NULL_HANDLE;
         }
 
         if (_debugCallback != VK_NULL_HANDLE)
@@ -440,9 +437,9 @@ namespace Alimer
         _instance = VK_NULL_HANDLE;
     }
 
-    bool VulkanGraphics::WaitIdle()
+    bool VulkanGraphics::waitIdle()
     {
-        VkResult result = vkDeviceWaitIdle(_logicalDevice);
+        VkResult result = vkDeviceWaitIdle(_device);
         if (result < VK_SUCCESS)
         {
             ALIMER_LOGTRACE("[Vulkan] - vkDeviceWaitIdle failed");
@@ -452,17 +449,11 @@ namespace Alimer
         return true;
     }
 
-    bool VulkanGraphics::BackendInitialize()
+    bool VulkanGraphics::Initialize()
     {
         vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
         vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
         vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
-
-        // Queue props.
-        uint32_t queueFamilyCount;
-        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyCount, nullptr);
-        _queueFamilyProperties.resize(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyCount, _queueFamilyProperties.data());
 
         // Enumerate device extensions.
         uint32_t extCount = 0;
@@ -547,77 +538,191 @@ namespace Alimer
             break;
         }
 
-        // Now create logical device.
-        vector<VkDeviceQueueCreateInfo> queueCreateInfos = {};
+        // Queue props.
+        uint32_t queueFamilyProps;
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, nullptr);
+        _queueFamilyProperties.resize(queueFamilyProps);
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, _queueFamilyProperties.data());
 
-        const float defaultQueuePriority(0.0f);
+        // TODO: Add main surface
+        VkSurfaceKHR _surface = VK_NULL_HANDLE;
+        for (uint32_t i = 0; i < queueFamilyProps; i++)
+        {
+            VkBool32 supported = _surface == VK_NULL_HANDLE;
+            if (_surface != VK_NULL_HANDLE)
+            {
+                vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, _surface, &supported);
+            }
 
-        // Graphics queue.
-        const VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
-        if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT) {
-            _queueFamilyIndices.graphics = GetQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
-            VkDeviceQueueCreateInfo queueInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-            queueInfo.queueFamilyIndex = _queueFamilyIndices.graphics;
-            queueInfo.queueCount = 1;
-            queueInfo.pQueuePriorities = &defaultQueuePriority;
-            queueCreateInfos.push_back(queueInfo);
-        }
-        else {
-            _queueFamilyIndices.graphics = static_cast<uint32_t>(-1);
-        }
-
-        // Dedicated compute queue
-        if (requestedQueueTypes & VK_QUEUE_COMPUTE_BIT) {
-            _queueFamilyIndices.compute = GetQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT);
-            if (_queueFamilyIndices.compute != _queueFamilyIndices.graphics) {
-                // If compute family index differs, we need an additional queue create info for the compute queue
-                VkDeviceQueueCreateInfo queueInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-                queueInfo.queueFamilyIndex = _queueFamilyIndices.compute;
-                queueInfo.queueCount = 1;
-                queueInfo.pQueuePriorities = &defaultQueuePriority;
-                queueCreateInfos.push_back(queueInfo);
+            static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT;
+            if (supported
+                && ((_queueFamilyProperties[i].queueFlags & required) == required))
+            {
+                _graphicsQueueFamily = i;
+                break;
             }
         }
-        else {
-            // Else we use the same queue
-            _queueFamilyIndices.compute = _queueFamilyIndices.graphics;
-        }
 
-        // Create the logical device representation
-        VkPhysicalDeviceFeatures enabledFeatures = {};
-        if (_deviceFeatures.samplerAnisotropy)
+        for (uint32_t i = 0; i < queueFamilyProps; i++)
         {
-            enabledFeatures.samplerAnisotropy = VK_TRUE;
+            static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT;
+            if (i != _graphicsQueueFamily
+                && (_queueFamilyProperties[i].queueFlags & required) == required)
+            {
+                _computeQueueFamily = i;
+                break;
+            }
         }
 
-        VkDeviceCreateInfo deviceCreateInfo = {};
-        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
-        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-        deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+        for (uint32_t i = 0; i < queueFamilyProps; i++)
+        {
+            static const VkQueueFlags required = VK_QUEUE_TRANSFER_BIT;
+            if (i != _graphicsQueueFamily
+                && i != _computeQueueFamily
+                && (_queueFamilyProperties[i].queueFlags & required) == required)
+            {
+                _transferQueueFamily = i;
+                break;
+            }
+        }
 
-        if (deviceExtensions.size() > 0) {
+        if (_transferQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+        {
+            for (uint32_t i = 0; i < queueFamilyProps; i++)
+            {
+                static const VkQueueFlags required = VK_QUEUE_TRANSFER_BIT;
+                if (i != _graphicsQueueFamily
+                    && (_queueFamilyProperties[i].queueFlags & required) == required)
+                {
+                    _transferQueueFamily = i;
+                    break;
+                }
+            }
+        }
+
+        if (_graphicsQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+            return false;
+
+        uint32_t universalQueueIndex = 1;
+        uint32_t graphicsQueueIndex = 0;
+        uint32_t computeQueueIndex = 0;
+        uint32_t transferQueueIndex = 0;
+
+        if (_computeQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+        {
+            _computeQueueFamily = _graphicsQueueFamily;
+            computeQueueIndex = min(_queueFamilyProperties[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
+            universalQueueIndex++;
+        }
+
+        if (_transferQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+        {
+            _transferQueueFamily = _graphicsQueueFamily;
+            transferQueueIndex = min(_queueFamilyProperties[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
+            universalQueueIndex++;
+        }
+        else if (_transferQueueFamily == _computeQueueFamily)
+        {
+            transferQueueIndex = min(_queueFamilyProperties[_computeQueueFamily].queueCount - 1, 1u);
+        }
+
+        static const float graphicsQueuePrio = 0.5f;
+        static const float computeQueuePrio = 1.0f;
+        static const float transferQueuePrio = 1.0f;
+        float priorities[3] = { graphicsQueuePrio, computeQueuePrio, transferQueuePrio };
+
+        // Now create logical device.
+        uint32_t queueFamilyCount = 0;
+        VkDeviceQueueCreateInfo queueCreateInfos[3] = {};
+        queueCreateInfos[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfos[queueFamilyCount].queueFamilyIndex = _graphicsQueueFamily;
+        queueCreateInfos[queueFamilyCount].queueCount = min(universalQueueIndex, _queueFamilyProperties[_graphicsQueueFamily].queueCount);
+        queueCreateInfos[queueFamilyCount].pQueuePriorities = priorities;
+        queueFamilyCount++;
+
+        if (_computeQueueFamily != _graphicsQueueFamily)
+        {
+            queueCreateInfos[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfos[queueFamilyCount].queueFamilyIndex = _computeQueueFamily;
+            queueCreateInfos[queueFamilyCount].queueCount = min(_transferQueueFamily == _computeQueueFamily ? 2u : 1u,
+                _queueFamilyProperties[_computeQueueFamily].queueCount);
+            queueCreateInfos[queueFamilyCount].pQueuePriorities = priorities + 1;
+            queueFamilyCount++;
+        }
+
+        if (_transferQueueFamily != _graphicsQueueFamily
+            && _transferQueueFamily != _computeQueueFamily)
+        {
+            queueCreateInfos[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfos[queueFamilyCount].queueFamilyIndex = _transferQueueFamily;
+            queueCreateInfos[queueFamilyCount].queueCount = 1;
+            queueCreateInfos[queueFamilyCount].pQueuePriorities = priorities + 2;
+            queueFamilyCount++;
+        }
+
+        VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+        deviceCreateInfo.pNext = nullptr;
+        deviceCreateInfo.flags = 0;
+        deviceCreateInfo.queueCreateInfoCount = queueFamilyCount;
+        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
+
+        if (deviceExtensions.size() > 0)
+        {
             deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
             deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
         }
 
-        VkResult result = vkCreateDevice(_physicalDevice, &deviceCreateInfo, nullptr, &_logicalDevice);
-        vkThrowIfFailed(result);
+        // Enabled features
+        VkPhysicalDeviceFeatures enabledFeatures = {};
+        if (_deviceFeatures.textureCompressionETC2)
+            enabledFeatures.textureCompressionETC2 = VK_TRUE;
+        if (_deviceFeatures.textureCompressionBC)
+            enabledFeatures.textureCompressionBC = VK_TRUE;
+        if (_deviceFeatures.textureCompressionASTC_LDR)
+            enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
+        if (_deviceFeatures.fullDrawIndexUint32)
+            enabledFeatures.fullDrawIndexUint32 = VK_TRUE;
+        if (_deviceFeatures.imageCubeArray)
+            enabledFeatures.imageCubeArray = VK_TRUE;
+        if (_deviceFeatures.fillModeNonSolid)
+            enabledFeatures.fillModeNonSolid = VK_TRUE;
+        if (_deviceFeatures.independentBlend)
+            enabledFeatures.independentBlend = VK_TRUE;
+        if (_deviceFeatures.sampleRateShading)
+            enabledFeatures.sampleRateShading = VK_TRUE;
+        if (_deviceFeatures.fragmentStoresAndAtomics)
+            enabledFeatures.fragmentStoresAndAtomics = VK_TRUE;
+        if (_deviceFeatures.shaderStorageImageExtendedFormats)
+            enabledFeatures.shaderStorageImageExtendedFormats = VK_TRUE;
+        if (_deviceFeatures.samplerAnisotropy)
+            enabledFeatures.samplerAnisotropy = VK_TRUE;
 
+        deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+
+        VkResult result = vkCreateDevice(_physicalDevice, &deviceCreateInfo, nullptr, &_device);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("Failed to create device: ", vkGetVulkanResultString(result));
+            return false;
+        }
+        volkLoadDevice(_device);
+
+        // Get queue's.
+        vkGetDeviceQueue(_device, _graphicsQueueFamily, graphicsQueueIndex, &_graphicsQueue);
+        vkGetDeviceQueue(_device, _computeQueueFamily, computeQueueIndex, &_computeQueue);
+        vkGetDeviceQueue(_device, _transferQueueFamily, transferQueueIndex, &_transferQueue);
+
+        // Create memory allocator.
         CreateAllocator();
 
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
         pipelineCacheCreateInfo.pNext = nullptr;
         pipelineCacheCreateInfo.flags = 0;
-        vkThrowIfFailed(vkCreatePipelineCache(_logicalDevice, &pipelineCacheCreateInfo, nullptr, &_pipelineCache));
-
-        // Get queue's.
-        vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.graphics, 0, &_graphicsQueue);
-        vkGetDeviceQueue(_logicalDevice, _queueFamilyIndices.compute, 0, &_computeQueue);
+        vkThrowIfFailed(vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache));
 
         // Create default command pool.
         _commandPool = CreateCommandPool(
-            _queueFamilyIndices.graphics,
+            _graphicsQueueFamily,
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
         );
 
@@ -627,21 +732,6 @@ namespace Alimer
         // Create the main swap chain.
         //_swapChain = new VulkanSwapchain(this, _window);
 
-        // Create sync primitives
-        VkSemaphoreCreateInfo semaphoreCreateInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-
-        // Create a semaphore used to synchronize image presentation
-        // Ensures that the image is displayed before we start submitting new commands to the queu
-        vkThrowIfFailed(vkCreateSemaphore(_logicalDevice, &semaphoreCreateInfo, nullptr, &_semaphores.presentComplete));
-
-        // Create a semaphore used to synchronize command submission
-        // Ensures that the image is not presented until all commands have been sumbitted and executed
-        vkThrowIfFailed(vkCreateSemaphore(_logicalDevice, &semaphoreCreateInfo, nullptr, &_semaphores.renderComplete));
-
-        // Create frame fence.
-        VkFenceCreateInfo fenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0 };
-        vkCreateFence(_logicalDevice, &fenceCreateInfo, NULL, &_frameFence);
-
         return true;
     }
 
@@ -649,7 +739,7 @@ namespace Alimer
     {
         VmaAllocatorCreateInfo createInfo = {};
         createInfo.physicalDevice = _physicalDevice;
-        createInfo.device = _logicalDevice;
+        createInfo.device = _device;
 
         VmaVulkanFunctions vulkanFunctions = {};
         vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
@@ -678,57 +768,84 @@ namespace Alimer
         }
     }
 
-    void VulkanGraphics::AddWaitSemaphore(VkSemaphore semaphore)
+    bool VulkanGraphics::beginFrame(SwapchainImpl* swapchain)
     {
+        // Acquire the next image from the swap chain.
+        static_cast<VulkanSwapchain*>(swapchain)->acquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
+
+        // Begin command buffer rendering.
+        _defaultCommandBuffer->Begin(nullptr);
+
+        return true;
     }
 
-    void VulkanGraphics::Commit()
+    void VulkanGraphics::endFrame(SwapchainImpl* swapchain)
     {
-        /*_defaultCommandBuffer->End();
+        _defaultCommandBuffer->End();
 
         VkCommandBuffer commandBuffer = _defaultCommandBuffer->GetHandle();
+
+        // Get signal semaphore.
+        VkSemaphore signalSemaphore = AcquireSemaphore();
+        if (signalSemaphore == VK_NULL_HANDLE)
+            return;
 
         // Submit command buffers.
         VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
         submitInfo.pNext = nullptr;
         submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &_semaphores.presentComplete;
+        submitInfo.pWaitSemaphores = &_swapchainImageAcquiredSemaphore;
         submitInfo.pWaitDstStageMask = &submitPipelineStages;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &_semaphores.renderComplete;
+        submitInfo.pSignalSemaphores = &signalSemaphore;
 
-        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _frameFence));
-
-        // Wait for fence to signal that all command buffers are ready,
-        VkResult fenceRes;
-        do {
-            fenceRes = vkWaitForFences(_logicalDevice, 1, &_frameFence, VK_TRUE, 100000000);
-        } while (fenceRes == VK_TIMEOUT);
-        vkThrowIfFailed(fenceRes);
-        vkResetFences(_logicalDevice, 1, &_frameFence);
+        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, (VkFence)nullptr));
 
         // Submit Swapchain.
-        VkResult result = _swapChain->QueuePresent(_graphicsQueue, _swapchainImageIndex, _semaphores.renderComplete);
-        if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR)))
+        VkResult result = static_cast<VulkanSwapchain*>(swapchain)->queuePresent(
+            _graphicsQueue,
+            _swapchainImageIndex,
+            signalSemaphore
+        );
+
+        if (result != VK_SUCCESS)
         {
-            if (result == VK_ERROR_OUT_OF_DATE_KHR)
+            if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
             {
-                // Swap chain is no longer compatible with the surface and needs to be recreated
-                //WindowResize();
-                return;
-            }
-            else {
-                vkThrowIfFailed(result);
+                static_cast<VulkanSwapchain*>(swapchain)->resize(0, 0, true);
             }
         }
-        */
+
+        // Wait frame.
+        waitIdle();
+
+        // Release semaphores
+        ReleaseSemaphore(_swapchainImageAcquiredSemaphore);
+        ReleaseSemaphore(signalSemaphore);
+
         // DestroyPendingResources();
     }
 
-    CommandBuffer* VulkanGraphics::GetDefaultCommandBuffer() const
+    void VulkanGraphics::BeginRenderPass()
+    {
+        //_defaultCommandBuffer->BeginRenderPass();
+    }
+
+    void VulkanGraphics::EndRenderPass()
+    {
+        //_defaultCommandBuffer->EndRenderPassCore();
+    }
+
+
+    SwapchainImpl* VulkanGraphics::CreateSwapchain(void* windowHandle, const uvec2& size)
+    {
+        return new VulkanSwapchain(this, windowHandle, size);
+    }
+
+    /*CommandBuffer* VulkanGraphics::GetDefaultCommandBuffer() const
     {
         return _defaultCommandBuffer;
     }
@@ -738,10 +855,6 @@ namespace Alimer
         return nullptr;
     }
 
-    SwapchainImpl* VulkanGraphics::CreateSwapchain(void* windowHandle, const uvec2& size)
-    {
-        return new VulkanSwapchain(this, windowHandle, size);
-    }
 
     RenderPass* VulkanGraphics::CreateRenderPassImpl(const RenderPassDescription* descriptor)
     {
@@ -770,33 +883,9 @@ namespace Alimer
 
     Texture* VulkanGraphics::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
-        return new VulkanTexture(this, descriptor, initialData);
-    }
-
-    uint32_t VulkanGraphics::GetQueueFamilyIndex(VkQueueFlagBits queueFlags)
-    {
-        if (queueFlags & VK_QUEUE_COMPUTE_BIT)
-        {
-            for (uint32_t i = 0; i < static_cast<uint32_t>(_queueFamilyProperties.size()); i++)
-            {
-                if ((_queueFamilyProperties[i].queueFlags & queueFlags) && ((_queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
-                {
-                    return i;
-                    break;
-                }
-            }
-        }
-        for (uint32_t i = 0; i < static_cast<uint32_t>(_queueFamilyProperties.size()); i++)
-        {
-            if (_queueFamilyProperties[i].queueFlags & queueFlags)
-            {
-                return i;
-                break;
-            }
-        }
-
-        ALIMER_LOGCRITICAL("Vulkan - Could not find a matching queue family index");
-    }
+        return nullptr;
+        //return new VulkanTexture(this, descriptor, initialData);
+    }*/
 
     VkCommandPool VulkanGraphics::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
     {
@@ -806,10 +895,9 @@ namespace Alimer
         createInfo.flags = createFlags;
 
         VkCommandPool commandPool;
-        vkThrowIfFailed(vkCreateCommandPool(_logicalDevice, &createInfo, nullptr, &commandPool));
+        vkThrowIfFailed(vkCreateCommandPool(_device, &createInfo, nullptr, &commandPool));
         return commandPool;
     }
-
 
     VkCommandBuffer VulkanGraphics::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
     {
@@ -819,7 +907,7 @@ namespace Alimer
         info.commandBufferCount = 1;
 
         VkCommandBuffer vkCommandBuffer;
-        vkThrowIfFailed(vkAllocateCommandBuffers(_logicalDevice, &info, &vkCommandBuffer));
+        vkThrowIfFailed(vkAllocateCommandBuffers(_device, &info, &vkCommandBuffer));
 
         // If requested, also start recording for the new command buffer
         if (begin)
@@ -850,19 +938,18 @@ namespace Alimer
         // Create fence to ensure that the command buffer has finished executing
         VkFenceCreateInfo fenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0 };
 
-        VkFence fence;
-        vkThrowIfFailed(vkCreateFence(_logicalDevice, &fenceCreateInfo, nullptr, &fence));
+        VkFence fence = AcquireFence();
 
         // Submit to the queue
         vkThrowIfFailed(vkQueueSubmit(queue, 1, &submitInfo, fence));
 
         // Wait for the fence to signal that command buffer has finished executing.
-        vkThrowIfFailed(vkWaitForFences(_logicalDevice, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
-        vkDestroyFence(_logicalDevice, fence, nullptr);
+        vkThrowIfFailed(vkWaitForFences(_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+        ReleaseFence(fence);
 
         if (free)
         {
-            vkFreeCommandBuffers(_logicalDevice, _commandPool, 1, &commandBuffer);
+            vkFreeCommandBuffers(_device, _commandPool, 1, &commandBuffer);
         }
     }
 
@@ -1002,7 +1089,7 @@ namespace Alimer
         createInfo.pDependencies = dependencies.data();
 
         VkRenderPass renderPass;
-        VkResult result = vkCreateRenderPass(_logicalDevice, &createInfo, nullptr, &renderPass);
+        VkResult result = vkCreateRenderPass(_device, &createInfo, nullptr, &renderPass);
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERROR("Vulkan - Failed to create render pass.");
@@ -1011,6 +1098,83 @@ namespace Alimer
 
         _renderPassCache[hash] = renderPass;
         return renderPass;
+    }
+
+    VkFence VulkanGraphics::AcquireFence()
+    {
+        VkFence fence = VK_NULL_HANDLE;
+
+        // See if there's a free fence available.
+        std::lock_guard<std::mutex> lock(_fenceLock);
+        if (_availableFences.size() > 0)
+        {
+            fence = _availableFences.front();
+            _availableFences.pop();
+        }
+        else
+        {
+            // Else create a new one.
+            VkFenceCreateInfo createInfo = {};
+            createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            VkResult result = vkCreateFence(_device, &createInfo, nullptr, &fence);
+            if (result != VK_SUCCESS)
+            {
+                ALIMER_LOGERROR("Failed to create fence: %s", vkGetVulkanResultString(result));
+            }
+
+            ALIMER_LOGDEBUG("New fence created");
+            _allFences.emplace(fence);
+        }
+
+        return fence;
+    }
+
+    void VulkanGraphics::ReleaseFence(VkFence fence)
+    {
+        std::lock_guard<std::mutex> lock(_fenceLock);
+        if (_allFences.find(fence) != _allFences.end())
+        {
+            vkResetFences(_device, 1, &fence);
+            _availableFences.push(fence);
+        }
+    }
+
+    VkSemaphore VulkanGraphics::AcquireSemaphore()
+    {
+        VkSemaphore semaphore = VK_NULL_HANDLE;
+
+        // See if there are free semaphores available.
+        std::lock_guard<std::mutex> lock(_semaphoreLock);
+        if (_availableSemaphores.size() > 0)
+        {
+            semaphore = _availableSemaphores.front();
+            _availableSemaphores.pop();
+        }
+        else
+        {
+            // Create any remaining required semaphores.
+            VkSemaphoreCreateInfo createInfo = {};
+            createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            VkResult result = vkCreateSemaphore(_device, &createInfo, nullptr, &semaphore);
+            if (result != VK_SUCCESS)
+            {
+                ALIMER_LOGERROR("Failed to create semaphore: %s", vkGetVulkanResultString(result));
+            }
+
+            ALIMER_LOGDEBUG("New semaphore created");
+            _allSemaphores.emplace(semaphore);
+        }
+
+        return semaphore;
+    }
+
+    void VulkanGraphics::ReleaseSemaphore(VkSemaphore semaphore)
+    {
+        std::lock_guard<std::mutex> lock(_semaphoreLock);
+        if (_allSemaphores.find(semaphore) != _allSemaphores.end())
+        {
+            _availableSemaphores.push(semaphore);
+        }
     }
 
 #if TODO
@@ -1044,7 +1208,7 @@ namespace Alimer
         VulkanPipelineLayout *newPipelineLayout = new VulkanPipelineLayout(this, layout);
         _pipelineLayouts.insert(make_pair(hash, unique_ptr<VulkanPipelineLayout>(newPipelineLayout)));
         return newPipelineLayout;
-    }
+}
 #endif // TODO
 }
 

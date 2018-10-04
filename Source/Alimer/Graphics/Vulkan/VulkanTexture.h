@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Texture.h"
+#include "../GraphicsImpl.h"
 #include "VulkanPrerequisites.h"
 #include <vector>
 
@@ -31,14 +31,13 @@ namespace Alimer
 	class VulkanGraphics;
 
 	/// Vulkan Texture.
-	class VulkanTexture final : public Texture
+	class VulkanTexture final : public TextureImpl
 	{
 	public:
 		VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, VkImage vkImage, VkImageUsageFlags usage);
         VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData);
 
         ~VulkanTexture() override;
-        void Destroy() override;
 
 		VkImage GetHandle() const { return _vkHandle; }
 		inline VkImageView GetDefaultImageView() const { return _defaultImageView; }

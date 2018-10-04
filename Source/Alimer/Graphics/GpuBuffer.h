@@ -26,13 +26,24 @@
 
 namespace Alimer
 {
+    enum class BufferUsage : uint32_t
+    {
+        None = 0,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        Uniform = 1 << 2,
+        Storage = 1 << 3,
+        Indirect = 1 << 4,
+    };
+    ALIMER_BITMASK(BufferUsage);
+
     struct BufferDescriptor
     {
         /// Buffer resource usage.
         ResourceUsage resourceUsage = ResourceUsage::Default;
 
         /// Buffer usage.
-        BufferUsageFlags usage = BufferUsage::None;
+        BufferUsage usage = BufferUsage::None;
 
         /// Size in bytes of buffer.
         uint64_t size = 0;
@@ -64,7 +75,7 @@ namespace Alimer
         ResourceUsage GetResourceUsage() const { return _resourceUsage; }
 
         /// Get the buffer usage flags.
-        BufferUsageFlags GetUsage() const { return _usage; }
+        BufferUsage GetUsage() const { return _usage; }
 
         /// Get size in bytes of the buffer.
         uint64_t GetSize() const { return _size; }
@@ -80,7 +91,7 @@ namespace Alimer
         virtual bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) = 0;
 
         ResourceUsage _resourceUsage;
-        BufferUsageFlags _usage;
+        BufferUsage _usage;
 		uint64_t _size;
         uint32_t _stride;
 

@@ -70,26 +70,16 @@ namespace Alimer
             }
 
             ALIMER_LOGDEBUG("Swapchain defined with {%u, %u}", size.x, size.y);
-            _textureCount = _impl->GetTextureCount();
             _format = _impl->GetFormat();
+            _textureCount = _impl->GetTextureCount();
+            _textures.resize(_textureCount);
+            for (uint32_t i = 0; i < _textureCount; ++i)
+            {
+                auto textureImpl = _impl->GetTexture(i);
+                //_textures[i] = ;
+            }
         }
 
         return true;
-    }
-
-    Texture* Swapchain::GetNextTexture()
-    {
-        if (!_impl->AcquireNextTexture(&_textureIndex))
-        {
-            ALIMER_LOGERROR("Failed to acquire Swapchain texture");
-            return nullptr;
-        }
-
-        return _textures[_textureIndex];
-    }
-
-    void Swapchain::Present()
-    {
-        _impl->Present();
     }
 }

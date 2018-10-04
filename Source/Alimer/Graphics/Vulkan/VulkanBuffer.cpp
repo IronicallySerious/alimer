@@ -28,25 +28,25 @@
 namespace Alimer
 {
     VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
-        : GpuBuffer(graphics, descriptor)
-        , _logicalDevice(graphics->GetLogicalDevice())
+        : GpuBuffer(nullptr, descriptor)
+        , _logicalDevice(graphics->GetDevice())
         , _allocator(graphics->GetAllocator())
     {
         VkBufferUsageFlags vkUsage = 0;
 
-        if (descriptor->usage & BufferUsage::Vertex)
+        if (any(descriptor->usage & BufferUsage::Vertex))
             vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-        if (descriptor->usage & BufferUsage::Index)
+        if (any(descriptor->usage & BufferUsage::Index))
             vkUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-        if (descriptor->usage & BufferUsage::Uniform)
+        if (any(descriptor->usage & BufferUsage::Uniform))
             vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-        if (descriptor->usage & BufferUsage::Storage)
+        if (any(descriptor->usage & BufferUsage::Storage))
             vkUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
-        if (descriptor->usage & BufferUsage::Indirect)
+        if (any(descriptor->usage & BufferUsage::Indirect))
             vkUsage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
         VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };

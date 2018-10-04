@@ -32,15 +32,15 @@ namespace Alimer
 			switch (static_cast<CursorType>(i))
 			{
 				case CursorType::Arrow:
-					_cursors[i] = LoadCursorW(nullptr, IDC_ARROW);
+					_cursors[i] = LoadCursor(nullptr, IDC_ARROW);
 					break;
 
 				case CursorType::Cross:
-					_cursors[i] = LoadCursorW(nullptr, IDC_CROSS);
+					_cursors[i] = LoadCursor(nullptr, IDC_CROSS);
 					break;
 
 				case CursorType::Hand:
-					_cursors[i] = LoadCursorW(nullptr, IDC_HAND);
+					_cursors[i] = LoadCursor(nullptr, IDC_HAND);
 					break;
 			}
 		}

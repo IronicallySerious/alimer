@@ -22,11 +22,22 @@
 
 #include "../Graphics/CommandBuffer.h"
 #include "../Graphics/GraphicsDevice.h"
-#include "../Core/Log.h"
+#include "../Graphics/GraphicsImpl.h"
 #include "../Math/MathUtil.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
+    void CommandContext::BeginRenderPass()
+    {
+        _impl->BeginRenderPass();
+    }
+
+    void CommandContext::EndRenderPass()
+    {
+        _impl->EndRenderPass();
+    }
+
     CommandBuffer::CommandBuffer()
     {
     }
@@ -109,7 +120,7 @@ namespace Alimer
     void CommandBuffer::BindVertexBuffer(GpuBuffer* buffer, uint32_t binding, GpuSize offset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Vertex);
+        ALIMER_ASSERT(any(buffer->GetUsage() & BufferUsage::Vertex));
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
 
         BindVertexBufferImpl(buffer, binding, offset, buffer->GetStride(), inputRate);
@@ -125,7 +136,7 @@ namespace Alimer
     void CommandBuffer::BindIndexBuffer(GpuBuffer* buffer, GpuSize offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT(buffer->GetUsage() & BufferUsage::Index);
+        ALIMER_ASSERT(any(buffer->GetUsage() & BufferUsage::Index));
 
         BindIndexBufferImpl(buffer, offset, indexType);
     }
@@ -140,7 +151,7 @@ namespace Alimer
     void CommandBuffer::BindBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {
         ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT((buffer->GetUsage() & BufferUsage::Uniform) || buffer->GetUsage() & BufferUsage::Storage);
+        ALIMER_ASSERT(any(buffer->GetUsage() & BufferUsage::Uniform) || any(buffer->GetUsage() & BufferUsage::Storage));
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
 
@@ -150,7 +161,10 @@ namespace Alimer
     void CommandBuffer::BindTexture(Texture* texture, uint32_t set, uint32_t binding)
     {
         ALIMER_ASSERT(texture);
-        ALIMER_ASSERT((texture->GetUsage() & TextureUsage::ShaderRead) || texture->GetUsage() & TextureUsage::ShaderWrite);
+        ALIMER_ASSERT(
+            any(texture->GetUsage() & TextureUsage::ShaderRead)
+            || any(texture->GetUsage() & TextureUsage::ShaderWrite)
+        );
         ALIMER_ASSERT(set < MaxDescriptorSets);
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
 

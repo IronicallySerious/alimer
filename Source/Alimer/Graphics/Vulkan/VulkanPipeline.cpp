@@ -30,7 +30,7 @@
 namespace Alimer
 {
     VulkanPipeline::VulkanPipeline(VulkanGraphics* graphics)
-        : _logicalDevice(graphics->GetLogicalDevice())
+        : _logicalDevice(graphics->GetDevice())
         , _pipelineCache(graphics->GetPipelineCache())
     {
     }

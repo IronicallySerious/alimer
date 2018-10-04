@@ -44,11 +44,6 @@ namespace Alimer
         , _scene(_entities)
     {
         PlatformConstruct();
-
-#if _DEBUG
-        _settings.validation = true;
-#endif
-
         __appInstance = this;
     }
 
@@ -79,7 +74,7 @@ namespace Alimer
             _window = MakeWindow("Alimer", 800, 600);
 
             // Create and init graphics.
-            _graphicsDevice = GraphicsDevice::Create(_settings.graphicsBackend, _settings.validation);
+            _graphicsDevice = new GraphicsDevice(_settings.renderingSettings);
             if (!_graphicsDevice->Initialize(_window.Get()))
             {
                 ALIMER_LOGERROR("Failed to initialize GraphicsDevice.");
@@ -145,6 +140,9 @@ namespace Alimer
         if (_headless)
             return;
 
+        if (!_graphicsDevice->beginFrame())
+            return;
+
         /*CommandBuffer* commandBuffer = _graphicsDevice->GetDefaultCommandBuffer();
 
         // Begin recording.
@@ -168,7 +166,7 @@ namespace Alimer
         commandBuffer->End();
         */
         // Commit rendering frame.
-        _graphicsDevice->Commit();
+        _graphicsDevice->endFrame();
     }
 
     void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)

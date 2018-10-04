@@ -138,7 +138,7 @@ namespace Alimer
                 const auto& spirType = compiler.get_type_from_variable(resource.id);
 
                 PipelineResource pipelineResource = {};
-                pipelineResource.stages = static_cast<ShaderStageFlags>(stageMask);
+                pipelineResource.stages = static_cast<ShaderStageUsage>(stageMask);
                 pipelineResource.dataType = SPIRVConvertBaseType(spirType.basetype);
                 pipelineResource.resourceType = resourceType;
                 pipelineResource.access = access;

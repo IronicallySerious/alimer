@@ -34,7 +34,7 @@ namespace Alimer
 {
     VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary)
         : _graphics(graphics)
-        , _logicalDevice(_graphics->GetLogicalDevice())
+        , _logicalDevice(_graphics->GetDevice())
         , _commandPool(commandPool)
     {
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -102,7 +102,8 @@ namespace Alimer
 
     void VulkanCommandBuffer::Begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
     {
-        VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        VkCommandBufferBeginInfo beginInfo = { };
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
         if (inheritanceInfo)
         {

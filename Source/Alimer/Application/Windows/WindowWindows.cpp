@@ -182,20 +182,20 @@ namespace Alimer
 
     Win32Window::Win32Window(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
 		: _dropTarget(new OleDropTarget())
-		, _cursor(LoadCursorW(nullptr, IDC_ARROW))
+		, _cursor(LoadCursor(nullptr, IDC_ARROW))
 	{
 		_hInstance = GetModuleHandleW(nullptr);
 
 		if (_windowCount == 0)
 		{
-			WNDCLASSEX wc;
+            WNDCLASSEXW wc;
 			wc.cbSize = sizeof(WNDCLASSEX);
 			wc.style = CS_HREDRAW | CS_VREDRAW;
 			wc.lpfnWndProc = WndProc;
 			wc.cbClsExtra = 0;
 			wc.cbWndExtra = 0;
 			wc.hInstance = _hInstance;
-			wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+			wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
 			wc.hCursor = _cursor;
 			wc.hIconSm = nullptr;
             wc.hbrBackground = nullptr;

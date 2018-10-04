@@ -21,6 +21,8 @@
 //
 
 #pragma once
+
+#include "../Graphics/Texture.h"
 #include "../Graphics/GraphicsDevice.h"
 
 namespace Alimer
@@ -33,29 +35,44 @@ namespace Alimer
         virtual bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) = 0;
     };
 
+    class TextureImpl
+    {
+    public:
+        virtual ~TextureImpl() = default;
+    };
+
     class SwapchainImpl
     {
     public:
         virtual ~SwapchainImpl() = default;
 
-        virtual uint32_t GetTextureCount() const = 0;
         virtual PixelFormat GetFormat() const = 0;
-
-        virtual bool AcquireNextTexture(uint32_t* textureIndex) = 0;
-        virtual void Present() = 0;
+        virtual uint32_t GetTextureCount() const = 0;
+        virtual TextureImpl* GetTexture(uint32_t index) const = 0;
     };
 
-    class GraphicsImpl
+    class CommandContextImpl
+    {
+    public:
+        virtual ~CommandContextImpl() = default;
+
+        virtual void BeginRenderPass() = 0;
+        virtual void EndRenderPass() = 0;
+    };
+
+    class GraphicsImpl : public CommandContextImpl
     {
     public:
         virtual ~GraphicsImpl() = default;
 
-        virtual GraphicsBackend GetBackend() const = 0;
         virtual uint32_t GetVendorID() const = 0;
         virtual GpuVendor GetVendor() const = 0;
 
-        virtual bool WaitIdle() = 0;
-        virtual void Commit() = 0;
+        virtual bool Initialize() = 0;
+        virtual bool waitIdle() = 0;
+
+        virtual bool beginFrame(SwapchainImpl* swapchain) = 0;
+        virtual void endFrame(SwapchainImpl* swapchain) = 0;
 
         virtual SwapchainImpl* CreateSwapchain(void* windowHandle, const uvec2& size) = 0;
     };

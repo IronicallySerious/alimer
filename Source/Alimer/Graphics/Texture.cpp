@@ -22,6 +22,8 @@
 
 #include "../Graphics/Texture.h"
 #include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/GraphicsImpl.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -39,5 +41,11 @@ namespace Alimer
         , _colorSpace(descriptor->colorSpace)
     {
 
+    }
+
+    Texture::~Texture()
+    {
+        // TODO: Destroy all views.
+        SafeDelete(_impl);
     }
 }

@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../Core/Flags.h"
 #include "../Math/MathUtil.h"
 #include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
@@ -46,6 +45,7 @@ namespace Alimer
         ShaderWrite = 1 << 1,
         RenderTarget = 1 << 2,
     };
+    ALIMER_BITMASK(TextureUsage);
 
     enum class TextureColorSpace : uint32_t
     {
@@ -53,21 +53,10 @@ namespace Alimer
         sRGB = 1
     };
 
-    using TextureUsageFlags = Flags<TextureUsage, uint32_t>;
-    ALIMER_FORCE_INLINE TextureUsageFlags operator|(TextureUsage bit0, TextureUsage bit1)
-    {
-        return TextureUsageFlags(bit0) | bit1;
-    }
-
-    ALIMER_FORCE_INLINE TextureUsageFlags operator~(TextureUsage bits)
-    {
-        return ~(TextureUsageFlags(bits));
-    }
-
     struct TextureDescriptor
     {
         TextureType type = TextureType::Type2D;
-        TextureUsageFlags usage = TextureUsage::ShaderRead;
+        TextureUsage usage = TextureUsage::ShaderRead;
         PixelFormat format = PixelFormat::RGBA8UNorm;
         uint32_t width = 1;
         uint32_t height = 1;
@@ -77,6 +66,8 @@ namespace Alimer
         SampleCount samples = SampleCount::Count1;
         TextureColorSpace colorSpace = TextureColorSpace::Default;
     };
+
+    class TextureImpl;
 
     /// Defines a Texture class.
     class ALIMER_API Texture : public Resource, public GpuResource
@@ -89,10 +80,10 @@ namespace Alimer
 
     public:
         /// Destructor.
-        virtual ~Texture() = default;
+        ~Texture() override;
 
         inline TextureType GetTextureType() const { return _type; }
-        inline TextureUsageFlags GetUsage() const { return _usage; }
+        inline TextureUsage GetUsage() const { return _usage; }
         inline PixelFormat GetFormat() const { return _format; }
         inline uint32_t GetWidth() const { return _width; }
         inline uint32_t GetHeight() const { return _height; }
@@ -116,14 +107,20 @@ namespace Alimer
             return Max(1u, _depth >> mipLevel);
         }
 
+        /// Get backend implementation.
+        TextureImpl *GetImplementation() const { return _impl; }
+
     protected:
         TextureType _type;
-        TextureUsageFlags _usage;
+        TextureUsage _usage;
         PixelFormat _format;
         uint32_t _width, _height, _depth;
         uint32_t _mipLevels;
         uint32_t _arrayLayers;
         SampleCount _samples;
         TextureColorSpace _colorSpace;
+
+    private:
+        TextureImpl* _impl = nullptr;
     };
 }

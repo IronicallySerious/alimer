@@ -48,12 +48,7 @@ namespace Alimer
 {
     struct ApplicationSettings
     {
-        GraphicsBackend graphicsBackend = GraphicsBackend::Default;
-#if defined(_DEBUG)
-        bool validation = true;
-#else
-        bool validation = false;
-#endif
+        RenderingSettings renderingSettings = {};
     };
 
     /// Application for main loop and all modules and OS setup.

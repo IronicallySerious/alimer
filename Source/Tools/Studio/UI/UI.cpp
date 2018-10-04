@@ -107,7 +107,7 @@ namespace Alimer
             descriptor.width = fontWidth;
             descriptor.height = fontHeight;
             descriptor.format = PixelFormat::RGBA8UNorm;
-            _fontTexture = _graphicsDevice->CreateTexture(&descriptor, &imageData);
+            //_fontTexture = _graphicsDevice->CreateTexture(&descriptor, &imageData);
         }
 
         // Store our identifier

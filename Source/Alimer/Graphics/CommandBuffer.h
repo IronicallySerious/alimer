@@ -22,8 +22,6 @@
 
 #pragma once
 
-#include "../Core/Flags.h"
-#include "../Graphics/Commands.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
@@ -34,6 +32,23 @@
 namespace Alimer
 {
     class GraphicsDevice;
+    class CommandContextImpl;
+
+    /// Defines a command context for recording gpu commands.
+    class ALIMER_API CommandContext : public Object
+    {
+        ALIMER_OBJECT(CommandContext, Object);
+
+    protected:
+        /// Destructor.
+        virtual ~CommandContext() = default;
+
+        void BeginRenderPass();
+        void EndRenderPass();
+
+    private:
+        CommandContextImpl* _impl = nullptr;
+    };
 
     /// Defines a command buffer for recording gpu commands.
     class ALIMER_API CommandBuffer 

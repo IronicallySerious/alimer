@@ -25,38 +25,42 @@
 #include "../GraphicsImpl.h"
 #include "../GraphicsDevice.h"
 #include "../../Base/HashMap.h"
-#include "VulkanSwapchain.h"
+#include "VulkanPrerequisites.h"
+#include <queue>
 
 namespace Alimer
 {
-	class VulkanCommandBuffer;
+    class VulkanCommandBuffer;
     class VulkanDescriptorSetAllocator;
     class VulkanPipelineLayout;
 
-	/// Vulkan graphics backend.
-	class VulkanGraphics final : public GraphicsDevice, public GraphicsImpl
-	{
-	public:
+    /// Vulkan graphics backend.
+    class VulkanGraphics final : public GraphicsImpl
+    {
+    public:
         static bool IsSupported();
 
-		/// Construct. Set parent shader and defines but do not compile yet.
-		VulkanGraphics(bool validation, const String& applicationName);
-		/// Destruct.
-		~VulkanGraphics() override;
+        /// Construct. Set parent shader and defines but do not compile yet.
+        VulkanGraphics(const RenderingSettings& settings);
+        /// Destruct.
+        ~VulkanGraphics() override;
 
-        GraphicsBackend GetBackend() const override { return GraphicsBackend::Vulkan; }
         virtual uint32_t GetVendorID() const override { return _vendorID; }
         virtual GpuVendor GetVendor() const override { return _vendor; }
 
-        bool WaitIdle() override;
+        bool Initialize() override;
+        bool waitIdle() override;
 
-        void Commit() override;
+        bool beginFrame(SwapchainImpl* swapchain) override;
+        void endFrame(SwapchainImpl* swapchain) override;
 
         SwapchainImpl* CreateSwapchain(void* windowHandle, const uvec2& size) override;
 
-        CommandBuffer* GetDefaultCommandBuffer() const override;
-        CommandBuffer* CreateCommandBuffer() override;
+        // CommandContext
+        void BeginRenderPass() override;
+        void EndRenderPass() override;
 
+        /*
         RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) override;
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
         VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) override;
@@ -64,86 +68,89 @@ namespace Alimer
         ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) override;
 
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
+        */
 
-		VkInstance GetInstance() const { return _instance; }
-		VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
-		VkDevice GetLogicalDevice() const { return _logicalDevice; }
+        VkInstance GetInstance() const { return _instance; }
+        VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
+        VkDevice GetDevice() const { return _device; }
         VmaAllocator GetAllocator() const { return _allocator; }
         VkPipelineCache GetPipelineCache() const { return _pipelineCache; }
 
-		VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
-		void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
-		void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
-		void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkAccessFlagBits srcAccessMask, VkClearColorValue *clearValue);
+        VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
+        void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
+        void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
+        void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkAccessFlagBits srcAccessMask, VkClearColorValue *clearValue);
 
-		VkRenderPass GetVkRenderPass(const RenderPassDescription* descriptor);
+        VkRenderPass GetVkRenderPass(const RenderPassDescription* descriptor);
 
         //VulkanDescriptorSetAllocator* RequestDescriptorSetAllocator(const DescriptorSetLayout &layout);
         //VulkanPipelineLayout* RequestPipelineLayout(const ResourceLayout &layout);
 
-        uint32_t GetQueueFamilyIndex(VkQueueFlagBits queueFlags);
         VkCommandPool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags);
 
-        void AddWaitSemaphore(VkSemaphore semaphore);
+        // Fence
+        VkFence AcquireFence();
+        void ReleaseFence(VkFence fence);
 
-	private:
-        void Finalize() override;
-        bool BackendInitialize() override;
+        // Semaphore
+        VkSemaphore AcquireSemaphore();
+        void ReleaseSemaphore(VkSemaphore semaphore);
+
+    private:
         void CreateAllocator();
 
-		VkInstance _instance = VK_NULL_HANDLE;
-		VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
+        VkInstance _instance = VK_NULL_HANDLE;
+        VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
 
-		// PhysicalDevice
-		VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
+        // PhysicalDevice
+        VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
         VkPhysicalDeviceProperties _deviceProperties;
-		VkPhysicalDeviceMemoryProperties _deviceMemoryProperties;
+        VkPhysicalDeviceMemoryProperties _deviceMemoryProperties;
         VkPhysicalDeviceFeatures _deviceFeatures;
-		std::vector<VkQueueFamilyProperties> _queueFamilyProperties;
+        std::vector<VkQueueFamilyProperties> _queueFamilyProperties;
         uint32_t _vendorID = 0;
         GpuVendor _vendor = GpuVendor::Unknown;
         uint32_t _deviceID = 0;
         String _deviceName;
 
-		// LogicalDevice
-		struct {
-			uint32_t graphics;
-			uint32_t compute;
-		} _queueFamilyIndices;
-
-		VkDevice _logicalDevice = VK_NULL_HANDLE;
+        // LogicalDevice
+        VkDevice _device = VK_NULL_HANDLE;
         VmaAllocator _allocator = VK_NULL_HANDLE;
 
-		// Queue's.
-		VkQueue _graphicsQueue = VK_NULL_HANDLE;
-		VkQueue _computeQueue = VK_NULL_HANDLE;
+        // Queue's.
+        VkQueue _graphicsQueue = VK_NULL_HANDLE;
+        VkQueue _computeQueue = VK_NULL_HANDLE;
+        VkQueue _transferQueue = VK_NULL_HANDLE;
+        uint32_t _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
 
+        // Pipeline cache.
         VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
 
-		// Default command pool.
-		VkCommandPool _commandPool = VK_NULL_HANDLE;
-
-        // Main swap chain
-		VulkanSwapchain* _swapChain = nullptr;
+        // Default command pool.
+        VkCommandPool _commandPool = VK_NULL_HANDLE;
 
         // Primary/Default command buffer
         VulkanCommandBuffer* _defaultCommandBuffer;
 
-        // Synchronization semaphores
-        struct {
-            // Swap chain image presentation
-            VkSemaphore presentComplete;
-            // Command buffer submission and execution
-            VkSemaphore renderComplete;
-        } _semaphores;
-
-        VkFence _frameFence = VK_NULL_HANDLE;
         uint32_t _swapchainImageIndex = 0;
+        VkSemaphore _swapchainImageAcquiredSemaphore = VK_NULL_HANDLE;
 
-		// Cache
-		std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
+        // Fence pool.
+        std::mutex _fenceLock;
+        std::set<VkFence> _allFences;
+        std::queue<VkFence> _availableFences;
+
+        // Semaphore pool
+        std::mutex _semaphoreLock;
+        std::set<VkSemaphore> _allSemaphores;
+        std::queue<VkSemaphore> _availableSemaphores;
+
+        // Cache
+        std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
 
         //HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
         //HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;
-	};
+    };
 }

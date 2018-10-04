@@ -50,8 +50,8 @@ namespace Alimer
         uint32_t GetHeight() const { return _size.y; }
         PixelFormat GetFormat() const { return _format; }
 
-        Texture* GetNextTexture();
-        void Present();
+        /// Get backend implementation.
+        SwapchainImpl *GetImplementation() const { return _impl; }
 
     private:
         /// Graphics subsystem pointer.

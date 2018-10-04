@@ -30,6 +30,7 @@
 #include <cctype>
 #include <string>
 #include <vector>
+#include <sstream>
 
 namespace Alimer
 {
@@ -613,13 +614,14 @@ namespace Alimer
     {
     public:
         /// Construct empty.
-        WString::WString()
+        WString()
             : _length(0), _buffer(nullptr)
         {
         }
 
         /// Construct from a string.
         explicit WString(const String& str);
+
         /// Destruct.
         ~WString()
         {

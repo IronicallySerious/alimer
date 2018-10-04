@@ -30,11 +30,11 @@
 namespace Alimer
 {
     VulkanRenderPass::VulkanRenderPass(VulkanGraphics* graphics, const RenderPassDescription* descriptor)
-        : RenderPass(graphics, descriptor)
-        , _logicalDevice(graphics->GetLogicalDevice())
+        : RenderPass(nullptr, descriptor)
+        , _logicalDevice(graphics->GetDevice())
         , _renderPass(graphics->GetVkRenderPass(descriptor))
     {
-        VkImageView views[MaxColorAttachments + 1];
+        /*VkImageView views[MaxColorAttachments + 1];
         uint32_t numViews = 0;
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
@@ -64,7 +64,7 @@ namespace Alimer
         {
             ALIMER_LOGERROR("Vulkan - Failed to create framebuffer.");
             return;
-        }
+        }*/
     }
 
     VulkanRenderPass::~VulkanRenderPass()

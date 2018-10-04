@@ -49,6 +49,8 @@ namespace Alimer
         mat4 worldMatrix;
     };
 
+#if TODO
+
     class TriangleExample
     {
     public:
@@ -229,7 +231,6 @@ namespace Alimer
         PerVertexData _perDrawData;
     };
 
-#if TODO
     class TexturedCubeExample
     {
     public:
@@ -363,16 +364,15 @@ namespace Alimer
         void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime) override;
 
     private:
-        TriangleExample _triangleExample;
-        QuadExample _quadExample;
-        CubeExample _cubeExample;
+        //TriangleExample _triangleExample;
+        //QuadExample _quadExample;
+        //CubeExample _cubeExample;
         //TexturedCubeExample _texturedCubeExample;
     };
 
     RuntimeApplication::RuntimeApplication()
     {
-        _settings.graphicsBackend = GraphicsBackend::Direct3D11;
-        //_settings.graphicsBackend = GraphicsBackend::Vulkan;
+        //_settings.renderingSettings.preferredGraphicsBackend = GraphicsBackend::Vulkan;
     }
 
     void RuntimeApplication::Initialize()

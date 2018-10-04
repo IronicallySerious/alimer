@@ -41,16 +41,17 @@ namespace Alimer
         /// Destruct.
         ~VulkanSwapchain();
 
-        void Resize(uint32_t width, uint32_t height, bool force = false);
+        void resize(uint32_t width, uint32_t height, bool force = false);
 
-        bool AcquireNextTexture(uint32_t* textureIndex) override;
-        void Present() override;
-        VkResult AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex);
-        VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
+        VkResult acquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore);
+        VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 
-        uint32_t GetTextureCount() const override { return _imageCount; }
         PixelFormat GetFormat() const override { return _format; }
-        VulkanRenderPass* GetRenderPass(uint32_t index) const { return _renderPasses[index].Get(); }
+        uint32_t GetTextureCount() const override { return _imageCount; }
+        TextureImpl* GetTexture(uint32_t index) const override;
+        //VulkanRenderPass* GetRenderPass(uint32_t index) const { return _renderPasses[index].Get(); }
+
+        VkSwapchainKHR GetVkHandle() const { return _swapchain; }
 
     private:
         /// Graphics subsystem.
@@ -65,14 +66,11 @@ namespace Alimer
         VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
 
         std::vector<VkImage> _images;
-        std::vector<UniquePtr<VulkanTexture>> _textures;
-        std::vector<UniquePtr<VulkanRenderPass>> _renderPasses;
-        std::vector<VkSemaphore> _semaphores;
+        std::vector<std::unique_ptr<VulkanTexture>> _textures;
+        std::vector<std::unique_ptr<VulkanRenderPass>> _renderPasses;
 
         uint32_t _imageCount;
         PixelFormat _format = PixelFormat::Undefined;
-        uint32_t _currentSemaphoreIndex;
-        uint32_t _currentBackBufferIndex;
 
         uvec2 _size;
         bool _vsync{ false };

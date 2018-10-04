@@ -64,7 +64,7 @@ namespace Alimer
     };
 
     /// Vulkan CommandBuffer.
-    class VulkanCommandBuffer final : public CommandBuffer
+    class VulkanCommandBuffer : public CommandBuffer
     {
     public:
         VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary);

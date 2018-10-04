@@ -22,10 +22,9 @@
 
 #pragma once
 
-#include "../Base/String.h"
-#include "../Core/Flags.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
+#include <string>
 
 namespace Alimer
 {
@@ -73,64 +72,6 @@ namespace Alimer
         TriangleStrip,
         Count
     };
-
-    enum class BufferUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        Index = 1 << 1,
-        Uniform = 1 << 2,
-        Storage = 1 << 3,
-        Indirect = 1 << 4,
-    };
-
-    using BufferUsageFlags = Flags<BufferUsage, uint32_t>;
-    ALIMER_FORCE_INLINE BufferUsageFlags operator|(BufferUsage bit0, BufferUsage bit1)
-    {
-        return BufferUsageFlags(bit0) | bit1;
-    }
-
-    ALIMER_FORCE_INLINE BufferUsageFlags operator~(BufferUsage bits)
-    {
-        return ~(BufferUsageFlags(bits));
-    }
-
-    /// Defines shader stage
-    enum class ShaderStage : uint32_t
-    {
-        Vertex = 0,
-        TessControl = 1,
-        TessEvaluation = 2,
-        Geometry = 3,
-        Fragment = 4,
-        Compute = 5,
-        Count
-    };
-
-    /// Defines shader stage usage.
-    enum class ShaderStageUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        TessControl = 1 << 1,
-        TessEvaluation = 1 << 2,
-        Geometry = 1 << 3,
-        Fragment = 1 << 4,
-        Compute = 1 << 5,
-        AllGraphics = (Vertex | TessControl | TessEvaluation | Geometry | Fragment),
-        All = (AllGraphics | Compute),
-    };
-
-    using ShaderStageFlags = Flags<ShaderStageUsage>;
-    ALIMER_FORCE_INLINE ShaderStageFlags operator|(ShaderStageUsage bit0, ShaderStageUsage bit1)
-    {
-        return ShaderStageFlags(bit0) | bit1;
-    }
-
-    ALIMER_FORCE_INLINE ShaderStageFlags operator~(ShaderStageUsage bits)
-    {
-        return ~(ShaderStageFlags(bits));
-    }
 
     enum class VertexFormat : uint32_t
     {
@@ -192,27 +133,11 @@ namespace Alimer
         UInt32,
     };
 
-    struct PipelineResource
-    {
-        String name;
-        ShaderStageFlags stages;
-        ResourceParamType resourceType;
-        ParamDataType dataType;
-        ParamAccess access;
-        uint32_t set;
-        uint32_t binding;
-        uint32_t location;
-        uint32_t vecSize;
-        uint32_t arraySize;
-        uint32_t offset;
-        uint32_t size;
-    };
-
     class ShaderModule;
     struct ShaderStageDescriptor
     {
         ShaderModule* module = nullptr;
-        String entryPoint = "main";
+        std::string entryPoint = "main";
         // TODO: Add specialization info.
         //const VkSpecializationInfo* pSpecializationInfo;
     };

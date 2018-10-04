@@ -66,7 +66,7 @@ namespace Alimer
         vertexBufferDesc.usage = BufferUsage::Vertex;
         vertexBufferDesc.size = positions.size() * _vertexStride;
         vertexBufferDesc.stride = _vertexStride;
-        _vertexBuffer = _graphicsDevice->CreateBuffer( &vertexBufferDesc, vertices.data());
+        //_vertexBuffer = _graphicsDevice->CreateBuffer( &vertexBufferDesc, vertices.data());
 
         // Create index buffer.
         if (indices.size())
@@ -76,7 +76,7 @@ namespace Alimer
             indexBufferDesc.usage = BufferUsage::Index;
             indexBufferDesc.size = indices.size() * sizeof(uint16_t);
             indexBufferDesc.stride = sizeof(uint16_t);
-            _indexBuffer = _graphicsDevice->CreateBuffer(&indexBufferDesc, indices.data());
+            //_indexBuffer = _graphicsDevice->CreateBuffer(&indexBufferDesc, indices.data());
         }
 
         return true;
