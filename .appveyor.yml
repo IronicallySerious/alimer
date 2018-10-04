@@ -1,23 +1,17 @@
-version: '{build}'
-platform:
-  - x64
-image: Visual Studio 2017
+shallow_clone: false
 
-before_build:
- - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
- - mkdir "%APPVEYOR_BUILD_FOLDER%\Build"
- - cd "%APPVEYOR_BUILD_FOLDER%\Build"
- - cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_VERSION=10.0.16299.0 -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%\Alimer-SDK" ..
+environment:
+  matrix:
+  - COMPILER: VS2017
+    ARCHITECTURE: x64
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  - COMPILER: MINGW_W64_7_2
+    ARCHITECTURE: x64
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
-build_script:
-  - cd "%APPVEYOR_BUILD_FOLDER%\Build"
-  - cmake --build . --target install
-after_build:
-  - cd "%APPVEYOR_BUILD_FOLDER%"
-  - 7z a Alimer.7z "%APPVEYOR_BUILD_FOLDER%\Alimer-SDK"
-test: off
-artifacts:
-  path: Alimer.7z
+build:
+  verbosity: detailed
+  parallel: true
 
 branches:
   only:
@@ -26,3 +20,36 @@ branches:
 skip_commits:
   files:
     - .travis.yml
+
+install:
+  # All external dependencies are installed in C:\projects\deps
+  - mkdir C:\projects\deps
+  - cd C:\projects\deps
+
+  # Install Ninja
+  - set NINJA_URL="https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-win.zip"
+  - appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
+  - 7z x ninja.zip -oC:\projects\deps\ninja > nul
+  - set PATH=C:\projects\deps\ninja;%PATH%
+  - ninja --version
+
+  - cmake --version
+
+before_build:
+  - cmd: cd C:\projects\vortex
+  - IF "%ARCHITECTURE%" == "x64" IF "%COMPILER%" == "VS2017" call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\vsdevcmd.bat" -arch=x64 -host_arch=x64
+  - IF "%ARCHITECTURE%" == "x64" IF "%COMPILER%" == "MINGW_W64_7_2" set PATH=C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin;%PATH%
+
+build_script:
+  - mkdir "%APPVEYOR_BUILD_FOLDER%\build"
+  - cd "%APPVEYOR_BUILD_FOLDER%\build"
+  - cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%\Alimer-SDK" ..
+  - cmake --build . --target install
+
+after_build:
+  - cd "%APPVEYOR_BUILD_FOLDER%"
+  - 7z a Alimer.7z "%APPVEYOR_BUILD_FOLDER%\Alimer-SDK"
+
+test: off
+artifacts:
+  path: Alimer.7z
