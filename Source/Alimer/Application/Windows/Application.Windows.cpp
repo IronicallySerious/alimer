@@ -75,10 +75,10 @@ namespace Alimer
             HMODULE ntdll = LoadLibraryW(L"ntdll.dll");
             if (ntdll)
             {
-                typedef int (WINAPI * RtlGetVersion_FUNC) (OSVERSIONINFOEXW *);
+                typedef int (WINAPI * RtlGetVersion_FUNC) (OSVERSIONINFOEXW*);
                 if (auto RtlGetVersion = (RtlGetVersion_FUNC)GetProcAddress(ntdll, "RtlGetVersion"))
                 {
-                    OSVERSIONINFOEX osvi = {};
+                    OSVERSIONINFOEXW osvi = {};
                     osvi.dwOSVersionInfoSize = sizeof(osvi);
 
                     if (RtlGetVersion(&osvi) == 0)

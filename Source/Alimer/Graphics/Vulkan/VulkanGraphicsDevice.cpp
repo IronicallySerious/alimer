@@ -781,7 +781,7 @@ namespace Alimer
 
     void VulkanGraphics::endFrame(SwapchainImpl* swapchain)
     {
-        _defaultCommandBuffer->End();
+        _defaultCommandBuffer->EndCore();
 
         VkCommandBuffer commandBuffer = _defaultCommandBuffer->GetHandle();
 

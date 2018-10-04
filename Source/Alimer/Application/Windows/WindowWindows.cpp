@@ -496,9 +496,7 @@ namespace Alimer
             break;
 
             case WM_ERASEBKGND:
-            {
-            }
-            break;
+                return 1;
 
 			case WM_SYSCOMMAND:
 			{
