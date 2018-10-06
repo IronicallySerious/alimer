@@ -22,10 +22,8 @@
 
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
-#include "../Base/String.h"
 
 #if defined(_WIN32)
-
 #include <windows.h>
 
 // ntdll.dll function pointer typedefs
@@ -71,8 +69,10 @@ typedef struct tagTHREADNAME_INFO
 #elif defined(__APPLE__) 
 #   include <TargetConditionals.h>
 #   include <dlfcn.h>
+#   include <pthread.h>
 #else
 #   include <dlfcn.h>
+#   include <pthread.h>
 #endif
 
 namespace Alimer
@@ -223,9 +223,9 @@ namespace Alimer
 #endif
     }
 
-    bool SetCurrentThreadName(const char* name)
+    void SetCurrentThreadName(const char* name)
     {
-#if ALIMER_PLATFORM_WINDOWS
+#if defined(_MSC_VER)
         THREADNAME_INFO info;
         info.dwType = 0x1000;
         info.szName = name;
@@ -239,10 +239,19 @@ namespace Alimer
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
         }
-        return true;
-
+        
 #else
-        return false;
+#  ifdef __APPLE__
+        if (pthread_setname_np(name) != 0)
+        {
+            ALIMER_LOGERROR("Failed to set thread name");
+        }
+#  elif defined(__linux__) || defined(__ANDROID__)
+        if (pthread_setname_np(pthread_self(), name) != 0)
+        {
+            ALIMER_LOGERROR("Failed to set thread name");
+        }
+#  endif
 #endif
     }
 }

@@ -30,7 +30,7 @@ namespace Alimer
     VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
         : GpuBuffer(nullptr, descriptor)
         , _logicalDevice(graphics->GetDevice())
-        , _allocator(graphics->GetAllocator())
+        , _allocator(graphics->GetVmaAllocator())
     {
         VkBufferUsageFlags vkUsage = 0;
 

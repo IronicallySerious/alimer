@@ -33,11 +33,11 @@ namespace Alimer
     class VulkanGraphics;
 
     /// Vulkan Swapchain.
-    class VulkanSwapchain final : public SwapchainImpl
+    class VulkanSwapchain final 
     {
     public:
         /// Construct. Set parent shader and defines but do not compile yet.
-        VulkanSwapchain(VulkanGraphics* graphics, void* windowHandle, const uvec2& size);
+        VulkanSwapchain(VulkanGraphics* graphics, VkSurfaceKHR surface, uint32_t width, uint32_t height);
         /// Destruct.
         ~VulkanSwapchain();
 
@@ -46,9 +46,9 @@ namespace Alimer
         VkResult acquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore);
         VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 
-        PixelFormat GetFormat() const override { return _format; }
-        uint32_t GetTextureCount() const override { return _imageCount; }
-        TextureImpl* GetTexture(uint32_t index) const override;
+        PixelFormat getFormat() const { return _format; }
+        uint32_t getTextureCount() const { return _imageCount; }
+        TextureImpl* getTexture(uint32_t index) const;
         //VulkanRenderPass* GetRenderPass(uint32_t index) const { return _renderPasses[index].Get(); }
 
         VkSwapchainKHR GetVkHandle() const { return _swapchain; }
@@ -57,7 +57,6 @@ namespace Alimer
         /// Graphics subsystem.
         VulkanGraphics* _graphics;
 
-        VkInstance _instance;
         VkPhysicalDevice _physicalDevice;
         VkDevice _logicalDevice;
 

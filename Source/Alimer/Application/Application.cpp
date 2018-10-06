@@ -22,7 +22,6 @@
 
 #include "AlimerVersion.h"
 #include "../Application/Application.h"
-#include "../Graphics/Swapchain.h"
 #include "../Scene/Systems/CameraSystem.h"
 #include "../IO/Path.h"
 #include "../Core/Platform.h"
@@ -71,11 +70,16 @@ namespace Alimer
         // Init Window and Gpu.
         if (!_headless)
         {
-            _window = MakeWindow("Alimer", 800, 600);
+            _window = MakeWindow("Alimer",
+                _settings.renderingSettings.defaultBackBufferWidth,
+                _settings.renderingSettings.defaultBackBufferHeight);
+
+            // Assign as window handle.
+            _settings.renderingSettings.windowHandle = _window->GetHandle();
 
             // Create and init graphics.
-            _graphicsDevice = new GraphicsDevice(_settings.renderingSettings);
-            if (!_graphicsDevice->Initialize(_window.Get()))
+            _graphicsDevice = new GraphicsDevice(_settings.preferredGraphicsBackend, _settings.validation);
+            if (!_graphicsDevice->Initialize(_settings.renderingSettings))
             {
                 ALIMER_LOGERROR("Failed to initialize GraphicsDevice.");
                 return false;
@@ -140,10 +144,17 @@ namespace Alimer
         if (_headless)
             return;
 
-        if (!_graphicsDevice->beginFrame())
+        if (!_graphicsDevice->BeginFrame())
             return;
 
-        /*CommandBuffer* commandBuffer = _graphicsDevice->GetDefaultCommandBuffer();
+        CommandBuffer* commandBuffer = _graphicsDevice->GetMainCommandBuffer();
+
+        RenderPassDescriptor renderPass = {};
+        renderPass.colorAttachments[0].clearColor = Color4(0.0f, 0.2f, 0.4f, 1.0f);
+        commandBuffer->BeginRenderPass(&renderPass);
+        commandBuffer->EndRenderPass();
+
+        /*
 
         // Begin recording.
         commandBuffer->Begin();
@@ -166,7 +177,7 @@ namespace Alimer
         commandBuffer->End();
         */
         // Commit rendering frame.
-        _graphicsDevice->endFrame();
+        _graphicsDevice->EndFrame();
     }
 
     void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
@@ -175,8 +186,8 @@ namespace Alimer
         ALIMER_UNUSED(elapsedTime);
 
         // By default clear with some color.
-        commandBuffer->BeginRenderPass(nullptr, Color4(0.0f, 0.2f, 0.4f, 1.0f));
-        commandBuffer->EndRenderPass();
+        //commandBuffer->BeginRenderPass(nullptr, Color4(0.0f, 0.2f, 0.4f, 1.0f));
+        //commandBuffer->EndRenderPass();
     }
 
     void Application::Exit()

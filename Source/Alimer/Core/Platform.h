@@ -114,5 +114,5 @@ namespace Alimer
     ALIMER_API void* GetSymbol(void* handle, const char* name);
 
     /// Try to set the current thread name.
-    ALIMER_API bool SetCurrentThreadName(const char* name);
+    ALIMER_API void SetCurrentThreadName(const char* name);
 }

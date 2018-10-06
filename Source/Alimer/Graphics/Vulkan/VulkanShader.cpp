@@ -101,7 +101,7 @@ namespace Alimer
         return _shaderModules[static_cast<unsigned>(stage)];
     }
 
-    VkPipeline VulkanShader::GetGraphicsPipeline(Hash hash)
+    VkPipeline VulkanShader::GetGraphicsPipeline(Util::Hash hash)
     {
         auto it = _graphicsPipelineCache.find(hash);
         if (it != _graphicsPipelineCache.end())
@@ -110,7 +110,7 @@ namespace Alimer
         return VK_NULL_HANDLE;
     }
 
-    void VulkanShader::AddPipeline(Hash hash, VkPipeline pipeline)
+    void VulkanShader::AddPipeline(Util::Hash hash, VkPipeline pipeline)
     {
         _graphicsPipelineCache[hash] = pipeline;
     }

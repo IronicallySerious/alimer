@@ -155,10 +155,11 @@ namespace Alimer
     template <class T> inline bool IsNaN(T value) { return std::isnan(value); }
 
     /// Check whether an unsigned integer is a power of two.
-    inline bool IsPowerOfTwo(size_t value)
+    template <typename T> ALIMER_FORCE_INLINE bool IsPowerOfTwo(T value)
     {
-        return !(value & (value - 1));
+        return 0 == (value & (value - 1));
     }
+
 
     /// Round up to next power of two.
     inline uint32_t NextPowerOfTwo(uint32_t value)
@@ -176,34 +177,6 @@ namespace Alimer
     /// Update a hash with the given 8-bit value using the SDBM algorithm.
     inline constexpr unsigned SDBMHash(unsigned hash, unsigned char c) { return c + (hash << 6u) + (hash << 16u) - hash; }
 
-    inline uint32_t Align(uint32_t value, uint32_t alignment)
-    {
-        ALIMER_ASSERT(alignment <= UINT32_MAX);
-        ALIMER_ASSERT(IsPowerOfTwo(alignment));
-        ALIMER_ASSERT(alignment != 0);
-        return (value + (alignment - 1)) & ~(alignment - 1);
-    }
-
-    inline void* AlignVoidPtr(void* ptr, size_t alignment)
-    {
-        ALIMER_ASSERT(IsPowerOfTwo(alignment));
-        ALIMER_ASSERT(alignment != 0);
-        return reinterpret_cast<void*>((reinterpret_cast<size_t>(ptr) + (alignment - 1)) &
-            ~(alignment - 1));
-    }
-
-    template <typename T>
-    T* AlignPtr(T* ptr, size_t alignment)
-    {
-        return reinterpret_cast<T*>(AlignVoidPtr(ptr, alignment));
-    }
-
-    template <typename T>
-    const T* AlignPtr(const T* ptr, size_t alignment)
-    {
-        return reinterpret_cast<const T*>(AlignVoidPtr(const_cast<T*>(ptr), alignment));
-    }
-
     inline uint32_t ScanForward(uint32_t bits)
     {
         ALIMER_ASSERT(bits != 0);
@@ -217,19 +190,34 @@ namespace Alimer
 #endif
     }
 
-    inline bool IsAligned(uint32_t value, uint32_t alignment)
+    template <typename T> ALIMER_FORCE_INLINE T AlignUpWithMask(T value, size_t mask)
     {
-        ALIMER_ASSERT(alignment <= UINT32_MAX);
-        ALIMER_ASSERT(IsPowerOfTwo(alignment));
-        ALIMER_ASSERT(alignment != 0);
-        return (value & (alignment - 1)) == 0;
+        return (T)(((size_t)value + mask) & ~mask);
     }
 
-    inline bool IsPtrAligned(const void* ptr, size_t alignment)
+    template <typename T> ALIMER_FORCE_INLINE T AlignDownWithMask(T value, size_t mask)
     {
-        ALIMER_ASSERT(IsPowerOfTwo(alignment));
-        ALIMER_ASSERT(alignment != 0);
-        return (reinterpret_cast<size_t>(ptr) & (alignment - 1)) == 0;
+        return (T)((size_t)value & ~mask);
+    }
+
+    template <typename T> ALIMER_FORCE_INLINE T AlignUp(T value, size_t alignment)
+    {
+        return AlignUpWithMask(value, alignment - 1);
+    }
+
+    template <typename T> ALIMER_FORCE_INLINE T AlignDown(T value, size_t alignment)
+    {
+        return AlignDownWithMask(value, alignment - 1);
+    }
+
+    template <typename T> ALIMER_FORCE_INLINE bool IsAligned(T value, size_t alignment)
+    {
+        return 0 == ((size_t)value & (alignment - 1));
+    }
+
+    template <typename T> ALIMER_FORCE_INLINE T DivideByMultiple(T value, size_t alignment)
+    {
+        return (T)((value + alignment - 1) / alignment);
     }
 
     ALIMER_API bool IsZero(float value);

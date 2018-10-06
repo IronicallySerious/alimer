@@ -20,75 +20,72 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-// Adopted from Granite: https://github.com/Themaister/Granite
-// Licensed under MIT: https://github.com/Themaister/Granite/blob/master/LICENSE
-
 #pragma once
+
 #include <memory>
 #include <stdint.h>
 #include <unordered_map>
 #include <string>
 
-namespace Alimer
+namespace Util
 {
-	using Hash = uint64_t;
+    using Hash = uint64_t;
 
-	struct UnityHasher
-	{
-		inline size_t operator()(uint64_t hash) const
-		{
-			return hash;
-		}
-	};
+    struct UnityHasher
+    {
+        inline size_t operator()(uint64_t hash) const
+        {
+            return hash;
+        }
+    };
 
-	template <typename T>
-	using HashMap = std::unordered_map<Hash, T, UnityHasher>;
+    template <typename T>
+    using HashMap = std::unordered_map<Hash, T, UnityHasher>;
 
-	class Hasher
-	{
-	public:
-        Hasher(Hash value) noexcept : _value(value)
+    class Hasher
+    {
+    public:
+        Hasher(Hash h)
+            : h(h)
         {
         }
 
         Hasher() = default;
 
-		template <typename T>
-		inline void data(const T *data, size_t size)
-		{
-			size /= sizeof(*data);
+        template <typename T>
+        inline void data(const T *data, size_t size)
+        {
+            size /= sizeof(*data);
             for (size_t i = 0; i < size; i++)
+                h = (h * 0x100000001b3ull) ^ data[i];
+        }
+
+        inline void u32(uint32_t value)
+        {
+            h = (h * 0x100000001b3ull) ^ value;
+        }
+
+        inline void s32(int32_t value)
+        {
+            u32(uint32_t(value));
+        }
+
+        inline void f32(float value)
+        {
+            union
             {
-                _value = (_value * 0x100000001b3ull) ^ data[i];
-            }
-		}
+                float f32;
+                uint32_t u32;
+            } u;
+            u.f32 = value;
+            u32(u.u32);
+        }
 
-		inline void u32(uint32_t value)
-		{
-            _value = (_value * 0x100000001b3ull) ^ value;
-		}
-
-		inline void s32(int32_t value)
-		{
-			u32(uint32_t(value));
-		}
-
-		inline void f32(float value)
-		{
-			union
-			{
-				float f32;
-				uint32_t u32;
-			} u;
-			u.f32 = value;
-			u32(u.u32);
-		}
-
-		inline void u64(uint64_t value)
-		{
-			u32(value & 0xffffffffu);
-			u32(value >> 32);
-		}
+        inline void u64(uint64_t value)
+        {
+            u32(value & 0xffffffffu);
+            u32(value >> 32);
+        }
 
         template <typename T>
         inline void pointer(T *ptr)
@@ -96,13 +93,13 @@ namespace Alimer
             u64(reinterpret_cast<uintptr_t>(ptr));
         }
 
-		inline void string(const char *str)
-		{
+        inline void string(const char *str)
+        {
             char c;
             u32(0xff);
             while ((c = *str++) != '\0')
                 u32(uint8_t(c));
-		}
+        }
 
         inline void string(const std::string &str)
         {
@@ -111,12 +108,12 @@ namespace Alimer
                 u32(uint8_t(c));
         }
 
-		inline Hash get() const
-		{
-			return _value;
-		}
+        inline Hash get() const
+        {
+            return h;
+        }
 
-	private:
-		Hash _value = 0xcbf49ce238222325ull;
-	};
+    private:
+        Hash h = 0xcbf29ce484222325ull;
+    };
 }

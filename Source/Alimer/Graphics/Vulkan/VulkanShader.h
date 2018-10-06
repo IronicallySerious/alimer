@@ -72,13 +72,13 @@ namespace Alimer
         VkShaderModule GetVkShaderModule(unsigned stage) const { return _shaderModules[stage]; }
         VkShaderModule GetVkShaderModule(ShaderStage stage) const;
         VulkanPipelineLayout* GetPipelineLayout() const { return _pipelineLayout; }
-        VkPipeline GetGraphicsPipeline(Hash hash);
-        void AddPipeline(Hash hash, VkPipeline pipeline);
+        VkPipeline GetGraphicsPipeline(Util::Hash hash);
+        void AddPipeline(Util::Hash hash, VkPipeline pipeline);
 
     private:
         VkDevice _logicalDevice;
         VkShaderModule _shaderModules[static_cast<unsigned>(VulkanShaderStage::Count)] = {};
         VulkanPipelineLayout* _pipelineLayout = nullptr;
-        HashMap<VkPipeline> _graphicsPipelineCache;
+        Util::HashMap<VkPipeline> _graphicsPipelineCache;
     };
 }

@@ -20,57 +20,56 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-// Adopted from Granite: https://github.com/Themaister/Granite
-// Licensed under MIT: https://github.com/Themaister/Granite/blob/master/LICENSE
+#pragma once
 
 #include <memory>
 #include <mutex>
 #include <vector>
 #include <stdlib.h>
 
-namespace Alimer
+namespace Util
 {
-    template <typename T>
+    template<typename T>
     class ObjectPool
     {
     public:
-        template <typename... P>
-        T *Allocate(P &&... p)
+        template<typename... P>
+        T *allocate(P &&... p)
         {
-            if (_vacants.empty())
+            if (vacants.empty())
             {
-                size_t count = 64u << _memory.size();
-                T *ptr = static_cast<T *>(malloc(count * sizeof(T)));
+                unsigned num_objects = 64u << memory.size();
+                T *ptr = static_cast<T *>(malloc(num_objects * sizeof(T)));
                 if (!ptr)
                     return nullptr;
 
-                for (size_t i = 0; i < count; i++)
-                {
-                    _vacants.push_back(&ptr[i]);
-                }
+                for (unsigned i = 0; i < num_objects; i++)
+                    vacants.push_back(&ptr[i]);
 
-                _memory.emplace_back(ptr);
+                memory.emplace_back(ptr);
             }
 
-            T *ptr = _vacants.back();
-            _vacants.pop_back();
-            new (ptr) T(std::forward<P>(p)...);
+            T *ptr = vacants.back();
+            vacants.pop_back();
+            new(ptr) T(std::forward<P>(p)...);
             return ptr;
         }
 
-        void Free(T *ptr)
+        void free(T *ptr)
         {
             ptr->~T();
-            _vacants.push_back(ptr);
+            vacants.push_back(ptr);
         }
 
-        void Clear()
+        void clear()
         {
-            _vacants.clear();
-            _memory.clear();
+            vacants.clear();
+            memory.clear();
         }
 
-    private:
+    protected:
+        std::vector<T *> vacants;
+
         struct MallocDeleter
         {
             void operator()(T *ptr)
@@ -79,7 +78,34 @@ namespace Alimer
             }
         };
 
-        std::vector<T*> _vacants;
-        std::vector<std::unique_ptr<T, MallocDeleter>> _memory;
+        std::vector<std::unique_ptr<T, MallocDeleter>> memory;
+    };
+
+    template<typename T>
+    class ThreadSafeObjectPool : private ObjectPool<T>
+    {
+    public:
+        template<typename... P>
+        T *allocate(P &&... p)
+        {
+            std::lock_guard<std::mutex> holder{ lock };
+            return ObjectPool<T>::allocate(std::forward<P>(p)...);
+        }
+
+        void free(T *ptr)
+        {
+            ptr->~T();
+            std::lock_guard<std::mutex> holder{ lock };
+            this->vacants.push_back(ptr);
+        }
+
+        void clear()
+        {
+            std::lock_guard<std::mutex> holder{ lock };
+            ObjectPool<T>::clear();
+        }
+
+    private:
+        std::mutex lock;
     };
 }

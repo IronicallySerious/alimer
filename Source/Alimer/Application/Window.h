@@ -22,30 +22,13 @@
 
 #pragma once
 
+#include "../Application/WindowHandle.h"
 #include "../Core/Object.h"
 #include "../Math/Math.h"
 #include <string>
 
-#if ALIMER_PLATFORM_WINDOWS
-struct HWND__;
-struct HDC__;
-struct HINSTANCE__;
-#elif ALIMER_PLATFORM_UWP
-struct IUnknown;
-#elif ALIMER_PLATFORM_ANDROID
-typedef struct ANativeWindow ANativeWindow;
-#endif
-
 namespace Alimer
 {
-    struct WindowHandle
-    {
-        /// Native connection, display or instance type.
-        void* connection;
-        /// Native window handle.
-        void* handle;
-    };
-
     /// Window resized event.
     class ALIMER_API WindowResizeEvent : public Event
     {
@@ -104,6 +87,7 @@ namespace Alimer
         WindowResizeEvent resizeEvent;
 
     protected:
+        /// Native window handle.
         WindowHandle _handle;
         /// Window title.
         std::string _title;

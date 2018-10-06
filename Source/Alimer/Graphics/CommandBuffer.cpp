@@ -28,58 +28,56 @@
 
 namespace Alimer
 {
-    void CommandContext::BeginRenderPass()
+    CommandBuffer::CommandBuffer(GraphicsDevice* graphics, CommandBufferImpl* impl)
+        : _graphics(graphics)
+        , _impl(impl)
     {
-        _impl->BeginRenderPass();
-    }
-
-    void CommandContext::EndRenderPass()
-    {
-        _impl->EndRenderPass();
-    }
-
-    CommandBuffer::CommandBuffer()
-    {
+        ALIMER_ASSERT(graphics);
+        ALIMER_ASSERT(_impl);
     }
 
     CommandBuffer::~CommandBuffer()
     {
+        SafeDelete(_impl);
     }
 
-    bool CommandBuffer::Begin()
+    void CommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
     {
-        // Don't allow Begin to be called more than once before End is called.
-        if (_state == State::Recording)
-            return false;
-
-        if (!BeginCore())
-            return false;
-
-        // Mark CommandBuffer as recording.
-        _state = State::Recording;
-        return true;
+        _impl->BeginRenderPass(descriptor);
     }
 
-    bool CommandBuffer::End()
+    void CommandBuffer::EndRenderPass()
     {
-        // Begin must be called first.
-        if (_state != State::Recording)
-            return false;
-
-        // Mark CommandBuffer as not recording.
-        _state = State::None;
-
-        return EndCore();
+        _impl->EndRenderPass();
     }
 
-    void CommandBuffer::EnsureIsRecording()
+    void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        if (_state != State::Recording && _state != State::InRenderPass)
-        {
-            ALIMER_LOGCRITICAL("CommandBuffer is not recording, call Begin first");
-        }
+        _impl->Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
+    void CommandBuffer::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
+    {
+        Dispatch(DivideByMultiple(threadCountX, groupSizeX), 1, 1);
+    }
+
+    void CommandBuffer::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
+    {
+        Dispatch(
+            DivideByMultiple(threadCountX, groupSizeX),
+            DivideByMultiple(threadCountY, groupSizeY),
+            1);
+    }
+
+    void CommandBuffer::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
+    {
+        Dispatch(
+            DivideByMultiple(threadCountX, groupSizeX),
+            DivideByMultiple(threadCountY, groupSizeY),
+            DivideByMultiple(threadCountZ, groupSizeZ));
+    }
+
+#if TODO
     void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
         BeginRenderPass(renderPass, &clearColor, 1, clearDepth, clearStencil);
@@ -198,4 +196,6 @@ namespace Alimer
 
         ExecuteCommandsCore(commandBufferCount, commandBuffers);
     }*/
+#endif // TODO
+
 }

@@ -22,9 +22,8 @@
 
 #include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/ShaderCompiler.h"
-#include "../Graphics/Swapchain.h"
 #include "../Graphics/GraphicsImpl.h"
-#include "../Resource/ResourceManager.h"
+#include "../Math/Math.h"
 #include "../Core/Log.h"
 
 #if ALIMER_VULKAN
@@ -52,12 +51,9 @@ extern "C"
 
 namespace Alimer
 {
-    GraphicsDevice::GraphicsDevice(const RenderingSettings& settings)
-        : _settings(settings)
-        , _initialized(false)
-        , _features{}
+    GraphicsDevice::GraphicsDevice(GraphicsBackend preferredGraphicsBackend, bool validation)
     {
-        _backend = settings.preferredGraphicsBackend;
+        _backend = preferredGraphicsBackend;
         if (_backend == GraphicsBackend::Default)
         {
             auto availableDrivers = GraphicsDevice::GetAvailableBackends();
@@ -89,7 +85,7 @@ namespace Alimer
             if (VulkanGraphics::IsSupported())
             {
                 ALIMER_LOGINFO("Using Vulkan graphics backend");
-                _impl = new VulkanGraphics(settings);
+                _impl = new VulkanGraphics(validation);
             }
             else
 #endif
@@ -146,15 +142,6 @@ namespace Alimer
 
     GraphicsDevice::~GraphicsDevice()
     {
-        Finalize();
-        RemoveSubsystem(this);
-    }
-
-    void GraphicsDevice::Finalize()
-    {
-        // Destroy main swap chain.
-        _swapchain.reset();
-
         // Destroy undestroyed resources.
         if (_gpuResources.size())
         {
@@ -175,7 +162,9 @@ namespace Alimer
             }
 
             _gpuResources.clear();
-            }
+        }
+
+        RemoveSubsystem(this);
     }
 
     set<GraphicsBackend> GraphicsDevice::GetAvailableBackends()
@@ -212,41 +201,39 @@ namespace Alimer
         return availableBackends;
         }
 
-    bool GraphicsDevice::Initialize(Window* window)
+    bool GraphicsDevice::Initialize(const RenderingSettings& settings)
     {
         if (_initialized)
         {
-            ALIMER_LOGCRITICAL("Cannot Initialize Graphics if already initialized");
+            ALIMER_LOGCRITICAL("Cannot Initialize GraphicsDevice if already initialized.");
             return false;
         }
 
-        ALIMER_ASSERT_MSG(window, "Invalid window for graphics creation");
-        _initialized = _impl->Initialize();
-
-        if (_initialized)
+        _settings = settings;
+        ALIMER_ASSERT_MSG(settings.windowHandle, "Invalid window handle for graphics creation.");
+        auto commandBufferImpl = _impl->Initialize(settings);
+        if (commandBufferImpl != nullptr)
         {
-            // Create main swap chain.
-            // TODO: Handle headless.
-            _swapchain.reset(new Swapchain());
-            _swapchain->Define(window->GetHandle().handle, window->GetSize());
+            _mainCommandBuffer.Reset(new CommandBuffer(this, commandBufferImpl));
+            _initialized = true;
         }
 
         return _initialized;
     }
 
-    void GraphicsDevice::waitIdle()
+    void GraphicsDevice::WaitIdle()
     {
-        _impl->waitIdle();
+        _impl->WaitIdle();
     }
 
-    bool GraphicsDevice::beginFrame()
+    bool GraphicsDevice::BeginFrame()
     {
-        return _impl->beginFrame(_swapchain.get()->GetImplementation());
+        return _impl->BeginFrame();
     }
 
-    void GraphicsDevice::endFrame()
+    void GraphicsDevice::EndFrame()
     {
-        _impl->endFrame(_swapchain.get()->GetImplementation());
+        _impl->EndFrame();
     }
 
 #if TODO

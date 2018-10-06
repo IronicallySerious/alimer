@@ -22,49 +22,30 @@
 
 #pragma once
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/CommandBuffer.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../AlimerConfig.h"
+
+#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
+struct IUnknown;
+#elif defined(_WIN32)
+struct HWND__;
+#endif
 
 namespace Alimer
 {
-    class BufferImpl
-    {
-    public:
-        virtual ~BufferImpl() = default;
-
-        virtual bool setSubDataImpl(uint32_t offset, uint32_t size, const void* pData) = 0;
-    };
-
-    class TextureImpl
-    {
-    public:
-        virtual ~TextureImpl() = default;
-    };
-
-    class CommandBufferImpl
-    {
-    public:
-        virtual ~CommandBufferImpl() = default;
-
-        virtual void BeginRenderPass(const RenderPassDescriptor* descriptor) = 0;
-        virtual void EndRenderPass() = 0;
-
-        virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
-    };
-
-    class GraphicsImpl 
-    {
-    public:
-        virtual ~GraphicsImpl() = default;
-
-        virtual uint32_t GetVendorID() const = 0;
-        virtual GpuVendor GetVendor() const = 0;
-
-        virtual CommandBufferImpl* Initialize(const RenderingSettings& settings) = 0;
-        virtual bool WaitIdle() = 0;
-
-        virtual bool BeginFrame() = 0;
-        virtual void EndFrame() = 0;
-    };
+#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
+    /// Window handle is IUnknown on UWP
+    using WindowHandle = IUnknown*;
+#elif defined(_WIN32)
+    /// Window handle is HWND (HWND__*) on Windows
+    using WindowHandle = HWND__*;
+#elif defined(__APPLE__)
+    /// Window handle is NSWindow or NSView (void*) on Mac OS X - Cocoa or UIWindow (void*) on iOS - UIKit.
+    using WindowHandle = void*;
+#elif defined(__linux__)
+    // Window handle is Window (unsigned long) on Unix - X11
+    using WindowHandle = unsigned long;
+#elif defined(__ANDROID__)
+    // Window handle is ANativeWindow* (void*) on Android
+    using WindowHandle = void*;
+#endif
 }

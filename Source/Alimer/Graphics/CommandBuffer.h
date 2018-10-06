@@ -32,39 +32,31 @@
 namespace Alimer
 {
     class GraphicsDevice;
-    class CommandContextImpl;
-
-    /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext : public Object
-    {
-        ALIMER_OBJECT(CommandContext, Object);
-
-    protected:
-        /// Destructor.
-        virtual ~CommandContext() = default;
-
-        void BeginRenderPass();
-        void EndRenderPass();
-
-    private:
-        CommandContextImpl* _impl = nullptr;
-    };
+    class CommandBufferImpl;
 
     /// Defines a command buffer for recording gpu commands.
-    class ALIMER_API CommandBuffer 
+    class ALIMER_API CommandBuffer final
     {
+        friend class GraphicsDevice;
+
+    private:
+        CommandBuffer(GraphicsDevice* graphics, CommandBufferImpl* impl);
+
     public:
-        CommandBuffer();
-
         /// Destructor.
-        virtual ~CommandBuffer();
+        ~CommandBuffer();
 
-        /// Begin command recording.
-        bool Begin();
+        void BeginRenderPass(const RenderPassDescriptor* descriptor);
+        void EndRenderPass();
 
-        /// End command recording.
-        bool End();
-        void BeginRenderPass(RenderPass* renderPass, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
+        // Compute
+        void Dispatch(uint32_t groupCountX = 1, uint32_t groupCountY = 1, uint32_t groupCountZ = 1);
+        void Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX = 64);
+        void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
+        void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
+
+
+        /*void BeginRenderPass(RenderPass* renderPass, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
         void BeginRenderPass(RenderPass* renderPass,
             const Color4* clearColors, uint32_t numClearColors,
@@ -92,8 +84,6 @@ namespace Alimer
         //void ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
 
     protected:
-        virtual bool BeginCore() = 0;
-        virtual bool EndCore() = 0;
         virtual void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
         virtual void EndRenderPassCore() = 0;
         //virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
@@ -107,9 +97,12 @@ namespace Alimer
         virtual void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
         virtual void BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) = 0;
         virtual void SetVertexInputFormatImpl(VertexInputFormat* format) = 0;
+        */
 
     private:
-        void EnsureIsRecording();
+        /// Graphics subsystem.
+        WeakPtr<GraphicsDevice> _graphics;
+        CommandBufferImpl* _impl = nullptr;
 
         inline bool IsInsideRenderPass() const
         {

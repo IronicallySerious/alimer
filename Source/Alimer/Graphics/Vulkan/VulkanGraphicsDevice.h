@@ -25,11 +25,18 @@
 #include "../GraphicsImpl.h"
 #include "../GraphicsDevice.h"
 #include "../../Base/HashMap.h"
-#include "VulkanPrerequisites.h"
+#include "VulkanRenderPass.h"
 #include <queue>
+
+#ifdef ALIMER_VULKAN_MT
+#   include <atomic>
+#   include <mutex>
+#   include <condition_variable>
+#endif
 
 namespace Alimer
 {
+    class VulkanSwapchain;
     class VulkanCommandBuffer;
     class VulkanDescriptorSetAllocator;
     class VulkanPipelineLayout;
@@ -41,24 +48,20 @@ namespace Alimer
         static bool IsSupported();
 
         /// Construct. Set parent shader and defines but do not compile yet.
-        VulkanGraphics(const RenderingSettings& settings);
+        VulkanGraphics(bool validation);
         /// Destruct.
         ~VulkanGraphics() override;
 
-        virtual uint32_t GetVendorID() const override { return _vendorID; }
-        virtual GpuVendor GetVendor() const override { return _vendor; }
+        void NotifyFalidationError(const char* message);
 
-        bool Initialize() override;
-        bool waitIdle() override;
+        uint32_t GetVendorID() const override { return _vendorID; }
+        GpuVendor GetVendor() const override { return _vendor; }
 
-        bool beginFrame(SwapchainImpl* swapchain) override;
-        void endFrame(SwapchainImpl* swapchain) override;
+        CommandBufferImpl* Initialize(const RenderingSettings& settings) override;
+        bool WaitIdle() override;
 
-        SwapchainImpl* CreateSwapchain(void* windowHandle, const uvec2& size) override;
-
-        // CommandContext
-        void BeginRenderPass() override;
-        void EndRenderPass() override;
+        bool BeginFrame() override;
+        void EndFrame() override;
 
         /*
         RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) override;
@@ -73,20 +76,29 @@ namespace Alimer
         VkInstance GetInstance() const { return _instance; }
         VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
         VkDevice GetDevice() const { return _device; }
-        VmaAllocator GetAllocator() const { return _allocator; }
+        VmaAllocator GetVmaAllocator() const { return _allocator; }
         VkPipelineCache GetPipelineCache() const { return _pipelineCache; }
 
+        uint32_t GetGraphicsQueueFamily() const { return _graphicsQueueFamily; }
+        uint32_t GetComputeQueueFamily() const { return _computeQueueFamily; }
+        uint32_t GetTransferQueueFamily() const { return _transferQueueFamily; }
+
+        uint64_t AllocateCookie();
+
+        VkCommandPool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags);
         VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
         void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
         void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
         void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkAccessFlagBits srcAccessMask, VkClearColorValue *clearValue);
 
-        VkRenderPass GetVkRenderPass(const RenderPassDescription* descriptor);
+        const VulkanFramebuffer& RequestFramebuffer(const RenderPassDescriptor* descriptor);
+        const VulkanRenderPass& RequestRenderPass(const RenderPassDescriptor* descriptor);
 
         //VulkanDescriptorSetAllocator* RequestDescriptorSetAllocator(const DescriptorSetLayout &layout);
         //VulkanPipelineLayout* RequestPipelineLayout(const ResourceLayout &layout);
 
-        VkCommandPool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags);
+        
+        VkSurfaceKHR CreateSurface(const RenderingSettings& settings);
 
         // Fence
         VkFence AcquireFence();
@@ -97,9 +109,17 @@ namespace Alimer
         void ReleaseSemaphore(VkSemaphore semaphore);
 
     private:
-        void CreateAllocator();
+        void createMemoryAllocator();
+
+        bool _supportsExternal = false;
+        bool _supportsDedicated = false;
+        bool _supportsImageFormatList = false;
+        bool _supportsDebugMarker = false;
+        bool _supportsDebugUtils = false;
 
         VkInstance _instance = VK_NULL_HANDLE;
+
+        VkDebugUtilsMessengerEXT _debugMessenger = VK_NULL_HANDLE;
         VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
 
         // PhysicalDevice
@@ -125,6 +145,9 @@ namespace Alimer
         uint32_t _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
 
+        // Main swap chain.
+        UniquePtr<VulkanSwapchain> _mainSwapchain;
+
         // Pipeline cache.
         VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
 
@@ -132,7 +155,7 @@ namespace Alimer
         VkCommandPool _commandPool = VK_NULL_HANDLE;
 
         // Primary/Default command buffer
-        VulkanCommandBuffer* _defaultCommandBuffer;
+        VulkanCommandBuffer* _mainCommandBuffer;
 
         uint32_t _swapchainImageIndex = 0;
         VkSemaphore _swapchainImageAcquiredSemaphore = VK_NULL_HANDLE;
@@ -147,8 +170,55 @@ namespace Alimer
         std::set<VkSemaphore> _allSemaphores;
         std::queue<VkSemaphore> _availableSemaphores;
 
+#ifdef ALIMER_VULKAN_MT
+        std::atomic<uint64_t> _cookie;
+#else
+        uint64_t _cookie = 0;
+#endif
+
+        template <typename T>
+        class Cache
+        {
+        public:
+            T* Find(Util::Hash hash) const
+            {
+                auto itr = _hashMap.find(hash);
+                auto *ret = itr != _hashMap.end() ? itr->second.get() : nullptr;
+                return ret;
+            }
+
+            T* Insert(Util::Hash hash, std::unique_ptr<T> value)
+            {
+                auto &cache = _hashMap[hash];
+                if (!cache)
+                    cache = std::move(value);
+
+                auto *ret = cache.get();
+                return ret;
+            }
+
+            void Clear()
+            {
+                _hashMap.clear();
+            }
+
+            Util::HashMap<std::unique_ptr<T>> &GetHashMap()
+            {
+                return _hashMap;
+            }
+
+            const Util::HashMap<std::unique_ptr<T>>& GetHashMap() const
+            {
+                return _hashMap;
+            }
+
+        private:
+            Util::HashMap<std::unique_ptr<T>> _hashMap;
+        };
+
         // Cache
-        std::unordered_map<uint64_t, VkRenderPass> _renderPassCache;
+        VkFramebufferAllocator _framebufferAllocator;
+        Cache<VulkanRenderPass> _renderPasses;
 
         //HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
         //HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;

@@ -30,104 +30,31 @@
 
 namespace Alimer
 {
-    VulkanSwapchain::VulkanSwapchain(VulkanGraphics* graphics, void* windowHandle, const uvec2& size)
+    VulkanSwapchain::VulkanSwapchain(VulkanGraphics* graphics, VkSurfaceKHR surface, uint32_t width, uint32_t height)
         : _graphics(graphics)
-        , _size(size)
-        , _instance(graphics->GetInstance())
+        , _surface(surface)
+        , _size(width, height)
         , _physicalDevice(graphics->GetPhysicalDevice())
         , _logicalDevice(graphics->GetDevice())
         , _imageCount(0)
     {
         VkResult result = VK_SUCCESS;
 
-        // Create the os-specific surface.
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-        surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-        surfaceCreateInfo.hwnd = static_cast<HWND>(windowHandle);
-        result = vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
-#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-        VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.display = display;
-        surfaceCreateInfo.surface = window;
-        err = vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
-        VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.connection = connection;
-        surfaceCreateInfo.window = window;
-        err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-        VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR };
-        surfaceCreateInfo.window = static_cast<ANativeWindow*>(windowHandle);
-        result = vkCreateAndroidSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_surface);
-#endif
-        vkThrowIfFailed(result);
-
-        uint32_t queueFamilyCount;
-        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyCount, nullptr);
-        assert(queueFamilyCount > 0);
-        std::vector<VkQueueFamilyProperties> queueFamilyProperties;
-        queueFamilyProperties.resize(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
-
-        std::vector<VkBool32> supportsPresent(queueFamilyCount);
-        for (uint32_t i = 0; i < queueFamilyCount; i++)
+        VkBool32 supported = VK_FALSE;
+        vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, graphics->GetGraphicsQueueFamily(), surface, &supported);
+        if (!supported)
         {
-            vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, _surface, &supportsPresent[i]);
-        }
-
-        // Search for a graphics and a present queue in the array of queue
-        // families, try to find one that supports both
-        uint32_t graphicsQueueNodeIndex = UINT32_MAX;
-        uint32_t presentQueueNodeIndex = UINT32_MAX;
-        for (uint32_t i = 0; i < queueFamilyCount; i++)
-        {
-            if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
-            {
-                if (graphicsQueueNodeIndex == UINT32_MAX)
-                {
-                    graphicsQueueNodeIndex = i;
-                }
-
-                if (supportsPresent[i] == VK_TRUE)
-                {
-                    graphicsQueueNodeIndex = i;
-                    presentQueueNodeIndex = i;
-                    break;
-                }
-            }
-        }
-        if (presentQueueNodeIndex == UINT32_MAX)
-        {
-            // If there's no queue that supports both present and graphics
-            // try to find a separate present queue
-            for (uint32_t i = 0; i < queueFamilyCount; ++i)
-            {
-                if (supportsPresent[i] == VK_TRUE)
-                {
-                    presentQueueNodeIndex = i;
-                    break;
-                }
-            }
-        }
-
-        // Exit if either a graphics or a presenting queue hasn't been found
-        if (graphicsQueueNodeIndex == UINT32_MAX
-            || presentQueueNodeIndex == UINT32_MAX)
-        {
-            ALIMER_LOGCRITICAL("Could not find a graphics and/or presenting queue");
+            ALIMER_LOGERROR("[Vulkan] - Swapchain surface is not supported by graphics queue");
             return;
         }
 
         // Get list of supported surface formats
         uint32_t formatCount;
-        vkThrowIfFailed(vkGetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice, _surface, &formatCount, NULL));
+        vkThrowIfFailed(vkGetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice, surface, &formatCount, NULL));
         assert(formatCount > 0);
 
         std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
-        vkThrowIfFailed(vkGetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice, _surface, &formatCount, surfaceFormats.data()));
+        vkThrowIfFailed(vkGetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice, surface, &formatCount, surfaceFormats.data()));
 
         // If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
         // there is no preferered format, so we assume VK_FORMAT_B8G8R8A8_UNORM
@@ -178,7 +105,7 @@ namespace Alimer
 
         if (_surface != VK_NULL_HANDLE)
         {
-            vkDestroySurfaceKHR(_instance, _surface, nullptr);
+            vkDestroySurfaceKHR(_graphics->GetInstance(), _surface, nullptr);
         }
 
         _swapchain = VK_NULL_HANDLE;
@@ -390,7 +317,7 @@ namespace Alimer
         }
     }
 
-    TextureImpl* VulkanSwapchain::GetTexture(uint32_t index) const
+    TextureImpl* VulkanSwapchain::getTexture(uint32_t index) const
     {
         return _textures[index].get();
     }
@@ -416,8 +343,7 @@ namespace Alimer
             }
         }
 
-        if (result != VK_SUCCESS)
-            return result;
+        return result;
     }
 
     VkResult VulkanSwapchain::queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)

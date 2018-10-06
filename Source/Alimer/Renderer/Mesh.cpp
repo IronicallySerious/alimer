@@ -105,7 +105,7 @@ namespace Alimer
         ALIMER_ASSERT(context);
         ALIMER_ASSERT(instanceCount >= 1);
 
-        context->BindVertexBuffer(_vertexBuffer, 0);
+        /*context->BindVertexBuffer(_vertexBuffer, 0);
 
         // TODO: Add VertexInputFormat
         //context->SetVertexInputFormat();
@@ -118,7 +118,7 @@ namespace Alimer
         else
         {
             context->Draw(PrimitiveTopology::Triangles, _vertexCount, instanceCount, 0u, 0u);
-        }
+        }*/
     }
 
     Mesh* Mesh::CreateCube(GraphicsDevice* graphicsDevice, float size)

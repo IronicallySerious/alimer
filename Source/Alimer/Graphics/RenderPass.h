@@ -48,12 +48,30 @@ namespace Alimer
         uint32_t depthPlane = 0;
         LoadAction loadAction = LoadAction::Clear;
         StoreAction storeAction = StoreAction::Store;
+        Color4 clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
     };
 
-    struct RenderPassDescription
+    struct RenderPassDepthStencilAttachmentDescriptor
+    {
+        Texture* texture = nullptr;
+        uint32_t mipLevel = 0;
+        uint32_t slice = 0;
+        uint32_t depthPlane = 0;
+
+        LoadAction depthLoadAction = LoadAction::Clear;
+        StoreAction depthStoreAction = StoreAction::DontCare;
+        float clearDepth;
+
+        LoadAction stencilLoadAction = LoadAction::DontCare;
+        StoreAction stencilStoreAction = StoreAction::DontCare;
+        uint8_t clearStencil;
+    };
+
+    struct RenderPassDescriptor
     {
         RenderPassAttachment colorAttachments[MaxColorAttachments];
-        RenderPassAttachment depthStencilAttachment;
+        RenderPassDepthStencilAttachmentDescriptor depthStencilAttachment;
+
         /// The width, in pixels, to constain the render target to.
         uint32_t width = 0;
         /// The height, in pixels, to constain the render target to.
@@ -67,7 +85,7 @@ namespace Alimer
     {
     protected:
         /// Constructor.
-        RenderPass(GraphicsDevice* device, const RenderPassDescription* descriptor);
+        RenderPass(GraphicsDevice* device, const RenderPassDescriptor* descriptor);
 
     public:
         /// Destructor.

@@ -27,13 +27,14 @@
 
 namespace Alimer
 {
-    RenderPass::RenderPass(GraphicsDevice* device, const RenderPassDescription* descriptor)
+    RenderPass::RenderPass(GraphicsDevice* device, const RenderPassDescriptor* descriptor)
 		: GpuResource(device, GpuResourceType::RenderPass)
         , _colorAttachmentsCount(0)
 	{
+#if TODO
         _width = descriptor->width;
         _height = descriptor->height;
-        _layers =  Max(descriptor->layers, 1u);
+        _layers = Max(descriptor->layers, 1u);
 
         for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
@@ -47,7 +48,7 @@ namespace Alimer
                 ALIMER_LOGERROR("RenderPass color attachment at index %u must be created with RenderTarget usage", i);
             }
 
-            if(!_width)
+            if (!_width)
                 _width = std::max(_width, texture->GetLevelWidth(colorAttachment.mipLevel));
 
             if (!_height)
@@ -64,5 +65,7 @@ namespace Alimer
                 ALIMER_LOGERROR("RenderPass depthstencil attachment must be created with RenderTarget usage");
             }
         }
+#endif // TODO
+
 	}
 }

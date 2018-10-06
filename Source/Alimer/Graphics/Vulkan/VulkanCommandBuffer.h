@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../GraphicsImpl.h"
 #include "../CommandBuffer.h"
 #include "VulkanPrerequisites.h"
 #include <vector>
@@ -33,6 +34,7 @@ namespace Alimer
     class VulkanCommandQueue;
     class VulkanPipelineLayout;
     class VulkanShader;
+    class VulkanFramebuffer;
     class VulkanRenderPass;
 
     enum CommandBufferDirtyBits
@@ -64,18 +66,21 @@ namespace Alimer
     };
 
     /// Vulkan CommandBuffer.
-    class VulkanCommandBuffer : public CommandBuffer
+    class VulkanCommandBuffer final : public CommandBufferImpl
     {
     public:
         VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary);
         ~VulkanCommandBuffer() override;
 
-        bool BeginCore() override;
-        bool EndCore() override;
+        void begin(VkCommandBufferInheritanceInfo* inheritanceInfo);
+        void end();
 
-        void Begin(VkCommandBufferInheritanceInfo* inheritanceInfo);
+        void BeginRenderPass(const RenderPassDescriptor* descriptor) override;
+        void EndRenderPass() override;
 
-        void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
+        void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+
+        /*void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
 
         void SetViewport(const rect& viewport) override;
@@ -104,24 +109,23 @@ namespace Alimer
                 _currentTopology = topology;
                 SetDirty(COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT);
             }
-        }
+        }*/
 
         VkCommandBuffer GetHandle() const { return _handle; }
         bool IsSecondary() const { return _secondary; }
 
     private:
-        void BeginCompute();
-        void BeginGraphics();
-        void BeginContext();
+        void beginCompute();
+        void beginGraphics();
+        void beginContext();
         void PrepareDraw(PrimitiveTopology topology);
 
         void FlushRenderState();
         void FlushGraphicsPipeline();
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
+        void flushComputeState();
 
-    private:
-        
         void SetDirty(CommandBufferDirtyFlags flags)
         {
             _dirty |= flags;
@@ -139,7 +143,10 @@ namespace Alimer
         VkCommandPool _commandPool;
         VkCommandBuffer _handle;
         bool _secondary = false;
-        VulkanRenderPass* _currentRenderPass = nullptr;
+
+        const VulkanFramebuffer *_framebuffer = nullptr;
+        const VulkanRenderPass *_renderPass = nullptr;
+
         uint32_t _currentSubpass = 0;
         VulkanShader* _currentShader = nullptr;
         VulkanPipelineLayout* _currentPipelineLayout = nullptr;

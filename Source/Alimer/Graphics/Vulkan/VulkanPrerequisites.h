@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../../Base/HashMap.h"
 #include "../../Core/Log.h"
 
 #if defined(_WIN32)
@@ -106,4 +107,36 @@ inline void vkThrowIfFailed(VkResult result)
 			__FILE__,
 			__LINE__);
 	}
+}
+
+namespace Alimer
+{
+    class VulkanGraphics;
+
+    class VkCookie
+    {
+    public:
+        VkCookie(VulkanGraphics* device);
+
+        uint64_t GetCookie() const { return _cookie; }
+
+    private:
+        uint64_t _cookie;
+    };
+
+    class VkHashedObject
+    {
+    public:
+        VkHashedObject(Util::Hash hash)
+            : _hash(hash)
+        {}
+
+        Util::Hash GetHash() const
+        {
+            return _hash;
+        }
+
+    private:
+        Util::Hash _hash = 0;
+    };
 }

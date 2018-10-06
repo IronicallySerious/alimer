@@ -56,7 +56,7 @@ namespace Alimer
         io.GetClipboardTextFn = [](void* userData) -> const char* { return SDL_GetClipboardText(); };
         */
         io.IniFilename = nullptr;
-        io.ImeWindowHandle = gApplication().GetMainWindow()->GetHandle().handle;
+        io.ImeWindowHandle = gApplication().GetMainWindow()->GetHandle();
         io.UserData = this;
 
         if (io.Fonts->Fonts.empty())

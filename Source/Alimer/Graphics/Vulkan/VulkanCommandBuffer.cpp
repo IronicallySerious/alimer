@@ -28,6 +28,7 @@
 #include "VulkanGraphicsDevice.h"
 #include "VulkanConvert.h"
 #include "../../Base/HashMap.h"
+#include "../../Math/Math.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
@@ -47,7 +48,7 @@ namespace Alimer
             &cmdBufAllocateInfo,
             &_handle));
 
-        BeginCompute();
+        beginCompute();
     }
 
     VulkanCommandBuffer::~VulkanCommandBuffer()
@@ -55,19 +56,19 @@ namespace Alimer
         vkFreeCommandBuffers(_logicalDevice, _commandPool, 1, &_handle);
     }
 
-    void VulkanCommandBuffer::BeginCompute()
+    void VulkanCommandBuffer::beginCompute()
     {
         _isCompute = true;
-        BeginContext();
+        beginContext();
     }
 
-    void VulkanCommandBuffer::BeginGraphics()
+    void VulkanCommandBuffer::beginGraphics()
     {
         _isCompute = false;
-        BeginContext();
+        beginContext();
     }
 
-    void VulkanCommandBuffer::BeginContext()
+    void VulkanCommandBuffer::beginContext()
     {
         _dirty = ~0u;
         _dirtySets = ~0u;
@@ -83,28 +84,12 @@ namespace Alimer
         _currentTopology = PrimitiveTopology::Count;
     }
 
-    bool VulkanCommandBuffer::BeginCore()
+    void VulkanCommandBuffer::begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
     {
-        VkCommandBufferBeginInfo beginInfo = {
-            VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            nullptr,
-            VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-            nullptr
-        };
-
-        return vkBeginCommandBuffer(_handle, &beginInfo) == VK_SUCCESS;
-    }
-
-    bool VulkanCommandBuffer::EndCore()
-    {
-        return vkEndCommandBuffer(_handle) == VK_SUCCESS;
-    }
-
-    void VulkanCommandBuffer::Begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
-    {
-        VkCommandBufferBeginInfo beginInfo = { };
+        VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         if (inheritanceInfo)
         {
             beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
@@ -114,11 +99,27 @@ namespace Alimer
         vkThrowIfFailed(vkBeginCommandBuffer(_handle, &beginInfo));
     }
 
-    void VulkanCommandBuffer::BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    void VulkanCommandBuffer::end()
     {
-        _currentRenderPass = static_cast<VulkanRenderPass*>(renderPass);
+        VkResult result = vkEndCommandBuffer(_handle);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
+        }
+    }
 
-        std::vector<VkClearValue> clearValues(numClearColors + 1);
+    void VulkanCommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
+    {
+        _framebuffer = &_graphics->RequestFramebuffer(descriptor);
+        _renderPass = &_framebuffer->GetRenderPass();
+
+        VkRect2D render_area = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
+        render_area.offset.x = min(_framebuffer->GetWidth(), uint32_t(render_area.offset.x));
+        render_area.offset.y = min(_framebuffer->GetHeight(), uint32_t(render_area.offset.y));
+        render_area.extent.width = min(_framebuffer->GetWidth() - render_area.offset.x, render_area.extent.width);
+        render_area.extent.height = min(_framebuffer->GetHeight() - render_area.offset.y, render_area.extent.height);
+
+        /*std::vector<VkClearValue> clearValues(numClearColors + 1);
         uint32_t i = 0;
         for (; i < numClearColors; ++i)
         {
@@ -145,13 +146,29 @@ namespace Alimer
         //Viewport viewport(0.0f, 0.0f, float(renderPass->GetWidth()), float(renderPass->GetHeight()), 0.0f, 1.0f);
         //SetViewport(viewport);
         //SetScissor(setRenderArea);
-        BeginGraphics();
+        beginGraphics();*/
     }
 
-    void VulkanCommandBuffer::EndRenderPassCore()
+    void VulkanCommandBuffer::EndRenderPass()
     {
         vkCmdEndRenderPass(_handle);
     }
+
+    void VulkanCommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    {
+        ALIMER_ASSERT(_currentShader);
+        ALIMER_ASSERT(_isCompute);
+        flushComputeState();
+        vkCmdDispatch(_handle, groupCountX, groupCountY, groupCountZ);
+    }
+
+    void VulkanCommandBuffer::flushComputeState()
+    {
+
+    }
+
+#if TODO
+
 
     /*void VulkanCommandBuffer::ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
     {
@@ -288,7 +305,7 @@ namespace Alimer
             {
                 SetVertexAttribute(attrib++, binding, vk::Convert(element.format), element.offset);
             }*/
-        //}
+            //}
 
         if (_vbo.strides[binding] != stride
             || _vbo.inputRates[binding] != inputRate)
@@ -345,6 +362,8 @@ namespace Alimer
     {
 
     }
+#endif // TODO
+
 
     void VulkanCommandBuffer::FlushRenderState()
     {
@@ -371,7 +390,7 @@ namespace Alimer
 
     void VulkanCommandBuffer::FlushGraphicsPipeline()
     {
-        Hasher h;
+        Util::Hasher h;
         _activeVbos = 0;
         /*auto &layout = _currentPipelineLayout->GetResourceLayout();
         ForEachBit(layout.attributeMask, [&](uint32_t bit)
@@ -390,7 +409,7 @@ namespace Alimer
         });
 
         // TODO: use render pass hash.
-        h.pointer(_currentRenderPass->GetVkRenderPass());
+        //h.pointer(_currentRenderPass->GetVkRenderPass());
         //h.u64(_currentRenderPass->GetHash());
         h.u32(_currentSubpass);
         h.pointer(_currentShader);
@@ -506,7 +525,7 @@ namespace Alimer
             createInfo.pDynamicState = &dynamicState;
             createInfo.pInputAssemblyState = &inputAssemblyState;
             createInfo.layout = _currentVkPipelineLayout;
-            createInfo.renderPass = _currentRenderPass->GetVkRenderPass();
+            //createInfo.renderPass = _currentRenderPass->GetVkRenderPass();
             createInfo.subpass = _currentSubpass;
             createInfo.basePipelineHandle = VK_NULL_HANDLE;
             createInfo.basePipelineIndex = 0;

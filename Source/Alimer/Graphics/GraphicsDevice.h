@@ -65,55 +65,50 @@ namespace Alimer
     };
 
     class GraphicsImpl;
-    class Swapchain;
 
     class ALIMER_API RenderingSettings
     {
     public:
-        uint32_t defaultBackBufferWidth = 1280;
-        uint32_t DefaultBackBufferHeight = 720;
-        GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Default;
 
-#if defined(_DEBUG)
-        bool validation = true;
-#else
-        bool validation = false;
-#endif
+
+        // Main swap chain settings.
+        uint32_t defaultBackBufferWidth = 1280;
+        uint32_t defaultBackBufferHeight = 720;
+        WindowHandle windowHandle = 0;
     };
 
     /// Low-level 3D graphics device class.
-    class ALIMER_API GraphicsDevice final : public CommandContext
+    class ALIMER_API GraphicsDevice final : public Object
     {
         friend class GpuResource;
 
-        ALIMER_OBJECT(GraphicsDevice, CommandContext);
+        ALIMER_OBJECT(GraphicsDevice, Object);
 
     public:
         /// Constructor.
-        GraphicsDevice(const RenderingSettings& settings);
+        GraphicsDevice(GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Default, bool validation = false);
 
         /// Destructor.
-        virtual ~GraphicsDevice();
+        ~GraphicsDevice() override;
 
         /// Get supported graphics backends.
         static std::set<GraphicsBackend> GetAvailableBackends();
 
-        /// Initialize graphics with given adapter and window.
-        bool Initialize(Window* window);
+        /// Initialize graphics with given settings.
+        bool Initialize(const RenderingSettings& settings);
 
         /// Wait for a device to become idle.
-        void waitIdle();
+        void WaitIdle();
 
-        bool beginFrame();
+        /// Begin the rendering frame.
+        bool BeginFrame();
 
         /// Finishes the current frame and schedules it for display.
-        void endFrame();
+        void EndFrame();
 
-        /// Get backend implementation.
-        GraphicsImpl *GetImplementation() const { return _impl; }
-
+        /*
         /// Create new RenderPass given descriptor
-        /*RenderPass* CreateRenderPass(const RenderPassDescription* descriptor);
+        RenderPass* CreateRenderPass(const RenderPassDescription* descriptor);
 
         /// Create new buffer with given descriptor and optional initial data.
         GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
@@ -144,19 +139,19 @@ namespace Alimer
         bool IsInitialized() const { return _initialized; }
 
         /// Get the type of device.
-        GraphicsBackend GetBackend() const { return _backend; }
+        GraphicsBackend GEetBackend() const { return _backend; }
 
         /// Get the device features.
         const GpuDeviceFeatures& GetFeatures() const { return _features; }
 
-        /// Get the main create swap chain.
-        Swapchain* GetMainSwapchain() const { return _swapchain.get(); }
-
-        /// Get the default command buffer.
-        //virtual CommandBuffer* GetDefaultCommandBuffer() const = 0;
+        /// Get the main command buffer.
+        CommandBuffer* GetMainCommandBuffer() const { return _mainCommandBuffer.Get(); }
 
         /// Create new command buffer.
         //virtual CommandBuffer* CreateCommandBuffer() = 0;
+
+        /// Get backend implementation.
+        GraphicsImpl *GetImplementation() const { return _impl; }
 
     private:
         /// Add a GpuResource to keep track of. 
@@ -164,11 +159,6 @@ namespace Alimer
 
         /// Remove a GpuResource.
         void RemoveGpuResource(GpuResource* resource);
-
-    protected:
-        virtual void Finalize();
-        //virtual bool BackendInitialize() = 0;
-
         //virtual RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) = 0;
         //virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
         //virtual VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) = 0;
@@ -176,20 +166,14 @@ namespace Alimer
         //virtual ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) = 0;
         //virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr) = 0;
 
-    protected:
-        GraphicsBackend _backend;
-        bool _initialized;
-        RenderingSettings _settings;
-        GpuDeviceFeatures _features;
+        GraphicsBackend _backend = GraphicsBackend::Empty;
+        bool _initialized = false;
+        RenderingSettings _settings{};
+        GpuDeviceFeatures _features{};
 
-        std::unique_ptr<Swapchain> _swapchain;
-
-    private:
         GraphicsImpl* _impl = nullptr;
+        UniquePtr<CommandBuffer> _mainCommandBuffer;
         std::mutex _gpuResourceMutex;
         std::vector<GpuResource*> _gpuResources;
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(GraphicsDevice);
     };
 }

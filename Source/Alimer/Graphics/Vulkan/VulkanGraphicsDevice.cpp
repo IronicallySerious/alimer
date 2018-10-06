@@ -42,111 +42,81 @@ using namespace std;
 
 namespace Alimer
 {
-    /*
-    * A layer can expose extensions, keep track of those
-    * extensions here.
-    */
-    struct LayerProperties {
-        VkLayerProperties properties;
-        std::vector<VkExtensionProperties> instanceExtensions;
-    };
-
-    static inline VkResult InitGlobalExtensionProperties(LayerProperties &layerProps)
+    static VKAPI_ATTR VkBool32 VKAPI_CALL VkMessengerCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT                  messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+        void *pUserData)
     {
-        VkExtensionProperties *instanceExtensions;
-        uint32_t instanceExtensionCount;
-        char *layerName = layerProps.properties.layerName;
+        auto *context = static_cast<VulkanGraphics*>(pUserData);
 
-        VkResult result;
-
-        do {
-            result = vkEnumerateInstanceExtensionProperties(layerName, &instanceExtensionCount, nullptr);
-            if (result)
-                return result;
-
-            if (instanceExtensionCount == 0)
-                return VK_SUCCESS;
-
-            layerProps.instanceExtensions.resize(instanceExtensionCount);
-            instanceExtensions = layerProps.instanceExtensions.data();
-            result = vkEnumerateInstanceExtensionProperties(layerName, &instanceExtensionCount, instanceExtensions);
-        } while (result == VK_INCOMPLETE);
-
-        return result;
-    }
-
-    static VkResult InitGlobalLayerProperties(std::vector<LayerProperties>& instance_layer_properties)
-    {
-        uint32_t instance_layer_count;
-        VkLayerProperties *vk_props = nullptr;
-        VkResult res;
-
-        /*
-        * It's possible, though very rare, that the number of
-        * instance layers could change. For example, installing something
-        * could include new layers that the loader would pick up
-        * between the initial query for the count and the
-        * request for VkLayerProperties. The loader indicates that
-        * by returning a VK_INCOMPLETE status and will update the
-        * the count parameter.
-        * The count parameter will be updated with the number of
-        * entries loaded into the data pointer - in case the number
-        * of layers went down or is smaller than the size given.
-        */
-        do {
-            res = vkEnumerateInstanceLayerProperties(&instance_layer_count, NULL);
-            if (res) return res;
-
-            if (instance_layer_count == 0) {
-                return VK_SUCCESS;
-            }
-
-            vk_props = (VkLayerProperties *)realloc(vk_props, instance_layer_count * sizeof(VkLayerProperties));
-
-            res = vkEnumerateInstanceLayerProperties(&instance_layer_count, vk_props);
-        } while (res == VK_INCOMPLETE);
-
-        /*
-        * Now gather the extension list for each instance layer.
-        */
-        for (uint32_t i = 0; i < instance_layer_count; i++) {
-            LayerProperties layer_props;
-            layer_props.properties = vk_props[i];
-            res = InitGlobalExtensionProperties(layer_props);
-            if (res) return res;
-            instance_layer_properties.push_back(layer_props);
-        }
-        free(vk_props);
-
-        return res;
-    }
-
-    bool CheckLayers(
-        const std::vector<LayerProperties> &layerProps,
-        const std::vector<const char *> &layerNames)
-    {
-        size_t checkCount = layerNames.size();
-        size_t layerCount = layerProps.size();
-        for (size_t i = 0; i < checkCount; i++)
+        switch (messageSeverity)
         {
-            bool found = false;
-            for (size_t j = 0; j < layerCount; j++)
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
             {
-                if (!strcmp(layerNames[i], layerProps[j].properties.layerName))
-                {
-                    found = true;
-                    break;
-                }
+                ALIMER_LOGERROR("[Vulkan]: Validation Error: %s", pCallbackData->pMessage);
+                context->NotifyFalidationError(pCallbackData->pMessage);
+            }
+            else
+            {
+                ALIMER_LOGERROR("[Vulkan]: %s", pCallbackData->pMessage);
             }
 
-            if (!found)
+            break;
+
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
             {
-                ALIMER_LOGDEBUG("[Vulkan] - Cannot find layer: %s", layerNames[i]);
-                return false;
+                ALIMER_LOGWARN("[Vulkan]: Validation Warning: %s", pCallbackData->pMessage);
+            }
+            else
+            {
+                ALIMER_LOGWARN("[Vulkan]: %s", pCallbackData->pMessage);
+            }
+            break;
+
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+            if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+            {
+                ALIMER_LOGINFO("[Vulkan]: Validation Info: %s", pCallbackData->pMessage);
+            }
+            else
+            {
+                // Verbose message
+                ALIMER_LOGTRACE("[Vulkan]: %s", pCallbackData->pMessage);
+            }
+            break;
+
+        default:
+            return VK_FALSE;
+        }
+
+        bool log_object_names = false;
+        for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
+        {
+            auto *name = pCallbackData->pObjects[i].pObjectName;
+            if (name)
+            {
+                log_object_names = true;
+                break;
             }
         }
 
-        return true;
+        if (log_object_names)
+        {
+            for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
+            {
+                auto *name = pCallbackData->pObjects[i].pObjectName;
+                ALIMER_LOGINFO("  Object #%u: %s\n", i, name ? name : "N/A");
+            }
+        }
+
+        return VK_FALSE;
     }
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
@@ -157,7 +127,8 @@ namespace Alimer
         (void)objectType;
         (void)object;
         (void)location;
-        (void)pUserData;
+
+        auto *graphics = static_cast<VulkanGraphics*>(pUserData);
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
         {
@@ -200,6 +171,11 @@ namespace Alimer
         bool supported;
     };
 
+    VkCookie::VkCookie(VulkanGraphics* device)
+        : _cookie(device->AllocateCookie())
+    {
+
+    }
 
     bool VulkanGraphics::IsSupported()
     {
@@ -222,12 +198,14 @@ namespace Alimer
         return true;
     }
 
-    VulkanGraphics::VulkanGraphics(const RenderingSettings& settings)
+    VulkanGraphics::VulkanGraphics(bool validation)
+        : _framebufferAllocator(this)
     {
-        std::vector<LayerProperties> instanceLayerProperties;
-        VkResult result = InitGlobalLayerProperties(instanceLayerProperties);
+#ifdef ALIMER_VULKAN_MT
+        _cookie.store(0);
+#endif
 
-        uint32_t apiVersion = VK_API_VERSION_1_0;
+        uint32_t apiVersion = VK_MAKE_VERSION(1, 0, 57);
         // Determine if the new instance version command is available
         if (vkEnumerateInstanceVersion != nullptr)
         {
@@ -244,90 +222,171 @@ namespace Alimer
             }
         }
 
-        VkApplicationInfo appInfo = {};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Alimer";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "Alimer Engine";
-        appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
-        appInfo.apiVersion = apiVersion;
+        uint32_t ext_count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &ext_count, nullptr);
+        vector<VkExtensionProperties> queried_extensions(ext_count);
+        if (ext_count)
+        {
+            vkEnumerateInstanceExtensionProperties(nullptr, &ext_count, queried_extensions.data());
+        }
 
-        vector<const char*> instanceExtensionNames = { VK_KHR_SURFACE_EXTENSION_NAME };
+        uint32_t layer_count = 0;
+        vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+        vector<VkLayerProperties> queried_layers(layer_count);
+        if (layer_count)
+            vkEnumerateInstanceLayerProperties(&layer_count, queried_layers.data());
+
+        const auto has_extension = [&](const char *name) -> bool {
+            auto itr = find_if(begin(queried_extensions), end(queried_extensions), [name](const VkExtensionProperties &e) -> bool {
+                return strcmp(e.extensionName, name) == 0;
+            });
+            return itr != end(queried_extensions);
+        };
+
+        const auto has_layer = [&](const char *name) -> bool {
+            auto itr = find_if(begin(queried_layers), end(queried_layers), [name](const VkLayerProperties &e) -> bool {
+                return strcmp(e.layerName, name) == 0;
+            });
+            return itr != end(queried_layers);
+        };
+
+        vector<const char*> instance_exts = { VK_KHR_SURFACE_EXTENSION_NAME };
+        vector<const char*> instance_layers;
+
+        if (has_extension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) &&
+            has_extension(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME) &&
+            has_extension(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME))
+        {
+            instance_exts.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+            instance_exts.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
+            instance_exts.push_back(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME);
+            _supportsExternal = true;
+        }
+
+        if (has_extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+        {
+            instance_exts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            _supportsDebugUtils = true;
+        }
 
         // Enable surface extensions depending on os.
 #if ALIMER_PLATFORM_WINDOWS
-        instanceExtensionNames.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+        instance_exts.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #elif ALIMER_PLATFORM_LINUX
-        instanceExtensionNames.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+        instance_exts.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 #elif ALIMER_PLATFORM_APPLE_OSX
-        instanceExtensionNames.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+        instance_exts.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #elif ALIMER_PLATFORM_APPLE_IOS || ALIMER_PLATFORM_APPLE_TV
-        instanceExtensionNames.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
+        instance_exts.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
 #elif ALIMER_PLATFORM_ANDROID
-        instanceExtensionNames.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+        instance_exts.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 #else
-        instanceExtensionNames.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+        instance_exts.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #endif
 
-        vector<const char*> instanceLayerNames;
-        bool hasValidationLayer = false;
-        if (settings.validation)
+        if (!_supportsDebugUtils && has_extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
         {
-            instanceExtensionNames.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+            instance_exts.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+        }
 
-            instanceLayerNames.push_back("VK_LAYER_LUNARG_standard_validation");
-            if (!CheckLayers(instanceLayerProperties, instanceLayerNames))
+        if (validation)
+        {
+            if (has_layer("VK_LAYER_LUNARG_standard_validation"))
             {
-                // If standard validation is not present, search instead for the
-                // individual layers that make it up, in the correct order.
-                instanceLayerNames.clear();
-                instanceLayerNames.push_back("VK_LAYER_GOOGLE_threading");
-                instanceLayerNames.push_back("VK_LAYER_LUNARG_parameter_validation");
-                instanceLayerNames.push_back("VK_LAYER_LUNARG_object_tracker");
-                instanceLayerNames.push_back("VK_LAYER_LUNARG_core_validation");
-                instanceLayerNames.push_back("VK_LAYER_GOOGLE_unique_objects");
-
-                if (!CheckLayers(instanceLayerProperties, instanceLayerNames))
-                {
-                    instanceLayerNames.clear();
-                    ALIMER_LOGWARN("[Vulkan] - Set the environment variable VK_LAYER_PATH to point to the location of your layers");
-                }
-                else
-                {
-                    hasValidationLayer = true;
-                }
+                instance_layers.push_back("VK_LAYER_LUNARG_standard_validation");
             }
             else
             {
-                hasValidationLayer = true;
+                if (has_layer("VK_LAYER_GOOGLE_threading")
+                    && has_layer("VK_LAYER_LUNARG_parameter_validation")
+                    && has_layer("VK_LAYER_LUNARG_object_tracker")
+                    && has_layer("VK_LAYER_LUNARG_core_validation")
+                    && has_layer("VK_LAYER_LUNARG_swapchain")
+                    && has_layer("VK_LAYER_GOOGLE_unique_objects"))
+                {
+                    instance_layers.push_back("VK_LAYER_GOOGLE_threading");
+                    instance_layers.push_back("VK_LAYER_LUNARG_parameter_validation");
+                    instance_layers.push_back("VK_LAYER_LUNARG_object_tracker");
+                    instance_layers.push_back("VK_LAYER_LUNARG_core_validation");
+                    instance_layers.push_back("VK_LAYER_LUNARG_swapchain");
+                    instance_layers.push_back("VK_LAYER_GOOGLE_unique_objects");
+                }
             }
         }
 
-        VkInstanceCreateInfo instanceCreateInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
-        instanceCreateInfo.pNext = nullptr;
-        instanceCreateInfo.pApplicationInfo = &appInfo;
-        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayerNames.size());
-        instanceCreateInfo.ppEnabledLayerNames = instanceLayerNames.data();
-        instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensionNames.size());
-        instanceCreateInfo.ppEnabledExtensionNames = instanceExtensionNames.data();
+        // ApplicationInfo
+        VkApplicationInfo appInfo = {};
+        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        appInfo.pApplicationName = "Alimer";
+        appInfo.applicationVersion = 0;
+        appInfo.pEngineName = "Alimer";
+        appInfo.engineVersion = VK_MAKE_VERSION(ALIMER_VERSION_MAJOR, ALIMER_VERSION_MINOR, ALIMER_VERSION_PATCH);
+        appInfo.apiVersion = apiVersion;
 
-        result = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
-        vkThrowIfFailed(result);
+        // Instance create info.
+        VkInstanceCreateInfo instanceCreateInfo = {};
+        instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        instanceCreateInfo.pNext = nullptr;
+        instanceCreateInfo.flags = 0;
+        instanceCreateInfo.pApplicationInfo = &appInfo;
+        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(instance_layers.size());
+        instanceCreateInfo.ppEnabledLayerNames = instance_layers.data();
+        instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(instance_exts.size());
+        instanceCreateInfo.ppEnabledExtensionNames = instance_exts.data();
+
+        VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("Failed to create vulkan instance: %s", vkGetVulkanResultString(result));
+            return;
+        }
 
         // Now load vk symbols.
         volkLoadInstance(_instance);
 
         // Setup debug callback
-        if (settings.validation && hasValidationLayer)
+        if (validation)
         {
-            VkDebugReportCallbackCreateInfoEXT debugCreateInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
-            debugCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-            debugCreateInfo.pfnCallback = VkDebugCallback;
-            debugCreateInfo.pUserData = nullptr;
-            if (vkCreateDebugReportCallbackEXT(
-                _instance, &debugCreateInfo, nullptr, &_debugCallback) != VK_SUCCESS)
+            if (_supportsDebugUtils)
             {
-                ALIMER_LOGWARN("vkCreateDebugReportCallbackEXT failed: %s.", vkGetVulkanResultString(result));
+                VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo = {};
+                debugUtilsMessengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+                debugUtilsMessengerCreateInfo.pNext = nullptr;
+                debugUtilsMessengerCreateInfo.messageSeverity =
+                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+                    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+                    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+                    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+                debugUtilsMessengerCreateInfo.pfnUserCallback = VkMessengerCallback;
+                debugUtilsMessengerCreateInfo.messageType =
+                    VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                    | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT
+                    | VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+                debugUtilsMessengerCreateInfo.pUserData = this;
+
+                result = vkCreateDebugUtilsMessengerEXT(_instance, &debugUtilsMessengerCreateInfo, nullptr, &_debugMessenger);
+                if (result != VK_SUCCESS)
+                {
+                    ALIMER_LOGWARN("vkCreateDebugUtilsMessengerEXT failed: %s.", vkGetVulkanResultString(result));
+                }
+            }
+            else if (has_extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
+            {
+                VkDebugReportCallbackCreateInfoEXT debugCreateInfo = {};
+                debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+                debugCreateInfo.pNext = nullptr;
+                debugCreateInfo.flags =
+                    VK_DEBUG_REPORT_ERROR_BIT_EXT
+                    | VK_DEBUG_REPORT_WARNING_BIT_EXT
+                    | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+                debugCreateInfo.pfnCallback = VkDebugCallback;
+                debugCreateInfo.pUserData = this;
+
+                result = vkCreateDebugReportCallbackEXT(_instance, &debugCreateInfo, nullptr, &_debugCallback);
+                if (result != VK_SUCCESS)
+                {
+                    ALIMER_LOGWARN("vkCreateDebugReportCallbackEXT failed: %s.", vkGetVulkanResultString(result));
+                }
             }
         }
 
@@ -380,13 +439,13 @@ namespace Alimer
 
     VulkanGraphics::~VulkanGraphics()
     {
-        waitIdle();
+        vkDeviceWaitIdle(_device);
 
-        for (auto& it : _renderPassCache)
-        {
-            vkDestroyRenderPass(_device, it.second, nullptr);
-        }
-        _renderPassCache.clear();
+        // Destroy main swap chain.
+        _mainSwapchain.Reset();
+
+        _framebufferAllocator.Clear();
+        _renderPasses.Clear();
 
         //_descriptorSetAllocators.clear();
         //_pipelineLayouts.clear();
@@ -394,7 +453,7 @@ namespace Alimer
         vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
 
         // Destroy default command buffer.
-        SafeDelete(_defaultCommandBuffer);
+        SafeDelete(_mainCommandBuffer);
 
         // Destroy default command pool.
         if (_commandPool != VK_NULL_HANDLE)
@@ -427,6 +486,12 @@ namespace Alimer
             _device = VK_NULL_HANDLE;
         }
 
+        if (_debugMessenger != VK_NULL_HANDLE)
+        {
+            vkDestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, nullptr);
+            _debugMessenger = VK_NULL_HANDLE;
+        }
+
         if (_debugCallback != VK_NULL_HANDLE)
         {
             vkDestroyDebugReportCallbackEXT(_instance, _debugCallback, nullptr);
@@ -437,8 +502,15 @@ namespace Alimer
         _instance = VK_NULL_HANDLE;
     }
 
-    bool VulkanGraphics::waitIdle()
+    void VulkanGraphics::NotifyFalidationError(const char* message)
     {
+        // TODO: Add callback.
+    }
+
+    bool VulkanGraphics::WaitIdle()
+    {
+        _framebufferAllocator.Clear();
+
         VkResult result = vkDeviceWaitIdle(_device);
         if (result < VK_SUCCESS)
         {
@@ -449,21 +521,40 @@ namespace Alimer
         return true;
     }
 
-    bool VulkanGraphics::Initialize()
+    CommandBufferImpl* VulkanGraphics::Initialize(const RenderingSettings& settings)
     {
         vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
         vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
         vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
 
-        // Enumerate device extensions.
-        uint32_t extCount = 0;
-        if (vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &extCount, nullptr) != VK_SUCCESS)
-        {
-            ALIMER_LOGCRITICAL("Vulkan: Failed to query device extensions");
-        }
+        // Log info.
+        ALIMER_LOGINFO("Selected Vulkan GPU: %s", _deviceProperties.deviceName);
 
-        vector<VkExtensionProperties> extensions(extCount);
-        vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &extCount, extensions.data());
+        // Enumerate device extensions and layers.
+        uint32_t ext_count = 0;
+        vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &ext_count, nullptr);
+        vector<VkExtensionProperties> queried_extensions(ext_count);
+        vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &ext_count, queried_extensions.data());
+
+        uint32_t layer_count = 0;
+        vkEnumerateDeviceLayerProperties(_physicalDevice, &layer_count, nullptr);
+        vector<VkLayerProperties> queried_layers(layer_count);
+        if (layer_count)
+            vkEnumerateDeviceLayerProperties(_physicalDevice, &layer_count, queried_layers.data());
+
+        const auto has_extension = [&](const char *name) -> bool {
+            auto itr = find_if(begin(queried_extensions), end(queried_extensions), [name](const VkExtensionProperties &e) -> bool {
+                return strcmp(e.extensionName, name) == 0;
+            });
+            return itr != end(queried_extensions);
+        };
+
+        const auto has_layer = [&](const char *name) -> bool {
+            auto itr = find_if(begin(queried_layers), end(queried_layers), [name](const VkLayerProperties &e) -> bool {
+                return strcmp(e.layerName, name) == 0;
+            });
+            return itr != end(queried_layers);
+        };
 
         vector<VkExtension> queryDeviceExtensions = {
             { VK_KHR_SWAPCHAIN_EXTENSION_NAME,VkExtensionType::Required, false},
@@ -471,11 +562,11 @@ namespace Alimer
             { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VkExtensionType::Required, false }
         };
 
-        for (uint32_t i = 0; i < extCount; i++)
+        for (uint32_t i = 0; i < ext_count; i++)
         {
             for (auto& queryDeviceExtension : queryDeviceExtensions)
             {
-                if (strcmp(extensions[i].extensionName, queryDeviceExtension.name) == 0)
+                if (has_extension(queryDeviceExtension.name))
                 {
                     queryDeviceExtension.supported = true;
                     continue;
@@ -484,7 +575,7 @@ namespace Alimer
         }
 
         bool requiredExtensionsEnabled = true;
-        vector<const char*> deviceExtensions;
+        vector<const char*> enabled_extensions;
         for (auto& queryDeviceExtension : queryDeviceExtensions)
         {
             if (!queryDeviceExtension.supported)
@@ -509,12 +600,12 @@ namespace Alimer
             }
             else
             {
-                deviceExtensions.push_back(queryDeviceExtension.name);
+                enabled_extensions.push_back(queryDeviceExtension.name);
             }
         }
 
         if (!requiredExtensionsEnabled)
-            return false;
+            return nullptr;
 
         // Find vendor.
         _vendorID = _deviceProperties.vendorID;
@@ -544,14 +635,14 @@ namespace Alimer
         _queueFamilyProperties.resize(queueFamilyProps);
         vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, _queueFamilyProperties.data());
 
-        // TODO: Add main surface
-        VkSurfaceKHR _surface = VK_NULL_HANDLE;
+        // Create main surface.
+        VkSurfaceKHR surface = CreateSurface(settings);
         for (uint32_t i = 0; i < queueFamilyProps; i++)
         {
-            VkBool32 supported = _surface == VK_NULL_HANDLE;
-            if (_surface != VK_NULL_HANDLE)
+            VkBool32 supported = surface == VK_NULL_HANDLE;
+            if (surface != VK_NULL_HANDLE)
             {
-                vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, _surface, &supported);
+                vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, surface, &supported);
             }
 
             static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT;
@@ -660,17 +751,47 @@ namespace Alimer
             queueFamilyCount++;
         }
 
-        VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-        deviceCreateInfo.pNext = nullptr;
-        deviceCreateInfo.flags = 0;
-        deviceCreateInfo.queueCreateInfoCount = queueFamilyCount;
-        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
-
-        if (deviceExtensions.size() > 0)
+        if (has_extension(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) &&
+            has_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME))
         {
-            deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
-            deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+            _supportsDedicated = true;
+            enabled_extensions.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
+            enabled_extensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
         }
+
+        if (has_extension(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME))
+        {
+            _supportsImageFormatList = true;
+            enabled_extensions.push_back(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME);
+        }
+
+        if (has_extension(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
+        {
+            _supportsDebugMarker = true;
+            enabled_extensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+        }
+
+#ifdef _WIN32
+        _supportsExternal = false;
+#else
+        if (_supportsExternal
+            && _supportsDedicated
+            && has_extension(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME)
+            && has_extension(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME)
+            && has_extension(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME)
+            && has_extension(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME))
+        {
+            _supportsExternal = true;
+            enabled_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
+            enabled_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
+            enabled_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
+            enabled_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+        }
+        else
+        {
+            _supportsExternal = false;
+        }
+#endif
 
         // Enabled features
         VkPhysicalDeviceFeatures enabledFeatures = {};
@@ -697,6 +818,13 @@ namespace Alimer
         if (_deviceFeatures.samplerAnisotropy)
             enabledFeatures.samplerAnisotropy = VK_TRUE;
 
+        VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+        deviceCreateInfo.pNext = nullptr;
+        deviceCreateInfo.flags = 0;
+        deviceCreateInfo.queueCreateInfoCount = queueFamilyCount;
+        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
+        deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(enabled_extensions.size());
+        deviceCreateInfo.ppEnabledExtensionNames = enabled_extensions.data();
         deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
 
         VkResult result = vkCreateDevice(_physicalDevice, &deviceCreateInfo, nullptr, &_device);
@@ -713,29 +841,30 @@ namespace Alimer
         vkGetDeviceQueue(_device, _transferQueueFamily, transferQueueIndex, &_transferQueue);
 
         // Create memory allocator.
-        CreateAllocator();
-
-        VkPipelineCacheCreateInfo pipelineCacheCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
-        pipelineCacheCreateInfo.pNext = nullptr;
-        pipelineCacheCreateInfo.flags = 0;
-        vkThrowIfFailed(vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache));
+        createMemoryAllocator();
 
         // Create default command pool.
-        _commandPool = CreateCommandPool(
-            _graphicsQueueFamily,
-            VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
-        );
-
-        // Create default primary command buffer;
-        _defaultCommandBuffer = new VulkanCommandBuffer(this, _commandPool, false);
+        _commandPool = CreateCommandPool(_graphicsQueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
         // Create the main swap chain.
-        //_swapChain = new VulkanSwapchain(this, _window);
+        _mainSwapchain.Reset(new VulkanSwapchain(this, surface, settings.defaultBackBufferWidth, settings.defaultBackBufferHeight));
 
-        return true;
+        // Create main command buffer;
+        _mainCommandBuffer = new VulkanCommandBuffer(this, _commandPool, false);
+
+        // Pipeline cache.
+        VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
+        pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+        pipelineCacheCreateInfo.pNext = nullptr;
+        pipelineCacheCreateInfo.flags = 0;
+        pipelineCacheCreateInfo.initialDataSize = 0;
+        pipelineCacheCreateInfo.pInitialData = nullptr;
+        vkThrowIfFailed(vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache));
+
+        return _mainCommandBuffer;
     }
 
-    void VulkanGraphics::CreateAllocator()
+    void VulkanGraphics::createMemoryAllocator()
     {
         VmaAllocatorCreateInfo createInfo = {};
         createInfo.physicalDevice = _physicalDevice;
@@ -768,22 +897,24 @@ namespace Alimer
         }
     }
 
-    bool VulkanGraphics::beginFrame(SwapchainImpl* swapchain)
+    bool VulkanGraphics::BeginFrame()
     {
         // Acquire the next image from the swap chain.
-        static_cast<VulkanSwapchain*>(swapchain)->acquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
+        _mainSwapchain->acquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
 
         // Begin command buffer rendering.
-        _defaultCommandBuffer->Begin(nullptr);
+        _mainCommandBuffer->begin(nullptr);
+
+        _framebufferAllocator.BeginFrame();
 
         return true;
     }
 
-    void VulkanGraphics::endFrame(SwapchainImpl* swapchain)
+    void VulkanGraphics::EndFrame()
     {
-        _defaultCommandBuffer->EndCore();
+        _mainCommandBuffer->end();
 
-        VkCommandBuffer commandBuffer = _defaultCommandBuffer->GetHandle();
+        VkCommandBuffer commandBuffer = _mainCommandBuffer->GetHandle();
 
         // Get signal semaphore.
         VkSemaphore signalSemaphore = AcquireSemaphore();
@@ -805,7 +936,7 @@ namespace Alimer
         vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, (VkFence)nullptr));
 
         // Submit Swapchain.
-        VkResult result = static_cast<VulkanSwapchain*>(swapchain)->queuePresent(
+        VkResult result = _mainSwapchain->queuePresent(
             _graphicsQueue,
             _swapchainImageIndex,
             signalSemaphore
@@ -815,12 +946,12 @@ namespace Alimer
         {
             if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
             {
-                static_cast<VulkanSwapchain*>(swapchain)->resize(0, 0, true);
+                _mainSwapchain->resize(0, 0, true);
             }
         }
 
         // Wait frame.
-        waitIdle();
+        WaitIdle();
 
         // Release semaphores
         ReleaseSemaphore(_swapchainImageAcquiredSemaphore);
@@ -829,33 +960,44 @@ namespace Alimer
         // DestroyPendingResources();
     }
 
-    void VulkanGraphics::BeginRenderPass()
+    VkSurfaceKHR VulkanGraphics::CreateSurface(const RenderingSettings& settings)
     {
-        //_defaultCommandBuffer->BeginRenderPass();
+        VkResult result = VK_SUCCESS;
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+        // Create the os-specific surface.
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+        surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
+        surfaceCreateInfo.hwnd = settings.windowHandle;
+        result = vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+        VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.display = display;
+        surfaceCreateInfo.surface = settings.windowHandle;
+        err = vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+        VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.connection = connection;
+        surfaceCreateInfo.window = settings.windowHandle;
+        err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+        VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR };
+        surfaceCreateInfo.window = static_cast<ANativeWindow*>(settings.windowHandle);
+        result = vkCreateAndroidSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &surface);
+#endif
+
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("[Vulkan] - Failed to create surface");
+        }
+
+        return surface;
     }
 
-    void VulkanGraphics::EndRenderPass()
-    {
-        //_defaultCommandBuffer->EndRenderPassCore();
-    }
-
-
-    SwapchainImpl* VulkanGraphics::CreateSwapchain(void* windowHandle, const uvec2& size)
-    {
-        return new VulkanSwapchain(this, windowHandle, size);
-    }
-
-    /*CommandBuffer* VulkanGraphics::GetDefaultCommandBuffer() const
-    {
-        return _defaultCommandBuffer;
-    }
-
-    CommandBuffer* VulkanGraphics::CreateCommandBuffer()
-    {
-        return nullptr;
-    }
-
-
+    /*
     RenderPass* VulkanGraphics::CreateRenderPassImpl(const RenderPassDescription* descriptor)
     {
         return new VulkanRenderPass(this, descriptor);
@@ -887,15 +1029,33 @@ namespace Alimer
         //return new VulkanTexture(this, descriptor, initialData);
     }*/
 
+    
+    uint64_t VulkanGraphics::AllocateCookie()
+    {
+        // Reserve lower bits for "special purposes".
+#ifdef ALIMER_VULKAN_MT
+        return _cookie.fetch_add(16, memory_order_relaxed) + 16;
+#else
+        _cookie += 16;
+        return _cookie;
+#endif
+    }
+
     VkCommandPool VulkanGraphics::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
     {
-        VkCommandPoolCreateInfo createInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+        VkCommandPoolCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         createInfo.pNext = nullptr;
-        createInfo.queueFamilyIndex = queueFamilyIndex;
         createInfo.flags = createFlags;
+        createInfo.queueFamilyIndex = queueFamilyIndex;
 
         VkCommandPool commandPool;
-        vkThrowIfFailed(vkCreateCommandPool(_device, &createInfo, nullptr, &commandPool));
+        VkResult result = vkCreateCommandPool(_device, &createInfo, nullptr, &commandPool);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("[Vulkan] - Create command pool failed");
+        }
+
         return commandPool;
     }
 
@@ -973,9 +1133,14 @@ namespace Alimer
         vk::SetImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
     }
 
-    VkRenderPass VulkanGraphics::GetVkRenderPass(const RenderPassDescription* descriptor)
+    const VulkanFramebuffer& VulkanGraphics::RequestFramebuffer(const RenderPassDescriptor* descriptor)
     {
-        Hasher renderPassHasher;
+        return _framebufferAllocator.Request(descriptor);
+    }
+
+    const VulkanRenderPass& VulkanGraphics::RequestRenderPass(const RenderPassDescriptor* descriptor)
+    {
+        Util::Hasher renderPassHasher;
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
@@ -990,114 +1155,12 @@ namespace Alimer
         }
 
         uint64_t hash = renderPassHasher.get();
-        auto it = _renderPassCache.find(hash);
-        if (it != end(_renderPassCache))
-            return it->second;
-
-        uint32_t attachmentCount = 0;
-        std::array<VkAttachmentDescription, MaxColorAttachments + 1> attachments = {};
-        std::vector<VkAttachmentReference> colorReferences;
-        VkAttachmentReference depthReference = {};
-        bool hasDepth = false;
-
-        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        auto renderPass = _renderPasses.Find(hash);
+        if (!renderPass)
         {
-            const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
-            Texture* texture = colorAttachment.texture;
-            if (!texture)
-                continue;
-
-            attachments[attachmentCount].format = vk::Convert(texture->GetFormat());
-            attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[attachmentCount].loadOp = vk::Convert(colorAttachment.loadAction);
-            attachments[attachmentCount].storeOp = vk::Convert(colorAttachment.storeAction);
-            attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-            colorReferences.push_back({ attachmentCount, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-
-            attachmentCount++;
+            renderPass = _renderPasses.Insert(hash, std::make_unique<VulkanRenderPass>(hash, this, descriptor));
         }
-
-        if (descriptor->depthStencilAttachment.texture)
-        {
-            attachments[attachmentCount].format = vk::Convert(descriptor->depthStencilAttachment.texture->GetFormat());
-            attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[attachmentCount].loadOp = vk::Convert(descriptor->depthStencilAttachment.loadAction);
-            attachments[attachmentCount].storeOp = vk::Convert(descriptor->depthStencilAttachment.storeAction);
-            attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; // vk::Convert(descriptor.stencilAttachment.loadAction);
-            attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;// vk::Convert(descriptor.stencilAttachment.storeAction);
-            attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-            depthReference.attachment = attachmentCount;
-            depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-            attachmentCount++;
-
-            hasDepth = true;
-        }
-
-        VkSubpassDescription subpassDescription = {};
-        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpassDescription.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
-        subpassDescription.pColorAttachments = colorReferences.data();
-        if (hasDepth)
-        {
-            subpassDescription.pDepthStencilAttachment = &depthReference;
-        }
-        else
-        {
-            subpassDescription.pDepthStencilAttachment = nullptr;
-        }
-
-        subpassDescription.inputAttachmentCount = 0;
-        subpassDescription.pInputAttachments = nullptr;
-        subpassDescription.preserveAttachmentCount = 0;
-        subpassDescription.pPreserveAttachments = nullptr;
-        subpassDescription.pResolveAttachments = nullptr;
-
-        // Subpass dependencies for layout transitions
-        std::array<VkSubpassDependency, 2> dependencies;
-
-        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[0].dstSubpass = 0;
-        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-        dependencies[1].srcSubpass = 0;
-        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-        VkRenderPassCreateInfo createInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-        createInfo.pNext = nullptr;
-        createInfo.flags = 0;
-        createInfo.attachmentCount = attachmentCount;
-        createInfo.pAttachments = attachments.data();
-        createInfo.subpassCount = 1;
-        createInfo.pSubpasses = &subpassDescription;
-        createInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-        createInfo.pDependencies = dependencies.data();
-
-        VkRenderPass renderPass;
-        VkResult result = vkCreateRenderPass(_device, &createInfo, nullptr, &renderPass);
-        if (result != VK_SUCCESS)
-        {
-            ALIMER_LOGERROR("Vulkan - Failed to create render pass.");
-            return VK_NULL_HANDLE;
-        }
-
-        _renderPassCache[hash] = renderPass;
-        return renderPass;
+        return *renderPass;
     }
 
     VkFence VulkanGraphics::AcquireFence()
@@ -1208,7 +1271,7 @@ namespace Alimer
         VulkanPipelineLayout *newPipelineLayout = new VulkanPipelineLayout(this, layout);
         _pipelineLayouts.insert(make_pair(hash, unique_ptr<VulkanPipelineLayout>(newPipelineLayout)));
         return newPipelineLayout;
-}
+    }
 #endif // TODO
 }
 

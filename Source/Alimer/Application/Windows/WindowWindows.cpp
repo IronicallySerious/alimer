@@ -302,8 +302,7 @@ namespace Alimer
 			return;
 		}
 
-        _handle.connection = _hInstance;
-        _handle.handle = _hwnd;
+        _handle = _hwnd;
 
 		//_created = true;
 		_windowCount++;
