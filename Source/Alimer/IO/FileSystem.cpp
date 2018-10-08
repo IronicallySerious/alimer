@@ -268,7 +268,7 @@ namespace Alimer
         }
         catch (const std::exception &e)
         {
-            ALIMER_LOGERROR("OSFileSystem::Open(): %s", e.what());
+            ALIMER_LOGERRORF("OSFileSystem::Open(): %s", e.what());
             return {};
         }
     }

@@ -55,6 +55,7 @@ namespace Alimer
 
     struct TextureDescriptor
     {
+    public:
         TextureType type = TextureType::Type2D;
         TextureUsage usage = TextureUsage::ShaderRead;
         PixelFormat format = PixelFormat::RGBA8UNorm;
@@ -67,7 +68,13 @@ namespace Alimer
         TextureColorSpace colorSpace = TextureColorSpace::Default;
     };
 
-    class TextureImpl;
+    struct TextureViewDescriptor
+    {
+    public:
+        PixelFormat format;
+    };
+
+    class TextureView;
 
     /// Defines a Texture class.
     class ALIMER_API Texture : public Resource, public GpuResource
@@ -107,8 +114,15 @@ namespace Alimer
             return Max(1u, _depth >> mipLevel);
         }
 
-        /// Get backend implementation.
-        TextureImpl *GetImplementation() const { return _impl; }
+        SharedPtr<TextureView> GetDefaultTextureView() const
+        {
+            return _defaultTextureView;
+        }
+
+        SharedPtr<TextureView> CreateTextureView(const TextureViewDescriptor* descriptor);
+
+    protected:
+        virtual TextureView* CreateTextureViewImpl(const TextureViewDescriptor* descriptor) = 0;
 
     protected:
         TextureType _type;
@@ -119,8 +133,20 @@ namespace Alimer
         uint32_t _arrayLayers;
         SampleCount _samples;
         TextureColorSpace _colorSpace;
+        SharedPtr<TextureView> _defaultTextureView;
+    };
+
+    class TextureView : public RefCounted
+    {
+    protected:
+        /// Constructor.
+        TextureView(Texture* texture);
+
+    public:
+        /// Destructor.
+        ~TextureView() override;
 
     private:
-        TextureImpl* _impl = nullptr;
+        WeakPtr<Texture> _texture;
     };
 }

@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../GraphicsImpl.h"
 #include "../CommandBuffer.h"
 #include "VulkanPrerequisites.h"
 #include <vector>
@@ -66,19 +65,19 @@ namespace Alimer
     };
 
     /// Vulkan CommandBuffer.
-    class VulkanCommandBuffer final : public CommandBufferImpl
+    class VulkanCommandBuffer final : public CommandBuffer
     {
     public:
-        VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary);
+        VulkanCommandBuffer(VulkanGraphics* device, VkCommandPool commandPool, bool secondary);
         ~VulkanCommandBuffer() override;
 
-        void begin(VkCommandBufferInheritanceInfo* inheritanceInfo);
-        void end();
+        void Begin(VkCommandBufferInheritanceInfo* inheritanceInfo);
+        VkCommandBuffer End() const;
 
-        void BeginRenderPass(const RenderPassDescriptor* descriptor) override;
-        void EndRenderPass() override;
+        void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) override;
+        void EndRenderPassImpl() override;
 
-        void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
         /*void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
@@ -110,8 +109,6 @@ namespace Alimer
                 SetDirty(COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT);
             }
         }*/
-
-        VkCommandBuffer GetHandle() const { return _handle; }
         bool IsSecondary() const { return _secondary; }
 
     private:
@@ -124,7 +121,7 @@ namespace Alimer
         void FlushGraphicsPipeline();
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
-        void flushComputeState();
+        void FlushComputeState();
 
         void SetDirty(CommandBufferDirtyFlags flags)
         {
@@ -138,8 +135,7 @@ namespace Alimer
             return mask;
         }
 
-        VulkanGraphics * _graphics;
-        VkDevice _logicalDevice;
+        VulkanGraphics* _device;
         VkCommandPool _commandPool;
         VkCommandBuffer _handle;
         bool _secondary = false;

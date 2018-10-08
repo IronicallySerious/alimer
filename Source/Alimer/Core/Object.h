@@ -133,4 +133,4 @@ namespace Alimer
 		virtual const Alimer::TypeInfo* GetTypeInfo() const override { return GetTypeInfoStatic(); } \
 		static Alimer::StringHash GetTypeStatic() { return GetTypeInfoStatic()->GetType(); } \
 		static const std::string& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
-		static const Alimer::TypeInfo* GetTypeInfoStatic() { static const Alimer::TypeInfo typeInfoStatic(#typeName, Parent::GetTypeInfoStatic()); return &typeInfoStatic; } \
+		static const Alimer::TypeInfo* GetTypeInfoStatic() { static const Alimer::TypeInfo typeInfoStatic(#typeName, Parent::GetTypeInfoStatic()); return &typeInfoStatic; }

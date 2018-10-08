@@ -28,8 +28,9 @@
 
 namespace Alimer
 {
-    VulkanTexture::VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, VkImage vkImage, VkImageUsageFlags usage)
-        : _logicalDevice(graphics->GetDevice())
+    VulkanTexture::VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage vkImage, VkImageUsageFlags usage)
+        : Texture(graphics, descriptor)
+        , _logicalDevice(graphics->GetDevice())
         , _vkHandle(vkImage)
     {
         if (usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
@@ -55,11 +56,6 @@ namespace Alimer
                 return;
             }
         }
-    }
-
-    VulkanTexture::VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData)
-    {
-
     }
 
     VulkanTexture::~VulkanTexture()

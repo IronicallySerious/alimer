@@ -22,38 +22,30 @@
 
 #include "../Graphics/CommandBuffer.h"
 #include "../Graphics/GraphicsDevice.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    CommandBuffer::CommandBuffer(GraphicsDevice* graphics, CommandBufferImpl* impl)
+    CommandBuffer::CommandBuffer(GraphicsDevice* graphics)
         : _graphics(graphics)
-        , _impl(impl)
     {
         ALIMER_ASSERT(graphics);
-        ALIMER_ASSERT(_impl);
-    }
-
-    CommandBuffer::~CommandBuffer()
-    {
-        SafeDelete(_impl);
     }
 
     void CommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
     {
-        _impl->BeginRenderPass(descriptor);
+        BeginRenderPassImpl(descriptor);
     }
 
     void CommandBuffer::EndRenderPass()
     {
-        _impl->EndRenderPass();
+        EndRenderPassImpl();
     }
 
     void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        _impl->Dispatch(groupCountX, groupCountY, groupCountZ);
+        DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
 
     void CommandBuffer::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)

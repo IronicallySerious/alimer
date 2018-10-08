@@ -108,7 +108,7 @@ namespace Alimer
 			(void**)&_deviceEnumerator);
 		if (FAILED(hr))
 		{
-			ALIMER_LOGERROR("[WASAPI] - CoCreateInstance(MMDeviceEnumerator) failed, %08lx", hr);
+			ALIMER_LOGERRORF("[WASAPI] - CoCreateInstance(MMDeviceEnumerator) failed, %08lx", hr);
 		}
 
 		_notificationClient = new AudioNotificationClient();

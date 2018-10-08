@@ -58,7 +58,10 @@ namespace Alimer
 		size_t read = Read(result.data(), count);
 		if (read != count)
 		{
-			ALIMER_LOGERROR("Failed to read complete contents of stream (amount read vs. file size: %u < %u).", read, count);
+			ALIMER_LOGERRORF("Failed to read complete contents of stream (amount read vs. file size: %u < %u).",
+                static_cast<uint32_t>(read),
+                static_cast<uint32_t>(count)
+            );
 			return {};
 		}
 

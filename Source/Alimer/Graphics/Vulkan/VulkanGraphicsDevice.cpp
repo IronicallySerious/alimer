@@ -56,12 +56,12 @@ namespace Alimer
             if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                 || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
             {
-                ALIMER_LOGERROR("[Vulkan]: Validation Error: %s", pCallbackData->pMessage);
+                ALIMER_LOGERRORF("[Vulkan]: Validation Error: %s", pCallbackData->pMessage);
                 context->NotifyFalidationError(pCallbackData->pMessage);
             }
             else
             {
-                ALIMER_LOGERROR("[Vulkan]: %s", pCallbackData->pMessage);
+                ALIMER_LOGERRORF("[Vulkan]: %s", pCallbackData->pMessage);
             }
 
             break;
@@ -70,11 +70,11 @@ namespace Alimer
             if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                 || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
             {
-                ALIMER_LOGWARN("[Vulkan]: Validation Warning: %s", pCallbackData->pMessage);
+                ALIMER_LOGWARNF("[Vulkan]: Validation Warning: %s", pCallbackData->pMessage);
             }
             else
             {
-                ALIMER_LOGWARN("[Vulkan]: %s", pCallbackData->pMessage);
+                ALIMER_LOGWARNF("[Vulkan]: %s", pCallbackData->pMessage);
             }
             break;
 
@@ -83,12 +83,12 @@ namespace Alimer
             if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                 || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
             {
-                ALIMER_LOGINFO("[Vulkan]: Validation Info: %s", pCallbackData->pMessage);
+                ALIMER_LOGINFOF("[Vulkan]: Validation Info: %s", pCallbackData->pMessage);
             }
             else
             {
                 // Verbose message
-                ALIMER_LOGTRACE("[Vulkan]: %s", pCallbackData->pMessage);
+                ALIMER_LOGTRACEF("[Vulkan]: %s", pCallbackData->pMessage);
             }
             break;
 
@@ -112,7 +112,7 @@ namespace Alimer
             for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
             {
                 auto *name = pCallbackData->pObjects[i].pObjectName;
-                ALIMER_LOGINFO("  Object #%u: %s\n", i, name ? name : "N/A");
+                ALIMER_LOGINFOF("  Object #%u: %s\n", i, name ? name : "N/A");
             }
         }
 
@@ -132,27 +132,27 @@ namespace Alimer
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
         {
-            ALIMER_LOGERROR("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGERRORF("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
         {
-            ALIMER_LOGWARN("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGWARNF("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
         {
-            ALIMER_LOGERROR("[Vulkan] - PERFORMANCE WARNING: [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGERRORF("[Vulkan] - PERFORMANCE WARNING: [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
         {
-            ALIMER_LOGINFO("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGINFOF("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
         {
-            ALIMER_LOGDEBUG("[%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
+            ALIMER_LOGDEBUGF("[%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
         }
         else
         {
-            ALIMER_LOGINFO("%s: %s", pLayerPrefix, pMessage);
+            ALIMER_LOGINFOF("%s: %s", pLayerPrefix, pMessage);
         }
 
         return VK_FALSE;
@@ -190,7 +190,7 @@ namespace Alimer
         if (vkRes != VK_SUCCESS)
         {
             isAvailable = false;
-            ALIMER_LOGERROR("Failed to initialize Vulkan");
+            ALIMER_LOGERROR("[Vulkan] - Failed to initialize volk.");
             return false;
         }
 
@@ -199,7 +199,8 @@ namespace Alimer
     }
 
     VulkanGraphics::VulkanGraphics(bool validation)
-        : _framebufferAllocator(this)
+        : GraphicsDevice(GraphicsBackend::Vulkan, validation)
+        , _framebufferAllocator(this)
     {
 #ifdef ALIMER_VULKAN_MT
         _cookie.store(0);
@@ -213,7 +214,7 @@ namespace Alimer
             if (vkEnumerateInstanceVersion(&checkApiVersion) == VK_SUCCESS)
             {
                 // Translate the version into major/minor for easier comparison
-                ALIMER_LOGDEBUG("Loader/Runtime support detected for Vulkan %u.%u.%u",
+                ALIMER_LOGDEBUGF("Loader/Runtime support detected for Vulkan %u.%u.%u",
                     VK_VERSION_MAJOR(checkApiVersion),
                     VK_VERSION_MINOR(checkApiVersion),
                     VK_VERSION_PATCH(checkApiVersion));
@@ -337,7 +338,7 @@ namespace Alimer
         VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERROR("Failed to create vulkan instance: %s", vkGetVulkanResultString(result));
+            ALIMER_LOGERRORF("Failed to create vulkan instance: %s", vkGetVulkanResultString(result));
             return;
         }
 
@@ -367,7 +368,7 @@ namespace Alimer
                 result = vkCreateDebugUtilsMessengerEXT(_instance, &debugUtilsMessengerCreateInfo, nullptr, &_debugMessenger);
                 if (result != VK_SUCCESS)
                 {
-                    ALIMER_LOGWARN("vkCreateDebugUtilsMessengerEXT failed: %s.", vkGetVulkanResultString(result));
+                    ALIMER_LOGWARNF("vkCreateDebugUtilsMessengerEXT failed: %s.", vkGetVulkanResultString(result));
                 }
             }
             else if (has_extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
@@ -385,7 +386,7 @@ namespace Alimer
                 result = vkCreateDebugReportCallbackEXT(_instance, &debugCreateInfo, nullptr, &_debugCallback);
                 if (result != VK_SUCCESS)
                 {
-                    ALIMER_LOGWARN("vkCreateDebugReportCallbackEXT failed: %s.", vkGetVulkanResultString(result));
+                    ALIMER_LOGWARNF("vkCreateDebugReportCallbackEXT failed: %s.", vkGetVulkanResultString(result));
                 }
             }
         }
@@ -407,13 +408,13 @@ namespace Alimer
             vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
             vkGetPhysicalDeviceFeatures(physicalDevices[i], &features);
 
-            ALIMER_LOGTRACE("Physical device %d:", i);
-            ALIMER_LOGTRACE("\t          Name: %s", properties.deviceName);
-            ALIMER_LOGTRACE("\t   API version: %x", properties.apiVersion);
-            ALIMER_LOGTRACE("\tDriver version: %x", properties.driverVersion);
-            ALIMER_LOGTRACE("\t      VendorId: %x", properties.vendorID);
-            ALIMER_LOGTRACE("\t      DeviceId: %x", properties.deviceID);
-            ALIMER_LOGTRACE("\t          Type: %d", properties.deviceType);
+            ALIMER_LOGTRACEF("Physical device %d:", i);
+            ALIMER_LOGTRACEF("\t          Name: %s", properties.deviceName);
+            ALIMER_LOGTRACEF("\t   API version: %x", properties.apiVersion);
+            ALIMER_LOGTRACEF("\tDriver version: %x", properties.driverVersion);
+            ALIMER_LOGTRACEF("\t      VendorId: %x", properties.vendorID);
+            ALIMER_LOGTRACEF("\t      DeviceId: %x", properties.deviceID);
+            ALIMER_LOGTRACEF("\t          Type: %d", properties.deviceType);
 
             int score = 0;
             if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
@@ -453,7 +454,7 @@ namespace Alimer
         vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
 
         // Destroy default command buffer.
-        SafeDelete(_mainCommandBuffer);
+        _mainCommandBuffer.Reset();
 
         // Destroy default command pool.
         if (_commandPool != VK_NULL_HANDLE)
@@ -509,26 +510,24 @@ namespace Alimer
 
     bool VulkanGraphics::WaitIdle()
     {
-        _framebufferAllocator.Clear();
-
         VkResult result = vkDeviceWaitIdle(_device);
         if (result < VK_SUCCESS)
         {
-            ALIMER_LOGTRACE("[Vulkan] - vkDeviceWaitIdle failed");
+            ALIMER_LOGTRACEF("[Vulkan] - vkDeviceWaitIdle failed : %s", vkGetVulkanResultString(result));
             return false;
         }
 
         return true;
     }
 
-    CommandBufferImpl* VulkanGraphics::Initialize(const RenderingSettings& settings)
+    bool VulkanGraphics::Initialize(const RenderingSettings& settings)
     {
         vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
         vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
         vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
 
         // Log info.
-        ALIMER_LOGINFO("Selected Vulkan GPU: %s", _deviceProperties.deviceName);
+        ALIMER_LOGINFOF("Selected Vulkan GPU: %s", _deviceProperties.deviceName);
 
         // Enumerate device extensions and layers.
         uint32_t ext_count = 0;
@@ -583,16 +582,16 @@ namespace Alimer
                 switch (queryDeviceExtension.type)
                 {
                 case VkExtensionType::Optional:
-                    ALIMER_LOGDEBUG("Optional Vulkan extension %s not supported", queryDeviceExtension.name);
+                    ALIMER_LOGDEBUGF("Optional Vulkan extension %s not supported", queryDeviceExtension.name);
                     break;
 
                 case VkExtensionType::Desired:
-                    ALIMER_LOGWARN("Vulkan extension %s not supported", queryDeviceExtension.name);
+                    ALIMER_LOGWARNF("Vulkan extension %s not supported", queryDeviceExtension.name);
                     break;
 
                 case VkExtensionType::Required:
                     requiredExtensionsEnabled = false;
-                    ALIMER_LOGERROR("Required Vulkan extension %s not supported", queryDeviceExtension.name);
+                    ALIMER_LOGERRORF("Required Vulkan extension %s not supported", queryDeviceExtension.name);
                     break;
                 default:
                     break;
@@ -608,26 +607,7 @@ namespace Alimer
             return nullptr;
 
         // Find vendor.
-        _vendorID = _deviceProperties.vendorID;
-        switch (_vendorID)
-        {
-        case 0x13B5:
-            _vendor = GpuVendor::Arm;
-            break;
-        case 0x10DE:
-            _vendor = GpuVendor::Nvidia;
-            break;
-        case 0x1002:
-        case 0x1022:
-            _vendor = GpuVendor::Amd;
-            break;
-        case 0x8086:
-            _vendor = GpuVendor::Intel;
-            break;
-        default:
-            _vendor = GpuVendor::Unknown;
-            break;
-        }
+        _features.SetVendorId(_deviceProperties.vendorID);
 
         // Queue props.
         uint32_t queueFamilyProps;
@@ -830,7 +810,7 @@ namespace Alimer
         VkResult result = vkCreateDevice(_physicalDevice, &deviceCreateInfo, nullptr, &_device);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERROR("Failed to create device: ", vkGetVulkanResultString(result));
+            ALIMER_LOGERRORF("Failed to create device: ", vkGetVulkanResultString(result));
             return false;
         }
         volkLoadDevice(_device);
@@ -850,7 +830,7 @@ namespace Alimer
         _mainSwapchain.Reset(new VulkanSwapchain(this, surface, settings.defaultBackBufferWidth, settings.defaultBackBufferHeight));
 
         // Create main command buffer;
-        _mainCommandBuffer = new VulkanCommandBuffer(this, _commandPool, false);
+        _mainCommandBuffer.Reset(new VulkanCommandBuffer(this, _commandPool, false));
 
         // Pipeline cache.
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -861,7 +841,7 @@ namespace Alimer
         pipelineCacheCreateInfo.pInitialData = nullptr;
         vkThrowIfFailed(vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache));
 
-        return _mainCommandBuffer;
+        return GraphicsDevice::Initialize(settings);
     }
 
     void VulkanGraphics::createMemoryAllocator()
@@ -893,17 +873,17 @@ namespace Alimer
         VkResult result = vmaCreateAllocator(&createInfo, &_allocator);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERROR("Vulkan - Failed to create allocator.");
+            ALIMER_LOGERROR("[Vulkan] - Failed to create vma allocator.");
         }
     }
 
     bool VulkanGraphics::BeginFrame()
     {
         // Acquire the next image from the swap chain.
-        _mainSwapchain->acquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
+        _mainSwapchain->AcquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
 
         // Begin command buffer rendering.
-        _mainCommandBuffer->begin(nullptr);
+        static_cast<VulkanCommandBuffer*>(_mainCommandBuffer.Get())->Begin(nullptr);
 
         _framebufferAllocator.BeginFrame();
 
@@ -912,9 +892,7 @@ namespace Alimer
 
     void VulkanGraphics::EndFrame()
     {
-        _mainCommandBuffer->end();
-
-        VkCommandBuffer commandBuffer = _mainCommandBuffer->GetHandle();
+        VkCommandBuffer commandBuffer = static_cast<VulkanCommandBuffer*>(_mainCommandBuffer.Get())->End();
 
         // Get signal semaphore.
         VkSemaphore signalSemaphore = AcquireSemaphore();
@@ -936,7 +914,7 @@ namespace Alimer
         vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, (VkFence)nullptr));
 
         // Submit Swapchain.
-        VkResult result = _mainSwapchain->queuePresent(
+        VkResult result = _mainSwapchain->QueuePresent(
             _graphicsQueue,
             _swapchainImageIndex,
             signalSemaphore
@@ -946,7 +924,7 @@ namespace Alimer
         {
             if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
             {
-                _mainSwapchain->resize(0, 0, true);
+                _mainSwapchain->Resize(0, 0, true);
             }
         }
 
@@ -991,7 +969,7 @@ namespace Alimer
 
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERROR("[Vulkan] - Failed to create surface");
+            ALIMER_LOGERROR("[Vulkan] - Failed to create surface.");
         }
 
         return surface;
@@ -1053,7 +1031,7 @@ namespace Alimer
         VkResult result = vkCreateCommandPool(_device, &createInfo, nullptr, &commandPool);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERROR("[Vulkan] - Create command pool failed");
+            ALIMER_LOGERROR("[Vulkan] - Failed to create command pool.");
         }
 
         return commandPool;
@@ -1182,10 +1160,10 @@ namespace Alimer
             VkResult result = vkCreateFence(_device, &createInfo, nullptr, &fence);
             if (result != VK_SUCCESS)
             {
-                ALIMER_LOGERROR("Failed to create fence: %s", vkGetVulkanResultString(result));
+                ALIMER_LOGERRORF("[Vulkan] - Failed to create fence: %s", vkGetVulkanResultString(result));
             }
 
-            ALIMER_LOGDEBUG("New fence created");
+            ALIMER_LOGDEBUG("[Vulkan] - New fence created");
             _allFences.emplace(fence);
         }
 
@@ -1221,10 +1199,10 @@ namespace Alimer
             VkResult result = vkCreateSemaphore(_device, &createInfo, nullptr, &semaphore);
             if (result != VK_SUCCESS)
             {
-                ALIMER_LOGERROR("Failed to create semaphore: %s", vkGetVulkanResultString(result));
+                ALIMER_LOGERRORF("[Vulkan] - Failed to create semaphore: %s", vkGetVulkanResultString(result));
             }
 
-            ALIMER_LOGDEBUG("New semaphore created");
+            ALIMER_LOGDEBUG("[Vulkan] - New semaphore created");
             _allSemaphores.emplace(semaphore);
         }
 

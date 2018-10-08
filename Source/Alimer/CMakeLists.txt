@@ -33,11 +33,6 @@ macro (define_engine_source_files)
         
 		list (APPEND HEADER_FILES ${_files})
 
-        # Remove unsupported files for install.
-        list (REMOVE_ITEM _files
-            Graphics/GraphicsImpl.h
-        )
-
 		# Install them
 		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
 

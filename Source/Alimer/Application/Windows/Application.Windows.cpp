@@ -42,7 +42,7 @@ namespace Alimer
 
         if (FAILED(hr))
         {
-            ALIMER_LOGDEBUG("Failed to initialize COM, error: {}", hr);
+            ALIMER_LOGDEBUGF("Failed to initialize COM, error: %u", hr);
             return false;
         }
 

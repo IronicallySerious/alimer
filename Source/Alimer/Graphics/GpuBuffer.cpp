@@ -22,7 +22,6 @@
 
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/GraphicsDevice.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Core/Log.h"
 
 namespace Alimer
@@ -38,7 +37,6 @@ namespace Alimer
 
     GpuBuffer::~GpuBuffer()
     {
-        SafeDelete(_impl);
         Destroy();
     }
 
@@ -74,14 +72,5 @@ namespace Alimer
         }
 
         return SetSubDataImpl(offset, size, pData);
-    }
-
-    bool GpuBuffer::Create(const void* initialData)
-    {
-        if (_graphicsDevice && _graphicsDevice->IsInitialized())
-        {
-        }
-
-        return true;
     }
 }

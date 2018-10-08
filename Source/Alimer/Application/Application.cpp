@@ -65,7 +65,7 @@ namespace Alimer
     {
         SetCurrentThreadName("Main");
 
-        ALIMER_LOGINFO("Initializing engine %s...", ALIMER_VERSION_STR);
+        ALIMER_LOGINFOF("Initializing engine %s...", ALIMER_VERSION_STR);
 
         // Init Window and Gpu.
         if (!_headless)
@@ -78,7 +78,7 @@ namespace Alimer
             _settings.renderingSettings.windowHandle = _window->GetHandle();
 
             // Create and init graphics.
-            _graphicsDevice = new GraphicsDevice(_settings.preferredGraphicsBackend, _settings.validation);
+            _graphicsDevice = GraphicsDevice::Create(_settings.preferredGraphicsBackend, _settings.validation);
             if (!_graphicsDevice->Initialize(_settings.renderingSettings))
             {
                 ALIMER_LOGERROR("Failed to initialize GraphicsDevice.");
@@ -132,7 +132,10 @@ namespace Alimer
             _systems.Update(deltaTime);
 
             // Render single frame.
-            RenderFrame(frameTime, deltaTime);
+            if (!_window->IsMinimized())
+            {
+                RenderFrame(frameTime, deltaTime);
+            }
         }
 
         // Update input, even when paused.

@@ -24,13 +24,41 @@
 
 namespace Alimer
 {
-    GpuDeviceFeatures::GpuDeviceFeatures()
+    GraphicsDeviceFeatures::GraphicsDeviceFeatures()
     {
         Reset();
     }
 
-    void GpuDeviceFeatures::Reset()
+    void GraphicsDeviceFeatures::Reset()
     {
+        _vendorID = 0;
+        _vendor = GpuVendor::Unknown;
+        _deviceID = 0;
+        _deviceName.clear();
         _multithreading = false;
+    }
+
+    void GraphicsDeviceFeatures::SetVendorId(uint32_t vendorID)
+    {
+        _vendorID = vendorID;
+        switch (vendorID)
+        {
+        case 0x13B5:
+            _vendor = GpuVendor::Arm;
+            break;
+        case 0x10DE:
+            _vendor = GpuVendor::Nvidia;
+            break;
+        case 0x1002:
+        case 0x1022:
+            _vendor = GpuVendor::Amd;
+            break;
+        case 0x8086:
+            _vendor = GpuVendor::Intel;
+            break;
+        default:
+            _vendor = GpuVendor::Unknown;
+            break;
+        }
     }
 }

@@ -101,7 +101,7 @@ inline void vkThrowIfFailed(VkResult result)
 {
 	if (result < VK_SUCCESS)
 	{
-		ALIMER_LOGCRITICAL(
+		ALIMER_LOGCRITICALF(
 			"Fatal Vulkan result is \"%s\" in %u at line %u",
 			vkGetVulkanResultString(result),
 			__FILE__,

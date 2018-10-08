@@ -42,10 +42,7 @@ namespace Alimer
 
     struct RenderPassAttachment
     {
-        Texture* texture = nullptr;
-        uint32_t mipLevel = 0;
-        uint32_t slice = 0;
-        uint32_t depthPlane = 0;
+        SharedPtr<TextureView> attachment;
         LoadAction loadAction = LoadAction::Clear;
         StoreAction storeAction = StoreAction::Store;
         Color4 clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -53,11 +50,7 @@ namespace Alimer
 
     struct RenderPassDepthStencilAttachmentDescriptor
     {
-        Texture* texture = nullptr;
-        uint32_t mipLevel = 0;
-        uint32_t slice = 0;
-        uint32_t depthPlane = 0;
-
+        SharedPtr<TextureView> attachment;
         LoadAction depthLoadAction = LoadAction::Clear;
         StoreAction depthStoreAction = StoreAction::DontCare;
         float clearDepth;

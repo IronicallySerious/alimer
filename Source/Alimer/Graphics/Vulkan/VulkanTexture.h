@@ -22,29 +22,28 @@
 
 #pragma once
 
-#include "../GraphicsImpl.h"
+#include "../Texture.h"
 #include "VulkanPrerequisites.h"
 #include <vector>
 
 namespace Alimer
 {
-	class VulkanGraphics;
+    class VulkanGraphics;
 
-	/// Vulkan Texture.
-	class VulkanTexture final : public TextureImpl
-	{
-	public:
-		VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, VkImage vkImage, VkImageUsageFlags usage);
-        VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData);
+    /// Vulkan Texture.
+    class VulkanTexture final : public Texture
+    {
+    public:
+        VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage vkImage, VkImageUsageFlags usage);
 
         ~VulkanTexture() override;
 
-		VkImage GetHandle() const { return _vkHandle; }
-		inline VkImageView GetDefaultImageView() const { return _defaultImageView; }
+        VkImage GetHandle() const { return _vkHandle; }
+        inline VkImageView GetDefaultImageView() const { return _defaultImageView; }
 
-	private:
-		VkDevice _logicalDevice;
-		VkImage _vkHandle;
-		VkImageView _defaultImageView;
-	};
+    private:
+        VkDevice _logicalDevice;
+        VkImage _vkHandle;
+        VkImageView _defaultImageView;
+    };
 }

@@ -205,7 +205,7 @@ namespace Alimer
 
 			if (!::RegisterClassExW(&wc))
 			{
-				ALIMER_LOGERROR("Failed to register Win32 class.");
+				ALIMER_LOGERROR("[Win32] - Failed to register Win32 class.");
 				return;
 			}
 

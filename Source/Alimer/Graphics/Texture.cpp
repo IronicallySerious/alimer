@@ -22,7 +22,6 @@
 
 #include "../Graphics/Texture.h"
 #include "../Graphics/GraphicsDevice.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Core/Log.h"
 
 namespace Alimer
@@ -40,12 +39,28 @@ namespace Alimer
         , _samples(descriptor->samples)
         , _colorSpace(descriptor->colorSpace)
     {
-
+        TextureViewDescriptor viewDescriptor = {};
+        viewDescriptor.format = descriptor->format;
+        _defaultTextureView = CreateTextureView(&viewDescriptor);
     }
 
     Texture::~Texture()
     {
-        // TODO: Destroy all views.
-        SafeDelete(_impl);
+    }
+
+    SharedPtr<TextureView> Texture::CreateTextureView(const TextureViewDescriptor* descriptor)
+    {
+        SharedPtr<TextureView> newView(CreateTextureViewImpl(descriptor));
+        return newView;
+    }
+
+    // TextureView
+    TextureView::TextureView(Texture* texture)
+    {
+
+    }
+
+    TextureView::~TextureView()
+    {
     }
 }

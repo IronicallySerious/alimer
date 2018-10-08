@@ -33,18 +33,19 @@
 
 namespace Alimer
 {
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* graphics, VkCommandPool commandPool, bool secondary)
-        : _graphics(graphics)
-        , _logicalDevice(_graphics->GetDevice())
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* device, VkCommandPool commandPool, bool secondary)
+        : CommandBuffer(device)
+        , _device(device)
         , _commandPool(commandPool)
     {
-        VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = {};
+        cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         cmdBufAllocateInfo.pNext = nullptr;
         cmdBufAllocateInfo.commandPool = _commandPool;
         cmdBufAllocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdBufAllocateInfo.commandBufferCount = 1;
         vkThrowIfFailed(vkAllocateCommandBuffers(
-            _logicalDevice,
+            _device->GetDevice(),
             &cmdBufAllocateInfo,
             &_handle));
 
@@ -53,7 +54,7 @@ namespace Alimer
 
     VulkanCommandBuffer::~VulkanCommandBuffer()
     {
-        vkFreeCommandBuffers(_logicalDevice, _commandPool, 1, &_handle);
+        vkFreeCommandBuffers(_device->GetDevice(), _commandPool, 1, &_handle);
     }
 
     void VulkanCommandBuffer::beginCompute()
@@ -84,7 +85,7 @@ namespace Alimer
         _currentTopology = PrimitiveTopology::Count;
     }
 
-    void VulkanCommandBuffer::begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
+    void VulkanCommandBuffer::Begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
     {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -99,18 +100,20 @@ namespace Alimer
         vkThrowIfFailed(vkBeginCommandBuffer(_handle, &beginInfo));
     }
 
-    void VulkanCommandBuffer::end()
+    VkCommandBuffer VulkanCommandBuffer::End() const
     {
         VkResult result = vkEndCommandBuffer(_handle);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERROR("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
+            ALIMER_LOGERRORF("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
         }
+
+        return _handle;
     }
 
-    void VulkanCommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
+    void VulkanCommandBuffer::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
     {
-        _framebuffer = &_graphics->RequestFramebuffer(descriptor);
+        _framebuffer = &_device->RequestFramebuffer(descriptor);
         _renderPass = &_framebuffer->GetRenderPass();
 
         VkRect2D render_area = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
@@ -149,20 +152,20 @@ namespace Alimer
         beginGraphics();*/
     }
 
-    void VulkanCommandBuffer::EndRenderPass()
+    void VulkanCommandBuffer::EndRenderPassImpl()
     {
-        vkCmdEndRenderPass(_handle);
+        //vkCmdEndRenderPass(_handle);
     }
 
-    void VulkanCommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void VulkanCommandBuffer::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         ALIMER_ASSERT(_currentShader);
         ALIMER_ASSERT(_isCompute);
-        flushComputeState();
+        FlushComputeState();
         vkCmdDispatch(_handle, groupCountX, groupCountY, groupCountZ);
     }
 
-    void VulkanCommandBuffer::flushComputeState()
+    void VulkanCommandBuffer::FlushComputeState()
     {
 
     }
@@ -532,8 +535,8 @@ namespace Alimer
 
             VkPipeline newPipeline;
             if (vkCreateGraphicsPipelines(
-                _logicalDevice,
-                _graphics->GetPipelineCache(),
+                _device->GetDevice(),
+                _device->GetPipelineCache(),
                 1,
                 &createInfo,
                 nullptr,

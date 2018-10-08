@@ -42,7 +42,7 @@ namespace Alimer
 
         if (!DirectoryExists(path))
         {
-            ALIMER_LOGERROR("Directory '%s' does not exists", path.CString());
+            ALIMER_LOGERRORF("Directory '%s' does not exists", path.CString());
             return false;
         }
 
@@ -69,7 +69,7 @@ namespace Alimer
             fileWatchers_.Push(watcher);
         }*/
 
-        ALIMER_LOGINFO("Added resource path '%s'", fixedPath.CString());
+        ALIMER_LOGINFOF("Added resource path '%s'", fixedPath.CString());
         return true;
     }
 

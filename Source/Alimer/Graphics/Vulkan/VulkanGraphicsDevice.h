@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../GraphicsImpl.h"
 #include "../GraphicsDevice.h"
 #include "../../Base/HashMap.h"
 #include "VulkanRenderPass.h"
@@ -37,12 +36,11 @@
 namespace Alimer
 {
     class VulkanSwapchain;
-    class VulkanCommandBuffer;
     class VulkanDescriptorSetAllocator;
     class VulkanPipelineLayout;
 
     /// Vulkan graphics backend.
-    class VulkanGraphics final : public GraphicsImpl
+    class VulkanGraphics final : public GraphicsDevice
     {
     public:
         static bool IsSupported();
@@ -54,10 +52,7 @@ namespace Alimer
 
         void NotifyFalidationError(const char* message);
 
-        uint32_t GetVendorID() const override { return _vendorID; }
-        GpuVendor GetVendor() const override { return _vendor; }
-
-        CommandBufferImpl* Initialize(const RenderingSettings& settings) override;
+        bool Initialize(const RenderingSettings& settings) override;
         bool WaitIdle() override;
 
         bool BeginFrame() override;
@@ -128,10 +123,6 @@ namespace Alimer
         VkPhysicalDeviceMemoryProperties _deviceMemoryProperties;
         VkPhysicalDeviceFeatures _deviceFeatures;
         std::vector<VkQueueFamilyProperties> _queueFamilyProperties;
-        uint32_t _vendorID = 0;
-        GpuVendor _vendor = GpuVendor::Unknown;
-        uint32_t _deviceID = 0;
-        String _deviceName;
 
         // LogicalDevice
         VkDevice _device = VK_NULL_HANDLE;
@@ -153,9 +144,6 @@ namespace Alimer
 
         // Default command pool.
         VkCommandPool _commandPool = VK_NULL_HANDLE;
-
-        // Primary/Default command buffer
-        VulkanCommandBuffer* _mainCommandBuffer;
 
         uint32_t _swapchainImageIndex = 0;
         VkSemaphore _swapchainImageAcquiredSemaphore = VK_NULL_HANDLE;

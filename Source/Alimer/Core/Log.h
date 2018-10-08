@@ -96,13 +96,23 @@ namespace Alimer
 
 #ifndef ALIMER_DISABLE_LOGGING
 
-#	define ALIMER_LOGTRACE(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Trace, Alimer::String::Format(format, __VA_ARGS__))
-#	define ALIMER_LOGDEBUG(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Debug, Alimer::String::Format(format, __VA_ARGS__))
-#	define ALIMER_LOGINFO(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Info, Alimer::String::Format(format, __VA_ARGS__))
-#	define ALIMER_LOGWARN(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Warn, Alimer::String::Format(format, __VA_ARGS__))
-#	define ALIMER_LOGERROR(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Error, Alimer::String::Format(format, __VA_ARGS__))
-#	define ALIMER_LOGCRITICAL(format, ...) do \
-{ \
+#	define ALIMER_LOGTRACE(message) Alimer::gLog().Log(Alimer::LogLevel::Trace, message)
+#	define ALIMER_LOGDEBUG(message) Alimer::gLog().Log(Alimer::LogLevel::Debug, message)
+#	define ALIMER_LOGINFO(message) Alimer::gLog().Log(Alimer::LogLevel::Info, message)
+#	define ALIMER_LOGWARN(message) Alimer::gLog().Log(Alimer::LogLevel::Warn, message)
+#	define ALIMER_LOGERROR(message) Alimer::gLog().Log(Alimer::LogLevel::Error, message)
+#	define ALIMER_LOGCRITICAL(message) do { \
+	Alimer::gLog().Log(Alimer::LogLevel::Critical, message); \
+	ALIMER_BREAKPOINT(); \
+	ALIMER_UNREACHABLE(); \
+} while (0)
+
+#	define ALIMER_LOGTRACEF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Trace, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGDEBUGF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Debug, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGINFOF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Info, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGWARNF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Warn, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGERRORF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Error, Alimer::String::Format(format, __VA_ARGS__))
+#	define ALIMER_LOGCRITICALF(format, ...) do { \
 	Alimer::gLog().Log(Alimer::LogLevel::Critical, Alimer::String::Format(format, __VA_ARGS__)); \
 	ALIMER_BREAKPOINT(); \
 	ALIMER_UNREACHABLE(); \
@@ -110,10 +120,17 @@ namespace Alimer
 
 #else
 
-#	define ALIMER_LOGTRACE(...) ((void)0)
-#	define ALIMER_LOGDEBUG(...) ((void)0)
-#	define ALIMER_LOGINFO(...) ((void)0)
-#	define ALIMER_LOGWARN(...) ((void)0)
-#	define ALIMER_LOGERROR(...) ((void)0)
-#	define ALIMER_LOGCRITICAL(...) ((void)0)
+#	define ALIMER_LOGTRACE(message) ((void)0)
+#	define ALIMER_LOGDEBUG(message) ((void)0)
+#	define ALIMER_LOGINFO(message) ((void)0)
+#	define ALIMER_LOGWARN(message) ((void)0)
+#	define ALIMER_LOGERROR(message) ((void)0)
+#	define ALIMER_LOGCRITICAL(message) ((void)0)
+#	define ALIMER_LOGTRACEF(...) ((void)0)
+#	define ALIMER_LOGDEBUGF(...) ((void)0)
+#	define ALIMER_LOGINFOF(...) ((void)0)
+#	define ALIMER_LOGWARNF(...) ((void)0)
+#	define ALIMER_LOGERRORF(...) ((void)0)
+#	define ALIMER_LOGCRITICALF(...) ((void)0)
+
 #endif

@@ -97,7 +97,7 @@ namespace Alimer
         );
         if (_handle == INVALID_HANDLE_VALUE)
         {
-            ALIMER_LOGERROR("Failed to open file: '{}'.", path.CString());
+            ALIMER_LOGERRORF("Failed to open file: '%s'.", path.CString());
             throw std::runtime_error("WindowsFileStream::WindowsFileStream()");
         }
 
@@ -185,7 +185,7 @@ namespace Alimer
         }
         catch (const std::exception &e)
         {
-            ALIMER_LOGERROR("OSFileSystemProtocol::Open(): {}", e.what());
+            ALIMER_LOGERRORF("OSFileSystemProtocol::Open(): {}", e.what());
             return {};
         }
     }

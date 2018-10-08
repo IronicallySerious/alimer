@@ -47,6 +47,7 @@ namespace Alimer
 
         // Retain a weak pointer to the sender on the stack for safety, in case it is destroyed
         // as a result of event handling, in which case the current event may also be destroyed
+        WeakPtr<Object> safeCurrentSender(sender);
         _currentSender = sender;
 
         for (auto it = _handlers.begin(); it != _handlers.end();)
@@ -62,8 +63,8 @@ namespace Alimer
                     remove = false;
                     handler->Invoke(*this);
                     // If the sender has been destroyed, abort processing immediately
-                    //if (!sender->GetRefCount())
-                    //    return;
+                    if (safeCurrentSender.IsExpired())
+                        return;
                 }
             }
 

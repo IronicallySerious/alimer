@@ -42,8 +42,8 @@ namespace Alimer
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
             const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
-            Texture* texture = colorAttachment.texture;
-            if (!texture)
+            auto attachment = colorAttachment.attachment;
+            if (attachment.IsNull())
                 continue;
 
             attachments[attachmentCount].format = vk::Convert(texture->GetFormat());
@@ -130,7 +130,7 @@ namespace Alimer
         VkResult result = vkCreateRenderPass(_device->GetDevice(), &createInfo, nullptr, &_renderPass);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERROR("Vulkan - Failed to create render pass.");
+            ALIMER_LOGERRORF("[Vulkan] - Failed to create render pass.");
         }
     }
 
@@ -162,7 +162,7 @@ namespace Alimer
 
             _width = std::min(_width, texture->GetLevelWidth(colorAttachment.mipLevel));
             _height = std::min(_height, texture->GetLevelHeight(colorAttachment.mipLevel));
-            views[num_views++] = static_cast<VulkanTexture*>(texture->GetImplementation())->GetDefaultImageView();
+            views[num_views++] = static_cast<VulkanTexture*>(texture)->GetDefaultImageView();
         }
 
         VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
@@ -178,7 +178,7 @@ namespace Alimer
         VkResult result = vkCreateFramebuffer(_device->GetDevice(), &createInfo, nullptr, &_framebuffer);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERROR("Vulkan - Failed to create framebuffer.");
+            ALIMER_LOGERROR("[Vulkan] - Failed to create framebuffer.");
             return;
         }
     }

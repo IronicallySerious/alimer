@@ -162,7 +162,7 @@ namespace Alimer
 
         if (vkCreatePipelineLayout(_logicalDevice, &createInfo, nullptr, &_vkHandle) != VK_SUCCESS)
         {
-            ALIMER_LOGCRITICAL("Failed to create pipeline layout.\n");
+            ALIMER_LOGCRITICAL("[Vulkan] - Failed to create pipeline layout.");
         }
     }
 

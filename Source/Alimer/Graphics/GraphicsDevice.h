@@ -53,19 +53,6 @@ namespace Alimer
         Direct3D12,
     };
 
-    enum class GpuVendor : uint8_t
-    {
-        Unknown,
-        Arm,
-        Nvidia,
-        Amd,
-        Intel,
-        Warp,
-        Count
-    };
-
-    class GraphicsImpl;
-
     class ALIMER_API RenderingSettings
     {
     public:
@@ -78,15 +65,18 @@ namespace Alimer
     };
 
     /// Low-level 3D graphics device class.
-    class ALIMER_API GraphicsDevice final : public Object
+    class ALIMER_API GraphicsDevice : public Object
     {
         friend class GpuResource;
 
         ALIMER_OBJECT(GraphicsDevice, Object);
 
-    public:
+    protected:
         /// Constructor.
-        GraphicsDevice(GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Default, bool validation = false);
+        GraphicsDevice(GraphicsBackend backend, bool validation);
+
+    public:
+        static GraphicsDevice* Create(GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Default, bool validation = false);
 
         /// Destructor.
         ~GraphicsDevice() override;
@@ -95,16 +85,16 @@ namespace Alimer
         static std::set<GraphicsBackend> GetAvailableBackends();
 
         /// Initialize graphics with given settings.
-        bool Initialize(const RenderingSettings& settings);
+        virtual bool Initialize(const RenderingSettings& settings);
 
         /// Wait for a device to become idle.
-        void WaitIdle();
+        virtual bool WaitIdle() = 0;
 
         /// Begin the rendering frame.
-        bool BeginFrame();
+        virtual bool BeginFrame() = 0;
 
         /// Finishes the current frame and schedules it for display.
-        void EndFrame();
+        virtual void EndFrame() = 0;
 
         /*
         /// Create new RenderPass given descriptor
@@ -142,7 +132,7 @@ namespace Alimer
         GraphicsBackend GEetBackend() const { return _backend; }
 
         /// Get the device features.
-        const GpuDeviceFeatures& GetFeatures() const { return _features; }
+        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
 
         /// Get the main command buffer.
         CommandBuffer* GetMainCommandBuffer() const { return _mainCommandBuffer.Get(); }
@@ -150,10 +140,7 @@ namespace Alimer
         /// Create new command buffer.
         //virtual CommandBuffer* CreateCommandBuffer() = 0;
 
-        /// Get backend implementation.
-        GraphicsImpl *GetImplementation() const { return _impl; }
-
-    private:
+    protected:
         /// Add a GpuResource to keep track of. 
         void AddGpuResource(GpuResource* resource);
 
@@ -167,11 +154,12 @@ namespace Alimer
         //virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr) = 0;
 
         GraphicsBackend _backend = GraphicsBackend::Empty;
+        bool _validation = false;
+
         bool _initialized = false;
         RenderingSettings _settings{};
-        GpuDeviceFeatures _features{};
+        GraphicsDeviceFeatures _features{};
 
-        GraphicsImpl* _impl = nullptr;
         UniquePtr<CommandBuffer> _mainCommandBuffer;
         std::mutex _gpuResourceMutex;
         std::vector<GpuResource*> _gpuResources;

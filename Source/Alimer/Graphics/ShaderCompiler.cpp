@@ -64,7 +64,7 @@ namespace Alimer
             }
             else
             {
-                ALIMER_LOGCRITICAL("Cannot open include file '%s'", fullPath.CString());
+                ALIMER_LOGCRITICALF("Cannot open include file '%s'", fullPath.CString());
                 return nullptr;
             }
 

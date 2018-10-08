@@ -44,7 +44,7 @@ namespace Alimer
         vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, graphics->GetGraphicsQueueFamily(), surface, &supported);
         if (!supported)
         {
-            ALIMER_LOGERROR("[Vulkan] - Swapchain surface is not supported by graphics queue");
+            ALIMER_LOGERROR("[Vulkan] - Swapchain surface is not supported by graphics queue.");
             return;
         }
 
@@ -88,7 +88,7 @@ namespace Alimer
             }
         }
 
-        resize(0, 0, true);
+        Resize(0, 0, true);
     }
 
     VulkanSwapchain::~VulkanSwapchain()
@@ -113,7 +113,7 @@ namespace Alimer
         _imageCount = 0;
     }
 
-    void VulkanSwapchain::resize(uint32_t width, uint32_t height, bool force)
+    void VulkanSwapchain::Resize(uint32_t width, uint32_t height, bool force)
     {
         if (_size.x == width &&
             _size.y == height &&
@@ -317,12 +317,12 @@ namespace Alimer
         }
     }
 
-    TextureImpl* VulkanSwapchain::getTexture(uint32_t index) const
+    VulkanTexture* VulkanSwapchain::GetTexture(uint32_t index) const
     {
         return _textures[index].get();
     }
 
-    VkResult VulkanSwapchain::acquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore)
+    VkResult VulkanSwapchain::AcquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore)
     {
         // Acquire the next swapchain image.
         *pImageAcquiredSemaphore = _graphics->AcquireSemaphore();
@@ -339,14 +339,14 @@ namespace Alimer
         {
             if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
             {
-                resize(_size.x, _size.y, true);
+                Resize(_size.x, _size.y, true);
             }
         }
 
         return result;
     }
 
-    VkResult VulkanSwapchain::queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
+    VkResult VulkanSwapchain::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
     {
         VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
         presentInfo.pNext = nullptr;

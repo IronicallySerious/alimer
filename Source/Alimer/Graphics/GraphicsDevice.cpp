@@ -22,7 +22,6 @@
 
 #include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/ShaderCompiler.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Math/Math.h"
 #include "../Core/Log.h"
 
@@ -51,46 +50,52 @@ extern "C"
 
 namespace Alimer
 {
-    GraphicsDevice::GraphicsDevice(GraphicsBackend preferredGraphicsBackend, bool validation)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation)
+        : _backend(backend)
+        , _validation(validation)
     {
-        _backend = preferredGraphicsBackend;
-        if (_backend == GraphicsBackend::Default)
+        AddSubsystem(this);
+    }
+
+    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredGraphicsBackend, bool validation)
+    {
+        if (preferredGraphicsBackend == GraphicsBackend::Default)
         {
             auto availableDrivers = GraphicsDevice::GetAvailableBackends();
 
             if (availableDrivers.find(GraphicsBackend::Vulkan) != availableDrivers.end())
             {
-                _backend = GraphicsBackend::Vulkan;
+                preferredGraphicsBackend = GraphicsBackend::Vulkan;
             }
             else if (availableDrivers.find(GraphicsBackend::Direct3D12) != availableDrivers.end())
             {
-                _backend = GraphicsBackend::Direct3D12;
+                preferredGraphicsBackend = GraphicsBackend::Direct3D12;
             }
             else if (availableDrivers.find(GraphicsBackend::Direct3D11) != availableDrivers.end())
             {
-                _backend = GraphicsBackend::Direct3D11;
+                preferredGraphicsBackend = GraphicsBackend::Direct3D11;
             }
             else
             {
-                _backend = GraphicsBackend::Empty;
+                preferredGraphicsBackend = GraphicsBackend::Empty;
             }
         }
 
-    retry:
         // Create backend implementation.
-        switch (_backend)
+        switch (preferredGraphicsBackend)
         {
         case GraphicsBackend::Vulkan:
 #if ALIMER_VULKAN
             if (VulkanGraphics::IsSupported())
             {
                 ALIMER_LOGINFO("Using Vulkan graphics backend");
-                _impl = new VulkanGraphics(validation);
+                return new VulkanGraphics(validation);
             }
             else
 #endif
             {
-                ALIMER_LOGERROR("Vulkan graphics backend not supported");
+                ALIMER_LOGWARN("Vulkan graphics backend not supported, fallback to platform default.");
+                return Create(GraphicsBackend::Default, validation);
             }
 
             break;
@@ -105,9 +110,8 @@ namespace Alimer
             else
 #endif
             {
-                ALIMER_LOGWARN("Direct3D 12 graphics backend not supported, fallback to default");
-                _backend = GraphicsBackend::Default;
-                goto retry;
+                ALIMER_LOGWARN("Direct3D 12 graphics backend not supported, fallback to platform default.");
+                return Create(GraphicsBackend::Default, validation);
             }
 
             break;
@@ -122,22 +126,17 @@ namespace Alimer
             else
 #endif
             {
-                ALIMER_LOGWARN("Direct3D 11 graphics backend not supported, fallback to default");
-                _backend = GraphicsBackend::Default;
-                goto retry;
+                ALIMER_LOGWARN("Direct3D 11 graphics backend not supported, fallback to platform default.");
+                return Create(GraphicsBackend::Default, validation);
             }
 
             break;
 
-        case GraphicsBackend::Default:
-            break;
-
         case GraphicsBackend::Empty:
         default:
-            break;
+            ALIMER_LOGWARN("Invalid graphics backend.");
+            return nullptr;
         }
-
-        AddSubsystem(this);
     }
 
     GraphicsDevice::~GraphicsDevice()
@@ -211,29 +210,8 @@ namespace Alimer
 
         _settings = settings;
         ALIMER_ASSERT_MSG(settings.windowHandle, "Invalid window handle for graphics creation.");
-        auto commandBufferImpl = _impl->Initialize(settings);
-        if (commandBufferImpl != nullptr)
-        {
-            _mainCommandBuffer.Reset(new CommandBuffer(this, commandBufferImpl));
-            _initialized = true;
-        }
-
+        _initialized = true;
         return _initialized;
-    }
-
-    void GraphicsDevice::WaitIdle()
-    {
-        _impl->WaitIdle();
-    }
-
-    bool GraphicsDevice::BeginFrame()
-    {
-        return _impl->BeginFrame();
-    }
-
-    void GraphicsDevice::EndFrame()
-    {
-        _impl->EndFrame();
     }
 
 #if TODO
@@ -303,13 +281,13 @@ namespace Alimer
             // Lookup for SPIR-V compiled shader.
             if (!vertexShaderStream)
             {
-                ALIMER_LOGERROR("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
+                ALIMER_LOGERRORF("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
                 return nullptr;
             }
 
             if (!fragmentShaderStream)
             {
-                ALIMER_LOGERROR("GLSL shader does not exists '%s'", fragmentShaderFile.c_str());
+                ALIMER_LOGERRORF("GLSL shader does not exists '%s'", fragmentShaderFile.c_str());
                 return nullptr;
             }
 
@@ -322,7 +300,7 @@ namespace Alimer
             String errorLog;
             if (!ShaderCompiler::Compile(file, entryPoint, spirv, errorLog))
             {
-                ALIMER_LOGCRITICAL("Shader compilation failed: %s", errorLog.CString());
+                ALIMER_LOGCRITICALF("Shader compilation failed: %s", errorLog.CString());
             }
         }
 
@@ -341,7 +319,7 @@ namespace Alimer
         {
             if (!descriptor->stages[i].module)
             {
-                ALIMER_LOGCRITICAL("Cannot create shader program with invalid shader module at index %s", i);
+                ALIMER_LOGCRITICALF("Cannot create shader program with invalid shader module at index %s", i);
             }
 
             if (descriptor->stages[i].module->GetStage() == ShaderStage::Compute

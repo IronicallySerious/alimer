@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "../GraphicsImpl.h"
+#include "../../Math/Math.h"
+#include "../PixelFormat.h"
 #include "VulkanPrerequisites.h"
 #include <vector>
 
@@ -41,14 +42,14 @@ namespace Alimer
         /// Destruct.
         ~VulkanSwapchain();
 
-        void resize(uint32_t width, uint32_t height, bool force = false);
+        void Resize(uint32_t width, uint32_t height, bool force = false);
 
-        VkResult acquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore);
-        VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
+        VkResult AcquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore);
+        VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 
-        PixelFormat getFormat() const { return _format; }
-        uint32_t getTextureCount() const { return _imageCount; }
-        TextureImpl* getTexture(uint32_t index) const;
+        PixelFormat GetFormat() const { return _format; }
+        uint32_t GetTextureCount() const { return _imageCount; }
+        VulkanTexture* GetTexture(uint32_t index) const;
         //VulkanRenderPass* GetRenderPass(uint32_t index) const { return _renderPasses[index].Get(); }
 
         VkSwapchainKHR GetVkHandle() const { return _swapchain; }

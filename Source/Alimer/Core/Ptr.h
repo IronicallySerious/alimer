@@ -30,6 +30,9 @@
 
 namespace Alimer
 {
+    class RefCounted;
+    template <class T> class WeakPtr;
+
     /// Reference count structure.
     struct RefCount
     {
@@ -202,15 +205,9 @@ namespace Alimer
             if (ptr_)
             {
                 RefCount* refCount = RefCountPtr();
-#if ALIMER_THREADING
-                refCount->refs.fetch_sub(1, std::memory_order_relaxed); // 2 refs
-                Reset(); // 1 ref
-                refCount->refs.fetch_sub(1, std::memory_order_relaxed); // 0 refs
-#else
                 ++refCount->refs; // 2 refs
                 Reset(); // 1 ref
                 --refCount->refs; // 0 refs
-#endif
             }
             return ptr;
         }

@@ -52,8 +52,6 @@ namespace Alimer
         uint32_t stride = 0;
     };
 
-    class BufferImpl;
-
 	/// Defines a GPU Buffer class.
 	class GpuBuffer : public GpuResource, public RefCounted
 	{
@@ -83,19 +81,12 @@ namespace Alimer
         /// Get single element size in bytes.
 		uint32_t GetStride() const { return _stride; }
 
-        /// Get backend implementation.
-        BufferImpl *GetImplementation() const { return _impl; }
-
 	protected:
-        bool Create(const void* initialData);
         virtual bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) = 0;
 
         ResourceUsage _resourceUsage;
         BufferUsage _usage;
 		uint64_t _size;
         uint32_t _stride;
-
-    private:
-        BufferImpl* _impl = nullptr;
 	};
 }

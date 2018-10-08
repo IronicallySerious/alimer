@@ -32,19 +32,18 @@
 namespace Alimer
 {
     class GraphicsDevice;
-    class CommandBufferImpl;
 
     /// Defines a command buffer for recording gpu commands.
-    class ALIMER_API CommandBuffer final
+    class ALIMER_API CommandBuffer
     {
         friend class GraphicsDevice;
 
-    private:
-        CommandBuffer(GraphicsDevice* graphics, CommandBufferImpl* impl);
+    protected:
+        CommandBuffer(GraphicsDevice* graphics);
 
     public:
         /// Destructor.
-        ~CommandBuffer();
+        virtual ~CommandBuffer() = default;
 
         void BeginRenderPass(const RenderPassDescriptor* descriptor);
         void EndRenderPass();
@@ -55,6 +54,11 @@ namespace Alimer
         void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
+    protected:
+        virtual void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) = 0;
+        virtual void EndRenderPassImpl() = 0;
+
+        virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
         /*void BeginRenderPass(RenderPass* renderPass, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
@@ -102,7 +106,6 @@ namespace Alimer
     private:
         /// Graphics subsystem.
         WeakPtr<GraphicsDevice> _graphics;
-        CommandBufferImpl* _impl = nullptr;
 
         inline bool IsInsideRenderPass() const
         {

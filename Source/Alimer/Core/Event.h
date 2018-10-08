@@ -43,11 +43,11 @@ namespace Alimer
         virtual void Invoke(Event& event) = 0;
 
         /// Return the receiver object.
-        const Object* GetReceiver() const { return _receiver; }
+        const Object* GetReceiver() const { return _receiver.Get(); }
 
     protected:
         /// Receiver object.
-        Object* _receiver;
+        WeakPtr<Object> _receiver;
     };
 
     /// Template implementation of the event handler invoke helper, stores a function pointer of specific class.
@@ -105,7 +105,7 @@ namespace Alimer
         /// Event handlers.
         std::vector<std::unique_ptr<EventHandler>> _handlers;
         /// Current sender.
-        Object* _currentSender;
+        WeakPtr<Object> _currentSender;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Event);
