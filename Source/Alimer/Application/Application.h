@@ -48,8 +48,6 @@ namespace Alimer
 {
     struct ApplicationSettings
     {
-        GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Default;
-
 #if defined(_DEBUG)
         bool validation = true;
 #else
@@ -96,7 +94,7 @@ namespace Alimer
 
         inline ResourceManager* GetResources() { return &_resources; }
         inline const Window* GetMainWindow() const { return _window.Get(); }
-        inline const GraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice.Get(); }
+        inline const Graphics* GetGraphics() const { return _graphics.Get(); }
         inline Input* GetInput() const { return _input.Get(); }
         inline Audio* GetAudio() const { return _audio.Get(); }
 
@@ -131,7 +129,7 @@ namespace Alimer
         Timer _timer;
         ResourceManager _resources;
         UniquePtr<Window> _window;
-        UniquePtr<GraphicsDevice> _graphicsDevice;
+        UniquePtr<Graphics> _graphics;
         UniquePtr<Input> _input;
         UniquePtr<Audio> _audio;
 

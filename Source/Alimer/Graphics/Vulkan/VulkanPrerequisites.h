@@ -24,22 +24,7 @@
 
 #include "../../Base/HashMap.h"
 #include "../../Core/Log.h"
-
-#if defined(_WIN32)
-#	define VK_USE_PLATFORM_WIN32_KHR 1
-#elif defined(__linux__)
-#   ifdef ALIMER_LINUX_WAYLAND)
-#       define VK_USE_PLATFORM_WAYLAND_KHR 1
-#   else
-#	    define VK_USE_PLATFORM_XCB_KHR 1
-#   endif
-#elif defined(__ANDROID__)
-#   define VK_USE_PLATFORM_ANDROID_KHR 1
-#endif
-
-#define VK_NO_PROTOTYPES 0
-#include "volk/volk.h"
-#include "vkmemalloc/vk_mem_alloc.h"
+#include "../Types.h"
 
 inline const char* vkGetVulkanResultString(VkResult result)
 {
@@ -112,17 +97,6 @@ inline void vkThrowIfFailed(VkResult result)
 namespace Alimer
 {
     class VulkanGraphics;
-
-    class VkCookie
-    {
-    public:
-        VkCookie(VulkanGraphics* device);
-
-        uint64_t GetCookie() const { return _cookie; }
-
-    private:
-        uint64_t _cookie;
-    };
 
     class VkHashedObject
     {

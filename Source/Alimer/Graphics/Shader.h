@@ -30,7 +30,7 @@
 
 namespace Alimer
 {
-    class GraphicsDevice;
+    class Graphics;
 
     /// Defines shader stage
     enum class ShaderStage : uint32_t
@@ -84,7 +84,7 @@ namespace Alimer
 
     public:
         /// Constructor.
-        ShaderModule(GraphicsDevice* GraphicsDevice, const std::vector<uint32_t>& spirv);
+        ShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv);
 
         /// Destructor.
         virtual ~ShaderModule() = default;
@@ -104,7 +104,7 @@ namespace Alimer
     {
     protected:
         /// Constructor.
-        ShaderProgram(GraphicsDevice* device, const ShaderProgramDescriptor* descriptor);
+        ShaderProgram(Graphics* graphics, const ShaderProgramDescriptor* descriptor);
 
     public:
         /// Destructor.

@@ -22,11 +22,12 @@
 
 #pragma once
 
+#include "../Core/Ptr.h"
 #include "../Renderer/Camera.h"
 
 namespace Alimer
 {
-    class GraphicsDevice;
+    class Graphics;
 
     /// Defines a rendering context.
     class ALIMER_API RenderContext final 
@@ -35,10 +36,10 @@ namespace Alimer
         RenderContext();
         ~RenderContext();
 
-        void SetDevice(GraphicsDevice* device);
+        void SetDevice(Graphics* graphics);
 
     private:
         /// Graphics subsystem.
-        GraphicsDevice* _device;
+        WeakPtr<Graphics> _graphics;
     };
 }

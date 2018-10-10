@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Graphics/Types.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
@@ -31,19 +32,37 @@
 
 namespace Alimer
 {
-    class GraphicsDevice;
+#if ALIMER_VULKAN
+    class VulkanFramebuffer;
+    class VulkanRenderPass;
+#endif
+
+    class Graphics;
 
     /// Defines a command buffer for recording gpu commands.
-    class ALIMER_API CommandBuffer
+    class ALIMER_API CommandBuffer : public RefCounted
     {
-        friend class GraphicsDevice;
+        friend class Graphics;
+
+    public:
+        enum class Type
+        {
+            Generic,
+            AsyncGraphics,
+            AsyncCompute,
+            AsyncTransfer,
+            Count
+        };
 
     protected:
-        CommandBuffer(GraphicsDevice* graphics);
+        CommandBuffer(Graphics* graphics, Type type,  bool secondary);
 
     public:
         /// Destructor.
-        virtual ~CommandBuffer() = default;
+        ~CommandBuffer();
+
+        /// Destroy the command buffer.
+        void Destroy();
 
         void BeginRenderPass(const RenderPassDescriptor* descriptor);
         void EndRenderPass();
@@ -54,20 +73,20 @@ namespace Alimer
         void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
+#if ALIMER_VULKAN
+        VkCommandBuffer GetVkCommandBuffer() const
+        {
+            return _vkCommandBuffer;
+        }
+#endif
+
+        inline Type GetCommandBufferType() const
+        {
+            return _type;
+        }
+
     protected:
-        virtual void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) = 0;
-        virtual void EndRenderPassImpl() = 0;
-
-        virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
-
-        /*void BeginRenderPass(RenderPass* renderPass, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
-
-        void BeginRenderPass(RenderPass* renderPass,
-            const Color4* clearColors, uint32_t numClearColors,
-            float clearDepth = 1.0f, uint8_t clearStencil = 0);
-
-        void EndRenderPass();
-
+        /*
         virtual void SetViewport(const rect& viewport) = 0;
         virtual void SetScissor(const irect& scissor) = 0;
 
@@ -104,8 +123,30 @@ namespace Alimer
         */
 
     private:
+        void BeginCompute();
+        void BeginGraphics();
+        virtual void BeginContext();
+        void FlushComputeState();
+
+        // Backend methods.
+        void BeginRenderPassImpl(const RenderPassDescriptor* descriptor);
+        void EndRenderPassImpl();
+        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+
+    protected:
         /// Graphics subsystem.
-        WeakPtr<GraphicsDevice> _graphics;
+        WeakPtr<Graphics> _graphics;
+        Type _type;
+        bool _isCompute;
+
+#if ALIMER_VULKAN
+        VkCommandBuffer _vkCommandBuffer = nullptr;
+        const VulkanFramebuffer* _framebuffer = nullptr;
+        const VulkanRenderPass* _renderPass = nullptr;
+#endif
+
+    private:
+        bool Create(bool secondary);
 
         inline bool IsInsideRenderPass() const
         {
@@ -121,8 +162,5 @@ namespace Alimer
         };
 
         State _state = State::None;
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(CommandBuffer);
     };
 }

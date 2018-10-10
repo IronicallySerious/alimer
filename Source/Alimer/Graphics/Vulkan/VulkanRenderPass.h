@@ -37,33 +37,37 @@ namespace Alimer
         ~VulkanRenderPass();
 
         VkRenderPass GetVkRenderPass() const { return _renderPass; }
+        uint32_t GetColorAttachmentsCount() const { return _colorAttachmentsCount; }
 
     private:
         VulkanGraphics* _device;
         VkRenderPass _renderPass = VK_NULL_HANDLE;
+        uint32_t _colorAttachmentsCount = 0;
 
         DISALLOW_COPY_MOVE_AND_ASSIGN(VulkanRenderPass);
     };
 
-    class VulkanFramebuffer : public VkCookie
+    class VulkanFramebuffer 
     {
     public:
-        VulkanFramebuffer(VulkanGraphics *device, const VulkanRenderPass& renderPass, const RenderPassDescriptor* descriptor);
+        VulkanFramebuffer(VulkanGraphics* graphics, const VulkanRenderPass& renderPass, const RenderPassDescriptor* descriptor);
         ~VulkanFramebuffer();
 
         VkFramebuffer GetVkFramebuffer() const { return _framebuffer; }
         uint32_t GetWidth() const { return _width; }
         uint32_t GetHeight() const { return _height; }
         const VulkanRenderPass& GetRenderPass() const { return _renderPass; }
+        uint64_t GetId() const { return _id; }
 
     private:
-        VulkanGraphics* _device;
+        WeakPtr<VulkanGraphics> _graphics;
         VkFramebuffer _framebuffer = VK_NULL_HANDLE;
         const VulkanRenderPass& _renderPass;
         uint32_t _width = 0;
         uint32_t _height = 0;
-
         std::vector<VkImageView> _attachments;
+
+        uint64_t _id;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(VulkanFramebuffer);

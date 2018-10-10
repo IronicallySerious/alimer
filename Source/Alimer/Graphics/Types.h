@@ -22,12 +22,33 @@
 
 #pragma once
 
+#if ALIMER_VULKAN
+#   if defined(_WIN32)
+#	    define VK_USE_PLATFORM_WIN32_KHR 1
+#   elif defined(__ANDROID__)
+#       define VK_USE_PLATFORM_ANDROID_KHR 1
+#   elif defined(__linux__)
+#       ifdef ALIMER_LINUX_WAYLAND)
+#           define VK_USE_PLATFORM_WAYLAND_KHR 1
+#       else
+#	        define VK_USE_PLATFORM_XCB_KHR 1
+#       endif
+#   endif
+
+#   define VK_NO_PROTOTYPES
+#   include "volk/volk.h"
+struct VmaAllocator_T;
+struct VmaAllocation_T;
+#endif
+
 #include "../Math/Math.h"
 #include "../Math/Color.h"
 #include <string>
 
 namespace Alimer
 {
+    static constexpr uint32_t RemainingMipLevels  = ~0U;
+    static constexpr uint32_t RemainingArrayLayers = ~0U;
     static constexpr uint32_t MaxViewportsAndScissors = 16u;
     static constexpr uint32_t MaxDescriptorSets = 4u;
     static constexpr uint32_t MaxBindingsPerSet = 14u;

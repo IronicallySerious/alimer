@@ -26,6 +26,7 @@
 #include "../../Base/HashMap.h"
 #include "VulkanRenderPass.h"
 #include <queue>
+#include <set>
 
 #ifdef ALIMER_VULKAN_MT
 #   include <atomic>
@@ -40,23 +41,20 @@ namespace Alimer
     class VulkanPipelineLayout;
 
     /// Vulkan graphics backend.
-    class VulkanGraphics final : public GraphicsDevice
+    class VulkanGraphics final : public Graphics
     {
     public:
         static bool IsSupported();
 
         /// Construct. Set parent shader and defines but do not compile yet.
         VulkanGraphics(bool validation);
-        /// Destruct.
-        ~VulkanGraphics() override;
-
-        void NotifyFalidationError(const char* message);
 
         bool Initialize(const RenderingSettings& settings) override;
-        bool WaitIdle() override;
 
         bool BeginFrame() override;
         void EndFrame() override;
+
+        SharedPtr<TextureView> GetSwapchainView() const override;
 
         /*
         RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) override;
@@ -67,18 +65,13 @@ namespace Alimer
 
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
         */
-
-        VkInstance GetInstance() const { return _instance; }
-        VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
-        VkDevice GetDevice() const { return _device; }
-        VmaAllocator GetVmaAllocator() const { return _allocator; }
+        
+        
         VkPipelineCache GetPipelineCache() const { return _pipelineCache; }
-
+        VkCommandPool GetCommandPool() const { return _commandPool; }
         uint32_t GetGraphicsQueueFamily() const { return _graphicsQueueFamily; }
         uint32_t GetComputeQueueFamily() const { return _computeQueueFamily; }
         uint32_t GetTransferQueueFamily() const { return _transferQueueFamily; }
-
-        uint64_t AllocateCookie();
 
         VkCommandPool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags);
         VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
@@ -104,37 +97,7 @@ namespace Alimer
         void ReleaseSemaphore(VkSemaphore semaphore);
 
     private:
-        void createMemoryAllocator();
-
-        bool _supportsExternal = false;
-        bool _supportsDedicated = false;
-        bool _supportsImageFormatList = false;
-        bool _supportsDebugMarker = false;
-        bool _supportsDebugUtils = false;
-
-        VkInstance _instance = VK_NULL_HANDLE;
-
-        VkDebugUtilsMessengerEXT _debugMessenger = VK_NULL_HANDLE;
-        VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
-
-        // PhysicalDevice
-        VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
-        VkPhysicalDeviceProperties _deviceProperties;
-        VkPhysicalDeviceMemoryProperties _deviceMemoryProperties;
-        VkPhysicalDeviceFeatures _deviceFeatures;
-        std::vector<VkQueueFamilyProperties> _queueFamilyProperties;
-
-        // LogicalDevice
-        VkDevice _device = VK_NULL_HANDLE;
-        VmaAllocator _allocator = VK_NULL_HANDLE;
-
-        // Queue's.
-        VkQueue _graphicsQueue = VK_NULL_HANDLE;
-        VkQueue _computeQueue = VK_NULL_HANDLE;
-        VkQueue _transferQueue = VK_NULL_HANDLE;
-        uint32_t _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        void CreateMemoryAllocator();
 
         // Main swap chain.
         UniquePtr<VulkanSwapchain> _mainSwapchain;
@@ -145,8 +108,7 @@ namespace Alimer
         // Default command pool.
         VkCommandPool _commandPool = VK_NULL_HANDLE;
 
-        uint32_t _swapchainImageIndex = 0;
-        VkSemaphore _swapchainImageAcquiredSemaphore = VK_NULL_HANDLE;
+        
 
         // Fence pool.
         std::mutex _fenceLock;
@@ -157,12 +119,6 @@ namespace Alimer
         std::mutex _semaphoreLock;
         std::set<VkSemaphore> _allSemaphores;
         std::queue<VkSemaphore> _availableSemaphores;
-
-#ifdef ALIMER_VULKAN_MT
-        std::atomic<uint64_t> _cookie;
-#else
-        uint64_t _cookie = 0;
-#endif
 
         template <typename T>
         class Cache

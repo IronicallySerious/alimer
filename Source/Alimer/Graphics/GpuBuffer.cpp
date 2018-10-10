@@ -26,8 +26,8 @@
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(GraphicsDevice* device, const BufferDescriptor* descriptor)
-        : GpuResource(device, GpuResourceType::Buffer)
+    GpuBuffer::GpuBuffer(Graphics* graphics, const BufferDescriptor* descriptor)
+        : GpuResource(graphics, GpuResourceType::Buffer)
         , _resourceUsage(descriptor->resourceUsage)
         , _usage(descriptor->usage)
         , _size(descriptor->size)

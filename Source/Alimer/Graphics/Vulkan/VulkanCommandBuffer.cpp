@@ -21,11 +21,11 @@
 //
 
 #include "VulkanCommandBuffer.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanRenderPass.h"
-#include "VulkanGraphicsDevice.h"
 #include "VulkanConvert.h"
 #include "../../Base/HashMap.h"
 #include "../../Math/Math.h"
@@ -33,44 +33,40 @@
 
 namespace Alimer
 {
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* device, VkCommandPool commandPool, bool secondary)
-        : CommandBuffer(device)
+    bool CommandBuffer::Create(bool secondary)
+    {
+        VkCommandBufferAllocateInfo allocateInfo = {};
+        allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocateInfo.pNext = nullptr;
+        allocateInfo.commandPool = StaticCast<VulkanGraphics>(_graphics)->GetCommandPool();
+        allocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocateInfo.commandBufferCount = 1;
+        VkResult result = vkAllocateCommandBuffers(_graphics->GetDevice(), &allocateInfo, &_vkCommandBuffer);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERRORF("[Vulkan] - Failed to allocate command buffer: %s", vkGetVulkanResultString(result));
+            return false;
+        }
+
+        return true;
+    }
+
+    void CommandBuffer::Destroy()
+    {
+        //vkFreeCommandBuffers(_graphics->GetDevice(), _commandPool, 1, &_vkCommandBuffer);
+    }
+
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* device, bool secondary)
+        : CommandBuffer(device, Type::Generic, secondary)
         , _device(device)
-        , _commandPool(commandPool)
     {
-        VkCommandBufferAllocateInfo cmdBufAllocateInfo = {};
-        cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmdBufAllocateInfo.pNext = nullptr;
-        cmdBufAllocateInfo.commandPool = _commandPool;
-        cmdBufAllocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cmdBufAllocateInfo.commandBufferCount = 1;
-        vkThrowIfFailed(vkAllocateCommandBuffers(
-            _device->GetDevice(),
-            &cmdBufAllocateInfo,
-            &_handle));
-
-        beginCompute();
     }
 
-    VulkanCommandBuffer::~VulkanCommandBuffer()
+    
+    void VulkanCommandBuffer::BeginContext()
     {
-        vkFreeCommandBuffers(_device->GetDevice(), _commandPool, 1, &_handle);
-    }
+        //CommandBuffer::BeginContext();
 
-    void VulkanCommandBuffer::beginCompute()
-    {
-        _isCompute = true;
-        beginContext();
-    }
-
-    void VulkanCommandBuffer::beginGraphics()
-    {
-        _isCompute = false;
-        beginContext();
-    }
-
-    void VulkanCommandBuffer::beginContext()
-    {
         _dirty = ~0u;
         _dirtySets = ~0u;
         _dirtyVbos = ~0u;
@@ -85,89 +81,57 @@ namespace Alimer
         _currentTopology = PrimitiveTopology::Count;
     }
 
-    void VulkanCommandBuffer::Begin(VkCommandBufferInheritanceInfo* inheritanceInfo)
+    void CommandBuffer::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
     {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.pNext = nullptr;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        if (inheritanceInfo)
-        {
-            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-            beginInfo.pInheritanceInfo = inheritanceInfo;
-        }
-
-        vkThrowIfFailed(vkBeginCommandBuffer(_handle, &beginInfo));
-    }
-
-    VkCommandBuffer VulkanCommandBuffer::End() const
-    {
-        VkResult result = vkEndCommandBuffer(_handle);
-        if (result != VK_SUCCESS)
-        {
-            ALIMER_LOGERRORF("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
-        }
-
-        return _handle;
-    }
-
-    void VulkanCommandBuffer::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
-    {
-        _framebuffer = &_device->RequestFramebuffer(descriptor);
+        _framebuffer = &StaticCast<VulkanGraphics>(_graphics)->RequestFramebuffer(descriptor);
         _renderPass = &_framebuffer->GetRenderPass();
 
-        VkRect2D render_area = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
-        render_area.offset.x = min(_framebuffer->GetWidth(), uint32_t(render_area.offset.x));
-        render_area.offset.y = min(_framebuffer->GetHeight(), uint32_t(render_area.offset.y));
-        render_area.extent.width = min(_framebuffer->GetWidth() - render_area.offset.x, render_area.extent.width);
-        render_area.extent.height = min(_framebuffer->GetHeight() - render_area.offset.y, render_area.extent.height);
+        VkRect2D renderArea = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
+        renderArea.offset.x = min(_framebuffer->GetWidth(), uint32_t(renderArea.offset.x));
+        renderArea.offset.y = min(_framebuffer->GetHeight(), uint32_t(renderArea.offset.y));
+        renderArea.extent.width = min(_framebuffer->GetWidth() - renderArea.offset.x, renderArea.extent.width);
+        renderArea.extent.height = min(_framebuffer->GetHeight() - renderArea.offset.y, renderArea.extent.height);
 
-        /*std::vector<VkClearValue> clearValues(numClearColors + 1);
-        uint32_t i = 0;
-        for (; i < numClearColors; ++i)
+        VkClearValue clearValues[MaxColorAttachments + 1];
+        uint32_t clearValueCount = 0;
+        clearValueCount = _renderPass->GetColorAttachmentsCount();
+        for (uint32_t i = 0; i < clearValueCount; ++i)
         {
-            clearValues[i].color.float32[0] = clearColors[i].r;
-            clearValues[i].color.float32[1] = clearColors[i].g;
-            clearValues[i].color.float32[2] = clearColors[i].b;
-            clearValues[i].color.float32[3] = clearColors[i].a;
+            clearValues[i].color.float32[0] = descriptor->colorAttachments[i].clearColor.r;
+            clearValues[i].color.float32[1] = descriptor->colorAttachments[i].clearColor.g;
+            clearValues[i].color.float32[2] = descriptor->colorAttachments[i].clearColor.b;
+            clearValues[i].color.float32[3] = descriptor->colorAttachments[i].clearColor.a;
         }
-        clearValues[i].depthStencil.depth = clearDepth;
-        clearValues[i].depthStencil.stencil = clearStencil;
+
+        if (descriptor->depthStencil
+            && (any(descriptor->depthOperation & RenderPassDepthOperation::ClearDepthStencil)))
+        {
+            clearValues[clearValueCount++].depthStencil = { descriptor->clearDepth, descriptor->clearStencil };
+        }
 
         VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-        renderPassBeginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
-        renderPassBeginInfo.framebuffer = _currentRenderPass->GetVkFramebuffer();
-        renderPassBeginInfo.renderArea.offset.x = 0;
-        renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent.width = renderPass->GetWidth();
-        renderPassBeginInfo.renderArea.extent.height = renderPass->GetHeight();
-        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassBeginInfo.pClearValues = clearValues.data();
+        renderPassBeginInfo.renderPass = _renderPass->GetVkRenderPass();
+        renderPassBeginInfo.framebuffer = _framebuffer->GetVkFramebuffer();
+        renderPassBeginInfo.renderArea = renderArea;
+        renderPassBeginInfo.clearValueCount = clearValueCount;
+        renderPassBeginInfo.pClearValues = clearValues;
 
-        vkCmdBeginRenderPass(_handle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(_vkCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         //Viewport viewport(0.0f, 0.0f, float(renderPass->GetWidth()), float(renderPass->GetHeight()), 0.0f, 1.0f);
         //SetViewport(viewport);
         //SetScissor(setRenderArea);
-        beginGraphics();*/
+        BeginGraphics();
     }
 
-    void VulkanCommandBuffer::EndRenderPassImpl()
+    void CommandBuffer::EndRenderPassImpl()
     {
-        //vkCmdEndRenderPass(_handle);
+        vkCmdEndRenderPass(_vkCommandBuffer);
     }
 
-    void VulkanCommandBuffer::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void CommandBuffer::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        ALIMER_ASSERT(_currentShader);
-        ALIMER_ASSERT(_isCompute);
-        FlushComputeState();
-        vkCmdDispatch(_handle, groupCountX, groupCountY, groupCountZ);
-    }
-
-    void VulkanCommandBuffer::FlushComputeState()
-    {
-
+        vkCmdDispatch(_vkCommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
 #if TODO
@@ -383,7 +347,7 @@ namespace Alimer
             FlushGraphicsPipeline();
             if (oldPipeline != _currentVkPipeline)
             {
-                vkCmdBindPipeline(_handle, VK_PIPELINE_BIND_POINT_GRAPHICS, _currentVkPipeline);
+                vkCmdBindPipeline(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _currentVkPipeline);
                 SetDirty(COMMAND_BUFFER_DYNAMIC_BITS);
             }
         }

@@ -78,10 +78,10 @@ namespace Alimer
             _settings.renderingSettings.windowHandle = _window->GetHandle();
 
             // Create and init graphics.
-            _graphicsDevice = GraphicsDevice::Create(_settings.preferredGraphicsBackend, _settings.validation);
-            if (!_graphicsDevice->Initialize(_settings.renderingSettings))
+            _graphics = Graphics::Create(_settings.validation);
+            if (!_graphics->Initialize(_settings.renderingSettings))
             {
-                ALIMER_LOGERROR("Failed to initialize GraphicsDevice.");
+                ALIMER_LOGERROR("Failed to initialize Graphics.");
                 return false;
             }
         }
@@ -100,7 +100,7 @@ namespace Alimer
 
         // Setup and configure all systems.
         _systems.Add<CameraSystem>();
-        _renderContext.SetDevice(_graphicsDevice.Get());
+        _renderContext.SetDevice(_graphics.Get());
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;
@@ -147,13 +147,14 @@ namespace Alimer
         if (_headless)
             return;
 
-        if (!_graphicsDevice->BeginFrame())
+        if (!_graphics->BeginFrame())
             return;
 
-        CommandBuffer* commandBuffer = _graphicsDevice->GetMainCommandBuffer();
+        CommandBuffer* commandBuffer = _graphics->GetMainCommandBuffer();
 
         RenderPassDescriptor renderPass = {};
         renderPass.colorAttachments[0].clearColor = Color4(0.0f, 0.2f, 0.4f, 1.0f);
+        renderPass.colorAttachments[0].attachment = _graphics->GetSwapchainView();
         commandBuffer->BeginRenderPass(&renderPass);
         commandBuffer->EndRenderPass();
 
@@ -180,7 +181,7 @@ namespace Alimer
         commandBuffer->End();
         */
         // Commit rendering frame.
-        _graphicsDevice->EndFrame();
+        _graphics->EndFrame();
     }
 
     void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)

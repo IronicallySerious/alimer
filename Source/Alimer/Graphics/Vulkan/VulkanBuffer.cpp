@@ -23,6 +23,7 @@
 #include "VulkanBuffer.h"
 #include "VulkanGraphicsDevice.h"
 #include "VulkanConvert.h"
+#include "vkmemalloc/vk_mem_alloc.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
@@ -30,7 +31,6 @@ namespace Alimer
     VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
         : GpuBuffer(nullptr, descriptor)
         , _logicalDevice(graphics->GetDevice())
-        , _allocator(graphics->GetVmaAllocator())
     {
         VkBufferUsageFlags vkUsage = 0;
 
@@ -64,6 +64,7 @@ namespace Alimer
         VkResult result = VK_SUCCESS;
         const bool noAllocation = false;
         bool staticBuffer = false;
+        VmaAllocationInfo allocationInfo = {};
         if (noAllocation)
         {
             result = vkCreateBuffer(_logicalDevice, &createInfo, nullptr, &_handle);
@@ -95,7 +96,13 @@ namespace Alimer
                 break;
             }
 
-            result = vmaCreateBuffer(_allocator, &createInfo, &allocCreateInfo, &_handle, &_allocation, &_allocationInfo);
+            result = vmaCreateBuffer(
+                _graphics->GetVmaAllocator(),
+                &createInfo,
+                &allocCreateInfo,
+                &_handle,
+                &_allocation,
+                &allocationInfo);
         }
 
         // Handle
@@ -103,14 +110,14 @@ namespace Alimer
         {
             if (staticBuffer)
             {
-                SetSubData(0, _allocationInfo.size, initialData);
+                SetSubData(0, allocationInfo.size, initialData);
             }
             else
             {
                 void *data;
-                vmaMapMemory(_allocator, _allocation, &data);
-                memcpy(data, initialData, _allocationInfo.size);
-                vmaUnmapMemory(_allocator, _allocation);
+                vmaMapMemory(_graphics->GetVmaAllocator(), _allocation, &data);
+                memcpy(data, initialData, allocationInfo.size);
+                vmaUnmapMemory(_graphics->GetVmaAllocator(), _allocation);
             }
         }
     }
@@ -119,7 +126,7 @@ namespace Alimer
     {
         if (_allocation != VK_NULL_HANDLE)
         {
-            vmaDestroyBuffer(_allocator, _handle, _allocation);
+            vmaDestroyBuffer(_graphics->GetVmaAllocator(), _handle, _allocation);
         }
         else
         {

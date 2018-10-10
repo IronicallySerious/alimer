@@ -23,7 +23,7 @@
 #include "VulkanSwapchain.h"
 #include "VulkanGraphicsDevice.h"
 #include "VulkanCommandBuffer.h"
-#include "VulkanTexture.h"
+#include "../Texture.h"
 #include "VulkanRenderPass.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
@@ -261,12 +261,11 @@ namespace Alimer
         vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _swapchain, &_imageCount, nullptr));
 
         // Get the swap chain images
-        _images.resize(_imageCount);
+        _vkImages.resize(_imageCount);
         _textures.resize(_imageCount);
-        _renderPasses.resize(_imageCount);
-        vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _swapchain, &_imageCount, _images.data()));
+        vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _swapchain, &_imageCount, _vkImages.data()));
 
-        /*TextureDescriptor textureDesc = {};
+        TextureDescriptor textureDesc = {};
         textureDesc.type = TextureType::Type2D;
         textureDesc.usage = TextureUsage::RenderTarget;
         textureDesc.format = _format;
@@ -275,18 +274,9 @@ namespace Alimer
 
         for (uint32_t i = 0; i < _imageCount; i++)
         {
-            _textures[i] = MakeUnique<VulkanTexture>(
-                _graphics,
-                &textureDesc,
-                _images[i],
-                createInfo.imageUsage);
-
-            RenderPassDescription passDescription = {};
-            passDescription.colorAttachments[0].texture = _textures[i].Get();
-            passDescription.colorAttachments[0].loadAction = LoadAction::Clear;
-            passDescription.colorAttachments[0].storeAction = StoreAction::Store;
-            _renderPasses[i] = new VulkanRenderPass(_graphics, &passDescription);
-        }*/
+            _textures[i] = new Texture(_graphics);
+            _textures[i]->SetVkImage(&textureDesc, _vkImages[i], createInfo.imageUsage);
+        }
 
         if (createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
         {
@@ -304,7 +294,7 @@ namespace Alimer
                 // Clear with default color.
                 _graphics->ClearImageWithColor(
                     clearImageCmdBuffer,
-                    _images[i],
+                    _vkImages[i],
                     clearRange,
                     VK_IMAGE_ASPECT_COLOR_BIT,
                     VK_IMAGE_LAYOUT_UNDEFINED,
@@ -317,9 +307,9 @@ namespace Alimer
         }
     }
 
-    VulkanTexture* VulkanSwapchain::GetTexture(uint32_t index) const
+    SharedPtr<TextureView> VulkanSwapchain::GetTextureView(uint32_t index) const
     {
-        return _textures[index].get();
+        return _textures[index]->GetDefaultTextureView();
     }
 
     VkResult VulkanSwapchain::AcquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore)

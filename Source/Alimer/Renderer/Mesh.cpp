@@ -25,8 +25,7 @@
 
 namespace Alimer
 {
-    Mesh::Mesh(GraphicsDevice* graphicsDevice)
-        : _graphicsDevice(graphicsDevice)
+    Mesh::Mesh()
     {
         
     }
@@ -39,6 +38,7 @@ namespace Alimer
 
     bool Mesh::Define(const std::vector<vec3>& positions, const std::vector<Color4>& colors, const std::vector<uint16_t>& indices)
     {
+        auto graphics = Object::GetSubsystem<Graphics>();
         SafeDelete(_vertexBuffer);
         SafeDelete(_indexBuffer);
 
@@ -121,15 +121,13 @@ namespace Alimer
         }*/
     }
 
-    Mesh* Mesh::CreateCube(GraphicsDevice* graphicsDevice, float size)
+    Mesh* Mesh::CreateCube(float size)
     {
-        return CreateBox(graphicsDevice, vec3(size));
+        return CreateBox(vec3(size));
     }
 
-    Mesh* Mesh::CreateBox(GraphicsDevice* graphicsDevice, const vec3& size)
+    Mesh* Mesh::CreateBox(const vec3& size)
     {
-        ALIMER_ASSERT(graphicsDevice);
-
         // A box has six faces, each one pointing in a different direction.
         const int FaceCount = 6;
 
@@ -188,7 +186,7 @@ namespace Alimer
             colors.push_back(Color4(1.0f, 0.0f, 1.0f));
         }
 
-        Mesh* newMesh = new Mesh(graphicsDevice);
+        Mesh* newMesh = new Mesh();
         newMesh->Define(positions, colors, indices);
         return newMesh;
     }

@@ -126,29 +126,18 @@ else ()
 endif ()
 
 # Graphics backends
-if (NOT ALIMER_UWP)
-    set (ALIMER_GL_DEFAULT ON)
+if (WIN32)
+    set (ALIMER_RENDERER_DEFAULT Vulkan)
+elseif (ALIMER_UWP)
+    set (ALIMER_RENDERER_DEFAULT D3D11)
 else ()
-    set (ALIMER_GL_DEFAULT OFF)
+    set (ALIMER_RENDERER_DEFAULT OpenGL)
 endif ()
 
-if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_ANDROID)
-    set (ALIMER_VULKAN_DEFAULT ON)
-else ()
-    set (ALIMER_VULKAN_DEFAULT OFF)
-endif ()
-
-#if (ALIMER_WINDOWS OR ALIMER_UWP)
-#    set (ALIMER_D3D11_DEFAULT ON)
-#else ()
-    set (ALIMER_D3D11_DEFAULT OFF)
-#endif ()
-
-#if (ALIMER_WINDOWS OR ALIMER_UWP)
-#	set (ALIMER_D3D12_DEFAULT ON)
-#else ()
-    set (ALIMER_D3D12_DEFAULT OFF)
-#endif ()
+set (ALIMER_RENDERER ${ALIMER_RENDERER_DEFAULT} CACHE STRING "Select renderer: Vulkan | D3D12 | D3D11 | OpenGL")
+set (ALIMER_RENDERER_NAME ${ALIMER_RENDERER})
+string(TOUPPER "${ALIMER_RENDERER}" ALIMER_RENDERER)
+set (ALIMER_${ALIMER_RENDERER} ON)
 
 # Tools
 if (ALIMER_DESKTOP)
@@ -161,10 +150,6 @@ option (ALIMER_ENABLE_ALL "Enables all optional subsystems by default" OFF)
 
 alimer_option (ALIMER_CSHARP "Enable C# support")
 alimer_option (ALIMER_THREADING "Enable multithreading")
-alimer_option (ALIMER_GL "Enable OpenGL backend")
-alimer_option (ALIMER_VULKAN "Enable Vulkan backend")
-alimer_option (ALIMER_D3D11 "Enable D3D11 backend")
-alimer_option (ALIMER_D3D12 "Enable D3D12 backend")
 alimer_option (ALIMER_TOOLS "Enable Tools")
 
 

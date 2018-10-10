@@ -24,12 +24,12 @@
 
 #include "../../Math/Math.h"
 #include "../PixelFormat.h"
+#include "../Texture.h"
 #include "VulkanPrerequisites.h"
 #include <vector>
 
 namespace Alimer
 {
-    class VulkanTexture;
     class VulkanRenderPass;
     class VulkanGraphics;
 
@@ -49,8 +49,7 @@ namespace Alimer
 
         PixelFormat GetFormat() const { return _format; }
         uint32_t GetTextureCount() const { return _imageCount; }
-        VulkanTexture* GetTexture(uint32_t index) const;
-        //VulkanRenderPass* GetRenderPass(uint32_t index) const { return _renderPasses[index].Get(); }
+        SharedPtr<TextureView> GetTextureView(uint32_t index) const;
 
         VkSwapchainKHR GetVkHandle() const { return _swapchain; }
 
@@ -65,9 +64,8 @@ namespace Alimer
         VkSurfaceFormatKHR _swapchainFormat{};
         VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
 
-        std::vector<VkImage> _images;
-        std::vector<std::unique_ptr<VulkanTexture>> _textures;
-        std::vector<std::unique_ptr<VulkanRenderPass>> _renderPasses;
+        std::vector<VkImage> _vkImages;
+        std::vector<SharedPtr<Texture>> _textures;
 
         uint32_t _imageCount;
         PixelFormat _format = PixelFormat::Undefined;

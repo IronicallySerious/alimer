@@ -26,7 +26,6 @@
 namespace Alimer
 {
     RenderContext::RenderContext()
-        : _device(nullptr)
     {
         
     }
@@ -35,8 +34,8 @@ namespace Alimer
     {
     }
 
-    void RenderContext::SetDevice(GraphicsDevice* device)
+    void RenderContext::SetDevice(Graphics* graphics)
     {
-        _device = device;
+        _graphics = graphics;
     }
 }

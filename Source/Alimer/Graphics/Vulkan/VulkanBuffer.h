@@ -43,9 +43,7 @@ namespace Alimer
 
 	private:
 		VkDevice _logicalDevice;
-        VmaAllocator _allocator;
         VkBuffer _handle = VK_NULL_HANDLE;
-        VmaAllocation _allocation = VK_NULL_HANDLE;
-        VmaAllocationInfo _allocationInfo;
+        VmaAllocation_T* _allocation = VK_NULL_HANDLE;
 	};
 }

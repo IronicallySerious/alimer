@@ -20,8 +20,6 @@
 // THE SOFTWARE.
 //
 
-#define VMA_STATS_STRING_ENABLED 0
-#define VMA_IMPLEMENTATION
 
 #include "../../Core/Log.h"
 #include "../../Base/String.h"
@@ -30,12 +28,16 @@
 #include "VulkanSwapchain.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanRenderPass.h"
-#include "VulkanTexture.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"
 #include "../../Math/Math.h"
+
+
+#define VMA_STATS_STRING_ENABLED 0
+#define VMA_IMPLEMENTATION
+#include "vkmemalloc/vk_mem_alloc.h"
 
 #include "AlimerVersion.h"
 using namespace std;
@@ -171,12 +173,6 @@ namespace Alimer
         bool supported;
     };
 
-    VkCookie::VkCookie(VulkanGraphics* device)
-        : _cookie(device->AllocateCookie())
-    {
-
-    }
-
     bool VulkanGraphics::IsSupported()
     {
         static bool availableCheck = false;
@@ -198,14 +194,15 @@ namespace Alimer
         return true;
     }
 
+    void Graphics::InitializeBackend()
+    {
+        _backend = GraphicsBackend::Vulkan;
+    }
+
     VulkanGraphics::VulkanGraphics(bool validation)
-        : GraphicsDevice(GraphicsBackend::Vulkan, validation)
+        : Graphics(validation)
         , _framebufferAllocator(this)
     {
-#ifdef ALIMER_VULKAN_MT
-        _cookie.store(0);
-#endif
-
         uint32_t apiVersion = VK_MAKE_VERSION(1, 0, 57);
         // Determine if the new instance version command is available
         if (vkEnumerateInstanceVersion != nullptr)
@@ -438,26 +435,24 @@ namespace Alimer
         }
     }
 
-    VulkanGraphics::~VulkanGraphics()
+    void Graphics::ShutdownBackend()
     {
-        vkDeviceWaitIdle(_device);
-
         // Destroy main swap chain.
-        _mainSwapchain.Reset();
+        /*_mainSwapchain.Reset();
 
         _framebufferAllocator.Clear();
-        _renderPasses.Clear();
+        _renderPasses.Clear();*/
 
         //_descriptorSetAllocators.clear();
         //_pipelineLayouts.clear();
 
-        vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
+        //vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
 
         // Destroy default command buffer.
         _mainCommandBuffer.Reset();
 
         // Destroy default command pool.
-        if (_commandPool != VK_NULL_HANDLE)
+        /*if (_commandPool != VK_NULL_HANDLE)
         {
             vkDestroyCommandPool(_device, _commandPool, nullptr);
             _commandPool = VK_NULL_HANDLE;
@@ -475,7 +470,13 @@ namespace Alimer
         {
             vkDestroySemaphore(_device, semaphore, nullptr);
         }
-        _allSemaphores.clear();
+        _allSemaphores.clear();*/
+
+        for (auto& fence : _waitFences)
+        {
+            vkDestroyFence(_device, fence, nullptr);
+        }
+        _waitFences.clear();
 
         // Destroy memory allocator.
         vmaDestroyAllocator(_allocator);
@@ -503,12 +504,8 @@ namespace Alimer
         _instance = VK_NULL_HANDLE;
     }
 
-    void VulkanGraphics::NotifyFalidationError(const char* message)
-    {
-        // TODO: Add callback.
-    }
-
-    bool VulkanGraphics::WaitIdle()
+   
+    bool Graphics::WaitIdle()
     {
         VkResult result = vkDeviceWaitIdle(_device);
         if (result < VK_SUCCESS)
@@ -522,6 +519,9 @@ namespace Alimer
 
     bool VulkanGraphics::Initialize(const RenderingSettings& settings)
     {
+        if (!Graphics::Initialize(settings))
+            return false;
+
         vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
         vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
         vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
@@ -821,7 +821,7 @@ namespace Alimer
         vkGetDeviceQueue(_device, _transferQueueFamily, transferQueueIndex, &_transferQueue);
 
         // Create memory allocator.
-        createMemoryAllocator();
+        CreateMemoryAllocator();
 
         // Create default command pool.
         _commandPool = CreateCommandPool(_graphicsQueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
@@ -829,8 +829,18 @@ namespace Alimer
         // Create the main swap chain.
         _mainSwapchain.Reset(new VulkanSwapchain(this, surface, settings.defaultBackBufferWidth, settings.defaultBackBufferHeight));
 
+        // Fences (Used to check main command buffer completion)
+        VkFenceCreateInfo fenceCreateInfo = {};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        _waitFences.resize(_mainSwapchain->GetTextureCount());
+        for (auto& fence : _waitFences)
+        {
+            vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &fence));
+        }
+
         // Create main command buffer;
-        _mainCommandBuffer.Reset(new VulkanCommandBuffer(this, _commandPool, false));
+        _mainCommandBuffer = MakeShared<VulkanCommandBuffer>(this, false);
 
         // Pipeline cache.
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -841,10 +851,10 @@ namespace Alimer
         pipelineCacheCreateInfo.pInitialData = nullptr;
         vkThrowIfFailed(vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache));
 
-        return GraphicsDevice::Initialize(settings);
+        return true;
     }
 
-    void VulkanGraphics::createMemoryAllocator()
+    void VulkanGraphics::CreateMemoryAllocator()
     {
         VmaAllocatorCreateInfo createInfo = {};
         createInfo.physicalDevice = _physicalDevice;
@@ -882,17 +892,29 @@ namespace Alimer
         // Acquire the next image from the swap chain.
         _mainSwapchain->AcquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
 
-        // Begin command buffer rendering.
-        static_cast<VulkanCommandBuffer*>(_mainCommandBuffer.Get())->Begin(nullptr);
+        // Use a fence to wait until the command buffer has finished execution before using it again.
+        vkThrowIfFailed(vkWaitForFences(_device, 1, &_waitFences[_swapchainImageIndex], VK_TRUE, UINT64_MAX));
+        vkThrowIfFailed(vkResetFences(_device, 1, &_waitFences[_swapchainImageIndex]));
 
         _framebufferAllocator.BeginFrame();
+
+        // Begin main command buffer rendering.
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.pNext = nullptr;
+        vkBeginCommandBuffer(_mainCommandBuffer->GetVkCommandBuffer(), &beginInfo);
 
         return true;
     }
 
     void VulkanGraphics::EndFrame()
     {
-        VkCommandBuffer commandBuffer = static_cast<VulkanCommandBuffer*>(_mainCommandBuffer.Get())->End();
+        VkCommandBuffer vkCommandBuffer = _mainCommandBuffer->GetVkCommandBuffer();
+        VkResult result = vkEndCommandBuffer(vkCommandBuffer);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERRORF("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
+        }
 
         // Get signal semaphore.
         VkSemaphore signalSemaphore = AcquireSemaphore();
@@ -907,14 +929,14 @@ namespace Alimer
         submitInfo.pWaitSemaphores = &_swapchainImageAcquiredSemaphore;
         submitInfo.pWaitDstStageMask = &submitPipelineStages;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.pCommandBuffers = &vkCommandBuffer;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &signalSemaphore;
 
-        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, (VkFence)nullptr));
+        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _waitFences[_swapchainImageIndex]));
 
         // Submit Swapchain.
-        VkResult result = _mainSwapchain->QueuePresent(
+        result = _mainSwapchain->QueuePresent(
             _graphicsQueue,
             _swapchainImageIndex,
             signalSemaphore
@@ -975,6 +997,11 @@ namespace Alimer
         return surface;
     }
 
+    SharedPtr<TextureView> VulkanGraphics::GetSwapchainView() const
+    {
+        return _mainSwapchain->GetTextureView(_swapchainImageIndex);
+    }
+
     /*
     RenderPass* VulkanGraphics::CreateRenderPassImpl(const RenderPassDescription* descriptor)
     {
@@ -999,25 +1026,7 @@ namespace Alimer
     ShaderProgram* VulkanGraphics::CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor)
     {
         return new VulkanShader(this, descriptor);
-    }
-
-    Texture* VulkanGraphics::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
-    {
-        return nullptr;
-        //return new VulkanTexture(this, descriptor, initialData);
     }*/
-
-    
-    uint64_t VulkanGraphics::AllocateCookie()
-    {
-        // Reserve lower bits for "special purposes".
-#ifdef ALIMER_VULKAN_MT
-        return _cookie.fetch_add(16, memory_order_relaxed) + 16;
-#else
-        _cookie += 16;
-        return _cookie;
-#endif
-    }
 
     VkCommandPool VulkanGraphics::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
     {
@@ -1122,12 +1131,12 @@ namespace Alimer
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
-            Texture* texture = colorAttachment.texture;
-            if (!texture)
+            const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor->colorAttachments[i];
+            auto attachment = colorAttachment.attachment;
+            if (attachment.IsNull())
                 continue;
 
-            renderPassHasher.u32(static_cast<uint32_t>(texture->GetFormat()));
+            renderPassHasher.u32(static_cast<uint32_t>(attachment->GetFormat()));
             renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.loadAction));
             renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.storeAction));
         }

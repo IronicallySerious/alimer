@@ -50,36 +50,19 @@ extern "C"
 
 namespace Alimer
 {
-    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation)
-        : _backend(backend)
-        , _validation(validation)
+    Graphics::Graphics(bool validation)
+        : _validation(validation)
     {
+#ifdef ALIMER_THREADING
+        _cookie.store(0);
+#endif
+        InitializeBackend();
         AddSubsystem(this);
     }
 
-    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredGraphicsBackend, bool validation)
+    Graphics* Graphics::Create(bool validation)
     {
-        if (preferredGraphicsBackend == GraphicsBackend::Default)
-        {
-            auto availableDrivers = GraphicsDevice::GetAvailableBackends();
-
-            if (availableDrivers.find(GraphicsBackend::Vulkan) != availableDrivers.end())
-            {
-                preferredGraphicsBackend = GraphicsBackend::Vulkan;
-            }
-            else if (availableDrivers.find(GraphicsBackend::Direct3D12) != availableDrivers.end())
-            {
-                preferredGraphicsBackend = GraphicsBackend::Direct3D12;
-            }
-            else if (availableDrivers.find(GraphicsBackend::Direct3D11) != availableDrivers.end())
-            {
-                preferredGraphicsBackend = GraphicsBackend::Direct3D11;
-            }
-            else
-            {
-                preferredGraphicsBackend = GraphicsBackend::Empty;
-            }
-        }
+        const auto preferredGraphicsBackend = GraphicsBackend::Vulkan;
 
         // Create backend implementation.
         switch (preferredGraphicsBackend)
@@ -94,8 +77,8 @@ namespace Alimer
             else
 #endif
             {
-                ALIMER_LOGWARN("Vulkan graphics backend not supported, fallback to platform default.");
-                return Create(GraphicsBackend::Default, validation);
+                ALIMER_LOGERROR("Vulkan graphics backend not supported.");
+                return nullptr;
             }
 
             break;
@@ -110,8 +93,8 @@ namespace Alimer
             else
 #endif
             {
-                ALIMER_LOGWARN("Direct3D 12 graphics backend not supported, fallback to platform default.");
-                return Create(GraphicsBackend::Default, validation);
+                ALIMER_LOGERROR("Direct3D 12 graphics backend not supported, fallback to platform default.");
+                return nullptr;
             }
 
             break;
@@ -127,7 +110,7 @@ namespace Alimer
 #endif
             {
                 ALIMER_LOGWARN("Direct3D 11 graphics backend not supported, fallback to platform default.");
-                return Create(GraphicsBackend::Default, validation);
+                return nullptr;
             }
 
             break;
@@ -139,10 +122,12 @@ namespace Alimer
         }
     }
 
-    GraphicsDevice::~GraphicsDevice()
+    Graphics::~Graphics()
     {
+        WaitIdle();
+
         // Destroy undestroyed resources.
-        if (_gpuResources.size())
+        /*if (_gpuResources.size())
         {
             lock_guard<mutex> lock(_gpuResourceMutex);
 
@@ -157,54 +142,22 @@ namespace Alimer
             {
                 GpuResource* resource = _gpuResources.at(i);
                 ALIMER_ASSERT(resource);
+                auto type = resource->GetResourceType();
                 resource->Destroy();
             }
 
             _gpuResources.clear();
-        }
+        }*/
 
+        ShutdownBackend();
         RemoveSubsystem(this);
     }
 
-    set<GraphicsBackend> GraphicsDevice::GetAvailableBackends()
-    {
-        static set<GraphicsBackend> availableBackends;
-
-        if (availableBackends.empty())
-        {
-            availableBackends.insert(GraphicsBackend::Empty);
-
-#if ALIMER_VULKAN
-            if (VulkanGraphics::IsSupported())
-            {
-                availableBackends.insert(GraphicsBackend::Vulkan);
-            }
-#endif
-
-#if ALIMER_D3D12
-            if (D3D12Graphics::IsSupported())
-            {
-                availableBackends.insert(GraphicsBackend::Direct3D12);
-            }
-#endif
-
-#if ALIMER_D3D11
-            if (D3D11Graphics::IsSupported())
-            {
-                availableBackends.insert(GraphicsBackend::Direct3D11);
-            }
-#endif
-
-        }
-
-        return availableBackends;
-        }
-
-    bool GraphicsDevice::Initialize(const RenderingSettings& settings)
+    bool Graphics::Initialize(const RenderingSettings& settings)
     {
         if (_initialized)
         {
-            ALIMER_LOGCRITICAL("Cannot Initialize GraphicsDevice if already initialized.");
+            ALIMER_LOGCRITICAL("Cannot Initialize Graphics if already initialized.");
             return false;
         }
 
@@ -215,14 +168,7 @@ namespace Alimer
     }
 
 #if TODO
-    RenderPass* GraphicsDevice::CreateRenderPass(const RenderPassDescription* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        return CreateRenderPassImpl(descriptor);
-    }
-
-    GpuBuffer* GraphicsDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
+    GpuBuffer* Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
     {
         ALIMER_ASSERT(descriptor);
 
@@ -245,7 +191,7 @@ namespace Alimer
         return CreateBufferImpl(descriptor, initialData);
     }
 
-    VertexInputFormat* GraphicsDevice::CreateVertexInputFormat(const VertexInputFormatDescriptor* descriptor)
+    VertexInputFormat* Graphics::CreateVertexInputFormat(const VertexInputFormatDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
 
@@ -257,7 +203,7 @@ namespace Alimer
         return CreateVertexInputFormatImpl(descriptor);
     }
 
-    ShaderModule* GraphicsDevice::CreateShaderModule(const std::vector<uint32_t>& spirv)
+    ShaderModule* Graphics::CreateShaderModule(const std::vector<uint32_t>& spirv)
     {
         if (spirv.empty())
         {
@@ -267,7 +213,7 @@ namespace Alimer
         return CreateShaderModuleImpl(spirv);
     }
 
-    ShaderModule* GraphicsDevice::CreateShaderModule(const String& file, const String& entryPoint)
+    ShaderModule* Graphics::CreateShaderModule(const String& file, const String& entryPoint)
     {
         // Load from spirv bytecode.
         vector<uint32_t> spirv;
@@ -307,7 +253,7 @@ namespace Alimer
         return CreateShaderModule(spirv);
     }
 
-    ShaderProgram* GraphicsDevice::CreateShaderProgram(const ShaderProgramDescriptor* descriptor)
+    ShaderProgram* Graphics::CreateShaderProgram(const ShaderProgramDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
         if (!descriptor->stageCount)
@@ -332,7 +278,7 @@ namespace Alimer
         return CreateShaderProgramImpl(descriptor);
     }
 
-    ShaderProgram* GraphicsDevice::CreateShaderProgram(const ShaderStageDescriptor* stage)
+    ShaderProgram* Graphics::CreateShaderProgram(const ShaderStageDescriptor* stage)
     {
         ALIMER_ASSERT(stage);
 
@@ -347,7 +293,7 @@ namespace Alimer
         return CreateShaderProgramImpl(&descriptor);
     }
 
-    ShaderProgram* GraphicsDevice::CreateShaderProgram(ShaderModule* vertex, ShaderModule* fragment)
+    ShaderProgram* Graphics::CreateShaderProgram(ShaderModule* vertex, ShaderModule* fragment)
     {
         ALIMER_ASSERT(vertex);
         ALIMER_ASSERT(fragment);
@@ -367,7 +313,7 @@ namespace Alimer
         return CreateShaderProgramImpl(&descriptor);
     }
 
-    Texture* GraphicsDevice::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    Texture* Graphics::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         ALIMER_ASSERT(descriptor);
 
@@ -394,13 +340,13 @@ namespace Alimer
     }
 #endif // TODO
 
-    void GraphicsDevice::AddGpuResource(GpuResource* resource)
+    void Graphics::AddGpuResource(GpuResource* resource)
     {
         lock_guard<mutex> lock(_gpuResourceMutex);
         _gpuResources.push_back(resource);
     }
 
-    void GraphicsDevice::RemoveGpuResource(GpuResource* resource)
+    void Graphics::RemoveGpuResource(GpuResource* resource)
     {
         lock_guard<mutex> lock(_gpuResourceMutex);
         auto it = std::find(_gpuResources.begin(), _gpuResources.end(), resource);
@@ -409,4 +355,19 @@ namespace Alimer
             _gpuResources.erase(it);
         }
     }
+
+    uint64_t Graphics::GetNextUniqueId()
+    {
+#ifdef ALIMER_THREADING
+        return _cookie.fetch_add(1, memory_order_relaxed) + 1;
+#else
+        _cookie++;
+        return _cookie;
+#endif
     }
+
+    void Graphics::NotifyFalidationError(const char* message)
+    {
+        // TODO: Add callback.
+    }
+}

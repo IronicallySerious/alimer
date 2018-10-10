@@ -33,8 +33,7 @@ namespace Alimer
     class VulkanCommandQueue;
     class VulkanPipelineLayout;
     class VulkanShader;
-    class VulkanFramebuffer;
-    class VulkanRenderPass;
+    
 
     enum CommandBufferDirtyBits
     {
@@ -68,16 +67,7 @@ namespace Alimer
     class VulkanCommandBuffer final : public CommandBuffer
     {
     public:
-        VulkanCommandBuffer(VulkanGraphics* device, VkCommandPool commandPool, bool secondary);
-        ~VulkanCommandBuffer() override;
-
-        void Begin(VkCommandBufferInheritanceInfo* inheritanceInfo);
-        VkCommandBuffer End() const;
-
-        void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) override;
-        void EndRenderPassImpl() override;
-
-        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+        VulkanCommandBuffer(VulkanGraphics* device, bool secondary);
 
         /*void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
         void EndRenderPassCore() override;
@@ -109,19 +99,15 @@ namespace Alimer
                 SetDirty(COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT);
             }
         }*/
-        bool IsSecondary() const { return _secondary; }
 
     private:
-        void beginCompute();
-        void beginGraphics();
-        void beginContext();
+        void BeginContext() override;
         void PrepareDraw(PrimitiveTopology topology);
 
         void FlushRenderState();
         void FlushGraphicsPipeline();
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
-        void FlushComputeState();
 
         void SetDirty(CommandBufferDirtyFlags flags)
         {
@@ -136,12 +122,6 @@ namespace Alimer
         }
 
         VulkanGraphics* _device;
-        VkCommandPool _commandPool;
-        VkCommandBuffer _handle;
-        bool _secondary = false;
-
-        const VulkanFramebuffer *_framebuffer = nullptr;
-        const VulkanRenderPass *_renderPass = nullptr;
 
         uint32_t _currentSubpass = 0;
         VulkanShader* _currentShader = nullptr;
@@ -191,7 +171,6 @@ namespace Alimer
         ResourceBindings _bindings;
         PrimitiveTopology _currentTopology;
 
-        bool _isCompute = true;
         CommandBufferDirtyFlags _dirty = ~0u;
         uint32_t _dirtySets = 0;
         uint32_t _dirtyVbos = 0;

@@ -27,12 +27,21 @@
 
 namespace Alimer
 {
-    CommandBuffer::CommandBuffer(GraphicsDevice* graphics)
+    CommandBuffer::CommandBuffer(Graphics* graphics, Type type, bool secondary)
         : _graphics(graphics)
+        , _type(type)
     {
         ALIMER_ASSERT(graphics);
+        Create(secondary);
+        BeginCompute();
     }
 
+    CommandBuffer::~CommandBuffer()
+    {
+        Destroy();
+    }
+
+   
     void CommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
     {
         BeginRenderPassImpl(descriptor);
@@ -45,6 +54,9 @@ namespace Alimer
 
     void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
+        //ALIMER_ASSERT(_currentShader);
+        ALIMER_ASSERT(_isCompute);
+        FlushComputeState();
         DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
 
@@ -68,6 +80,29 @@ namespace Alimer
             DivideByMultiple(threadCountY, groupSizeY),
             DivideByMultiple(threadCountZ, groupSizeZ));
     }
+
+    void CommandBuffer::BeginCompute()
+    {
+        _isCompute = true;
+        BeginContext();
+    }
+
+    void CommandBuffer::BeginGraphics()
+    {
+        _isCompute = false;
+        BeginContext();
+    }
+
+    void CommandBuffer::BeginContext()
+    {
+
+    }
+
+    void CommandBuffer::FlushComputeState()
+    {
+
+    }
+
 
 #if TODO
     void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color4& clearColor, float clearDepth, uint8_t clearStencil)

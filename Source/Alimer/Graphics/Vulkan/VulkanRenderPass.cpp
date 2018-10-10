@@ -21,7 +21,7 @@
 //
 
 #include "VulkanRenderPass.h"
-#include "VulkanTexture.h"
+#include "../Texture.h"
 #include "VulkanGraphicsDevice.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
@@ -41,12 +41,12 @@ namespace Alimer
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
+            const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor->colorAttachments[i];
             auto attachment = colorAttachment.attachment;
             if (attachment.IsNull())
                 continue;
 
-            attachments[attachmentCount].format = vk::Convert(texture->GetFormat());
+            attachments[attachmentCount].format = vk::Convert(attachment->GetFormat());
             attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
             attachments[attachmentCount].loadOp = vk::Convert(colorAttachment.loadAction);
             attachments[attachmentCount].storeOp = vk::Convert(colorAttachment.storeAction);
@@ -57,17 +57,29 @@ namespace Alimer
 
             colorReferences.push_back({ attachmentCount, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 
+            _colorAttachmentsCount++;
             attachmentCount++;
         }
 
-        if (descriptor->depthStencilAttachment.texture)
+        if (descriptor->depthStencil)
         {
-            attachments[attachmentCount].format = vk::Convert(descriptor->depthStencilAttachment.texture->GetFormat());
+            VkAttachmentLoadOp dsLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            VkAttachmentStoreOp dsStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+            if (any(descriptor->depthOperation & RenderPassDepthOperation::ClearDepthStencil))
+                dsLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            else if (any(descriptor->depthOperation & RenderPassDepthOperation::LoadDepthStencil))
+                dsLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+            if (any(descriptor->depthOperation & RenderPassDepthOperation::StoreDepthStencil))
+                dsStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+            attachments[attachmentCount].format = vk::Convert(descriptor->depthStencil->GetFormat());
             attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[attachmentCount].loadOp = vk::Convert(descriptor->depthStencilAttachment.depthLoadAction);
-            attachments[attachmentCount].storeOp = vk::Convert(descriptor->depthStencilAttachment.depthStoreAction);
-            attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; // vk::Convert(descriptor.stencilAttachment.loadAction);
-            attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;// vk::Convert(descriptor.stencilAttachment.storeAction);
+            attachments[attachmentCount].loadOp = dsLoadOp;
+            attachments[attachmentCount].storeOp = dsStoreOp;
+            attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -132,6 +144,8 @@ namespace Alimer
         {
             ALIMER_LOGERRORF("[Vulkan] - Failed to create render pass.");
         }
+
+        ALIMER_LOGDEBUG("[Vulkan] - Created render pass");
     }
 
     VulkanRenderPass::~VulkanRenderPass()
@@ -143,51 +157,55 @@ namespace Alimer
         }
     }
 
-    VulkanFramebuffer::VulkanFramebuffer(VulkanGraphics *device, const VulkanRenderPass& renderPass, const RenderPassDescriptor* descriptor)
-        : VkCookie(device)
-        , _device(device)
+    VulkanFramebuffer::VulkanFramebuffer(VulkanGraphics* graphics, const VulkanRenderPass& renderPass, const RenderPassDescriptor* descriptor)
+        : _id(graphics->GetNextUniqueId())
+        , _graphics(graphics)
         , _renderPass(renderPass)
     {
         _width = UINT32_MAX;
         _height = UINT32_MAX;
         VkImageView views[MaxColorAttachments + 1];
-        uint32_t num_views = 0;
+        uint32_t attachmentCount = 0;
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
-            Texture* texture = colorAttachment.texture;
-            if (!texture)
+            const RenderPassColorAttachmentDescriptor& attachment = descriptor->colorAttachments[i];
+            if (attachment.attachment.IsNull())
                 continue;
 
-            _width = std::min(_width, texture->GetLevelWidth(colorAttachment.mipLevel));
-            _height = std::min(_height, texture->GetLevelHeight(colorAttachment.mipLevel));
-            views[num_views++] = static_cast<VulkanTexture*>(texture)->GetDefaultImageView();
+            uint32_t mipLevel = attachment.attachment->GetBaseMipLevel();
+            Texture* texture = attachment.attachment->GetTexture();
+            _width = std::min(_width, texture->GetLevelWidth(mipLevel));
+            _height = std::min(_height, texture->GetLevelHeight(mipLevel));
+            views[attachmentCount++] = attachment.attachment->GetNativeHandle();
         }
 
-        VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+        VkFramebufferCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
         createInfo.renderPass = _renderPass.GetVkRenderPass();
-        createInfo.attachmentCount = num_views;
+        createInfo.attachmentCount = attachmentCount;
         createInfo.pAttachments = views;
         createInfo.width = _width;
         createInfo.height = _height;
         createInfo.layers = 1;
 
-        VkResult result = vkCreateFramebuffer(_device->GetDevice(), &createInfo, nullptr, &_framebuffer);
+        VkResult result = vkCreateFramebuffer(_graphics->GetDevice(), &createInfo, nullptr, &_framebuffer);
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERROR("[Vulkan] - Failed to create framebuffer.");
             return;
         }
+
+        ALIMER_LOGDEBUGF("[Vulkan] - Created framebuffer : attachmentCount %u", attachmentCount);
     }
 
     VulkanFramebuffer::~VulkanFramebuffer()
     {
         if (_framebuffer != VK_NULL_HANDLE)
         {
-            vkDestroyFramebuffer(_device->GetDevice(), _framebuffer, nullptr);
+            vkDestroyFramebuffer(_graphics->GetDevice(), _framebuffer, nullptr);
             _framebuffer = VK_NULL_HANDLE;
         }
     }
@@ -205,15 +223,15 @@ namespace Alimer
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            if (descriptor->colorAttachments[i].texture)
+            if (descriptor->colorAttachments[i].attachment.IsNotNull())
             {
-                //h.u64(descriptor->colorAttachments[i]->get_cookie());
+               h.u64(descriptor->colorAttachments[i].attachment->GetId());
             }
         }
 
-        if (descriptor->depthStencilAttachment.texture)
+        if (descriptor->depthStencil)
         {
-            //h.u64(descriptor->depthStencilAttachment->get_cookie());
+            h.u64(descriptor->depthStencil->GetId());
         }
 
         auto hash = h.get();

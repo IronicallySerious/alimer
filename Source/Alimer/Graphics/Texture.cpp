@@ -26,41 +26,71 @@
 
 namespace Alimer
 {
-    Texture::Texture(GraphicsDevice* device, const TextureDescriptor* descriptor)
-        : GpuResource(device, GpuResourceType::Texture)
-        , _type(descriptor->type)
-        , _usage(descriptor->usage)
-        , _format(descriptor->format)
-        , _width(descriptor->width)
-        , _height(descriptor->height)
-        , _depth(descriptor->depth)
-        , _mipLevels(descriptor->depth)
-        , _arrayLayers(descriptor->arrayLayers)
-        , _samples(descriptor->samples)
-        , _colorSpace(descriptor->colorSpace)
+    Texture::Texture(Graphics* graphics)
+        : GpuResource(graphics, GpuResourceType::Texture)
     {
-        TextureViewDescriptor viewDescriptor = {};
-        viewDescriptor.format = descriptor->format;
-        _defaultTextureView = CreateTextureView(&viewDescriptor);
     }
 
     Texture::~Texture()
     {
+        _views.clear();
+        Destroy();
+    }
+
+    void Texture::InitFromDescriptor(const TextureDescriptor* descriptor)
+    {
+        _type = descriptor->type;
+        _usage = descriptor->usage;
+        _format = descriptor->format;
+        _width = descriptor->width;
+        _height = descriptor->height;
+        _depth = descriptor->depth;
+        _mipLevels = descriptor->depth;
+        _arrayLayers = descriptor->arrayLayers;
+        _samples = descriptor->samples;
+        _colorSpace = descriptor->colorSpace;
+    }
+
+    bool Texture::Define(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    {
+        _views.clear();
+        Destroy();
+
+        // Copy settings.
+        InitFromDescriptor(descriptor);
+
+        if (_graphics
+            && _graphics->IsInitialized())
+        {
+            if (Create(initialData))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     SharedPtr<TextureView> Texture::CreateTextureView(const TextureViewDescriptor* descriptor)
     {
-        SharedPtr<TextureView> newView(CreateTextureViewImpl(descriptor));
+        SharedPtr<TextureView> newView(new TextureView(_graphics, this, descriptor));
+        _views.push_back(newView);
         return newView;
     }
 
     // TextureView
-    TextureView::TextureView(Texture* texture)
+    TextureView::TextureView(Graphics* graphics, Texture* texture, const TextureViewDescriptor* descriptor)
+        : _graphics(graphics)
+        , _texture(texture)
+        , _id(graphics->GetNextUniqueId())
+        , _format(descriptor->format)
+        , _baseMipLevel(descriptor->baseMipLevel)
     {
-
+        Create();
     }
 
     TextureView::~TextureView()
     {
+        Destroy();
     }
 }

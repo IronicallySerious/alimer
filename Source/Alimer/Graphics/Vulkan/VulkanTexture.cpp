@@ -20,50 +20,69 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanTexture.h"
 #include "VulkanGraphicsDevice.h"
 #include "VulkanConvert.h"
-#include "../../Base/HashMap.h"
+#include "../Texture.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
 {
-    VulkanTexture::VulkanTexture(VulkanGraphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage vkImage, VkImageUsageFlags usage)
-        : Texture(graphics, descriptor)
-        , _logicalDevice(graphics->GetDevice())
-        , _vkHandle(vkImage)
+    void Texture::Destroy()
     {
+        
+    }
+
+    bool Texture::Create(const ImageLevel* initialData)
+    {
+        return true;
+    }
+
+    void Texture::SetVkImage(const TextureDescriptor* descriptor, VkImage vkImage, VkImageUsageFlags usage)
+    {
+        // Copy settings.
+        InitFromDescriptor(descriptor);
+        _vkImage = vkImage;
+
         if (usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))
         {
-            VkImageViewCreateInfo viewCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-            viewCreateInfo.image = vkImage;
-            viewCreateInfo.format = vk::Convert(descriptor->format);
-            viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-            viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-            viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-            viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-            viewCreateInfo.subresourceRange.aspectMask = vk::FormatToAspectMask(viewCreateInfo.format);
-            viewCreateInfo.subresourceRange.baseMipLevel = 0;
-            viewCreateInfo.subresourceRange.baseArrayLayer = 0;
-            viewCreateInfo.subresourceRange.levelCount = descriptor->mipLevels;
-            viewCreateInfo.subresourceRange.layerCount = descriptor->arrayLayers;
-            viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // get_image_view_type(tmpinfo, nullptr);
-
-            if (vkCreateImageView(_logicalDevice, &viewCreateInfo, nullptr, &_defaultImageView) != VK_SUCCESS)
-            {
-                vkDestroyImage(_logicalDevice, _vkHandle, nullptr);
-                return;
-            }
+            TextureViewDescriptor viewDescriptor = {};
+            viewDescriptor.format = descriptor->format;
+            _defaultTextureView = CreateTextureView(&viewDescriptor);
+        }
+    }
+    
+    void TextureView::Create()
+    {
+        VkImageViewCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+        createInfo.image = _texture->GetVkImage();
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // get_image_view_type(tmpinfo, nullptr);
+        createInfo.format = vk::Convert(_format);
+        createInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+        createInfo.subresourceRange = {
+            vk::FormatToAspectMask(createInfo.format),
+            0, 1, 0, 1
+        };
+        
+        if (vkCreateImageView(
+            _texture->GetGraphics()->GetDevice(),
+            &createInfo,
+            nullptr, &_vkImageView) != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("[Vulkan] - Failed to create ImageView.");
         }
     }
 
-    VulkanTexture::~VulkanTexture()
+    void TextureView::Destroy()
     {
-        if (_defaultImageView != VK_NULL_HANDLE)
+        if (_vkImageView != VK_NULL_HANDLE)
         {
-            vkDestroyImageView(_logicalDevice, _defaultImageView, nullptr);
-            _defaultImageView = VK_NULL_HANDLE;
+            //_texture->GetGraphics()->DestroyImageView(_vkImageView);
+            vkDestroyImageView(_texture->GetGraphics()->GetDevice(), _vkImageView, nullptr);
+            _vkImageView = VK_NULL_HANDLE;
         }
     }
 }

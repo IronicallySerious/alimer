@@ -40,30 +40,31 @@ namespace Alimer
         Store
     };
 
-    struct RenderPassAttachment
+    struct RenderPassColorAttachmentDescriptor
     {
         SharedPtr<TextureView> attachment;
         LoadAction loadAction = LoadAction::Clear;
         StoreAction storeAction = StoreAction::Store;
         Color4 clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
     };
-
-    struct RenderPassDepthStencilAttachmentDescriptor
+    enum class RenderPassDepthOperation : uint32_t
     {
-        SharedPtr<TextureView> attachment;
-        LoadAction depthLoadAction = LoadAction::Clear;
-        StoreAction depthStoreAction = StoreAction::DontCare;
-        float clearDepth;
-
-        LoadAction stencilLoadAction = LoadAction::DontCare;
-        StoreAction stencilStoreAction = StoreAction::DontCare;
-        uint8_t clearStencil;
+        None = 0,
+        ClearDepthStencil = 1 << 0,
+        LoadDepthStencil = 1 << 1,
+        StoreDepthStencil = 1 << 2,
+        DepthStencilReadOnly = 1 << 3
     };
+    ALIMER_BITMASK(RenderPassDepthOperation);
 
     struct RenderPassDescriptor
     {
-        RenderPassAttachment colorAttachments[MaxColorAttachments];
-        RenderPassDepthStencilAttachmentDescriptor depthStencilAttachment;
+        RenderPassColorAttachmentDescriptor colorAttachments[MaxColorAttachments];
+        TextureView* depthStencil = nullptr;
+
+        RenderPassDepthOperation depthOperation = RenderPassDepthOperation::None;
+        float       clearDepth = 1.0f;
+        uint32_t    clearStencil = 0;
 
         /// The width, in pixels, to constain the render target to.
         uint32_t width = 0;
@@ -71,31 +72,5 @@ namespace Alimer
         uint32_t height = 0;
         /// The number of active layers that all attachments must have for layered rendering.
         uint32_t layers = 1;
-    };
-
-    /// Defines a RenderPass class.
-    class ALIMER_API RenderPass : public GpuResource, public RefCounted
-    {
-    protected:
-        /// Constructor.
-        RenderPass(GraphicsDevice* device, const RenderPassDescriptor* descriptor);
-
-    public:
-        /// Destructor.
-        virtual ~RenderPass() = default;
-
-        uint32_t GetWidth() const { return _width; }
-        uint32_t GetHeight() const { return _height; }
-        uint32_t GetLayers() const { return _layers; }
-        uint32_t GetColorAttachmentsCount() const { return _colorAttachmentsCount; }
-        const RenderPassAttachment& GetColorAttachment(uint32_t index) const { return _colorAttachments[index]; }
-
-    protected:
-        uint32_t _width;
-        uint32_t _height;
-        uint32_t _layers;
-        uint32_t _colorAttachmentsCount;
-        std::array<RenderPassAttachment, MaxColorAttachments> _colorAttachments;
-        RenderPassAttachment _depthStencilAttachment;
     };
 }
