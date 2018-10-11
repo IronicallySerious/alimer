@@ -27,8 +27,7 @@
 
 namespace Alimer
 {
-    UI::UI(GraphicsDevice* device)
-        : _graphicsDevice(device)
+    UI::UI()
     {
         ImGui::CreateContext();
 
@@ -56,7 +55,7 @@ namespace Alimer
         io.GetClipboardTextFn = [](void* userData) -> const char* { return SDL_GetClipboardText(); };
         */
         io.IniFilename = nullptr;
-        io.ImeWindowHandle = gApplication().GetMainWindow()->GetHandle();
+        io.ImeWindowHandle = gApplication().GetMainWindow().GetHandle();
         io.UserData = this;
 
         if (io.Fonts->Fonts.empty())
@@ -66,8 +65,8 @@ namespace Alimer
         }
 
         io.DisplaySize = ImVec2(
-            (float)gApplication().GetMainWindow()->GetWidth(),
-            (float)gApplication().GetMainWindow()->GetHeight());
+            (float)gApplication().GetMainWindow().GetWidth(),
+            (float)gApplication().GetMainWindow().GetHeight());
 
         ImGui::NewFrame();
         ImGui::EndFrame();

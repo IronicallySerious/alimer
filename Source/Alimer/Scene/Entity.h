@@ -410,7 +410,7 @@ namespace Alimer
                     ViewIterator<Iterator, All>::next();
                 }
 
-                void next_entity(Entity &entity) {}
+                void next_entity(Entity&) {}
             };
 
             Iterator begin() { return Iterator(manager_, mask_, 0); }

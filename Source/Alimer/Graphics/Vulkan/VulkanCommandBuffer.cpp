@@ -20,14 +20,13 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanCommandBuffer.h"
-#include "VulkanGraphicsDevice.h"
+#include "../../Graphics/Graphics.h"
+#include "../../Graphics/CommandBuffer.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanRenderPass.h"
 #include "VulkanConvert.h"
-#include "../../Base/HashMap.h"
 #include "../../Math/Math.h"
 #include "../../Core/Log.h"
 
@@ -38,10 +37,10 @@ namespace Alimer
         VkCommandBufferAllocateInfo allocateInfo = {};
         allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocateInfo.pNext = nullptr;
-        allocateInfo.commandPool = StaticCast<VulkanGraphics>(_graphics)->GetCommandPool();
+        allocateInfo.commandPool = _graphics->GetImpl()->GetCommandPool();
         allocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocateInfo.commandBufferCount = 1;
-        VkResult result = vkAllocateCommandBuffers(_graphics->GetDevice(), &allocateInfo, &_vkCommandBuffer);
+        VkResult result = vkAllocateCommandBuffers(_graphics->GetImpl()->GetDevice(), &allocateInfo, &_vkCommandBuffer);
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERRORF("[Vulkan] - Failed to allocate command buffer: %s", vkGetVulkanResultString(result));
@@ -56,35 +55,10 @@ namespace Alimer
         //vkFreeCommandBuffers(_graphics->GetDevice(), _commandPool, 1, &_vkCommandBuffer);
     }
 
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphics* device, bool secondary)
-        : CommandBuffer(device, Type::Generic, secondary)
-        , _device(device)
-    {
-    }
-
-    
-    void VulkanCommandBuffer::BeginContext()
-    {
-        //CommandBuffer::BeginContext();
-
-        _dirty = ~0u;
-        _dirtySets = ~0u;
-        _dirtyVbos = ~0u;
-        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
-        memset(&_indexState, 0, sizeof(_indexState));
-        memset(&_bindings, 0, sizeof(_bindings));
-
-        _currentVkPipeline = VK_NULL_HANDLE;
-        _currentVkPipelineLayout = VK_NULL_HANDLE;
-        _currentPipelineLayout = nullptr;
-        _currentShader = nullptr;
-        _currentTopology = PrimitiveTopology::Count;
-    }
-
     void CommandBuffer::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
     {
-        _framebuffer = &StaticCast<VulkanGraphics>(_graphics)->RequestFramebuffer(descriptor);
-        _renderPass = &_framebuffer->GetRenderPass();
+        _framebuffer = _graphics->GetImpl()->RequestFramebuffer(descriptor);
+        _renderPass = _framebuffer->GetRenderPass();
 
         VkRect2D renderArea = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
         renderArea.offset.x = min(_framebuffer->GetWidth(), uint32_t(renderArea.offset.x));
@@ -135,7 +109,23 @@ namespace Alimer
     }
 
 #if TODO
+    void VulkanCommandBuffer::BeginContext()
+    {
+        //CommandBuffer::BeginContext();
 
+        _dirty = ~0u;
+        _dirtySets = ~0u;
+        _dirtyVbos = ~0u;
+        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
+        memset(&_indexState, 0, sizeof(_indexState));
+        memset(&_bindings, 0, sizeof(_bindings));
+
+        _currentVkPipeline = VK_NULL_HANDLE;
+        _currentVkPipelineLayout = VK_NULL_HANDLE;
+        _currentPipelineLayout = nullptr;
+        _currentShader = nullptr;
+        _currentTopology = PrimitiveTopology::Count;
+    }
 
     /*void VulkanCommandBuffer::ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
     {
@@ -291,7 +281,7 @@ namespace Alimer
 
     }
 
-    void VulkanCommandBuffer::BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType)
+    void VulkanCommandBuffer::BindIndexBufferImpl(GpuBuffer* buffer, uint64_t offset, IndexType indexType)
     {
         if (_indexState.buffer == buffer
             && _indexState.offset == offset
@@ -329,7 +319,7 @@ namespace Alimer
     {
 
     }
-#endif // TODO
+
 
 
     void VulkanCommandBuffer::FlushRenderState()
@@ -499,8 +489,8 @@ namespace Alimer
 
             VkPipeline newPipeline;
             if (vkCreateGraphicsPipelines(
-                _device->GetDevice(),
-                _device->GetPipelineCache(),
+                _graphics->GetImpl()->GetDevice(),
+                _graphics->GetImpl()->GetPipelineCache(),
                 1,
                 &createInfo,
                 nullptr,
@@ -516,6 +506,7 @@ namespace Alimer
 
     void VulkanCommandBuffer::FlushDescriptorSet(uint32_t set)
     {
+        ALIMER_UNUSED(set);
         /*auto &layout = _currentPipelineLayout->GetResourceLayout();
         auto &setLayout = layout.sets[set];
         uint32_t numDynamicOffsets = 0;
@@ -579,5 +570,6 @@ namespace Alimer
         //ForEachBit(updateSet, [&](uint32_t set) { FlushDescriptorSet(set); });
         //_dirtySets &= ~updateSet;
     }
+#endif // TODO
 }
 

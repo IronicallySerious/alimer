@@ -39,7 +39,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Scene/Scene.h"
 #include "../Renderer/RenderContext.h"
 #include "../Renderer/RenderPipeline.h"
@@ -88,15 +88,13 @@ namespace Alimer
         /// Resume the main execution loop.
         void Resume();
 
-        Window* MakeWindow(const std::string& title, uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false);
-
         Timer &GetFrameTimer() { return _timer; }
 
         inline ResourceManager* GetResources() { return &_resources; }
-        inline const Window* GetMainWindow() const { return _window.Get(); }
-        inline const Graphics* GetGraphics() const { return _graphics.Get(); }
-        inline Input* GetInput() const { return _input.Get(); }
-        inline Audio* GetAudio() const { return _audio.Get(); }
+        inline Window& GetMainWindow() { return _mainWindow; }
+        inline const Graphics* GetGraphics() const { return _graphics.get(); }
+        inline Input& GetInput() { return _input; }
+        inline Audio* GetAudio() const { return _audio.get(); }
 
     private:
         void PlatformConstruct();
@@ -116,7 +114,6 @@ namespace Alimer
         /// Called during rendering single frame.
         virtual void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime);
 
-        virtual Input* CreateInput();
         virtual Audio* CreateAudio();
 
         std::vector<std::string> _args;
@@ -125,13 +122,13 @@ namespace Alimer
         std::atomic<bool> _headless;
         ApplicationSettings _settings;
 
-        UniquePtr<Logger> _log;
+        Logger _log;
         Timer _timer;
         ResourceManager _resources;
-        UniquePtr<Window> _window;
-        UniquePtr<Graphics> _graphics;
-        UniquePtr<Input> _input;
-        UniquePtr<Audio> _audio;
+        Window _mainWindow;
+        std::unique_ptr<Graphics> _graphics;
+        Input _input;
+        std::unique_ptr<Audio> _audio;
 
         //
         EntityManager _entities;

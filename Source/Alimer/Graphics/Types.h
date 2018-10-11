@@ -22,25 +22,7 @@
 
 #pragma once
 
-#if ALIMER_VULKAN
-#   if defined(_WIN32)
-#	    define VK_USE_PLATFORM_WIN32_KHR 1
-#   elif defined(__ANDROID__)
-#       define VK_USE_PLATFORM_ANDROID_KHR 1
-#   elif defined(__linux__)
-#       ifdef ALIMER_LINUX_WAYLAND)
-#           define VK_USE_PLATFORM_WAYLAND_KHR 1
-#       else
-#	        define VK_USE_PLATFORM_XCB_KHR 1
-#       endif
-#   endif
-
-#   define VK_NO_PROTOTYPES
-#   include "volk/volk.h"
-struct VmaAllocator_T;
-struct VmaAllocation_T;
-#endif
-
+#include "../Core/Platform.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
 #include <string>
@@ -56,7 +38,21 @@ namespace Alimer
     static constexpr uint32_t MaxVertexBufferBindings = 4u;
     static constexpr uint32_t MaxColorAttachments = 8u;
 
-    using GpuSize = uint64_t;
+    /// Enum describing the Graphics backend.
+    enum class GraphicsBackend : uint32_t
+    {
+        /// Best device supported for running platform.
+        Default,
+        /// Empty/Headless device type.
+        Empty,
+        /// Vulkan backend.
+        Vulkan,
+        /// DirectX 11.1+ backend.
+        Direct3D11,
+        /// DirectX 12 backend.
+        Direct3D12,
+    };
+
 
     /// Enum describing the number of samples.
     enum class SampleCount : uint32_t
@@ -167,6 +163,20 @@ namespace Alimer
     {
         uint32_t stageCount;
         const ShaderStageDescriptor* stages;
+    };
+
+    class ALIMER_API RenderingSettings
+    {
+    public:
+        // Main swap chain settings.
+        uint32_t defaultBackBufferWidth = 1280;
+        uint32_t defaultBackBufferHeight = 720;
+
+#if ALIMER_PLATFORM_UWP
+        IUnknown*   windowHandle = nullptr;
+#elif ALIMER_PLATFORM_WINDOWS
+        HWND        windowHandle = nullptr;
+#endif
     };
 
     ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);

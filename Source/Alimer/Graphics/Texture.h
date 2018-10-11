@@ -26,6 +26,7 @@
 #include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
 #include "../Resource/Image.h"
+#include "../Graphics/BackendTypes.h"
 
 namespace Alimer
 {
@@ -81,13 +82,13 @@ namespace Alimer
     class TextureView;
 
     /// Defines a Texture class.
-    class ALIMER_API Texture : public Resource, public GpuResource
+    class ALIMER_API Texture final : public Resource, public GpuResource
     {
         ALIMER_OBJECT(Texture, Resource);
 
     public:
         /// Constructor.
-        Texture(Graphics* graphics);
+        Texture();
 
         /// Destructor.
         ~Texture() override;
@@ -131,13 +132,13 @@ namespace Alimer
         SharedPtr<TextureView> CreateTextureView(const TextureViewDescriptor* descriptor);
 
 #if ALIMER_VULKAN
-        void SetVkImage(const TextureDescriptor* descriptor, VkImage vkImage, VkImageUsageFlags usage);
+        void SetVkImage(const TextureDescriptor* descriptor, VkImage vkImage, uint32_t vkUsage);
         VkImage GetVkImage() const { return _vkImage; }
 #endif
 
     private:
         void InitFromDescriptor(const TextureDescriptor* descriptor);
-        bool Create(const ImageLevel* initialData);
+        bool Create(const ImageLevel* pInitialData);
 
         TextureType _type;
         TextureUsage _usage;
@@ -151,7 +152,7 @@ namespace Alimer
         std::vector<SharedPtr<TextureView>> _views;
 
 #if ALIMER_VULKAN
-        VkImage _vkImage = VK_NULL_HANDLE;
+        VkImage _vkImage = 0;
 #endif
     };
 
@@ -176,7 +177,7 @@ namespace Alimer
         uint32_t GetBaseMipLevel() const { return _baseMipLevel; }
 
 #if ALIMER_VULKAN
-        VkImageView GetNativeHandle() const { return _vkImageView; }
+        VkImageView GetVkImageView() const { return _vkImageView; }
 #endif
 
     private:
@@ -190,7 +191,7 @@ namespace Alimer
         uint32_t _baseMipLevel;
 
 #if ALIMER_VULKAN
-        VkImageView _vkImageView = VK_NULL_HANDLE;
+        VkImageView _vkImageView = 0;
 #endif
     };
 }

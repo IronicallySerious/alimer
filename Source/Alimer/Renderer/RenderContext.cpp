@@ -21,7 +21,7 @@
 //
 
 #include "../Renderer/RenderContext.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 
 namespace Alimer
 {

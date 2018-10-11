@@ -329,9 +329,13 @@ namespace Alimer
 
         explicit inline tmat3(const mat4 &m)
         {
-            for (int col = 0; col < 3; col++)
-                for (int row = 0; row < 3; row++)
+            for (size_t col = 0; col < 3; col++)
+            {
+                for (size_t row = 0; row < 3; row++)
+                {
                     data[col][row] = m[col][row];
+                }
+            }
         }
 
         inline tvec3<T> &operator[](size_t index)

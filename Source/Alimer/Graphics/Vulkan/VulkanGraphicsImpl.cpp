@@ -20,27 +20,20 @@
 // THE SOFTWARE.
 //
 
+#define VMA_STATS_STRING_ENABLED 0
+#define VMA_IMPLEMENTATION
 
-#include "../../Core/Log.h"
-#include "../../Base/String.h"
-#include "../../Application/Window.h"
-#include "VulkanGraphicsDevice.h"
+#include "../../Graphics/Graphics.h"
+#include "../../Graphics/CommandBuffer.h"
 #include "VulkanSwapchain.h"
-#include "VulkanCommandBuffer.h"
 #include "VulkanRenderPass.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"
 #include "../../Math/Math.h"
-
-
-#define VMA_STATS_STRING_ENABLED 0
-#define VMA_IMPLEMENTATION
-#include "vkmemalloc/vk_mem_alloc.h"
-
+#include "../../Core/Log.h"
 #include "AlimerVersion.h"
-using namespace std;
 
 namespace Alimer
 {
@@ -50,7 +43,7 @@ namespace Alimer
         const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
         void *pUserData)
     {
-        auto *context = static_cast<VulkanGraphics*>(pUserData);
+        auto *context = static_cast<Graphics*>(pUserData);
 
         switch (messageSeverity)
         {
@@ -129,8 +122,9 @@ namespace Alimer
         (void)objectType;
         (void)object;
         (void)location;
+        (void)pUserData;
 
-        auto *graphics = static_cast<VulkanGraphics*>(pUserData);
+        //auto *graphics = static_cast<Graphics*>(pUserData);
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
         {
@@ -173,37 +167,17 @@ namespace Alimer
         bool supported;
     };
 
-    bool VulkanGraphics::IsSupported()
+    GraphicsImpl::GraphicsImpl(bool validation)
     {
-        static bool availableCheck = false;
-        static bool isAvailable = false;
+        uint32_t apiVersion = VK_MAKE_VERSION(1, 0, 57);
 
-        if (availableCheck)
-            return isAvailable;
-
-        availableCheck = true;
         VkResult vkRes = volkInitialize();
         if (vkRes != VK_SUCCESS)
         {
-            isAvailable = false;
-            ALIMER_LOGERROR("[Vulkan] - Failed to initialize volk.");
-            return false;
+            ALIMER_LOGERROR("[Vulkan] - Failed to initialize Vulkan.");
+            return;
         }
 
-        isAvailable = true;
-        return true;
-    }
-
-    void Graphics::InitializeBackend()
-    {
-        _backend = GraphicsBackend::Vulkan;
-    }
-
-    VulkanGraphics::VulkanGraphics(bool validation)
-        : Graphics(validation)
-        , _framebufferAllocator(this)
-    {
-        uint32_t apiVersion = VK_MAKE_VERSION(1, 0, 57);
         // Determine if the new instance version command is available
         if (vkEnumerateInstanceVersion != nullptr)
         {
@@ -222,7 +196,7 @@ namespace Alimer
 
         uint32_t ext_count = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &ext_count, nullptr);
-        vector<VkExtensionProperties> queried_extensions(ext_count);
+        std::vector<VkExtensionProperties> queried_extensions(ext_count);
         if (ext_count)
         {
             vkEnumerateInstanceExtensionProperties(nullptr, &ext_count, queried_extensions.data());
@@ -230,7 +204,7 @@ namespace Alimer
 
         uint32_t layer_count = 0;
         vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
-        vector<VkLayerProperties> queried_layers(layer_count);
+        std::vector<VkLayerProperties> queried_layers(layer_count);
         if (layer_count)
             vkEnumerateInstanceLayerProperties(&layer_count, queried_layers.data());
 
@@ -248,8 +222,8 @@ namespace Alimer
             return itr != end(queried_layers);
         };
 
-        vector<const char*> instance_exts = { VK_KHR_SURFACE_EXTENSION_NAME };
-        vector<const char*> instance_layers;
+        std::vector<const char*> instance_exts = { VK_KHR_SURFACE_EXTENSION_NAME };
+        std::vector<const char*> instance_layers;
 
         if (has_extension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) &&
             has_extension(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME) &&
@@ -393,7 +367,7 @@ namespace Alimer
         vkThrowIfFailed(vkEnumeratePhysicalDevices(_instance, &gpuCount, nullptr));
         ALIMER_ASSERT(gpuCount > 0);
 
-        vector<VkPhysicalDevice> physicalDevices(gpuCount);
+        std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
         vkEnumeratePhysicalDevices(_instance, &gpuCount, physicalDevices.data());
 
         ALIMER_LOGTRACE("Enumerating physical devices");
@@ -433,26 +407,36 @@ namespace Alimer
             _physicalDevice = physicalDevice;
             break;
         }
+
+        vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
+        vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
+        vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
+
+        // Queue props.
+        uint32_t queueFamilyProps;
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, nullptr);
+        _queueFamilyProperties.resize(queueFamilyProps);
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, _queueFamilyProperties.data());
     }
 
-    void Graphics::ShutdownBackend()
+    GraphicsImpl::~GraphicsImpl()
     {
         // Destroy main swap chain.
-        /*_mainSwapchain.Reset();
+        _mainSwapchain.Reset();
 
-        _framebufferAllocator.Clear();
-        _renderPasses.Clear();*/
+        _framebuffers.Clear();
+        _renderPasses.Clear();
 
         //_descriptorSetAllocators.clear();
         //_pipelineLayouts.clear();
 
-        //vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
+        vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
 
         // Destroy default command buffer.
         _mainCommandBuffer.Reset();
 
         // Destroy default command pool.
-        /*if (_commandPool != VK_NULL_HANDLE)
+        if (_commandPool != VK_NULL_HANDLE)
         {
             vkDestroyCommandPool(_device, _commandPool, nullptr);
             _commandPool = VK_NULL_HANDLE;
@@ -470,7 +454,7 @@ namespace Alimer
         {
             vkDestroySemaphore(_device, semaphore, nullptr);
         }
-        _allSemaphores.clear();*/
+        _allSemaphores.clear();
 
         for (auto& fence : _waitFences)
         {
@@ -504,58 +488,31 @@ namespace Alimer
         _instance = VK_NULL_HANDLE;
     }
 
-   
-    bool Graphics::WaitIdle()
+    bool GraphicsImpl::Initialize(const RenderingSettings& settings)
     {
-        VkResult result = vkDeviceWaitIdle(_device);
-        if (result < VK_SUCCESS)
-        {
-            ALIMER_LOGTRACEF("[Vulkan] - vkDeviceWaitIdle failed : %s", vkGetVulkanResultString(result));
-            return false;
-        }
-
-        return true;
-    }
-
-    bool VulkanGraphics::Initialize(const RenderingSettings& settings)
-    {
-        if (!Graphics::Initialize(settings))
-            return false;
-
-        vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
-        vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
-        vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
-
         // Log info.
         ALIMER_LOGINFOF("Selected Vulkan GPU: %s", _deviceProperties.deviceName);
 
         // Enumerate device extensions and layers.
         uint32_t ext_count = 0;
         vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &ext_count, nullptr);
-        vector<VkExtensionProperties> queried_extensions(ext_count);
+        std::vector<VkExtensionProperties> queried_extensions(ext_count);
         vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &ext_count, queried_extensions.data());
 
         uint32_t layer_count = 0;
         vkEnumerateDeviceLayerProperties(_physicalDevice, &layer_count, nullptr);
-        vector<VkLayerProperties> queried_layers(layer_count);
+        std::vector<VkLayerProperties> queried_layers(layer_count);
         if (layer_count)
             vkEnumerateDeviceLayerProperties(_physicalDevice, &layer_count, queried_layers.data());
 
         const auto has_extension = [&](const char *name) -> bool {
-            auto itr = find_if(begin(queried_extensions), end(queried_extensions), [name](const VkExtensionProperties &e) -> bool {
+            auto itr = std::find_if(std::begin(queried_extensions), std::end(queried_extensions), [name](const VkExtensionProperties &e) -> bool {
                 return strcmp(e.extensionName, name) == 0;
             });
-            return itr != end(queried_extensions);
+            return itr != std::end(queried_extensions);
         };
 
-        const auto has_layer = [&](const char *name) -> bool {
-            auto itr = find_if(begin(queried_layers), end(queried_layers), [name](const VkLayerProperties &e) -> bool {
-                return strcmp(e.layerName, name) == 0;
-            });
-            return itr != end(queried_layers);
-        };
-
-        vector<VkExtension> queryDeviceExtensions = {
+        std::vector<VkExtension> queryDeviceExtensions = {
             { VK_KHR_SWAPCHAIN_EXTENSION_NAME,VkExtensionType::Required, false},
             { VK_KHR_MAINTENANCE1_EXTENSION_NAME, VkExtensionType::Required, false },
             { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VkExtensionType::Required, false }
@@ -574,7 +531,7 @@ namespace Alimer
         }
 
         bool requiredExtensionsEnabled = true;
-        vector<const char*> enabled_extensions;
+        std::vector<const char*> enabled_extensions;
         for (auto& queryDeviceExtension : queryDeviceExtensions)
         {
             if (!queryDeviceExtension.supported)
@@ -609,14 +566,9 @@ namespace Alimer
         // Find vendor.
         _features.SetVendorId(_deviceProperties.vendorID);
 
-        // Queue props.
-        uint32_t queueFamilyProps;
-        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, nullptr);
-        _queueFamilyProperties.resize(queueFamilyProps);
-        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, _queueFamilyProperties.data());
-
         // Create main surface.
         VkSurfaceKHR surface = CreateSurface(settings);
+        const uint32_t queueFamilyProps = static_cast<uint32_t>(_queueFamilyProperties.size());
         for (uint32_t i = 0; i < queueFamilyProps; i++)
         {
             VkBool32 supported = surface == VK_NULL_HANDLE;
@@ -840,7 +792,7 @@ namespace Alimer
         }
 
         // Create main command buffer;
-        _mainCommandBuffer = MakeShared<VulkanCommandBuffer>(this, false);
+        _mainCommandBuffer = new CommandBuffer(CommandBuffer::Type::Generic, false);
 
         // Pipeline cache.
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -854,7 +806,19 @@ namespace Alimer
         return true;
     }
 
-    void VulkanGraphics::CreateMemoryAllocator()
+    bool GraphicsImpl::WaitIdle()
+    {
+        VkResult result = vkDeviceWaitIdle(_device);
+        if (result < VK_SUCCESS)
+        {
+            ALIMER_LOGTRACEF("[Vulkan] - vkDeviceWaitIdle failed : %s", vkGetVulkanResultString(result));
+            return false;
+        }
+
+        return true;
+    }
+
+    void GraphicsImpl::CreateMemoryAllocator()
     {
         VmaAllocatorCreateInfo createInfo = {};
         createInfo.physicalDevice = _physicalDevice;
@@ -887,7 +851,7 @@ namespace Alimer
         }
     }
 
-    bool VulkanGraphics::BeginFrame()
+    bool GraphicsImpl::BeginFrame()
     {
         // Acquire the next image from the swap chain.
         _mainSwapchain->AcquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
@@ -896,18 +860,18 @@ namespace Alimer
         vkThrowIfFailed(vkWaitForFences(_device, 1, &_waitFences[_swapchainImageIndex], VK_TRUE, UINT64_MAX));
         vkThrowIfFailed(vkResetFences(_device, 1, &_waitFences[_swapchainImageIndex]));
 
-        _framebufferAllocator.BeginFrame();
-
         // Begin main command buffer rendering.
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
         vkBeginCommandBuffer(_mainCommandBuffer->GetVkCommandBuffer(), &beginInfo);
 
+        // DestroyPendingResources();
+
         return true;
     }
 
-    void VulkanGraphics::EndFrame()
+    void GraphicsImpl::EndFrame()
     {
         VkCommandBuffer vkCommandBuffer = _mainCommandBuffer->GetVkCommandBuffer();
         VkResult result = vkEndCommandBuffer(vkCommandBuffer);
@@ -950,17 +914,13 @@ namespace Alimer
             }
         }
 
-        // Wait frame.
-        WaitIdle();
-
         // Release semaphores
         ReleaseSemaphore(_swapchainImageAcquiredSemaphore);
         ReleaseSemaphore(signalSemaphore);
 
-        // DestroyPendingResources();
     }
 
-    VkSurfaceKHR VulkanGraphics::CreateSurface(const RenderingSettings& settings)
+    VkSurfaceKHR GraphicsImpl::CreateSurface(const RenderingSettings& settings)
     {
         VkResult result = VK_SUCCESS;
         VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -997,9 +957,14 @@ namespace Alimer
         return surface;
     }
 
-    SharedPtr<TextureView> VulkanGraphics::GetSwapchainView() const
+    SharedPtr<TextureView> GraphicsImpl::GetSwapchainView() const
     {
         return _mainSwapchain->GetTextureView(_swapchainImageIndex);
+    }
+
+    SharedPtr<CommandBuffer> GraphicsImpl::GetMainCommandBuffer() const
+    {
+        return _mainCommandBuffer;
     }
 
     /*
@@ -1028,7 +993,7 @@ namespace Alimer
         return new VulkanShader(this, descriptor);
     }*/
 
-    VkCommandPool VulkanGraphics::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
+    VkCommandPool GraphicsImpl::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
     {
         VkCommandPoolCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1046,7 +1011,7 @@ namespace Alimer
         return commandPool;
     }
 
-    VkCommandBuffer VulkanGraphics::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
+    VkCommandBuffer GraphicsImpl::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
     {
         VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         info.commandPool = _commandPool;
@@ -1066,12 +1031,12 @@ namespace Alimer
         return vkCommandBuffer;
     }
 
-    void VulkanGraphics::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
+    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
     {
         FlushCommandBuffer(commandBuffer, _graphicsQueue, free);
     }
 
-    void VulkanGraphics::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
+    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
     {
         if (commandBuffer == VK_NULL_HANDLE)
             return;
@@ -1100,7 +1065,14 @@ namespace Alimer
         }
     }
 
-    void VulkanGraphics::ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkAccessFlagBits srcAccessMask, VkClearColorValue *clearValue)
+    void GraphicsImpl::ClearImageWithColor(
+        VkCommandBuffer commandBuffer,
+        VkImage image,
+        VkImageSubresourceRange range,
+        VkImageAspectFlags aspect,
+        VkImageLayout sourceLayout,
+        VkImageLayout destLayout,
+        VkClearColorValue *clearValue)
     {
         // Transition to destination layout.
         vk::SetImageLayout(commandBuffer, image, aspect, sourceLayout,
@@ -1120,12 +1092,35 @@ namespace Alimer
         vk::SetImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
     }
 
-    const VulkanFramebuffer& VulkanGraphics::RequestFramebuffer(const RenderPassDescriptor* descriptor)
+    VulkanFramebuffer* GraphicsImpl::RequestFramebuffer(const RenderPassDescriptor* descriptor)
     {
-        return _framebufferAllocator.Request(descriptor);
+        auto renderPass = RequestRenderPass(descriptor);
+        Util::Hasher h;
+        h.u64(renderPass->GetHash());
+
+        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        {
+            if (descriptor->colorAttachments[i].attachment.IsNotNull())
+            {
+                h.u64(descriptor->colorAttachments[i].attachment->GetId());
+            }
+        }
+
+        if (descriptor->depthStencil)
+        {
+            h.u64(descriptor->depthStencil->GetId());
+        }
+
+        uint64_t hash = h.get();
+        auto framebuffer = _framebuffers.Find(hash);
+        if (!framebuffer)
+        {
+            framebuffer = _framebuffers.Insert(hash, std::make_unique<VulkanFramebuffer>(this, renderPass, descriptor));
+        }
+        return framebuffer;
     }
 
-    const VulkanRenderPass& VulkanGraphics::RequestRenderPass(const RenderPassDescriptor* descriptor)
+    VulkanRenderPass* GraphicsImpl::RequestRenderPass(const RenderPassDescriptor* descriptor)
     {
         Util::Hasher renderPassHasher;
 
@@ -1147,10 +1142,10 @@ namespace Alimer
         {
             renderPass = _renderPasses.Insert(hash, std::make_unique<VulkanRenderPass>(hash, this, descriptor));
         }
-        return *renderPass;
+        return renderPass;
     }
 
-    VkFence VulkanGraphics::AcquireFence()
+    VkFence GraphicsImpl::AcquireFence()
     {
         VkFence fence = VK_NULL_HANDLE;
 
@@ -1179,7 +1174,7 @@ namespace Alimer
         return fence;
     }
 
-    void VulkanGraphics::ReleaseFence(VkFence fence)
+    void GraphicsImpl::ReleaseFence(VkFence fence)
     {
         std::lock_guard<std::mutex> lock(_fenceLock);
         if (_allFences.find(fence) != _allFences.end())
@@ -1189,7 +1184,7 @@ namespace Alimer
         }
     }
 
-    VkSemaphore VulkanGraphics::AcquireSemaphore()
+    VkSemaphore GraphicsImpl::AcquireSemaphore()
     {
         VkSemaphore semaphore = VK_NULL_HANDLE;
 
@@ -1218,7 +1213,7 @@ namespace Alimer
         return semaphore;
     }
 
-    void VulkanGraphics::ReleaseSemaphore(VkSemaphore semaphore)
+    void GraphicsImpl::ReleaseSemaphore(VkSemaphore semaphore)
     {
         std::lock_guard<std::mutex> lock(_semaphoreLock);
         if (_allSemaphores.find(semaphore) != _allSemaphores.end())
@@ -1226,6 +1221,9 @@ namespace Alimer
             _availableSemaphores.push(semaphore);
         }
     }
+
+    
+
 
 #if TODO
     VulkanDescriptorSetAllocator* VulkanGraphics::RequestDescriptorSetAllocator(const DescriptorSetLayout &layout)

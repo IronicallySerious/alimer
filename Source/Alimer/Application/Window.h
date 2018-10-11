@@ -22,13 +22,23 @@
 
 #pragma once
 
-#include "../Application/WindowHandle.h"
+#include "../Core/Platform.h"
 #include "../Core/Object.h"
 #include "../Math/Math.h"
 #include <string>
 
 namespace Alimer
 {
+    enum class WindowFlags : uint32_t
+    {
+        None = 0,
+        Resizable = 1 << 0,
+        Fullscreen = 1 << 1,
+        Visible = 1 << 2,
+        Default = Resizable | Visible
+    };
+    ALIMER_BITMASK(WindowFlags);
+
     /// Window resized event.
     class ALIMER_API WindowResizeEvent : public Event
     {
@@ -37,40 +47,48 @@ namespace Alimer
         uvec2 size;
     };
 
+#if ALIMER_PLATFORM_WINDOWS
+    class Win32OleDropTarget;
+#endif
+
     /// OS Window class.
-    class Window : public Object
+    class Window final : public Object
     {
         ALIMER_OBJECT(Window, Object);
 
-    protected:
+    public:
         /// Constructor.
         Window();
 
-    public:
         /// Destructor.
-        virtual ~Window();
-
-        /// Show the window.
-        virtual void Show();
-        /// Hide the window.
-        virtual void Hide();
-        /// Minimize the window.
-        virtual void Minimize();
-        /// Maximize the window.
-        virtual void Maximize();
-        /// Restore window size.
-        virtual void Restore();
-        /// Close the window.
-        virtual void Close();
-
-        /// Return whether is visible.
-        virtual bool IsVisible() const;
-
-        /// Return whether is currently minimized.
-        virtual bool IsMinimized() const;
+        ~Window() override;
 
         /// Set window title.
-        virtual void SetTitle(const std::string& newTitle);
+        void SetTitle(const std::string& newTitle);
+
+        /// Define the window size and settings.
+        bool Define(uint32_t width = 1280, uint32_t height = 720, WindowFlags flags = WindowFlags::Default);
+
+        /// Show the window.
+        void Show();
+        /// Hide the window.
+        void Hide();
+        /// Minimize the window.
+        void Minimize();
+        /// Maximize the window.
+        void Maximize();
+        /// Restore window size.
+        void Restore();
+        /// Close the window.
+        void Close();
+
+        /// Return whether is visible.
+        bool IsVisible() const { return _visible; }
+
+        /// Return whether is currently minimized.
+        bool IsMinimized() const;
+
+        
 
         /// Return window title.
         const std::string& GetTitle() const { return _title; }
@@ -81,20 +99,50 @@ namespace Alimer
         uint32_t GetHeight() const { return _size.y; }
 
         float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
-        const WindowHandle& GetHandle() const { return _handle; }
 
+#if ALIMER_PLATFORM_UWP
+        IUnknown* GetHandle() const { return _handle; }
+#elif ALIMER_PLATFORM_WINDOWS
+        LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam);
+
+        HINSTANCE GetHInstance() const { return _hInstance; }
+        HWND GetHandle() const { return _handle; }
+#endif
         /// Size changed event.
         WindowResizeEvent resizeEvent;
 
-    protected:
-        /// Native window handle.
-        WindowHandle _handle;
+    private:
+        void PlatformConstruct();
+        void PlatformDestroy();
+        bool PlatformCreate();
+
+#if ALIMER_PLATFORM_UWP
+        /// Window handle is IUnknown on UWP
+        IUnknown* _handle = nullptr;
+#elif ALIMER_PLATFORM_WINDOWS
+        void InitAfterCreation();
+        void HandleResize(WPARAM wParam, LPARAM lParam);
+        HINSTANCE _hInstance = nullptr;
+        HWND _handle = nullptr;
+        HMONITOR _monitor = nullptr;
+        int _showCommand = SW_SHOW;
+        Win32OleDropTarget* _dropTarget = nullptr;
+#endif
+
         /// Window title.
         std::string _title;
         /// Window size.
         uvec2 _size;
+        /// Flags
+        WindowFlags _flags = WindowFlags::Default;
+        /// Fullscreen flag.
+        bool _fullscreen = false;
         /// Resizable flag.
-        bool _resizable;
+        bool _resizable = true;
+        /// Visibility flag.
+        bool _visible = true;
+        /// Visibility flag.
+        bool _focused = false;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Window);

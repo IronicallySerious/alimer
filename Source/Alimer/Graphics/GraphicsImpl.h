@@ -22,33 +22,7 @@
 
 #pragma once
 
-#include "../Input.h"
-#ifndef NOMINMAX
-#   define NOMINMAX 1
+
+#if defined(ALIMER_VULKAN)
+#   include "Vulkan/VulkanGraphicsImpl.h"
 #endif
-
-#include <Windows.h>
-
-namespace Alimer
-{
-	/// Win32 Input system implementation.
-	class InputWindows final : public Input
-	{
-	public:
-		/// Constructor.
-		InputWindows();
-
-		/// Destructor.
-		~InputWindows() override;
-
-		bool IsCursorVisible() const override;
-		void SetCursorVisible(bool visible) override;
-
-		void UpdateCursor();
-
-	private:
-		bool _cursorVisible = true;
-		HCURSOR _cursors[static_cast<unsigned>(CursorType::Count)] = {};
-		HCURSOR _cursor = nullptr;
-	};
-}

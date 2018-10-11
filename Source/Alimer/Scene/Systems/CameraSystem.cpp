@@ -32,6 +32,7 @@ namespace Alimer
 
         entities.Each<TransformComponent, CameraComponent>(
             [](Entity e, TransformComponent& transform, CameraComponent& camera) {
+            ALIMER_UNUSED(e);
             camera.Update(transform.GetTransform());
         });
     }

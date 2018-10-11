@@ -26,7 +26,6 @@
 #include "../IO/Path.h"
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
-using namespace std;
 
 namespace Alimer
 {
@@ -37,7 +36,6 @@ namespace Alimer
         , _paused(false)
         , _headless(false)
         , _settings{}
-        , _log(new Logger())
         , _entities{}
         , _systems(_entities)
         , _scene(_entities)
@@ -70,15 +68,16 @@ namespace Alimer
         // Init Window and Gpu.
         if (!_headless)
         {
-            _window = MakeWindow("Alimer",
+            _mainWindow.Define(
                 _settings.renderingSettings.defaultBackBufferWidth,
-                _settings.renderingSettings.defaultBackBufferHeight);
+                _settings.renderingSettings.defaultBackBufferHeight
+            );
 
             // Assign as window handle.
-            _settings.renderingSettings.windowHandle = _window->GetHandle();
+            _settings.renderingSettings.windowHandle = _mainWindow.GetHandle();
 
             // Create and init graphics.
-            _graphics = Graphics::Create(_settings.validation);
+            _graphics.reset(new Graphics(_settings.validation));
             if (!_graphics->Initialize(_settings.renderingSettings))
             {
                 ALIMER_LOGERROR("Failed to initialize Graphics.");
@@ -86,11 +85,8 @@ namespace Alimer
             }
         }
 
-        // Create per platform Input module.
-        _input = CreateInput();
-
         // Create per platform Audio module.
-        _audio = CreateAudio();
+        _audio.reset(CreateAudio());
 
         // Load plugins
         LoadPlugins();
@@ -100,7 +96,7 @@ namespace Alimer
 
         // Setup and configure all systems.
         _systems.Add<CameraSystem>();
-        _renderContext.SetDevice(_graphics.Get());
+        _renderContext.SetDevice(_graphics.get());
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;
@@ -132,14 +128,14 @@ namespace Alimer
             _systems.Update(deltaTime);
 
             // Render single frame.
-            if (!_window->IsMinimized())
+            if (!_mainWindow.IsMinimized())
             {
                 RenderFrame(frameTime, deltaTime);
             }
         }
 
         // Update input, even when paused.
-        _input->Update();
+        _input.Update();
     }
 
     void Application::RenderFrame(double frameTime, double elapsedTime)
@@ -157,6 +153,9 @@ namespace Alimer
         renderPass.colorAttachments[0].attachment = _graphics->GetSwapchainView();
         commandBuffer->BeginRenderPass(&renderPass);
         commandBuffer->EndRenderPass();
+
+        ALIMER_UNUSED(frameTime);
+        ALIMER_UNUSED(elapsedTime);
 
         /*
 
@@ -186,6 +185,7 @@ namespace Alimer
 
     void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
     {
+        ALIMER_UNUSED(commandBuffer);
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 

@@ -56,7 +56,7 @@
 #include "Graphics/VertexFormat.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
-#include "Graphics/GraphicsDevice.h"
+#include "Graphics/Graphics.h"
 
 // Resource
 #include "Resource/Resource.h"

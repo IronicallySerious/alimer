@@ -27,57 +27,22 @@ namespace Alimer
     Window::Window()
         : _title("Alimer")
         , _size(800u, 600u)
-        , _resizable(true)
-        , _handle{}
     {
+        PlatformConstruct();
     }
 
     Window::~Window()
     {
+        PlatformDestroy();
     }
 
-    void Window::Show()
+    bool Window::Define(uint32_t width, uint32_t height, WindowFlags flags)
     {
-        // Do nothing by default
-    }
+        PlatformDestroy();
 
-    void Window::Hide()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Minimize()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Maximize()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Restore()
-    {
-        // Do nothing by default
-    }
-
-    void Window::Close()
-    {
-        // Do nothing by default
-    }
-
-    bool Window::IsVisible() const
-    {
-        return true;
-    }
-
-    bool Window::IsMinimized() const
-    {
-        return false;
-    }
-
-    void Window::SetTitle(const std::string& newTitle)
-    {
-        _title = newTitle;
+        _size.x = width;
+        _size.y = height;
+        _fullscreen = any(flags & WindowFlags::Fullscreen);
+        return PlatformCreate();
     }
 }

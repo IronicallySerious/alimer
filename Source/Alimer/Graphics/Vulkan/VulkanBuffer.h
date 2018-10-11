@@ -23,18 +23,16 @@
 #pragma once
 
 #include "../GpuBuffer.h"
-#include "VulkanPrerequisites.h"
+#include "VulkanGraphicsImpl.h"
 #include <vector>
 
 namespace Alimer
 {
-	class VulkanGraphics;
-
 	/// Vulkan Buffer.
 	class VulkanBuffer final : public GpuBuffer
 	{
 	public:
-        VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData);
+        VulkanBuffer(Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData);
 		~VulkanBuffer() override;
 
         bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
@@ -44,6 +42,6 @@ namespace Alimer
 	private:
 		VkDevice _logicalDevice;
         VkBuffer _handle = VK_NULL_HANDLE;
-        VmaAllocation_T* _allocation = VK_NULL_HANDLE;
+        VmaAllocation _allocation = VK_NULL_HANDLE;
 	};
 }

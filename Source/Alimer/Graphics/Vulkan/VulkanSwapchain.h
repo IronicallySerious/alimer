@@ -25,20 +25,19 @@
 #include "../../Math/Math.h"
 #include "../PixelFormat.h"
 #include "../Texture.h"
-#include "VulkanPrerequisites.h"
+#include "VulkanGraphicsImpl.h"
 #include <vector>
 
 namespace Alimer
 {
     class VulkanRenderPass;
-    class VulkanGraphics;
 
     /// Vulkan Swapchain.
     class VulkanSwapchain final 
     {
     public:
         /// Construct. Set parent shader and defines but do not compile yet.
-        VulkanSwapchain(VulkanGraphics* graphics, VkSurfaceKHR surface, uint32_t width, uint32_t height);
+        VulkanSwapchain(GraphicsImpl* graphics, VkSurfaceKHR surface, uint32_t width, uint32_t height);
         /// Destruct.
         ~VulkanSwapchain();
 
@@ -55,7 +54,7 @@ namespace Alimer
 
     private:
         /// Graphics subsystem.
-        VulkanGraphics* _graphics;
+        GraphicsImpl* _graphics;
 
         VkPhysicalDevice _physicalDevice;
         VkDevice _logicalDevice;

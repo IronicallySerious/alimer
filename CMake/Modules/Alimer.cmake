@@ -152,73 +152,16 @@ alimer_option (ALIMER_CSHARP "Enable C# support")
 alimer_option (ALIMER_THREADING "Enable multithreading")
 alimer_option (ALIMER_TOOLS "Enable Tools")
 
-
 # Setup global per-platform compiler/linker options
 if( MSVC )
-    # Enable full optimization in dev/release
-    add_compile_options($<$<CONFIG:DEBUG>:/Od> $<$<NOT:$<CONFIG:DEBUG>>:/Ox>)
-
-    # Inline function expansion
-    add_compile_options(/Ob2)
-
-    # Enable intrinsic functions in dev/release
-    add_compile_options($<$<NOT:$<CONFIG:DEBUG>>:/Oi>)
-
-    # Favor fast code
-	add_compile_options(/Ot)
-
-	# Enable fiber-safe optimizations in dev/release
-	add_compile_options($<$<NOT:$<CONFIG:DEBUG>>:/GT>)
-
-	# Enable string pooling
-    add_compile_options(/GF)
-
     # Select static/dynamic runtime library
-	if( ALIMER_WINDOWS )
-        add_compile_options($<$<CONFIG:DEBUG>:/MTd> $<$<NOT:$<CONFIG:DEBUG>>:/MT>)
-    elseif ( ALIMER_UWP )
-        add_compile_options($<$<CONFIG:DEBUG>:/MDd> $<$<NOT:$<CONFIG:DEBUG>>:/MD>)
+    if( ALIMER_WINDOWS )
+        set(CMAKE_C_FLAGS_DEV "${CMAKE_C_FLAGS_DEV} /MT ")
+        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT ")
+
+        set(CMAKE_CXX_FLAGS_DEV "${CMAKE_CXX_FLAGS_DEV} /MT")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
     endif()
-
-    # Disable runtime checks.
-	STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
-	STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-
-    # Disable specific link libraries
-	if ( ALIMER_WINDOWS )
-        # ucm_add_linker_flags(EXE STATIC SHARED /NODEFAULTLIB:"MSVCRT.lib")
-    endif()
-
-	# Use security checks only in debug
-	if ( ALIMER_UWP )
-		add_compile_options($<$<CONFIG:DEBUG>:/sdl> $<$<NOT:$<CONFIG:DEBUG>>:/sdl->)
-	else()
-		add_compile_options($<$<CONFIG:DEBUG>:/GS> $<$<NOT:$<CONFIG:DEBUG>>:/GS->)
-	endif()
-
-	# Enable function-level linking
-	add_compile_options(/Gy)
-
-	# Enable SIMD
-	if( ALIMER_WINDOWS )
-		if( ALIMER_64BIT )
-			if( ALIMER_USE_AVX )
-				add_compile_options(/arch:AVX -DAVX)
-			endif()
-		else()
-			add_compile_options(/arch:SSE2)
-		endif()
-	endif()
-
-    # Use fast floating point model
-    add_compile_options(/fp:fast)
-
-    # Enable multi-processor compilation
-	add_compile_options(/MP)
-
-	# Set warning level 3
-	add_compile_options(/W3)
-    # ucm_add_flags(/W4 CONFIG Debug)
 
 	# Disable specific warnings
 	add_compile_options(/wd4127 /wd4351 /wd4005)
@@ -231,16 +174,6 @@ if( MSVC )
 
 	# Force specific warnings as errors
 	add_compile_options(/we4101)
-
-	# Treat all other warnings as errors
-    # add_compile_options(/WX)
-
-	if ( ALIMER_UWP )
-	    # Consume Windows Runtime
-		add_compile_options(/ZW)
-		# C++ exceptions
-		add_compile_options(/EHsc)
-    endif()
 
 elseif (ALIMER_EMSCRIPTEN)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-warn-absolute-paths -Wno-unknown-warning-option")
@@ -267,7 +200,68 @@ function(alimer_setup_common_properties target)
     if (MSVC)
         target_compile_definitions(${target} PRIVATE _SCL_SECURE_NO_WARNINGS _CRT_SECURE_NO_WARNINGS NOMINMAX)
         target_compile_definitions(${target} PRIVATE _UNICODE)
+
+        # Enable full optimization in Dev/Release
+        target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/Od> $<$<NOT:$<CONFIG:DEBUG>>:/Ox>)
+
+        # Inline function expansion
+        target_compile_options(${target} PRIVATE /Ob2)
+
+         # Enable intrinsic functions in dev/release
+	    target_compile_options(${target} PRIVATE $<$<NOT:$<CONFIG:DEBUG>>:/Oi>)
+
+        # Favor fast code
+        target_compile_options(${target} PRIVATE /Ot)
+
+        # Enable fiber-safe optimizations in dev/release
+	    target_compile_options(${target} PRIVATE $<$<NOT:$<CONFIG:DEBUG>>:/GT>)
+
+	    # Enable string pooling
+	    target_compile_options(${target} PRIVATE /GF)
+
+        target_compile_options(${target} PRIVATE /EHs /bigobj)
+
+	    # Use security checks only in debug
+	    if ( ALIMER_UWP )
+            target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/sdl> $<$<NOT:$<CONFIG:DEBUG>>:/sdl->)
+	        # Consume Windows Runtime
+		    target_compile_options(${target} PRIVATE /ZW)
+		    # C++ exceptions
+		    target_compile_options(${target} PRIVATE /EHsc)
+        else()
+            target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/GS> $<$<NOT:$<CONFIG:DEBUG>>:/GS->)
+        endif()
+
+        # Enable function-level linking
+        target_compile_options(${target} PRIVATE /Gy)
+
+        # Use fast floating point model
+        target_compile_options(${target} PRIVATE /fp:fast)
+
+        # Set warning level 3 in non debug, otherwise level 4 and warning as errors
+        target_compile_options(${target} PRIVATE
+            $<$<NOT:$<CONFIG:DEBUG>>:/W3>
+            $<$<CONFIG:Debug>:/W4>
+            $<$<CONFIG:Debug>:/WX>
+        )
+
+        # Enable multi-processor compilation
+        target_compile_options(${target} PRIVATE /MP)
+
+        # Enable SIMD
+        if( ALIMER_WINDOWS )
+            if( ALIMER_64BIT )
+                if( ALIMER_USE_AVX )
+                    target_compile_options(${target} PRIVATE /arch:AVX)
+                    target_compile_definitions(${target} PRIVATE AVX)
+                endif()
+            else()
+                target_compile_options(${target} PRIVATE /arch:SSE2)
+            endif()
+        endif()
+
     elseif (CMAKE_COMPILER_IS_GNUCXX OR (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
+        #
     endif()
 
     # Define 32 versus 64 bit architecture

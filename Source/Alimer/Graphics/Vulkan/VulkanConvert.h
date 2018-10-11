@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "VulkanPrerequisites.h"
+#include "VulkanGraphicsImpl.h"
 #include "../Types.h"
 #include "../PixelFormat.h"
 #include "../GpuBuffer.h"

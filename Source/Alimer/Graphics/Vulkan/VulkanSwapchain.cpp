@@ -20,9 +20,8 @@
 // THE SOFTWARE.
 //
 
+#include "../../Graphics/Graphics.h"
 #include "VulkanSwapchain.h"
-#include "VulkanGraphicsDevice.h"
-#include "VulkanCommandBuffer.h"
 #include "../Texture.h"
 #include "VulkanRenderPass.h"
 #include "VulkanConvert.h"
@@ -30,7 +29,7 @@
 
 namespace Alimer
 {
-    VulkanSwapchain::VulkanSwapchain(VulkanGraphics* graphics, VkSurfaceKHR surface, uint32_t width, uint32_t height)
+    VulkanSwapchain::VulkanSwapchain(GraphicsImpl* graphics, VkSurfaceKHR surface, uint32_t width, uint32_t height)
         : _graphics(graphics)
         , _surface(surface)
         , _size(width, height)
@@ -38,8 +37,6 @@ namespace Alimer
         , _logicalDevice(graphics->GetDevice())
         , _imageCount(0)
     {
-        VkResult result = VK_SUCCESS;
-
         VkBool32 supported = VK_FALSE;
         vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, graphics->GetGraphicsQueueFamily(), surface, &supported);
         if (!supported)
@@ -274,7 +271,7 @@ namespace Alimer
 
         for (uint32_t i = 0; i < _imageCount; i++)
         {
-            _textures[i] = new Texture(_graphics);
+            _textures[i] = new Texture();
             _textures[i]->SetVkImage(&textureDesc, _vkImages[i], createInfo.imageUsage);
         }
 
@@ -299,7 +296,6 @@ namespace Alimer
                     VK_IMAGE_ASPECT_COLOR_BIT,
                     VK_IMAGE_LAYOUT_UNDEFINED,
                     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    VkAccessFlagBits(0),
                     &clearColor);
             }
 

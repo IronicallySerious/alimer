@@ -25,26 +25,23 @@
 
 namespace Alimer
 {
-	Input::Input()
+    Input::Input()
         : _mouseButtons(static_cast<uint32_t>(MouseButton::Count))
-	{
-	}
+    {
+        PlatformConstruct();
+        AddSubsystem(this);
+    }
+
+    Input::~Input()
+    {
+        RemoveSubsystem(this);
+    }
 
     void Input::Update()
     {
         _mouseButtons.Update();
         _previousMousePosition = _mousePosition;
     }
-
-	bool Input::IsCursorVisible() const
-	{
-		return true;
-	}
-
-	void Input::SetCursorVisible(bool)
-	{
-		// Do nothing by default.
-	}
 
     bool Input::IsMouseButtonDown(MouseButton button)
     {
@@ -70,6 +67,7 @@ namespace Alimer
 
     void Input::MouseMoveEvent(MouseButton button, int32_t x, int32_t y)
     {
+        ALIMER_UNUSED(button);
         _mousePosition.x = x;
         _mousePosition.y = y;
     }

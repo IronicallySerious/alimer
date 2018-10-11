@@ -22,17 +22,16 @@
 
 #pragma once
 
-#include "VulkanPrerequisites.h"
+#include "VulkanGraphicsImpl.h"
 
 namespace Alimer
 {
-	class VulkanGraphics;
     class VulkanShader;
 
 	class VulkanPipeline final 
 	{
 	public:
-        VulkanPipeline(VulkanGraphics* graphics);
+        VulkanPipeline(Graphics* graphics);
 		~VulkanPipeline();
 
 	private:

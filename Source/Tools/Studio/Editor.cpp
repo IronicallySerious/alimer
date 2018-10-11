@@ -26,8 +26,7 @@ namespace Alimer
 {
     Editor::Editor()
     {
-        _settings.preferredGraphicsBackend = GraphicsBackend::Vulkan;
-        //_settings.preferredGraphicsBackend = GraphicsBackend::Direct3D11;
+        _mainWindow.SetTitle("Alimer Studio 2018");
     }
 
     Editor::~Editor()
@@ -37,17 +36,17 @@ namespace Alimer
 
     void Editor::Initialize()
     {
-        _window->SetTitle("Alimer Studio 2018");
-
-        _ui = new UI(_graphicsDevice.Get());
+        
+        _ui = new UI();
     }
 
     void Editor::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
     {
+        ALIMER_UNUSED(commandBuffer);
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        if (_input->IsMouseButtonHeld(MouseButton::Left))
+        if (_input.IsMouseButtonHeld(MouseButton::Left))
         {
             ALIMER_LOGINFO("Mouse left button is held");
         }

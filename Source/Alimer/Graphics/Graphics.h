@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Core/Object.h"
-#include "../Application/Window.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/GpuDeviceFeatures.h"
 #include "../Graphics/GpuBuffer.h"
@@ -34,65 +33,40 @@
 #include <vector>
 
 #ifdef ALIMER_THREADING
-#include <atomic>
-#include <mutex>
-#include <condition_variable>
+#   include <atomic>
+#   include <mutex>
+#   include <condition_variable>
 #endif
 
 namespace Alimer
 {
-    /// Enum describing the Graphics backend.
-    enum class GraphicsBackend : uint32_t
-    {
-        /// Best device supported for running platform.
-        Default,
-        /// Empty/Headless device type.
-        Empty,
-        /// Vulkan backend.
-        Vulkan,
-        /// DirectX 11.1+ backend.
-        Direct3D11,
-        /// DirectX 12 backend.
-        Direct3D12,
-    };
-
-    class ALIMER_API RenderingSettings
-    {
-    public:
-        // Main swap chain settings.
-        uint32_t defaultBackBufferWidth = 1280;
-        uint32_t defaultBackBufferHeight = 720;
-        WindowHandle windowHandle = 0;
-    };
+    class GraphicsImpl;
 
     /// Low-level 3D graphics module.
-    class ALIMER_API Graphics : public Object
+    class ALIMER_API Graphics final : public Object
     {
         friend class GpuResource;
 
         ALIMER_OBJECT(Graphics, Object);
 
-    protected:
-        /// Constructor.
-        Graphics(bool validation);
-
     public:
-        static Graphics* Create(bool validation = false);
+        /// Constructor.
+        Graphics(bool validation = false);
 
         /// Destructor.
         ~Graphics() override;
 
         /// Initialize graphics with given settings.
-        virtual bool Initialize(const RenderingSettings& settings);
+        bool Initialize(const RenderingSettings& settings);
 
         /// Wait for a device to become idle.
         bool WaitIdle();
 
         /// Begin the rendering frame.
-        virtual bool BeginFrame() = 0;
+        bool BeginFrame();
 
         /// Finishes the current frame and schedules it for display.
-        virtual void EndFrame() = 0;
+        void EndFrame();
 
         /*
         
@@ -118,23 +92,23 @@ namespace Alimer
         ShaderProgram* CreateShaderProgram(ShaderModule* vertex, ShaderModule* fragment);
         */
 
+        /// Return backend implementation.
+        GraphicsImpl* GetImpl() const { return _impl; }
+
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
 
         /// Get the type of device.
-        GraphicsBackend GetBackend() const { return _backend; }
+        GraphicsBackend GetBackend() const;
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
+        const GraphicsDeviceFeatures& GetFeatures() const;
 
         /// Get the main Swapchain current image view.
-        virtual SharedPtr<TextureView> GetSwapchainView() const = 0;
+        SharedPtr<TextureView> GetSwapchainView() const;
 
         /// Get the main command buffer.
-        SharedPtr<CommandBuffer> GetMainCommandBuffer() const
-        {
-            return _mainCommandBuffer;
-        }
+        SharedPtr<CommandBuffer> GetMainCommandBuffer() const;
 
         /// Request new command buffer.
         //SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBuffer::Type type);
@@ -143,17 +117,10 @@ namespace Alimer
 
         void NotifyFalidationError(const char* message);
 
-        // Backend
-#if ALIMER_VULKAN
-        VkInstance GetInstance() const { return _instance; }
-        VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
-        VkDevice GetDevice() const { return _device; }
-        VmaAllocator_T* GetVmaAllocator() const { return _allocator; }
-#endif
-
     private:
-        void InitializeBackend();
+        GraphicsImpl* CreateBackend(bool validation);
         void ShutdownBackend();
+        bool BackendInitialize(const RenderingSettings& settings);
 
     protected:
         /// Add a GpuResource to keep track of. 
@@ -167,53 +134,16 @@ namespace Alimer
         //virtual ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) = 0;
         //virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr) = 0;
 
-        GraphicsBackend _backend = GraphicsBackend::Empty;
-        bool _validation = false;
+        /// Implementation.
+        GraphicsImpl* _impl;
 
         bool _initialized = false;
         RenderingSettings _settings{};
-        GraphicsDeviceFeatures _features{};
-
-        SharedPtr<CommandBuffer> _mainCommandBuffer;
         std::vector<GpuResource*> _gpuResources;
 
-#if ALIMER_VULKAN
-        bool _supportsExternal = false;
-        bool _supportsDedicated = false;
-        bool _supportsImageFormatList = false;
-        bool _supportsDebugMarker = false;
-        bool _supportsDebugUtils = false;
-
-        VkInstance _instance = VK_NULL_HANDLE;
-        VkDebugUtilsMessengerEXT _debugMessenger = VK_NULL_HANDLE;
-        VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
-
-        // PhysicalDevice
-        VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
-        VkPhysicalDeviceProperties _deviceProperties;
-        VkPhysicalDeviceMemoryProperties _deviceMemoryProperties;
-        VkPhysicalDeviceFeatures _deviceFeatures;
-        std::vector<VkQueueFamilyProperties> _queueFamilyProperties;
-
-        // Logical device.
-        VkDevice _device = nullptr;
-        VmaAllocator_T* _allocator = nullptr;
-
-        // Queue's.
-        VkQueue _graphicsQueue = VK_NULL_HANDLE;
-        VkQueue _computeQueue = VK_NULL_HANDLE;
-        VkQueue _transferQueue = VK_NULL_HANDLE;
-        uint32_t _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-
-        // Frame fences
-        std::vector<VkFence> _waitFences;
-        uint32_t _swapchainImageIndex = 0;
-        VkSemaphore _swapchainImageAcquiredSemaphore = VK_NULL_HANDLE;
-#endif
-
     private:
+        
+
 #ifdef ALIMER_THREADING
         std::atomic<uint64_t> _cookie;
         std::mutex _gpuResourceMutex;

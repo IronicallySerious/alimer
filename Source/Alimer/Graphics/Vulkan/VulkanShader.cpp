@@ -20,16 +20,16 @@
 // THE SOFTWARE.
 //
 
+#include "../../Graphics/Graphics.h"
 #include "VulkanShader.h"
-#include "VulkanGraphicsDevice.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"
 
 namespace Alimer
 {
-    VulkanShaderModule::VulkanShaderModule(VulkanGraphics* graphics, const std::vector<uint32_t>& spirv)
+    VulkanShaderModule::VulkanShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv)
         : ShaderModule(nullptr, spirv)
-        , _logicalDevice(graphics->GetDevice())
+        , _logicalDevice(graphics->GetImpl()->GetDevice())
     {
         VkShaderModuleCreateInfo createInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
         createInfo.pNext = nullptr;
@@ -58,9 +58,9 @@ namespace Alimer
         }
     }
 
-    VulkanShader::VulkanShader(VulkanGraphics* graphics, const ShaderProgramDescriptor* descriptor)
+    VulkanShader::VulkanShader(Graphics* graphics, const ShaderProgramDescriptor* descriptor)
         : ShaderProgram(nullptr, descriptor)
-        , _logicalDevice(graphics->GetDevice())
+        , _logicalDevice(graphics->GetImpl()->GetDevice())
     {
         //_shaderModules[static_cast<unsigned>(ShaderStage::Compute)] = CreateShaderModule(_logicalDevice, pCode, codeSize);
         //_pipelineLayout = graphics->RequestPipelineLayout(_layout);

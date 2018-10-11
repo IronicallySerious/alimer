@@ -23,13 +23,12 @@
 #pragma once
 
 #include "../Shader.h"
-#include "VulkanPrerequisites.h"
+#include "VulkanGraphicsImpl.h"
 #include "../../Base/HashMap.h"
 #include <vector>
 
 namespace Alimer
 {
-    class VulkanGraphics;
     class VulkanPipelineLayout;
 
     enum class VulkanShaderStage
@@ -48,7 +47,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        VulkanShaderModule(VulkanGraphics* graphics, const std::vector<uint32_t>& spirv);
+        VulkanShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv);
         ~VulkanShaderModule() override;
 
         void Destroy() override;
@@ -64,7 +63,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        VulkanShader(VulkanGraphics* graphics, const ShaderProgramDescriptor* descriptor);
+        VulkanShader(Graphics* graphics, const ShaderProgramDescriptor* descriptor);
 
         ~VulkanShader() override;
         void Destroy() override;

@@ -127,6 +127,9 @@ namespace Alimer
         // Isolate translation.
         trans = Column(3).xyz();
 
+        ALIMER_UNUSED(scale);
+        ALIMER_UNUSED(rotation);
+
         /*vec3 cols[3];
         cols[0] = Column(0).xyz();
         cols[1] = Column(1).xyz();
@@ -296,6 +299,10 @@ namespace Alimer
         /*vec3 const f(normalize(target - eye));
         vec3 const s(normalize(cross(f, up)));
         vec3 const u(cross(s, f));*/
+
+        ALIMER_UNUSED(eye);
+        ALIMER_UNUSED(target);
+        ALIMER_UNUSED(up);
 
         Matrix4x4 result;
         /*result.data[0][0] = s.x;

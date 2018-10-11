@@ -4870,7 +4870,7 @@ class VmaDeviceMemoryBlock
 public:
     VmaBlockMetadata* m_pMetadata;
 
-    VmaDeviceMemoryBlock(VmaAllocator hAllocator);
+    VmaDeviceMemoryBlock();
 
     ~VmaDeviceMemoryBlock()
     {
@@ -9086,7 +9086,7 @@ void VmaBlockMetadata_Linear::CleanupAfterFree()
 ////////////////////////////////////////////////////////////////////////////////
 // class VmaDeviceMemoryBlock
 
-VmaDeviceMemoryBlock::VmaDeviceMemoryBlock(VmaAllocator hAllocator) :
+VmaDeviceMemoryBlock::VmaDeviceMemoryBlock() :
     m_pMetadata(VMA_NULL),
     m_MemoryTypeIndex(UINT32_MAX),
     m_Id(0),
@@ -9928,7 +9928,7 @@ VkResult VmaBlockVector::CreateBlock(VkDeviceSize blockSize, size_t* pNewBlockIn
     // New VkDeviceMemory successfully created.
 
     // Create new Allocation for it.
-    VmaDeviceMemoryBlock* const pBlock = vma_new(m_hAllocator, VmaDeviceMemoryBlock)(m_hAllocator);
+    VmaDeviceMemoryBlock* const pBlock = vma_new(m_hAllocator, VmaDeviceMemoryBlock)();
     pBlock->Init(
         m_hAllocator,
         m_MemoryTypeIndex,

@@ -26,7 +26,6 @@
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
-using namespace std;
 
 namespace Alimer
 {
@@ -166,7 +165,7 @@ namespace Alimer
     private:
         Stream & _outStream;
         rapidjson::Document _document;
-        vector<rapidjson::Value*> _objectStack;
+        std::vector<rapidjson::Value*> _objectStack;
     };
 
     JsonSerializer::JsonSerializer(Stream& outStream)

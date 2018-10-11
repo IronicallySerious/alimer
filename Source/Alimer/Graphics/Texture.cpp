@@ -21,13 +21,13 @@
 //
 
 #include "../Graphics/Texture.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    Texture::Texture(Graphics* graphics)
-        : GpuResource(graphics, GpuResourceType::Texture)
+    Texture::Texture()
+        : GpuResource(GetSubsystem<Graphics>(), GpuResourceType::Texture)
     {
     }
 

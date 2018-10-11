@@ -20,12 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "InputWindows.h"
+#include "../../Input/Input.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
 {
-	InputWindows::InputWindows()
+	void Input::PlatformConstruct()
 	{
 		for (uint32_t i = 0; i < static_cast<unsigned>(CursorType::Count); ++i)
 		{
@@ -48,22 +48,18 @@ namespace Alimer
 		_cursor = _cursors[static_cast<unsigned>(CursorType::Arrow)];
 	}
 
-	InputWindows::~InputWindows()
-	{
-	}
-
-	bool InputWindows::IsCursorVisible() const
+	bool Input::IsCursorVisible() const
 	{
 		return _cursorVisible;
 	}
 
-	void InputWindows::SetCursorVisible(bool visible)
+	void Input::SetCursorVisible(bool visible)
 	{
 		_cursorVisible = visible;
 		UpdateCursor();
 	}
 
-	void InputWindows::UpdateCursor()
+	void Input::UpdateCursor()
 	{
 		if (_cursorVisible)
 		{

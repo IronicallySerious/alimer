@@ -33,7 +33,8 @@ namespace Alimer
     void CameraComponent::Update(const Transform& transform)
     {
         _projection = mat4::perspective(ToRadians(fovy), aspect, znear, zfar);
-        //_view = transform..Inverse();
+        //_view = transform.Inverse();
+        _view = transform.GetMatrix();
     }
 
     mat4 CameraComponent::GetView() const

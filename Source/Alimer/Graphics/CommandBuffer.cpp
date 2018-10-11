@@ -21,17 +21,17 @@
 //
 
 #include "../Graphics/CommandBuffer.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    CommandBuffer::CommandBuffer(Graphics* graphics, Type type, bool secondary)
-        : _graphics(graphics)
+    CommandBuffer::CommandBuffer(Type type, bool secondary)
+        : _graphics(Object::GetSubsystem<Graphics>())
         , _type(type)
     {
-        ALIMER_ASSERT(graphics);
+        ALIMER_ASSERT(_graphics.IsNotNull());
         Create(secondary);
         BeginCompute();
     }
@@ -142,7 +142,7 @@ namespace Alimer
         SetShaderProgramImpl(program);
     }
 
-    void CommandBuffer::BindVertexBuffer(GpuBuffer* buffer, uint32_t binding, GpuSize offset, VertexInputRate inputRate)
+    void CommandBuffer::BindVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(any(buffer->GetUsage() & BufferUsage::Vertex));
@@ -158,7 +158,7 @@ namespace Alimer
         SetVertexInputFormatImpl(format);
     }
 
-    void CommandBuffer::BindIndexBuffer(GpuBuffer* buffer, GpuSize offset, IndexType indexType)
+    void CommandBuffer::BindIndexBuffer(GpuBuffer* buffer, uint64_t offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(any(buffer->GetUsage() & BufferUsage::Index));

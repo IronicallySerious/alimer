@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "../Core/Platform.h"
+#include "../Core/Object.h"
 #include "../Math/Math.h"
 #include <string>
 #include <vector>
@@ -58,16 +59,16 @@ namespace Alimer
     };
 
     /// Input system class.
-    class ALIMER_API Input
+    class ALIMER_API Input final : public Object
     {
-        friend class Application;
+        ALIMER_OBJECT(Input, Object);
 
     public:
         /// Constructor.
         Input();
 
         /// Destructor.
-        virtual ~Input() = default;
+        ~Input() override;
 
         /// Get if given mouse button is down.
         bool IsMouseButtonDown(MouseButton button);
@@ -79,18 +80,24 @@ namespace Alimer
         bool IsMouseButtonHeld(MouseButton button);
 
         /// Is cursor visible.
-        virtual bool IsCursorVisible() const;
+        bool IsCursorVisible() const;
 
         /// Set cursor visibility.
-        virtual void SetCursorVisible(bool visible);
+        void SetCursorVisible(bool visible);
 
         // Events
         void MouseButtonEvent(MouseButton button, int32_t x, int32_t y, bool pressed);
         void MouseMoveEvent(MouseButton button, int32_t x, int32_t y);
 
-    private:
         /// Update input state and poll devices.
         void Update();
+
+#if ALIMER_PLATFORM_WINDOWS
+        void UpdateCursor();
+#endif
+
+    private:
+        void PlatformConstruct();
 
         enum class ActionSlotBits
         {
@@ -128,6 +135,15 @@ namespace Alimer
         ActionState _mouseButtons;
         ivec2 _mousePosition;
         ivec2 _previousMousePosition;
+
+        bool _cursorVisible = true;
+
+#if ALIMER_PLATFORM_WINDOWS
+        HCURSOR _cursors[static_cast<unsigned>(CursorType::Count)] = {};
+        HCURSOR _cursor = nullptr;
+#endif
+
+    private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Input);
     };
 }

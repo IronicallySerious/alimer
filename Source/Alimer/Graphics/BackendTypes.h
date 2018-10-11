@@ -22,30 +22,17 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#if ALIMER_VULKAN
+#define VK_FORWARD_HANDLE(object) typedef struct object##_T* object;
 
-#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
-struct IUnknown;
-#elif defined(_WIN32)
-struct HWND__;
+#if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) && !defined(__ILP32__) ) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
+#   define VK_FORWARD_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
+#else
+#   define VK_FORWARD_NON_DISPATCHABLE_HANDLE(object) typedef uint64_t object;
 #endif
 
-namespace Alimer
-{
-#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
-    /// Window handle is IUnknown on UWP
-    using WindowHandle = IUnknown*;
-#elif defined(_WIN32)
-    /// Window handle is HWND (HWND__*) on Windows
-    using WindowHandle = HWND__*;
-#elif defined(__APPLE__)
-    /// Window handle is NSWindow or NSView (void*) on Mac OS X - Cocoa or UIWindow (void*) on iOS - UIKit.
-    using WindowHandle = void*;
-#elif defined(__linux__)
-    // Window handle is Window (unsigned long) on Unix - X11
-    using WindowHandle = unsigned long;
-#elif defined(__ANDROID__)
-    // Window handle is ANativeWindow* (void*) on Android
-    using WindowHandle = void*;
+
+VK_FORWARD_NON_DISPATCHABLE_HANDLE(VkImage)
+VK_FORWARD_NON_DISPATCHABLE_HANDLE(VkImageView)
+VK_FORWARD_HANDLE(VkCommandBuffer)
 #endif
-}

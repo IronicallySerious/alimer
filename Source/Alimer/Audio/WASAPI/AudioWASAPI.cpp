@@ -68,26 +68,35 @@ namespace Alimer
 		// IMMNotificationClient
 		HRESULT STDMETHODCALLTYPE OnDeviceStateChanged(LPCWSTR pwstrDeviceId, DWORD dwNewState) override
 		{
+            ALIMER_UNUSED(pwstrDeviceId);
+            ALIMER_UNUSED(dwNewState);
 			return S_OK;
 		}
 
 		HRESULT STDMETHODCALLTYPE OnDeviceAdded(LPCWSTR pwstrDeviceId) override
 		{
+            ALIMER_UNUSED(pwstrDeviceId);
 			return S_OK;
 		}
 
 		HRESULT STDMETHODCALLTYPE OnDeviceRemoved(LPCWSTR pwstrDeviceId) override
 		{
+            ALIMER_UNUSED(pwstrDeviceId);
 			return S_OK;
 		}
 
 		HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(EDataFlow InFlow, ERole InRole, LPCWSTR pwstrDeviceId) override
 		{
+            ALIMER_UNUSED(InFlow);
+            ALIMER_UNUSED(InRole);
+            ALIMER_UNUSED(pwstrDeviceId);
 			return S_OK;
 		}
 
 		HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(LPCWSTR pwstrDeviceId, const PROPERTYKEY key) override
 		{
+            ALIMER_UNUSED(pwstrDeviceId);
+            ALIMER_UNUSED(key);
 			return S_OK;
 		}
 

@@ -20,17 +20,16 @@
 // THE SOFTWARE.
 //
 
+#include "../../Graphics/Graphics.h"
 #include "VulkanBuffer.h"
-#include "VulkanGraphicsDevice.h"
 #include "VulkanConvert.h"
-#include "vkmemalloc/vk_mem_alloc.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
 {
-    VulkanBuffer::VulkanBuffer(VulkanGraphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
+    VulkanBuffer::VulkanBuffer(Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
         : GpuBuffer(nullptr, descriptor)
-        , _logicalDevice(graphics->GetDevice())
+        , _logicalDevice(graphics->GetImpl()->GetDevice())
     {
         VkBufferUsageFlags vkUsage = 0;
 
@@ -97,7 +96,7 @@ namespace Alimer
             }
 
             result = vmaCreateBuffer(
-                _graphics->GetVmaAllocator(),
+                _graphics->GetImpl()->GetVmaAllocator(),
                 &createInfo,
                 &allocCreateInfo,
                 &_handle,
@@ -115,9 +114,9 @@ namespace Alimer
             else
             {
                 void *data;
-                vmaMapMemory(_graphics->GetVmaAllocator(), _allocation, &data);
+                vmaMapMemory(_graphics->GetImpl()->GetVmaAllocator(), _allocation, &data);
                 memcpy(data, initialData, allocationInfo.size);
-                vmaUnmapMemory(_graphics->GetVmaAllocator(), _allocation);
+                vmaUnmapMemory(_graphics->GetImpl()->GetVmaAllocator(), _allocation);
             }
         }
     }
@@ -126,7 +125,7 @@ namespace Alimer
     {
         if (_allocation != VK_NULL_HANDLE)
         {
-            vmaDestroyBuffer(_graphics->GetVmaAllocator(), _handle, _allocation);
+            vmaDestroyBuffer(_graphics->GetImpl()->GetVmaAllocator(), _handle, _allocation);
         }
         else
         {
@@ -136,6 +135,9 @@ namespace Alimer
 
     bool VulkanBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
     {
+        ALIMER_UNUSED(offset);
+        ALIMER_UNUSED(size);
+        ALIMER_UNUSED(pData);
         ALIMER_LOGCRITICAL("VulkanBuffer::SetData not implemented");
         //memcpy(_allocation->GetMappedData(), initialData, vmaAllocInfo.size);
     }

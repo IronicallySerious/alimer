@@ -22,6 +22,20 @@
 
 #pragma once
 
+#include "../PlatformDef.h"
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+#   define WIN32_LEAN_AND_MEAN
+
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+
+#   include <windows.h>
+#   ifdef DrawText
+#       undef DrawText
+#   endif
+#endif
+
 #include "../Base/String.h"
 
 namespace Alimer

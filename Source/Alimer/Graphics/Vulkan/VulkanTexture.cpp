@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanGraphicsDevice.h"
+#include "../../Graphics/Graphics.h"
 #include "VulkanConvert.h"
 #include "../Texture.h"
 #include "../../Core/Log.h"
@@ -32,18 +32,21 @@ namespace Alimer
         
     }
 
-    bool Texture::Create(const ImageLevel* initialData)
+    bool Texture::Create(const ImageLevel* pInitialData)
     {
+        ALIMER_UNUSED(pInitialData);
         return true;
     }
 
-    void Texture::SetVkImage(const TextureDescriptor* descriptor, VkImage vkImage, VkImageUsageFlags usage)
+    void Texture::SetVkImage(const TextureDescriptor* descriptor, VkImage vkImage, uint32_t vkUsage)
     {
         // Copy settings.
         InitFromDescriptor(descriptor);
         _vkImage = vkImage;
 
-        if (usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+        // vkUsage is VkImageUsageFlags
+
+        if (vkUsage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))
         {
             TextureViewDescriptor viewDescriptor = {};
@@ -68,7 +71,7 @@ namespace Alimer
         };
         
         if (vkCreateImageView(
-            _texture->GetGraphics()->GetDevice(),
+            _texture->GetGraphics()->GetImpl()->GetDevice(),
             &createInfo,
             nullptr, &_vkImageView) != VK_SUCCESS)
         {
@@ -81,7 +84,7 @@ namespace Alimer
         if (_vkImageView != VK_NULL_HANDLE)
         {
             //_texture->GetGraphics()->DestroyImageView(_vkImageView);
-            vkDestroyImageView(_texture->GetGraphics()->GetDevice(), _vkImageView, nullptr);
+            vkDestroyImageView(_texture->GetGraphics()->GetImpl()->GetDevice(), _vkImageView, nullptr);
             _vkImageView = VK_NULL_HANDLE;
         }
     }

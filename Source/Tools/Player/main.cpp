@@ -393,6 +393,7 @@ namespace Alimer
 
     void RuntimeApplication::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
     {
+        ALIMER_UNUSED(commandBuffer);
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 

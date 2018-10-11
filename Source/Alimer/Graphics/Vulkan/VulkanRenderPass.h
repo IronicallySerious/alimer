@@ -23,24 +23,24 @@
 #pragma once
 
 #include "../RenderPass.h"
-#include "../../Base/TemporaryHashmap.h"
-#include "VulkanPrerequisites.h"
+#include "VulkanGraphicsImpl.h"
 
 namespace Alimer
 {
-    class VulkanGraphics;
-
-    class VulkanRenderPass final : public VkHashedObject
+    class VulkanRenderPass final 
     {
     public:
-        VulkanRenderPass(Util::Hash hash, VulkanGraphics* device, const RenderPassDescriptor* descriptor);
+        VulkanRenderPass(uint64_t hash, GraphicsImpl* device, const RenderPassDescriptor* descriptor);
         ~VulkanRenderPass();
 
         VkRenderPass GetVkRenderPass() const { return _renderPass; }
         uint32_t GetColorAttachmentsCount() const { return _colorAttachmentsCount; }
 
+        inline uint64_t GetHash() const { return _hash; }
+
     private:
-        VulkanGraphics* _device;
+        uint64_t _hash = 0;
+        GraphicsImpl* _device;
         VkRenderPass _renderPass = VK_NULL_HANDLE;
         uint32_t _colorAttachmentsCount = 0;
 
@@ -50,19 +50,19 @@ namespace Alimer
     class VulkanFramebuffer 
     {
     public:
-        VulkanFramebuffer(VulkanGraphics* graphics, const VulkanRenderPass& renderPass, const RenderPassDescriptor* descriptor);
+        VulkanFramebuffer(GraphicsImpl* graphics, const VulkanRenderPass* renderPass, const RenderPassDescriptor* descriptor);
         ~VulkanFramebuffer();
 
         VkFramebuffer GetVkFramebuffer() const { return _framebuffer; }
         uint32_t GetWidth() const { return _width; }
         uint32_t GetHeight() const { return _height; }
-        const VulkanRenderPass& GetRenderPass() const { return _renderPass; }
+        const VulkanRenderPass* GetRenderPass() const { return _renderPass; }
         uint64_t GetId() const { return _id; }
 
     private:
-        WeakPtr<VulkanGraphics> _graphics;
+        GraphicsImpl* _graphics;
         VkFramebuffer _framebuffer = VK_NULL_HANDLE;
-        const VulkanRenderPass& _renderPass;
+        const VulkanRenderPass* _renderPass;
         uint32_t _width = 0;
         uint32_t _height = 0;
         std::vector<VkImageView> _attachments;
@@ -71,36 +71,5 @@ namespace Alimer
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(VulkanFramebuffer);
-    };
-
-    static constexpr uint32_t VULKAN_FRAMEBUFFER_RING_SIZE = 8;
-
-    class VkFramebufferAllocator
-    {
-    public:
-        VkFramebufferAllocator(VulkanGraphics* device);
-        VulkanFramebuffer& Request(const RenderPassDescriptor* descriptor);
-
-        void Clear();
-        void BeginFrame();
-
-    private:
-        struct FramebufferNode : Util::TemporaryHashmapEnabled<FramebufferNode>,
-            Util::IntrusiveListEnabled<FramebufferNode>,
-            VulkanFramebuffer
-        {
-            FramebufferNode(VulkanGraphics *device, const VulkanRenderPass& renderPass, const RenderPassDescriptor* descriptor)
-                : VulkanFramebuffer(device, renderPass, descriptor)
-            {
-                //set_internal_sync_object();
-            }
-        };
-
-        VulkanGraphics* _device;
-        Util::TemporaryHashmap<FramebufferNode, VULKAN_FRAMEBUFFER_RING_SIZE, false> _framebuffers;
-
-#ifdef ALIMER_VULKAN_MT
-        std::mutex _lock;
-#endif
     };
 }

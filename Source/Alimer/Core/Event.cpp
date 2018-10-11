@@ -22,7 +22,6 @@
 
 #include "../Core/Event.h"
 #include "../Core/Object.h"
-using namespace std;
 
 namespace Alimer
 {
@@ -52,7 +51,7 @@ namespace Alimer
 
         for (auto it = _handlers.begin(); it != _handlers.end();)
         {
-            const unique_ptr<EventHandler>& handler = *it;
+            const std::unique_ptr<EventHandler>& handler = *it;
             bool remove = true;
 
             if (handler)
@@ -85,7 +84,7 @@ namespace Alimer
         // Check if the same receiver already exists; in that case replace the handler data
         for (auto it = _handlers.begin(); it != _handlers.end(); ++it)
         {
-            const unique_ptr<EventHandler>& existing = *it;
+            const std::unique_ptr<EventHandler>& existing = *it;
             if (existing
                 && existing->GetReceiver() == handler->GetReceiver())
             {
@@ -94,14 +93,14 @@ namespace Alimer
             }
         }
 
-        _handlers.push_back(unique_ptr<EventHandler>(handler));
+        _handlers.push_back(std::unique_ptr<EventHandler>(handler));
     }
 
     void Event::Unsubscribe(Object* receiver)
     {
         for (auto it = _handlers.begin(); it != _handlers.end(); ++it)
         {
-            const unique_ptr<EventHandler>& handler = *it;
+            const std::unique_ptr<EventHandler>& handler = *it;
             if (handler
                 && handler->GetReceiver() == receiver)
             {
@@ -118,7 +117,7 @@ namespace Alimer
 
     bool Event::HasReceivers() const
     {
-        for (const unique_ptr<EventHandler>& handler : _handlers)
+        for (const std::unique_ptr<EventHandler>& handler : _handlers)
         {
             if (handler
                 && handler->GetReceiver())
@@ -132,7 +131,7 @@ namespace Alimer
 
     bool Event::HasReceiver(const Object* receiver) const
     {
-        for (const unique_ptr<EventHandler>& handler : _handlers)
+        for (const std::unique_ptr<EventHandler>& handler : _handlers)
         {
             if (handler
                 && handler->GetReceiver() == receiver)

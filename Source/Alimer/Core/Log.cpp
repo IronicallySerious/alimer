@@ -88,7 +88,6 @@ namespace Alimer
 #ifdef ALIMER_DEV
         AllocConsole();
 #endif
-
         __logInstance = this;
     }
 

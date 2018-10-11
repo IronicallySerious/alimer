@@ -33,6 +33,11 @@ macro (define_engine_source_files)
         
 		list (APPEND HEADER_FILES ${_files})
 
+        # Remove unsupported files for install.
+        list (REMOVE_ITEM _files
+            Graphics/GraphicsImpl.h
+        )
+
 		# Install them
 		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
 
@@ -117,9 +122,9 @@ target_include_directories(libAlimer
 
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES STB spirv_cross)
-# if (ALIMER_CAN_COMPILE)
+if (ALIMER_CAN_COMPILE)
     list (APPEND THIRD_PARTY_DEPENDENCIES glslang SPIRV)
-# endif ()
+endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     if (TARGET "${dep}")

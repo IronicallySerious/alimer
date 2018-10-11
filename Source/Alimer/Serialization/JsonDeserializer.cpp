@@ -23,7 +23,6 @@
 #include "../Serialization/JsonDeserializer.h"
 #include "../Core/Log.h"
 #include <vector>
-using namespace std;
 
 namespace Alimer
 {

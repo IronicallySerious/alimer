@@ -23,22 +23,20 @@
 #pragma once
 
 #include "../Shader.h"
-#include "VulkanPrerequisites.h"
+#include "VulkanGraphicsImpl.h"
 #include "../../Base/HashMap.h"
 #include <vector>
 
 #if TODO
 namespace Alimer
 {
-    class VulkanGraphics;
-
     static constexpr unsigned VulkanSetsCountPerPool = 16;
     static constexpr unsigned VulkanDescriptorRingSize = 8;
 
     class VulkanDescriptorSetAllocator final
     {
     public:
-        VulkanDescriptorSetAllocator(VulkanGraphics* graphics, const DescriptorSetLayout &layout);
+        VulkanDescriptorSetAllocator(Graphics* graphics, const DescriptorSetLayout &layout);
         ~VulkanDescriptorSetAllocator();
 
         void Clear();

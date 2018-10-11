@@ -23,7 +23,6 @@
 
 #include "../Core/Timer.h"
 #include <chrono>
-using namespace std;
 
 namespace Alimer
 {
@@ -71,8 +70,8 @@ namespace Alimer
 
     int64_t Timer::GetTime()
     {
-        auto current = chrono::steady_clock::now().time_since_epoch();
-        auto nsecs = chrono::duration_cast<chrono::nanoseconds>(current);
+        auto current = std::chrono::steady_clock::now().time_since_epoch();
+        auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(current);
         return nsecs.count();
     }
 }

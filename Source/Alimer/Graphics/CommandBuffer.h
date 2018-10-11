@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Graphics/Types.h"
+#include "../Graphics/BackendTypes.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
@@ -40,7 +41,7 @@ namespace Alimer
     class Graphics;
 
     /// Defines a command buffer for recording gpu commands.
-    class ALIMER_API CommandBuffer : public RefCounted
+    class ALIMER_API CommandBuffer final : public RefCounted
     {
         friend class Graphics;
 
@@ -54,10 +55,9 @@ namespace Alimer
             Count
         };
 
-    protected:
-        CommandBuffer(Graphics* graphics, Type type,  bool secondary);
-
     public:
+        CommandBuffer(Type type, bool secondary);
+
         /// Destructor.
         ~CommandBuffer();
 
@@ -92,9 +92,9 @@ namespace Alimer
 
         void SetShaderProgram(ShaderProgram* program);
 
-        void BindVertexBuffer(GpuBuffer* buffer, uint32_t binding, GpuSize offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+        void BindVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetVertexInputFormat(VertexInputFormat* format);
-        void BindIndexBuffer(GpuBuffer* buffer, GpuSize offset, IndexType indexType);
+        void BindIndexBuffer(GpuBuffer* buffer, uint64_t offset, IndexType indexType);
         
         void BindBuffer(GpuBuffer* buffer, uint32_t set, uint32_t binding);
         void BindBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding);
@@ -118,7 +118,7 @@ namespace Alimer
         virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
         virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
         virtual void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
-        virtual void BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) = 0;
+        virtual void BindIndexBufferImpl(GpuBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
         virtual void SetVertexInputFormatImpl(VertexInputFormat* format) = 0;
         */
 

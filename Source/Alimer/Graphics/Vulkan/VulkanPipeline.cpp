@@ -20,18 +20,18 @@
 // THE SOFTWARE.
 //
 
+#include "../../Graphics/Graphics.h"
 #include "VulkanPipeline.h"
 #include "VulkanPipelineLayout.h"
-#include "VulkanGraphicsDevice.h"
 #include "VulkanShader.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
 {
-    VulkanPipeline::VulkanPipeline(VulkanGraphics* graphics)
-        : _logicalDevice(graphics->GetDevice())
-        , _pipelineCache(graphics->GetPipelineCache())
+    VulkanPipeline::VulkanPipeline(Graphics* graphics)
+        : _logicalDevice(graphics->GetImpl()->GetDevice())
+        , _pipelineCache(graphics->GetImpl()->GetPipelineCache())
     {
     }
 

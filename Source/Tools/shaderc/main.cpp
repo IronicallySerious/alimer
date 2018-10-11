@@ -20,6 +20,11 @@
 // THE SOFTWARE.
 //
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4458) 
+#endif
+
 #include "CLI11.hpp"
 #include "Compiler.h"
 #include <iostream>
@@ -52,3 +57,7 @@ int main(int argc, char* argv[])
     Compiler compiler;
     return compiler.Compile(options) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

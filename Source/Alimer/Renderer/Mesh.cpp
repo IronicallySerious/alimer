@@ -21,7 +21,7 @@
 //
 
 #include "../Renderer/Mesh.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 
 namespace Alimer
 {
@@ -38,7 +38,7 @@ namespace Alimer
 
     bool Mesh::Define(const std::vector<vec3>& positions, const std::vector<Color4>& colors, const std::vector<uint16_t>& indices)
     {
-        auto graphics = Object::GetSubsystem<Graphics>();
+        //auto graphics = Object::GetSubsystem<Graphics>();
         SafeDelete(_vertexBuffer);
         SafeDelete(_indexBuffer);
 

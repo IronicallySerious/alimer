@@ -21,16 +21,12 @@
 //
 
 #include "../Application.h"
-#include "WindowWindows.h"
 #include "../../Core/Log.h"
-#include "../../Input/Windows/InputWindows.h"
 #include "../../Audio/WASAPI/AudioWASAPI.h"
 #include <ShellScalingAPI.h>
 #include <shellapi.h>
 #include <Ole2.h>
 #include <oleidl.h>
-
-using namespace std;
 
 namespace Alimer
 {
@@ -112,16 +108,6 @@ namespace Alimer
 
             LocalFree(argv);
         }
-    }
-
-    Window* Application::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
-    {
-        return new Win32Window(title, width, height, fullscreen);
-    }
-
-    Input* Application::CreateInput()
-    {
-        return new InputWindows();
     }
 
     Audio* Application::CreateAudio()

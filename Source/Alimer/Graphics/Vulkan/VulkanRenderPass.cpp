@@ -20,17 +20,15 @@
 // THE SOFTWARE.
 //
 
+#include "../../Graphics/Graphics.h"
 #include "VulkanRenderPass.h"
-#include "../Texture.h"
-#include "VulkanGraphicsDevice.h"
+#include "../../Graphics/Texture.h"
 #include "VulkanConvert.h"
-#include "../../Core/Log.h"
-#include "../../Base/HashMap.h"
 
 namespace Alimer
 {
-    VulkanRenderPass::VulkanRenderPass(Util::Hash hash, VulkanGraphics* device, const RenderPassDescriptor* descriptor)
-        : VkHashedObject(hash)
+    VulkanRenderPass::VulkanRenderPass(uint64_t hash, GraphicsImpl* device, const RenderPassDescriptor* descriptor)
+        : _hash(hash)
         , _device(device)
     {
         uint32_t attachmentCount = 0;
@@ -157,8 +155,8 @@ namespace Alimer
         }
     }
 
-    VulkanFramebuffer::VulkanFramebuffer(VulkanGraphics* graphics, const VulkanRenderPass& renderPass, const RenderPassDescriptor* descriptor)
-        : _id(graphics->GetNextUniqueId())
+    VulkanFramebuffer::VulkanFramebuffer(GraphicsImpl* graphics, const VulkanRenderPass* renderPass, const RenderPassDescriptor* descriptor)
+        : _id(Object::GetSubsystem<Graphics>()->GetNextUniqueId())
         , _graphics(graphics)
         , _renderPass(renderPass)
     {
@@ -177,14 +175,14 @@ namespace Alimer
             Texture* texture = attachment.attachment->GetTexture();
             _width = std::min(_width, texture->GetLevelWidth(mipLevel));
             _height = std::min(_height, texture->GetLevelHeight(mipLevel));
-            views[attachmentCount++] = attachment.attachment->GetNativeHandle();
+            views[attachmentCount++] = attachment.attachment->GetVkImageView();
         }
 
         VkFramebufferCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.renderPass = _renderPass.GetVkRenderPass();
+        createInfo.renderPass = _renderPass->GetVkRenderPass();
         createInfo.attachmentCount = attachmentCount;
         createInfo.pAttachments = views;
         createInfo.width = _width;
@@ -208,49 +206,5 @@ namespace Alimer
             vkDestroyFramebuffer(_graphics->GetDevice(), _framebuffer, nullptr);
             _framebuffer = VK_NULL_HANDLE;
         }
-    }
-
-    VkFramebufferAllocator::VkFramebufferAllocator(VulkanGraphics* device)
-        : _device(device)
-    {
-    }
-
-    VulkanFramebuffer& VkFramebufferAllocator::Request(const RenderPassDescriptor* descriptor)
-    {
-        auto &renderPass = _device->RequestRenderPass(descriptor);
-        Util::Hasher h;
-        h.u64(renderPass.GetHash());
-
-        for (uint32_t i = 0; i < MaxColorAttachments; i++)
-        {
-            if (descriptor->colorAttachments[i].attachment.IsNotNull())
-            {
-               h.u64(descriptor->colorAttachments[i].attachment->GetId());
-            }
-        }
-
-        if (descriptor->depthStencil)
-        {
-            h.u64(descriptor->depthStencil->GetId());
-        }
-
-        auto hash = h.get();
-
-        //LOCK();
-        auto *node = _framebuffers.request(hash);
-        if (node)
-            return *node;
-
-        return *_framebuffers.emplace(hash, _device, renderPass, descriptor);
-    }
-
-    void VkFramebufferAllocator::Clear()
-    {
-        _framebuffers.clear();
-    }
-
-    void VkFramebufferAllocator::BeginFrame()
-    {
-        _framebuffers.begin_frame();
     }
 }

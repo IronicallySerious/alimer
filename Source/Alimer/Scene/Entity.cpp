@@ -22,7 +22,6 @@
 
 #include "../Scene/Entity.h"
 #include "../Core/Log.h"
-using namespace std;
 
 namespace Alimer
 {
@@ -190,7 +189,7 @@ namespace Alimer
 
         // Find the pool for this component family.
         auto& pool = _componentPools[family];
-        BaseComponent* handle = pool->Get(id.index());
+        //BaseComponent* handle = pool->Get(id.index());
         //OnComponentRemoved(Get(id), handle);
         // Remove component bit.
         _entityComponentMask[id.index()].reset(family);
