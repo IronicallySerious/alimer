@@ -479,7 +479,7 @@ namespace Alimer
             _windowCount--;
             if (_windowCount == 0)
                 PostQuitMessage(0);
-            break;
+            return 0;
         }
 
         case WM_ACTIVATE:

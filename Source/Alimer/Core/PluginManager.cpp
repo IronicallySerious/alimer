@@ -25,9 +25,9 @@
 #include "../Core/Log.h"
 #include "../Core/Platform.h"
 
-#if WIN32
+#if defined(_WIN32)
 #   define PLUGIN_EXT ".dll"
-#elif APPLE
+#elif defined(__APPLE__)
 #   define PLUGIN_EXT ".dylib"
 #else
 #   define PLUGIN_EXT ".so"
