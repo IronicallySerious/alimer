@@ -68,10 +68,8 @@ namespace Alimer
         // Init Window and Gpu.
         if (!_headless)
         {
-            _mainWindow.Define(
-                _settings.renderingSettings.defaultBackBufferWidth,
-                _settings.renderingSettings.defaultBackBufferHeight
-            );
+            uvec2 windowSize = uvec2(_settings.renderingSettings.backBufferWidth, _settings.renderingSettings.backBufferHeight);
+            _mainWindow.Define(windowSize);
 
             // Assign as window handle.
             _settings.renderingSettings.windowHandle = _mainWindow.GetHandle();
@@ -128,7 +126,8 @@ namespace Alimer
             _systems.Update(deltaTime);
 
             // Render single frame.
-            if (!_mainWindow.IsMinimized())
+            if (_mainWindow.IsValid()
+                && !_mainWindow.IsMinimized())
             {
                 RenderFrame(frameTime, deltaTime);
             }
@@ -148,20 +147,13 @@ namespace Alimer
 
         CommandBuffer* commandBuffer = _graphics->GetMainCommandBuffer();
 
+        // Begin recording.
+        //commandBuffer->Begin();
+
         RenderPassDescriptor renderPass = {};
         renderPass.colorAttachments[0].clearColor = Color4(0.0f, 0.2f, 0.4f, 1.0f);
         renderPass.colorAttachments[0].attachment = _graphics->GetSwapchainView();
         commandBuffer->BeginRenderPass(&renderPass);
-        commandBuffer->EndRenderPass();
-
-        ALIMER_UNUSED(frameTime);
-        ALIMER_UNUSED(elapsedTime);
-
-        /*
-
-        // Begin recording.
-        commandBuffer->Begin();
-        commandBuffer->BeginRenderPass(nullptr, Color4(0.0f, 0.2f, 0.4f, 1.0f));
 
         // Call OnRenderFrame for custom rendering frame logic.
         OnRenderFrame(commandBuffer, frameTime, elapsedTime);
@@ -176,9 +168,6 @@ namespace Alimer
         // End swap chain render pass.
         commandBuffer->EndRenderPass();
 
-        // End recording.
-        commandBuffer->End();
-        */
         // Commit rendering frame.
         _graphics->EndFrame();
     }
@@ -188,10 +177,6 @@ namespace Alimer
         ALIMER_UNUSED(commandBuffer);
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
-
-        // By default clear with some color.
-        //commandBuffer->BeginRenderPass(nullptr, Color4(0.0f, 0.2f, 0.4f, 1.0f));
-        //commandBuffer->EndRenderPass();
     }
 
     void Application::Exit()

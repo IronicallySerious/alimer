@@ -43,23 +43,23 @@ namespace Alimer
     };
 
     /// Vulkan ShaderModule implementation.
-    class VulkanShaderModule final : public ShaderModule
+    class VulkanShaderModule final 
     {
     public:
         /// Constructor.
-        VulkanShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv);
-        ~VulkanShaderModule() override;
+        VulkanShaderModule(uint64_t hash, GraphicsImpl* graphics, const uint32_t *data, size_t size);
+        ~VulkanShaderModule();
 
-        void Destroy() override;
-
-        VkShaderModule GetHandle() const { return _handle; }
+        VkShaderModule GetModule() const { return _module; }
+        uint64_t GetHash() const { return _hash; }
 
     private:
-        VkDevice _logicalDevice;
-        VkShaderModule _handle = VK_NULL_HANDLE;
+        uint64_t _hash;
+        GraphicsImpl* _graphics;
+        VkShaderModule _module = VK_NULL_HANDLE;
     };
 
-    class VulkanShader final : public ShaderProgram
+    /*class VulkanShader final : public ShaderProgram
     {
     public:
         /// Constructor.
@@ -79,5 +79,5 @@ namespace Alimer
         VkShaderModule _shaderModules[static_cast<unsigned>(VulkanShaderStage::Count)] = {};
         VulkanPipelineLayout* _pipelineLayout = nullptr;
         Util::HashMap<VkPipeline> _graphicsPipelineCache;
-    };
+    };*/
 }

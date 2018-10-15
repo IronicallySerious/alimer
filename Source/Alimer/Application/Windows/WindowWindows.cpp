@@ -248,7 +248,10 @@ namespace Alimer
         int screenWidth = GetSystemMetrics(SM_CXSCREEN);
         int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-        if (_fullscreen)
+        const bool resizable = any(_flags & WindowFlags::Resizable);
+        bool fullscreen = any(_flags & WindowFlags::Fullscreen);
+
+        if (fullscreen)
         {
             DEVMODEW dmScreenSettings;
             memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
@@ -263,7 +266,7 @@ namespace Alimer
                 {
                     if (MessageBoxW(nullptr, L"Fullscreen Mode not supported!\n Switch to window mode?", L"Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
                     {
-                        _fullscreen = false;
+                        fullscreen = false;
                     }
                     else
                     {
@@ -276,7 +279,7 @@ namespace Alimer
         DWORD dwExStyle;
         DWORD dwStyle;
 
-        if (_fullscreen)
+        if (fullscreen)
         {
             dwExStyle = WS_EX_APPWINDOW;
             dwStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
@@ -286,15 +289,15 @@ namespace Alimer
             dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
             dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 
-            if (_resizable)
+            if (resizable)
                 dwStyle |= WS_SIZEBOX | WS_MAXIMIZEBOX;
         }
 
         RECT windowRect;
         windowRect.left = 0L;
         windowRect.top = 0L;
-        windowRect.right = _fullscreen ? (long)screenWidth : (long)_size.x;
-        windowRect.bottom = _fullscreen ? (long)screenHeight : (long)_size.y;
+        windowRect.right = fullscreen ? (long)screenWidth : (long)_size.x;
+        windowRect.bottom = fullscreen ? (long)screenHeight : (long)_size.y;
         AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
         wchar_t titleBuffer[256] = L"";
@@ -308,7 +311,7 @@ namespace Alimer
 
         int x = 0;
         int y = 0;
-        if (!_fullscreen)
+        if (!fullscreen)
         {
             x = (screenWidth - windowRect.right) / 2;
             y = (screenHeight - windowRect.bottom) / 2;
@@ -334,6 +337,7 @@ namespace Alimer
             return false;
         }
 
+        _valid = true;
         _windowCount++;
         InitAfterCreation();
         ShowWindow(_handle, _showCommand);
@@ -476,9 +480,13 @@ namespace Alimer
 
         case WM_DESTROY:
         {
+            _valid = false;
             _windowCount--;
             if (_windowCount == 0)
+            {
                 PostQuitMessage(0);
+            }
+
             return 0;
         }
 

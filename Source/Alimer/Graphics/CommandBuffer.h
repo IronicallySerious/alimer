@@ -74,53 +74,11 @@ namespace Alimer
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
 #if ALIMER_VULKAN
-        VkCommandBuffer GetVkCommandBuffer() const
-        {
-            return _vkCommandBuffer;
-        }
+        VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
+        VkFence GetVkFence() const { return _vkFence; }
 #endif
 
-        inline Type GetCommandBufferType() const
-        {
-            return _type;
-        }
-
-    protected:
-        /*
-        virtual void SetViewport(const rect& viewport) = 0;
-        virtual void SetScissor(const irect& scissor) = 0;
-
-        void SetShaderProgram(ShaderProgram* program);
-
-        void BindVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
-        void SetVertexInputFormat(VertexInputFormat* format);
-        void BindIndexBuffer(GpuBuffer* buffer, uint64_t offset, IndexType indexType);
-        
-        void BindBuffer(GpuBuffer* buffer, uint32_t set, uint32_t binding);
-        void BindBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding);
-        void BindTexture(Texture* texture, uint32_t set, uint32_t binding);
-
-        // Draw methods
-        void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t vertexStart = 0u, uint32_t baseInstance = 0u);
-        void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t startIndex = 0u);
-
-        //void ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
-
-    protected:
-        virtual void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) = 0;
-        virtual void EndRenderPassCore() = 0;
-        //virtual void ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers);
-
-        virtual void BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding) = 0;
-        virtual void BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding) = 0;
-
-        virtual void SetShaderProgramImpl(ShaderProgram* program) = 0;
-        virtual void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
-        virtual void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) = 0;
-        virtual void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
-        virtual void BindIndexBufferImpl(GpuBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
-        virtual void SetVertexInputFormatImpl(VertexInputFormat* format) = 0;
-        */
+        inline Type GetCommandBufferType() const { return _type; }
 
     private:
         void BeginCompute();
@@ -140,7 +98,9 @@ namespace Alimer
         bool _isCompute;
 
 #if ALIMER_VULKAN
+        VkCommandPool _vkCommandPool = 0;
         VkCommandBuffer _vkCommandBuffer = nullptr;
+        VkFence _vkFence = 0;
         const VulkanFramebuffer* _framebuffer = nullptr;
         const VulkanRenderPass* _renderPass = nullptr;
 #endif

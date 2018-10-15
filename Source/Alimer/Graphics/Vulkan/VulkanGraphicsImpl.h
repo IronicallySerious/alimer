@@ -119,6 +119,7 @@ namespace Alimer
         uint32_t GetTransferQueueFamily() const { return _transferQueueFamily; }
 
     private:
+        int32_t ScorePhysicalDevice(VkPhysicalDevice physicalDevice);
         void CreateMemoryAllocator();
         VkSurfaceKHR CreateSurface(const RenderingSettings& settings);
 
@@ -153,7 +154,6 @@ namespace Alimer
         uint32_t _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
 
         // Frame fences
-        std::vector<VkFence> _waitFences;
         uint32_t _swapchainImageIndex = 0;
         VkSemaphore _swapchainImageAcquiredSemaphore = VK_NULL_HANDLE;
 

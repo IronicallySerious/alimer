@@ -36,8 +36,8 @@ namespace Alimer
     template <typename T> struct tvec2;
     template <typename T> struct tvec3;
     template <typename T> struct tvec4;
-    template <typename T> struct tmat2;
-    template <typename T> struct tmat3;
+    class mat2;
+    class mat3;
     class mat4;
     template <typename T> struct trect;
 
@@ -146,12 +146,12 @@ namespace Alimer
             this->z = z;
         }
 
-        inline T &operator[](size_t index)
+        inline T const& operator[](size_t index) const
         {
             return data[index];
         }
 
-        inline const T &operator[](size_t index) const
+        inline T& operator[](size_t index)
         {
             return data[index];
         }
@@ -277,81 +277,87 @@ namespace Alimer
         inline constexpr tvec3<T> xyz() const { return tvec3<T>(x, y, z); }
     };
 
-    template <typename T>
-    struct tmat2
+    class ALIMER_API mat2
     {
-        tmat2() = default;
+    public:
+        enum no_init { NO_INIT };
 
-        explicit inline tmat2(T v)
+        explicit inline mat2(no_init) {}
+
+        inline mat2()
         {
-            data[0] = tvec2<T>(v, T(0));
-            data[1] = tvec2<T>(T(0), v);
+            data[0] = tvec2<float>(1.0f, 0.0f);
+            data[1] = tvec2<float>(0.0f, 1.0f);
         }
 
-        inline tmat2(const tvec2<T> &a, const tvec2<T> &b)
+        explicit inline mat2(float v)
+        {
+            data[0] = tvec2<float>(v, 0.0f);
+            data[1] = tvec2<float>(0.0f, v);
+        }
+
+        inline mat2(const tvec2<float> &a, const tvec2<float> &b)
         {
             data[0] = a;
             data[1] = b;
         }
 
-        inline tvec2<T> &operator[](size_t index)
+        inline tvec2<float> &operator[](size_t index)
         {
             return data[index];
         }
 
-        inline const tvec2<T> &operator[](size_t index) const
+        inline const tvec2<float> &operator[](size_t index) const
         {
             return data[index];
         }
 
     private:
-        tvec2<T> data[2];
+        tvec2<float> data[2];
     };
 
-    template <typename T>
-    struct tmat3
+    class ALIMER_API mat3
     {
-        tmat3() = default;
+    public:
+        enum no_init { NO_INIT };
 
-        explicit inline tmat3(T v)
+        explicit inline mat3(no_init) {}
+
+        inline mat3()
         {
-            data[0] = tvec3<T>(v, T(0), T(0));
-            data[1] = tvec3<T>(T(0), v, T(0));
-            data[2] = tvec3<T>(T(0), T(0), v);
+            data[0] = tvec3<float>(1.0f, 0.0f, 0.0f);
+            data[1] = tvec3<float>(0.0f, 1.0f, 0.0f);
+            data[2] = tvec3<float>(0.0f, 0.0f, 1.0f);
         }
 
-        inline tmat3(const tvec3<T> &a, const tvec3<T> &b, const tvec3<T> &c)
+        explicit inline mat3(float v)
+        {
+            data[0] = tvec3<float>(v, 0.0f, 0.0f);
+            data[1] = tvec3<float>(0.0f, v, 0.0f);
+            data[2] = tvec3<float>(0.0f, 0.0f, v);
+        }
+
+        inline mat3(const tvec3<float> &a, const tvec3<float> &b, const tvec3<float> &c)
         {
             data[0] = a;
             data[1] = b;
             data[2] = c;
         }
 
-        explicit inline tmat3(const mat4 &m)
-        {
-            for (size_t col = 0; col < 3; col++)
-            {
-                for (size_t row = 0; row < 3; row++)
-                {
-                    data[col][row] = m[col][row];
-                }
-            }
-        }
-
-        inline tvec3<T> &operator[](size_t index)
+        inline tvec3<float> &operator[](size_t index)
         {
             return data[index];
         }
 
-        inline const tvec3<T> &operator[](size_t index) const
+        inline const tvec3<float> &operator[](size_t index) const
         {
             return data[index];
         }
 
-        static constexpr tmat3 identity() { return tmat3(1); }
+        static inline mat3 identity() { return mat3(1); }
 
     private:
-        tvec3<T> data[3];
+        tvec3<float> data[3];
     };
 
     class ALIMER_API mat4
@@ -377,7 +383,7 @@ namespace Alimer
             data[3] = tvec4<float>(0.0f, 0.0f, 0.0f, v);
         }
 
-        explicit inline mat4(const tmat3<float> &m)
+        explicit inline mat4(const mat3 &m)
         {
             data[0] = tvec4<float>(m[0], 0.0f);
             data[1] = tvec4<float>(m[1], 0.0f);
@@ -393,12 +399,12 @@ namespace Alimer
             data[3] = d;
         }
 
-        inline tvec4<float> &operator[](size_t index)
+        inline const tvec4<float>& operator[](size_t index) const
         {
             return data[index];
         }
 
-        inline const tvec4<float> &operator[](size_t index) const
+        inline tvec4<float>& operator[](size_t index)
         {
             return data[index];
         }
@@ -492,8 +498,6 @@ namespace Alimer
     using vec2 = tvec2<float>;
     using vec3 = tvec3<float>;
     using vec4 = tvec4<float>;
-    using mat2 = tmat2<float>;
-    using mat3 = tmat3<float>;
 
     using ivec2 = tvec2<int32_t>;
     using ivec3 = tvec3<int32_t>;
@@ -632,59 +636,68 @@ template <typename T> inline tvec4<T> func(const tvec4<T> &a, const tvec4<T> &b,
     inline vec3 cross(const vec3 &a, const vec3 &b) { return vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x); }
 
     // matrix multiply
-    template <typename T>
-    constexpr tvec2<T> operator*(const tmat2<T> &m, const tvec2<T> &v)
+    inline tvec2<float> operator*(const mat2 &m, const tvec2<float>& v)
     {
         return m[0] * v.x + m[1] * v.y;
     }
 
-    template <typename T>
-    constexpr tvec3<T> operator*(const tmat3<T> &m, const tvec3<T> &v)
+    inline tvec3<float> operator*(const mat3 &m, const tvec3<float>& v)
     {
         return m[0] * v.x + m[1] * v.y + m[2] * v.z;
     }
 
-    template <typename T>
-    constexpr tmat2<T> operator*(const tmat2<T> &a, const tmat2<T> &b)
+    inline mat2 operator*(const mat2 &a, const mat2& b)
     {
-        return tmat2<T>(a * b[0], a * b[1]);
+        return mat2(a * b[0], a * b[1]);
     }
 
-    template <typename T>
-    constexpr tmat3<T> operator*(const tmat3<T> &a, const tmat3<T> &b)
+    inline mat3 operator*(const mat3 &a, const mat3& b)
     {
-        return tmat3<T>(a * b[0], a * b[1], a * b[2]);
+        return mat3(a * b[0], a * b[1], a * b[2]);
     }
 
     // mat4 operators
-    inline mat4 operator +(const mat4 &m, float s)
+    inline mat4 operator +(const mat4& m, float s)
     {
         return mat4(m[0] + s, m[1] + s, m[2] + s, m[3] + s);
     }
 
-    inline mat4 operator -(const mat4 &m, float s)
+    inline mat4 operator -(const mat4& m, float s)
     {
         return mat4(m[0] - s, m[1] - s, m[2] - s, m[3] - s);
     }
 
-    inline mat4 operator *(const mat4 &m, float s)
+    inline mat4 operator *(const mat4& m, float s)
     {
         return mat4(m[0] * s, m[1] * s, m[2] * s, m[3] * s);
     }
 
-    inline mat4 operator /(const mat4 &m, float s)
+    inline mat4 operator /(const mat4& m, float s)
     {
         return mat4(m[0] / s, m[1] / s, m[2] / s, m[3] / s);
     }
 
-    inline vec4 operator*(const mat4 &m, const vec4 &v)
+    inline vec4 operator*(const mat4& m, const vec4& v)
     {
         return m[0] * v.x + m[1] * v.y + m[2] * v.z + m[3] * v.w;
     }
 
-    inline mat4 operator*(const mat4 &a, const mat4 &b)
+    inline mat4 operator*(const mat4& a, const mat4& b)
     {
         return mat4(a * b[0], a * b[1], a * b[2], a * b[3]);
+    }
+
+    inline mat3 mat3_cast(const mat4 &m)
+    {
+        mat3 result(mat3::NO_INIT);
+        for (size_t col = 0; col < 3; col++)
+        {
+            for (size_t row = 0; row < 3; row++)
+            {
+                result[col][row] = m[col][row];
+            }
+        }
+        return result;
     }
 }
 

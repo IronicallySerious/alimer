@@ -49,14 +49,12 @@ namespace Alimer
         mat4 worldMatrix;
     };
 
-#if TODO
-
     class TriangleExample
     {
     public:
         ~TriangleExample() = default;
 
-        void Initialize(GraphicsDevice* graphics)
+        void Initialize()
         {
             VertexColor triangleVertices[] =
             {
@@ -65,7 +63,7 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            std::array<VertexAttributeDescriptor, 2> vertexInputAttributs;
+            /*std::array<VertexAttributeDescriptor, 2> vertexInputAttributs;
             // Attribute location 0: Position
             vertexInputAttributs[0].semantic = VertexElementSemantic::Position;
             vertexInputAttributs[0].format = VertexFormat::Float3;
@@ -86,37 +84,38 @@ namespace Alimer
             vertexBufferDesc.size = sizeof(triangleVertices);
             vertexBufferDesc.stride = sizeof(VertexColor);
             _vertexBuffer = graphics->CreateBuffer(&vertexBufferDesc, triangleVertices);
+            */
 
             // Create shader program.
-            auto vertexShader = graphics->CreateShaderModule("assets://shaders/color.vert");
-            auto fragmentShader = graphics->CreateShaderModule("assets://shaders/color.frag");
-            _program = graphics->CreateShaderProgram(vertexShader, fragmentShader);
+            _program.Define("assets://shaders/color.vert", "assets://shaders/color.frag");
 
-            BufferDescriptor uboBufferDesc = {};
+            /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);*/
         }
 
         void Render(CommandBuffer* context)
         {
-            context->SetShaderProgram(_program.Get());
-            context->SetVertexInputFormat(_vertexInputFormat.Get());
-            context->BindVertexBuffer(_vertexBuffer.Get(), 0);
-            context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
-            context->Draw(PrimitiveTopology::Triangles, 3);
+            ALIMER_UNUSED(context);
+            //context->SetShaderProgram(_program.Get());
+            //context->SetVertexInputFormat(_vertexInputFormat.Get());
+            //context->BindVertexBuffer(_vertexBuffer.Get(), 0);
+            //context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
+            //context->Draw(PrimitiveTopology::Triangles, 3);
         }
 
     private:
-        SharedPtr<VertexInputFormat> _vertexInputFormat;
+        //SharedPtr<VertexInputFormat> _vertexInputFormat;
         SharedPtr<GpuBuffer> _vertexBuffer;
-        SharedPtr<ShaderProgram> _program;
+        ShaderProgram _program;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
         PerCameraCBuffer _camera{};
     };
 
+#if TODO
     class QuadExample
     {
     public:
@@ -364,7 +363,7 @@ namespace Alimer
         void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime) override;
 
     private:
-        //TriangleExample _triangleExample;
+        TriangleExample _triangleExample;
         //QuadExample _quadExample;
         //CubeExample _cubeExample;
         //TexturedCubeExample _texturedCubeExample;
@@ -377,7 +376,7 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        //_triangleExample.Initialize(_graphicsDevice.Get());
+        _triangleExample.Initialize();
         //_quadExample.Initialize(_graphicsDevice.Get());
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
@@ -397,7 +396,7 @@ namespace Alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        //_triangleExample.Render(commandBuffer);
+        _triangleExample.Render(commandBuffer);
         //_quadExample.Render(commandBuffer);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);

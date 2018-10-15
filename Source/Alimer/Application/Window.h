@@ -67,7 +67,7 @@ namespace Alimer
         void SetTitle(const std::string& newTitle);
 
         /// Define the window size and settings.
-        bool Define(uint32_t width = 1280, uint32_t height = 720, WindowFlags flags = WindowFlags::Default);
+        bool Define(const uvec2& size, WindowFlags flags = WindowFlags::Default);
 
         /// Show the window.
         void Show();
@@ -88,7 +88,11 @@ namespace Alimer
         /// Return whether is currently minimized.
         bool IsMinimized() const;
 
-        
+        /// Return whether is fullscreen.
+        bool IsFullscreen() const;
+
+        /// Return whether the backend handle is valid.
+        bool IsValid() const { return _valid; }
 
         /// Return window title.
         const std::string& GetTitle() const { return _title; }
@@ -99,6 +103,7 @@ namespace Alimer
         uint32_t GetHeight() const { return _size.y; }
 
         float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
+        WindowFlags GetFlags() const { return _flags; }
 
 #if ALIMER_PLATFORM_UWP
         IUnknown* GetHandle() const { return _handle; }
@@ -128,17 +133,14 @@ namespace Alimer
         int _showCommand = SW_SHOW;
         Win32OleDropTarget* _dropTarget = nullptr;
 #endif
-
         /// Window title.
         std::string _title;
         /// Window size.
         uvec2 _size;
         /// Flags
         WindowFlags _flags = WindowFlags::Default;
-        /// Fullscreen flag.
-        bool _fullscreen = false;
-        /// Resizable flag.
-        bool _resizable = true;
+        /// Is backend handle valid.
+        bool _valid = false;
         /// Visibility flag.
         bool _visible = true;
         /// Visibility flag.

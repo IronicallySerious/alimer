@@ -27,38 +27,45 @@
 
 namespace Alimer
 {
-    VulkanShaderModule::VulkanShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv)
-        : ShaderModule(nullptr, spirv)
-        , _logicalDevice(graphics->GetImpl()->GetDevice())
+    bool Shader::BackendCreate()
     {
         VkShaderModuleCreateInfo createInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.codeSize = spirv.size() * sizeof(uint32_t);
-        createInfo.pCode = spirv.data();
+        createInfo.codeSize = _spirv.size() * sizeof(uint32_t);
+        createInfo.pCode = _spirv.data();
 
-        vkThrowIfFailed(vkCreateShaderModule(
-            _logicalDevice,
+        VkResult result = vkCreateShaderModule(
+            Object::GetSubsystem<Graphics>()->GetImpl()->GetDevice(),
             &createInfo,
             nullptr,
-            &_handle));
-    }
-
-    VulkanShaderModule::~VulkanShaderModule()
-    {
-        Destroy();
-    }
-
-    void VulkanShaderModule::Destroy()
-    {
-        if (_handle != VK_NULL_HANDLE)
+            &_module);
+        if (result != VK_SUCCESS)
         {
-            vkDestroyShaderModule(_logicalDevice, _handle, nullptr);
-            _handle = VK_NULL_HANDLE;
+            ALIMER_LOGERRORF("[Vulkan] - Failed to create shader module.");
+            return false;
+        }
+
+        return true;
+    }
+
+    void Shader::Destroy()
+    {
+        if (_module != VK_NULL_HANDLE)
+        {
+            vkDestroyShaderModule(Object::GetSubsystem<Graphics>()->GetImpl()->GetDevice(), _module, nullptr);
+            _module = VK_NULL_HANDLE;
         }
     }
 
-    VulkanShader::VulkanShader(Graphics* graphics, const ShaderProgramDescriptor* descriptor)
+    
+
+    bool ShaderProgram::BackendCreate()
+    {
+        return true;
+    }
+
+    /*VulkanShader::VulkanShader(Graphics* graphics, const ShaderProgramDescriptor* descriptor)
         : ShaderProgram(nullptr, descriptor)
         , _logicalDevice(graphics->GetImpl()->GetDevice())
     {
@@ -67,7 +74,7 @@ namespace Alimer
     }
 
     /// Constructor.
-    /*VulkanShader::VulkanShader(VulkanGraphics* graphics,
+    VulkanShader::VulkanShader(VulkanGraphics* graphics,
         const void *pVertexCode, size_t vertexCodeSize,
         const void *pFragmentCode, size_t fragmentCodeSize)
         : Shader(graphics, pVertexCode, vertexCodeSize, pFragmentCode, fragmentCodeSize)
@@ -77,7 +84,7 @@ namespace Alimer
         _shaderModules[static_cast<unsigned>(VulkanShaderStage::Fragment)] = CreateShaderModule(_logicalDevice, pFragmentCode, fragmentCodeSize);
 
         _pipelineLayout = graphics->RequestPipelineLayout(_layout);
-    }*/
+    }
 
     VulkanShader::~VulkanShader()
     {
@@ -113,5 +120,5 @@ namespace Alimer
     void VulkanShader::AddPipeline(Util::Hash hash, VkPipeline pipeline)
     {
         _graphicsPipelineCache[hash] = pipeline;
-    }
+    }*/
 }

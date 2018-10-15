@@ -24,6 +24,7 @@
 
 #include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
+#include "../Graphics/BackendTypes.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -78,48 +79,59 @@ namespace Alimer
     ALIMER_API void SPIRVReflectResources(const std::vector<uint32_t>& spirv, ShaderStage& stage, std::vector<PipelineResource>& shaderResources);
 
     /// Defines a shader module class.
-    class ALIMER_API ShaderModule : public Resource, public GpuResource
+    class ALIMER_API Shader final : public Resource
     {
-        ALIMER_OBJECT(ShaderModule, Resource);
+        ALIMER_OBJECT(Shader, Resource);
 
     public:
         /// Constructor.
-        ShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv);
+        Shader();
 
         /// Destructor.
-        virtual ~ShaderModule() = default;
+        ~Shader() override;
+
+        void Destroy();
+
+        bool Define(ShaderStage stage, const String& url);
+        bool Define(ShaderStage stage, const std::vector<uint32_t>& spirv);
 
         ShaderStage GetStage() const { return _stage; }
         std::vector<uint32_t> AcquireBytecode();
         const std::vector<PipelineResource>& GetResources() const { return _resources; }
 
-    protected:
-        std::vector<uint32_t> _spirv;
+    private:
+        bool BackendCreate();
+
         ShaderStage _stage = ShaderStage::Count;
+        String _source;
+        std::vector<uint32_t> _spirv;
+        String _infoLog;
         std::vector<PipelineResource> _resources;
+
+#if ALIMER_VULKAN
+        VkShaderModule _module = 0;
+#endif
     };
 
     /// Defines a shader program class.
-    class ALIMER_API ShaderProgram : public GpuResource, public RefCounted
+    class ALIMER_API ShaderProgram final : public GpuResource, public RefCounted
     {
-    protected:
-        /// Constructor.
-        ShaderProgram(Graphics* graphics, const ShaderProgramDescriptor* descriptor);
-
     public:
-        /// Destructor.
-        virtual ~ShaderProgram() = default;
+        /// Constructor.
+        ShaderProgram();
 
-        inline const ShaderModule *GetShader(ShaderStage stage) const
-        {
-            return _shaders[static_cast<uint32_t>(stage)];
-        }
+        /// Destructor.
+        ~ShaderProgram() override;
+
+        bool Define(const String& vertexShaderUrl, const String& fragmentShaderUrl);
 
         /// Gets if this program is compute program.
         bool IsCompute() const { return _isCompute; }
 
-    protected:
+    private:
+        bool BackendCreate();
+
         bool _isCompute;
-        ShaderModule* _shaders[static_cast<uint32_t>(ShaderStage::Count)] = {};
+        Shader _shaders[static_cast<uint32_t>(ShaderStage::Count)] = {};
     };
 }

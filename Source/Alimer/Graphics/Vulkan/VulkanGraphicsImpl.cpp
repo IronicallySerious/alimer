@@ -34,6 +34,7 @@
 #include "../../Math/Math.h"
 #include "../../Core/Log.h"
 #include "AlimerVersion.h"
+#include <SPIRV/GlslangToSpv.h>
 
 namespace Alimer
 {
@@ -73,12 +74,13 @@ namespace Alimer
             }
             break;
 
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+            // Log to verbose only
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
             if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                 || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
             {
-                ALIMER_LOGINFOF("[Vulkan]: Validation Info: %s", pCallbackData->pMessage);
+                ALIMER_LOGTRACEF("[Vulkan]: Validation Info: %s", pCallbackData->pMessage);
             }
             else
             {
@@ -167,6 +169,12 @@ namespace Alimer
         bool supported;
     };
 
+    static std::vector<VkExtension> s_vkQueryDeviceExtensions = {
+           { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VkExtensionType::Required, false},
+           { VK_KHR_MAINTENANCE1_EXTENSION_NAME, VkExtensionType::Required, false },
+           { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VkExtensionType::Required, false }
+    };
+
     GraphicsImpl::GraphicsImpl(bool validation)
     {
         uint32_t apiVersion = VK_MAKE_VERSION(1, 0, 57);
@@ -185,7 +193,7 @@ namespace Alimer
             if (vkEnumerateInstanceVersion(&checkApiVersion) == VK_SUCCESS)
             {
                 // Translate the version into major/minor for easier comparison
-                ALIMER_LOGDEBUGF("Loader/Runtime support detected for Vulkan %u.%u.%u",
+                ALIMER_LOGTRACEF("[Vulkan] - Loader/Runtime support detected %u.%u.%u",
                     VK_VERSION_MAJOR(checkApiVersion),
                     VK_VERSION_MINOR(checkApiVersion),
                     VK_VERSION_PATCH(checkApiVersion));
@@ -370,42 +378,18 @@ namespace Alimer
         std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
         vkEnumeratePhysicalDevices(_instance, &gpuCount, physicalDevices.data());
 
-        ALIMER_LOGTRACE("Enumerating physical devices");
-        std::map<int, VkPhysicalDevice> physicalDevicesRated;
+        ALIMER_LOGTRACE("[Vulkan] - Enumerating physical devices");
+        std::multimap<int32_t, VkPhysicalDevice> rankedDevices;
         for (uint32_t i = 0; i < gpuCount; i++)
         {
-            VkPhysicalDeviceProperties properties;
-            VkPhysicalDeviceFeatures features;
-            vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
-            vkGetPhysicalDeviceFeatures(physicalDevices[i], &features);
-
-            ALIMER_LOGTRACEF("Physical device %d:", i);
-            ALIMER_LOGTRACEF("\t          Name: %s", properties.deviceName);
-            ALIMER_LOGTRACEF("\t   API version: %x", properties.apiVersion);
-            ALIMER_LOGTRACEF("\tDriver version: %x", properties.driverVersion);
-            ALIMER_LOGTRACEF("\t      VendorId: %x", properties.vendorID);
-            ALIMER_LOGTRACEF("\t      DeviceId: %x", properties.deviceID);
-            ALIMER_LOGTRACEF("\t          Type: %d", properties.deviceType);
-
-            int score = 0;
-            if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-            {
-                score += 1000;
-            }
-            score += properties.limits.maxImageDimension2D;
-            if (!features.geometryShader)
-            {
-                score = 0;
-            }
-            physicalDevicesRated[score] = physicalDevices[i];
+            int32_t score = ScorePhysicalDevice(physicalDevices[i]);
+            rankedDevices.emplace(score, physicalDevices[i]);
         }
 
         // Take the first device from rated devices that support our queue requirements
-        for (const auto& physicalDeviceRated : physicalDevicesRated)
+        if (rankedDevices.rbegin()->first > 0)
         {
-            VkPhysicalDevice physicalDevice = physicalDeviceRated.second;
-            _physicalDevice = physicalDevice;
-            break;
+            _physicalDevice = rankedDevices.rbegin()->second;
         }
 
         vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
@@ -417,10 +401,15 @@ namespace Alimer
         vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, nullptr);
         _queueFamilyProperties.resize(queueFamilyProps);
         vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, _queueFamilyProperties.data());
+
+        // Initialize glslang library.
+        glslang::InitializeProcess();
     }
 
     GraphicsImpl::~GraphicsImpl()
     {
+        glslang::FinalizeProcess();
+
         // Destroy main swap chain.
         _mainSwapchain.Reset();
 
@@ -456,12 +445,6 @@ namespace Alimer
         }
         _allSemaphores.clear();
 
-        for (auto& fence : _waitFences)
-        {
-            vkDestroyFence(_device, fence, nullptr);
-        }
-        _waitFences.clear();
-
         // Destroy memory allocator.
         vmaDestroyAllocator(_allocator);
 
@@ -488,6 +471,68 @@ namespace Alimer
         _instance = VK_NULL_HANDLE;
     }
 
+    int32_t GraphicsImpl::ScorePhysicalDevice(VkPhysicalDevice physicalDevice)
+    {
+        int32_t score = 0;
+
+        // Checks if the requested extensions are supported.
+        uint32_t extensionPropertyCount;
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionPropertyCount, nullptr);
+        std::vector<VkExtensionProperties> extensionProperties(extensionPropertyCount);
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionPropertyCount, extensionProperties.data());
+
+        // Iterates through all extensions requested.
+        for (auto& queryDeviceExtension : s_vkQueryDeviceExtensions)
+        {
+            bool extensionFound = false;
+
+            // Checks if the extension is in the available extensions.
+            for (auto &extension : extensionProperties)
+            {
+                if (strcmp(queryDeviceExtension.name, extension.extensionName) == 0)
+                {
+                    extensionFound = true;
+                    break;
+                }
+            }
+
+            // Returns a score of 0 if this device is missing a required extension.
+            if (!extensionFound
+                && queryDeviceExtension.type == VkExtensionType::Required)
+            {
+                return 0;
+            }
+        }
+
+        // Obtain the device features and properties of the current device being rateds.
+        VkPhysicalDeviceProperties properties;
+        VkPhysicalDeviceFeatures features;
+        vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+        vkGetPhysicalDeviceFeatures(physicalDevice, &features);
+
+#if defined(ALIMER_DEV)
+        //ALIMER_LOGTRACEF("Physical device %d:", i);
+        ALIMER_LOGTRACEF("\t          Name: %s", properties.deviceName);
+        ALIMER_LOGTRACEF("\t   API version: %x", properties.apiVersion);
+        ALIMER_LOGTRACEF("\tDriver version: %x", properties.driverVersion);
+        ALIMER_LOGTRACEF("\t      VendorId: %x", properties.vendorID);
+        ALIMER_LOGTRACEF("\t      DeviceId: %x", properties.deviceID);
+        ALIMER_LOGTRACEF("\t          Type: %d", properties.deviceType);
+        //LogVulkanDevice(physicalDeviceProperties);
+#endif
+
+        // Adds a large score boost for discrete GPUs (dedicated graphics cards).
+        if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        {
+            score += 1000;
+        }
+
+        // Gives a higher score to devices with a higher maximum texture size.
+        score += properties.limits.maxImageDimension2D;
+
+        return score;
+    }
+
     bool GraphicsImpl::Initialize(const RenderingSettings& settings)
     {
         // Log info.
@@ -512,15 +557,10 @@ namespace Alimer
             return itr != std::end(queried_extensions);
         };
 
-        std::vector<VkExtension> queryDeviceExtensions = {
-            { VK_KHR_SWAPCHAIN_EXTENSION_NAME,VkExtensionType::Required, false},
-            { VK_KHR_MAINTENANCE1_EXTENSION_NAME, VkExtensionType::Required, false },
-            { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VkExtensionType::Required, false }
-        };
-
+       
         for (uint32_t i = 0; i < ext_count; i++)
         {
-            for (auto& queryDeviceExtension : queryDeviceExtensions)
+            for (auto& queryDeviceExtension : s_vkQueryDeviceExtensions)
             {
                 if (has_extension(queryDeviceExtension.name))
                 {
@@ -532,7 +572,7 @@ namespace Alimer
 
         bool requiredExtensionsEnabled = true;
         std::vector<const char*> enabled_extensions;
-        for (auto& queryDeviceExtension : queryDeviceExtensions)
+        for (auto& queryDeviceExtension : s_vkQueryDeviceExtensions)
         {
             if (!queryDeviceExtension.supported)
             {
@@ -779,17 +819,12 @@ namespace Alimer
         _commandPool = CreateCommandPool(_graphicsQueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
         // Create the main swap chain.
-        _mainSwapchain.Reset(new VulkanSwapchain(this, surface, settings.defaultBackBufferWidth, settings.defaultBackBufferHeight));
-
-        // Fences (Used to check main command buffer completion)
-        VkFenceCreateInfo fenceCreateInfo = {};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        _waitFences.resize(_mainSwapchain->GetTextureCount());
-        for (auto& fence : _waitFences)
-        {
-            vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &fence));
-        }
+        _mainSwapchain.Reset(new VulkanSwapchain(
+            this,
+            surface,
+            settings.backBufferWidth,
+            settings.backBufferHeight)
+        );
 
         // Create main command buffer;
         _mainCommandBuffer = new CommandBuffer(CommandBuffer::Type::Generic, false);
@@ -856,14 +891,11 @@ namespace Alimer
         // Acquire the next image from the swap chain.
         _mainSwapchain->AcquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
 
-        // Use a fence to wait until the command buffer has finished execution before using it again.
-        vkThrowIfFailed(vkWaitForFences(_device, 1, &_waitFences[_swapchainImageIndex], VK_TRUE, UINT64_MAX));
-        vkThrowIfFailed(vkResetFences(_device, 1, &_waitFences[_swapchainImageIndex]));
-
         // Begin main command buffer rendering.
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         vkBeginCommandBuffer(_mainCommandBuffer->GetVkCommandBuffer(), &beginInfo);
 
         // DestroyPendingResources();
@@ -897,7 +929,10 @@ namespace Alimer
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &signalSemaphore;
 
-        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _waitFences[_swapchainImageIndex]));
+        auto cmdFence = _mainCommandBuffer->GetVkFence();
+        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, cmdFence));
+        vkThrowIfFailed(vkWaitForFences(_device, 1, &cmdFence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+        vkResetFences(_device, 1, &cmdFence);
 
         // Submit Swapchain.
         result = _mainSwapchain->QueuePresent(
@@ -967,32 +1002,6 @@ namespace Alimer
         return _mainCommandBuffer;
     }
 
-    /*
-    RenderPass* VulkanGraphics::CreateRenderPassImpl(const RenderPassDescription* descriptor)
-    {
-        return new VulkanRenderPass(this, descriptor);
-    }
-
-    GpuBuffer* VulkanGraphics::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
-    {
-        return new VulkanBuffer(this, descriptor, initialData);
-    }
-
-    VertexInputFormat* VulkanGraphics::CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor)
-    {
-        return nullptr;
-    }
-
-    ShaderModule* VulkanGraphics::CreateShaderModuleImpl(const std::vector<uint32_t>& spirv)
-    {
-        return new VulkanShaderModule(this, spirv);
-    }
-
-    ShaderProgram* VulkanGraphics::CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor)
-    {
-        return new VulkanShader(this, descriptor);
-    }*/
-
     VkCommandPool GraphicsImpl::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
     {
         VkCommandPoolCreateInfo createInfo = {};
@@ -1046,9 +1055,6 @@ namespace Alimer
         VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
-
-        // Create fence to ensure that the command buffer has finished executing
-        VkFenceCreateInfo fenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0 };
 
         VkFence fence = AcquireFence();
 

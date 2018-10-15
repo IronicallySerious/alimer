@@ -29,7 +29,7 @@ namespace Alimer
 {
     UI::UI()
     {
-        ImGui::CreateContext();
+        _imContext = ImGui::CreateContext();
 
         ImGuiIO& io = ImGui::GetIO();
         /*io.KeyMap[ImGuiKey_Tab] = SCANCODE_TAB;
@@ -55,7 +55,7 @@ namespace Alimer
         io.GetClipboardTextFn = [](void* userData) -> const char* { return SDL_GetClipboardText(); };
         */
         io.IniFilename = nullptr;
-        io.ImeWindowHandle = gApplication().GetMainWindow().GetHandle();
+        //io.ImeWindowHandle = gApplication().GetMainWindow().GetHandle();
         io.UserData = this;
 
         if (io.Fonts->Fonts.empty())
@@ -75,9 +75,8 @@ namespace Alimer
     UI::~UI()
     {
         ImGui::EndFrame();
-        ImGui::Shutdown(ImGui::GetCurrentContext());
-        ImGui::DestroyContext();
-        //ui::ShutdownDock();
+        ImGui::Shutdown(_imContext);
+        ImGui::DestroyContext(_imContext);
     }
 
     void UI::UpdateFontTexture()

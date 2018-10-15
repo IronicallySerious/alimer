@@ -34,7 +34,6 @@ namespace Alimer
         Unknown,
         Buffer,
         Texture,
-        ShaderModule,
         ShaderProgram,
     };
 

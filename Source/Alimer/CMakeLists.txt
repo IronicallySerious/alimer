@@ -88,6 +88,20 @@ endif (ALIMER_GL)
 
 if (ALIMER_VULKAN)
     define_engine_source_files(Graphics/Vulkan)
+
+    set(GLSLANG_HEADER_FILES
+	    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
+	    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.h
+	    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/Worklist.h
+    )
+
+    set(GLSLANG_SOURCE_FILES
+	    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.cpp
+    )
+
+    list (APPEND HEADER_FILES ${GLSLANG_HEADER_FILES})
+    list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
+
 endif (ALIMER_VULKAN)
 
 if (ALIMER_D3D11 OR ALIMER_D3D12)
@@ -122,7 +136,7 @@ target_include_directories(libAlimer
 
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES STB spirv_cross)
-if (ALIMER_CAN_COMPILE)
+if (ALIMER_VULKAN)
     list (APPEND THIRD_PARTY_DEPENDENCIES glslang SPIRV)
 endif ()
 

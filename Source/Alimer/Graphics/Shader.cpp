@@ -21,7 +21,9 @@
 //
 
 #include "../Graphics/Shader.h"
+#include "../Graphics/ShaderCompiler.h"
 #include "../Graphics/Graphics.h"
+#include "../IO/FileSystem.h"
 #include "../Core/Log.h"
 #include <spirv_glsl.hpp>
 #include <vector>
@@ -154,24 +156,56 @@ namespace Alimer
         ExtractInputOutputs(stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, shaderResources);
     }
 
-    ShaderModule::ShaderModule(Graphics* graphics, const std::vector<uint32_t>& spirv)
-        : GpuResource(graphics, GpuResourceType::ShaderModule)
-        , _spirv(std::move(spirv))
+    Shader::Shader()
     {
-        // Reflection all shader resouces.
-         SPIRVReflectResources(spirv, _stage, _resources);
     }
 
-    std::vector<uint32_t> ShaderModule::AcquireBytecode()
+    Shader::~Shader()
+    {
+        Destroy();
+    }
+
+    bool Shader::Define(ShaderStage stage, const String& url)
+    {
+        auto stream = FileSystem::Get().Open(url);
+        if (!stream)
+        {
+            _infoLog = String::Format("Shader file '%s' does not exists", url.CString());
+            return false;
+        }
+
+        _source = stream->ReadAllText();
+        std::vector<uint32_t> spirv;
+        if (!ShaderCompiler::Compile(_stage, _source, "main", spirv, stream->GetName(), _infoLog))
+        {
+            ALIMER_LOGERRORF("Shader compilation failed: %s", _infoLog.CString());
+            return false;
+        }
+
+        return Define(stage, spirv);
+    }
+
+    bool Shader::Define(ShaderStage stage, const std::vector<uint32_t>& spirv)
+    {
+        _stage = stage;
+        _spirv = std::move(spirv);
+
+        // Reflection all shader resouces.
+        SPIRVReflectResources(spirv, _stage, _resources);
+
+        return BackendCreate();
+    }
+
+    std::vector<uint32_t> Shader::AcquireBytecode()
     {
         return std::move(_spirv);
     }
 
-    ShaderProgram::ShaderProgram(Graphics* graphics, const ShaderProgramDescriptor* descriptor)
-        : GpuResource(graphics, GpuResourceType::ShaderProgram)
+    ShaderProgram::ShaderProgram()
+        : GpuResource(Object::GetSubsystem<Graphics>(), GpuResourceType::ShaderProgram)
         , _isCompute(false)
     {
-        if (descriptor->stageCount == 1
+        /*if (descriptor->stageCount == 1
             && descriptor->stages[0].module->GetStage() == ShaderStage::Compute)
         {
             _isCompute = true;
@@ -181,6 +215,18 @@ namespace Alimer
         {
             auto stage = descriptor->stages[i];
             _shaders[static_cast<uint32_t>(stage.module->GetStage())] = stage.module;
-        }
+        }*/
+    }
+
+    ShaderProgram::~ShaderProgram()
+    {
+
+    }
+
+    bool ShaderProgram::Define(const String& vertexShaderUrl, const String& fragmentShaderUrl)
+    {
+        _shaders[static_cast<uint32_t>(ShaderStage::Vertex)].Define(ShaderStage::Vertex, vertexShaderUrl);
+        _shaders[static_cast<uint32_t>(ShaderStage::Fragment)].Define(ShaderStage::Fragment, fragmentShaderUrl);
+        return BackendCreate();
     }
 }

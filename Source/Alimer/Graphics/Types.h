@@ -150,27 +150,12 @@ namespace Alimer
         UInt32,
     };
 
-    class ShaderModule;
-    struct ShaderStageDescriptor
-    {
-        ShaderModule* module = nullptr;
-        std::string entryPoint = "main";
-        // TODO: Add specialization info.
-        //const VkSpecializationInfo* pSpecializationInfo;
-    };
-
-    struct ShaderProgramDescriptor
-    {
-        uint32_t stageCount;
-        const ShaderStageDescriptor* stages;
-    };
-
     class ALIMER_API RenderingSettings
     {
     public:
         // Main swap chain settings.
-        uint32_t defaultBackBufferWidth = 1280;
-        uint32_t defaultBackBufferHeight = 720;
+        uint32_t backBufferWidth = 1280;
+        uint32_t backBufferHeight = 720;
 
 #if ALIMER_PLATFORM_UWP
         IUnknown*   windowHandle = nullptr;

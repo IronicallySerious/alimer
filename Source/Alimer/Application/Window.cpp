@@ -36,13 +36,17 @@ namespace Alimer
         PlatformDestroy();
     }
 
-    bool Window::Define(uint32_t width, uint32_t height, WindowFlags flags)
+    bool Window::Define(const uvec2& size, WindowFlags flags)
     {
         PlatformDestroy();
 
-        _size.x = width;
-        _size.y = height;
-        _fullscreen = any(flags & WindowFlags::Fullscreen);
+        _size = size;
+        _flags = flags;
         return PlatformCreate();
+    }
+
+    bool Window::IsFullscreen() const
+    {
+        return any(_flags & WindowFlags::Fullscreen);
     }
 }

@@ -34,10 +34,11 @@ namespace Alimer
 {
     bool CommandBuffer::Create(bool secondary)
     {
+        _vkCommandPool = _graphics->GetImpl()->GetCommandPool();
         VkCommandBufferAllocateInfo allocateInfo = {};
         allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocateInfo.pNext = nullptr;
-        allocateInfo.commandPool = _graphics->GetImpl()->GetCommandPool();
+        allocateInfo.commandPool = _vkCommandPool;
         allocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocateInfo.commandBufferCount = 1;
         VkResult result = vkAllocateCommandBuffers(_graphics->GetImpl()->GetDevice(), &allocateInfo, &_vkCommandBuffer);
@@ -47,12 +48,14 @@ namespace Alimer
             return false;
         }
 
+        _vkFence = _graphics->GetImpl()->AcquireFence();
         return true;
     }
 
     void CommandBuffer::Destroy()
     {
-        //vkFreeCommandBuffers(_graphics->GetDevice(), _commandPool, 1, &_vkCommandBuffer);
+        vkFreeCommandBuffers(_graphics->GetImpl()->GetDevice(), _vkCommandPool, 1, &_vkCommandBuffer);
+        _graphics->GetImpl()->ReleaseFence(_vkFence);
     }
 
     void CommandBuffer::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
