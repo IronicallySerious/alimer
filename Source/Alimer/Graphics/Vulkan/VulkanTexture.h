@@ -22,41 +22,46 @@
 
 #pragma once
 
-#include "../GpuBuffer.h"
+#include "../Texture.h"
 #include "VulkanBackend.h"
-#include <vector>
 
 namespace Alimer
 {
     class VulkanGraphicsDevice;
 
-	/// Vulkan Buffer.
-	class VulkanBuffer 
+	/// Vulkan Texture implementation.
+	class VulkanTexture final : public Texture
 	{
 	public:
-        VulkanBuffer(VulkanGraphicsDevice* device);
-        ~VulkanBuffer();
-        void Destroy();
+        VulkanTexture(VulkanGraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage existingImage = VK_NULL_HANDLE, VkImageUsageFlags usageFlags = 0);
+        ~VulkanTexture();
+        void Destroy() override;
 
-        bool Define(ResourceUsage resourceUsage, BufferUsage bufferUsage, VkDeviceSize size, const void* initialData);
-        bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
+        VkImage GetVkImage() const { return _vkImage; }
 
-		VkBuffer GetHandle() const { return _handle; }
-        VmaAllocation GetAllocation() const { return _allocation; }
-        VkDeviceSize GetSize() const { return _vkSize; }
 	private:
-        VulkanGraphicsDevice* _device;
-        VkBuffer _handle = VK_NULL_HANDLE;
-        VmaAllocation _allocation = VK_NULL_HANDLE;
-        VkBufferUsageFlags _bufferUsage = 0;
-        VkDeviceSize _vkSize = 0;
+        TextureView* CreateTextureViewImpl(const TextureViewDescriptor* descriptor) override;
+
+        VkDevice _logicalDevice;
+        VmaAllocator _allocator;
+        VkImage _vkImage = VK_NULL_HANDLE;
+        bool _allocated = false;
 	};
 
-    class VulkanVertexBuffer final : public VertexBuffer, public VulkanBuffer
+    /// Vulkan TextureView implementation.
+    class VulkanTextureView final : public TextureView
     {
     public:
-        VulkanVertexBuffer(VulkanGraphicsDevice* device, uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData);
+        VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor);
+        ~VulkanTextureView() override;
 
-        bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
+        VkImageView GetVkImageView() const { return _vkImageView; }
+        /// Get unique id allocated by graphics.
+        uint64_t GetId() const { return _id; }
+
+    private:
+        VkDevice _logicalDevice;
+        VkImageView _vkImageView = VK_NULL_HANDLE;
+        uint64_t _id;
     };
 }

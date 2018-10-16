@@ -49,8 +49,8 @@ namespace Alimer
         _paused = true;
         _running = false;
 
+        _graphicsDevice.reset();
         PluginManager::DeleteInstance();
-
         __appInstance = nullptr;
     }
 
@@ -75,8 +75,8 @@ namespace Alimer
             _settings.renderingSettings.windowHandle = _mainWindow.GetHandle();
 
             // Create and init graphics.
-            _graphics.reset(new Graphics(_settings.validation));
-            if (!_graphics->Initialize(_settings.renderingSettings))
+            _graphicsDevice.reset(GraphicsDevice::Create(_settings.prefferedGraphicsBackend, _settings.validation));
+            if (!_graphicsDevice->Initialize(_settings.renderingSettings))
             {
                 ALIMER_LOGERROR("Failed to initialize Graphics.");
                 return false;
@@ -94,7 +94,7 @@ namespace Alimer
 
         // Setup and configure all systems.
         _systems.Add<CameraSystem>();
-        _renderContext.SetDevice(_graphics.get());
+        _renderContext.SetDevice(_graphicsDevice.get());
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;
@@ -142,17 +142,17 @@ namespace Alimer
         if (_headless)
             return;
 
-        if (!_graphics->BeginFrame())
+        if (!_graphicsDevice->BeginFrame())
             return;
 
-        CommandBuffer* commandBuffer = _graphics->GetMainCommandBuffer();
+        CommandBuffer* commandBuffer = _graphicsDevice->GetMainCommandBuffer();
 
         // Begin recording.
         //commandBuffer->Begin();
 
         RenderPassDescriptor renderPass = {};
         renderPass.colorAttachments[0].clearColor = Color4(0.0f, 0.2f, 0.4f, 1.0f);
-        renderPass.colorAttachments[0].attachment = _graphics->GetSwapchainView();
+        renderPass.colorAttachments[0].attachment = _graphicsDevice->GetSwapchainView();
         commandBuffer->BeginRenderPass(&renderPass);
 
         // Call OnRenderFrame for custom rendering frame logic.
@@ -169,7 +169,7 @@ namespace Alimer
         commandBuffer->EndRenderPass();
 
         // Commit rendering frame.
-        _graphics->EndFrame();
+        _graphicsDevice->EndFrame();
     }
 
     void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
@@ -206,10 +206,5 @@ namespace Alimer
             // TODO: Fire event.
             _paused = false;
         }
-    }
-
-    Application& gApplication()
-    {
-        return *__appInstance;
     }
 }

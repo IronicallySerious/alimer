@@ -20,8 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "../../Graphics/Graphics.h"
-#include "../../Graphics/CommandBuffer.h"
+#include "VulkanGraphicsImpl.h"
+#include "VulkanCommandBuffer.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
@@ -32,35 +32,41 @@
 
 namespace Alimer
 {
-    bool CommandBuffer::Create(bool secondary)
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphicsDevice* device, bool secondary)
+        : CommandBuffer(device, secondary)
+        , _logicalDevice(device->GetDevice())
     {
-        _vkCommandPool = _graphics->GetImpl()->GetCommandPool();
+        _vkCommandPool = device->GetCommandPool();
         VkCommandBufferAllocateInfo allocateInfo = {};
         allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocateInfo.pNext = nullptr;
         allocateInfo.commandPool = _vkCommandPool;
         allocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocateInfo.commandBufferCount = 1;
-        VkResult result = vkAllocateCommandBuffers(_graphics->GetImpl()->GetDevice(), &allocateInfo, &_vkCommandBuffer);
+        VkResult result = vkAllocateCommandBuffers(device->GetDevice(), &allocateInfo, &_vkCommandBuffer);
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERRORF("[Vulkan] - Failed to allocate command buffer: %s", vkGetVulkanResultString(result));
-            return false;
+            return;
         }
 
-        _vkFence = _graphics->GetImpl()->AcquireFence();
-        return true;
+        _vkFence = device->AcquireFence();
     }
 
-    void CommandBuffer::Destroy()
+    VulkanCommandBuffer::~VulkanCommandBuffer()
     {
-        vkFreeCommandBuffers(_graphics->GetImpl()->GetDevice(), _vkCommandPool, 1, &_vkCommandBuffer);
-        _graphics->GetImpl()->ReleaseFence(_vkFence);
+        Destroy();
     }
 
-    void CommandBuffer::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
+    void VulkanCommandBuffer::Destroy()
     {
-        _framebuffer = _graphics->GetImpl()->RequestFramebuffer(descriptor);
+        vkFreeCommandBuffers(_logicalDevice, _vkCommandPool, 1, &_vkCommandBuffer);
+        static_cast<VulkanGraphicsDevice*>(_device)->ReleaseFence(_vkFence);
+    }
+
+    void VulkanCommandBuffer::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
+    {
+        _framebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
         _renderPass = _framebuffer->GetRenderPass();
 
         VkRect2D renderArea = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
@@ -101,12 +107,12 @@ namespace Alimer
         BeginGraphics();
     }
 
-    void CommandBuffer::EndRenderPassImpl()
+    void VulkanCommandBuffer::EndRenderPassImpl()
     {
         vkCmdEndRenderPass(_vkCommandBuffer);
     }
 
-    void CommandBuffer::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void VulkanCommandBuffer::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         vkCmdDispatch(_vkCommandBuffer, groupCountX, groupCountY, groupCountZ);
     }

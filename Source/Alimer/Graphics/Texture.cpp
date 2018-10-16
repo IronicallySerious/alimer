@@ -26,20 +26,10 @@
 
 namespace Alimer
 {
-    Texture::Texture()
-        : GpuResource(GetSubsystem<Graphics>(), GpuResourceType::Texture)
+    Texture::Texture(GraphicsDevice* device, const TextureDescriptor* descriptor)
+        : GpuResource(device)
+        , _type(descriptor->type)
     {
-    }
-
-    Texture::~Texture()
-    {
-        _views.clear();
-        Destroy();
-    }
-
-    void Texture::InitFromDescriptor(const TextureDescriptor* descriptor)
-    {
-        _type = descriptor->type;
         _usage = descriptor->usage;
         _format = descriptor->format;
         _width = descriptor->width;
@@ -51,46 +41,23 @@ namespace Alimer
         _colorSpace = descriptor->colorSpace;
     }
 
-    bool Texture::Define(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    void Texture::Destroy()
     {
         _views.clear();
-        Destroy();
-
-        // Copy settings.
-        InitFromDescriptor(descriptor);
-
-        if (_graphics
-            && _graphics->IsInitialized())
-        {
-            if (Create(initialData))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     SharedPtr<TextureView> Texture::CreateTextureView(const TextureViewDescriptor* descriptor)
     {
-        SharedPtr<TextureView> newView(new TextureView(_graphics, this, descriptor));
+        SharedPtr<TextureView> newView(CreateTextureViewImpl(descriptor));
         _views.push_back(newView);
         return newView;
     }
 
     // TextureView
-    TextureView::TextureView(Graphics* graphics, Texture* texture, const TextureViewDescriptor* descriptor)
-        : _graphics(graphics)
-        , _texture(texture)
-        , _id(graphics->GetNextUniqueId())
+    TextureView::TextureView(Texture* texture, const TextureViewDescriptor* descriptor)
+        : _texture(texture)
         , _format(descriptor->format)
         , _baseMipLevel(descriptor->baseMipLevel)
     {
-        Create();
-    }
-
-    TextureView::~TextureView()
-    {
-        Destroy();
     }
 }

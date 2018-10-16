@@ -27,6 +27,7 @@ file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
 set (TARGET AlimerStudio)
 add_alimer_executable(${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
 target_link_libraries(${TARGET} ImGui)
+target_include_directories(${TARGET} PRIVATE ${STB_INCLUDE_DIR})
 
 # Set properties
 set_target_properties(${TARGET} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")

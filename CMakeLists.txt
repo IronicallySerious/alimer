@@ -92,7 +92,7 @@ include (AlimerPackaging)
 # Set alimer sdk path.
 set (ALIMER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set (ALIMER_SDK_SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Source/Alimer)
-set (ALIMER_THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source/ThirdParty)
+set (ALIMER_THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 set (ALIMER_ASSETS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
 # Workarounds
@@ -134,8 +134,11 @@ add_compile_options("$<$<CONFIG:Dev>:${DEV_COMPILE_OPTIONS}>")
 set(RELEASE_COMPILE_OPTIONS "-DALIMER_DEV=0")
 add_compile_options("$<$<CONFIG:Release>:${RELEASE_COMPILE_OPTIONS}>")
 
+# third_party
+add_subdirectory(third_party)
+
 # Source
-add_subdirectory (Source)
+add_subdirectory(Source)
 
 if (NOT ALIMER_SKIP_INSTALL)
     # Install CMake modules and toolchains provided by and for Alimer

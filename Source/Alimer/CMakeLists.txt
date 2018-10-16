@@ -60,6 +60,7 @@ macro(group_sources)
 endmacro()
 
 set (TARGET_NAME libAlimer)
+set (ALIMER_NATIVE_INCLUDE_DIRS ${SPIRV_TOOLS_INCLUDE_DIR} ${STB_INCLUDE_DIR})
 
 # Generate the AlimerVersion.h file
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerVersion.h)
@@ -101,7 +102,7 @@ if (ALIMER_VULKAN)
 
     list (APPEND HEADER_FILES ${GLSLANG_HEADER_FILES})
     list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
-
+    list(APPEND ALIMER_NATIVE_INCLUDE_DIRS ${VKMEMALLOC_INCLUDE_DIR})
 endif (ALIMER_VULKAN)
 
 if (ALIMER_D3D11 OR ALIMER_D3D12)
@@ -126,18 +127,17 @@ target_include_directories(libAlimer
     PUBLIC
 	    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-	    $<INSTALL_INTERFACE:${DEST_BASE_INCLUDE_DIR}>
-        $<INSTALL_INTERFACE:${DEST_THIRDPARTY_HEADERS_DIR}>
 	PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-        $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>
         $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>/khronos
 )
 
+target_include_directories(libAlimer PRIVATE ${ALIMER_THIRD_PARTY_DIR} ${ALIMER_NATIVE_INCLUDE_DIRS})
+
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES STB spirv_cross)
+set (THIRD_PARTY_DEPENDENCIES spirv_cross)
 if (ALIMER_VULKAN)
-    list (APPEND THIRD_PARTY_DEPENDENCIES glslang SPIRV)
+    list (APPEND THIRD_PARTY_DEPENDENCIES volk glslang SPIRV)
 endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
@@ -214,6 +214,12 @@ endif ()
 if (ALIMER_CSHARP)
 	target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_CSHARP)
 endif ()
+
+# Suppress some MSVC warnings
+if (MSVC)
+    # = conversion possible loss of data -- for STB image
+    set_property(TARGET ${TARGET_NAME} APPEND PROPERTY COMPILE_OPTIONS "/wd4100")
+endif()
 
 # SDK installation
 if (NOT ALIMER_SKIP_INSTALL)

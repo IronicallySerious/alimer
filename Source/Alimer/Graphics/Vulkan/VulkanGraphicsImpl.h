@@ -22,69 +22,49 @@
 
 #pragma once
 
-#if defined(_WIN32)
-#   define VK_USE_PLATFORM_WIN32_KHR 1
-#elif defined(__ANDROID__)
-#   define VK_USE_PLATFORM_ANDROID_KHR 1
-#elif defined(__linux__)
-#   ifdef ALIMER_LINUX_WAYLAND)
-#       define VK_USE_PLATFORM_WAYLAND_KHR 1
-#   else
-#       define VK_USE_PLATFORM_XCB_KHR 1
-#   endif
-#endif
-
-#define VK_NO_PROTOTYPES
-#include "volk/volk.h"
-#include "vkmemalloc/vk_mem_alloc.h"
-
+#include "VulkanBackend.h"
 #include "../../Base/HashMap.h"
-#include "../../Graphics/Types.h"
-#include "../../Graphics/GpuDeviceFeatures.h"
-#include "../../Core/Ptr.h"
-#include "../../Core/Log.h"
+#include "../../Graphics/Graphics.h"
 #include <queue>
 #include <set>
-#include <mutex>
+
+#ifdef ALIMER_THREADING
+#   include <atomic>
+#   include <mutex>
+#   include <condition_variable>
+#endif
 
 namespace Alimer
 {
-    class CommandBuffer;
-    class TextureView;
+    class VulkanBuffer;
+    class VulkanCommandBuffer;
     class VulkanSwapchain;
     class VulkanFramebuffer;
     class VulkanRenderPass;
     struct RenderPassDescriptor;
 
-    class GraphicsImpl final
+    class VulkanGraphicsDevice final : public GraphicsDevice
     {
-        friend class Graphics;
+        ALIMER_OBJECT(VulkanGraphicsDevice, GraphicsDevice);
 
     public:
         /// Construct.
-        GraphicsImpl(bool validation);
+        VulkanGraphicsDevice(bool validation);
+        ~VulkanGraphicsDevice() override;
 
-        ~GraphicsImpl();
+        uint64_t AllocateCookie();
 
-        bool Initialize(const RenderingSettings& settings);
-        bool WaitIdle();
+        bool Initialize(const RenderingSettings& settings) override;
+        void Shutdown() override;
+        bool WaitIdle() override;
 
-        bool BeginFrame();
-        void EndFrame();
+        bool BeginFrame() override;
+        void EndFrame() override;
 
-        SharedPtr<TextureView> GetSwapchainView() const;
-
-        GraphicsBackend GetBackend() const
-        {
-            return GraphicsBackend::Vulkan;
-        }
-
-        const GraphicsDeviceFeatures& GetFeatures() const
-        {
-            return _features;
-        }
-
-        SharedPtr<CommandBuffer> GetMainCommandBuffer() const;
+        SharedPtr<TextureView> GetSwapchainView() const override;
+        SharedPtr<CommandBuffer> GetMainCommandBuffer() const override;
+        VertexBuffer* CreateVertexBufferImpl(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData) override;
+        Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
 
         // Fence
         VkFence AcquireFence();
@@ -101,6 +81,10 @@ namespace Alimer
         void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
         void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkClearColorValue *clearValue);
 
+        VkResult BufferSubData(VulkanBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, const void* pData);
+        VkResult MapBuffer(VulkanBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, void** ppData);
+        void UnmapBuffer(VulkanBuffer* buffer);
+
         VulkanFramebuffer* RequestFramebuffer(const RenderPassDescriptor* descriptor);
         VulkanRenderPass* RequestRenderPass(const RenderPassDescriptor* descriptor);
 
@@ -110,7 +94,7 @@ namespace Alimer
         VkInstance GetInstance() const { return _instance; }
         VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
         VkDevice GetDevice() const { return _device; }
-        VmaAllocator GetVmaAllocator() const { return _allocator; }
+        VmaAllocator GetVmaAllocator() const { return _memoryAllocator; }
 
         VkPipelineCache GetPipelineCache() const { return _pipelineCache; }
         VkCommandPool GetCommandPool() const { return _commandPool; }
@@ -123,7 +107,12 @@ namespace Alimer
         void CreateMemoryAllocator();
         VkSurfaceKHR CreateSurface(const RenderingSettings& settings);
 
-    private:
+#ifdef ALIMER_THREADING
+        std::atomic<uint64_t> _cookie;
+#else
+        uint64_t _cookie = 0;
+#endif
+
         bool _supportsExternal = false;
         bool _supportsDedicated = false;
         bool _supportsImageFormatList = false;
@@ -143,7 +132,9 @@ namespace Alimer
 
         // Logical device.
         VkDevice _device = nullptr;
-        VmaAllocator _allocator = nullptr;
+        VmaAllocator _memoryAllocator = nullptr;
+        VulkanBuffer* _pinnedMemoryBuffer = nullptr;
+        void* _pinnedMemoryPtr = nullptr;
 
         // Queue's.
         VkQueue _graphicsQueue = VK_NULL_HANDLE;
@@ -162,7 +153,7 @@ namespace Alimer
 
         // Default command pool.
         VkCommandPool _commandPool = VK_NULL_HANDLE;
-        SharedPtr<CommandBuffer> _mainCommandBuffer;
+        SharedPtr<VulkanCommandBuffer> _mainCommandBuffer;
 
         // Main swap chain.
         UniquePtr<VulkanSwapchain> _mainSwapchain;
@@ -177,7 +168,7 @@ namespace Alimer
         std::set<VkSemaphore> _allSemaphores;
         std::queue<VkSemaphore> _availableSemaphores;
 
-        GraphicsDeviceFeatures _features = {};
+        
 
         template <typename T>
         class Cache
@@ -226,72 +217,4 @@ namespace Alimer
         //HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
         //HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;
     };
-
-    inline const char* vkGetVulkanResultString(VkResult result)
-    {
-        switch (result)
-        {
-        case VK_SUCCESS:
-            return "Success";
-        case VK_NOT_READY:
-            return "A fence or query has not yet completed";
-        case VK_TIMEOUT:
-            return "A wait operation has not completed in the specified time";
-        case VK_EVENT_SET:
-            return "An event is signaled";
-        case VK_EVENT_RESET:
-            return "An event is unsignaled";
-        case VK_INCOMPLETE:
-            return "A return array was too small for the result";
-        case VK_ERROR_OUT_OF_HOST_MEMORY:
-            return "A host memory allocation has failed";
-        case VK_ERROR_OUT_OF_DEVICE_MEMORY:
-            return "A device memory allocation has failed";
-        case VK_ERROR_INITIALIZATION_FAILED:
-            return "Initialization of an object could not be completed for implementation-specific reasons";
-        case VK_ERROR_DEVICE_LOST:
-            return "The logical or physical device has been lost";
-        case VK_ERROR_MEMORY_MAP_FAILED:
-            return "Mapping of a memory object has failed";
-        case VK_ERROR_LAYER_NOT_PRESENT:
-            return "A requested layer is not present or could not be loaded";
-        case VK_ERROR_EXTENSION_NOT_PRESENT:
-            return "A requested extension is not supported";
-        case VK_ERROR_FEATURE_NOT_PRESENT:
-            return "A requested feature is not supported";
-        case VK_ERROR_INCOMPATIBLE_DRIVER:
-            return "The requested version of Vulkan is not supported by the driver or is otherwise incompatible";
-        case VK_ERROR_TOO_MANY_OBJECTS:
-            return "Too many objects of the type have already been created";
-        case VK_ERROR_FORMAT_NOT_SUPPORTED:
-            return "A requested format is not supported on this device";
-        case VK_ERROR_SURFACE_LOST_KHR:
-            return "A surface is no longer available";
-        case VK_SUBOPTIMAL_KHR:
-            return "A swapchain no longer matches the surface properties exactly, but can still be used";
-        case VK_ERROR_OUT_OF_DATE_KHR:
-            return "A surface has changed in such a way that it is no longer compatible with the swapchain";
-        case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
-            return "The display used by a swapchain does not use the same presentable image layout";
-        case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
-            return "The requested window is already connected to a VkSurfaceKHR, or to some other non-Vulkan API";
-        case VK_ERROR_VALIDATION_FAILED_EXT:
-            return "A validation layer found an error";
-        default:
-            return "ERROR: UNKNOWN VULKAN ERROR";
-        }
-    }
-
-    // Helper utility converts Vulkan API failures into exceptions.
-    inline void vkThrowIfFailed(VkResult result)
-    {
-        if (result < VK_SUCCESS)
-        {
-            ALIMER_LOGCRITICALF(
-                "Fatal Vulkan result is \"%s\" in %u at line %u",
-                vkGetVulkanResultString(result),
-                __FILE__,
-                __LINE__);
-        }
-    }
 }

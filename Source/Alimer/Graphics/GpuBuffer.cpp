@@ -26,18 +26,21 @@
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* graphics, const BufferDescriptor* descriptor)
-        : GpuResource(graphics, GpuResourceType::Buffer)
+    GpuBuffer::GpuBuffer(GraphicsDevice* device, ResourceUsage resourceUsage, BufferUsage usage)
+        : GpuResource(device)
+        , _resourceUsage(resourceUsage)
+        , _usage(usage)
+    {
+
+    }
+
+    GpuBuffer::GpuBuffer(GraphicsDevice* device, const BufferDescriptor* descriptor)
+        : GpuResource(device)
         , _resourceUsage(descriptor->resourceUsage)
         , _usage(descriptor->usage)
         , _size(descriptor->size)
         , _stride(descriptor->stride)
     {
-    }
-
-    GpuBuffer::~GpuBuffer()
-    {
-        Destroy();
     }
 
     /*static const char* BufferUsageToString(BufferUsageFlags usage)

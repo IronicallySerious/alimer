@@ -23,12 +23,12 @@
 #pragma once
 
 #include "../Shader.h"
-#include "VulkanGraphicsImpl.h"
+#include "VulkanBackend.h"
 #include "../../Base/HashMap.h"
-#include <vector>
 
 namespace Alimer
 {
+    class VulkanGraphicsDevice;
     class VulkanPipelineLayout;
 
     enum class VulkanShaderStage
@@ -43,19 +43,19 @@ namespace Alimer
     };
 
     /// Vulkan ShaderModule implementation.
-    class VulkanShaderModule final 
+    class VulkanShader final : public Shader
     {
     public:
         /// Constructor.
-        VulkanShaderModule(uint64_t hash, GraphicsImpl* graphics, const uint32_t *data, size_t size);
-        ~VulkanShaderModule();
+        VulkanShader(VulkanGraphicsDevice* device, uint64_t hash, const uint32_t *data, size_t size);
+        void Destroy() override;
 
         VkShaderModule GetModule() const { return _module; }
         uint64_t GetHash() const { return _hash; }
 
     private:
+        VkDevice _logicalDevice;
         uint64_t _hash;
-        GraphicsImpl* _graphics;
         VkShaderModule _module = VK_NULL_HANDLE;
     };
 

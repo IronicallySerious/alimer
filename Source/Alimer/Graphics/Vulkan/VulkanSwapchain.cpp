@@ -20,25 +20,25 @@
 // THE SOFTWARE.
 //
 
-#include "../../Graphics/Graphics.h"
+#include "VulkanGraphicsImpl.h"
 #include "VulkanSwapchain.h"
-#include "../Texture.h"
+#include "VulkanTexture.h"
 #include "VulkanRenderPass.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
 {
-    VulkanSwapchain::VulkanSwapchain(GraphicsImpl* graphics, VkSurfaceKHR surface, uint32_t width, uint32_t height)
-        : _graphics(graphics)
+    VulkanSwapchain::VulkanSwapchain(VulkanGraphicsDevice* device, VkSurfaceKHR surface, uint32_t width, uint32_t height)
+        : _device(device)
         , _surface(surface)
         , _size(width, height)
-        , _physicalDevice(graphics->GetPhysicalDevice())
-        , _logicalDevice(graphics->GetDevice())
+        , _physicalDevice(device->GetPhysicalDevice())
+        , _logicalDevice(device->GetDevice())
         , _imageCount(0)
     {
         VkBool32 supported = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, graphics->GetGraphicsQueueFamily(), surface, &supported);
+        vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, device->GetGraphicsQueueFamily(), surface, &supported);
         if (!supported)
         {
             ALIMER_LOGERROR("[Vulkan] - Swapchain surface is not supported by graphics queue.");
@@ -102,7 +102,7 @@ namespace Alimer
 
         if (_surface != VK_NULL_HANDLE)
         {
-            vkDestroySurfaceKHR(_graphics->GetInstance(), _surface, nullptr);
+            vkDestroySurfaceKHR(_device->GetInstance(), _surface, nullptr);
         }
 
         _swapchain = VK_NULL_HANDLE;
@@ -271,8 +271,7 @@ namespace Alimer
 
         for (uint32_t i = 0; i < _imageCount; i++)
         {
-            _textures[i] = new Texture();
-            _textures[i]->SetVkImage(&textureDesc, _vkImages[i], createInfo.imageUsage);
+            _textures[i] = new VulkanTexture(_device, &textureDesc, nullptr, _vkImages[i], createInfo.imageUsage);
         }
 
         if (createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
@@ -285,11 +284,11 @@ namespace Alimer
             clearRange.layerCount = 1;
             clearRange.levelCount = 1;
 
-            VkCommandBuffer clearImageCmdBuffer = _graphics->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+            VkCommandBuffer clearImageCmdBuffer = _device->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
             for (uint32_t i = 0; i < _imageCount; i++)
             {
                 // Clear with default color.
-                _graphics->ClearImageWithColor(
+                _device->ClearImageWithColor(
                     clearImageCmdBuffer,
                     _vkImages[i],
                     clearRange,
@@ -299,7 +298,7 @@ namespace Alimer
                     &clearColor);
             }
 
-            _graphics->FlushCommandBuffer(clearImageCmdBuffer, true);
+            _device->FlushCommandBuffer(clearImageCmdBuffer, true);
         }
     }
 
@@ -311,7 +310,7 @@ namespace Alimer
     VkResult VulkanSwapchain::AcquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore)
     {
         // Acquire the next swapchain image.
-        *pImageAcquiredSemaphore = _graphics->AcquireSemaphore();
+        *pImageAcquiredSemaphore = _device->AcquireSemaphore();
 
         VkResult result = vkAcquireNextImageKHR(
             _logicalDevice,

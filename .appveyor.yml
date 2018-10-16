@@ -41,6 +41,8 @@ before_build:
   - IF "%ARCHITECTURE%" == "x64" IF "%COMPILER%" == "MINGW_W64_7_2" set PATH=C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin;%PATH%
 
 build_script:
+  - git submodule init
+  - git submodule update
   - mkdir "%APPVEYOR_BUILD_FOLDER%\build"
   - cd "%APPVEYOR_BUILD_FOLDER%\build"
   - cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%\Alimer-SDK" ..

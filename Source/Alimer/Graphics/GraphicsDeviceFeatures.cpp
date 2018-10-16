@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/GpuDeviceFeatures.h"
+#include "../Graphics/GraphicsDeviceFeatures.h"
 
 namespace Alimer
 {

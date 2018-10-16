@@ -23,6 +23,7 @@
 #include "../Serialization/JsonSerializer.h"
 #include "../Core/Log.h"
 #include <vector>
+#if TODO
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
@@ -255,3 +256,5 @@ namespace Alimer
         _impl->EndObject();
     }
 }
+
+#endif // TODO

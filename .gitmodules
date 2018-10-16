@@ -1,0 +1,15 @@
+[submodule "third_party/spirv-cross"]
+	path = third_party/spirv-cross
+	url = https://github.com/KhronosGroup/SPIRV-Cross.git
+[submodule "third_party/glslang"]
+	path = third_party/glslang
+	url = https://github.com/google/glslang.git
+[submodule "third_party/stb"]
+	path = third_party/stb
+	url = https://github.com/nothings/stb.git
+[submodule "third_party/volk"]
+	path = third_party/volk
+	url = https://github.com/zeux/volk.git
+[submodule "third_party/vkmemalloc"]
+	path = third_party/vkmemalloc
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git

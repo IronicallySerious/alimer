@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Graphics/Types.h"
-#include "../Graphics/BackendTypes.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
@@ -33,36 +32,19 @@
 
 namespace Alimer
 {
-#if ALIMER_VULKAN
-    class VulkanFramebuffer;
-    class VulkanRenderPass;
-#endif
-
-    class Graphics;
+    class GraphicsDevice;
 
     /// Defines a command buffer for recording gpu commands.
-    class ALIMER_API CommandBuffer final : public RefCounted
+    class ALIMER_API CommandBuffer : public RefCounted
     {
-        friend class Graphics;
+        friend class GraphicsDevice;
 
     public:
-        enum class Type
-        {
-            Generic,
-            AsyncGraphics,
-            AsyncCompute,
-            AsyncTransfer,
-            Count
-        };
+        CommandBuffer(GraphicsDevice* device, bool secondary);
 
     public:
-        CommandBuffer(Type type, bool secondary);
-
         /// Destructor.
-        ~CommandBuffer();
-
-        /// Destroy the command buffer.
-        void Destroy();
+        virtual ~CommandBuffer() = default;
 
         void BeginRenderPass(const RenderPassDescriptor* descriptor);
         void EndRenderPass();
@@ -73,41 +55,23 @@ namespace Alimer
         void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
-#if ALIMER_VULKAN
-        VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
-        VkFence GetVkFence() const { return _vkFence; }
-#endif
-
-        inline Type GetCommandBufferType() const { return _type; }
-
-    private:
+    protected:
         void BeginCompute();
         void BeginGraphics();
         virtual void BeginContext();
         void FlushComputeState();
 
         // Backend methods.
-        void BeginRenderPassImpl(const RenderPassDescriptor* descriptor);
-        void EndRenderPassImpl();
-        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+        virtual void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) = 0;
+        virtual void EndRenderPassImpl() = 0;
+        virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
     protected:
         /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
-        Type _type;
+        GraphicsDevice* _device;
         bool _isCompute;
 
-#if ALIMER_VULKAN
-        VkCommandPool _vkCommandPool = 0;
-        VkCommandBuffer _vkCommandBuffer = nullptr;
-        VkFence _vkFence = 0;
-        const VulkanFramebuffer* _framebuffer = nullptr;
-        const VulkanRenderPass* _renderPass = nullptr;
-#endif
-
     private:
-        bool Create(bool secondary);
-
         inline bool IsInsideRenderPass() const
         {
             return _state == State::InRenderPass;

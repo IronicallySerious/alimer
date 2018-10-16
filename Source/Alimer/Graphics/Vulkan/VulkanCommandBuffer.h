@@ -22,20 +22,34 @@
 
 #pragma once
 
-#if ALIMER_VULKAN
-#define VK_FORWARD_HANDLE(object) typedef struct object##_T* object;
+#include "../CommandBuffer.h"
+#include "VulkanBackend.h"
 
-#if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) && !defined(__ILP32__) ) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
-#   define VK_FORWARD_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
-#else
-#   define VK_FORWARD_NON_DISPATCHABLE_HANDLE(object) typedef uint64_t object;
-#endif
+namespace Alimer
+{
+    class VulkanGraphicsDevice;
 
+	/// Vulkan CommandBuffer implementation.
+	class VulkanCommandBuffer final : public CommandBuffer
+	{
+	public:
+        VulkanCommandBuffer(VulkanGraphicsDevice* device, bool secondary);
+		~VulkanCommandBuffer() override;
+        void Destroy();
 
-VK_FORWARD_NON_DISPATCHABLE_HANDLE(VkImage)
-VK_FORWARD_NON_DISPATCHABLE_HANDLE(VkImageView)
-VK_FORWARD_NON_DISPATCHABLE_HANDLE(VkFence)
-VK_FORWARD_HANDLE(VkCommandBuffer)
-VK_FORWARD_NON_DISPATCHABLE_HANDLE(VkCommandPool)
-VK_FORWARD_NON_DISPATCHABLE_HANDLE(VkShaderModule)
-#endif
+        VkCommandBuffer GetVkCommandBuffer() const { return _vkCommandBuffer; }
+        VkFence GetVkFence() const { return _vkFence; }
+
+	private:
+        void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) override;
+        void EndRenderPassImpl() override;
+        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+
+        VkDevice _logicalDevice;
+        VkCommandPool _vkCommandPool = VK_NULL_HANDLE;
+        VkCommandBuffer _vkCommandBuffer = VK_NULL_HANDLE;
+        VkFence _vkFence = 0;
+        const VulkanFramebuffer* _framebuffer = nullptr;
+        const VulkanRenderPass* _renderPass = nullptr;
+	};
+}

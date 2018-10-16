@@ -21,7 +21,6 @@
 //
 
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../Core/Log.h"
 
@@ -32,56 +31,65 @@ extern "C"
     __declspec(dllexport) DWORD NvOptimusEnablement = 1;
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
+#endif /* defined(_WIN32) */
+
+#if ALIMER_VULKAN
+#   include "../Graphics/Vulkan/VulkanGraphicsImpl.h"
 #endif
 
 namespace Alimer
 {
-    Graphics::Graphics(bool validation)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation)
+        : _backend(backend)
+        , _validation(validation)
     {
-#ifdef ALIMER_THREADING
-        _cookie.store(0);
-#endif
-        _impl = CreateBackend(validation);
         AddSubsystem(this);
     }
-    
-    Graphics::~Graphics()
+
+    GraphicsDevice::~GraphicsDevice()
     {
-        WaitIdle();
+        RemoveSubsystem(this);
+    }
 
+    void GraphicsDevice::Shutdown()
+    {
         // Destroy undestroyed resources.
-        /*if (_gpuResources.size())
+        if (_gpuResources.size())
         {
-            lock_guard<mutex> lock(_gpuResourceMutex);
-
-            // Release all GPU objects that still exist
-            std::sort(_gpuResources.begin(), _gpuResources.end(),
-                [](const GpuResource* x, const GpuResource* y)
-            {
-                return x->GetResourceType() < y->GetResourceType();
-            });
-
+            std::lock_guard<std::mutex> lock(_gpuResourceMutex);
             for (size_t i = 0; i < _gpuResources.size(); ++i)
             {
                 GpuResource* resource = _gpuResources.at(i);
                 ALIMER_ASSERT(resource);
-                auto type = resource->GetResourceType();
                 resource->Destroy();
             }
 
             _gpuResources.clear();
-        }*/
-
-        ShutdownBackend();
-        RemoveSubsystem(this);
+        }
     }
 
-    GraphicsImpl* Graphics::CreateBackend(bool validation)
+    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend prefferedBackend, bool validation)
     {
-        return new GraphicsImpl(validation);
+        if (prefferedBackend == GraphicsBackend::Default)
+        {
+            prefferedBackend = GraphicsBackend::Vulkan;
+        }
+
+        GraphicsDevice* device = nullptr;
+        switch (prefferedBackend)
+        {
+        case GraphicsBackend::Vulkan:
+            device = new VulkanGraphicsDevice(validation);
+            break;
+
+        default:
+            break;
+        }
+
+        return device;
     }
 
-    bool Graphics::Initialize(const RenderingSettings& settings)
+    bool GraphicsDevice::Initialize(const RenderingSettings& settings)
     {
         ALIMER_ASSERT_MSG(settings.windowHandle, "Invalid window handle for graphics creation.");
 
@@ -91,92 +99,66 @@ namespace Alimer
         }
 
         _settings = settings;
-        _initialized = BackendInitialize(settings);
+        _initialized = true;
         return _initialized;
     }
 
-    void Graphics::ShutdownBackend()
+    VertexBuffer* GraphicsDevice::CreateVertexBuffer(uint32_t vertexCount, const std::vector<VertexElement>& elements, ResourceUsage resourceUsage, const void* initialData)
     {
-        SafeDelete(_impl);
+        if (!vertexCount || !elements.size())
+        {
+            ALIMER_LOGERROR("Can not define vertex buffer with no vertices or no elements");
+            return nullptr;
+        }
+
+        return CreateVertexBuffer(vertexCount, elements.size(), elements.data(), resourceUsage, initialData);
     }
 
-    bool Graphics::WaitIdle()
+    VertexBuffer* GraphicsDevice::CreateVertexBuffer(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData)
     {
-        return _impl->WaitIdle();
+        if (!vertexCount || !elementsCount || !elements)
+        {
+            ALIMER_LOGERROR("Can not define vertex buffer with no vertices or no elements");
+            return nullptr;
+        }
+
+        if (resourceUsage == ResourceUsage::Immutable && !initialData)
+        {
+            ALIMER_LOGERROR("Immutable vertex buffer must have valid initial data.");
+            return nullptr;
+        }
+
+        return CreateVertexBufferImpl(vertexCount, elementsCount, elements, resourceUsage, initialData);
     }
 
-    bool Graphics::BackendInitialize(const RenderingSettings& settings)
+    Texture* GraphicsDevice::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
-        return _impl->Initialize(settings);
-    }
+        ALIMER_ASSERT(descriptor);
 
-    bool Graphics::BeginFrame()
-    {
-        return _impl->BeginFrame();
-    }
+        if (descriptor->usage == TextureUsage::Unknown)
+        {
+            ALIMER_LOGCRITICAL("Invalid texture usage");
+        }
 
-    void Graphics::EndFrame()
-    {
-        _impl->EndFrame();
-    }
+        if (descriptor->width == 0
+            || descriptor->height == 0
+            || descriptor->depth == 0
+            || descriptor->arrayLayers == 0
+            || descriptor->mipLevels == 0)
+        {
+            ALIMER_LOGCRITICAL("Cannot create an empty texture");
+        }
 
-    GraphicsBackend Graphics::GetBackend() const
-    {
-        return _impl->GetBackend();
-    }
+        //if (initialData && !(descriptor->usage & TextureUsage::TransferDest))
+        //{
+        //    ALIMER_LOGCRITICAL("Texture needs the transfer dest usage when creating with initial data.");
+        //}
 
-    const GraphicsDeviceFeatures& Graphics::GetFeatures() const
-    {
-        return _impl->GetFeatures();
-    }
-
-    SharedPtr<TextureView> Graphics::GetSwapchainView() const
-    {
-        return _impl->GetSwapchainView();
-    }
-
-    SharedPtr<CommandBuffer> Graphics::GetMainCommandBuffer() const
-    {
-        return _impl->GetMainCommandBuffer();
+        return CreateTextureImpl(descriptor, initialData);
     }
 
 #if TODO
-    GpuBuffer* Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->usage == BufferUsage::None)
-        {
-            ALIMER_LOGCRITICAL("Invalid buffer usage");
-        }
-
-        if (!descriptor->size)
-        {
-            ALIMER_LOGCRITICAL("Cannot create empty buffer");
-        }
-
-        if (descriptor->resourceUsage == ResourceUsage::Immutable
-            && initialData == nullptr)
-        {
-            ALIMER_LOGCRITICAL("Immutable Buffer needs valid initial data.");
-        }
-
-        return CreateBufferImpl(descriptor, initialData);
-    }
-
-    VertexInputFormat* Graphics::CreateVertexInputFormat(const VertexInputFormatDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        if (!descriptor->attributesCount)
-        {
-            ALIMER_LOGCRITICAL("Can not define VertexInputFormat with no vertex attributes");
-        }
-
-        return CreateVertexInputFormatImpl(descriptor);
-    }
-
-    ShaderModule* Graphics::CreateShaderModule(const std::vector<uint32_t>& spirv)
+    ShaderModule* GraphicsDevice::CreateShaderModule(const std::vector<uint32_t>& spirv)
     {
         if (spirv.empty())
         {
@@ -186,7 +168,7 @@ namespace Alimer
         return CreateShaderModuleImpl(spirv);
     }
 
-    ShaderModule* Graphics::CreateShaderModule(const String& file, const String& entryPoint)
+    ShaderModule* GraphicsDevice::CreateShaderModule(const String& file, const String& entryPoint)
     {
         // Load from spirv bytecode.
         vector<uint32_t> spirv;
@@ -285,41 +267,15 @@ namespace Alimer
         descriptor.stages = stages.data();
         return CreateShaderProgramImpl(&descriptor);
     }
-
-    Texture* Graphics::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->usage == TextureUsage::Unknown)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
-
-        if (descriptor->width == 0
-            || descriptor->height == 0
-            || descriptor->depth == 0
-            || descriptor->arrayLayers == 0
-            || descriptor->mipLevels == 0)
-        {
-            ALIMER_LOGCRITICAL("Cannot create an empty texture");
-        }
-
-        //if (initialData && !(descriptor->usage & TextureUsage::TransferDest))
-        //{
-        //    ALIMER_LOGCRITICAL("Texture needs the transfer dest usage when creating with initial data.");
-        //}
-
-        return CreateTextureImpl(descriptor, initialData);
-}
 #endif // TODO
 
-    void Graphics::AddGpuResource(GpuResource* resource)
+    void GraphicsDevice::AddGpuResource(GpuResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.push_back(resource);
     }
 
-    void Graphics::RemoveGpuResource(GpuResource* resource)
+    void GraphicsDevice::RemoveGpuResource(GpuResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         auto it = std::find(_gpuResources.begin(), _gpuResources.end(), resource);
@@ -329,21 +285,9 @@ namespace Alimer
         }
     }
 
-    uint64_t Graphics::GetNextUniqueId()
-    {
-#ifdef ALIMER_THREADING
-        return _cookie.fetch_add(1, std::memory_order_relaxed) + 1;
-#else
-        _cookie++;
-        return _cookie;
-#endif
-    }
-
-    void Graphics::NotifyFalidationError(const char* message)
+    void GraphicsDevice::NotifyValidationError(const char* message)
     {
         // TODO: Add callback.
         ALIMER_UNUSED(message);
     }
-
-    
 }

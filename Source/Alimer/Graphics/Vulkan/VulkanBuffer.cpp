@@ -20,44 +20,81 @@
 // THE SOFTWARE.
 //
 
-#include "../../Graphics/Graphics.h"
+#include "VulkanGraphicsImpl.h"
 #include "VulkanBuffer.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
 {
-    VulkanBuffer::VulkanBuffer(Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
-        : GpuBuffer(nullptr, descriptor)
-        , _logicalDevice(graphics->GetImpl()->GetDevice())
+    VulkanBuffer::VulkanBuffer(VulkanGraphicsDevice* device)
+        : _device(device)
     {
-        VkBufferUsageFlags vkUsage = 0;
+    }
 
-        if (any(descriptor->usage & BufferUsage::Vertex))
-            vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    VulkanBuffer::~VulkanBuffer()
+    {
+        Destroy();
+    }
 
-        if (any(descriptor->usage & BufferUsage::Index))
-            vkUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    void VulkanBuffer::Destroy()
+    {
+        if (_allocation != VK_NULL_HANDLE)
+            vmaDestroyBuffer(_device->GetVmaAllocator(), _handle, _allocation);
+        else
+            vkDestroyBuffer(_device->GetDevice(), _handle, nullptr);
+    }
 
-        if (any(descriptor->usage & BufferUsage::Uniform))
-            vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    bool VulkanBuffer::Define(ResourceUsage resourceUsage, BufferUsage bufferUsage, VkDeviceSize size, const void* initialData)
+    {
+        _bufferUsage = 0;
+        if (any(bufferUsage & BufferUsage::Vertex))
+            _bufferUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-        if (any(descriptor->usage & BufferUsage::Storage))
-            vkUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        if (any(bufferUsage & BufferUsage::Index))
+            _bufferUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-        if (any(descriptor->usage & BufferUsage::Indirect))
-            vkUsage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+        if (any(bufferUsage & BufferUsage::Uniform))
+            _bufferUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+        if (any(bufferUsage & BufferUsage::Storage))
+            _bufferUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+
+        if (any(bufferUsage & BufferUsage::Indirect))
+            _bufferUsage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
         VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.size = descriptor->size;
-        createInfo.usage = vkUsage;
-
-        // TODO: Handle queue and sharing.
+        createInfo.size = size;
+        createInfo.usage = _bufferUsage;
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0;
-        createInfo.pQueueFamilyIndices = nullptr;
+
+        uint32_t sharing_indices[3];
+        const uint32_t graphics_queue_family_index = _device->GetGraphicsQueueFamily();
+        const uint32_t compute_queue_family_index = _device->GetComputeQueueFamily();
+        const uint32_t transfer_queue_family_index = _device->GetTransferQueueFamily();
+
+        if (graphics_queue_family_index != compute_queue_family_index ||
+            graphics_queue_family_index != transfer_queue_family_index)
+        {
+            // For buffers, always just use CONCURRENT access modes,
+            // so we don't have to deal with acquire/release barriers in async compute.
+            createInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+
+            sharing_indices[createInfo.queueFamilyIndexCount++] = graphics_queue_family_index;
+
+            if (graphics_queue_family_index != compute_queue_family_index)
+                sharing_indices[createInfo.queueFamilyIndexCount++] = compute_queue_family_index;
+
+            if (graphics_queue_family_index != transfer_queue_family_index &&
+                compute_queue_family_index != transfer_queue_family_index)
+            {
+                sharing_indices[createInfo.queueFamilyIndexCount++] = transfer_queue_family_index;
+            }
+
+            createInfo.pQueueFamilyIndices = sharing_indices;
+        }
 
         // Allocate memory from the Vulkan Memory Allocator.
         VkResult result = VK_SUCCESS;
@@ -66,17 +103,17 @@ namespace Alimer
         VmaAllocationInfo allocationInfo = {};
         if (noAllocation)
         {
-            result = vkCreateBuffer(_logicalDevice, &createInfo, nullptr, &_handle);
+            result = vkCreateBuffer(_device->GetDevice(), &createInfo, nullptr, &_handle);
         }
         else
         {
             // Determine appropriate memory usage flags.
             VmaAllocationCreateInfo allocCreateInfo = {};
-            switch (descriptor->resourceUsage)
+            switch (resourceUsage)
             {
             case ResourceUsage::Default:
             case ResourceUsage::Immutable:
-                vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                _bufferUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
                 staticBuffer = true;
                 break;
@@ -87,22 +124,33 @@ namespace Alimer
                 break;
 
             case ResourceUsage::Staging:
-                vkUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-                allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+                _bufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+                allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
                 break;
 
             default:
                 break;
             }
 
+            createInfo.usage = _bufferUsage;
+
             result = vmaCreateBuffer(
-                _graphics->GetImpl()->GetVmaAllocator(),
+                _device->GetVmaAllocator(),
                 &createInfo,
                 &allocCreateInfo,
                 &_handle,
                 &_allocation,
                 &allocationInfo);
         }
+
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("[Vulkan] - Failed to create buffer");
+            return false;
+        }
+
+        _vkSize = size;
 
         // Handle
         if (initialData != nullptr)
@@ -114,31 +162,30 @@ namespace Alimer
             else
             {
                 void *data;
-                vmaMapMemory(_graphics->GetImpl()->GetVmaAllocator(), _allocation, &data);
+                vmaMapMemory(_device->GetVmaAllocator(), _allocation, &data);
                 memcpy(data, initialData, allocationInfo.size);
-                vmaUnmapMemory(_graphics->GetImpl()->GetVmaAllocator(), _allocation);
+                vmaUnmapMemory(_device->GetVmaAllocator(), _allocation);
             }
         }
+
+        return true;
     }
 
-    VulkanBuffer::~VulkanBuffer()
+    bool VulkanBuffer::SetSubData(uint32_t offset, uint32_t size, const void* pData)
     {
-        if (_allocation != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(_graphics->GetImpl()->GetVmaAllocator(), _handle, _allocation);
-        }
-        else
-        {
-            vkDestroyBuffer(_logicalDevice, _handle, nullptr);
-        }
+        return _device->BufferSubData(this, offset, size, pData) == VK_SUCCESS;
     }
 
-    bool VulkanBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
+    // VulkanVertexBuffer
+    VulkanVertexBuffer::VulkanVertexBuffer(VulkanGraphicsDevice* device, uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData)
+        : VertexBuffer(device, vertexCount, elementsCount, elements, resourceUsage)
+        , VulkanBuffer(device)
     {
-        ALIMER_UNUSED(offset);
-        ALIMER_UNUSED(size);
-        ALIMER_UNUSED(pData);
-        ALIMER_LOGCRITICAL("VulkanBuffer::SetData not implemented");
-        //memcpy(_allocation->GetMappedData(), initialData, vmaAllocInfo.size);
+        Define(_resourceUsage, _usage, _size, initialData);
+    }
+
+    bool VulkanVertexBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
+    {
+        return VulkanBuffer::SetSubData(offset, size, pData);
     }
 }

@@ -26,7 +26,6 @@
 #include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
 #include "../Resource/Image.h"
-#include "../Graphics/BackendTypes.h"
 
 namespace Alimer
 {
@@ -82,22 +81,15 @@ namespace Alimer
     class TextureView;
 
     /// Defines a Texture class.
-    class ALIMER_API Texture final : public Resource, public GpuResource
+    class ALIMER_API Texture : public GpuResource
     {
-        ALIMER_OBJECT(Texture, Resource);
+    protected:
+        /// Constructor.
+        Texture(GraphicsDevice* device, const TextureDescriptor* descriptor);
 
     public:
-        /// Constructor.
-        Texture();
-
-        /// Destructor.
-        ~Texture() override;
-
         /// Destroy the texture and views.
         void Destroy() override;
-
-        /// 
-        bool Define(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
 
         inline TextureType GetTextureType() const { return _type; }
         inline TextureUsage GetUsage() const { return _usage; }
@@ -131,14 +123,8 @@ namespace Alimer
 
         SharedPtr<TextureView> CreateTextureView(const TextureViewDescriptor* descriptor);
 
-#if ALIMER_VULKAN
-        void SetVkImage(const TextureDescriptor* descriptor, VkImage vkImage, uint32_t vkUsage);
-        VkImage GetVkImage() const { return _vkImage; }
-#endif
-
     private:
-        void InitFromDescriptor(const TextureDescriptor* descriptor);
-        bool Create(const ImageLevel* pInitialData);
+        virtual TextureView* CreateTextureViewImpl(const TextureViewDescriptor* descriptor) = 0;
 
         TextureType _type;
         TextureUsage _usage;
@@ -148,50 +134,30 @@ namespace Alimer
         uint32_t _arrayLayers;
         SampleCount _samples;
         TextureColorSpace _colorSpace;
-        SharedPtr<TextureView> _defaultTextureView;
         std::vector<SharedPtr<TextureView>> _views;
-
-#if ALIMER_VULKAN
-        VkImage _vkImage = 0;
-#endif
+    protected:
+        SharedPtr<TextureView> _defaultTextureView;
     };
 
-    class TextureView final : public RefCounted
+    class TextureView : public RefCounted
     {
         friend class Texture;
 
-    private:
+    protected:
         /// Constructor.
-        TextureView(Graphics* graphics, Texture* texture, const TextureViewDescriptor* descriptor);
+        TextureView(Texture* texture, const TextureViewDescriptor* descriptor);
 
     public:
-        /// Destructor.
-        ~TextureView() override;
-
-        /// Destroy the view.
-        void Destroy();
+        virtual ~TextureView() = default;
 
         Texture* GetTexture() const { return _texture.Get(); }
-        uint64_t GetId() const { return _id; }
         PixelFormat GetFormat() const { return _format; }
         uint32_t GetBaseMipLevel() const { return _baseMipLevel; }
 
-#if ALIMER_VULKAN
-        VkImageView GetVkImageView() const { return _vkImageView; }
-#endif
-
     private:
-        void Create();
-
         /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
-        WeakPtr<Texture> _texture;
-        uint64_t _id;
+        SharedPtr<Texture> _texture;
         PixelFormat _format;
         uint32_t _baseMipLevel;
-
-#if ALIMER_VULKAN
-        VkImageView _vkImageView = 0;
-#endif
     };
 }

@@ -53,16 +53,16 @@ namespace Alimer
     };
 
 	/// Defines a GPU Buffer class.
-	class GpuBuffer : public GpuResource, public RefCounted
+	class GpuBuffer : public GpuResource
 	{
 	protected:
+        /// Constructor.
+        GpuBuffer(GraphicsDevice* device, ResourceUsage resourceUsage, BufferUsage usage);
+
 		/// Constructor.
-		GpuBuffer(Graphics* graphics, const BufferDescriptor* descriptor);
+		GpuBuffer(GraphicsDevice* device, const BufferDescriptor* descriptor);
 
 	public:
-		/// Destructor.
-		virtual ~GpuBuffer();
-
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 

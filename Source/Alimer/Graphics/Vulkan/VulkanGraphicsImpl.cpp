@@ -23,11 +23,12 @@
 #define VMA_STATS_STRING_ENABLED 0
 #define VMA_IMPLEMENTATION
 
-#include "../../Graphics/Graphics.h"
-#include "../../Graphics/CommandBuffer.h"
+#include "VulkanGraphicsImpl.h"
+#include "VulkanCommandBuffer.h"
 #include "VulkanSwapchain.h"
 #include "VulkanRenderPass.h"
 #include "VulkanBuffer.h"
+#include "VulkanTexture.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"
@@ -44,7 +45,7 @@ namespace Alimer
         const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
         void *pUserData)
     {
-        auto *context = static_cast<Graphics*>(pUserData);
+        auto *context = static_cast<VulkanGraphicsDevice*>(pUserData);
 
         switch (messageSeverity)
         {
@@ -53,7 +54,7 @@ namespace Alimer
                 || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
             {
                 ALIMER_LOGERRORF("[Vulkan]: Validation Error: %s", pCallbackData->pMessage);
-                context->NotifyFalidationError(pCallbackData->pMessage);
+                context->NotifyValidationError(pCallbackData->pMessage);
             }
             else
             {
@@ -126,7 +127,7 @@ namespace Alimer
         (void)location;
         (void)pUserData;
 
-        //auto *graphics = static_cast<Graphics*>(pUserData);
+        //auto *graphics = static_cast<VulkanGraphicsDevice*>(pUserData);
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
         {
@@ -175,8 +176,12 @@ namespace Alimer
            { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VkExtensionType::Required, false }
     };
 
-    GraphicsImpl::GraphicsImpl(bool validation)
+    VulkanGraphicsDevice::VulkanGraphicsDevice(bool validation)
+        : GraphicsDevice(GraphicsBackend::Vulkan, validation)
     {
+#ifdef ALIMER_THREADING
+        _cookie.store(0);
+#endif
         uint32_t apiVersion = VK_MAKE_VERSION(1, 0, 57);
 
         VkResult vkRes = volkInitialize();
@@ -406,7 +411,13 @@ namespace Alimer
         glslang::InitializeProcess();
     }
 
-    GraphicsImpl::~GraphicsImpl()
+    VulkanGraphicsDevice::~VulkanGraphicsDevice()
+    {
+        WaitIdle();
+        Shutdown();
+    }
+
+    void VulkanGraphicsDevice::Shutdown()
     {
         glslang::FinalizeProcess();
 
@@ -415,6 +426,9 @@ namespace Alimer
 
         _framebuffers.Clear();
         _renderPasses.Clear();
+
+        // Clear base resources.
+        GraphicsDevice::Shutdown();
 
         //_descriptorSetAllocators.clear();
         //_pipelineLayouts.clear();
@@ -445,8 +459,15 @@ namespace Alimer
         }
         _allSemaphores.clear();
 
+        // Destroy pinned memory buffer.
+        if (_pinnedMemoryBuffer)
+        {
+            UnmapBuffer(_pinnedMemoryBuffer);
+            SafeDelete(_pinnedMemoryBuffer);
+        }
+
         // Destroy memory allocator.
-        vmaDestroyAllocator(_allocator);
+        vmaDestroyAllocator(_memoryAllocator);
 
         // Destroy logical device.
         if (_device != VK_NULL_HANDLE)
@@ -471,7 +492,17 @@ namespace Alimer
         _instance = VK_NULL_HANDLE;
     }
 
-    int32_t GraphicsImpl::ScorePhysicalDevice(VkPhysicalDevice physicalDevice)
+    uint64_t VulkanGraphicsDevice::AllocateCookie()
+    {
+#ifdef ALIMER_THREADING
+        return _cookie.fetch_add(16, std::memory_order_relaxed) + 16;
+#else
+        _cookie += 16;
+        return coo_cookiekie;
+#endif
+    }
+
+    int32_t VulkanGraphicsDevice::ScorePhysicalDevice(VkPhysicalDevice physicalDevice)
     {
         int32_t score = 0;
 
@@ -533,7 +564,7 @@ namespace Alimer
         return score;
     }
 
-    bool GraphicsImpl::Initialize(const RenderingSettings& settings)
+    bool VulkanGraphicsDevice::Initialize(const RenderingSettings& settings)
     {
         // Log info.
         ALIMER_LOGINFOF("Selected Vulkan GPU: %s", _deviceProperties.deviceName);
@@ -827,7 +858,7 @@ namespace Alimer
         );
 
         // Create main command buffer;
-        _mainCommandBuffer = new CommandBuffer(CommandBuffer::Type::Generic, false);
+        _mainCommandBuffer = new VulkanCommandBuffer(this, false);
 
         // Pipeline cache.
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -838,10 +869,10 @@ namespace Alimer
         pipelineCacheCreateInfo.pInitialData = nullptr;
         vkThrowIfFailed(vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache));
 
-        return true;
+        return GraphicsDevice::Initialize(settings);
     }
 
-    bool GraphicsImpl::WaitIdle()
+    bool VulkanGraphicsDevice::WaitIdle()
     {
         VkResult result = vkDeviceWaitIdle(_device);
         if (result < VK_SUCCESS)
@@ -853,7 +884,7 @@ namespace Alimer
         return true;
     }
 
-    void GraphicsImpl::CreateMemoryAllocator()
+    void VulkanGraphicsDevice::CreateMemoryAllocator()
     {
         VmaAllocatorCreateInfo createInfo = {};
         createInfo.physicalDevice = _physicalDevice;
@@ -876,17 +907,30 @@ namespace Alimer
         vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
         vulkanFunctions.vkMapMemory = vkMapMemory;
         vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
-
         createInfo.pVulkanFunctions = &vulkanFunctions;
 
-        VkResult result = vmaCreateAllocator(&createInfo, &_allocator);
+        VkResult result = vmaCreateAllocator(&createInfo, &_memoryAllocator);
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERROR("[Vulkan] - Failed to create vma allocator.");
+            return;
+        }
+
+        // Allocate an 128MB pinned memory buffer to use for efficient data transfers.
+        const VkDeviceSize size = (static_cast<uint64_t>(128) << 20ULL);
+        _pinnedMemoryBuffer = new VulkanBuffer(this);
+        _pinnedMemoryBuffer->Define(ResourceUsage::Staging, BufferUsage::None, size, nullptr);
+
+        // Keep the pinned memory mapped for the lifetime of the device instance.
+        result = MapBuffer(_pinnedMemoryBuffer, 0, size, &_pinnedMemoryPtr);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("[Vulkan] - Failed to map buffer.");
+            return;
         }
     }
 
-    bool GraphicsImpl::BeginFrame()
+    bool VulkanGraphicsDevice::BeginFrame()
     {
         // Acquire the next image from the swap chain.
         _mainSwapchain->AcquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
@@ -903,7 +947,7 @@ namespace Alimer
         return true;
     }
 
-    void GraphicsImpl::EndFrame()
+    void VulkanGraphicsDevice::EndFrame()
     {
         VkCommandBuffer vkCommandBuffer = _mainCommandBuffer->GetVkCommandBuffer();
         VkResult result = vkEndCommandBuffer(vkCommandBuffer);
@@ -955,7 +999,7 @@ namespace Alimer
 
     }
 
-    VkSurfaceKHR GraphicsImpl::CreateSurface(const RenderingSettings& settings)
+    VkSurfaceKHR VulkanGraphicsDevice::CreateSurface(const RenderingSettings& settings)
     {
         VkResult result = VK_SUCCESS;
         VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -992,17 +1036,27 @@ namespace Alimer
         return surface;
     }
 
-    SharedPtr<TextureView> GraphicsImpl::GetSwapchainView() const
+    SharedPtr<TextureView> VulkanGraphicsDevice::GetSwapchainView() const
     {
         return _mainSwapchain->GetTextureView(_swapchainImageIndex);
     }
 
-    SharedPtr<CommandBuffer> GraphicsImpl::GetMainCommandBuffer() const
+    SharedPtr<CommandBuffer> VulkanGraphicsDevice::GetMainCommandBuffer() const
     {
         return _mainCommandBuffer;
     }
 
-    VkCommandPool GraphicsImpl::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
+    VertexBuffer* VulkanGraphicsDevice::CreateVertexBufferImpl(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData)
+    {
+        return new VulkanVertexBuffer(this, vertexCount, elementsCount, elements, resourceUsage, initialData);
+    }
+
+    Texture* VulkanGraphicsDevice::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    {
+        return new VulkanTexture(this, descriptor, initialData);
+    }
+
+    VkCommandPool VulkanGraphicsDevice::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
     {
         VkCommandPoolCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1020,7 +1074,7 @@ namespace Alimer
         return commandPool;
     }
 
-    VkCommandBuffer GraphicsImpl::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
+    VkCommandBuffer VulkanGraphicsDevice::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
     {
         VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         info.commandPool = _commandPool;
@@ -1033,19 +1087,21 @@ namespace Alimer
         // If requested, also start recording for the new command buffer
         if (begin)
         {
-            VkCommandBufferBeginInfo cmdBufferBeginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-            vkThrowIfFailed(vkBeginCommandBuffer(vkCommandBuffer, &cmdBufferBeginInfo));
+            VkCommandBufferBeginInfo beginInfo = {};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            vkThrowIfFailed(vkBeginCommandBuffer(vkCommandBuffer, &beginInfo));
         }
 
         return vkCommandBuffer;
     }
 
-    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
+    void VulkanGraphicsDevice::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
     {
         FlushCommandBuffer(commandBuffer, _graphicsQueue, free);
     }
 
-    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
+    void VulkanGraphicsDevice::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
     {
         if (commandBuffer == VK_NULL_HANDLE)
             return;
@@ -1071,7 +1127,7 @@ namespace Alimer
         }
     }
 
-    void GraphicsImpl::ClearImageWithColor(
+    void VulkanGraphicsDevice::ClearImageWithColor(
         VkCommandBuffer commandBuffer,
         VkImage image,
         VkImageSubresourceRange range,
@@ -1098,7 +1154,7 @@ namespace Alimer
         vk::SetImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
     }
 
-    VulkanFramebuffer* GraphicsImpl::RequestFramebuffer(const RenderPassDescriptor* descriptor)
+    VulkanFramebuffer* VulkanGraphicsDevice::RequestFramebuffer(const RenderPassDescriptor* descriptor)
     {
         auto renderPass = RequestRenderPass(descriptor);
         Util::Hasher h;
@@ -1106,15 +1162,15 @@ namespace Alimer
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            if (descriptor->colorAttachments[i].attachment.IsNotNull())
+            if (descriptor->colorAttachments[i].attachment)
             {
-                h.u64(descriptor->colorAttachments[i].attachment->GetId());
+                h.u64(static_cast<VulkanTextureView*>(descriptor->colorAttachments[i].attachment)->GetId());
             }
         }
 
         if (descriptor->depthStencil)
         {
-            h.u64(descriptor->depthStencil->GetId());
+            h.u64(static_cast<VulkanTextureView*>(descriptor->depthStencil)->GetId());
         }
 
         uint64_t hash = h.get();
@@ -1126,7 +1182,73 @@ namespace Alimer
         return framebuffer;
     }
 
-    VulkanRenderPass* GraphicsImpl::RequestRenderPass(const RenderPassDescriptor* descriptor)
+    VkResult VulkanGraphicsDevice::BufferSubData(VulkanBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, const void* pData)
+    {
+        // Get required alignment flush size for selected physical device.
+        VkDeviceSize alignedFlushSize = _deviceProperties.limits.nonCoherentAtomSize;
+
+        // Copy the buffer data to the device in blocks based on size of pinned memory buffer.
+        auto bytesRemaining = size;
+        auto dstOffset = offset;
+        auto srcOffset = 0ULL;
+        while (bytesRemaining)
+        {
+            // Determine total byte size to copy this iteration.
+            auto bytesToCopy = std::min(_pinnedMemoryBuffer->GetSize(), bytesRemaining);
+
+            // Copy the host memory to the pinned memory buffer.
+            memcpy(_pinnedMemoryPtr, &reinterpret_cast<const uint8_t*>(pData)[srcOffset], bytesToCopy);
+
+            // Flush must be aligned according to physical device's limits.
+            auto alignedBytesToCopy = static_cast<VkDeviceSize>(std::ceil(bytesToCopy / static_cast<float>(alignedFlushSize))) * alignedFlushSize;
+
+            // Flush the memory write.
+            VmaAllocationInfo allocInfo = {};
+            vmaGetAllocationInfo(_memoryAllocator, _pinnedMemoryBuffer->GetAllocation(), &allocInfo);
+
+            VkMappedMemoryRange memoryRange = {};
+            memoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+            memoryRange.memory = allocInfo.deviceMemory;
+            memoryRange.offset = 0;
+            memoryRange.size = alignedBytesToCopy;
+            vkFlushMappedMemoryRanges(_device, 1, &memoryRange);
+
+            // Copy the pinned memory buffer to the destination buffer.
+            VkBufferCopy copyRegion = {};
+            copyRegion.srcOffset = 0;
+            copyRegion.dstOffset = dstOffset;
+            copyRegion.size = bytesToCopy;
+
+            // Get a one-time submit command buffer.
+            auto cmdBuffer = CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+            vkCmdCopyBuffer(cmdBuffer,
+                _pinnedMemoryBuffer->GetHandle(),
+                buffer->GetHandle(),
+                1, &copyRegion);
+            // Submit and wait for all operations to complete.
+            FlushCommandBuffer(cmdBuffer, _graphicsQueue, true);
+
+            // Update running counters.
+            bytesRemaining -= bytesToCopy;
+            dstOffset += bytesToCopy;
+            srcOffset += bytesToCopy;
+        }
+
+        // Return success.
+        return VK_SUCCESS;
+    }
+
+    VkResult VulkanGraphicsDevice::MapBuffer(VulkanBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, void** ppData)
+    {
+        return vmaMapMemory(_memoryAllocator, buffer->GetAllocation(), ppData);
+    }
+
+    void VulkanGraphicsDevice::UnmapBuffer(VulkanBuffer* buffer)
+    {
+        vmaUnmapMemory(_memoryAllocator, buffer->GetAllocation());
+    }
+
+    VulkanRenderPass* VulkanGraphicsDevice::RequestRenderPass(const RenderPassDescriptor* descriptor)
     {
         Util::Hasher renderPassHasher;
 
@@ -1134,7 +1256,7 @@ namespace Alimer
         {
             const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor->colorAttachments[i];
             auto attachment = colorAttachment.attachment;
-            if (attachment.IsNull())
+            if (attachment == nullptr)
                 continue;
 
             renderPassHasher.u32(static_cast<uint32_t>(attachment->GetFormat()));
@@ -1151,7 +1273,7 @@ namespace Alimer
         return renderPass;
     }
 
-    VkFence GraphicsImpl::AcquireFence()
+    VkFence VulkanGraphicsDevice::AcquireFence()
     {
         VkFence fence = VK_NULL_HANDLE;
 
@@ -1180,7 +1302,7 @@ namespace Alimer
         return fence;
     }
 
-    void GraphicsImpl::ReleaseFence(VkFence fence)
+    void VulkanGraphicsDevice::ReleaseFence(VkFence fence)
     {
         std::lock_guard<std::mutex> lock(_fenceLock);
         if (_allFences.find(fence) != _allFences.end())
@@ -1190,7 +1312,7 @@ namespace Alimer
         }
     }
 
-    VkSemaphore GraphicsImpl::AcquireSemaphore()
+    VkSemaphore VulkanGraphicsDevice::AcquireSemaphore()
     {
         VkSemaphore semaphore = VK_NULL_HANDLE;
 
@@ -1219,7 +1341,7 @@ namespace Alimer
         return semaphore;
     }
 
-    void GraphicsImpl::ReleaseSemaphore(VkSemaphore semaphore)
+    void VulkanGraphicsDevice::ReleaseSemaphore(VkSemaphore semaphore)
     {
         std::lock_guard<std::mutex> lock(_semaphoreLock);
         if (_allSemaphores.find(semaphore) != _allSemaphores.end())
@@ -1229,8 +1351,6 @@ namespace Alimer
     }
 
     
-
-
 #if TODO
     VulkanDescriptorSetAllocator* VulkanGraphics::RequestDescriptorSetAllocator(const DescriptorSetLayout &layout)
     {
@@ -1265,5 +1385,3 @@ namespace Alimer
     }
 #endif // TODO
 }
-
-#include "../../../ThirdParty/volk/volk.c"

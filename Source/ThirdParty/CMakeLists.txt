@@ -20,8 +20,6 @@
 # THE SOFTWARE.
 #
 
-add_subdirectory (STB)
-add_subdirectory (SPIRV-Cross)
 add_subdirectory (rttr)
 add_subdirectory (CLI11)
 
@@ -40,6 +38,4 @@ if (ALIMER_DESKTOP AND ALIMER_TOOLS)
 endif ()
 
 # Set folders
-set_target_properties (STB PROPERTIES FOLDER "ThirdParty")
-set_target_properties (spirv_cross PROPERTIES FOLDER "ThirdParty")
 set_target_properties (ImGui PROPERTIES FOLDER "ThirdParty")

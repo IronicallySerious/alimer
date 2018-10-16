@@ -24,15 +24,12 @@
 
 #include "../Graphics/GpuResource.h"
 #include "../Resource/Resource.h"
-#include "../Graphics/BackendTypes.h"
 #include <string>
 #include <vector>
 #include <map>
 
 namespace Alimer
 {
-    class Graphics;
-
     /// Defines shader stage
     enum class ShaderStage : uint32_t
     {
@@ -79,18 +76,11 @@ namespace Alimer
     ALIMER_API void SPIRVReflectResources(const std::vector<uint32_t>& spirv, ShaderStage& stage, std::vector<PipelineResource>& shaderResources);
 
     /// Defines a shader module class.
-    class ALIMER_API Shader final : public Resource
+    class ALIMER_API Shader : public GpuResource
     {
-        ALIMER_OBJECT(Shader, Resource);
-
     public:
         /// Constructor.
-        Shader();
-
-        /// Destructor.
-        ~Shader() override;
-
-        void Destroy();
+        Shader(GraphicsDevice* device);
 
         bool Define(ShaderStage stage, const String& url);
         bool Define(ShaderStage stage, const std::vector<uint32_t>& spirv);
@@ -100,38 +90,24 @@ namespace Alimer
         const std::vector<PipelineResource>& GetResources() const { return _resources; }
 
     private:
-        bool BackendCreate();
-
         ShaderStage _stage = ShaderStage::Count;
         String _source;
         std::vector<uint32_t> _spirv;
         String _infoLog;
         std::vector<PipelineResource> _resources;
-
-#if ALIMER_VULKAN
-        VkShaderModule _module = 0;
-#endif
     };
 
     /// Defines a shader program class.
-    class ALIMER_API ShaderProgram final : public GpuResource, public RefCounted
+    class ALIMER_API ShaderProgram : public GpuResource
     {
     public:
         /// Constructor.
-        ShaderProgram();
-
-        /// Destructor.
-        ~ShaderProgram() override;
-
-        bool Define(const String& vertexShaderUrl, const String& fragmentShaderUrl);
+        ShaderProgram(GraphicsDevice* device);
 
         /// Gets if this program is compute program.
         bool IsCompute() const { return _isCompute; }
 
     private:
-        bool BackendCreate();
-
         bool _isCompute;
-        Shader _shaders[static_cast<uint32_t>(ShaderStage::Count)] = {};
     };
 }

@@ -34,8 +34,8 @@ namespace Alimer
     {
     }
 
-    void RenderContext::SetDevice(Graphics* graphics)
+    void RenderContext::SetDevice(GraphicsDevice* device)
     {
-        _graphics = graphics;
+        _device = device;
     }
 }

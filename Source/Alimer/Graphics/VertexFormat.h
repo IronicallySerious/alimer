@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Graphics/GpuResource.h"
+#include "../Graphics/GpuBuffer.h"
 #include <vector>
 
 namespace Alimer
@@ -56,6 +56,13 @@ namespace Alimer
         VertexFormat            format = VertexFormat::Float3;
         uint32_t                offset = 0;
         uint32_t                bufferIndex = 0;
+    };
+
+    struct VertexElement
+    {
+        VertexElementSemantic   semantic = VertexElementSemantic::Position;
+        VertexFormat            format = VertexFormat::Float3;
+        uint32_t                offset = 0;
     };
 
     struct VertexBufferLayoutDescriptor
@@ -102,6 +109,27 @@ namespace Alimer
 
         /// VertexFormat stride.
         std::vector<VertexBufferLayoutDescriptor> _layouts;
+    };
+
+    /// Defines a vertex gpu buffer.
+    class VertexBuffer : public GpuBuffer
+    {
+    protected:
+        /// Constructor.
+        VertexBuffer(GraphicsDevice* device, uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage);
+
+    public:
+        /// Return number of vertices.
+        uint32_t GetVertexCount() const { return _vertexCount; }
+        /// Return size of vertex in bytes.
+        uint32_t GetVertexStride() const { return _stride; }
+        /// Return number of vertex elements.
+        uint32_t GetElementsCount() const { return static_cast<uint32_t>(_elements.size()); }
+        /// Return vertex elements.
+        const std::vector<VertexElement>& GetElements() const { return _elements; }
+    private:
+        uint32_t _vertexCount;
+        std::vector<VertexElement> _elements;
     };
 
     ALIMER_API const char* VertexElementSemanticToString(VertexElementSemantic semantic);

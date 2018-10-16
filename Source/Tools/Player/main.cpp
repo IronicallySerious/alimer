@@ -52,9 +52,7 @@ namespace Alimer
     class TriangleExample
     {
     public:
-        ~TriangleExample() = default;
-
-        void Initialize()
+        void Initialize(GraphicsDevice* device)
         {
             VertexColor triangleVertices[] =
             {
@@ -63,31 +61,18 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            /*std::array<VertexAttributeDescriptor, 2> vertexInputAttributs;
-            // Attribute location 0: Position
-            vertexInputAttributs[0].semantic = VertexElementSemantic::Position;
-            vertexInputAttributs[0].format = VertexFormat::Float3;
-            vertexInputAttributs[0].offset = offsetof(VertexColor, position);
-            // Attribute location 1: Color
-            vertexInputAttributs[1].bufferIndex = 0;
-            vertexInputAttributs[1].semantic = VertexElementSemantic::Color0;
-            vertexInputAttributs[1].format = VertexFormat::Float4;
-            vertexInputAttributs[1].offset = offsetof(VertexColor, color);
+            std::array<VertexElement, 2> vertexElements;
+            vertexElements[0].semantic = VertexElementSemantic::Position;
+            vertexElements[0].format = VertexFormat::Float3;
+            vertexElements[0].offset = offsetof(VertexColor, position);
+            vertexElements[1].semantic = VertexElementSemantic::Color0;
+            vertexElements[1].format = VertexFormat::Float4;
+            vertexElements[1].offset = offsetof(VertexColor, color);
 
-            VertexInputFormatDescriptor inputFormatDescriptor = {};
-            inputFormatDescriptor.attributes = vertexInputAttributs.data();
-            inputFormatDescriptor.attributesCount = 2;
-            _vertexInputFormat = graphics->CreateVertexInputFormat(&inputFormatDescriptor);
-
-            BufferDescriptor vertexBufferDesc = {};
-            vertexBufferDesc.usage = BufferUsage::Vertex;
-            vertexBufferDesc.size = sizeof(triangleVertices);
-            vertexBufferDesc.stride = sizeof(VertexColor);
-            _vertexBuffer = graphics->CreateBuffer(&vertexBufferDesc, triangleVertices);
-            */
+            _vertexBuffer = device->CreateVertexBuffer(3, 2, vertexElements.data(), ResourceUsage::Immutable, triangleVertices);
 
             // Create shader program.
-            _program.Define("assets://shaders/color.vert", "assets://shaders/color.frag");
+            //_program.Define("assets://shaders/color.vert", "assets://shaders/color.frag");
 
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -107,9 +92,8 @@ namespace Alimer
         }
 
     private:
-        //SharedPtr<VertexInputFormat> _vertexInputFormat;
-        SharedPtr<GpuBuffer> _vertexBuffer;
-        ShaderProgram _program;
+        SharedPtr<VertexBuffer> _vertexBuffer;
+        SharedPtr<ShaderProgram> _program;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
         PerCameraCBuffer _camera{};
@@ -370,13 +354,14 @@ namespace Alimer
     };
 
     RuntimeApplication::RuntimeApplication()
+        : _triangleExample()
     {
         //_settings.renderingSettings.preferredGraphicsBackend = GraphicsBackend::Vulkan;
     }
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize();
+        _triangleExample.Initialize(_graphicsDevice.get());
         //_quadExample.Initialize(_graphicsDevice.Get());
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());

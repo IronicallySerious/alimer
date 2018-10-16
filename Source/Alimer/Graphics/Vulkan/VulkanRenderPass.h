@@ -23,14 +23,16 @@
 #pragma once
 
 #include "../RenderPass.h"
-#include "VulkanGraphicsImpl.h"
+#include "VulkanBackend.h"
 
 namespace Alimer
 {
+    class VulkanGraphicsDevice;
+
     class VulkanRenderPass final 
     {
     public:
-        VulkanRenderPass(uint64_t hash, GraphicsImpl* device, const RenderPassDescriptor* descriptor);
+        VulkanRenderPass(uint64_t hash, VulkanGraphicsDevice* device, const RenderPassDescriptor* descriptor);
         ~VulkanRenderPass();
 
         VkRenderPass GetVkRenderPass() const { return _renderPass; }
@@ -40,7 +42,7 @@ namespace Alimer
 
     private:
         uint64_t _hash = 0;
-        GraphicsImpl* _device;
+        VulkanGraphicsDevice* _device;
         VkRenderPass _renderPass = VK_NULL_HANDLE;
         uint32_t _colorAttachmentsCount = 0;
 
@@ -50,7 +52,7 @@ namespace Alimer
     class VulkanFramebuffer 
     {
     public:
-        VulkanFramebuffer(GraphicsImpl* graphics, const VulkanRenderPass* renderPass, const RenderPassDescriptor* descriptor);
+        VulkanFramebuffer(VulkanGraphicsDevice* device, const VulkanRenderPass* renderPass, const RenderPassDescriptor* descriptor);
         ~VulkanFramebuffer();
 
         VkFramebuffer GetVkFramebuffer() const { return _framebuffer; }
@@ -60,7 +62,7 @@ namespace Alimer
         uint64_t GetId() const { return _id; }
 
     private:
-        GraphicsImpl* _graphics;
+        VulkanGraphicsDevice* _device;
         VkFramebuffer _framebuffer = VK_NULL_HANDLE;
         const VulkanRenderPass* _renderPass;
         uint32_t _width = 0;

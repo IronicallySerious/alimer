@@ -83,4 +83,30 @@ namespace Alimer
         default: return nullptr;
         }
     }
+
+    VertexBuffer::VertexBuffer(GraphicsDevice* device, uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage)
+        : GpuBuffer(device, resourceUsage, BufferUsage::Vertex)
+        , _vertexCount(vertexCount)
+    {
+        bool useAutoOffset = true;
+        for (size_t i = 0; i < elementsCount; ++i)
+        {
+            if (elements[i].offset != 0)
+            {
+                useAutoOffset = false;
+                break;
+            }
+        }
+
+        _stride = 0;
+        _elements.resize(elementsCount);
+        for (size_t i = 0; i < elementsCount; ++i)
+        {
+            _elements[i] = elements[i];
+            _elements[i].offset = useAutoOffset ? _stride : elements[i].offset;
+            _stride += GetVertexFormatSize(_elements[i].format);
+        }
+
+        _size = _stride * _vertexCount;
+    }
 }

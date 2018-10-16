@@ -25,7 +25,7 @@
 #include "../Graphics/Graphics.h"
 #include "../IO/FileSystem.h"
 #include "../Core/Log.h"
-#include <spirv_glsl.hpp>
+#include <spirv-cross/spirv_glsl.hpp>
 #include <vector>
 
 namespace Alimer
@@ -156,13 +156,9 @@ namespace Alimer
         ExtractInputOutputs(stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, shaderResources);
     }
 
-    Shader::Shader()
+    Shader::Shader(GraphicsDevice* device)
+        : GpuResource(device)
     {
-    }
-
-    Shader::~Shader()
-    {
-        Destroy();
     }
 
     bool Shader::Define(ShaderStage stage, const String& url)
@@ -193,7 +189,7 @@ namespace Alimer
         // Reflection all shader resouces.
         SPIRVReflectResources(spirv, _stage, _resources);
 
-        return BackendCreate();
+        return true;
     }
 
     std::vector<uint32_t> Shader::AcquireBytecode()
@@ -201,8 +197,8 @@ namespace Alimer
         return std::move(_spirv);
     }
 
-    ShaderProgram::ShaderProgram()
-        : GpuResource(Object::GetSubsystem<Graphics>(), GpuResourceType::ShaderProgram)
+    ShaderProgram::ShaderProgram(GraphicsDevice* device)
+        : GpuResource(device)
         , _isCompute(false)
     {
         /*if (descriptor->stageCount == 1
@@ -216,17 +212,5 @@ namespace Alimer
             auto stage = descriptor->stages[i];
             _shaders[static_cast<uint32_t>(stage.module->GetStage())] = stage.module;
         }*/
-    }
-
-    ShaderProgram::~ShaderProgram()
-    {
-
-    }
-
-    bool ShaderProgram::Define(const String& vertexShaderUrl, const String& fragmentShaderUrl)
-    {
-        _shaders[static_cast<uint32_t>(ShaderStage::Vertex)].Define(ShaderStage::Vertex, vertexShaderUrl);
-        _shaders[static_cast<uint32_t>(ShaderStage::Fragment)].Define(ShaderStage::Fragment, fragmentShaderUrl);
-        return BackendCreate();
     }
 }

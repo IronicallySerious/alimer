@@ -27,45 +27,28 @@
 
 namespace Alimer
 {
-	class Graphics;
-
-    enum class GpuResourceType : uint32_t
-    {
-        Unknown,
-        Buffer,
-        Texture,
-        ShaderProgram,
-    };
+	class GraphicsDevice;
 
 	/// Defines a base GPU Resource.
-	class ALIMER_API GpuResource //: public RefCounted
+	class ALIMER_API GpuResource : public RefCounted
 	{
 	protected:
         /// Constructor.
-        GpuResource(Graphics* graphics, GpuResourceType resourceType);
+        GpuResource(GraphicsDevice* device);
 
 	public:
 		/// Destructor.
-		virtual ~GpuResource();
+		virtual ~GpuResource() override;
 
         /// Unconditionally destroy the GPU resource.
         virtual void Destroy() {}
 
         /// Return the graphics subsystem associated with this GPU object.
-        Graphics* GetGraphics() const { return _graphics.Get(); }
-
-        /// Get the resource type.
-        GpuResourceType GetResourceType() const { return _resourceType; }
-
-        /// Get unique id allocated by graphics.
-        uint64_t GetId() const { return _id; }
+        GraphicsDevice* GetDevice() const;
 
     protected:
         /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
-        GpuResourceType _resourceType;
-
-        uint64_t _id;
+        GraphicsDevice* _device;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);

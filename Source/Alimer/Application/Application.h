@@ -48,6 +48,8 @@ namespace Alimer
 {
     struct ApplicationSettings
     {
+        GraphicsBackend prefferedGraphicsBackend = GraphicsBackend::Default;
+
 #if defined(_DEBUG)
         bool validation = true;
 #else
@@ -92,7 +94,7 @@ namespace Alimer
 
         inline ResourceManager* GetResources() { return &_resources; }
         inline Window& GetMainWindow() { return _mainWindow; }
-        inline const Graphics* GetGraphics() const { return _graphics.get(); }
+        inline GraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice.get(); }
         inline Input& GetInput() { return _input; }
         inline Audio* GetAudio() const { return _audio.get(); }
 
@@ -126,7 +128,7 @@ namespace Alimer
         Timer _timer;
         ResourceManager _resources;
         Window _mainWindow;
-        std::unique_ptr<Graphics> _graphics;
+        std::unique_ptr<GraphicsDevice> _graphicsDevice;
         Input _input;
         std::unique_ptr<Audio> _audio;
 
@@ -140,7 +142,4 @@ namespace Alimer
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);
     };
-
-    /// Access to current application instance.
-    ALIMER_API Application& gApplication();
 }

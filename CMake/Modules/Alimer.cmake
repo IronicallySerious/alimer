@@ -152,6 +152,12 @@ alimer_option (ALIMER_CSHARP "Enable C# support")
 alimer_option (ALIMER_THREADING "Enable multithreading")
 alimer_option (ALIMER_TOOLS "Enable Tools")
 
+set (ALIMER_FLAGS "")
+set (ALIMER_DEFS "")
+set (ALIMER_INTERNAL_FLAGS "")
+set (ALIMER_INTERNAL_DEFS "")
+set (ALIMER_GENERATED_FLAGS "")
+
 # Setup global per-platform compiler/linker options
 if( MSVC )
     # Select static/dynamic runtime library
@@ -329,3 +335,9 @@ function (add_alimer_plugin target)
      # Link to alimer library
      target_link_libraries (${target} libAlimer)
 endfunction ()
+
+function(alimer_external_target folder target)
+    set_property(TARGET ${target} APPEND PROPERTY COMPILE_OPTIONS ${ALIMER_FLAGS})
+    set_property(TARGET ${target} APPEND PROPERTY COMPILE_DEFINITIONS ${ALIMER_DEFS})
+    set_property(TARGET ${target} PROPERTY FOLDER "${folder}")
+endfunction()

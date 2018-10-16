@@ -27,18 +27,11 @@
 
 namespace Alimer
 {
-    CommandBuffer::CommandBuffer(Type type, bool secondary)
-        : _graphics(Object::GetSubsystem<Graphics>())
-        , _type(type)
+    CommandBuffer::CommandBuffer(GraphicsDevice* device, bool secondary)
+        : _device(device)
     {
-        ALIMER_ASSERT(_graphics.IsNotNull());
-        Create(secondary);
+        ALIMER_ASSERT(device);
         BeginCompute();
-    }
-
-    CommandBuffer::~CommandBuffer()
-    {
-        Destroy();
     }
 
    

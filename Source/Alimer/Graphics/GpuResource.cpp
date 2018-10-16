@@ -26,28 +26,21 @@
 
 namespace Alimer
 {
-    GpuResource::GpuResource(Graphics* graphics, GpuResourceType resourceType)
-        : _graphics(graphics)
-        , _resourceType(resourceType)
+    GpuResource::GpuResource(GraphicsDevice* device)
+        : _device(device)
     {
-        if (graphics)
-        {
-            _id = graphics->GetNextUniqueId();
-            graphics->AddGpuResource(this);
-        }
-        else
-        {
-            _id = std::numeric_limits<uint64_t>::max();
-        }
+        ALIMER_ASSERT(device);
+        device->AddGpuResource(this);
     }
 
     GpuResource::~GpuResource()
     {
-        if (!_graphics)
-        {
-            _graphics->RemoveGpuResource(this);
-        }
+        _device->RemoveGpuResource(this);
+        Destroy();
+    }
 
-        _id = std::numeric_limits<uint64_t>::max();
+    GraphicsDevice* GpuResource::GetDevice() const
+    {
+        return _device;
     }
 }

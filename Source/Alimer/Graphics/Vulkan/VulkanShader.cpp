@@ -20,49 +20,44 @@
 // THE SOFTWARE.
 //
 
-#include "../../Graphics/Graphics.h"
+#include "VulkanGraphicsImpl.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"
 
 namespace Alimer
 {
-    bool Shader::BackendCreate()
+    VulkanShader::VulkanShader(VulkanGraphicsDevice* device, uint64_t hash, const uint32_t *data, size_t size)
+        : Shader(device)
+        , _logicalDevice(device->GetDevice())
+        , _hash(hash)
     {
         VkShaderModuleCreateInfo createInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.codeSize = _spirv.size() * sizeof(uint32_t);
-        createInfo.pCode = _spirv.data();
+        createInfo.codeSize = size;
+        createInfo.pCode = data;
 
         VkResult result = vkCreateShaderModule(
-            Object::GetSubsystem<Graphics>()->GetImpl()->GetDevice(),
+            _logicalDevice,
             &createInfo,
             nullptr,
             &_module);
+
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERRORF("[Vulkan] - Failed to create shader module.");
-            return false;
+            return;
         }
-
-        return true;
     }
 
-    void Shader::Destroy()
+    void VulkanShader::Destroy()
     {
         if (_module != VK_NULL_HANDLE)
         {
-            vkDestroyShaderModule(Object::GetSubsystem<Graphics>()->GetImpl()->GetDevice(), _module, nullptr);
+            vkDestroyShaderModule(_logicalDevice, _module, nullptr);
             _module = VK_NULL_HANDLE;
         }
-    }
-
-    
-
-    bool ShaderProgram::BackendCreate()
-    {
-        return true;
     }
 
     /*VulkanShader::VulkanShader(Graphics* graphics, const ShaderProgramDescriptor* descriptor)

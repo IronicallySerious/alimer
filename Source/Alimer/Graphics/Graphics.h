@@ -24,58 +24,63 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/Types.h"
-#include "../Graphics/GpuDeviceFeatures.h"
+#include "../Graphics/GraphicsDeviceFeatures.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/CommandBuffer.h"
 #include "../Graphics/VertexFormat.h"
 #include <vector>
-
-#ifdef ALIMER_THREADING
-#   include <atomic>
-#   include <mutex>
-#   include <condition_variable>
-#endif
+#include <mutex>
 
 namespace Alimer
 {
-    class GraphicsImpl;
-
     /// Low-level 3D graphics module.
-    class ALIMER_API Graphics final : public Object
+    class ALIMER_API GraphicsDevice : public Object
     {
-        friend class GpuResource;
+        ALIMER_OBJECT(GraphicsDevice, Object);
 
-        ALIMER_OBJECT(Graphics, Object);
+    protected:
+        /// Constructor.
+        GraphicsDevice(GraphicsBackend backend, bool validation);
 
     public:
-        /// Constructor.
-        Graphics(bool validation = false);
+        static GraphicsDevice* Create(GraphicsBackend prefferedBackend = GraphicsBackend::Default, bool validation = false);
 
         /// Destructor.
-        ~Graphics() override;
+        virtual ~GraphicsDevice() override;
 
         /// Initialize graphics with given settings.
-        bool Initialize(const RenderingSettings& settings);
+        virtual bool Initialize(const RenderingSettings& settings);
 
         /// Wait for a device to become idle.
-        bool WaitIdle();
+        virtual bool WaitIdle() = 0;
 
         /// Begin the rendering frame.
-        bool BeginFrame();
+        virtual bool BeginFrame() = 0;
 
         /// Finishes the current frame and schedules it for display.
-        void EndFrame();
+        virtual void EndFrame() = 0;
+
+        /// Add a GpuResource to keep track of. 
+        void AddGpuResource(GpuResource* resource);
+
+        /// Remove a GpuResource.
+        void RemoveGpuResource(GpuResource* resource);
+
+        /// Create new buffer with given descriptor and optional initial data.
+        //GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
+
+        /// Create new vertex buffer.
+        VertexBuffer* CreateVertexBuffer(uint32_t vertexCount, const std::vector<VertexElement>& elements, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
+
+        /// Create new vertex buffer.
+        VertexBuffer* CreateVertexBuffer(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
+
+        /// Create new buffer with given descriptor and optional initial data.
+        Texture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
 
         /*
-        
-        /// Create new buffer with given descriptor and optional initial data.
-        GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
-
-        /// Create new VertexInputFormat with given descriptor.
-        VertexInputFormat* CreateVertexInputFormat(const VertexInputFormatDescriptor* descriptor);
-
         /// Create new shader module using SPIRV bytecode.
         ShaderModule* CreateShaderModule(const std::vector<uint32_t>& spirv);
 
@@ -92,63 +97,42 @@ namespace Alimer
         ShaderProgram* CreateShaderProgram(ShaderModule* vertex, ShaderModule* fragment);
         */
 
-        /// Return backend implementation.
-        GraphicsImpl* GetImpl() const { return _impl; }
-
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
 
         /// Get the type of device.
-        GraphicsBackend GetBackend() const;
+        GraphicsBackend GetBackend() const { return _backend; }
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const;
+        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
 
         /// Get the main Swapchain current image view.
-        SharedPtr<TextureView> GetSwapchainView() const;
+        virtual SharedPtr<TextureView> GetSwapchainView() const = 0;
 
         /// Get the main command buffer.
-        SharedPtr<CommandBuffer> GetMainCommandBuffer() const;
+        virtual SharedPtr<CommandBuffer> GetMainCommandBuffer() const = 0;
 
         /// Request new command buffer.
         //SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBuffer::Type type);
 
-        uint64_t GetNextUniqueId();
-
-        void NotifyFalidationError(const char* message);
-
-    private:
-        GraphicsImpl* CreateBackend(bool validation);
-        void ShutdownBackend();
-        bool BackendInitialize(const RenderingSettings& settings);
+        void NotifyValidationError(const char* message);
 
     protected:
-        /// Add a GpuResource to keep track of. 
-        void AddGpuResource(GpuResource* resource);
-
-        /// Remove a GpuResource.
-        void RemoveGpuResource(GpuResource* resource);
+        virtual void Shutdown();
         //virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
-        //virtual VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) = 0;
+        virtual VertexBuffer* CreateVertexBufferImpl(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData) = 0;
         //virtual ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) = 0;
         //virtual ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) = 0;
-        //virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr) = 0;
+        virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
 
-        /// Implementation.
-        GraphicsImpl* _impl;
-
+        GraphicsBackend _backend = GraphicsBackend::Empty;
+        bool _validation;
         bool _initialized = false;
-        RenderingSettings _settings{};
+        RenderingSettings _settings = {};
+        GraphicsDeviceFeatures _features = {};
         std::vector<GpuResource*> _gpuResources;
+        std::mutex _gpuResourceMutex;
 
     private:
-        
-
-#ifdef ALIMER_THREADING
-        std::atomic<uint64_t> _cookie;
-        std::mutex _gpuResourceMutex;
-#else
-        uint64_t _cookie = 0;
-#endif
     };
 }

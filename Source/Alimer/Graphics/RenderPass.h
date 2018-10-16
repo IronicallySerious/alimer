@@ -42,7 +42,7 @@ namespace Alimer
 
     struct RenderPassColorAttachmentDescriptor
     {
-        SharedPtr<TextureView> attachment;
+        TextureView* attachment;
         LoadAction loadAction = LoadAction::Clear;
         StoreAction storeAction = StoreAction::Store;
         Color4 clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);

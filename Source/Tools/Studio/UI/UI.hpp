@@ -23,7 +23,6 @@
 #pragma once
 #include "Alimer.h"
 #include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
 
 namespace Alimer
 {

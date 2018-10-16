@@ -20,33 +20,22 @@
 // THE SOFTWARE.
 //
 
-#include "../../Graphics/Graphics.h"
+#include "VulkanGraphicsImpl.h"
+#include "VulkanTexture.h"
 #include "VulkanConvert.h"
 #include "../Texture.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
 {
-    void Texture::Destroy()
+    VulkanTexture::VulkanTexture(VulkanGraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage existingImage, VkImageUsageFlags usageFlags)
+        : Texture(device, descriptor)
+        , _logicalDevice(device->GetDevice())
+        , _allocator(device->GetVmaAllocator())
+        , _vkImage(existingImage)
+        , _allocated(existingImage == VK_NULL_HANDLE)
     {
-        
-    }
-
-    bool Texture::Create(const ImageLevel* pInitialData)
-    {
-        ALIMER_UNUSED(pInitialData);
-        return true;
-    }
-
-    void Texture::SetVkImage(const TextureDescriptor* descriptor, VkImage vkImage, uint32_t vkUsage)
-    {
-        // Copy settings.
-        InitFromDescriptor(descriptor);
-        _vkImage = vkImage;
-
-        // vkUsage is VkImageUsageFlags
-
-        if (vkUsage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+        if (usageFlags & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))
         {
             TextureViewDescriptor viewDescriptor = {};
@@ -54,24 +43,50 @@ namespace Alimer
             _defaultTextureView = CreateTextureView(&viewDescriptor);
         }
     }
-    
-    void TextureView::Create()
+
+    VulkanTexture::~VulkanTexture()
+    {
+        Destroy();
+    }
+
+    void VulkanTexture::Destroy()
+    {
+        Texture::Destroy();
+
+        if (_allocated
+            && _vkImage != VK_NULL_HANDLE)
+        {
+            vkDestroyImage(_logicalDevice, _vkImage, nullptr);
+            _vkImage = VK_NULL_HANDLE;
+        }
+    }
+
+    TextureView* VulkanTexture::CreateTextureViewImpl(const TextureViewDescriptor* descriptor)
+    {
+        return new VulkanTextureView(static_cast<VulkanGraphicsDevice*>(_device), this, descriptor);
+    }
+
+    VulkanTextureView::VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor)
+        : TextureView(texture, descriptor)
+        , _logicalDevice(device->GetDevice())
+        , _id(device->AllocateCookie())
     {
         VkImageViewCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.image = _texture->GetVkImage();
+        createInfo.image = texture->GetVkImage();
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // get_image_view_type(tmpinfo, nullptr);
-        createInfo.format = vk::Convert(_format);
+        createInfo.format = vk::Convert(descriptor->format);
         createInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
         createInfo.subresourceRange = {
             vk::FormatToAspectMask(createInfo.format),
-            0, 1, 0, 1
+            descriptor->baseMipLevel, descriptor->levelCount,
+            descriptor->baseArrayLayer, descriptor->layerCount
         };
-        
+
         if (vkCreateImageView(
-            _texture->GetGraphics()->GetImpl()->GetDevice(),
+            _logicalDevice,
             &createInfo,
             nullptr, &_vkImageView) != VK_SUCCESS)
         {
@@ -79,12 +94,12 @@ namespace Alimer
         }
     }
 
-    void TextureView::Destroy()
+    VulkanTextureView::~VulkanTextureView()
     {
         if (_vkImageView != VK_NULL_HANDLE)
         {
             //_texture->GetGraphics()->DestroyImageView(_vkImageView);
-            vkDestroyImageView(_texture->GetGraphics()->GetImpl()->GetDevice(), _vkImageView, nullptr);
+            vkDestroyImageView(_logicalDevice, _vkImageView, nullptr);
             _vkImageView = VK_NULL_HANDLE;
         }
     }

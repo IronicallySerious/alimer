@@ -109,11 +109,11 @@ namespace Alimer
         {
             if (wParam)
             {
-                gApplication().Resume();
+                Application::GetInstance()->Resume();
             }
             else
             {
-                gApplication().Pause();
+                Application::GetInstance()->Pause();
             }
 
             return DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -512,10 +512,10 @@ namespace Alimer
             switch (wParam)
             {
             case SIZE_MINIMIZED:
-                gApplication().Pause();
+                Application::GetInstance()->Pause();
                 break;
             case SIZE_RESTORED:
-                gApplication().Resume();
+                Application::GetInstance()->Resume();
                 HandleResize(wParam, lParam);
                 break;
             case SIZE_MAXIMIZED:
