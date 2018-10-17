@@ -23,16 +23,6 @@
 add_subdirectory (rttr)
 add_subdirectory (CLI11)
 
-if (NOT ALIMER_DISABLE_SHADER_COMPILER)
-    option (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
-    set (LIB_TYPE STATIC)
-    set (ENABLE_GLSLANG_INSTALL OFF)
-    set (ENABLE_HLSL OFF CACHE BOOL "Enables HLSL input support")
-    set (ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Enable glslang binaries")
-	set (SKIP_GLSLANG_INSTALL ON CACHE BOOL "Skip glslang installation")
-    add_subdirectory (glslang EXCLUDE_FROM_ALL)
-endif ()
-
 if (ALIMER_DESKTOP AND ALIMER_TOOLS)
     add_subdirectory(imgui)
 endif ()
