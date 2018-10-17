@@ -28,3 +28,7 @@ makefile eol=lf
 *.pvr binary
 *.wav binary
 *.ogg binary
+
+# Exclude dirs from githug language statis
+assets/* linguist-vendored=true
+third_party/* linguist-vendored=true
