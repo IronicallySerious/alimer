@@ -107,6 +107,8 @@ endif ()
 set(STB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stb)
 
 if (ALIMER_DESKTOP AND ALIMER_TOOLS)
+    add_subdirectory(CLI11)
+
     add_subdirectory(imgui)
     alimer_external_target("third_party" ImGui)
 endif ()

@@ -21,8 +21,8 @@
 //
 
 #include "UI/UI.hpp"
-#include "imgui/imgui.h"
-#include "imgui/imgui_internal.h"
+#include <imgui.h>
+#include <imgui_internal.h>
 // #include "imgui/imgui_freetype.h"
 
 namespace Alimer
