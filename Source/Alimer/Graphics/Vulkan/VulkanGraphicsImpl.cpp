@@ -424,14 +424,13 @@ namespace Alimer
         // Destroy main swap chain.
         _mainSwapchain.Reset();
 
-        _framebuffers.Clear();
-        _renderPasses.Clear();
-
         // Clear base resources.
         GraphicsDevice::Shutdown();
 
+        _framebuffers.Clear();
+        _renderPasses.Clear();
         //_descriptorSetAllocators.clear();
-        //_pipelineLayouts.clear();
+        _pipelineLayouts.Clear();
 
         vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
 
