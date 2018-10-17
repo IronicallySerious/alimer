@@ -76,7 +76,9 @@ if (ALIMER_VULKAN)
     endif()
 
     # vkmemalloc
-    set(VKMEMALLOC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vkmemalloc/src PARENT_SCOPE)
+    add_library(vkmemalloc INTERFACE)
+    target_sources(vkmemalloc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vkmemalloc/src/vk_mem_alloc.h)
+    target_include_directories(vkmemalloc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vkmemalloc/src)
 endif ()
 
 # STB

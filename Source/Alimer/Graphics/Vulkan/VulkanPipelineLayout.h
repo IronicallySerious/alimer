@@ -22,66 +22,29 @@
 
 #pragma once
 
-#include "../Shader.h"
-#include "VulkanBackend.h"
 #include "../../Base/HashMap.h"
+#include "VulkanShader.h"
 #include <vector>
 
-#if TODO
 namespace Alimer
 {
-    static constexpr unsigned VulkanSetsCountPerPool = 16;
-    static constexpr unsigned VulkanDescriptorRingSize = 8;
-
-    class VulkanDescriptorSetAllocator final
-    {
-    public:
-        VulkanDescriptorSetAllocator(Graphics* graphics, const DescriptorSetLayout &layout);
-        ~VulkanDescriptorSetAllocator();
-
-        void Clear();
-        void BeginFrame();
-        std::pair<VkDescriptorSet, bool> Find(uint64_t hash);
-
-        VkDescriptorSetLayout GetVkHandle() const { return _vkHandle; }
-
-    private:
-        struct DescriptorSetNode : TemporaryHashmapEnabled<DescriptorSetNode>, IntrusiveListEnabled<DescriptorSetNode>
-        {
-            DescriptorSetNode(VkDescriptorSet set)
-                : set(set)
-            {
-            }
-
-            VkDescriptorSet set;
-        };
-
-        VkDevice _logicalDevice;
-        VkDescriptorSetLayout _vkHandle = VK_NULL_HANDLE;
-        std::vector<VkDescriptorPoolSize> _poolSize;
-        std::vector<VkDescriptorPool> _pools;
-        TemporaryHashmap<DescriptorSetNode, VulkanDescriptorRingSize, true> _setNodes;
-    };
+    class VulkanGraphicsDevice;
 
     class VulkanPipelineLayout final
     {
     public:
-        VulkanPipelineLayout(VulkanGraphics* graphics, const ResourceLayout &layout);
+        VulkanPipelineLayout(
+            VulkanGraphicsDevice* device, Util::Hash hash, const VulkanResourceLayout* layout);
         ~VulkanPipelineLayout();
 
-        const ResourceLayout& GetResourceLayout() const { return _layout; }
-        VkPipelineLayout GetVkHandle() const { return _vkHandle; }
-        VulkanDescriptorSetAllocator* GetAllocator(uint32_t set) const
-        {
-            return _setAllocators[set];
-        }
+        Util::Hash GetHash() const { return _hash; }
+        const VulkanResourceLayout& GetResourceLayout() const { return _layout; }
+        VkPipelineLayout GetHandle() const { return _handle; }
 
     private:
-        VkDevice _logicalDevice;
-        VkPipelineLayout _vkHandle = VK_NULL_HANDLE;
-        ResourceLayout _layout;
-        VulkanDescriptorSetAllocator* _setAllocators[MaxDescriptorSets] = {};
+        VulkanGraphicsDevice* _device;
+        Util::Hash _hash;
+        VkPipelineLayout _handle = VK_NULL_HANDLE;
+        VulkanResourceLayout _layout;
     };
 }
-
-#endif // TODO

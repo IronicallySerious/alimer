@@ -39,7 +39,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Scene/Scene.h"
 #include "../Renderer/RenderContext.h"
 #include "../Renderer/RenderPipeline.h"

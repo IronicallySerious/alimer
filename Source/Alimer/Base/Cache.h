@@ -22,35 +22,49 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
-#include "../Graphics/Types.h"
+#include "../Base/HashMap.h"
+#include <memory>
+#include <utility>
 
 namespace Alimer
 {
-	class GraphicsDevice;
+    template <typename T>
+    class Cache
+    {
+    public:
+        void Clear()
+        {
+            _hashMap.clear();
+        }
 
-	/// Defines a base GPU Resource.
-	class ALIMER_API GpuResource : public RefCounted
-	{
-	protected:
-        /// Constructor.
-        GpuResource(GraphicsDevice* device);
+        T* Find(Util::Hash hash) const
+        {
+            auto itr = _hashMap.find(hash);
+            auto *ret = itr != end(_hashMap) ? itr->second.get() : nullptr;
+            return ret;
+        }
 
-	public:
-		/// Destructor.
-		virtual ~GpuResource() override;
+        T* Insert(Util::Hash hash, std::unique_ptr<T> value)
+        {
+            auto &cache = _hashMap[hash];
+            if (!cache)
+                cache = std::move(value);
 
-        /// Unconditionally destroy the GPU resource.
-        virtual void Destroy() {}
+            auto *ret = cache.get();
+            return ret;
+        }
 
-        /// Return the graphics subsystem associated with this GPU object.
-        GraphicsDevice* GetDevice() const;
+        Util::HashMap<std::unique_ptr<T>> &GetHashMap()
+        {
+            return _hashMap;
+        }
 
-    protected:
-        /// Graphics subsystem.
-        GraphicsDevice* _device;
+        const Util::HashMap<std::unique_ptr<T>> &GetHashMap() const
+        {
+            return _hashMap;
+        }
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GpuResource);
-	};
+    private:
+        Util::HashMap<std::unique_ptr<T>> _hashMap;
+    };
 }

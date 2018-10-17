@@ -26,6 +26,39 @@
 
 namespace Alimer
 {
+    const char* EnumToString(PixelFormat format)
+    {
+#define CASE_STRING(ENUM_VALUE) case PixelFormat::##ENUM_VALUE : return #ENUM_VALUE
+
+        switch (format)
+        {
+            CASE_STRING(Undefined);
+            CASE_STRING(R8UNorm);
+            CASE_STRING(RG8UNorm);
+            CASE_STRING(RGBA8UNorm);
+            CASE_STRING(BGRA8UNorm);
+
+            CASE_STRING(Depth16UNorm);
+            CASE_STRING(Depth32Float);
+            CASE_STRING(Depth24UNormStencil8);
+            CASE_STRING(Depth32FloatStencil8);
+
+            CASE_STRING(BC1);
+            CASE_STRING(BC2);
+            CASE_STRING(BC3);
+            CASE_STRING(BC4UNorm);
+            CASE_STRING(BC4SNorm);
+            CASE_STRING(BC5UNorm);
+            CASE_STRING(BC5SNorm);
+
+            CASE_STRING(BC6HSFloat);
+            CASE_STRING(BC6HUFloat);
+        }
+
+#undef CASE_STRING
+        return nullptr;
+    }
+
     bool IsDepthFormat(PixelFormat format)
     {
         switch (format)

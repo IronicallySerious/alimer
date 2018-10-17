@@ -14,7 +14,7 @@ out gl_PerVertex
 void main()
 {
 	//gl_Position = camera.projectionMatrix * camera.viewMatrix * worldMatrix * vec4(inPosition.xyz, 1.0);
-	gl_Position = camera.projectionMatrix * camera.viewMatrix * vec4(inPosition.xyz, 1.0);
-    //gl_Position = vec4(inPosition.xyz, 1.0);
+	//gl_Position = camera.projectionMatrix * camera.viewMatrix * vec4(inPosition.xyz, 1.0);
+    gl_Position = vec4(inPosition.xyz, 1.0);
 	outColor = inColor;
 }

@@ -31,41 +31,37 @@ namespace Alimer
     class VulkanGraphicsDevice;
     class VulkanPipelineLayout;
 
-    enum class VulkanShaderStage
-    {
-        Vertex = 0,
-        TessControl = 1,
-        TessEvaluation = 2,
-        Geometry = 3,
-        Fragment = 4,
-        Compute = 5,
-        Count
-    };
-
     /// Vulkan ShaderModule implementation.
-    class VulkanShader final : public Shader
+    class VulkanShader final : public ShaderModule
     {
     public:
         /// Constructor.
-        VulkanShader(VulkanGraphicsDevice* device, uint64_t hash, const uint32_t *data, size_t size);
+        VulkanShader(VulkanGraphicsDevice* device, Util::Hash hash, const uint32_t* pCode, size_t size);
+        ~VulkanShader() override;
         void Destroy() override;
 
-        VkShaderModule GetModule() const { return _module; }
-        uint64_t GetHash() const { return _hash; }
-
+        VkShaderModule GetHandle() const { return _handle; }
     private:
         VkDevice _logicalDevice;
-        uint64_t _hash;
-        VkShaderModule _module = VK_NULL_HANDLE;
+        VkShaderModule _handle = VK_NULL_HANDLE;
     };
 
-    /*class VulkanShader final : public ShaderProgram
+
+    struct VulkanResourceLayout
+    {
+        uint32_t vertexAttributeMask = 0;
+        uint32_t renderTargetMask = 0;
+        VkPushConstantRange ranges[static_cast<unsigned>(ShaderStage::Count)] = {};
+        uint32_t numRanges = 0;
+        uint32_t descriptorSetMask = 0;
+    };
+
+    class VulkanProgram final : public Program
     {
     public:
         /// Constructor.
-        VulkanShader(Graphics* graphics, const ShaderProgramDescriptor* descriptor);
-
-        ~VulkanShader() override;
+        VulkanProgram(VulkanGraphicsDevice* device, Util::Hash hash, const std::vector<ShaderModule*>& stages);
+        ~VulkanProgram() override;
         void Destroy() override;
 
         VkShaderModule GetVkShaderModule(unsigned stage) const { return _shaderModules[stage]; }
@@ -76,8 +72,8 @@ namespace Alimer
 
     private:
         VkDevice _logicalDevice;
-        VkShaderModule _shaderModules[static_cast<unsigned>(VulkanShaderStage::Count)] = {};
+        VkShaderModule _shaderModules[static_cast<unsigned>(ShaderStage::Count)] = {};
         VulkanPipelineLayout* _pipelineLayout = nullptr;
         Util::HashMap<VkPipeline> _graphicsPipelineCache;
-    };*/
+    };
 }

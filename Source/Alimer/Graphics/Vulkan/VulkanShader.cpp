@@ -27,58 +27,28 @@
 
 namespace Alimer
 {
-    VulkanShader::VulkanShader(VulkanGraphicsDevice* device, uint64_t hash, const uint32_t *data, size_t size)
-        : Shader(device)
+    VulkanShader::VulkanShader(VulkanGraphicsDevice* device, Util::Hash hash, const uint32_t* pCode, size_t size)
+        : ShaderModule(device, hash, pCode, size)
         , _logicalDevice(device->GetDevice())
-        , _hash(hash)
     {
-        VkShaderModuleCreateInfo createInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+        VkShaderModuleCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
         createInfo.codeSize = size;
-        createInfo.pCode = data;
+        createInfo.pCode = pCode;
 
         VkResult result = vkCreateShaderModule(
             _logicalDevice,
             &createInfo,
             nullptr,
-            &_module);
+            &_handle);
 
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERRORF("[Vulkan] - Failed to create shader module.");
             return;
         }
-    }
-
-    void VulkanShader::Destroy()
-    {
-        if (_module != VK_NULL_HANDLE)
-        {
-            vkDestroyShaderModule(_logicalDevice, _module, nullptr);
-            _module = VK_NULL_HANDLE;
-        }
-    }
-
-    /*VulkanShader::VulkanShader(Graphics* graphics, const ShaderProgramDescriptor* descriptor)
-        : ShaderProgram(nullptr, descriptor)
-        , _logicalDevice(graphics->GetImpl()->GetDevice())
-    {
-        //_shaderModules[static_cast<unsigned>(ShaderStage::Compute)] = CreateShaderModule(_logicalDevice, pCode, codeSize);
-        //_pipelineLayout = graphics->RequestPipelineLayout(_layout);
-    }
-
-    /// Constructor.
-    VulkanShader::VulkanShader(VulkanGraphics* graphics,
-        const void *pVertexCode, size_t vertexCodeSize,
-        const void *pFragmentCode, size_t fragmentCodeSize)
-        : Shader(graphics, pVertexCode, vertexCodeSize, pFragmentCode, fragmentCodeSize)
-        , _logicalDevice(graphics->GetLogicalDevice())
-    {
-        _shaderModules[static_cast<unsigned>(VulkanShaderStage::Vertex)] = CreateShaderModule(_logicalDevice, pVertexCode, vertexCodeSize);
-        _shaderModules[static_cast<unsigned>(VulkanShaderStage::Fragment)] = CreateShaderModule(_logicalDevice, pFragmentCode, fragmentCodeSize);
-
-        _pipelineLayout = graphics->RequestPipelineLayout(_layout);
     }
 
     VulkanShader::~VulkanShader()
@@ -88,22 +58,53 @@ namespace Alimer
 
     void VulkanShader::Destroy()
     {
-        for (uint32_t i = 0; i < static_cast<unsigned>(VulkanShaderStage::Count); i++)
+        if (_handle != VK_NULL_HANDLE)
         {
-            if (_shaderModules[i] != VK_NULL_HANDLE)
-            {
-                vkDestroyShaderModule(_logicalDevice, _shaderModules[i], nullptr);
-                _shaderModules[i] = VK_NULL_HANDLE;
-            }
+            vkDestroyShaderModule(_logicalDevice, _handle, nullptr);
+            _handle = VK_NULL_HANDLE;
         }
     }
 
-    VkShaderModule VulkanShader::GetVkShaderModule(ShaderStage stage) const
+    VulkanProgram::VulkanProgram(VulkanGraphicsDevice* device, Util::Hash hash, const std::vector<ShaderModule*>& shaders)
+        : Program(device, hash, shaders)
+        , _logicalDevice(device->GetDevice())
+    {
+        VulkanResourceLayout layout;
+        layout.descriptorSetMask = 0;
+
+        for (size_t i = 0, count = shaders.size(); i < count; ++i)
+        {
+            auto shader = static_cast<VulkanShader*>(shaders[i]);
+            if (shader->GetStage() == ShaderStage::Vertex)
+            {
+                layout.vertexAttributeMask = shader->GetReflection().inputMask;
+            }
+            if (shader->GetStage() == ShaderStage::Fragment)
+            {
+                layout.renderTargetMask = shader->GetReflection().outputMask;
+            }
+
+            _shaderModules[static_cast<unsigned>(shaders[i]->GetStage())] = shader->GetHandle();
+        }
+
+        _pipelineLayout = device->RequestPipelineLayout(&layout);
+    }
+
+    VulkanProgram::~VulkanProgram()
+    {
+        Destroy();
+    }
+
+    void VulkanProgram::Destroy()
+    {
+    }
+
+    VkShaderModule VulkanProgram::GetVkShaderModule(ShaderStage stage) const
     {
         return _shaderModules[static_cast<unsigned>(stage)];
     }
 
-    VkPipeline VulkanShader::GetGraphicsPipeline(Util::Hash hash)
+    VkPipeline VulkanProgram::GetGraphicsPipeline(Util::Hash hash)
     {
         auto it = _graphicsPipelineCache.find(hash);
         if (it != _graphicsPipelineCache.end())
@@ -112,8 +113,8 @@ namespace Alimer
         return VK_NULL_HANDLE;
     }
 
-    void VulkanShader::AddPipeline(Util::Hash hash, VkPipeline pipeline)
+    void VulkanProgram::AddPipeline(Util::Hash hash, VkPipeline pipeline)
     {
         _graphicsPipelineCache[hash] = pipeline;
-    }*/
+    }
 }

@@ -22,14 +22,16 @@
 
 #pragma once
 
+#include "../Base/Cache.h"
 #include "../Core/Object.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
-#include "../Graphics/GpuBuffer.h"
+#include "../Graphics/VertexBuffer.h"
+#include "../Graphics/IndexBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Shader.h"
+#include "../Graphics/ShaderCompiler.h"
 #include "../Graphics/CommandBuffer.h"
-#include "../Graphics/VertexFormat.h"
 #include <vector>
 #include <mutex>
 
@@ -62,11 +64,11 @@ namespace Alimer
         /// Finishes the current frame and schedules it for display.
         virtual void EndFrame() = 0;
 
-        /// Add a GpuResource to keep track of. 
-        void AddGpuResource(GpuResource* resource);
+        /// Add a GraphicsResource to keep track of. 
+        void AddGraphicsResource(GraphicsResource* resource);
 
-        /// Remove a GpuResource.
-        void RemoveGpuResource(GpuResource* resource);
+        /// Remove a GraphicsResource.
+        void RemoveGraphicsResource(GraphicsResource* resource);
 
         /// Create new buffer with given descriptor and optional initial data.
         //GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
@@ -77,25 +79,25 @@ namespace Alimer
         /// Create new vertex buffer.
         VertexBuffer* CreateVertexBuffer(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
 
+        /// Create new index buffer.
+        IndexBuffer* CreateIndexBuffer(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
+
         /// Create new buffer with given descriptor and optional initial data.
         Texture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
 
-        /*
-        /// Create new shader module using SPIRV bytecode.
-        ShaderModule* CreateShaderModule(const std::vector<uint32_t>& spirv);
-
-        /// Create new shader module from file and given entry point.
-        ShaderModule* CreateShaderModule(const String& file, const String& entryPoint = "main");
-
-        /// Create new shader program with descriptor.
-        ShaderProgram* CreateShaderProgram(const ShaderProgramDescriptor* descriptor);
-
-        /// Create new shader compute shader with descriptor.
-        ShaderProgram* CreateShaderProgram(const ShaderStageDescriptor* stage);
+        /// Request shader module using SPIRV bytecode.
+        ShaderModule* RequestShader(const uint32_t* pCode, size_t size);
 
         /// Create new shader program with vertex and fragment module.
-        ShaderProgram* CreateShaderProgram(ShaderModule* vertex, ShaderModule* fragment);
-        */
+        Program* RequestProgram(ShaderModule* vertex, ShaderModule* fragment);
+
+        /// Create new shader compute shader program.
+        Program* RequestProgram(ShaderModule* compute);
+
+        /// Create new shader program with descriptor.
+        Program* RequestProgram(
+            const uint32_t *vertexData, size_t vertexSize,
+            const uint32_t *fragmentData, size_t fragmentSize);
 
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
@@ -107,7 +109,7 @@ namespace Alimer
         const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
 
         /// Get the main Swapchain current image view.
-        virtual SharedPtr<TextureView> GetSwapchainView() const = 0;
+        virtual TextureView* GetSwapchainView() const = 0;
 
         /// Get the main command buffer.
         virtual SharedPtr<CommandBuffer> GetMainCommandBuffer() const = 0;
@@ -115,14 +117,17 @@ namespace Alimer
         /// Request new command buffer.
         //SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBuffer::Type type);
 
+        ShaderManager &GetShaderManager();
+
         void NotifyValidationError(const char* message);
 
     protected:
         virtual void Shutdown();
         //virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
         virtual VertexBuffer* CreateVertexBufferImpl(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData) = 0;
-        //virtual ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) = 0;
-        //virtual ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) = 0;
+        virtual IndexBuffer* CreateIndexBufferImpl(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData) = 0;
+        virtual std::unique_ptr<ShaderModule> CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size) = 0;
+        virtual std::unique_ptr<Program> CreateProgramImpl(Util::Hash hash, const std::vector<ShaderModule*>& stages) = 0;
         virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
 
         GraphicsBackend _backend = GraphicsBackend::Empty;
@@ -130,9 +135,12 @@ namespace Alimer
         bool _initialized = false;
         RenderingSettings _settings = {};
         GraphicsDeviceFeatures _features = {};
-        std::vector<GpuResource*> _gpuResources;
+        std::vector<GraphicsResource*> _gpuResources;
         std::mutex _gpuResourceMutex;
 
     private:
+        ShaderManager _shaderManager;
+        Cache<ShaderModule> _shaders;
+        Cache<Program> _programs;
     };
 }

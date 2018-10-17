@@ -43,7 +43,7 @@ namespace Alimer
         allocateInfo.commandPool = _vkCommandPool;
         allocateInfo.level = secondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocateInfo.commandBufferCount = 1;
-        VkResult result = vkAllocateCommandBuffers(device->GetDevice(), &allocateInfo, &_vkCommandBuffer);
+        VkResult result = vkAllocateCommandBuffers(device->GetDevice(), &allocateInfo, &_handle);
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERRORF("[Vulkan] - Failed to allocate command buffer: %s", vkGetVulkanResultString(result));
@@ -60,24 +60,38 @@ namespace Alimer
 
     void VulkanCommandBuffer::Destroy()
     {
-        vkFreeCommandBuffers(_logicalDevice, _vkCommandPool, 1, &_vkCommandBuffer);
+        vkFreeCommandBuffers(_logicalDevice, _vkCommandPool, 1, &_handle);
         static_cast<VulkanGraphicsDevice*>(_device)->ReleaseFence(_vkFence);
+    }
+
+    void VulkanCommandBuffer::BeginContext()
+    {
+        _dirtyFlags = ~0u;
+        _currentPipeline = VK_NULL_HANDLE;
+        _currentPipelineLayout = VK_NULL_HANDLE;
+        _currentTopology = PrimitiveTopology::Count;
+        _currentSubpass = 0;
+        _currentLayout = nullptr;
+        _currentVkProgram = nullptr;
+        //memset(bindings.cookies, 0, sizeof(bindings.cookies));
+        memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
+        CommandBuffer::BeginContext();
     }
 
     void VulkanCommandBuffer::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
     {
-        _framebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
-        _renderPass = _framebuffer->GetRenderPass();
+        _currentFramebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
+        _currentRenderPass = _currentFramebuffer->GetRenderPass();
 
         VkRect2D renderArea = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
-        renderArea.offset.x = min(_framebuffer->GetWidth(), uint32_t(renderArea.offset.x));
-        renderArea.offset.y = min(_framebuffer->GetHeight(), uint32_t(renderArea.offset.y));
-        renderArea.extent.width = min(_framebuffer->GetWidth() - renderArea.offset.x, renderArea.extent.width);
-        renderArea.extent.height = min(_framebuffer->GetHeight() - renderArea.offset.y, renderArea.extent.height);
+        renderArea.offset.x = min(_currentFramebuffer->GetWidth(), uint32_t(renderArea.offset.x));
+        renderArea.offset.y = min(_currentFramebuffer->GetHeight(), uint32_t(renderArea.offset.y));
+        renderArea.extent.width = min(_currentFramebuffer->GetWidth() - renderArea.offset.x, renderArea.extent.width);
+        renderArea.extent.height = min(_currentFramebuffer->GetHeight() - renderArea.offset.y, renderArea.extent.height);
 
         VkClearValue clearValues[MaxColorAttachments + 1];
         uint32_t clearValueCount = 0;
-        clearValueCount = _renderPass->GetColorAttachmentsCount();
+        clearValueCount = _currentRenderPass->GetColorAttachmentsCount();
         for (uint32_t i = 0; i < clearValueCount; ++i)
         {
             clearValues[i].color.float32[0] = descriptor->colorAttachments[i].clearColor.r;
@@ -93,117 +107,370 @@ namespace Alimer
         }
 
         VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-        renderPassBeginInfo.renderPass = _renderPass->GetVkRenderPass();
-        renderPassBeginInfo.framebuffer = _framebuffer->GetVkFramebuffer();
+        renderPassBeginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
+        renderPassBeginInfo.framebuffer = _currentFramebuffer->GetVkFramebuffer();
         renderPassBeginInfo.renderArea = renderArea;
         renderPassBeginInfo.clearValueCount = clearValueCount;
         renderPassBeginInfo.pClearValues = clearValues;
 
-        vkCmdBeginRenderPass(_vkCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(_handle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        //Viewport viewport(0.0f, 0.0f, float(renderPass->GetWidth()), float(renderPass->GetHeight()), 0.0f, 1.0f);
-        //SetViewport(viewport);
-        //SetScissor(setRenderArea);
+        rect viewport(float(_currentFramebuffer->GetWidth()), float(_currentFramebuffer->GetHeight()));
+        irect scissor(_currentFramebuffer->GetWidth(), _currentFramebuffer->GetHeight());
+        SetViewport(viewport);
+        SetScissor(scissor);
         BeginGraphics();
     }
 
     void VulkanCommandBuffer::EndRenderPassImpl()
     {
-        vkCmdEndRenderPass(_vkCommandBuffer);
+        vkCmdEndRenderPass(_handle);
+    }
+
+    VkResult VulkanCommandBuffer::Begin(VkCommandBufferUsageFlags flags)
+    {
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.pNext = nullptr;
+        beginInfo.flags = flags;
+        beginInfo.pInheritanceInfo = nullptr;
+        return vkBeginCommandBuffer(_handle, &beginInfo);
+    }
+
+    VkResult VulkanCommandBuffer::End()
+    {
+        return vkEndCommandBuffer(_handle);
+    }
+
+    VkResult VulkanCommandBuffer::Reset()
+    {
+        return vkResetCommandBuffer(_handle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+    }
+
+    void VulkanCommandBuffer::SetProgramImpl(Program* program)
+    {
+        SetDirty(COMMAND_BUFFER_DIRTY_PIPELINE_BIT | COMMAND_BUFFER_DYNAMIC_BITS);
+        _currentVkProgram = static_cast<VulkanProgram*>(program);
+
+        auto pipelineLayout = _currentVkProgram->GetPipelineLayout();
+        if (_currentLayout == nullptr)
+        {
+            _dirtySets = ~0u;
+            SetDirty(COMMAND_BUFFER_DIRTY_PUSH_CONSTANTS_BIT);
+
+            _currentLayout = pipelineLayout;
+            _currentPipelineLayout = _currentLayout->GetHandle();
+        }
+        else if (pipelineLayout->GetHash() != _currentLayout->GetHash())
+        {
+            // TODO: Handle descriptor change.
+            //const VulkanResourceLayout &newLayout = pipelineLayout->GetResourceLayout();
+            //const VulkanResourceLayout &oldLayout = _currentLayout->GetResourceLayout();
+
+            _currentLayout = pipelineLayout;
+            _currentPipelineLayout = _currentLayout->GetHandle();
+        }
+    }
+
+    void VulkanCommandBuffer::SetVertexBuffer(uint32_t index, VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
+    {
+        ALIMER_ASSERT(index < MaxVertexBufferBindings);
+        ALIMER_ASSERT(buffer);
+
+        // Bind attribs if necessary.
+        if (_vbo.buffers[index] != buffer)
+        {
+            for (auto& vertexElement : buffer->GetElements())
+            {
+                uint32_t location = static_cast<uint32_t>(vertexElement.semantic);
+                SetVertexAttrib(location, index, vertexElement.format, vertexElement.offset);
+            }
+        }
+
+        const uint64_t stride = buffer->GetStride();
+        if (_vbo.strides[index] != stride
+            || _vbo.inputRates[index] != inputRate)
+        {
+            SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
+        }
+
+        _currentVertexBuffers[index] = static_cast<VulkanVertexBuffer*>(buffer)->GetHandle();
+        CommandBuffer::SetVertexBuffer(index, buffer, vertexOffset, inputRate);
+    }
+
+    void VulkanCommandBuffer::SetVertexAttrib(uint32_t attrib, uint32_t binding, VertexFormat format, VkDeviceSize offset)
+    {
+        ALIMER_ASSERT(attrib < MaxVertexAttributes);
+
+        auto &attr = _attribs[attrib];
+
+        if (attr.binding != binding || attr.format != format || attr.offset != offset)
+        {
+            SetDirty(COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT);
+        }
+
+        ALIMER_ASSERT(binding < MaxVertexBufferBindings);
+
+        attr.binding = binding;
+        attr.format = format;
+        attr.offset = offset;
+    }
+
+    void VulkanCommandBuffer::SetIndexBufferImpl(IndexBuffer* buffer, uint64_t offset, IndexType indexType)
+    {
+        VkBuffer vkBuffer = static_cast<VulkanIndexBuffer*>(buffer)->GetHandle();
+        VkIndexType vkIndexType = vk::Convert(indexType);
+        vkCmdBindIndexBuffer(_handle, vkBuffer, offset, vkIndexType);
+    }
+
+    void VulkanCommandBuffer::DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+        FlushRenderState(topology);
+        vkCmdDraw(_handle, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
     void VulkanCommandBuffer::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        vkCmdDispatch(_vkCommandBuffer, groupCountX, groupCountY, groupCountZ);
+        vkCmdDispatch(_handle, groupCountX, groupCountY, groupCountZ);
     }
 
-#if TODO
-    void VulkanCommandBuffer::BeginContext()
+    void VulkanCommandBuffer::FlushRenderState(PrimitiveTopology topology)
     {
-        //CommandBuffer::BeginContext();
+        ALIMER_ASSERT(_currentLayout);
 
-        _dirty = ~0u;
-        _dirtySets = ~0u;
-        _dirtyVbos = ~0u;
-        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
-        memset(&_indexState, 0, sizeof(_indexState));
-        memset(&_bindings, 0, sizeof(_bindings));
-
-        _currentVkPipeline = VK_NULL_HANDLE;
-        _currentVkPipelineLayout = VK_NULL_HANDLE;
-        _currentPipelineLayout = nullptr;
-        _currentShader = nullptr;
-        _currentTopology = PrimitiveTopology::Count;
-    }
-
-    /*void VulkanCommandBuffer::ExecuteCommandsCore(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
-    {
-        std::vector<VkCommandBuffer> vkCommandBuffers;
-        for (uint32_t i = 0; i < commandBufferCount; i++)
+        // We've invalidated pipeline state, update the VkPipeline.
+        if (GetAndClear(
+            COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT
+            | COMMAND_BUFFER_DIRTY_PIPELINE_BIT
+            | COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT))
         {
-            VulkanCommandBuffer* vulkanCmdBuffer = static_cast<VulkanCommandBuffer*>(commandBuffers[i]);
-            ALIMER_ASSERT(vulkanCmdBuffer->IsSecondary());
-            vkCommandBuffers[i] = vulkanCmdBuffer->GetVkCommandBuffer();
+            VkPipeline oldPipeline = _currentPipeline;
+            FlushGraphicsPipeline();
+            if (oldPipeline != _currentPipeline)
+            {
+                vkCmdBindPipeline(_handle, VK_PIPELINE_BIND_POINT_GRAPHICS, _currentPipeline);
+                SetDirty(COMMAND_BUFFER_DYNAMIC_BITS);
+            }
         }
 
-        vkCmdExecuteCommands(_vkCommandBuffer, commandBufferCount, vkCommandBuffers.data());
-    }*/
+        FlushDescriptorSets();
+
+        if (GetAndClear(COMMAND_BUFFER_DIRTY_VIEWPORT_BIT))
+        {
+            vkCmdSetViewport(_handle, 0, 1, &_viewport);
+        }
+
+        if (GetAndClear(COMMAND_BUFFER_DIRTY_SCISSOR_BIT))
+        {
+            vkCmdSetScissor(_handle, 0, 1, &_scissor);
+        }
+
+        uint32_t updateVboMask = _dirtyVbos & _activeVbos;
+        ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t binding_count)
+        {
+#ifdef ALIMER_DEV
+            for (unsigned i = binding; i < binding + binding_count; i++)
+            {
+                ALIMER_ASSERT(_vbo.buffers[i] != VK_NULL_HANDLE);
+            }
+#endif
+            vkCmdBindVertexBuffers(_handle,
+                binding, binding_count,
+                _currentVertexBuffers + binding,
+                _vbo.offsets + binding);
+        });
+        _dirtyVbos &= ~updateVboMask;
+    }
+
+    void VulkanCommandBuffer::FlushDescriptorSets()
+    {
+        const VulkanResourceLayout& layout = _currentLayout->GetResourceLayout();
+        uint32_t updateSet = layout.descriptorSetMask & _dirtySets;
+        ForEachBit(updateSet, [&](uint32_t set) { FlushDescriptorSet(set); });
+        _dirtySets &= ~updateSet;
+    }
+
+    void VulkanCommandBuffer::FlushDescriptorSet(uint32_t set)
+    {
+        ALIMER_UNUSED(set);
+    }
+
+    void VulkanCommandBuffer::FlushGraphicsPipeline()
+    {
+        Util::Hasher h;
+        _activeVbos = 0;
+        const VulkanResourceLayout& layout = _currentLayout->GetResourceLayout();
+        ForEachBit(layout.vertexAttributeMask, [&](uint32_t bit)
+        {
+            h.u32(bit);
+            _activeVbos |= 1u << _attribs[bit].binding;
+            h.u32(_attribs[bit].binding);
+            h.u32(static_cast<uint32_t>(_attribs[bit].format));
+            h.u32(_attribs[bit].offset);
+        });
+
+        ForEachBit(_activeVbos, [&](uint32_t bit)
+        {
+            h.u32(static_cast<uint32_t>(_vbo.inputRates[bit]));
+            h.u32(_vbo.strides[bit]);
+        });
+
+        h.u64(_currentRenderPass->GetHash());
+        h.u32(_currentSubpass);
+        h.u64(_currentProgram->GetHash());
+        //h.u64(_currentPipeline->GetHash());
+        h.u32(static_cast<uint32_t>(_currentTopology));
+
+        auto hash = h.get();
+        _currentPipeline = _currentVkProgram->GetGraphicsPipeline(hash);
+        if (_currentPipeline == VK_NULL_HANDLE)
+        {
+            // Create new.
+            VkPipelineVertexInputStateCreateInfo vertexInputState = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+            VkVertexInputAttributeDescription vkAttribs[MaxVertexAttributes];
+            vertexInputState.pVertexAttributeDescriptions = vkAttribs;
+
+            uint32_t bindingMask = 0;
+            ForEachBit(layout.vertexAttributeMask, [&](uint32_t bit) {
+                auto &attr = vkAttribs[vertexInputState.vertexAttributeDescriptionCount++];
+                attr.location = bit;
+                attr.binding = _attribs[bit].binding;
+                attr.format = vk::Convert(_attribs[bit].format);
+                attr.offset = _attribs[bit].offset;
+                bindingMask |= 1u << attr.binding;
+            });
+
+            VkVertexInputBindingDescription vkVboBindings[MaxVertexBufferBindings];
+            vertexInputState.pVertexBindingDescriptions = vkVboBindings;
+            ForEachBit(bindingMask, [&](uint32_t bit) {
+                auto &bind = vkVboBindings[vertexInputState.vertexBindingDescriptionCount++];
+                bind.binding = bit;
+                bind.inputRate = vk::Convert(_vbo.inputRates[bit]);
+                bind.stride = _vbo.strides[bit];
+            });
+
+            // Viewport state
+            VkPipelineViewportStateCreateInfo viewportState = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+            viewportState.viewportCount = 1;
+            viewportState.scissorCount = 1;
+
+            // Rasterization state
+            VkPipelineRasterizationStateCreateInfo rasterizationState = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
+            rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+            // Default clockwise as DirectX coordinate.
+            rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
+            rasterizationState.lineWidth = 1.0f;
+            rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+            rasterizationState.depthBiasEnable = VK_FALSE;
+
+            // Multisample
+            VkPipelineMultisampleStateCreateInfo multpleSampleState = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
+            multpleSampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+            // Depth state
+            VkPipelineDepthStencilStateCreateInfo depthStencilState = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+            depthStencilState.stencilTestEnable = VK_FALSE;
+            depthStencilState.depthTestEnable = VK_FALSE;
+            depthStencilState.depthWriteEnable = VK_FALSE;
+
+            // Blend state
+            VkPipelineColorBlendAttachmentState blendAttachments[MaxColorAttachments] = {};
+            blendAttachments[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            blendAttachments[0].blendEnable = VK_FALSE;
+
+            VkPipelineColorBlendStateCreateInfo blendState = { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+            blendState.attachmentCount = 1;
+            blendState.pAttachments = blendAttachments;
+
+            // Dynamic state
+            VkPipelineDynamicStateCreateInfo dynamicState = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+            dynamicState.dynamicStateCount = 2;
+            VkDynamicState states[2] = {
+                VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT,
+            };
+            dynamicState.pDynamicStates = states;
+
+            // Input assembly
+            VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+            inputAssemblyState.pNext = nullptr;
+            inputAssemblyState.flags = 0;
+            inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            inputAssemblyState.primitiveRestartEnable = VK_FALSE;
+
+            // Stages
+            VkPipelineShaderStageCreateInfo stages[static_cast<uint32_t>(ShaderStage::Count)];
+            uint32_t numStages = 0;
+
+            for (uint32_t i = 0; i < static_cast<uint32_t>(ShaderStage::Count); i++)
+            {
+                auto vkModule = _currentVkProgram->GetVkShaderModule(i);
+                if (vkModule != VK_NULL_HANDLE)
+                {
+                    auto &stage = stages[numStages++];
+                    stage = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+                    stage.module = vkModule;
+                    stage.pName = "main";
+                    stage.stage = static_cast<VkShaderStageFlagBits>(1u << i);
+                }
+            }
+
+            VkGraphicsPipelineCreateInfo createInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+            createInfo.pNext = nullptr;
+            createInfo.flags = 0;
+            createInfo.stageCount = numStages;
+            createInfo.pStages = stages;
+            createInfo.pVertexInputState = &vertexInputState;
+            createInfo.pTessellationState = nullptr;
+            createInfo.pViewportState = &viewportState;
+            createInfo.pRasterizationState = &rasterizationState;
+            createInfo.pMultisampleState = &multpleSampleState;
+            createInfo.pDepthStencilState = &depthStencilState;
+            createInfo.pColorBlendState = &blendState;
+            createInfo.pDynamicState = &dynamicState;
+            createInfo.pInputAssemblyState = &inputAssemblyState;
+            createInfo.layout = _currentPipelineLayout;
+            createInfo.renderPass = _currentRenderPass->GetVkRenderPass();
+            createInfo.subpass = _currentSubpass;
+            createInfo.basePipelineHandle = VK_NULL_HANDLE;
+            createInfo.basePipelineIndex = 0;
+
+            VkPipeline newPipeline;
+            if (vkCreateGraphicsPipelines(
+                static_cast<VulkanGraphicsDevice*>(_device)->GetDevice(),
+                static_cast<VulkanGraphicsDevice*>(_device)->GetPipelineCache(),
+                1,
+                &createInfo,
+                nullptr,
+                &newPipeline) != VK_SUCCESS)
+            {
+                ALIMER_LOGCRITICAL("Vulkan - Failed to graphics pipeline");
+            }
+
+            _currentVkProgram->AddPipeline(hash, newPipeline);
+            _currentPipeline = newPipeline;
+        }
+    }
 
     void VulkanCommandBuffer::SetViewport(const rect& viewport)
     {
         // Flip to match DirectX coordinate system.
-        _currentViewport = VkViewport{
+        _viewport = VkViewport{
             viewport.x, viewport.height + viewport.y,
             viewport.width,   -viewport.height,
             0.0f, 1.0f,
         };
 
-        vkCmdSetViewport(_handle, 0, 1, &_currentViewport);
+        SetDirty(COMMAND_BUFFER_DIRTY_VIEWPORT_BIT);
     }
 
     void VulkanCommandBuffer::SetScissor(const irect& scissor)
     {
-        VkRect2D vkScissor = {};
-        vkScissor.offset = { scissor.x, scissor.y };
-        vkScissor.extent = { static_cast<uint32_t>(scissor.width), static_cast<uint32_t>(scissor.height) };
-        vkCmdSetScissor(_handle, 0, 1, &vkScissor);
+        _scissor.offset = { scissor.x, scissor.y };
+        _scissor.extent = { static_cast<uint32_t>(scissor.width), static_cast<uint32_t>(scissor.height) };
+        SetDirty(COMMAND_BUFFER_DIRTY_SCISSOR_BIT);
     }
 
-    void VulkanCommandBuffer::SetShaderProgramImpl(ShaderProgram* program)
-    {
-        if (_currentShader == program)
-            return;
-
-        _currentShader = static_cast<VulkanShader*>(program);
-        _currentVkPipeline = VK_NULL_HANDLE;
-
-        SetDirty(COMMAND_BUFFER_DIRTY_PIPELINE_BIT | COMMAND_BUFFER_DYNAMIC_BITS);
-
-        /*if (_currentPipelineLayout == nullptr)
-        {
-            _dirtySets = ~0u;
-            SetDirty(COMMAND_BUFFER_DIRTY_PUSH_CONSTANTS_BIT);
-
-            _currentPipelineLayout = _currentShader->GetPipelineLayout();
-            _currentVkPipelineLayout = _currentPipelineLayout->GetVkHandle();
-        }
-        else if (_currentShader->GetPipelineLayout() != _currentPipelineLayout)
-        {
-            const ResourceLayout &newLayout = _currentShader->GetPipelineLayout()->GetResourceLayout();
-            const ResourceLayout &oldLayout = _currentPipelineLayout->GetResourceLayout();
-
-            // TODO: Invalidate sets
-            _currentPipelineLayout = _currentShader->GetPipelineLayout();
-            _currentVkPipelineLayout = _currentPipelineLayout->GetVkHandle();
-        }*/
-    }
-
-    void VulkanCommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-    {
-        PrepareDraw(topology);
-        vkCmdDraw(_handle, vertexCount, instanceCount, vertexStart, baseInstance);
-    }
-
+#if TODO
     void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
         ALIMER_ASSERT(_currentShader);
@@ -290,24 +557,6 @@ namespace Alimer
 
     }
 
-    void VulkanCommandBuffer::BindIndexBufferImpl(GpuBuffer* buffer, uint64_t offset, IndexType indexType)
-    {
-        if (_indexState.buffer == buffer
-            && _indexState.offset == offset
-            && _indexState.indexType == indexType)
-        {
-            return;
-        }
-
-        _indexState.buffer = buffer;
-        _indexState.offset = offset;
-        _indexState.indexType = indexType;
-
-        VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetHandle();
-        VkIndexType vkIndexType = vk::Convert(indexType);
-        vkCmdBindIndexBuffer(_handle, vkBuffer, offset, vkIndexType);
-    }
-
     void VulkanCommandBuffer::BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {
         auto vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetHandle();
@@ -327,190 +576,6 @@ namespace Alimer
     void VulkanCommandBuffer::BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding)
     {
 
-    }
-
-
-
-    void VulkanCommandBuffer::FlushRenderState()
-    {
-        ALIMER_ASSERT(_currentPipelineLayout);
-        //ALIMER_ASSERT(current_program);
-
-        // We've invalidated pipeline state, update the VkPipeline.
-        if (GetAndClear(
-            COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT
-            | COMMAND_BUFFER_DIRTY_PIPELINE_BIT
-            | COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT))
-        {
-            VkPipeline oldPipeline = _currentVkPipeline;
-            FlushGraphicsPipeline();
-            if (oldPipeline != _currentVkPipeline)
-            {
-                vkCmdBindPipeline(_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _currentVkPipeline);
-                SetDirty(COMMAND_BUFFER_DYNAMIC_BITS);
-            }
-        }
-
-        FlushDescriptorSets();
-    }
-
-    void VulkanCommandBuffer::FlushGraphicsPipeline()
-    {
-        Util::Hasher h;
-        _activeVbos = 0;
-        /*auto &layout = _currentPipelineLayout->GetResourceLayout();
-        ForEachBit(layout.attributeMask, [&](uint32_t bit)
-        {
-            h.u32(bit);
-            _activeVbos |= 1u << _attribs[bit].binding;
-            h.u32(_attribs[bit].binding);
-            h.u32(_attribs[bit].format);
-            h.u32(_attribs[bit].offset);
-        });*/
-
-        ForEachBit(_activeVbos, [&](uint32_t bit)
-        {
-            h.u32(static_cast<uint32_t>(_vbo.inputRates[bit]));
-            h.u32(_vbo.strides[bit]);
-        });
-
-        // TODO: use render pass hash.
-        //h.pointer(_currentRenderPass->GetVkRenderPass());
-        //h.u64(_currentRenderPass->GetHash());
-        h.u32(_currentSubpass);
-        h.pointer(_currentShader);
-        //h.u64(_currentPipeline->GetHash());
-        h.u32(static_cast<uint32_t>(_currentTopology));
-
-        auto hash = h.get();
-        _currentVkPipeline = _currentShader->GetGraphicsPipeline(hash);
-        if (_currentVkPipeline == VK_NULL_HANDLE)
-        {
-            // Create new.
-            VkPipelineVertexInputStateCreateInfo vertexInputState = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-            VkVertexInputAttributeDescription vkAttribs[MaxVertexAttributes];
-            vertexInputState.pVertexAttributeDescriptions = vkAttribs;
-
-            uint32_t attributeMask = 0; // _currentPipelineLayout->GetResourceLayout().attributeMask;
-            uint32_t bindingMask = 0;
-            ForEachBit(attributeMask, [&](uint32_t bit) {
-                auto &attr = vkAttribs[vertexInputState.vertexAttributeDescriptionCount++];
-                attr.location = bit;
-                attr.binding = _attribs[bit].binding;
-                attr.format = _attribs[bit].format;
-                attr.offset = _attribs[bit].offset;
-                bindingMask |= 1u << attr.binding;
-            });
-
-            VkVertexInputBindingDescription vkVboBindings[MaxVertexBufferBindings];
-            vertexInputState.pVertexBindingDescriptions = vkVboBindings;
-            ForEachBit(bindingMask, [&](uint32_t bit) {
-                auto &bind = vkVboBindings[vertexInputState.vertexBindingDescriptionCount++];
-                bind.binding = bit;
-                bind.inputRate = vk::Convert(_vbo.inputRates[bit]);
-                bind.stride = _vbo.strides[bit];
-            });
-
-            // Viewport state
-            VkPipelineViewportStateCreateInfo viewportState = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-            viewportState.viewportCount = 1;
-            viewportState.scissorCount = 1;
-
-            // Rasterization state
-            VkPipelineRasterizationStateCreateInfo rasterizationState = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
-            rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-            // Default clockwise as DirectX coordinate.
-            rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
-            rasterizationState.lineWidth = 1.0f;
-            rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-            rasterizationState.depthBiasEnable = VK_FALSE;
-
-            // Multisample
-            VkPipelineMultisampleStateCreateInfo multpleSampleState = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-            multpleSampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-            // Depth state
-            VkPipelineDepthStencilStateCreateInfo depthStencilState = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
-            depthStencilState.stencilTestEnable = VK_FALSE;
-            depthStencilState.depthTestEnable = VK_FALSE;
-            depthStencilState.depthWriteEnable = VK_FALSE;
-
-            // Blend state
-            VkPipelineColorBlendAttachmentState blendAttachments[MaxColorAttachments] = {};
-            blendAttachments[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-            blendAttachments[0].blendEnable = VK_FALSE;
-
-            VkPipelineColorBlendStateCreateInfo blendState = { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
-            blendState.attachmentCount = 1;
-            blendState.pAttachments = blendAttachments;
-
-            // Dynamic state
-            VkPipelineDynamicStateCreateInfo dynamicState = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-            dynamicState.dynamicStateCount = 2;
-            VkDynamicState states[2] = {
-                VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT,
-            };
-            dynamicState.pDynamicStates = states;
-
-            // Input assembly
-            VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-            inputAssemblyState.pNext = nullptr;
-            inputAssemblyState.flags = 0;
-            inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            inputAssemblyState.primitiveRestartEnable = VK_FALSE;
-
-            // Stages
-            VkPipelineShaderStageCreateInfo stages[static_cast<uint32_t>(VulkanShaderStage::Count)];
-            uint32_t numStages = 0;
-
-            for (uint32_t i = 0; i < static_cast<uint32_t>(VulkanShaderStage::Count); i++)
-            {
-                auto vkModule = _currentShader->GetVkShaderModule(i);
-                if (vkModule != VK_NULL_HANDLE)
-                {
-                    auto &stage = stages[numStages++];
-                    stage = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-                    stage.module = vkModule;
-                    stage.pName = "main";
-                    stage.stage = static_cast<VkShaderStageFlagBits>(1u << i);
-                }
-            }
-
-            VkGraphicsPipelineCreateInfo createInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-            createInfo.pNext = nullptr;
-            createInfo.flags = 0;
-            createInfo.stageCount = numStages;
-            createInfo.pStages = stages;
-            createInfo.pVertexInputState = &vertexInputState;
-            createInfo.pTessellationState = nullptr;
-            createInfo.pViewportState = &viewportState;
-            createInfo.pRasterizationState = &rasterizationState;
-            createInfo.pMultisampleState = &multpleSampleState;
-            createInfo.pDepthStencilState = &depthStencilState;
-            createInfo.pColorBlendState = &blendState;
-            createInfo.pDynamicState = &dynamicState;
-            createInfo.pInputAssemblyState = &inputAssemblyState;
-            createInfo.layout = _currentVkPipelineLayout;
-            //createInfo.renderPass = _currentRenderPass->GetVkRenderPass();
-            createInfo.subpass = _currentSubpass;
-            createInfo.basePipelineHandle = VK_NULL_HANDLE;
-            createInfo.basePipelineIndex = 0;
-
-            VkPipeline newPipeline;
-            if (vkCreateGraphicsPipelines(
-                _graphics->GetImpl()->GetDevice(),
-                _graphics->GetImpl()->GetPipelineCache(),
-                1,
-                &createInfo,
-                nullptr,
-                &newPipeline) != VK_SUCCESS)
-            {
-                ALIMER_LOGCRITICAL("Vulkan - Failed to graphics pipeline");
-            }
-
-            _currentShader->AddPipeline(hash, newPipeline);
-            _currentVkPipeline = newPipeline;
-        }
     }
 
     void VulkanCommandBuffer::FlushDescriptorSet(uint32_t set)
@@ -570,14 +635,6 @@ namespace Alimer
             1, &allocated.first,
             numDynamicOffsets,
             dynamicOffsets);*/
-    }
-
-    void VulkanCommandBuffer::FlushDescriptorSets()
-    {
-        //auto &layout = _currentPipelineLayout->GetResourceLayout();
-        //uint32_t updateSet = layout.descriptorSetMask & _dirtySets;
-        //ForEachBit(updateSet, [&](uint32_t set) { FlushDescriptorSet(set); });
-        //_dirtySets &= ~updateSet;
     }
 #endif // TODO
 }

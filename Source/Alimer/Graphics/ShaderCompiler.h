@@ -22,11 +22,42 @@
 
 #pragma once
 
+#include "../Base/Cache.h"
 #include "../Graphics/Shader.h"
+#include <mutex>
 #include <vector>
 
 namespace Alimer
 {
+    class GraphicsDevice;
+
+    
+    class ALIMER_API ShaderManager final
+    {
+    public:
+        ShaderManager(GraphicsDevice* device)
+            : _device(device)
+        {
+        }
+
+        ~ShaderManager();
+
+        ShaderProgram* RegisterGraphics(const std::string &vertex, const std::string &fragment);
+
+    private:
+        ShaderTemplate* GetTemplate(const std::string &source);
+
+    private:
+        GraphicsDevice* _device;
+
+        Cache<ShaderTemplate> _templates;
+        Cache<ShaderProgram> _programs;
+
+#ifdef ALIMER_THREADING
+        std::mutex _lock;
+#endif
+    };
+
 	/// Class for shader compilation support.
 	namespace ShaderCompiler
 	{

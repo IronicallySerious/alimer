@@ -22,92 +22,89 @@
 
 #pragma once
 
-#include "../Graphics/GpuResource.h"
+#include "../Base/Cache.h"
+#include "../Graphics/GraphicsResource.h"
 #include "../Resource/Resource.h"
 #include <string>
 #include <vector>
-#include <map>
 
 namespace Alimer
 {
-    /// Defines shader stage
-    enum class ShaderStage : uint32_t
-    {
-        Vertex = 0,
-        TessControl = 1,
-        TessEvaluation = 2,
-        Geometry = 3,
-        Fragment = 4,
-        Compute = 5,
-        Count
-    };
-
-    /// Defines shader stage usage.
-    enum class ShaderStageUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        TessControl = 1 << 1,
-        TessEvaluation = 1 << 2,
-        Geometry = 1 << 3,
-        Fragment = 1 << 4,
-        Compute = 1 << 5,
-        AllGraphics = (Vertex | TessControl | TessEvaluation | Geometry | Fragment),
-        All = (AllGraphics | Compute),
-    };
-    ALIMER_BITMASK(ShaderStageUsage);
-
-    struct PipelineResource
-    {
-        std::string name;
-        ShaderStageUsage stages;
-        ResourceParamType resourceType;
-        ParamDataType dataType;
-        ParamAccess access;
-        uint32_t set;
-        uint32_t binding;
-        uint32_t location;
-        uint32_t vecSize;
-        uint32_t arraySize;
-        uint32_t offset;
-        uint32_t size;
-    };
-
-    ALIMER_API void SPIRVReflectResources(const std::vector<uint32_t>& spirv, ShaderStage& stage, std::vector<PipelineResource>& shaderResources);
+    ALIMER_API void SPIRVReflectResources(const uint32_t* pCode, size_t size, ShaderReflection* reflection);
 
     /// Defines a shader module class.
-    class ALIMER_API Shader : public GpuResource
+    class ALIMER_API ShaderModule : public GraphicsResource
     {
-    public:
+    protected:
         /// Constructor.
-        Shader(GraphicsDevice* device);
+        ShaderModule(GraphicsDevice* device, Util::Hash hash, const uint32_t* pCode, size_t size);
 
-        bool Define(ShaderStage stage, const String& url);
-        bool Define(ShaderStage stage, const std::vector<uint32_t>& spirv);
-
-        ShaderStage GetStage() const { return _stage; }
-        std::vector<uint32_t> AcquireBytecode();
-        const std::vector<PipelineResource>& GetResources() const { return _resources; }
+    public:
+        Util::Hash GetHash() const { return _hash; }
+        ShaderStage GetStage() const { return _reflection.stage; }
+        const ShaderReflection& GetReflection() const { return _reflection; }
 
     private:
-        ShaderStage _stage = ShaderStage::Count;
+        Util::Hash _hash;
         String _source;
-        std::vector<uint32_t> _spirv;
         String _infoLog;
-        std::vector<PipelineResource> _resources;
+        ShaderReflection _reflection;
+    };
+
+    /// Defines a shader program
+    class ALIMER_API Program : public GraphicsResource
+    {
+    protected:
+        /// Constructor.
+        Program(GraphicsDevice* device, Util::Hash hash, const std::vector<ShaderModule*>& shaders);
+
+    public:
+        Util::Hash GetHash() const { return _hash; }
+
+    private:
+        Util::Hash _hash;
+    };
+
+    class ALIMER_API ShaderTemplate final
+    {
+    public:
+        ShaderTemplate(const std::string& path);
+
+        struct Variant
+        {
+            std::vector<uint32_t> spirv;
+            std::vector<std::pair<std::string, int>> defines;
+            uint32_t instance = 0;
+        };
+
+        const Variant* RegisterVariant(const std::vector<std::pair<std::string, int>> *defines = nullptr);
+
+    private:
+        std::string _path;
+        Cache<Variant> _variants;
     };
 
     /// Defines a shader program class.
-    class ALIMER_API ShaderProgram : public GpuResource
+    class ALIMER_API ShaderProgram : public GraphicsResource
     {
     public:
         /// Constructor.
         ShaderProgram(GraphicsDevice* device);
 
-        /// Gets if this program is compute program.
-        bool IsCompute() const { return _isCompute; }
+        void SetStage(ShaderStage stage, ShaderTemplate* shader);
+        uint32_t RegisterVariant(const std::vector<std::pair<std::string, int>> &defines);
+        Program* GetVariant(uint32_t variant);
 
     private:
-        bool _isCompute;
+        struct Variant
+        {
+            const ShaderTemplate::Variant* stages[static_cast<unsigned>(ShaderStage::Count)] = {};
+            uint32_t shaderInstance[static_cast<unsigned>(ShaderStage::Count)] = {};
+            Program* program;
+        };
+
+        ShaderTemplate* _stages[static_cast<unsigned>(ShaderStage::Count)] = {};
+        std::vector<Variant> _variants;
+        std::vector<Util::Hash> _variantHashes;
     };
 }

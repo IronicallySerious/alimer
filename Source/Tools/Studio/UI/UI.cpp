@@ -27,7 +27,7 @@
 
 namespace Alimer
 {
-    UI::UI()
+    UI::UI(const uvec2& size)
     {
         _imContext = ImGui::CreateContext();
 
@@ -65,8 +65,8 @@ namespace Alimer
         }
 
         io.DisplaySize = ImVec2(
-            (float)gApplication().GetMainWindow().GetWidth(),
-            (float)gApplication().GetMainWindow().GetHeight());
+            (float)size.x,
+            (float)size.y);
 
         ImGui::NewFrame();
         ImGui::EndFrame();

@@ -21,13 +21,13 @@
 //
 
 #include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
     Texture::Texture(GraphicsDevice* device, const TextureDescriptor* descriptor)
-        : GpuResource(device)
+        : GraphicsResource(device)
         , _type(descriptor->type)
     {
         _usage = descriptor->usage;
@@ -46,11 +46,11 @@ namespace Alimer
         _views.clear();
     }
 
-    SharedPtr<TextureView> Texture::CreateTextureView(const TextureViewDescriptor* descriptor)
+    TextureView* Texture::CreateTextureView(const TextureViewDescriptor* descriptor)
     {
         SharedPtr<TextureView> newView(CreateTextureViewImpl(descriptor));
         _views.push_back(newView);
-        return newView;
+        return newView.Get();
     }
 
     // TextureView

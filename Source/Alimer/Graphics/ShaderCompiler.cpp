@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/ShaderCompiler.h"
-#include "../Graphics/VertexFormat.h"
+#include "../Graphics/VertexBuffer.h"
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
@@ -33,6 +33,53 @@
 
 namespace Alimer
 {
+    ShaderManager::~ShaderManager()
+    {
+    }
+
+    ShaderProgram* ShaderManager::RegisterGraphics(const std::string &vertex, const std::string &fragment)
+    {
+        ShaderTemplate* vertexTemplate = GetTemplate(vertex);
+        ShaderTemplate* fragmentTemplate = GetTemplate(fragment);
+
+        Util::Hasher h;
+        h.pointer(vertexTemplate);
+        h.pointer(fragmentTemplate);
+        auto hash = h.get();
+        auto *ret = _programs.Find(hash);
+        if (!ret)
+        {
+            auto prog = std::make_unique<ShaderProgram>(_device);
+            prog->SetStage(ShaderStage::Vertex, vertexTemplate);
+            prog->SetStage(ShaderStage::Fragment, fragmentTemplate);
+            ret = _programs.Insert(hash, std::move(prog));
+        }
+        return ret;
+    }
+
+    ShaderTemplate *ShaderManager::GetTemplate(const std::string &path)
+    {
+        Util::Hasher hasher;
+        hasher.string(path);
+        auto hash = hasher.get();
+
+        auto *ret = _templates.Find(hash);
+        if (!ret)
+        {
+            ALIMER_LOGDEBUGF("Shader template registered at path: '%s'", path.c_str());
+            auto shaderTemplate = std::make_unique<ShaderTemplate>(path);
+            {
+#ifdef ALIMER_THREADING
+                std::lock_guard<std::mutex> holder(_lock);
+#endif
+                //register_dependency_nolock(shader.get(), path);
+                //shader->RegisterDependencies(*this);
+            }
+            ret = _templates.Insert(hash, std::move(shaderTemplate));
+        }
+        return ret;
+    }
+
     class AlimerIncluder : public glslang::TShader::Includer
     {
     public:

@@ -23,10 +23,10 @@
 #pragma once
 
 #include "../Graphics/Types.h"
-#include "../Graphics/GpuBuffer.h"
+#include "../Graphics/VertexBuffer.h"
+#include "../Graphics/IndexBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
-#include "../Graphics/VertexFormat.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
 
@@ -49,6 +49,13 @@ namespace Alimer
         void BeginRenderPass(const RenderPassDescriptor* descriptor);
         void EndRenderPass();
 
+        void SetVertexBuffer(VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+        virtual void SetVertexBuffer(uint32_t index, VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+        void SetIndexBuffer(IndexBuffer* buffer, uint64_t offset = 0);
+        void SetProgram(Program* program);
+        void SetProgram(const std::string &vertex, const std::string &fragment, const std::vector<std::pair<std::string, int>> &defines = {});
+        void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t vertexStart = 0, uint32_t baseInstance = 0);
+
         // Compute
         void Dispatch(uint32_t groupCountX = 1, uint32_t groupCountY = 1, uint32_t groupCountZ = 1);
         void Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX = 64);
@@ -59,32 +66,45 @@ namespace Alimer
         void BeginCompute();
         void BeginGraphics();
         virtual void BeginContext();
+        
         void FlushComputeState();
 
         // Backend methods.
         virtual void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) = 0;
         virtual void EndRenderPassImpl() = 0;
+
+        virtual void SetProgramImpl(Program* program) = 0;
+        virtual void SetIndexBufferImpl(IndexBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
+        virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
+
         virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
     protected:
         /// Graphics subsystem.
         GraphicsDevice* _device;
         bool _isCompute;
+        bool _insideRenderPass;
 
-    private:
-        inline bool IsInsideRenderPass() const
+        struct VertexBindingState
         {
-            return _state == State::InRenderPass;
-        }
-
-        enum class State
-        {
-            None,
-            Recording,
-            InRenderPass,
-            Committed
+            VertexBuffer* buffers[MaxVertexBufferBindings];
+            uint64_t offsets[MaxVertexBufferBindings];
+            uint64_t strides[MaxVertexBufferBindings];
+            VertexInputRate inputRates[MaxVertexBufferBindings];
         };
 
-        State _state = State::None;
+        struct IndexState
+        {
+            IndexBuffer* buffer;
+            uint64_t offset;
+        };
+
+        VertexBindingState _vbo = {};
+        IndexState _index = {};
+
+        Program* _currentProgram = nullptr;
+
+        uint32_t _dirtySets = 0;
+        uint32_t _dirtyVbos = 0;
     };
 }

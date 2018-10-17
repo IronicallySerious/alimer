@@ -588,7 +588,7 @@ namespace Alimer
             return itr != std::end(queried_extensions);
         };
 
-       
+
         for (uint32_t i = 0; i < ext_count; i++)
         {
             for (auto& queryDeviceExtension : s_vkQueryDeviceExtensions)
@@ -936,11 +936,11 @@ namespace Alimer
         _mainSwapchain->AcquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
 
         // Begin main command buffer rendering.
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.pNext = nullptr;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        vkBeginCommandBuffer(_mainCommandBuffer->GetVkCommandBuffer(), &beginInfo);
+        VkResult result = _mainCommandBuffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERRORF("vkBeginCommandBuffer failed: %s", vkGetVulkanResultString(result));
+        }
 
         // DestroyPendingResources();
 
@@ -949,8 +949,7 @@ namespace Alimer
 
     void VulkanGraphicsDevice::EndFrame()
     {
-        VkCommandBuffer vkCommandBuffer = _mainCommandBuffer->GetVkCommandBuffer();
-        VkResult result = vkEndCommandBuffer(vkCommandBuffer);
+        VkResult result = _mainCommandBuffer->End();
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERRORF("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
@@ -962,8 +961,12 @@ namespace Alimer
             return;
 
         // Submit command buffers.
+        VkCommandBuffer vkCommandBuffer = _mainCommandBuffer->GetHandle();
+        VkFence vkCommandBufferFence = _mainCommandBuffer->GetVkFence();
+
         VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.pNext = nullptr;
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = &_swapchainImageAcquiredSemaphore;
@@ -972,11 +975,9 @@ namespace Alimer
         submitInfo.pCommandBuffers = &vkCommandBuffer;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &signalSemaphore;
-
-        auto cmdFence = _mainCommandBuffer->GetVkFence();
-        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, cmdFence));
-        vkThrowIfFailed(vkWaitForFences(_device, 1, &cmdFence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
-        vkResetFences(_device, 1, &cmdFence);
+        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, vkCommandBufferFence));
+        vkThrowIfFailed(vkWaitForFences(_device, 1, &vkCommandBufferFence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+        vkResetFences(_device, 1, &vkCommandBufferFence);
 
         // Submit Swapchain.
         result = _mainSwapchain->QueuePresent(
@@ -1036,7 +1037,7 @@ namespace Alimer
         return surface;
     }
 
-    SharedPtr<TextureView> VulkanGraphicsDevice::GetSwapchainView() const
+    TextureView* VulkanGraphicsDevice::GetSwapchainView() const
     {
         return _mainSwapchain->GetTextureView(_swapchainImageIndex);
     }
@@ -1051,9 +1052,24 @@ namespace Alimer
         return new VulkanVertexBuffer(this, vertexCount, elementsCount, elements, resourceUsage, initialData);
     }
 
+    IndexBuffer* VulkanGraphicsDevice::CreateIndexBufferImpl(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData)
+    {
+        return new VulkanIndexBuffer(this, indexCount, indexType, resourceUsage, initialData);
+    }
+
     Texture* VulkanGraphicsDevice::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         return new VulkanTexture(this, descriptor, initialData);
+    }
+
+    std::unique_ptr<ShaderModule> VulkanGraphicsDevice::CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size)
+    {
+        return std::make_unique<VulkanShader>(this, hash, pCode, size);
+    }
+
+    std::unique_ptr<Program> VulkanGraphicsDevice::CreateProgramImpl(Util::Hash hash, const std::vector<ShaderModule*>& stages)
+    {
+        return std::make_unique<VulkanProgram>(this, hash, stages);
     }
 
     VkCommandPool VulkanGraphicsDevice::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
@@ -1273,6 +1289,25 @@ namespace Alimer
         return renderPass;
     }
 
+    VulkanPipelineLayout* VulkanGraphicsDevice::RequestPipelineLayout(const VulkanResourceLayout* layout)
+    {
+        Util::Hasher h;
+        //h.data(reinterpret_cast<const uint32_t*>(layout.sets), sizeof(layout.sets));
+        //h.data(reinterpret_cast<const uint32_t *>(layout.ranges), sizeof(layout.ranges));
+        h.u32(layout->vertexAttributeMask);
+        h.u32(layout->renderTargetMask);
+
+        auto hash = h.get();
+
+        auto *ret = _pipelineLayouts.Find(hash);
+        if (!ret)
+        {
+            ret = _pipelineLayouts.Insert(hash, std::make_unique<VulkanPipelineLayout>(this, hash, layout));
+        }
+
+        return ret;
+    }
+
     VkFence VulkanGraphicsDevice::AcquireFence()
     {
         VkFence fence = VK_NULL_HANDLE;
@@ -1295,7 +1330,7 @@ namespace Alimer
                 ALIMER_LOGERRORF("[Vulkan] - Failed to create fence: %s", vkGetVulkanResultString(result));
             }
 
-            ALIMER_LOGDEBUG("[Vulkan] - New fence created");
+            ALIMER_LOGTRACE("[Vulkan] - New fence created");
             _allFences.emplace(fence);
         }
 
@@ -1334,7 +1369,7 @@ namespace Alimer
                 ALIMER_LOGERRORF("[Vulkan] - Failed to create semaphore: %s", vkGetVulkanResultString(result));
             }
 
-            ALIMER_LOGDEBUG("[Vulkan] - New semaphore created");
+            ALIMER_LOGTRACE("[Vulkan] - New semaphore created");
             _allSemaphores.emplace(semaphore);
         }
 
@@ -1350,7 +1385,7 @@ namespace Alimer
         }
     }
 
-    
+
 #if TODO
     VulkanDescriptorSetAllocator* VulkanGraphics::RequestDescriptorSetAllocator(const DescriptorSetLayout &layout)
     {
@@ -1366,22 +1401,6 @@ namespace Alimer
         return allocator;
     }
 
-    VulkanPipelineLayout* VulkanGraphics::RequestPipelineLayout(const ResourceLayout &layout)
-    {
-        Hasher h;
-        h.data(reinterpret_cast<const uint32_t*>(layout.sets), sizeof(layout.sets));
-        //h.data(reinterpret_cast<const uint32_t *>(layout.ranges), sizeof(layout.ranges));
-        h.u32(layout.attributeMask);
-
-        auto hash = h.get();
-
-        auto it = _pipelineLayouts.find(hash);
-        if (it != _pipelineLayouts.end())
-            return it->second.get();
-
-        VulkanPipelineLayout *newPipelineLayout = new VulkanPipelineLayout(this, layout);
-        _pipelineLayouts.insert(make_pair(hash, unique_ptr<VulkanPipelineLayout>(newPipelineLayout)));
-        return newPipelineLayout;
-    }
+   
 #endif // TODO
 }

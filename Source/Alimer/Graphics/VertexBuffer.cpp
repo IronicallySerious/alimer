@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/VertexFormat.h"
+#include "../Graphics/VertexBuffer.h"
 
 namespace Alimer
 {

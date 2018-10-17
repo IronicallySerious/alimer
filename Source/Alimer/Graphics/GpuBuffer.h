@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Graphics/GpuResource.h"
+#include "../Graphics/GraphicsResource.h"
 
 namespace Alimer
 {
@@ -52,8 +52,8 @@ namespace Alimer
         uint32_t stride = 0;
     };
 
-	/// Defines a GPU Buffer class.
-	class GpuBuffer : public GpuResource
+	/// Defines a Graphics Buffer class.
+	class GpuBuffer : public GraphicsResource
 	{
 	protected:
         /// Constructor.

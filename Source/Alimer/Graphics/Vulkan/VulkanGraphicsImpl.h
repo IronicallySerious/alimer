@@ -24,7 +24,7 @@
 
 #include "VulkanBackend.h"
 #include "../../Base/HashMap.h"
-#include "../../Graphics/Graphics.h"
+#include "../GraphicsDevice.h"
 #include <queue>
 #include <set>
 
@@ -41,6 +41,8 @@ namespace Alimer
     class VulkanSwapchain;
     class VulkanFramebuffer;
     class VulkanRenderPass;
+    struct VulkanResourceLayout;
+    class VulkanPipelineLayout;
     struct RenderPassDescriptor;
 
     class VulkanGraphicsDevice final : public GraphicsDevice
@@ -61,10 +63,13 @@ namespace Alimer
         bool BeginFrame() override;
         void EndFrame() override;
 
-        SharedPtr<TextureView> GetSwapchainView() const override;
+        TextureView* GetSwapchainView() const override;
         SharedPtr<CommandBuffer> GetMainCommandBuffer() const override;
         VertexBuffer* CreateVertexBufferImpl(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData) override;
+        IndexBuffer* CreateIndexBufferImpl(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData) override;
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
+        std::unique_ptr<ShaderModule> CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size) override;
+        std::unique_ptr<Program> CreateProgramImpl(Util::Hash hash, const std::vector<ShaderModule*>& stages) override;
 
         // Fence
         VkFence AcquireFence();
@@ -89,7 +94,7 @@ namespace Alimer
         VulkanRenderPass* RequestRenderPass(const RenderPassDescriptor* descriptor);
 
         //VulkanDescriptorSetAllocator* RequestDescriptorSetAllocator(const DescriptorSetLayout &layout);
-        //VulkanPipelineLayout* RequestPipelineLayout(const ResourceLayout &layout);
+        VulkanPipelineLayout* RequestPipelineLayout(const VulkanResourceLayout* layout);
 
         VkInstance GetInstance() const { return _instance; }
         VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
@@ -168,53 +173,11 @@ namespace Alimer
         std::set<VkSemaphore> _allSemaphores;
         std::queue<VkSemaphore> _availableSemaphores;
 
-        
-
-        template <typename T>
-        class Cache
-        {
-        public:
-            T* Find(uint64_t hash) const
-            {
-                auto itr = _hashMap.find(hash);
-                auto *ret = itr != _hashMap.end() ? itr->second.get() : nullptr;
-                return ret;
-            }
-
-            T* Insert(uint64_t hash, std::unique_ptr<T> value)
-            {
-                auto &cache = _hashMap[hash];
-                if (!cache)
-                    cache = std::move(value);
-
-                auto *ret = cache.get();
-                return ret;
-            }
-
-            void Clear()
-            {
-                _hashMap.clear();
-            }
-
-            Util::HashMap<std::unique_ptr<T>> &GetHashMap()
-            {
-                return _hashMap;
-            }
-
-            const Util::HashMap<std::unique_ptr<T>>& GetHashMap() const
-            {
-                return _hashMap;
-            }
-
-        private:
-            Util::HashMap<std::unique_ptr<T>> _hashMap;
-        };
-
         // Cache
         Cache<VulkanRenderPass> _renderPasses;
         Cache<VulkanFramebuffer> _framebuffers;
 
         //HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
-        //HashMap<std::unique_ptr<VulkanPipelineLayout>> _pipelineLayouts;
+        Cache<VulkanPipelineLayout> _pipelineLayouts;
     };
 }

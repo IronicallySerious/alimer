@@ -20,26 +20,26 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/GpuResource.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsResource.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    GpuResource::GpuResource(GraphicsDevice* device)
+    GraphicsResource::GraphicsResource(GraphicsDevice* device)
         : _device(device)
     {
         ALIMER_ASSERT(device);
-        device->AddGpuResource(this);
+        device->AddGraphicsResource(this);
     }
 
-    GpuResource::~GpuResource()
+    GraphicsResource::~GraphicsResource()
     {
-        _device->RemoveGpuResource(this);
+        _device->RemoveGraphicsResource(this);
         Destroy();
     }
 
-    GraphicsDevice* GpuResource::GetDevice() const
+    GraphicsDevice* GraphicsResource::GetDevice() const
     {
         return _device;
     }

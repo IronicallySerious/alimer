@@ -59,4 +59,12 @@ namespace Alimer
 
         bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
     };
+
+    class VulkanIndexBuffer final : public IndexBuffer, public VulkanBuffer
+    {
+    public:
+        VulkanIndexBuffer(VulkanGraphicsDevice* device, uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData);
+
+        bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
+    };
 }

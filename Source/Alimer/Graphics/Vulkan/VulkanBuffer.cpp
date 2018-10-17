@@ -188,4 +188,18 @@ namespace Alimer
     {
         return VulkanBuffer::SetSubData(offset, size, pData);
     }
+
+    // VulkanIndexBuffer
+    VulkanIndexBuffer::VulkanIndexBuffer(VulkanGraphicsDevice* device, uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData)
+        : IndexBuffer(device, indexCount, indexType, resourceUsage)
+        , VulkanBuffer(device)
+    {
+        Define(_resourceUsage, _usage, _size, initialData);
+    }
+
+    bool VulkanIndexBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
+    {
+        return VulkanBuffer::SetSubData(offset, size, pData);
+    }
+
 }

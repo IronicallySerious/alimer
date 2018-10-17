@@ -21,13 +21,13 @@
 //
 
 #include "../Graphics/GpuBuffer.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
     GpuBuffer::GpuBuffer(GraphicsDevice* device, ResourceUsage resourceUsage, BufferUsage usage)
-        : GpuResource(device)
+        : GraphicsResource(device)
         , _resourceUsage(resourceUsage)
         , _usage(usage)
     {
@@ -35,7 +35,7 @@ namespace Alimer
     }
 
     GpuBuffer::GpuBuffer(GraphicsDevice* device, const BufferDescriptor* descriptor)
-        : GpuResource(device)
+        : GraphicsResource(device)
         , _resourceUsage(descriptor->resourceUsage)
         , _usage(descriptor->usage)
         , _size(descriptor->size)

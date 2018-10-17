@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../Core/Log.h"
 
@@ -42,6 +42,7 @@ namespace Alimer
     GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation)
         : _backend(backend)
         , _validation(validation)
+        , _shaderManager(this)
     {
         AddSubsystem(this);
     }
@@ -53,13 +54,16 @@ namespace Alimer
 
     void GraphicsDevice::Shutdown()
     {
+        _shaders.Clear();
+        _programs.Clear();
+
         // Destroy undestroyed resources.
         if (_gpuResources.size())
         {
             std::lock_guard<std::mutex> lock(_gpuResourceMutex);
             for (size_t i = 0; i < _gpuResources.size(); ++i)
             {
-                GpuResource* resource = _gpuResources.at(i);
+                GraphicsResource* resource = _gpuResources.at(i);
                 ALIMER_ASSERT(resource);
                 resource->Destroy();
             }
@@ -131,6 +135,30 @@ namespace Alimer
         return CreateVertexBufferImpl(vertexCount, elementsCount, elements, resourceUsage, initialData);
     }
 
+    IndexBuffer* GraphicsDevice::CreateIndexBuffer(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData)
+    {
+        if (!indexCount)
+        {
+            ALIMER_LOGERROR("Can not define index buffer with no indices");
+            return nullptr;
+        }
+
+        if (resourceUsage == ResourceUsage::Immutable && !initialData)
+        {
+            ALIMER_LOGERROR("Immutable vertex buffer must have valid initial data.");
+            return nullptr;
+        }
+
+        if (indexType != IndexType::UInt16
+            && indexType != IndexType::UInt32)
+        {
+            ALIMER_LOGERROR("Invalid index type, must be UInt16 or UInt32");
+            return nullptr;
+        }
+
+        return CreateIndexBufferImpl(indexCount, indexType, resourceUsage, initialData);
+    }
+
     Texture* GraphicsDevice::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         ALIMER_ASSERT(descriptor);
@@ -157,98 +185,29 @@ namespace Alimer
         return CreateTextureImpl(descriptor, initialData);
     }
 
-#if TODO
-    ShaderModule* GraphicsDevice::CreateShaderModule(const std::vector<uint32_t>& spirv)
+
+    ShaderModule* GraphicsDevice::RequestShader(const uint32_t* pCode, size_t size)
     {
-        if (spirv.empty())
+        if (!size || pCode == nullptr)
         {
-            ALIMER_LOGCRITICAL("Cannot create shader module with empty bytecode");
+            ALIMER_LOGCRITICAL("Cannot create shader module with invalid bytecode");
         }
 
-        return CreateShaderModuleImpl(spirv);
+        Util::Hasher hasher;
+        hasher.data(pCode, size);
+
+        auto hash = hasher.get();
+        auto *ret = _shaders.Find(hash);
+        if (!ret)
+        {
+            ret = _shaders.Insert(hash, CreateShaderModuleImpl(hash, pCode, size));
+            ALIMER_LOGDEBUGF("New %s shader created: '%s'", EnumToString(ret->GetStage()), std::to_string(hash).c_str());
+        }
+
+        return ret;
     }
 
-    ShaderModule* GraphicsDevice::CreateShaderModule(const String& file, const String& entryPoint)
-    {
-        // Load from spirv bytecode.
-        vector<uint32_t> spirv;
-
-        /*if (gResources()->Exists(file + ".spv"))
-        {
-            auto vertexShaderStream = FileSystem::Get().Open(vertexShaderFile + ".spv");
-            //auto vertexShaderStream = gResources()->Open(vertexShaderFile + ".spv");
-            auto fragmentShaderStream = gResources()->Open(fragmentShaderFile + ".spv");
-
-            // Lookup for SPIR-V compiled shader.
-            if (!vertexShaderStream)
-            {
-                ALIMER_LOGERRORF("GLSL shader does not exists '%s'", vertexShaderFile.c_str());
-                return nullptr;
-            }
-
-            if (!fragmentShaderStream)
-            {
-                ALIMER_LOGERRORF("GLSL shader does not exists '%s'", fragmentShaderFile.c_str());
-                return nullptr;
-            }
-
-            vertexByteCode = vertexShaderStream->ReadBytes();
-            fragmentByteCode = fragmentShaderStream->ReadBytes();
-        }
-        else*/
-        {
-            // Compile from source GLSL.
-            String errorLog;
-            if (!ShaderCompiler::Compile(file, entryPoint, spirv, errorLog))
-            {
-                ALIMER_LOGCRITICALF("Shader compilation failed: %s", errorLog.CString());
-            }
-        }
-
-        return CreateShaderModule(spirv);
-    }
-
-    ShaderProgram* Graphics::CreateShaderProgram(const ShaderProgramDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-        if (!descriptor->stageCount)
-        {
-            ALIMER_LOGCRITICAL("Cannot create shader program with empty stages");
-        }
-
-        for (uint32_t i = 0; i < descriptor->stageCount; i++)
-        {
-            if (!descriptor->stages[i].module)
-            {
-                ALIMER_LOGCRITICALF("Cannot create shader program with invalid shader module at index %s", i);
-            }
-
-            if (descriptor->stages[i].module->GetStage() == ShaderStage::Compute
-                && descriptor->stageCount > 1)
-            {
-                ALIMER_LOGCRITICAL("Cannot create shader program with compute and graphics stages");
-            }
-        }
-
-        return CreateShaderProgramImpl(descriptor);
-    }
-
-    ShaderProgram* Graphics::CreateShaderProgram(const ShaderStageDescriptor* stage)
-    {
-        ALIMER_ASSERT(stage);
-
-        if (stage->module->GetStage() != ShaderStage::Compute)
-        {
-            ALIMER_LOGCRITICAL("Shader stage module is not compute");
-        }
-
-        ShaderProgramDescriptor descriptor = {};
-        descriptor.stageCount = 1;
-        descriptor.stages = stage;
-        return CreateShaderProgramImpl(&descriptor);
-    }
-
-    ShaderProgram* Graphics::CreateShaderProgram(ShaderModule* vertex, ShaderModule* fragment)
+    Program* GraphicsDevice::RequestProgram(ShaderModule* vertex, ShaderModule* fragment)
     {
         ALIMER_ASSERT(vertex);
         ALIMER_ASSERT(fragment);
@@ -259,23 +218,64 @@ namespace Alimer
         if (fragment->GetStage() != ShaderStage::Fragment)
             ALIMER_LOGCRITICAL("Invalid fragment stage module");
 
-        std::array<ShaderStageDescriptor, 2> stages;
-        stages[0].module = vertex;
-        stages[1].module = fragment;
-        ShaderProgramDescriptor descriptor = {};
-        descriptor.stageCount = 2;
-        descriptor.stages = stages.data();
-        return CreateShaderProgramImpl(&descriptor);
-    }
-#endif // TODO
+        Util::Hasher hasher;
+        hasher.u64(vertex->GetHash());
+        hasher.u64(fragment->GetHash());
 
-    void GraphicsDevice::AddGpuResource(GpuResource* resource)
+        auto hash = hasher.get();
+        auto *ret = _programs.Find(hash);
+        if (!ret)
+        {
+            std::vector<ShaderModule*> modules(2);
+            modules[0] = vertex;
+            modules[1] = fragment;
+            ret = _programs.Insert(hash, CreateProgramImpl(hash, modules));
+            ALIMER_LOGDEBUGF("New graphics program created: '%s'", std::to_string(hash).c_str());
+        }
+        return ret;
+    }
+
+    Program* GraphicsDevice::RequestProgram(ShaderModule* compute)
+    {
+        ALIMER_ASSERT(compute);
+
+        if (compute->GetStage() != ShaderStage::Compute)
+        {
+            ALIMER_LOGCRITICAL("Shader stage module is not compute");
+        }
+
+        Util::Hasher hasher;
+        hasher.u64(compute->GetHash());
+
+        auto hash = hasher.get();
+        auto *ret = _programs.Find(hash);
+        if (!ret)
+        {
+            std::vector<ShaderModule*> modules(1);
+            modules[0] = compute;
+            ret = _programs.Insert(hash, CreateProgramImpl(hash, modules));
+            ALIMER_LOGDEBUGF("New compute program created: '%s'", std::to_string(hash).c_str());
+        }
+
+        return ret;
+    }
+
+    Program* GraphicsDevice::RequestProgram(
+        const uint32_t *vertexData, size_t vertexSize,
+        const uint32_t *fragmentData, size_t fragmentSize)
+    {
+        ShaderModule* vertex = RequestShader(vertexData, vertexSize);
+        ShaderModule* fragment = RequestShader(fragmentData, fragmentSize);
+        return RequestProgram(vertex, fragment);
+    }
+
+    void GraphicsDevice::AddGraphicsResource(GraphicsResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.push_back(resource);
     }
 
-    void GraphicsDevice::RemoveGpuResource(GpuResource* resource)
+    void GraphicsDevice::RemoveGraphicsResource(GraphicsResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         auto it = std::find(_gpuResources.begin(), _gpuResources.end(), resource);
@@ -289,5 +289,10 @@ namespace Alimer
     {
         // TODO: Add callback.
         ALIMER_UNUSED(message);
+    }
+
+    ShaderManager &GraphicsDevice::GetShaderManager()
+    {
+        return _shaderManager;
     }
 }

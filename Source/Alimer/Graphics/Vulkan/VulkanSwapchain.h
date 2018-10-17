@@ -49,7 +49,7 @@ namespace Alimer
 
         PixelFormat GetFormat() const { return _format; }
         uint32_t GetTextureCount() const { return _imageCount; }
-        SharedPtr<TextureView> GetTextureView(uint32_t index) const;
+        TextureView* GetTextureView(uint32_t index) const;
 
         VkSwapchainKHR GetVkHandle() const { return _swapchain; }
 

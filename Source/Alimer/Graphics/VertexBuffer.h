@@ -121,8 +121,6 @@ namespace Alimer
     public:
         /// Return number of vertices.
         uint32_t GetVertexCount() const { return _vertexCount; }
-        /// Return size of vertex in bytes.
-        uint32_t GetVertexStride() const { return _stride; }
         /// Return number of vertex elements.
         uint32_t GetElementsCount() const { return static_cast<uint32_t>(_elements.size()); }
         /// Return vertex elements.

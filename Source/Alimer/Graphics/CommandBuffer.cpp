@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/CommandBuffer.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 
@@ -38,11 +38,77 @@ namespace Alimer
     void CommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
     {
         BeginRenderPassImpl(descriptor);
+        _insideRenderPass = true;
     }
 
     void CommandBuffer::EndRenderPass()
     {
         EndRenderPassImpl();
+        _insideRenderPass = false;
+    }
+
+    void CommandBuffer::SetVertexBuffer(VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
+    {
+        SetVertexBuffer(0, buffer, vertexOffset, inputRate);
+    }
+
+    void CommandBuffer::SetVertexBuffer(uint32_t index, VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
+    {
+        ALIMER_ASSERT(index < MaxVertexBufferBindings);
+        ALIMER_ASSERT(buffer);
+
+        const uint64_t stride = buffer->GetStride();
+        const uint64_t offset = vertexOffset * stride;
+
+        if (_vbo.buffers[index] != buffer
+            || _vbo.offsets[index] != vertexOffset)
+        {
+            _dirtyVbos |= 1u << index;
+        }
+        
+        _vbo.buffers[index] = buffer;
+        _vbo.offsets[index] = vertexOffset;
+        _vbo.strides[index] = stride;
+        _vbo.inputRates[index] = inputRate;
+    }
+
+    void CommandBuffer::SetIndexBuffer(IndexBuffer* buffer, uint64_t offset)
+    {
+        ALIMER_ASSERT(buffer);
+
+        if (_index.buffer == buffer
+            && _index.offset == offset)
+        {
+            return;
+        }
+
+        _index.buffer = buffer;
+        _index.offset = offset;
+        SetIndexBufferImpl(buffer, offset, buffer->GetIndexType());
+    }
+
+    void CommandBuffer::SetProgram(Program* program)
+    {
+        if(_currentProgram == program)
+            return;
+
+        _currentProgram = program;
+        SetProgramImpl(program);
+    }
+
+    void CommandBuffer::SetProgram(const std::string &vertex, const std::string &fragment, const std::vector<std::pair<std::string, int>> &defines)
+    {
+        ShaderProgram* program = _device->GetShaderManager().RegisterGraphics(vertex, fragment);
+        uint32_t variant = program->RegisterVariant(defines);
+        SetProgram(program->GetVariant(variant));
+    }
+
+    void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    {
+        ALIMER_ASSERT(_currentProgram);
+        ALIMER_ASSERT(_insideRenderPass);
+        ALIMER_ASSERT(!_isCompute);
+        DrawImpl(topology, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
     void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -88,7 +154,12 @@ namespace Alimer
 
     void CommandBuffer::BeginContext()
     {
-
+        _dirtySets = ~0u;
+        _dirtyVbos = ~0u;
+        _currentProgram = nullptr;
+        memset(&_index, 0, sizeof(_index));
+        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
+        _insideRenderPass = false;
     }
 
     void CommandBuffer::FlushComputeState()
@@ -98,66 +169,7 @@ namespace Alimer
 
 
 #if TODO
-    void CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color4& clearColor, float clearDepth, uint8_t clearStencil)
-    {
-        BeginRenderPass(renderPass, &clearColor, 1, clearDepth, clearStencil);
-    }
-
-    void CommandBuffer::BeginRenderPass(RenderPass* renderPass,
-        const Color4* clearColors, uint32_t numClearColors,
-        float clearDepth, uint8_t clearStencil)
-    {
-        EnsureIsRecording();
-
-        if (_state == State::InRenderPass)
-        {
-            ALIMER_LOGCRITICAL("BeginRenderPass should be called before EndRenderPass.");
-        }
-
-        BeginRenderPassCore(renderPass, clearColors, numClearColors, clearDepth, clearStencil);
-        _state = State::InRenderPass;
-    }
-
-    void CommandBuffer::EndRenderPass()
-    {
-        if (!IsInsideRenderPass())
-        {
-            ALIMER_LOGCRITICAL("EndRenderPass must be called inside BeginRenderPass.");
-        }
-
-        EndRenderPassCore();
-        _state = State::Recording;
-    }
-
-    void CommandBuffer::SetShaderProgram(ShaderProgram* program)
-    {
-        ALIMER_ASSERT(program);
-        SetShaderProgramImpl(program);
-    }
-
-    void CommandBuffer::BindVertexBuffer(GpuBuffer* buffer, uint32_t binding, uint64_t offset, VertexInputRate inputRate)
-    {
-        ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT(any(buffer->GetUsage() & BufferUsage::Vertex));
-        ALIMER_ASSERT(binding < MaxVertexBufferBindings);
-
-        BindVertexBufferImpl(buffer, binding, offset, buffer->GetStride(), inputRate);
-    }
-
-    void CommandBuffer::SetVertexInputFormat(VertexInputFormat* format)
-    {
-        ALIMER_ASSERT(format);
-
-        SetVertexInputFormatImpl(format);
-    }
-
-    void CommandBuffer::BindIndexBuffer(GpuBuffer* buffer, uint64_t offset, IndexType indexType)
-    {
-        ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT(any(buffer->GetUsage() & BufferUsage::Index));
-
-        BindIndexBufferImpl(buffer, offset, indexType);
-    }
+    
 
     void CommandBuffer::BindBuffer(GpuBuffer* buffer, uint32_t set, uint32_t binding)
     {
@@ -187,16 +199,6 @@ namespace Alimer
         ALIMER_ASSERT(binding < MaxBindingsPerSet);
 
         BindTextureImpl(texture, set, binding);
-    }
-
-    void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
-    {
-        if (!IsInsideRenderPass())
-        {
-            ALIMER_LOGCRITICAL("Cannot draw outside RenderPass.");
-        }
-
-        DrawCore(topology, vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
     void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)

@@ -676,13 +676,8 @@ namespace Alimer
         wchar_t* _buffer;
     };
 
-    template <typename T>
-    struct EnumNames {
-    };
-
     namespace str
     {
-       
         namespace inner
         {
             template<typename T>
@@ -705,29 +700,6 @@ namespace Alimer
             std::ostringstream stream;
             inner::JoinHelper(stream, std::forward<Ts>(ts)...);
             return stream.str();
-        }
-
-        template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
-        static String ToString(const T& v)
-        {
-            return EnumNames<T>()()[ecast(v)];
-        }
-
-        template<typename T, typename = typename std::enable_if<std::is_enum<T>::value>::type>
-        static T FromString(const String& str)
-        {
-            EnumNames<T> n;
-            auto names = n();
-            auto res = std::find_if(std::begin(names), std::end(names), [&](const char* v) { return str == v; });
-            if (res == std::end(names))
-            {
-                //ALIMER_LOGCRITICAL(
-                //    "String '%s' does not exist in enum '%s'.",
-                //    str.c_str(),
-                //    typeid(T).name());
-            }
-
-            return T(res - std::begin(names));
         }
     }
 }

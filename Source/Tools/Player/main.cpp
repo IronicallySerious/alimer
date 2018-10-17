@@ -71,9 +71,6 @@ namespace Alimer
 
             _vertexBuffer = device->CreateVertexBuffer(3, 2, vertexElements.data(), ResourceUsage::Immutable, triangleVertices);
 
-            // Create shader program.
-            //_program.Define("assets://shaders/color.vert", "assets://shaders/color.frag");
-
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
@@ -83,17 +80,14 @@ namespace Alimer
 
         void Render(CommandBuffer* context)
         {
-            ALIMER_UNUSED(context);
-            //context->SetShaderProgram(_program.Get());
-            //context->SetVertexInputFormat(_vertexInputFormat.Get());
-            //context->BindVertexBuffer(_vertexBuffer.Get(), 0);
+            context->SetProgram("assets://shaders/color.vert", "assets://shaders/color.frag");
+            context->SetVertexBuffer(_vertexBuffer.Get(), 0);
             //context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
-            //context->Draw(PrimitiveTopology::Triangles, 3);
+            context->Draw(PrimitiveTopology::Triangles, 3);
         }
 
     private:
         SharedPtr<VertexBuffer> _vertexBuffer;
-        SharedPtr<ShaderProgram> _program;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
         PerCameraCBuffer _camera{};

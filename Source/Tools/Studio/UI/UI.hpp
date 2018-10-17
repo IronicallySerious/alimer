@@ -31,7 +31,7 @@ namespace Alimer
         ALIMER_OBJECT(UI, Object);
 
     public:
-        explicit UI();
+        explicit UI(const uvec2& size);
         ~UI() override;
 
     private:

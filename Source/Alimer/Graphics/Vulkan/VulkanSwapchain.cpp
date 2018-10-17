@@ -302,7 +302,7 @@ namespace Alimer
         }
     }
 
-    SharedPtr<TextureView> VulkanSwapchain::GetTextureView(uint32_t index) const
+    TextureView* VulkanSwapchain::GetTextureView(uint32_t index) const
     {
         return _textures[index]->GetDefaultTextureView();
     }

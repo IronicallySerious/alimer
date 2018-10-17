@@ -55,6 +55,8 @@ namespace Alimer
         BC6HUFloat,
 	};
 
+    ALIMER_API const char* EnumToString(PixelFormat format);
+
     /// Checks if given format is depth.
     ALIMER_API bool IsDepthFormat(PixelFormat format);
 
@@ -71,5 +73,4 @@ namespace Alimer
 
     /// Calculate the data size of an image level.
     ALIMER_API uint32_t CalculateDataSize(uint32_t width, uint32_t height, PixelFormat format, uint32_t* numRows = 0, uint32_t* rowPitch = 0);
-
 }

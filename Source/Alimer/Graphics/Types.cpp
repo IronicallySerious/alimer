@@ -21,10 +21,42 @@
 //
 
 #include "../Graphics/Types.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsDevice.h"
 
 namespace Alimer
 {
+    const char* EnumToString(IndexType type)
+    {
+#define CASE_STRING(ENUM_VALUE) case IndexType::##ENUM_VALUE : return #ENUM_VALUE
+
+        switch (type)
+        {
+            CASE_STRING(UInt16);
+            CASE_STRING(UInt32);
+        }
+
+#undef CASE_STRING
+        return nullptr;
+    }
+
+    const char* EnumToString(ShaderStage stage)
+    {
+#define CASE_STRING(ENUM_VALUE) case ShaderStage::##ENUM_VALUE : return #ENUM_VALUE
+
+        switch (stage)
+        {
+            CASE_STRING(Vertex);
+            CASE_STRING(TessControl);
+            CASE_STRING(TessEvaluation);
+            CASE_STRING(Geometry);
+            CASE_STRING(Fragment);
+            CASE_STRING(Compute);
+        }
+
+#undef CASE_STRING
+        return nullptr;
+    }
+
     uint32_t GetVertexFormatSize(VertexFormat format)
     {
         switch (format)

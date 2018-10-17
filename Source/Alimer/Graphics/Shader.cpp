@@ -21,20 +21,19 @@
 //
 
 #include "../Graphics/Shader.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/ShaderCompiler.h"
-#include "../Graphics/Graphics.h"
 #include "../IO/FileSystem.h"
 #include "../Core/Log.h"
 #include <spirv-cross/spirv_glsl.hpp>
-#include <vector>
 
 namespace Alimer
 {
     class CustomCompiler : public spirv_cross::CompilerGLSL
     {
     public:
-        CustomCompiler(const std::vector<uint32_t>& spirv)
-            : spirv_cross::CompilerGLSL(spirv)
+        CustomCompiler(const uint32_t *ir, size_t word_count)
+            : spirv_cross::CompilerGLSL(ir, word_count)
         {
         }
 
@@ -88,10 +87,12 @@ namespace Alimer
         }
     }
 
-    void SPIRVReflectResources(const std::vector<uint32_t>& spirv, ShaderStage& stage, std::vector<PipelineResource>& shaderResources)
+    void SPIRVReflectResources(const uint32_t* pCode, size_t size, ShaderReflection* reflection)
     {
+        ALIMER_ASSERT(reflection);
+
         // Parse SPIRV binary.
-        CustomCompiler compiler(spirv);
+        CustomCompiler compiler(pCode, size / sizeof(uint32_t));
         spirv_cross::CompilerGLSL::Options opts = compiler.get_common_options();
         opts.enable_420pack_extension = true;
         compiler.set_common_options(opts);
@@ -102,23 +103,23 @@ namespace Alimer
         switch (compiler.get_execution_model())
         {
         case spv::ExecutionModelVertex:
-            stage = ShaderStage::Vertex;
+            reflection->stage = ShaderStage::Vertex;
             break;
         case spv::ExecutionModelTessellationControl:
-            stage = ShaderStage::TessControl;
+            reflection->stage = ShaderStage::TessControl;
             break;
         case spv::ExecutionModelTessellationEvaluation:
-            stage = ShaderStage::TessEvaluation;
+            reflection->stage = ShaderStage::TessEvaluation;
             break;
         case spv::ExecutionModelGeometry:
-            stage = ShaderStage::Geometry;
+            reflection->stage = ShaderStage::Geometry;
             break;
 
         case spv::ExecutionModelFragment:
-            stage = ShaderStage::Fragment;
+            reflection->stage = ShaderStage::Fragment;
             break;
         case spv::ExecutionModelGLCompute:
-            stage = ShaderStage::Compute;
+            reflection->stage = ShaderStage::Compute;
             break;
         default:
             ALIMER_LOGCRITICAL("Invalid shader execution model");
@@ -152,54 +153,76 @@ namespace Alimer
             }
         };
 
-        ExtractInputOutputs(stage, resources.stage_inputs, compiler, ResourceParamType::Input, ParamAccess::Read, shaderResources);
-        ExtractInputOutputs(stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, shaderResources);
-    }
-
-    Shader::Shader(GraphicsDevice* device)
-        : GpuResource(device)
-    {
-    }
-
-    bool Shader::Define(ShaderStage stage, const String& url)
-    {
-        auto stream = FileSystem::Get().Open(url);
-        if (!stream)
+        for (auto &attrib : resources.stage_inputs)
         {
-            _infoLog = String::Format("Shader file '%s' does not exists", url.CString());
-            return false;
+            auto location = compiler.get_decoration(attrib.id, spv::DecorationLocation);
+            reflection->inputMask |= 1u << location;
         }
 
-        _source = stream->ReadAllText();
-        std::vector<uint32_t> spirv;
-        if (!ShaderCompiler::Compile(_stage, _source, "main", spirv, stream->GetName(), _infoLog))
+        for (auto &attrib : resources.stage_outputs)
         {
-            ALIMER_LOGERRORF("Shader compilation failed: %s", _infoLog.CString());
-            return false;
+            auto location = compiler.get_decoration(attrib.id, spv::DecorationLocation);
+            reflection->outputMask |= 1u << location;
         }
 
-        return Define(stage, spirv);
+        ExtractInputOutputs(reflection->stage, resources.stage_inputs, compiler, ResourceParamType::Input, ParamAccess::Read, reflection->resources);
+        ExtractInputOutputs(reflection->stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, reflection->resources);
     }
 
-    bool Shader::Define(ShaderStage stage, const std::vector<uint32_t>& spirv)
+    ShaderModule::ShaderModule(GraphicsDevice* device, Util::Hash hash, const uint32_t* pCode, size_t size)
+        : GraphicsResource(device)
+        , _hash(hash)
     {
-        _stage = stage;
-        _spirv = std::move(spirv);
-
         // Reflection all shader resouces.
-        SPIRVReflectResources(spirv, _stage, _resources);
-
-        return true;
+        SPIRVReflectResources(pCode, size, &_reflection);
     }
 
-    std::vector<uint32_t> Shader::AcquireBytecode()
+    Program::Program(GraphicsDevice* device, Util::Hash hash, const std::vector<ShaderModule*>& shaders)
+        : GraphicsResource(device)
+        , _hash(hash)
     {
-        return std::move(_spirv);
+    }
+
+    ShaderTemplate::ShaderTemplate(const std::string &path)
+        : _path(path)
+    {
+    }
+
+    const ShaderTemplate::Variant* ShaderTemplate::RegisterVariant(const std::vector<std::pair<std::string, int>> *defines)
+    {
+        Util::Hasher h;
+        if (defines)
+        {
+            for (auto &define : *defines)
+            {
+                h.u64(std::hash<std::string>()(define.first));
+                h.u32(uint32_t(define.second));
+            }
+        }
+
+        auto hash = h.get();
+        auto *ret = _variants.Find(hash);
+        if (!ret)
+        {
+            auto variant = std::make_unique<Variant>();
+
+            String errorLog;
+            if (!ShaderCompiler::Compile(_path, "main", variant->spirv, errorLog))
+            {
+                ALIMER_LOGCRITICALF("Shader compilation failed: %s", errorLog.CString());
+                throw std::runtime_error("Shader compile failed.");
+            }
+            variant->instance++;
+            if (defines)
+                variant->defines = *defines;
+
+            ret = _variants.Insert(hash, std::move(variant));
+        }
+        return ret;
     }
 
     ShaderProgram::ShaderProgram(GraphicsDevice* device)
-        : GpuResource(device)
-        , _isCompute(false)
+        : GraphicsResource(device)
     {
         /*if (descriptor->stageCount == 1
             && descriptor->stages[0].module->GetStage() == ShaderStage::Compute)
@@ -212,5 +235,84 @@ namespace Alimer
             auto stage = descriptor->stages[i];
             _shaders[static_cast<uint32_t>(stage.module->GetStage())] = stage.module;
         }*/
+    }
+
+    void ShaderProgram::SetStage(ShaderStage stage, ShaderTemplate* shader)
+    {
+        _stages[static_cast<unsigned>(stage)] = shader;
+        ALIMER_ASSERT(_variants.empty());
+    }
+
+    uint32_t ShaderProgram::RegisterVariant(const std::vector<std::pair<std::string, int>> &defines)
+    {
+        Util::Hasher h;
+        for (auto &define : defines)
+        {
+            h.u64(std::hash<std::string>()(define.first));
+            h.s32(define.second);
+        }
+
+        auto hash = h.get();
+
+        auto itr = std::find(_variantHashes.begin(), _variantHashes.end(), hash);
+        if (itr != _variantHashes.end())
+        {
+            uint32_t ret = uint32_t(itr - _variantHashes.begin());
+            return ret;
+        }
+
+        uint32_t index = uint32_t(_variants.size());
+        _variants.emplace_back();
+        auto &var = _variants.back();
+        _variantHashes.push_back(hash);
+
+        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        {
+            if (_stages[i])
+            {
+                var.stages[i] = _stages[i]->RegisterVariant(&defines);
+            }
+        }
+
+        // Make sure it's compiled correctly.
+        GetVariant(index);
+        return index;
+    }
+
+    Program* ShaderProgram::GetVariant(uint32_t variant)
+    {
+        auto &var = _variants[variant];
+        auto *vert = var.stages[static_cast<unsigned>(ShaderStage::Vertex)];
+        auto *frag = var.stages[static_cast<unsigned>(ShaderStage::Fragment)];
+        auto *comp = var.stages[static_cast<unsigned>(ShaderStage::Compute)];
+        if (comp)
+        {
+        }
+        else if (vert && frag)
+        {
+            auto &vert_instance = var.shaderInstance[static_cast<unsigned>(ShaderStage::Vertex)];
+            auto &frag_instance = var.shaderInstance[static_cast<unsigned>(ShaderStage::Fragment)];
+
+            if (vert_instance != vert->instance || frag_instance != frag->instance)
+            {
+                if (vert_instance != vert->instance
+                    || frag_instance != frag->instance)
+                {
+                    vert_instance = vert->instance;
+                    frag_instance = frag->instance;
+                    var.program = _device->RequestProgram(
+                        vert->spirv.data(), vert->spirv.size() * sizeof(uint32_t),
+                        frag->spirv.data(), frag->spirv.size() * sizeof(uint32_t));
+                }
+
+                return var.program;
+            }
+            else
+            {
+                return var.program;
+            }
+        }
+
+        return nullptr;
     }
 }

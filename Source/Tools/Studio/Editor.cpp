@@ -36,8 +36,7 @@ namespace Alimer
 
     void Editor::Initialize()
     {
-        
-        _ui = new UI();
+        _ui = new UI(_mainWindow.GetSize());
     }
 
     void Editor::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)

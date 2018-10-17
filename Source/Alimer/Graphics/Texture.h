@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Math/MathUtil.h"
-#include "../Graphics/GpuResource.h"
+#include "../Graphics/GraphicsResource.h"
 #include "../Resource/Resource.h"
 #include "../Resource/Image.h"
 
@@ -81,7 +81,7 @@ namespace Alimer
     class TextureView;
 
     /// Defines a Texture class.
-    class ALIMER_API Texture : public GpuResource
+    class ALIMER_API Texture : public GraphicsResource
     {
     protected:
         /// Constructor.
@@ -116,12 +116,12 @@ namespace Alimer
             return Max(1u, _depth >> mipLevel);
         }
 
-        SharedPtr<TextureView> GetDefaultTextureView() const
+        TextureView* GetDefaultTextureView() const
         {
-            return _defaultTextureView;
+            return _defaultTextureView.Get();
         }
 
-        SharedPtr<TextureView> CreateTextureView(const TextureViewDescriptor* descriptor);
+        TextureView* CreateTextureView(const TextureViewDescriptor* descriptor);
 
     private:
         virtual TextureView* CreateTextureViewImpl(const TextureViewDescriptor* descriptor) = 0;
