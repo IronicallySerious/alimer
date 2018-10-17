@@ -5,9 +5,9 @@ environment:
   - COMPILER: VS2017
     ARCHITECTURE: x64
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-  - COMPILER: MINGW_W64_7_2
-    ARCHITECTURE: x64
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  #- COMPILER: MINGW_W64_7_2
+  #  ARCHITECTURE: x64
+  #  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
 build:
   verbosity: detailed
