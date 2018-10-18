@@ -35,7 +35,7 @@ namespace Alimer
 
     private:
         void Initialize() override;
-        void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime) override;
+        void OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime) override;
 
     private:
         SharedPtr<UI> _ui;

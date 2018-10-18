@@ -114,7 +114,7 @@ namespace Alimer
         void RenderFrame(double frameTime, double elapsedTime);
 
         /// Called during rendering single frame.
-        virtual void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime);
+        virtual void OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime);
 
         virtual Audio* CreateAudio();
 
@@ -137,7 +137,7 @@ namespace Alimer
         SystemManager _systems;
         Scene _scene;
         RenderContext _renderContext;
-        RenderPipeline* _renderPipeline = nullptr;
+        SceneRenderPipeline* _sceneRenderPipeline = nullptr;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

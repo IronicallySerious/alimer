@@ -61,15 +61,12 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            std::array<VertexElement, 2> vertexElements;
-            vertexElements[0].semantic = VertexElementSemantic::Position;
-            vertexElements[0].format = VertexFormat::Float3;
-            vertexElements[0].offset = offsetof(VertexColor, position);
-            vertexElements[1].semantic = VertexElementSemantic::Color0;
-            vertexElements[1].format = VertexFormat::Float4;
-            vertexElements[1].offset = offsetof(VertexColor, color);
-
-            _vertexBuffer = device->CreateVertexBuffer(3, 2, vertexElements.data(), ResourceUsage::Immutable, triangleVertices);
+            BufferDescriptor vertexBufferDesc = {};
+            vertexBufferDesc.usage = BufferUsage::Vertex;
+            vertexBufferDesc.resourceUsage = ResourceUsage::Immutable;
+            vertexBufferDesc.size = sizeof(triangleVertices);
+            vertexBufferDesc.stride = sizeof(VertexColor);
+            _vertexBuffer = device->CreateBuffer(&vertexBufferDesc, triangleVertices);
 
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -78,16 +75,24 @@ namespace Alimer
             _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);*/
         }
 
-        void Render(CommandBuffer* context)
+        void Render(SharedPtr<CommandContext> context)
         {
             context->SetProgram("assets://shaders/color.vert", "assets://shaders/color.frag");
-            context->SetVertexBuffer(_vertexBuffer.Get(), 0);
+            context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
+
+            VertexDescriptor vertexDescriptor;
+            vertexDescriptor.buffers[0].stride = sizeof(VertexColor);
+            vertexDescriptor.attributes[0].format = VertexFormat::Float3;
+            vertexDescriptor.attributes[0].semantic = VertexElementSemantic::Position;
+            vertexDescriptor.attributes[1].format = VertexFormat::Float4;
+            vertexDescriptor.attributes[1].semantic = VertexElementSemantic::Color0;
+            context->SetVertexDescriptor(&vertexDescriptor);
             //context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
-            context->Draw(PrimitiveTopology::Triangles, 3);
+            context->Draw(PrimitiveTopology::Triangles, 0, 3);
         }
 
     private:
-        SharedPtr<VertexBuffer> _vertexBuffer;
+        SharedPtr<GpuBuffer> _vertexBuffer;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
         PerCameraCBuffer _camera{};
@@ -338,7 +343,7 @@ namespace Alimer
 
     private:
         void Initialize() override;
-        void OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime) override;
+        void OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime) override;
 
     private:
         TriangleExample _triangleExample;
@@ -369,13 +374,12 @@ namespace Alimer
         //triangleEntity->AddComponent<RenderableComponent>();
     }
 
-    void RuntimeApplication::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
+    void RuntimeApplication::OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime)
     {
-        ALIMER_UNUSED(commandBuffer);
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        _triangleExample.Render(commandBuffer);
+        _triangleExample.Render(context);
         //_quadExample.Render(commandBuffer);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);

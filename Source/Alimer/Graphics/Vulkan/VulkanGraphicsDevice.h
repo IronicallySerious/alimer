@@ -60,14 +60,16 @@ namespace Alimer
         void Shutdown() override;
         bool WaitIdle() override;
 
-        bool BeginFrame() override;
-        void EndFrame() override;
+        void PresentImpl() override;
+
+        void AddWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags flags);
+        void SubmitCommandBuffer(VkCommandBuffer commandBuffer);
+        void SubmitCommandBuffer(VkCommandBuffer commandBuffer, VkFence fence);
 
         TextureView* GetSwapchainView() const override;
-        SharedPtr<CommandBuffer> GetMainCommandBuffer() const override;
-        VertexBuffer* CreateVertexBufferImpl(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData) override;
-        IndexBuffer* CreateIndexBufferImpl(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData) override;
+        GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
+
         std::unique_ptr<ShaderModule> CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size) override;
         std::unique_ptr<Program> CreateProgramImpl(Util::Hash hash, const std::vector<ShaderModule*>& stages) override;
 
@@ -149,16 +151,15 @@ namespace Alimer
         uint32_t _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
 
-        // Frame fences
-        uint32_t _swapchainImageIndex = 0;
-        VkSemaphore _swapchainImageAcquiredSemaphore = VK_NULL_HANDLE;
+        std::vector<VkSemaphore> _waitSemaphores;
+        std::vector<VkPipelineStageFlags> _waitStageFlags;
+        std::vector<VkCommandBuffer> _submittedCommandBuffers;
 
         // Pipeline cache.
         VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
 
         // Default command pool.
         VkCommandPool _commandPool = VK_NULL_HANDLE;
-        SharedPtr<VulkanCommandBuffer> _mainCommandBuffer;
 
         // Main swap chain.
         UniquePtr<VulkanSwapchain> _mainSwapchain;

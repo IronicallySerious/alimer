@@ -23,6 +23,7 @@
 #include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../Core/Log.h"
+#include <inttypes.h>
 
 #if defined(_WIN32)
 // Prefer the high-performance GPU on switchable GPU systems
@@ -34,7 +35,7 @@ extern "C"
 #endif /* defined(_WIN32) */
 
 #if ALIMER_VULKAN
-#   include "../Graphics/Vulkan/VulkanGraphicsImpl.h"
+#   include "../Graphics/Vulkan/VulkanGraphicsDevice.h"
 #endif
 
 namespace Alimer
@@ -54,9 +55,6 @@ namespace Alimer
 
     void GraphicsDevice::Shutdown()
     {
-        _shaders.Clear();
-        _programs.Clear();
-
         // Destroy undestroyed resources.
         if (_gpuResources.size())
         {
@@ -70,6 +68,10 @@ namespace Alimer
 
             _gpuResources.clear();
         }
+
+        _shaders.Clear();
+        _programs.Clear();
+        _context.Reset();
     }
 
     GraphicsDevice* GraphicsDevice::Create(GraphicsBackend prefferedBackend, bool validation)
@@ -104,59 +106,51 @@ namespace Alimer
 
         _settings = settings;
         _initialized = true;
+        _frameIndex = 0;
         return _initialized;
     }
 
-    VertexBuffer* GraphicsDevice::CreateVertexBuffer(uint32_t vertexCount, const std::vector<VertexElement>& elements, ResourceUsage resourceUsage, const void* initialData)
+    GpuBuffer* GraphicsDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
     {
-        if (!vertexCount || !elements.size())
+        ALIMER_ASSERT(descriptor);
+
+        if (descriptor->usage == BufferUsage::None)
         {
-            ALIMER_LOGERROR("Can not define vertex buffer with no vertices or no elements");
+            ALIMER_LOGCRITICAL("Invalid buffer usage");
+        }
+
+        if (!descriptor->size)
+        {
+            ALIMER_LOGCRITICAL("Cannot create empty buffer");
+        }
+
+        if (descriptor->resourceUsage == ResourceUsage::Immutable
+            && initialData == nullptr)
+        {
+            ALIMER_LOGCRITICAL("Immutable Buffer needs valid initial data.");
+        }
+
+        GpuBuffer* buffer = CreateBufferImpl(descriptor, initialData);
+        if (buffer == nullptr)
+        {
+            ALIMER_LOGERROR("Failed to create buffer");
             return nullptr;
         }
 
-        return CreateVertexBuffer(vertexCount, elements.size(), elements.data(), resourceUsage, initialData);
+        ALIMER_LOGDEBUGF("Created %s %s buffer [size: %llu, stride: %u]",
+            EnumToString(descriptor->resourceUsage),
+            EnumToString(descriptor->usage),
+            descriptor->size,
+            descriptor->stride
+        );
+        return buffer;
     }
 
-    VertexBuffer* GraphicsDevice::CreateVertexBuffer(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData)
+    uint32_t GraphicsDevice::Present()
     {
-        if (!vertexCount || !elementsCount || !elements)
-        {
-            ALIMER_LOGERROR("Can not define vertex buffer with no vertices or no elements");
-            return nullptr;
-        }
-
-        if (resourceUsage == ResourceUsage::Immutable && !initialData)
-        {
-            ALIMER_LOGERROR("Immutable vertex buffer must have valid initial data.");
-            return nullptr;
-        }
-
-        return CreateVertexBufferImpl(vertexCount, elementsCount, elements, resourceUsage, initialData);
-    }
-
-    IndexBuffer* GraphicsDevice::CreateIndexBuffer(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData)
-    {
-        if (!indexCount)
-        {
-            ALIMER_LOGERROR("Can not define index buffer with no indices");
-            return nullptr;
-        }
-
-        if (resourceUsage == ResourceUsage::Immutable && !initialData)
-        {
-            ALIMER_LOGERROR("Immutable vertex buffer must have valid initial data.");
-            return nullptr;
-        }
-
-        if (indexType != IndexType::UInt16
-            && indexType != IndexType::UInt32)
-        {
-            ALIMER_LOGERROR("Invalid index type, must be UInt16 or UInt32");
-            return nullptr;
-        }
-
-        return CreateIndexBufferImpl(indexCount, indexType, resourceUsage, initialData);
+        _context->Flush();
+        PresentImpl();
+        return ++_frameIndex;
     }
 
     Texture* GraphicsDevice::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
@@ -184,7 +178,6 @@ namespace Alimer
 
         return CreateTextureImpl(descriptor, initialData);
     }
-
 
     ShaderModule* GraphicsDevice::RequestShader(const uint32_t* pCode, size_t size)
     {

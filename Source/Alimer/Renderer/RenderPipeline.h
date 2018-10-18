@@ -29,14 +29,14 @@ namespace Alimer
     class RenderContext;
     class Camera;
 
-    /// Defines a base class for rendering pipeline.
-    class ALIMER_API RenderPipeline : public Object
+    /// Defines a base class for scene rendering pipeline.
+    class ALIMER_API SceneRenderPipeline : public Object
     {
-        ALIMER_OBJECT(RenderPipeline, Object);
+        ALIMER_OBJECT(SceneRenderPipeline, Object);
 
     public:
-        RenderPipeline();
-        virtual ~RenderPipeline() = default;
+        SceneRenderPipeline();
+        virtual ~SceneRenderPipeline() = default;
 
         virtual void Render(const RenderContext &context, std::vector<Camera> cameras) = 0;
 

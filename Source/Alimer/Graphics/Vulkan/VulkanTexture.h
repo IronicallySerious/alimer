@@ -56,7 +56,6 @@ namespace Alimer
         ~VulkanTextureView() override;
 
         VkImageView GetVkImageView() const { return _vkImageView; }
-        /// Get unique id allocated by graphics.
         uint64_t GetId() const { return _id; }
 
     private:

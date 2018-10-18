@@ -20,8 +20,8 @@
 // THE SOFTWARE.
 //
 
+#include "../Graphics/Types.h"
 #include "../Graphics/ShaderCompiler.h"
-#include "../Graphics/VertexBuffer.h"
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
@@ -280,7 +280,7 @@ namespace Alimer
             for (uint32_t i = 0; i < static_cast<uint32_t>(VertexElementSemantic::Count); i++)
             {
                 VertexElementSemantic semantic = static_cast<VertexElementSemantic>(i);
-                semanticsDef += String::Format("#define %s %d\n", VertexElementSemanticToString(semantic), i);
+                semanticsDef += String::Format("#define %s %d\n", EnumToString(semantic), i);
             }
 
             // Add SV_Target semantics for more HLSL compatibility

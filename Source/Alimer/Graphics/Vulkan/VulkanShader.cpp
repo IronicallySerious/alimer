@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanGraphicsImpl.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"

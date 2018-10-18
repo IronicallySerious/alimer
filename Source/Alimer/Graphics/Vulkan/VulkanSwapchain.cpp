@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanGraphicsImpl.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanSwapchain.h"
 #include "VulkanTexture.h"
 #include "VulkanRenderPass.h"
@@ -95,19 +95,20 @@ namespace Alimer
             //vkDestroyImageView(_logicalDevice, buffers[i].view, nullptr);
         }
 
-        if (_swapchain != VK_NULL_HANDLE)
+        if (_handle != VK_NULL_HANDLE)
         {
-            vkDestroySwapchainKHR(_logicalDevice, _swapchain, nullptr);
+            vkDestroySwapchainKHR(_logicalDevice, _handle, nullptr);
+            _handle = VK_NULL_HANDLE;
         }
 
         if (_surface != VK_NULL_HANDLE)
         {
             vkDestroySurfaceKHR(_device->GetInstance(), _surface, nullptr);
+            _surface = VK_NULL_HANDLE;
         }
-
-        _swapchain = VK_NULL_HANDLE;
-        _surface = VK_NULL_HANDLE;
+        
         _imageCount = 0;
+        _currentBackBufferIndex = 0;
     }
 
     void VulkanSwapchain::Resize(uint32_t width, uint32_t height, bool force)
@@ -206,7 +207,7 @@ namespace Alimer
             };
         }
 
-        VkSwapchainKHR oldSwapchain = _swapchain;
+        VkSwapchainKHR oldSwapchain = _handle;
 
         VkSwapchainCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
         createInfo.pNext = NULL;
@@ -238,7 +239,7 @@ namespace Alimer
             createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         }
 
-        vkThrowIfFailed(vkCreateSwapchainKHR(_logicalDevice, &createInfo, nullptr, &_swapchain));
+        vkThrowIfFailed(vkCreateSwapchainKHR(_logicalDevice, &createInfo, nullptr, &_handle));
 
         _format = vk::Convert(_swapchainFormat.format);;
         _size.x = width;
@@ -255,12 +256,12 @@ namespace Alimer
 
             vkDestroySwapchainKHR(_logicalDevice, oldSwapchain, nullptr);
         }
-        vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _swapchain, &_imageCount, nullptr));
+        vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _handle, &_imageCount, nullptr));
 
         // Get the swap chain images
         _vkImages.resize(_imageCount);
         _textures.resize(_imageCount);
-        vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _swapchain, &_imageCount, _vkImages.data()));
+        vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _handle, &_imageCount, _vkImages.data()));
 
         TextureDescriptor textureDesc = {};
         textureDesc.type = TextureType::Type2D;
@@ -300,25 +301,26 @@ namespace Alimer
 
             _device->FlushCommandBuffer(clearImageCmdBuffer, true);
         }
+
+        _currentBackBufferIndex = 0;
+        if (!GetNextBackBufferIndex())
+        {
+            ALIMER_LOGERROR("[Vulkan] - Failed to acquire next backbuffer image");
+        }
     }
 
-    TextureView* VulkanSwapchain::GetTextureView(uint32_t index) const
-    {
-        return _textures[index]->GetDefaultTextureView();
-    }
-
-    VkResult VulkanSwapchain::AcquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore)
+    bool VulkanSwapchain::GetNextBackBufferIndex()
     {
         // Acquire the next swapchain image.
-        *pImageAcquiredSemaphore = _device->AcquireSemaphore();
+        VkSemaphore semaphore = _device->AcquireSemaphore();
 
         VkResult result = vkAcquireNextImageKHR(
             _logicalDevice,
-            _swapchain,
+            _handle,
             std::numeric_limits<uint64_t>::max(),
-            *pImageAcquiredSemaphore,
-            (VkFence)nullptr,
-            pImageIndex);
+            semaphore,
+            VK_NULL_HANDLE,
+            &_currentBackBufferIndex);
 
         if (result != VK_SUCCESS)
         {
@@ -328,12 +330,19 @@ namespace Alimer
             }
         }
 
-        return result;
+        _device->AddWaitSemaphore(semaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        return true;
     }
 
-    VkResult VulkanSwapchain::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
+    TextureView* VulkanSwapchain::GetCurrentTextureView() const
     {
-        VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+        return _textures[_currentBackBufferIndex]->GetDefaultTextureView();
+    }
+
+    void VulkanSwapchain::QueuePresent(VkQueue queue, VkSemaphore waitSemaphore)
+    {
+        VkPresentInfoKHR presentInfo = {};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.pNext = nullptr;
         // Check if a wait semaphore has been specified to wait for before presenting the image
         if (waitSemaphore != VK_NULL_HANDLE)
@@ -342,9 +351,16 @@ namespace Alimer
             presentInfo.pWaitSemaphores = &waitSemaphore;
         }
         presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = &_swapchain;
-        presentInfo.pImageIndices = &imageIndex;
+        presentInfo.pSwapchains = &_handle;
+        presentInfo.pImageIndices = &_currentBackBufferIndex;
 
-        return vkQueuePresentKHR(queue, &presentInfo);
+        VkResult result = vkQueuePresentKHR(queue, &presentInfo);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERRORF("[Vulkan] - vkQueuePresentKHR failed: %s", vkGetVulkanResultString(result));
+            return;
+        }
+
+        GetNextBackBufferIndex();
     }
 }

@@ -24,14 +24,12 @@
 
 #include "../Base/Cache.h"
 #include "../Core/Object.h"
-#include "../Graphics/Types.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
-#include "../Graphics/VertexBuffer.h"
-#include "../Graphics/IndexBuffer.h"
+#include "../Graphics/CommandContext.h"
+#include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/ShaderCompiler.h"
-#include "../Graphics/CommandBuffer.h"
 #include <vector>
 #include <mutex>
 
@@ -58,11 +56,8 @@ namespace Alimer
         /// Wait for a device to become idle.
         virtual bool WaitIdle() = 0;
 
-        /// Begin the rendering frame.
-        virtual bool BeginFrame() = 0;
-
         /// Finishes the current frame and schedules it for display.
-        virtual void EndFrame() = 0;
+        uint32_t Present();
 
         /// Add a GraphicsResource to keep track of. 
         void AddGraphicsResource(GraphicsResource* resource);
@@ -71,16 +66,7 @@ namespace Alimer
         void RemoveGraphicsResource(GraphicsResource* resource);
 
         /// Create new buffer with given descriptor and optional initial data.
-        //GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
-
-        /// Create new vertex buffer.
-        VertexBuffer* CreateVertexBuffer(uint32_t vertexCount, const std::vector<VertexElement>& elements, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
-
-        /// Create new vertex buffer.
-        VertexBuffer* CreateVertexBuffer(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
-
-        /// Create new index buffer.
-        IndexBuffer* CreateIndexBuffer(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage = ResourceUsage::Default, const void* initialData = nullptr);
+        GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
 
         /// Create new buffer with given descriptor and optional initial data.
         Texture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
@@ -111,11 +97,8 @@ namespace Alimer
         /// Get the main Swapchain current image view.
         virtual TextureView* GetSwapchainView() const = 0;
 
-        /// Get the main command buffer.
-        virtual SharedPtr<CommandBuffer> GetMainCommandBuffer() const = 0;
-
-        /// Request new command buffer.
-        //SharedPtr<CommandBuffer> RequestCommandBuffer(CommandBuffer::Type type);
+        /// Get the default command context.
+        const SharedPtr<CommandContext>& GetContext() const { return _context; }
 
         ShaderManager &GetShaderManager();
 
@@ -123,9 +106,8 @@ namespace Alimer
 
     protected:
         virtual void Shutdown();
-        //virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
-        virtual VertexBuffer* CreateVertexBufferImpl(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData) = 0;
-        virtual IndexBuffer* CreateIndexBufferImpl(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData) = 0;
+        virtual void PresentImpl() = 0;
+        virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
         virtual std::unique_ptr<ShaderModule> CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size) = 0;
         virtual std::unique_ptr<Program> CreateProgramImpl(Util::Hash hash, const std::vector<ShaderModule*>& stages) = 0;
         virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
@@ -137,10 +119,12 @@ namespace Alimer
         GraphicsDeviceFeatures _features = {};
         std::vector<GraphicsResource*> _gpuResources;
         std::mutex _gpuResourceMutex;
+        SharedPtr<CommandContext> _context;
 
     private:
         ShaderManager _shaderManager;
         Cache<ShaderModule> _shaders;
         Cache<Program> _programs;
+        uint32_t _frameIndex = 0;
     };
 }

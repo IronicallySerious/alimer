@@ -23,13 +23,12 @@
 #pragma once
 
 #include "../Resource/Resource.h"
-#include "../Graphics/VertexBuffer.h"
-#include "../Graphics/IndexBuffer.h"
+#include "../Graphics/GpuBuffer.h"
 
 namespace Alimer
 {
     class GpuBuffer;
-    class CommandBuffer;
+    class CommandContext;
     class GraphicsDevice;
 
     enum class MeshAttribute : unsigned
@@ -64,13 +63,13 @@ namespace Alimer
 
         void SetVertexData(const void* vertexData, uint32_t vertexStart = 0, uint32_t vertexCount = 0);
 
-        void Draw(CommandBuffer* context, uint32_t instanceCount = 1);
+        void Draw(SharedPtr<CommandContext> context, uint32_t instanceCount = 1);
 
         uint32_t GetIndexCount() { return _indexCount; }
         uint32_t GetVertexCount() { return _vertexCount; }
 
-        VertexBuffer* GetVertexBuffer() const { return _vertexBuffer; }
-        IndexBuffer* GetIndexBuffer() const { return _indexBuffer; }
+        GpuBuffer* GetVertexBuffer() const { return _vertexBuffer; }
+        GpuBuffer* GetIndexBuffer() const { return _indexBuffer; }
 
         static Mesh* CreateCube(float size = 1.0f);
         static Mesh* CreateBox(const vec3& size = vec3(1.0f));
@@ -81,8 +80,8 @@ namespace Alimer
 
         MeshAttributeLayout _attributes[ecast(MeshAttribute::Count)];
 
-        VertexBuffer* _vertexBuffer = nullptr;
-        IndexBuffer* _indexBuffer = nullptr;
+        GpuBuffer* _vertexBuffer = nullptr;
+        GpuBuffer* _indexBuffer = nullptr;
 
         uint32_t _vertexCount = 0;
         uint32_t _vertexStride = 0;

@@ -23,7 +23,7 @@
 #define VMA_STATS_STRING_ENABLED 0
 #define VMA_IMPLEMENTATION
 
-#include "VulkanGraphicsImpl.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanSwapchain.h"
 #include "VulkanRenderPass.h"
@@ -433,9 +433,6 @@ namespace Alimer
         _pipelineLayouts.Clear();
 
         vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
-
-        // Destroy default command buffer.
-        _mainCommandBuffer.Reset();
 
         // Destroy default command pool.
         if (_commandPool != VK_NULL_HANDLE)
@@ -856,8 +853,8 @@ namespace Alimer
             settings.backBufferHeight)
         );
 
-        // Create main command buffer;
-        _mainCommandBuffer = new VulkanCommandBuffer(this, false);
+        // Create default command context;
+        _context = new VulkanCommandBuffer(this, _graphicsQueue, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         // Pipeline cache.
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -916,12 +913,14 @@ namespace Alimer
         }
 
         // Allocate an 128MB pinned memory buffer to use for efficient data transfers.
-        const VkDeviceSize size = (static_cast<uint64_t>(128) << 20ULL);
-        _pinnedMemoryBuffer = new VulkanBuffer(this);
-        _pinnedMemoryBuffer->Define(ResourceUsage::Staging, BufferUsage::None, size, nullptr);
+        BufferDescriptor descriptor = {};
+        descriptor.resourceUsage = ResourceUsage::Staging;
+        descriptor.usage = BufferUsage::None;
+        descriptor.size = (static_cast<uint64_t>(128) << 20ULL);
+        _pinnedMemoryBuffer = new VulkanBuffer(this, &descriptor, nullptr);
 
         // Keep the pinned memory mapped for the lifetime of the device instance.
-        result = MapBuffer(_pinnedMemoryBuffer, 0, size, &_pinnedMemoryPtr);
+        result = MapBuffer(_pinnedMemoryBuffer, 0, descriptor.size, &_pinnedMemoryPtr);
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERROR("[Vulkan] - Failed to map buffer.");
@@ -929,74 +928,77 @@ namespace Alimer
         }
     }
 
-    bool VulkanGraphicsDevice::BeginFrame()
+    void VulkanGraphicsDevice::PresentImpl()
     {
-        // Acquire the next image from the swap chain.
-        _mainSwapchain->AcquireNextImage(&_swapchainImageIndex, &_swapchainImageAcquiredSemaphore);
-
-        // Begin main command buffer rendering.
-        VkResult result = _mainCommandBuffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        if (result != VK_SUCCESS)
-        {
-            ALIMER_LOGERRORF("vkBeginCommandBuffer failed: %s", vkGetVulkanResultString(result));
-        }
-
-        // DestroyPendingResources();
-
-        return true;
-    }
-
-    void VulkanGraphicsDevice::EndFrame()
-    {
-        VkResult result = _mainCommandBuffer->End();
-        if (result != VK_SUCCESS)
-        {
-            ALIMER_LOGERRORF("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
-        }
-
-        // Get signal semaphore.
-        VkSemaphore signalSemaphore = AcquireSemaphore();
-        if (signalSemaphore == VK_NULL_HANDLE)
-            return;
-
-        // Submit command buffers.
-        VkCommandBuffer vkCommandBuffer = _mainCommandBuffer->GetHandle();
-        VkFence vkCommandBufferFence = _mainCommandBuffer->GetVkFence();
-
-        VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        VkSubmitInfo submitInfo = {};
+        VkSubmitInfo submitInfo;
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.pNext = nullptr;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &_swapchainImageAcquiredSemaphore;
-        submitInfo.pWaitDstStageMask = &submitPipelineStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &vkCommandBuffer;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &signalSemaphore;
-        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, vkCommandBufferFence));
-        vkThrowIfFailed(vkWaitForFences(_device, 1, &vkCommandBufferFence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
-        vkResetFences(_device, 1, &vkCommandBufferFence);
+        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(_waitSemaphores.size());
+        submitInfo.pWaitSemaphores = _waitSemaphores.data();
+        submitInfo.pWaitDstStageMask = _waitStageFlags.data();
+        submitInfo.commandBufferCount = static_cast<uint32_t>(_submittedCommandBuffers.size());
+        submitInfo.pCommandBuffers = _submittedCommandBuffers.data();
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pSignalSemaphores = nullptr;
+
+        // Get fence and wait on submit.
+        VkFence fence = AcquireFence();
+        VkResult result = vkQueueSubmit(_graphicsQueue, 1, &submitInfo, fence);
+        result = vkWaitForFences(_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+        ReleaseFence(fence);
+
+        // Release wait semaphores.
+        for (VkSemaphore semaphore : _waitSemaphores)
+        {
+            ReleaseSemaphore(semaphore);
+        }
+        _waitSemaphores.clear();
+        _waitStageFlags.clear();
+
+        // Reset recording.
+        for (VkCommandBuffer commandBuffer : _submittedCommandBuffers)
+        {
+            VkCommandBufferBeginInfo beginInfo;
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.pNext = nullptr;
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            beginInfo.pInheritanceInfo = nullptr;
+            vkBeginCommandBuffer(commandBuffer, &beginInfo);
+        }
+        _submittedCommandBuffers.clear();
 
         // Submit Swapchain.
-        result = _mainSwapchain->QueuePresent(
-            _graphicsQueue,
-            _swapchainImageIndex,
-            signalSemaphore
-        );
+        _mainSwapchain->QueuePresent(_graphicsQueue);
+    }
 
-        if (result != VK_SUCCESS)
-        {
-            if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-            {
-                _mainSwapchain->Resize(0, 0, true);
-            }
-        }
+    void VulkanGraphicsDevice::AddWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags flags)
+    {
+        _waitSemaphores.push_back(semaphore);
+        _waitStageFlags.push_back(flags);
+    }
 
-        // Release semaphores
-        ReleaseSemaphore(_swapchainImageAcquiredSemaphore);
-        ReleaseSemaphore(signalSemaphore);
+    void VulkanGraphicsDevice::SubmitCommandBuffer(VkCommandBuffer commandBuffer)
+    {
+        _submittedCommandBuffers.push_back(commandBuffer);
+    }
 
+    void VulkanGraphicsDevice::SubmitCommandBuffer(VkCommandBuffer commandBuffer, VkFence fence)
+    {
+        VkSubmitInfo submitInfo;
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.pNext = nullptr;
+        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(_waitSemaphores.size());
+        submitInfo.pWaitSemaphores = _waitSemaphores.data();
+        submitInfo.pWaitDstStageMask = _waitStageFlags.data();
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pSignalSemaphores = nullptr;
+
+        // Get fence and wait on submit.
+        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, fence));
+        vkThrowIfFailed(vkWaitForFences(_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+        vkResetFences(_device, 1, &fence);
     }
 
     VkSurfaceKHR VulkanGraphicsDevice::CreateSurface(const RenderingSettings& settings)
@@ -1038,22 +1040,12 @@ namespace Alimer
 
     TextureView* VulkanGraphicsDevice::GetSwapchainView() const
     {
-        return _mainSwapchain->GetTextureView(_swapchainImageIndex);
+        return _mainSwapchain->GetCurrentTextureView();
     }
 
-    SharedPtr<CommandBuffer> VulkanGraphicsDevice::GetMainCommandBuffer() const
+    GpuBuffer* VulkanGraphicsDevice::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
-        return _mainCommandBuffer;
-    }
-
-    VertexBuffer* VulkanGraphicsDevice::CreateVertexBufferImpl(uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData)
-    {
-        return new VulkanVertexBuffer(this, vertexCount, elementsCount, elements, resourceUsage, initialData);
-    }
-
-    IndexBuffer* VulkanGraphicsDevice::CreateIndexBufferImpl(uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData)
-    {
-        return new VulkanIndexBuffer(this, indexCount, indexType, resourceUsage, initialData);
+        return new VulkanBuffer(this, descriptor, initialData);
     }
 
     Texture* VulkanGraphicsDevice::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)

@@ -20,98 +20,121 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/CommandBuffer.h"
+#include "../Graphics/CommandContext.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    CommandBuffer::CommandBuffer(GraphicsDevice* device, bool secondary)
+    CommandContext::CommandContext(GraphicsDevice* device)
         : _device(device)
     {
         ALIMER_ASSERT(device);
         BeginCompute();
     }
 
-   
-    void CommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
+    void CommandContext::Flush(bool waitForCompletion)
+    {
+        FlushImpl(waitForCompletion);
+    }
+
+    void CommandContext::BeginRenderPass(const RenderPassDescriptor* descriptor)
     {
         BeginRenderPassImpl(descriptor);
         _insideRenderPass = true;
     }
 
-    void CommandBuffer::EndRenderPass()
+    void CommandContext::EndRenderPass()
     {
         EndRenderPassImpl();
         _insideRenderPass = false;
     }
 
-    void CommandBuffer::SetVertexBuffer(VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
+    void CommandContext::SetVertexBuffer(GpuBuffer* buffer, uint64_t offset, uint32_t index)
     {
-        SetVertexBuffer(0, buffer, vertexOffset, inputRate);
-    }
-
-    void CommandBuffer::SetVertexBuffer(uint32_t index, VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
-    {
+        ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(index < MaxVertexBufferBindings);
-        ALIMER_ASSERT(buffer);
-
-        const uint64_t stride = buffer->GetStride();
-        const uint64_t offset = vertexOffset * stride;
-
-        if (_vbo.buffers[index] != buffer
-            || _vbo.offsets[index] != vertexOffset)
+        if (!any(buffer->GetUsage() & BufferUsage::Vertex))
         {
-            _dirtyVbos |= 1u << index;
-        }
-        
-        _vbo.buffers[index] = buffer;
-        _vbo.offsets[index] = vertexOffset;
-        _vbo.strides[index] = stride;
-        _vbo.inputRates[index] = inputRate;
-    }
-
-    void CommandBuffer::SetIndexBuffer(IndexBuffer* buffer, uint64_t offset)
-    {
-        ALIMER_ASSERT(buffer);
-
-        if (_index.buffer == buffer
-            && _index.offset == offset)
-        {
+            _device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
             return;
         }
 
-        _index.buffer = buffer;
-        _index.offset = offset;
-        SetIndexBufferImpl(buffer, offset, buffer->GetIndexType());
+        SetVertexBufferImpl(buffer, offset);
     }
 
-    void CommandBuffer::SetProgram(Program* program)
+    void CommandContext::SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint64_t* offsets)
     {
-        if(_currentProgram == program)
+        ALIMER_ASSERT(firstBinding + count < MaxVertexBufferBindings);
+        for (uint32_t i = firstBinding; i < count; i++)
+        {
+            if (!any(buffers[i]->GetUsage() & BufferUsage::Vertex))
+            {
+                _device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+                return;
+            }
+        }
+
+        SetVertexBuffersImpl(firstBinding, count, buffers, offsets);
+    }
+
+    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint64_t offset, IndexType indexType)
+    {
+        ALIMER_ASSERT(buffer);
+        if (!any(buffer->GetUsage() & BufferUsage::Index))
+        {
+            _device->NotifyValidationError("SetIndexBuffer need buffer with Index usage");
+            return;
+        }
+
+        SetIndexBufferImpl(buffer, offset, indexType);
+    }
+
+    void CommandContext::SetProgram(Program* program)
+    {
+        if (_currentProgram == program)
             return;
 
         _currentProgram = program;
         SetProgramImpl(program);
     }
 
-    void CommandBuffer::SetProgram(const std::string &vertex, const std::string &fragment, const std::vector<std::pair<std::string, int>> &defines)
+    void CommandContext::SetProgram(const std::string &vertex, const std::string &fragment, const std::vector<std::pair<std::string, int>> &defines)
     {
         ShaderProgram* program = _device->GetShaderManager().RegisterGraphics(vertex, fragment);
         uint32_t variant = program->RegisterVariant(defines);
         SetProgram(program->GetVariant(variant));
     }
 
-    void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    void CommandContext::Draw(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount)
     {
         ALIMER_ASSERT(_currentProgram);
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(!_isCompute);
-        DrawImpl(topology, vertexCount, instanceCount, vertexStart, baseInstance);
+        ALIMER_ASSERT(vertexCount > 0);
+        DrawImpl(topology, vertexStart, vertexCount);
     }
 
-    void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount)
+    {
+        ALIMER_ASSERT(_currentProgram);
+        ALIMER_ASSERT(_insideRenderPass);
+        ALIMER_ASSERT(!_isCompute);
+        ALIMER_ASSERT(vertexCount > 1);
+        ALIMER_ASSERT(instanceCount > 1);
+        DrawInstancedImpl(topology, vertexStart, vertexCount, instanceCount, 0);
+    }
+
+    void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
+    {
+        ALIMER_ASSERT(_currentProgram);
+        ALIMER_ASSERT(_insideRenderPass);
+        ALIMER_ASSERT(!_isCompute);
+        DrawInstancedImpl(topology, vertexStart, vertexCount, instanceCount, baseInstance);
+    }
+
+    void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         //ALIMER_ASSERT(_currentShader);
         ALIMER_ASSERT(_isCompute);
@@ -119,12 +142,12 @@ namespace Alimer
         DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
 
-    void CommandBuffer::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
+    void CommandContext::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), 1, 1);
     }
 
-    void CommandBuffer::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
+    void CommandContext::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
     {
         Dispatch(
             DivideByMultiple(threadCountX, groupSizeX),
@@ -132,7 +155,7 @@ namespace Alimer
             1);
     }
 
-    void CommandBuffer::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
+    void CommandContext::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
     {
         Dispatch(
             DivideByMultiple(threadCountX, groupSizeX),
@@ -140,36 +163,34 @@ namespace Alimer
             DivideByMultiple(threadCountZ, groupSizeZ));
     }
 
-    void CommandBuffer::BeginCompute()
+    void CommandContext::BeginCompute()
     {
         _isCompute = true;
         BeginContext();
     }
 
-    void CommandBuffer::BeginGraphics()
+    void CommandContext::BeginGraphics()
     {
         _isCompute = false;
         BeginContext();
     }
 
-    void CommandBuffer::BeginContext()
+    void CommandContext::BeginContext()
     {
         _dirtySets = ~0u;
         _dirtyVbos = ~0u;
         _currentProgram = nullptr;
-        memset(&_index, 0, sizeof(_index));
-        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
         _insideRenderPass = false;
     }
 
-    void CommandBuffer::FlushComputeState()
+    void CommandContext::FlushComputeState()
     {
 
     }
 
 
 #if TODO
-    
+
 
     void CommandBuffer::BindBuffer(GpuBuffer* buffer, uint32_t set, uint32_t binding)
     {
@@ -220,4 +241,4 @@ namespace Alimer
     }*/
 #endif // TODO
 
-}
+    }

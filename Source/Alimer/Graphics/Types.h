@@ -89,6 +89,17 @@ namespace Alimer
         Count
     };
 
+    enum class BufferUsage : uint32_t
+    {
+        None = 0,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        Uniform = 1 << 2,
+        Storage = 1 << 3,
+        Indirect = 1 << 4,
+    };
+    ALIMER_BITMASK(BufferUsage);
+
     enum class VertexFormat : uint32_t
     {
         Invalid = 0,
@@ -176,6 +187,21 @@ namespace Alimer
     };
     ALIMER_BITMASK(ShaderStageUsage);
 
+    struct BufferDescriptor
+    {
+        /// Buffer resource usage.
+        ResourceUsage resourceUsage = ResourceUsage::Default;
+
+        /// Buffer usage.
+        BufferUsage usage = BufferUsage::None;
+
+        /// Size in bytes of buffer.
+        uint64_t size = 0;
+
+        /// Size of each individual element in the buffer, in bytes. 
+        uint32_t stride = 0;
+    };
+
     class ALIMER_API RenderingSettings
     {
     public:
@@ -215,8 +241,59 @@ namespace Alimer
         std::vector<PipelineResource> resources;
     };
 
+    enum class VertexElementSemantic : uint32_t
+    {
+        Position = 0,
+        Normal,
+        Binormal,
+        Tangent,
+        BlendWeight,
+        BlendIndices,
+        Color0,
+        Color1,
+        Color2,
+        Color3,
+        Texcoord0,
+        Texcoord1,
+        Texcoord2,
+        Texcoord3,
+        Texcoord4,
+        Texcoord5,
+        Texcoord6,
+        Texcoord7,
+        Count
+    };
+
+
+    struct VertexAttributeDescriptor
+    {
+        VertexElementSemantic   semantic = VertexElementSemantic::Position;
+        VertexFormat            format = VertexFormat::Invalid;
+        uint32_t                offset = 0;
+        uint32_t                bufferIndex = 0;
+    };
+
+    struct VertexBufferLayoutDescriptor
+    {
+        uint32_t        stride = 0;
+        VertexInputRate inputRate = VertexInputRate::Vertex;
+    };
+
+    struct VertexDescriptor
+    {
+        VertexBufferLayoutDescriptor buffers[MaxVertexBufferBindings];
+        VertexAttributeDescriptor attributes[MaxVertexAttributes];
+    };
+
+    struct RenderPipelineDescriptor
+    {
+        VertexDescriptor vertexDescriptor;
+    };
 
     ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
+    ALIMER_API const char* EnumToString(ResourceUsage usage);
+    ALIMER_API const char* EnumToString(BufferUsage usage);
     ALIMER_API const char* EnumToString(IndexType type);
     ALIMER_API const char* EnumToString(ShaderStage stage);
+    ALIMER_API const char* EnumToString(VertexElementSemantic semantic);
 }

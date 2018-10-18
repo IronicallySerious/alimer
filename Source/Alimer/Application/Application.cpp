@@ -142,39 +142,33 @@ namespace Alimer
         if (_headless)
             return;
 
-        if (!_graphicsDevice->BeginFrame())
-            return;
-
-        CommandBuffer* commandBuffer = _graphicsDevice->GetMainCommandBuffer();
-
-        // Begin recording.
-        //commandBuffer->Begin();
+        auto context = _graphicsDevice->GetContext();
 
         RenderPassDescriptor renderPass = {};
         renderPass.colorAttachments[0].clearColor = Color4(0.0f, 0.2f, 0.4f, 1.0f);
         renderPass.colorAttachments[0].attachment = _graphicsDevice->GetSwapchainView();
-        commandBuffer->BeginRenderPass(&renderPass);
+        context->BeginRenderPass(&renderPass);
 
         // Call OnRenderFrame for custom rendering frame logic.
-        OnRenderFrame(commandBuffer, frameTime, elapsedTime);
+        OnRenderFrame(context, frameTime, elapsedTime);
 
         // Render scene to default command buffer.
-        if (_renderPipeline)
+        if (_sceneRenderPipeline)
         {
             //auto camera = _scene.GetActiveCamera()->GetComponent<CameraComponent>()->camera;
             //_renderPipeline->Render(_renderContext, { camera });
         }
 
         // End swap chain render pass.
-        commandBuffer->EndRenderPass();
+        context->EndRenderPass();
 
-        // Commit rendering frame.
-        _graphicsDevice->EndFrame();
+        // Present rendering frame.
+        _graphicsDevice->Present();
     }
 
-    void Application::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
+    void Application::OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime)
     {
-        ALIMER_UNUSED(commandBuffer);
+        ALIMER_UNUSED(context);
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
     }

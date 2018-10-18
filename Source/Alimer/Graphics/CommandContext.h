@@ -23,8 +23,7 @@
 #pragma once
 
 #include "../Graphics/Types.h"
-#include "../Graphics/VertexBuffer.h"
-#include "../Graphics/IndexBuffer.h"
+#include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Shader.h"
 #include "../Math/Math.h"
@@ -34,27 +33,37 @@ namespace Alimer
 {
     class GraphicsDevice;
 
-    /// Defines a command buffer for recording gpu commands.
-    class ALIMER_API CommandBuffer : public RefCounted
+    /// Defines a command context for recording gpu commands.
+    class ALIMER_API CommandContext : public RefCounted
     {
         friend class GraphicsDevice;
 
-    public:
-        CommandBuffer(GraphicsDevice* device, bool secondary);
+    protected:
+        CommandContext(GraphicsDevice* device);
 
     public:
         /// Destructor.
-        virtual ~CommandBuffer() = default;
+        virtual ~CommandContext() = default;
+
+        // Flush existing commands to the GPU and optionally wait for execution.
+        void Flush(bool waitForCompletion = false);
 
         void BeginRenderPass(const RenderPassDescriptor* descriptor);
         void EndRenderPass();
 
-        void SetVertexBuffer(VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
-        virtual void SetVertexBuffer(uint32_t index, VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
-        void SetIndexBuffer(IndexBuffer* buffer, uint64_t offset = 0);
+        void SetVertexBuffer(GpuBuffer* buffer, uint64_t offset, uint32_t index);
+        void SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint64_t* offsets);
+        void SetIndexBuffer(GpuBuffer* buffer, uint64_t offset, IndexType indexType);
+        virtual void SetViewport(const rect& viewport) = 0;
+        virtual void SetScissor(const irect& scissor) = 0;
+
+        virtual void SetVertexDescriptor(const VertexDescriptor* descriptor) = 0;
         void SetProgram(Program* program);
         void SetProgram(const std::string &vertex, const std::string &fragment, const std::vector<std::pair<std::string, int>> &defines = {});
-        void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t vertexStart = 0, uint32_t baseInstance = 0);
+
+        void Draw(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount);
+        void DrawInstanced(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount);
+        void DrawInstanced(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance);
 
         // Compute
         void Dispatch(uint32_t groupCountX = 1, uint32_t groupCountY = 1, uint32_t groupCountZ = 1);
@@ -70,12 +79,18 @@ namespace Alimer
         void FlushComputeState();
 
         // Backend methods.
+        virtual void FlushImpl(bool waitForCompletion) = 0;
         virtual void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) = 0;
         virtual void EndRenderPassImpl() = 0;
 
         virtual void SetProgramImpl(Program* program) = 0;
-        virtual void SetIndexBufferImpl(IndexBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
-        virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) = 0;
+
+        virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint64_t offset) = 0;
+        virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint64_t* offsets) = 0;
+        virtual void SetIndexBufferImpl(GpuBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
+
+        virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount) = 0;
+        virtual void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance) = 0;
 
         virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
@@ -84,27 +99,11 @@ namespace Alimer
         GraphicsDevice* _device;
         bool _isCompute;
         bool _insideRenderPass;
-
-        struct VertexBindingState
-        {
-            VertexBuffer* buffers[MaxVertexBufferBindings];
-            uint64_t offsets[MaxVertexBufferBindings];
-            uint64_t strides[MaxVertexBufferBindings];
-            VertexInputRate inputRates[MaxVertexBufferBindings];
-        };
-
-        struct IndexState
-        {
-            IndexBuffer* buffer;
-            uint64_t offset;
-        };
-
-        VertexBindingState _vbo = {};
-        IndexState _index = {};
-
         Program* _currentProgram = nullptr;
 
         uint32_t _dirtySets = 0;
         uint32_t _dirtyVbos = 0;
+
+    private:
     };
 }

@@ -44,31 +44,32 @@ namespace Alimer
 
         void Resize(uint32_t width, uint32_t height, bool force = false);
 
-        VkResult AcquireNextImage(uint32_t *pImageIndex, VkSemaphore* pImageAcquiredSemaphore);
-        VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
+        void QueuePresent(VkQueue queue, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 
         PixelFormat GetFormat() const { return _format; }
-        uint32_t GetTextureCount() const { return _imageCount; }
-        TextureView* GetTextureView(uint32_t index) const;
+        TextureView* GetCurrentTextureView() const;
 
-        VkSwapchainKHR GetVkHandle() const { return _swapchain; }
+        VkSwapchainKHR GetHandle() const { return _handle; }
 
     private:
+        bool GetNextBackBufferIndex();
+
         /// Graphics subsystem.
         VulkanGraphicsDevice* _device;
 
         VkPhysicalDevice _physicalDevice;
         VkDevice _logicalDevice;
 
-        VkSurfaceKHR _surface;
-        VkSurfaceFormatKHR _swapchainFormat{};
-        VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
+        VkSurfaceKHR _surface = VK_NULL_HANDLE;
+        VkSurfaceFormatKHR _swapchainFormat = {};
+        VkSwapchainKHR _handle = VK_NULL_HANDLE;
 
         std::vector<VkImage> _vkImages;
         std::vector<SharedPtr<VulkanTexture>> _textures;
 
         uint32_t _imageCount;
         PixelFormat _format = PixelFormat::Undefined;
+        uint32_t _currentBackBufferIndex = 0;
 
         uvec2 _size;
         bool _vsync{ false };

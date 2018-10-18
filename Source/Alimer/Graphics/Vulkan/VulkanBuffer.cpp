@@ -20,63 +20,49 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanGraphicsImpl.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanBuffer.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
 namespace Alimer
 {
-    VulkanBuffer::VulkanBuffer(VulkanGraphicsDevice* device)
-        : _device(device)
+    VulkanBuffer::VulkanBuffer(VulkanGraphicsDevice* device, const BufferDescriptor* descriptor, const void* initialData)
+        : GpuBuffer(device, descriptor)
+        , _logicalDevice(device->GetDevice())
+        , _allocator(device->GetVmaAllocator())
     {
-    }
-
-    VulkanBuffer::~VulkanBuffer()
-    {
-        Destroy();
-    }
-
-    void VulkanBuffer::Destroy()
-    {
-        if (_allocation != VK_NULL_HANDLE)
-            vmaDestroyBuffer(_device->GetVmaAllocator(), _handle, _allocation);
-        else
-            vkDestroyBuffer(_device->GetDevice(), _handle, nullptr);
-    }
-
-    bool VulkanBuffer::Define(ResourceUsage resourceUsage, BufferUsage bufferUsage, VkDeviceSize size, const void* initialData)
-    {
-        _bufferUsage = 0;
-        if (any(bufferUsage & BufferUsage::Vertex))
-            _bufferUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-        if (any(bufferUsage & BufferUsage::Index))
-            _bufferUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-
-        if (any(bufferUsage & BufferUsage::Uniform))
-            _bufferUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
-        if (any(bufferUsage & BufferUsage::Storage))
-            _bufferUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-
-        if (any(bufferUsage & BufferUsage::Indirect))
-            _bufferUsage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
-
-        VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+        VkBufferCreateInfo createInfo;
+        createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.size = size;
-        createInfo.usage = _bufferUsage;
+        createInfo.size = descriptor->size;
+        createInfo.usage = 0;
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0;
+        createInfo.pQueueFamilyIndices = nullptr;
+
+        if (any(descriptor->usage & BufferUsage::Vertex))
+            createInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+        if (any(descriptor->usage & BufferUsage::Index))
+            createInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+        if (any(descriptor->usage & BufferUsage::Uniform))
+            createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+        if (any(descriptor->usage & BufferUsage::Storage))
+            createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+
+        if (any(descriptor->usage & BufferUsage::Indirect))
+            createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
         uint32_t sharing_indices[3];
-        const uint32_t graphics_queue_family_index = _device->GetGraphicsQueueFamily();
-        const uint32_t compute_queue_family_index = _device->GetComputeQueueFamily();
-        const uint32_t transfer_queue_family_index = _device->GetTransferQueueFamily();
-
-        if (graphics_queue_family_index != compute_queue_family_index ||
-            graphics_queue_family_index != transfer_queue_family_index)
+        const uint32_t graphics_queue_family_index = device->GetGraphicsQueueFamily();
+        const uint32_t compute_queue_family_index = device->GetComputeQueueFamily();
+        const uint32_t transfer_queue_family_index = device->GetTransferQueueFamily();
+        if (graphics_queue_family_index != compute_queue_family_index
+            || graphics_queue_family_index != transfer_queue_family_index)
         {
             // For buffers, always just use CONCURRENT access modes,
             // so we don't have to deal with acquire/release barriers in async compute.
@@ -103,17 +89,17 @@ namespace Alimer
         VmaAllocationInfo allocationInfo = {};
         if (noAllocation)
         {
-            result = vkCreateBuffer(_device->GetDevice(), &createInfo, nullptr, &_handle);
+            result = vkCreateBuffer(_logicalDevice, &createInfo, nullptr, &_handle);
         }
         else
         {
             // Determine appropriate memory usage flags.
             VmaAllocationCreateInfo allocCreateInfo = {};
-            switch (resourceUsage)
+            switch (descriptor->resourceUsage)
             {
             case ResourceUsage::Default:
             case ResourceUsage::Immutable:
-                _bufferUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
                 staticBuffer = true;
                 break;
@@ -124,7 +110,7 @@ namespace Alimer
                 break;
 
             case ResourceUsage::Staging:
-                _bufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
                 allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
                 allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
                 break;
@@ -133,10 +119,8 @@ namespace Alimer
                 break;
             }
 
-            createInfo.usage = _bufferUsage;
-
             result = vmaCreateBuffer(
-                _device->GetVmaAllocator(),
+                _allocator,
                 &createInfo,
                 &allocCreateInfo,
                 &_handle,
@@ -147,59 +131,47 @@ namespace Alimer
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERROR("[Vulkan] - Failed to create buffer");
-            return false;
+            return;
         }
-
-        _vkSize = size;
 
         // Handle
         if (initialData != nullptr)
         {
             if (staticBuffer)
             {
-                SetSubData(0, allocationInfo.size, initialData);
+                device->BufferSubData(this, 0, allocationInfo.size, initialData);
             }
             else
             {
                 void *data;
-                vmaMapMemory(_device->GetVmaAllocator(), _allocation, &data);
+                vmaMapMemory(_allocator, _allocation, &data);
                 memcpy(data, initialData, allocationInfo.size);
-                vmaUnmapMemory(_device->GetVmaAllocator(), _allocation);
+                vmaUnmapMemory(_allocator, _allocation);
             }
         }
-
-        return true;
     }
 
-    bool VulkanBuffer::SetSubData(uint32_t offset, uint32_t size, const void* pData)
+    VulkanBuffer::~VulkanBuffer()
     {
-        return _device->BufferSubData(this, offset, size, pData) == VK_SUCCESS;
+        Destroy();
     }
 
-    // VulkanVertexBuffer
-    VulkanVertexBuffer::VulkanVertexBuffer(VulkanGraphicsDevice* device, uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData)
-        : VertexBuffer(device, vertexCount, elementsCount, elements, resourceUsage)
-        , VulkanBuffer(device)
+    void VulkanBuffer::Destroy()
     {
-        Define(_resourceUsage, _usage, _size, initialData);
+        if (_allocation != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(_allocator, _handle, _allocation);
+            _allocation = VK_NULL_HANDLE;
+        }
+        else if(_handle != VK_NULL_HANDLE)
+        {
+            vkDestroyBuffer(_logicalDevice, _handle, nullptr);
+            _handle = VK_NULL_HANDLE;
+        }
     }
 
-    bool VulkanVertexBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
+    bool VulkanBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
     {
-        return VulkanBuffer::SetSubData(offset, size, pData);
+        return static_cast<VulkanGraphicsDevice*>(_device)->BufferSubData(this, offset, size, pData) == VK_SUCCESS;
     }
-
-    // VulkanIndexBuffer
-    VulkanIndexBuffer::VulkanIndexBuffer(VulkanGraphicsDevice* device, uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData)
-        : IndexBuffer(device, indexCount, indexType, resourceUsage)
-        , VulkanBuffer(device)
-    {
-        Define(_resourceUsage, _usage, _size, initialData);
-    }
-
-    bool VulkanIndexBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
-    {
-        return VulkanBuffer::SetSubData(offset, size, pData);
-    }
-
 }

@@ -25,7 +25,7 @@
 
 namespace Alimer
 {
-    RenderPipeline::RenderPipeline()
+    SceneRenderPipeline::SceneRenderPipeline()
     {
         
     }

@@ -26,32 +26,6 @@
 
 namespace Alimer
 {
-    enum class BufferUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        Index = 1 << 1,
-        Uniform = 1 << 2,
-        Storage = 1 << 3,
-        Indirect = 1 << 4,
-    };
-    ALIMER_BITMASK(BufferUsage);
-
-    struct BufferDescriptor
-    {
-        /// Buffer resource usage.
-        ResourceUsage resourceUsage = ResourceUsage::Default;
-
-        /// Buffer usage.
-        BufferUsage usage = BufferUsage::None;
-
-        /// Size in bytes of buffer.
-        uint64_t size = 0;
-
-        /// Size of each individual element in the buffer, in bytes. 
-        uint32_t stride = 0;
-    };
-
 	/// Defines a Graphics Buffer class.
 	class GpuBuffer : public GraphicsResource
 	{

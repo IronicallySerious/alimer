@@ -21,7 +21,7 @@
 //
 
 #include "VulkanPipelineLayout.h"
-#include "VulkanGraphicsImpl.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 

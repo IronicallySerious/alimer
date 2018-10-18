@@ -39,9 +39,9 @@ namespace Alimer
         _ui = new UI(_mainWindow.GetSize());
     }
 
-    void Editor::OnRenderFrame(CommandBuffer* commandBuffer, double frameTime, double elapsedTime)
+    void Editor::OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime)
     {
-        ALIMER_UNUSED(commandBuffer);
+        ALIMER_UNUSED(context);
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 

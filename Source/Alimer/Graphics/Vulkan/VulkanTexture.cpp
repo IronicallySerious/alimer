@@ -20,10 +20,9 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanGraphicsImpl.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanTexture.h"
 #include "VulkanConvert.h"
-#include "../Texture.h"
 #include "../../Core/Log.h"
 
 namespace Alimer

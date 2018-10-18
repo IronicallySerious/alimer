@@ -31,40 +31,21 @@ namespace Alimer
     class VulkanGraphicsDevice;
 
 	/// Vulkan Buffer.
-	class VulkanBuffer 
+	class VulkanBuffer final : public GpuBuffer
 	{
 	public:
-        VulkanBuffer(VulkanGraphicsDevice* device);
-        ~VulkanBuffer();
-        void Destroy();
+        VulkanBuffer(VulkanGraphicsDevice* device, const BufferDescriptor* descriptor, const void* initialData);
+        ~VulkanBuffer() override;
+        void Destroy() override;
 
-        bool Define(ResourceUsage resourceUsage, BufferUsage bufferUsage, VkDeviceSize size, const void* initialData);
-        bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
+        bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
 
 		VkBuffer GetHandle() const { return _handle; }
         VmaAllocation GetAllocation() const { return _allocation; }
-        VkDeviceSize GetSize() const { return _vkSize; }
 	private:
-        VulkanGraphicsDevice* _device;
         VkBuffer _handle = VK_NULL_HANDLE;
+        VkDevice _logicalDevice;
+        VmaAllocator _allocator;
         VmaAllocation _allocation = VK_NULL_HANDLE;
-        VkBufferUsageFlags _bufferUsage = 0;
-        VkDeviceSize _vkSize = 0;
 	};
-
-    class VulkanVertexBuffer final : public VertexBuffer, public VulkanBuffer
-    {
-    public:
-        VulkanVertexBuffer(VulkanGraphicsDevice* device, uint32_t vertexCount, size_t elementsCount, const VertexElement* elements, ResourceUsage resourceUsage, const void* initialData);
-
-        bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
-    };
-
-    class VulkanIndexBuffer final : public IndexBuffer, public VulkanBuffer
-    {
-    public:
-        VulkanIndexBuffer(VulkanGraphicsDevice* device, uint32_t indexCount, IndexType indexType, ResourceUsage resourceUsage, const void* initialData);
-
-        bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
-    };
 }
