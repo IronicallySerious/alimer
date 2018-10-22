@@ -88,7 +88,7 @@ namespace Alimer
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
 
-        /// Get the type of device.
+        /// Get the backend.
         GraphicsBackend GetBackend() const { return _backend; }
 
         /// Get the device features.

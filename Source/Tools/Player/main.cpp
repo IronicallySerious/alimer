@@ -360,8 +360,8 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_graphicsDevice.get());
-        //_quadExample.Initialize(_graphicsDevice.Get());
+        _triangleExample.Initialize(_graphicsDevice);
+        //_quadExample.Initialize(_graphicsDevice);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
 

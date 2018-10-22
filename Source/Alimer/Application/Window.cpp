@@ -24,9 +24,10 @@
 
 namespace Alimer
 {
-    Window::Window()
-        : _title("Alimer")
-        , _size(800u, 600u)
+    Window::Window(const std::string& title, const uvec2& size, WindowFlags flags)
+        : _title(title)
+        , _size(size)
+        , _flags(flags)
     {
         PlatformConstruct();
     }
@@ -34,15 +35,6 @@ namespace Alimer
     Window::~Window()
     {
         PlatformDestroy();
-    }
-
-    bool Window::Define(const uvec2& size, WindowFlags flags)
-    {
-        PlatformDestroy();
-
-        _size = size;
-        _flags = flags;
-        return PlatformCreate();
     }
 
     bool Window::IsFullscreen() const

@@ -78,7 +78,9 @@ namespace Alimer
     {
         if (prefferedBackend == GraphicsBackend::Default)
         {
+#if ALIMER_VULKAN
             prefferedBackend = GraphicsBackend::Vulkan;
+#endif
         }
 
         GraphicsDevice* device = nullptr;

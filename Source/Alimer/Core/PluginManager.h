@@ -38,8 +38,8 @@ namespace Alimer
         /// Returns the plugin manager instance.
         static PluginManager *GetInstance();
 
-        /// Get the singleton instance.
-        static void DeleteInstance();
+        /// Shutdown the plugin manager.
+        static void Shutdown();
 
         /// Load plugins from given path.
         void LoadPlugins(const String& pluginPath);

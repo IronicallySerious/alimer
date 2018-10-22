@@ -70,21 +70,28 @@ define_engine_source_files (NORECURSE . Base Core IO Math Graphics Input Audio A
 define_engine_source_files (Resource Serialization Scene Renderer)
 define_engine_source_files (NORECURSE experimental)
 
-if (ALIMER_WINDOWS)
+if (ALIMER_SDL2)
+    define_engine_source_files(Application/SDL2)
+    define_engine_source_files(Input/SDL2)
+elseif (PLATFORM_WINDOWS)
 	define_engine_source_files(Application/Windows)
 	define_engine_source_files(Input/Windows)
-	define_engine_source_files(Audio/WASAPI)
 elseif (ALIMER_UWP)
 	define_engine_source_files(Application/UWP)
-	define_engine_source_files(Audio/WASAPI)
+	define_engine_source_files(Input/UWP)
 endif ()
 
 if (ALIMER_WINDOWS OR ALIMER_UWP)
     define_engine_source_files(IO/Windows)
 endif()
 
+if (ALIMER_XAUDIO2)
+     define_engine_source_files(Audio/XAudio2)
+endif ()
+
 if (ALIMER_GL)
     define_engine_source_files(Graphics/OpenGL)
+    list (APPEND ALIMER_NATIVE_INCLUDE_DIRS ${ALIMER_THIRD_PARTY_DIR}/khronos)
 endif (ALIMER_GL)
 
 if (ALIMER_VULKAN)
@@ -128,13 +135,20 @@ target_include_directories(libAlimer
 	    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-        $<BUILD_INTERFACE:${ALIMER_THIRD_PARTY_DIR}>/khronos
 )
 
-target_include_directories(libAlimer PRIVATE ${ALIMER_THIRD_PARTY_DIR} ${ALIMER_NATIVE_INCLUDE_DIRS})
+target_include_directories(libAlimer
+    PRIVATE
+    ${ALIMER_THIRD_PARTY_DIR}
+    ${ALIMER_NATIVE_INCLUDE_DIRS}
+    )
 
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES spirv_cross)
+if (ALIMER_SDL2)
+    list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
+endif ()
+
 if (ALIMER_VULKAN)
     list (APPEND THIRD_PARTY_DEPENDENCIES volk vkmemalloc glslang SPIRV)
 endif ()
@@ -146,6 +160,10 @@ foreach (dep ${THIRD_PARTY_DEPENDENCIES})
 endforeach()
 
 target_compile_definitions(libAlimer PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
+if (ALIMER_SDL2)
+    target_compile_definitions(libAlimer PRIVATE -DALIMER_SDL2)
+endif()
+
 if (ALIMER_D3D11)
     target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D11)
 endif()
@@ -172,13 +190,6 @@ endif ()
 
 # Add OS-specific library dependencies
 if (ALIMER_WINDOWS)
-    # Link universal crt libs (https://blogs.msdn.microsoft.com/vcblog/2015/03/03/introducing-the-universal-crt/)
-    # To avoid SDL2 linking issues.
-    if (ALIMER_WINDOWS_CRT)
-        target_link_libraries(${TARGET_NAME} debug libcmtd libvcruntimed libucrtd)
-        target_link_libraries(${TARGET_NAME} optimized libcmt libvcruntime libucrt)
-    endif ()
-
     target_link_libraries (${TARGET_NAME} winmm ws2_32)
 elseif (ALIMER_UWP)
     if (ALIMER_D3D11 OR ALIMER_D3D12)

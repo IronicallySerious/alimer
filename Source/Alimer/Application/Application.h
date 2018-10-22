@@ -93,10 +93,9 @@ namespace Alimer
         Timer &GetFrameTimer() { return _timer; }
 
         inline ResourceManager* GetResources() { return &_resources; }
-        inline Window& GetMainWindow() { return _mainWindow; }
-        inline GraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice.get(); }
+        inline Window* GetMainWindow() const { return _mainWindow; }
+        inline GraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice; }
         inline Input& GetInput() { return _input; }
-        inline Audio* GetAudio() const { return _audio.get(); }
 
     private:
         void PlatformConstruct();
@@ -116,8 +115,6 @@ namespace Alimer
         /// Called during rendering single frame.
         virtual void OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime);
 
-        virtual Audio* CreateAudio();
-
         std::vector<std::string> _args;
         std::atomic<bool> _running;
         std::atomic<bool> _paused;
@@ -127,10 +124,10 @@ namespace Alimer
         Logger _log;
         Timer _timer;
         ResourceManager _resources;
-        Window _mainWindow;
-        std::unique_ptr<GraphicsDevice> _graphicsDevice;
+        Window* _mainWindow = nullptr;
+        GraphicsDevice* _graphicsDevice = nullptr;
         Input _input;
-        std::unique_ptr<Audio> _audio;
+        Audio* _audio;
 
         //
         EntityManager _entities;

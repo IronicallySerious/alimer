@@ -26,7 +26,7 @@ namespace Alimer
 {
     Editor::Editor()
     {
-        _mainWindow.SetTitle("Alimer Studio 2018");
+        
     }
 
     Editor::~Editor()
@@ -36,7 +36,8 @@ namespace Alimer
 
     void Editor::Initialize()
     {
-        _ui = new UI(_mainWindow.GetSize());
+        _mainWindow->SetTitle("Alimer Studio 2018");
+        _ui = new UI(_mainWindow->GetSize());
     }
 
     void Editor::OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime)

@@ -20,49 +20,43 @@
 // THE SOFTWARE.
 //
 
-#include "Input.SDL2.h"
+#include "../../Input/Input.h"
+#include "../../Core/Log.h"
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
 namespace Alimer
 {
-    SDL2Input::SDL2Input()
+    void Input::PlatformConstruct()
     {
+        for (uint32_t i = 0; i < static_cast<unsigned>(CursorType::Count); ++i)
+        {
+            switch (static_cast<CursorType>(i))
+            {
+            case CursorType::Arrow:
+                _cursors[i] = LoadCursor(nullptr, IDC_ARROW);
+                break;
 
+            case CursorType::Cross:
+                _cursors[i] = LoadCursor(nullptr, IDC_CROSS);
+                break;
+
+            case CursorType::Hand:
+                _cursors[i] = LoadCursor(nullptr, IDC_HAND);
+                break;
+            }
+        }
+
+        _cursor = _cursors[static_cast<unsigned>(CursorType::Arrow)];
     }
 
-    SDL2Input::~SDL2Input()
-    {
-
-    }
-
-    bool SDL2Input::IsCursorVisible() const
+    bool Input::IsCursorVisible() const
     {
         return SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE;
     }
 
-    void SDL2Input::SetCursorVisible(bool visible)
+    void Input::SetCursorVisible(bool visible)
     {
         SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
-    }
-
-    MouseButton SDL2Input::ConvertMouseButton(uint8_t sdlButton)
-    {
-        switch (sdlButton)
-        {
-        case SDL_BUTTON_LEFT:
-            return MouseButton::Left;
-        case SDL_BUTTON_MIDDLE:
-            return MouseButton::Middle;
-        case SDL_BUTTON_RIGHT:
-            return MouseButton::Right;
-        case SDL_BUTTON_X1:
-            return MouseButton::X1;
-        case SDL_BUTTON_X2:
-            return MouseButton::X2;
-
-        default:
-            return MouseButton::None;
-        }
     }
 }

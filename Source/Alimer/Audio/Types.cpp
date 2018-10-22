@@ -20,39 +20,24 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Window.h"
-struct SDL_Window;
+#include "../Audio/Types.h"
 
 namespace Alimer
 {
-	/// SDL2 OS window implementation.
-	class SDL2Window final : public Window
-	{
-	public:
-        SDL2Window(const std::string& title, uint32_t width, uint32_t height, bool fullscreen);
-		~SDL2Window() override;
-		void Destroy();
-		void Activate(bool focused);
+    const char* EnumToString(AudioBackend backend)
+    {
+#define CASE_STRING(ENUM_VALUE) case AudioBackend::##ENUM_VALUE : return #ENUM_VALUE
 
-        void Show() override;
-        void Hide() override;
-        void Minimize() override;
-        void Maximize() override;
-        void Restore() override;
-        void Close() override;
+        switch (backend)
+        {
+            CASE_STRING(Default);
+            CASE_STRING(Empty);
+            CASE_STRING(XAudio2);
+            CASE_STRING(OpenAL);
+            CASE_STRING(Custom);
+        }
 
-        bool IsVisible() const override { return _visible; }
-        bool IsMinimized() const override;
-
-        void SetTitle(const std::string& newTitle) override;
-
-	private:
-        void HandleResize(const uvec2& newSize);
-
-        SDL_Window* _window = nullptr;
-        bool _visible = true;
-        bool _focused = false;
-	};
+#undef CASE_STRING
+        return nullptr;
+    }
 }

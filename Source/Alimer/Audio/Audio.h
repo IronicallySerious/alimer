@@ -22,24 +22,59 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "../Audio/Types.h"
 #include <string>
 #include <atomic>
 
 namespace Alimer
 {
-	/// Audio system class.
-	class ALIMER_API Audio
+	/// Defines Audio module class.
+	class ALIMER_API Audio 
 	{
 	protected:
 		/// Constructor.
-		Audio();
+		Audio(AudioBackend backend);
 
 	public:
-		/// Destructor.
-		virtual ~Audio() = default;
+        /// Destructor.
+        virtual ~Audio();
+
+        /// Create the audio module.
+        static Audio* Create(AudioBackend prefferedBackend = AudioBackend::Default, bool validation = false);
+
+        /// Shutdown the plugin manager.
+        static void Shutdown();
+
+        /// Get the best platform backend.
+        static AudioBackend GetPlatformDefaultBackend();
+
+        /// Return the single instance of the Audio.
+        static Audio& GetInstance();
+
+        /// Get the backend.
+        AudioBackend GetBackend() const { return _backend; }
+
+        /// Pause the audio.
+        void Pause();
+
+        /// Resume the audio.
+        void Resume();
+
+        float GetMasterVolume() const { return _masterVolume; }
+        void SetMasterVolume(float volume);
 
 	private:
+        virtual void SetMasterVolumeImpl(float volume) = 0;
+        virtual void SetPaused(bool paused) = 0;
+
+        static Audio *_instance;
+        AudioBackend _backend = AudioBackend::Empty;
+        float _masterVolume = 1.0f;
+        bool _paused = false;
+
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Audio);
 	};
+
+    /// Singleton access for Audio. 
+    ALIMER_API Audio& gAudio();
 }

@@ -26,6 +26,9 @@
 #include "../Core/Object.h"
 #include "../Math/Math.h"
 #include <string>
+#if ALIMER_SDL2
+struct SDL_Window;
+#endif
 
 namespace Alimer
 {
@@ -58,16 +61,13 @@ namespace Alimer
 
     public:
         /// Constructor.
-        Window();
+        Window(const std::string& title, const uvec2& size, WindowFlags flags = WindowFlags::Default);
 
         /// Destructor.
         ~Window() override;
 
         /// Set window title.
         void SetTitle(const std::string& newTitle);
-
-        /// Define the window size and settings.
-        bool Define(const uvec2& size, WindowFlags flags = WindowFlags::Default);
 
         /// Show the window.
         void Show();
@@ -91,9 +91,6 @@ namespace Alimer
         /// Return whether is fullscreen.
         bool IsFullscreen() const;
 
-        /// Return whether the backend handle is valid.
-        bool IsValid() const { return _valid; }
-
         /// Return window title.
         const std::string& GetTitle() const { return _title; }
 
@@ -104,6 +101,10 @@ namespace Alimer
 
         float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
         WindowFlags GetFlags() const { return _flags; }
+
+#if ALIMER_SDL2
+        SDL_Window* _window = nullptr;
+#endif
 
 #if ALIMER_PLATFORM_UWP
         IUnknown* GetHandle() const { return _handle; }
@@ -119,7 +120,6 @@ namespace Alimer
     private:
         void PlatformConstruct();
         void PlatformDestroy();
-        bool PlatformCreate();
 
 #if ALIMER_PLATFORM_UWP
         /// Window handle is IUnknown on UWP
@@ -139,8 +139,6 @@ namespace Alimer
         uvec2 _size;
         /// Flags
         WindowFlags _flags = WindowFlags::Default;
-        /// Is backend handle valid.
-        bool _valid = false;
         /// Visibility flag.
         bool _visible = true;
         /// Visibility flag.

@@ -24,7 +24,7 @@
 cmake_minimum_required (VERSION 3.5)
 
 # Set project name
-project (Alimer)
+project (Alimer LANGUAGES CXX C)
 
 # Alimer Version
 set (PRODUCT_NAME "Alimer")
@@ -168,6 +168,7 @@ else()
 endif()
 
 message(STATUS "  Threading       ${ALIMER_THREADING}")
+message(STATUS "  SDL2            ${ALIMER_SDL2}")
 message(STATUS "  GL              ${ALIMER_GL}")
 message(STATUS "  D3D11           ${ALIMER_D3D11}")
 message(STATUS "  D3D12           ${ALIMER_D3D12}")

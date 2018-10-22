@@ -22,10 +22,94 @@
 
 #include "../Audio/Audio.h"
 #include "../Core/Log.h"
+#if defined(_MSC_VER)
+#   include "../Audio/XAudio2/Audio.XAudio2.h"
+#endif
 
 namespace Alimer
 {
-	Audio::Audio()
+    Audio *Audio::_instance;
+
+	Audio::Audio(AudioBackend backend)
+        : _backend(backend)
 	{
+        _instance = this;
 	}
+
+    Audio::~Audio()
+    {
+        _instance = nullptr;
+    }
+
+    Audio& Audio::GetInstance()
+    {
+        return *_instance;
+    }
+
+    Audio* Audio::Create(AudioBackend prefferedBackend, bool validation)
+    {
+        if (prefferedBackend == AudioBackend::Default)
+        {
+            prefferedBackend = GetPlatformDefaultBackend();
+        }
+
+        Audio* audio = nullptr;
+        switch (prefferedBackend)
+        {
+        case AudioBackend::XAudio2:
+#if defined(_MSC_VER)
+            audio = new AudioXAudio2(validation);
+#else
+            ALIMER_LOGWARN("XAudio2 is not supported");
+#endif
+            break;
+
+        default:
+            break;
+        }
+
+        return audio;
+    }
+
+    void Audio::Shutdown()
+    {
+        delete _instance;
+        _instance = nullptr;
+    }
+
+    AudioBackend Audio::GetPlatformDefaultBackend()
+    {
+#if defined(_MSC_VER)
+        return AudioBackend::XAudio2;
+#endif
+    }
+
+    void Audio::SetMasterVolume(float volume)
+    {
+        _masterVolume = volume;
+        SetMasterVolumeImpl(volume);
+    }
+
+    void Audio::Pause()
+    {
+        if (_paused)
+            return;
+
+        SetPaused(true);
+        _paused = true;
+    }
+
+    void Audio::Resume()
+    {
+        if (!_paused)
+            return;
+
+        SetPaused(false);
+        _paused = false;
+    }
+
+    Audio& gAudio()
+    {
+        return Audio::GetInstance();
+    }
 }

@@ -22,22 +22,24 @@
 
 #pragma once
 
-#include "Input/Input.h"
+#include "../AlimerConfig.h"
 
 namespace Alimer
 {
-	/// SDL2 input implementation.
-	class SDL2Input final : public Input
-	{
-	public:
-        SDL2Input();
-		~SDL2Input() override;
+    /// Enum describing the Audio backend.
+    enum class AudioBackend : uint32_t
+    {
+        /// Best device supported for running platform.
+        Default,
+        /// Empty/Headless device type.
+        Empty,
+        /// XAudio2.7+ backend.
+        XAudio2,
+        /// OpenAL backend.
+        OpenAL,
+        /// Custom/External backend.
+        Custom,
+    };
 
-        bool IsCursorVisible() const override;
-
-        /// Set cursor visibility.
-        void SetCursorVisible(bool visible) override;
-
-        static MouseButton ConvertMouseButton(uint8_t sdlButton);
-	};
+    ALIMER_API const char* EnumToString(AudioBackend backend);
 }

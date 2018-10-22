@@ -54,7 +54,7 @@ namespace Alimer
         return _instance;
     }
 
-    void PluginManager::DeleteInstance()
+    void PluginManager::Shutdown()
     {
         delete _instance;
         _instance = nullptr;

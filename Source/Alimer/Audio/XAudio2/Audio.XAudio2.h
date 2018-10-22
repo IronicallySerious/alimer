@@ -22,36 +22,61 @@
 
 #pragma once
 
-#include "../Audio.h"
-#include <atomic>
+#include "../../Audio/Audio.h"
+#include "../../Core/Platform.h"
 
 #if defined(_MSC_VER)
 #	pragma warning(push)
 #	pragma warning(disable:4091)   // 'typedef ': ignored on left of '' when no variable is declared
 #endif
-#	include <audioclient.h>
-#	include <audiopolicy.h>
 #	include <mmdeviceapi.h>
+#   include <xaudio2.h>
+#   include <xaudio2fx.h>
+#   include <x3daudio.h>
+#   include <xapofx.h>
+#   include <atomic>
 #if defined(_MSC_VER)
 #	pragma warning(pop)
 #endif
 
+#if !ALIMER_PLATFORM_UWP
+struct IXAudio2_7;
+#endif
+
 namespace Alimer
 {
-	/// WASAPI Audio module implementation class.
-	class AudioWASAPI final : public Audio
+	/// XAudio2.7 Audio implementation.
+	class AudioXAudio2 final : public Audio
 	{
 	public:
 		/// Constructor.
-		AudioWASAPI();
+        AudioXAudio2(bool validation);
 
 		/// Destructor.
-		~AudioWASAPI() override;
+		~AudioXAudio2() override;
+
+        void SetMasterVolumeImpl(float volume) override;
+        void SetPaused(bool paused) override;
 
 	private:
-		IMMDeviceEnumerator* _deviceEnumerator;
-		IMMNotificationClient* _notificationClient;
-		IAudioClient* _renderAudioClient;
-		IAudioRenderClient* _audioRender;
+#if !ALIMER_PLATFORM_UWP
+        HMODULE _xAudio2Module = nullptr;
+        HMODULE _x3DAudioModule = nullptr;
+        IXAudio2_7* _xaudio27 = nullptr;
+#endif
+        uint32_t _apiMajorVersion;
+        uint32_t _apiMinorVersion;
+
+		IMMDeviceEnumerator*    _deviceEnumerator = nullptr;
+		IMMNotificationClient*  _notificationClient = nullptr;
+        IXAudio2*               _xaudio2 = nullptr;
+        IXAudio2MasteringVoice* _masteringVoice = nullptr;
+        IXAudio2SubmixVoice*    _reverbVoice = nullptr;
+
+        uint32_t                _masterChannelMask = 0;
+        uint32_t                _masterChannels = 0;
+        uint32_t                _masterRate = 0;
+
+        X3DAUDIO_HANDLE        _X3DAudio;
 	};
 }

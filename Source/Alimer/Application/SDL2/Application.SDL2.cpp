@@ -20,10 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "Application/Application.h"
-#include "Application/SDL2/Window.SDL2.h"
-#include "Application/SDL2/Input.SDL2.h"
-#include "Audio/WASAPI/AudioWASAPI.h"
+#include "../Application.h"
+#include "../../Core/Log.h"
 #include "Core/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS
@@ -51,6 +49,26 @@ typedef HRESULT(WINAPI * PFN_GetDpiForMonitor)(HMONITOR, MONITOR_DPI_TYPE, UINT*
 
 namespace Alimer
 {
+    static inline MouseButton ConvertMouseButton(uint8_t sdlButton)
+    {
+        switch (sdlButton)
+        {
+        case SDL_BUTTON_LEFT:
+            return MouseButton::Left;
+        case SDL_BUTTON_MIDDLE:
+            return MouseButton::Middle;
+        case SDL_BUTTON_RIGHT:
+            return MouseButton::Right;
+        case SDL_BUTTON_X1:
+            return MouseButton::X1;
+        case SDL_BUTTON_X2:
+            return MouseButton::X2;
+
+        default:
+            return MouseButton::None;
+        }
+    }
+
 #if ALIMER_PLATFORM_WINDOWS
     bool Win32PlatformInitialize()
     {
@@ -60,7 +78,7 @@ namespace Alimer
 
         if (FAILED(hr))
         {
-            ALIMER_LOGDEBUG("Failed to initialize COM, error: %08X", hr);
+            ALIMER_LOGDEBUGF("Failed to initialize COM, error: %08X", hr);
             return false;
         }
 
@@ -113,34 +131,17 @@ namespace Alimer
 
             LocalFree(argv);
         }
+
+        if (!Win32PlatformInitialize())
+        {
+            ALIMER_LOGERROR("[Win32] - Failed to setup");
+            return;
+        }
 #endif // ALIMER_PLATFORM_WINDOWS
-    }
-
-    WindowPtr Application::MakeWindow(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
-    {
-        return MakeShared<SDL2Window>(title, width, height, fullscreen);
-    }
-
-    Input* Application::CreateInput()
-    {
-        return new SDL2Input();
-    }
-
-    Audio* Application::CreateAudio()
-    {
-        return new AudioWASAPI();
     }
 
     int Application::Run()
     {
-#if ALIMER_PLATFORM_WINDOWS
-        if (!Win32PlatformInitialize())
-        {
-            ALIMER_LOGERROR("[Win32] - Failed to setup");
-            return EXIT_FAILURE;
-        }
-#endif
-
         SDL_SetMainReady();
         int result = SDL_Init(
             SDL_INIT_VIDEO
@@ -179,8 +180,8 @@ namespace Alimer
                 case SDL_MOUSEBUTTONUP:
                 {
                     const SDL_MouseButtonEvent& mouseEvent = evt.button;
-                    MouseButton button = SDL2Input::ConvertMouseButton(mouseEvent.button);
-                    _input->MouseButtonEvent(button,
+                    MouseButton button = ConvertMouseButton(mouseEvent.button);
+                    _input.MouseButtonEvent(button,
                         static_cast<float>(mouseEvent.x),
                         static_cast<float>(mouseEvent.y),
                         mouseEvent.type == SDL_MOUSEBUTTONDOWN);
@@ -200,7 +201,7 @@ namespace Alimer
                     else if (motionEvt.state &SDL_BUTTON(SDL_BUTTON_RIGHT))
                         button = MouseButton::Right;
 
-                    _input->MouseMoveEvent(button,
+                    _input.MouseMoveEvent(button,
                         static_cast<float>(motionEvt.x),
                         static_cast<float>(motionEvt.y));
                     //OnMouseMove(mx, my);

@@ -49,8 +49,10 @@ namespace Alimer
         _paused = true;
         _running = false;
 
-        _graphicsDevice.reset();
-        PluginManager::DeleteInstance();
+        SafeDelete(_mainWindow);
+        SafeDelete(_graphicsDevice);
+        Audio::Shutdown();
+        PluginManager::Shutdown();
         __appInstance = nullptr;
     }
 
@@ -69,13 +71,13 @@ namespace Alimer
         if (!_headless)
         {
             uvec2 windowSize = uvec2(_settings.renderingSettings.backBufferWidth, _settings.renderingSettings.backBufferHeight);
-            _mainWindow.Define(windowSize);
+            _mainWindow = new Window("Alimer", windowSize);
 
             // Assign as window handle.
-            _settings.renderingSettings.windowHandle = _mainWindow.GetHandle();
+            _settings.renderingSettings.windowHandle = _mainWindow->GetHandle();
 
             // Create and init graphics.
-            _graphicsDevice.reset(GraphicsDevice::Create(_settings.prefferedGraphicsBackend, _settings.validation));
+            _graphicsDevice = GraphicsDevice::Create(_settings.prefferedGraphicsBackend, _settings.validation);
             if (!_graphicsDevice->Initialize(_settings.renderingSettings))
             {
                 ALIMER_LOGERROR("Failed to initialize Graphics.");
@@ -84,7 +86,7 @@ namespace Alimer
         }
 
         // Create per platform Audio module.
-        _audio.reset(CreateAudio());
+        Audio::Create();
 
         // Load plugins
         LoadPlugins();
@@ -94,7 +96,7 @@ namespace Alimer
 
         // Setup and configure all systems.
         _systems.Add<CameraSystem>();
-        _renderContext.SetDevice(_graphicsDevice.get());
+        _renderContext.SetDevice(_graphicsDevice);
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;
@@ -125,9 +127,8 @@ namespace Alimer
             // Update all systems.
             _systems.Update(deltaTime);
 
-            // Render single frame.
-            if (_mainWindow.IsValid()
-                && !_mainWindow.IsMinimized())
+            // Render single frame if window is not minimzed.
+            if (!_mainWindow->IsMinimized())
             {
                 RenderFrame(frameTime, deltaTime);
             }

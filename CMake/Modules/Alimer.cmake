@@ -125,6 +125,12 @@ else ()
     set (ALIMER_THREADING_DEFAULT OFF)
 endif ()
 
+if (ALIMER_DESKTOP)
+    set (ALIMER_SDL2_DEFAULT ON)
+else ()
+    set (ALIMER_SDL2_DEFAULT OFF)
+endif()
+
 # Graphics backends
 if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_ANDROID)
     set (ALIMER_VULKAN_DEFAULT ON)
@@ -148,6 +154,7 @@ endif()
 option (ALIMER_ENABLE_ALL "Enables all optional subsystems by default" OFF)
 
 alimer_option (ALIMER_THREADING "Enable multithreading")
+alimer_option (ALIMER_SDL2 "Enable SDL2 support")
 alimer_option (ALIMER_GL "Enable OpenGL backend")
 alimer_option (ALIMER_VULKAN "Enable Vulkan backend")
 alimer_option (ALIMER_D3D11 "Enable D3D11 backend")

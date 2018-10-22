@@ -20,8 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "Window.SDL2.h"
-#include "../Application.h"
+#include "../../Application/Window.h"
+#include "../../Application/Application.h"
 #include "../../Core/Log.h"
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
@@ -29,20 +29,28 @@
 
 namespace Alimer
 {
-    SDL2Window::SDL2Window(const std::string& title, uint32_t width, uint32_t height, bool fullscreen)
-	{
+    void Window::PlatformConstruct()
+    {
+        const bool resizable = any(_flags & WindowFlags::Resizable);
+        bool fullscreen = any(_flags & WindowFlags::Fullscreen);
+
         const int x = SDL_WINDOWPOS_CENTERED;
         const int y = SDL_WINDOWPOS_CENTERED;
-        uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
+        uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
+        if (resizable)
+        {
+            windowFlags |= SDL_WINDOW_RESIZABLE;
+        }
+
         if (fullscreen)
         {
             windowFlags |= SDL_WINDOW_FULLSCREEN;
         }
 
-        _window = SDL_CreateWindow(title.c_str(),
+        _window = SDL_CreateWindow(_title.c_str(),
             x, y,
-            static_cast<int>(width),
-            static_cast<int>(height),
+            static_cast<int>(_size.x),
+            static_cast<int>(_size.y),
             windowFlags);
 
         SDL_SysWMinfo wmInfo;
@@ -56,26 +64,30 @@ namespace Alimer
         _handle.connection = nullptr;
         _handle.handle = wmInfo.info.cocoa.window;;
 #elif ALIMER_PLATFORM_WINDOWS
-        _handle.connection = wmInfo.info.win.hinstance;
-        _handle.handle = wmInfo.info.win.window;
+        _hInstance = wmInfo.info.win.hinstance;
+        _handle = wmInfo.info.win.window;
 #endif
-	}
+    }
 
-    SDL2Window::~SDL2Window()
-	{
-        Destroy();
-	}
+    void Window::PlatformDestroy()
+    {
+        if (_window != nullptr)
+        {
+            SDL_DestroyWindow(_window);
+            _window = nullptr;
+        }
+    }
 
-	void SDL2Window::Show()
-	{
-		if (_visible)
-			return;
+    void Window::Show()
+    {
+        if (_visible)
+            return;
 
         SDL_ShowWindow(_window);
-		_visible = true;
-	}
+        _visible = true;
+    }
 
-    void SDL2Window::Hide()
+    void Window::Hide()
     {
         if (_visible)
         {
@@ -84,59 +96,34 @@ namespace Alimer
         }
     }
 
-    void SDL2Window::Minimize()
+    void Window::Minimize()
     {
         SDL_MinimizeWindow(_window);
     }
 
-    void SDL2Window::Maximize()
+    void Window::Maximize()
     {
         SDL_MaximizeWindow(_window);
     }
 
-    void SDL2Window::Restore()
+    void Window::Restore()
     {
         SDL_RestoreWindow(_window);
     }
 
-	void SDL2Window::Close()
-	{
-        Destroy();
-	}
-
-	void SDL2Window::Destroy()
-	{
-        if (_window != nullptr)
-        {
-            SDL_DestroyWindow(_window);
-            _window = nullptr;
-        }
-	}
-
-	void SDL2Window::Activate(bool focused)
-	{
-		if (_focused == focused)
-			return;
-
-		_focused = focused;
-        SDL_RaiseWindow(_window);
-	}
-
-    bool SDL2Window::IsMinimized() const
+    void Window::Close()
     {
-        return false;
+        PlatformDestroy();
     }
 
-    void SDL2Window::SetTitle(const std::string& newTitle)
+    bool Window::IsMinimized() const
     {
-        Window::SetTitle(newTitle);
+        return (SDL_GetWindowFlags(_window) & SDL_WINDOW_MINIMIZED) != 0;
+    }
+
+    void Window::SetTitle(const std::string& newTitle)
+    {
+        _title = newTitle;
         SDL_SetWindowTitle(_window, newTitle.c_str());
-    }
-
-    void SDL2Window::HandleResize(const uvec2& newSize)
-    {
-        _size = newSize;
-        resizeEvent.size = newSize;
-        SendEvent(resizeEvent);
     }
 }
