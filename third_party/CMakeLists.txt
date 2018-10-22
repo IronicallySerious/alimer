@@ -112,3 +112,8 @@ if (ALIMER_DESKTOP AND ALIMER_TOOLS)
     add_subdirectory(imgui)
     alimer_external_target("third_party" ImGui)
 endif ()
+
+if (ALIMER_SDL2)
+    add_subdirectory(SDL2)
+    alimer_external_target("third_party" SDL2)
+endif ()
