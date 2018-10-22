@@ -24,7 +24,6 @@
 #include "../../Core/Log.h"
 
 #if !ALIMER_PLATFORM_UWP
-
 static const wchar_t* XAUDIO2_DLL_29 = L"xaudio2_9.dll";
 static const wchar_t* XAUDIO2_DLL_28 = L"xaudio2_8.dll";
 typedef HRESULT(__stdcall *XAudio2CreateProc)(IXAudio2** ppXAudio2, UINT32 Flags, XAUDIO2_PROCESSOR XAudio2Processor);
@@ -324,6 +323,12 @@ namespace Alimer
     {
         memset(&_X3DAudio, 0, X3DAUDIO_HANDLE_BYTESIZE);
 
+#if !ALIMER_PLATFORM_UWP
+        if (CoInitializeEx(NULL, COINIT_APARTMENTTHREADED) == RPC_E_CHANGED_MODE)
+        {
+            CoInitializeEx(NULL, COINIT_MULTITHREADED);
+        }
+
         HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator),
             nullptr,
             CLSCTX_INPROC_SERVER,
@@ -331,7 +336,7 @@ namespace Alimer
             (void**)&_deviceEnumerator);
         if (FAILED(hr))
         {
-            ALIMER_LOGERRORF("[WASAPI] - CoCreateInstance(MMDeviceEnumerator) failed, %08lx", hr);
+            ALIMER_LOGERRORF("[XAudio2] - CoCreateInstance(MMDeviceEnumerator) failed, %08lx", hr);
         }
 
         _notificationClient = new AudioNotificationClient();
@@ -342,7 +347,7 @@ namespace Alimer
         if (FAILED(hr))
         {
             _deviceEnumerator->Release();
-            ALIMER_LOGERROR("[WASAPI] - Failed to enumerate audio endpoints.");
+            ALIMER_LOGERROR("[XAudio2] - Failed to enumerate audio endpoints.");
             return;
         }
 
@@ -371,9 +376,6 @@ namespace Alimer
             ALIMER_UNUSED(pWF);
         }
 
-        _apiMajorVersion = 2;
-        UINT32 flags = 0;
-#if !ALIMER_PLATFORM_UWP
         // First try to load 2.9
         _apiMinorVersion = 9;
         _xAudio2Module = LoadLibraryW(XAUDIO2_DLL_29);
@@ -390,6 +392,7 @@ namespace Alimer
         {
             ALIMER_LOGTRACE("XAudio 2.8 not found, fallback to 2.7.");
 
+            UINT32 flags = 0;
             if (validation)
             {
                 _xAudio2Module = LoadLibraryExW(L"XAudioD2_7.DLL", nullptr, 0x00000800 /* LOAD_LIBRARY_SEARCH_SYSTEM32 */);
@@ -438,7 +441,7 @@ namespace Alimer
             ALIMER_LOGCRITICAL("Failed to initialize XAudio2");
         }
 #endif
-        ALIMER_LOGINFOF("XAudio%d.%d backend created.", _apiMajorVersion, _apiMinorVersion);
+        ALIMER_LOGINFOF("XAudio %d.%d backend created.", _apiMajorVersion, _apiMinorVersion);
 
         if (validation
             && _apiMinorVersion > 7)
@@ -616,6 +619,21 @@ namespace Alimer
 
     AudioXAudio2::~AudioXAudio2()
     {
+        SafeDestroyVoice(_reverbVoice);
+        SafeDestroyVoice(_masteringVoice);
+        if (_apiMinorVersion == 7)
+        {
+            _xaudio27->Release();
+            _xaudio27 = nullptr;
+        }
+        else
+        {
+            _xaudio2->Release();
+            _xaudio2 = nullptr;
+        }
+        memset(&_X3DAudio, 0, X3DAUDIO_HANDLE_BYTESIZE);
+
+#if !ALIMER_PLATFORM_UWP
         if (_deviceEnumerator)
         {
             _deviceEnumerator->UnregisterEndpointNotificationCallback(_notificationClient);
@@ -623,7 +641,6 @@ namespace Alimer
             _deviceEnumerator = nullptr;
         }
 
-#if !ALIMER_PLATFORM_UWP
         if (_apiMinorVersion == 7)
         {
             FreeLibrary(_x3DAudioModule);

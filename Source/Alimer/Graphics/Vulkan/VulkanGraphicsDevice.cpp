@@ -424,6 +424,13 @@ namespace Alimer
         // Destroy main swap chain.
         _mainSwapchain.Reset();
 
+        // Destroy pinned memory buffer.
+        if (_pinnedMemoryBuffer)
+        {
+            UnmapBuffer(_pinnedMemoryBuffer);
+            SafeDelete(_pinnedMemoryBuffer);
+        }
+
         // Clear base resources.
         GraphicsDevice::Shutdown();
 
@@ -454,13 +461,6 @@ namespace Alimer
             vkDestroySemaphore(_device, semaphore, nullptr);
         }
         _allSemaphores.clear();
-
-        // Destroy pinned memory buffer.
-        if (_pinnedMemoryBuffer)
-        {
-            UnmapBuffer(_pinnedMemoryBuffer);
-            SafeDelete(_pinnedMemoryBuffer);
-        }
 
         // Destroy memory allocator.
         vmaDestroyAllocator(_memoryAllocator);

@@ -63,16 +63,15 @@ namespace Alimer
         HMODULE _xAudio2Module = nullptr;
         HMODULE _x3DAudioModule = nullptr;
         IXAudio2_7* _xaudio27 = nullptr;
+        IMMDeviceEnumerator*    _deviceEnumerator = nullptr;
+        IMMNotificationClient*  _notificationClient = nullptr;
 #endif
-        uint32_t _apiMajorVersion;
-        uint32_t _apiMinorVersion;
-
-		IMMDeviceEnumerator*    _deviceEnumerator = nullptr;
-		IMMNotificationClient*  _notificationClient = nullptr;
         IXAudio2*               _xaudio2 = nullptr;
         IXAudio2MasteringVoice* _masteringVoice = nullptr;
         IXAudio2SubmixVoice*    _reverbVoice = nullptr;
 
+        uint32_t                _apiMajorVersion = 2;
+        uint32_t                _apiMinorVersion;
         uint32_t                _masterChannelMask = 0;
         uint32_t                _masterChannels = 0;
         uint32_t                _masterRate = 0;

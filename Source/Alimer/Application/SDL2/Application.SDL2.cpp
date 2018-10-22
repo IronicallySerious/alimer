@@ -69,49 +69,6 @@ namespace Alimer
         }
     }
 
-#if ALIMER_PLATFORM_WINDOWS
-    bool Win32PlatformInitialize()
-    {
-        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-        if (hr == RPC_E_CHANGED_MODE)
-            hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-
-        if (FAILED(hr))
-        {
-            ALIMER_LOGDEBUGF("Failed to initialize COM, error: %08X", hr);
-            return false;
-        }
-
-        // Enable high DPI as SDL not support it on windows.
-        HMODULE user32Library = LoadLibraryA("user32.dll");
-        HMODULE shCore = LoadLibraryA("Shcore.dll");
-        if (auto SetProcessDpiAwarenessContext_ = (PFN_SetProcessDpiAwarenessContext)GetProcAddress(user32Library, "SetProcessDpiAwarenessContext"))
-        {
-            SetProcessDpiAwarenessContext_(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-        }
-        else if (shCore)
-        {
-            if (auto SetProcessDpiAwareness_ = (PFN_SetProcessDpiAwareness)GetProcAddress(shCore, "SetProcessDpiAwareness"))
-            {
-                SetProcessDpiAwareness_(PROCESS_PER_MONITOR_DPI_AWARE);
-            }
-
-            FreeLibrary(shCore);
-        }
-        else
-        {
-            if (auto SetProcessDPIAware_ = reinterpret_cast<PFN_SetProcessDPIAware>(GetProcAddress(user32Library, "SetProcessDPIAware")))
-            {
-                SetProcessDPIAware_();
-            }
-        }
-
-        FreeLibrary(user32Library);
-
-        return true;
-    }
-#endif
-
     void Application::PlatformConstruct()
     {
 #if ALIMER_PLATFORM_WINDOWS
@@ -132,11 +89,31 @@ namespace Alimer
             LocalFree(argv);
         }
 
-        if (!Win32PlatformInitialize())
+        // Enable high DPI as SDL not support it on windows.
+        HMODULE user32Library = LoadLibraryA("user32.dll");
+        HMODULE shCore = LoadLibraryA("Shcore.dll");
+        if (PFN_SetProcessDpiAwarenessContext SetProcessDpiAwarenessContextProc = (PFN_SetProcessDpiAwarenessContext)GetProcAddress(user32Library, "SetProcessDpiAwarenessContext"))
         {
-            ALIMER_LOGERROR("[Win32] - Failed to setup");
-            return;
+            SetProcessDpiAwarenessContextProc(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
         }
+        else if (shCore)
+        {
+            if (PFN_SetProcessDpiAwareness SetProcessDpiAwarenessProc = (PFN_SetProcessDpiAwareness)GetProcAddress(shCore, "SetProcessDpiAwareness"))
+            {
+                SetProcessDpiAwarenessProc(PROCESS_PER_MONITOR_DPI_AWARE);
+            }
+
+            FreeLibrary(shCore);
+        }
+        else
+        {
+            if (PFN_SetProcessDPIAware SetProcessDPIAwareProc = (PFN_SetProcessDPIAware)GetProcAddress(user32Library, "SetProcessDPIAware"))
+            {
+                SetProcessDPIAwareProc();
+            }
+        }
+
+        FreeLibrary(user32Library);
 #endif // ALIMER_PLATFORM_WINDOWS
     }
 
