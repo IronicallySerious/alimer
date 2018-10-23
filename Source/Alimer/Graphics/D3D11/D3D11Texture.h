@@ -27,27 +27,27 @@
 
 namespace Alimer
 {
-    class D3D11Graphics;
+    class D3D11GraphicsDevice;
 
     /// D3D11 Texture implementation.
     class D3D11Texture final : public Texture
     {
     public:
         /// Constructor.
-        D3D11Texture(D3D11Graphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture);
+        D3D11Texture(D3D11GraphicsDevice* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture);
 
         /// Destructor.
         ~D3D11Texture() override;
 
         void Destroy() override;
 
+        TextureView* CreateTextureViewImpl(const TextureViewDescriptor* descriptor) override;
+
         ID3D11Resource* GetResource() const { return _resource; }
         DXGI_FORMAT GetDXGIFormat() const { return _dxgiFormat; }
         ID3D11ShaderResourceView* GetShaderResourceView() const { return _shaderResourceView; }
         ID3D11SamplerState* GetSamplerState() const { return _samplerState.Get(); }
-
     private:
-        ID3D11Device1* _d3dDevice;
         DXGI_FORMAT _dxgiFormat;
 
         union {

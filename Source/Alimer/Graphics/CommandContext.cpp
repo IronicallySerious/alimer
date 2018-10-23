@@ -39,9 +39,17 @@ namespace Alimer
         FlushImpl(waitForCompletion);
     }
 
-    void CommandContext::BeginRenderPass(const RenderPassDescriptor* descriptor)
+    void CommandContext::BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor)
     {
-        BeginRenderPassImpl(descriptor);
+        BeginRenderPassImpl(nullptr, descriptor);
+        _insideRenderPass = true;
+    }
+
+    void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(framebuffer);
+
+        BeginRenderPassImpl(framebuffer, descriptor);
         _insideRenderPass = true;
     }
 
@@ -51,7 +59,7 @@ namespace Alimer
         _insideRenderPass = false;
     }
 
-    void CommandContext::SetVertexBuffer(GpuBuffer* buffer, uint64_t offset, uint32_t index)
+    void CommandContext::SetVertexBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t index)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(index < MaxVertexBufferBindings);
@@ -64,7 +72,7 @@ namespace Alimer
         SetVertexBufferImpl(buffer, offset);
     }
 
-    void CommandContext::SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint64_t* offsets)
+    void CommandContext::SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets)
     {
         ALIMER_ASSERT(firstBinding + count < MaxVertexBufferBindings);
         for (uint32_t i = firstBinding; i < count; i++)
@@ -79,7 +87,7 @@ namespace Alimer
         SetVertexBuffersImpl(firstBinding, count, buffers, offsets);
     }
 
-    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint64_t offset, IndexType indexType)
+    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
         if (!any(buffer->GetUsage() & BufferUsage::Index))

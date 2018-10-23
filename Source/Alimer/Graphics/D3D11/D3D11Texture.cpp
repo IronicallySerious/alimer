@@ -27,7 +27,7 @@
 
 namespace Alimer
 {
-    D3D11Texture::D3D11Texture(D3D11Graphics* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture)
+    D3D11Texture::D3D11Texture(D3D11GraphicsDevice* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture)
         : Texture(graphics, descriptor)
     {
         if (nativeTexture)
@@ -92,17 +92,17 @@ namespace Alimer
             d3d11Desc.SampleDesc.Count = static_cast<uint32_t>(descriptor->samples);
             d3d11Desc.Usage = D3D11_USAGE_DEFAULT;
 
-            if (descriptor->usage & TextureUsage::ShaderRead)
+            if (any(descriptor->usage & TextureUsage::ShaderRead))
             {
                 d3d11Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
             }
 
-            if (descriptor->usage & TextureUsage::ShaderWrite)
+            if (any(descriptor->usage & TextureUsage::ShaderWrite))
             {
                 d3d11Desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
             }
 
-            if (descriptor->usage & TextureUsage::RenderTarget)
+            if (any(descriptor->usage & TextureUsage::RenderTarget))
             {
                 if (!IsDepthStencilFormat(descriptor->format))
                 {
@@ -135,7 +135,7 @@ namespace Alimer
         }
 
         // Create default shader resource view
-        if (descriptor->usage & TextureUsage::ShaderRead)
+        if (any(descriptor->usage & TextureUsage::ShaderRead))
         {
             D3D11_SHADER_RESOURCE_VIEW_DESC resourceViewDesc = {};
             resourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
@@ -174,5 +174,10 @@ namespace Alimer
     {
         SafeRelease(_shaderResourceView, "ID3D11ShaderResourceView");
         SafeRelease(_resource, "ID3D11Texture");
+    }
+
+    TextureView* D3D11Texture::CreateTextureViewImpl(const TextureViewDescriptor* descriptor)
+    {
+        return nullptr;
     }
 }

@@ -51,6 +51,10 @@ namespace Alimer
         Direct3D11,
         /// DirectX 12 backend.
         Direct3D12,
+        /// Metal backend.
+        Metal,
+        /// OpenGL backend.
+        OpenGL,
     };
 
     /// Enum describing the number of samples.

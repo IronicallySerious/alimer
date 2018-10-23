@@ -48,3 +48,30 @@
 #ifndef ALIMER_API
 #   define ALIMER_API
 #endif
+
+// Direct3D 11
+#ifndef ALIMER_ENABLE_D3D11
+#   define ALIMER_ENABLE_D3D11 1
+#endif
+
+#if ALIMER_SUPPORTS_D3D11 && ALIMER_ENABLE_D3D11
+#   define ALIMER_COMPILE_D3D11 1
+#endif
+
+// Direct3D 12
+#ifndef ALIMER_ENABLE_D3D12
+#   define ALIMER_ENABLE_D3D12 1
+#endif
+
+#if ALIMER_SUPPORTS_D3D12 && ALIMER_ENABLE_D3D12
+#   define ALIMER_COMPILE_D3D12 1
+#endif
+
+// Vulkan
+#ifndef ALIMER_ENABLE_VULKAN
+#   define ALIMER_ENABLE_VULKAN 1
+#endif
+
+#if ALIMER_SUPPORTS_VULKAN && ALIMER_ENABLE_VULKAN
+#   define ALIMER_COMPILE_VULKAN 1
+#endif

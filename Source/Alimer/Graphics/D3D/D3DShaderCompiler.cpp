@@ -20,6 +20,9 @@
 // THE SOFTWARE.
 //
 
+#include "../../AlimerConfig.h"
+
+#if ALIMER_COMPILE_D3D11 || ALIMER_COMPILE_D3D12
 #include "D3DShaderCompiler.h"
 #include "../../Base/String.h"
 #include "../../Core/Log.h"
@@ -80,7 +83,7 @@ namespace Alimer
                 shaderBlob.ReleaseAndGetAddressOf(),
                 errors.ReleaseAndGetAddressOf())))
             {
-                ALIMER_LOGERROR("D3DCompile failed with error: {}", reinterpret_cast<char*>(errors->GetBufferPointer()));
+                ALIMER_LOGERRORF("D3DCompile failed with error: {}", reinterpret_cast<char*>(errors->GetBufferPointer()));
                 return {};
             }
 
@@ -88,3 +91,4 @@ namespace Alimer
         }
     }
 }
+#endif /* ALIMER_COMPILE_D3D11 || ALIMER_COMPILE_D3D12 */

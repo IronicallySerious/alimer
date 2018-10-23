@@ -29,9 +29,9 @@
 
 namespace Alimer
 {
-    class VulkanTexture;
-    class VulkanRenderPass;
     class VulkanGraphicsDevice;
+    class VulkanTexture;
+    class VulkanFramebuffer;
 
     /// Vulkan Swapchain.
     class VulkanSwapchain final 
@@ -47,7 +47,7 @@ namespace Alimer
         void QueuePresent(VkQueue queue, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 
         PixelFormat GetFormat() const { return _format; }
-        TextureView* GetCurrentTextureView() const;
+        Framebuffer* GetCurrentFramebuffer() const;
 
         VkSwapchainKHR GetHandle() const { return _handle; }
 
@@ -66,6 +66,7 @@ namespace Alimer
 
         std::vector<VkImage> _vkImages;
         std::vector<SharedPtr<VulkanTexture>> _textures;
+        //std::vector<SharedPtr<VulkanFramebuffer>> _framebuffers;
 
         uint32_t _imageCount;
         PixelFormat _format = PixelFormat::Undefined;

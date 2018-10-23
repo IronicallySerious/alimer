@@ -30,7 +30,7 @@ macro (define_engine_source_files)
 	foreach (path ${DEFINE_SRC_FILES_UNPARSED_ARGUMENTS})
 		# Get header files
 		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.inl)
-        
+
 		list (APPEND HEADER_FILES ${_files})
 
         # Remove unsupported files for install.
@@ -70,12 +70,9 @@ define_engine_source_files (NORECURSE . Base Core IO Math Graphics Input Audio A
 define_engine_source_files (Resource Serialization Scene Renderer)
 define_engine_source_files (NORECURSE experimental)
 
-if (ALIMER_SDL2)
+if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
     define_engine_source_files(Application/SDL2)
     define_engine_source_files(Input/SDL2)
-elseif (PLATFORM_WINDOWS)
-	define_engine_source_files(Application/Windows)
-	define_engine_source_files(Input/Windows)
 elseif (ALIMER_UWP)
 	define_engine_source_files(Application/UWP)
 	define_engine_source_files(Input/UWP)
@@ -83,11 +80,10 @@ endif ()
 
 if (ALIMER_WINDOWS OR ALIMER_UWP)
     define_engine_source_files(IO/Windows)
+    define_engine_source_files(Audio/XAudio2)
+    define_engine_source_files(Graphics/D3D)
+    define_engine_source_files(Graphics/D3D11)
 endif()
-
-if (ALIMER_XAUDIO2)
-     define_engine_source_files(Audio/XAudio2)
-endif ()
 
 if (ALIMER_GL)
     define_engine_source_files(Graphics/OpenGL)
@@ -109,14 +105,6 @@ if (ALIMER_VULKAN)
 
     list (APPEND HEADER_FILES ${GLSLANG_HEADER_FILES})
     list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
-endif (ALIMER_VULKAN)
-
-if (ALIMER_D3D11 OR ALIMER_D3D12)
-    define_engine_source_files(Graphics/D3D)
-endif()
-
-if (ALIMER_D3D11)
-	define_engine_source_files(Graphics/D3D11)
 endif ()
 
 if (ALIMER_D3D12)
@@ -127,9 +115,9 @@ endif ()
 group_sources()
 
 # Define the library target.
-add_alimer_library(libAlimer ${SOURCE_FILES} ${HEADER_FILES})
+add_alimer_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
-target_include_directories(libAlimer
+target_include_directories(${TARGET_NAME}
     PUBLIC
 	    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -137,7 +125,7 @@ target_include_directories(libAlimer
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
-target_include_directories(libAlimer
+target_include_directories(${TARGET_NAME}
     PRIVATE
     ${ALIMER_THIRD_PARTY_DIR}
     ${ALIMER_NATIVE_INCLUDE_DIRS}
@@ -145,7 +133,7 @@ target_include_directories(libAlimer
 
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES spirv_cross)
-if (ALIMER_SDL2)
+if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
     list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()
 
@@ -155,55 +143,25 @@ endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     if (TARGET "${dep}")
-        target_link_libraries(libAlimer ${dep})
+        target_link_libraries(${TARGET_NAME} ${dep})
     endif ()
 endforeach()
 
-target_compile_definitions(libAlimer PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
-if (ALIMER_SDL2)
-    target_compile_definitions(libAlimer PRIVATE -DALIMER_SDL2)
-endif()
-
-if (ALIMER_D3D11)
-    target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D11)
-endif()
-
-if (ALIMER_D3D12)
-    target_compile_definitions(libAlimer PRIVATE -DALIMER_D3D12)
-endif()
+target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
 
 if (ALIMER_THREADING)
-    target_compile_definitions(libAlimer PRIVATE -DALIMER_THREADING=1)
+    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_THREADING=1)
 endif ()
 
 if (ALIMER_SHARED OR EMSCRIPTEN)
-	target_compile_definitions(libAlimer PRIVATE -DALIMER_SHARED INTERFACE -DALIMER_IMPORTS)
-endif ()
-
-if (ALIMER_GL)
-	target_compile_definitions(libAlimer PRIVATE -DALIMER_GL)
-endif (ALIMER_GL)
-
-if (ALIMER_VULKAN)
-	target_compile_definitions(libAlimer PRIVATE -DALIMER_VULKAN)
+	target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_SHARED INTERFACE -DALIMER_IMPORTS)
 endif ()
 
 # Add OS-specific library dependencies
 if (ALIMER_WINDOWS)
     target_link_libraries (${TARGET_NAME} winmm ws2_32)
 elseif (ALIMER_UWP)
-    if (ALIMER_D3D11 OR ALIMER_D3D12)
-        target_link_libraries (${TARGET_NAME} PRIVATE dxgi d3dcompiler)
-    endif ()
-
-    if (ALIMER_D3D11)
-        target_link_libraries (${TARGET_NAME} PRIVATE d3d11)
-    endif()
-
-    if (ALIMER_D3D12)
-        target_link_libraries (${TARGET_NAME} PRIVATE d3d12)
-    endif ()
-
+    target_link_libraries (${TARGET_NAME} PRIVATE d3d12 d3d11 dxgi d3dcompiler)
 elseif (ALIMER_ANDROID)
     if (${ANDROID_PLATFORM_LEVEL} LESS 12)
         message(FATAL_ERROR "OpenGLES 2 is not supported before API level 11 (currently using ${ANDROID_PLATFORM_LEVEL}).")

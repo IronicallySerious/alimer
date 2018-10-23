@@ -95,9 +95,9 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandBuffer::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
+    void VulkanCommandBuffer::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
-        _currentFramebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
+       /* _currentFramebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
         _currentRenderPass = _currentFramebuffer->GetRenderPass();
 
         VkRect2D renderArea = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
@@ -136,7 +136,7 @@ namespace Alimer
         irect scissor(_currentFramebuffer->GetWidth(), _currentFramebuffer->GetHeight());
         SetViewport(viewport);
         SetScissor(scissor);
-        BeginGraphics();
+        BeginGraphics();*/
     }
 
     void VulkanCommandBuffer::EndRenderPassImpl()
@@ -199,23 +199,25 @@ namespace Alimer
         _graphicsState.SetVertexDescriptor(descriptor);
     }
 
-    void VulkanCommandBuffer::SetVertexBufferImpl(GpuBuffer* buffer, uint64_t offset)
+    void VulkanCommandBuffer::SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset)
     {
         VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetHandle();
-        vkCmdBindVertexBuffers(_handle, 0, 1, &vkBuffer, &offset);
+        VkDeviceSize vkOffset = offset;
+        vkCmdBindVertexBuffers(_handle, 0, 1, &vkBuffer, &vkOffset);
     }
 
-    void VulkanCommandBuffer::SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint64_t* offsets)
+    void VulkanCommandBuffer::SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets)
     {
         for (uint32_t i = firstBinding; i < count; i++)
         {
             _currentVertexBuffers[i] = static_cast<const VulkanBuffer*>(buffers[i])->GetHandle();
+            _vboOffsets[i] = offsets[i];
         }
 
-        vkCmdBindVertexBuffers(_handle, firstBinding, count, _currentVertexBuffers, offsets);
+        vkCmdBindVertexBuffers(_handle, firstBinding, count, _currentVertexBuffers, _vboOffsets);
     }
 
-    void VulkanCommandBuffer::SetIndexBufferImpl(GpuBuffer* buffer, uint64_t offset, IndexType indexType)
+    void VulkanCommandBuffer::SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetHandle();
         VkIndexType vkIndexType = vk::Convert(indexType);

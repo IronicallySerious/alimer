@@ -29,18 +29,20 @@
 namespace Alimer
 {
     class D3D11Texture;
-    class D3D11RenderPass;
-    class D3D11Graphics;
+    class D3D11Framebuffer;
+    class D3D11GraphicsDevice;
 
     /// D3D11 SwapChain implementation.
     class D3D11SwapChain final
     {
     public:
         /// Constructor.
-        D3D11SwapChain(D3D11Graphics* graphics);
+        D3D11SwapChain(D3D11GraphicsDevice* device);
 
         /// Destructor.
         ~D3D11SwapChain();
+
+        void Destroy();
 
         void SetWindow(HWND handle, uint32_t width, uint32_t height);
         void SetCoreWindow(IUnknown* window, uint32_t width, uint32_t height);
@@ -48,21 +50,25 @@ namespace Alimer
         void Resize(uint32_t width, uint32_t height, bool force = false);
         void Present();
 
-        D3D11Texture* GetBackbufferTexture() const { return _backbufferTexture; }
-        D3D11RenderPass* GetRenderPass() const { return _renderPass.Get(); }
+        Framebuffer* GetCurrentFramebuffer() const;
 
     private:
-        D3D11Graphics * _graphics;
+        D3D11GraphicsDevice* _device;
         uint32_t _backBufferCount = 2u;
         uint32_t _width = 0;
         uint32_t _height = 0;
         HWND _hwnd = nullptr;
         IUnknown* _window = nullptr;
         DXGI_FORMAT _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-        BOOL _allowTearing = FALSE;
 
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain;
-        D3D11Texture* _backbufferTexture = nullptr;
-        SharedPtr<D3D11RenderPass> _renderPass;
+        UINT _swapChainFlags;
+        UINT _syncInterval;
+        UINT _presentFlags;
+        Microsoft::WRL::ComPtr<IDXGISwapChain>      _swapChain;
+        Microsoft::WRL::ComPtr<IDXGISwapChain1>     _swapChain1;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>     _renderTarget;
+
+        std::vector<D3D11Framebuffer*> _framebuffers;
+        uint32_t _currentBackBufferIndex;
     };
 }

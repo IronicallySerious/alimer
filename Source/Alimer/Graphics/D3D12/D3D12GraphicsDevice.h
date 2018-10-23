@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "Graphics/Graphics.h"
+#include "../GraphicsDevice.h"
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12Helpers.h"
 #include <array>

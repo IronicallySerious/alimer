@@ -22,6 +22,7 @@
 
 #pragma once
 
+#if TODO_D3D11
 #include "Graphics/VertexFormat.h"
 #include "D3D11Prerequisites.h"
 
@@ -46,3 +47,5 @@ namespace Alimer
         std::vector<D3D11_INPUT_ELEMENT_DESC> _inputElements;
     };
 }
+
+#endif // TODO_D3D11

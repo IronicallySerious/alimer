@@ -23,7 +23,7 @@
 #include "VulkanGraphicsDevice.h"
 #include "VulkanSwapchain.h"
 #include "VulkanTexture.h"
-#include "VulkanRenderPass.h"
+//#include "VulkanFramebuffer.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
@@ -334,9 +334,10 @@ namespace Alimer
         return true;
     }
 
-    TextureView* VulkanSwapchain::GetCurrentTextureView() const
+    Framebuffer* VulkanSwapchain::GetCurrentFramebuffer() const
     {
-        return _textures[_currentBackBufferIndex]->GetDefaultTextureView();
+        return nullptr;
+        //return _framebuffers[_currentBackBufferIndex];
     }
 
     void VulkanSwapchain::QueuePresent(VkQueue queue, VkSemaphore waitSemaphore)

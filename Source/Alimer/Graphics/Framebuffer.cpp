@@ -20,25 +20,15 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../GpuAdapter.h"
-#include "D3D11Prerequisites.h"
+#include "../Graphics/Framebuffer.h"
+#include "../Graphics/GraphicsDevice.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
-	class D3D11GpuAdapter final : public GpuAdapter
-	{
-    public:
-		/// Constructor.
-        D3D11GpuAdapter(IDXGIAdapter1* adapter);
-
-		/// Destructor.
-		~D3D11GpuAdapter() override;
-
-        IDXGIAdapter1* GetDXGIAdapter() const { return _adapter; }
-
-    protected:
-        IDXGIAdapter1* _adapter;
-	};
+    Framebuffer::Framebuffer(GraphicsDevice* device)
+        : GraphicsResource(device)
+    {
+        
+    }
 }

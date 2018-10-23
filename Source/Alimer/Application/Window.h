@@ -26,7 +26,8 @@
 #include "../Core/Object.h"
 #include "../Math/Math.h"
 #include <string>
-#if ALIMER_SDL2
+
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
 struct SDL_Window;
 #endif
 
@@ -49,10 +50,6 @@ namespace Alimer
         /// New window size.
         uvec2 size;
     };
-
-#if ALIMER_PLATFORM_WINDOWS
-    class Win32OleDropTarget;
-#endif
 
     /// OS Window class.
     class Window final : public Object
@@ -102,17 +99,17 @@ namespace Alimer
         float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
         WindowFlags GetFlags() const { return _flags; }
 
-#if ALIMER_SDL2
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
         SDL_Window* _window = nullptr;
 #endif
 
 #if ALIMER_PLATFORM_UWP
         IUnknown* GetHandle() const { return _handle; }
 #elif ALIMER_PLATFORM_WINDOWS
-        LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam);
-
         HINSTANCE GetHInstance() const { return _hInstance; }
         HWND GetHandle() const { return _handle; }
+#elif ALIMER_PLATFORM_LINUX
+#elif ALIMER_PLATFORM_MACOS
 #endif
         /// Size changed event.
         WindowResizeEvent resizeEvent;
@@ -125,13 +122,8 @@ namespace Alimer
         /// Window handle is IUnknown on UWP
         IUnknown* _handle = nullptr;
 #elif ALIMER_PLATFORM_WINDOWS
-        void InitAfterCreation();
-        void HandleResize(WPARAM wParam, LPARAM lParam);
         HINSTANCE _hInstance = nullptr;
         HWND _handle = nullptr;
-        HMONITOR _monitor = nullptr;
-        int _showCommand = SW_SHOW;
-        Win32OleDropTarget* _dropTarget = nullptr;
 #endif
         /// Window title.
         std::string _title;

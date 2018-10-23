@@ -355,7 +355,7 @@ namespace Alimer
     RuntimeApplication::RuntimeApplication()
         : _triangleExample()
     {
-        //_settings.renderingSettings.preferredGraphicsBackend = GraphicsBackend::Vulkan;
+        _settings.prefferedGraphicsBackend = GraphicsBackend::Direct3D11;
     }
 
     void RuntimeApplication::Initialize()

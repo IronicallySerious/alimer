@@ -145,10 +145,9 @@ namespace Alimer
 
         auto context = _graphicsDevice->GetContext();
 
-        RenderPassDescriptor renderPass = {};
-        renderPass.colorAttachments[0].clearColor = Color4(0.0f, 0.2f, 0.4f, 1.0f);
-        renderPass.colorAttachments[0].attachment = _graphicsDevice->GetSwapchainView();
-        context->BeginRenderPass(&renderPass);
+        RenderPassBeginDescriptor renderPass = {};
+        renderPass.colors[0].clearColor = Color4(0.0f, 0.2f, 0.4f, 1.0f);
+        context->BeginDefaultRenderPass(&renderPass);
 
         // Call OnRenderFrame for custom rendering frame logic.
         OnRenderFrame(context, frameTime, elapsedTime);

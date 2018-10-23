@@ -29,8 +29,9 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Buffer::D3D11Buffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
-        : GpuBuffer(graphics, descriptor)
+    D3D11Buffer::D3D11Buffer(D3D11GraphicsDevice* device, const BufferDescriptor* descriptor, const void* initialData)
+        : GpuBuffer(device, descriptor)
+        , _deviceContext(device->GetD3DDeviceContext1())
     {
         D3D11_BUFFER_DESC bufferDesc = {};
         bufferDesc.ByteWidth = static_cast<UINT>(descriptor->size);
@@ -46,30 +47,30 @@ namespace Alimer
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
         }
 
-        if (descriptor->usage & BufferUsage::Uniform)
+        if (any(descriptor->usage & BufferUsage::Uniform))
         {
             // D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT
-            bufferDesc.ByteWidth = Align(bufferDesc.ByteWidth, 16u);
+            bufferDesc.ByteWidth = bufferDesc.ByteWidth; // Align(bufferDesc.ByteWidth, 16u);
             bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         }
         else
         {
-            if (descriptor->usage & BufferUsage::Vertex)
+            if (any(descriptor->usage & BufferUsage::Vertex))
             {
                 bufferDesc.BindFlags |= D3D11_BIND_VERTEX_BUFFER;
             }
 
-            if (descriptor->usage & BufferUsage::Index)
+            if (any(descriptor->usage & BufferUsage::Index))
             {
                 bufferDesc.BindFlags |= D3D11_BIND_INDEX_BUFFER;
             }
 
-            if (descriptor->usage & BufferUsage::Storage)
+            if (any(descriptor->usage & BufferUsage::Storage))
             {
                 bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
             }
 
-            if (descriptor->usage & BufferUsage::Indirect)
+            if (any(descriptor->usage & BufferUsage::Indirect))
             {
                 bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
             }
@@ -80,7 +81,7 @@ namespace Alimer
         initData.pSysMem = initialData;
 
         ThrowIfFailed(
-            graphics->GetD3DDevice()->CreateBuffer(&bufferDesc, initialData ? &initData : nullptr, &_handle)
+            device->GetD3DDevice()->CreateBuffer(&bufferDesc, initialData ? &initData : nullptr, &_handle)
         );
     }
 
@@ -96,12 +97,10 @@ namespace Alimer
 
     bool D3D11Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
     {
-        ID3D11DeviceContext* d3dDeviceContext = static_cast<D3D11Graphics*>(_graphicsDevice)->GetD3DImmediateContext();
-
         if (_resourceUsage == ResourceUsage::Dynamic)
         {
             D3D11_MAPPED_SUBRESOURCE mappedResource;
-            HRESULT hr = d3dDeviceContext->Map(
+            HRESULT hr = _deviceContext->Map(
                 _handle,
                 0,
                 D3D11_MAP_WRITE_DISCARD,
@@ -119,7 +118,7 @@ namespace Alimer
                 pData,
                 size);
 
-            d3dDeviceContext->Unmap(_handle, 0);
+            _deviceContext->Unmap(_handle, 0);
         }
         else
         {
@@ -129,7 +128,7 @@ namespace Alimer
             destBox.top = destBox.front = 0;
             destBox.bottom = destBox.back = 1;
 
-            d3dDeviceContext->UpdateSubresource(
+            _deviceContext->UpdateSubresource(
                 _handle,
                 0,
                 &destBox,

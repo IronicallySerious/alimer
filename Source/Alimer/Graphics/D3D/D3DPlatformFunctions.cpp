@@ -20,6 +20,9 @@
 // THE SOFTWARE.
 //
 
+#include "../../AlimerConfig.h"
+
+#if ALIMER_COMPILE_D3D11 || ALIMER_COMPILE_D3D12
 #include "D3DPlatformFunctions.h"
 
 namespace Alimer
@@ -81,3 +84,4 @@ namespace Alimer
         return true;
     }
 }
+#endif /* ALIMER_COMPILE_D3D11 || ALIMER_COMPILE_D3D12 */

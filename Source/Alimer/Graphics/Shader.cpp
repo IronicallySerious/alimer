@@ -43,7 +43,7 @@ namespace Alimer
             for (auto i = 0U; i < type.member_types.size(); ++i)
                 all_members_flag_mask.merge_and(get_member_decoration_bitset(type.self, i));
 
-            auto base_flags = meta[type.self].decoration.decoration_flags;
+            auto base_flags = ir.meta[type.self].decoration.decoration_flags;
             base_flags.merge_or(spirv_cross::Bitset(all_members_flag_mask));
 
             ParamAccess access = ParamAccess::ReadWrite;

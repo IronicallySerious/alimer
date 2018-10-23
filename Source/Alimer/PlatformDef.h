@@ -71,30 +71,55 @@
 #if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
 #	undef ALIMER_PLATFORM_UWP
 #	define ALIMER_PLATFORM_UWP 1 // Universal Windows platform
+#   define ALIMER_SUPPORTS_D3D 1
+#   define ALIMER_SUPPORTS_D3D11 1
+#   define ALIMER_SUPPORTS_D3D12 1
 #elif defined(_WIN64) || defined(_WIN32) // Windows
 #	undef ALIMER_PLATFORM_WINDOWS
 #	define ALIMER_PLATFORM_WINDOWS 1
+#   define ALIMER_SUPPORTS_D3D 1
+#   define ALIMER_SUPPORTS_D3D11 1
+#   define ALIMER_SUPPORTS_D3D12 1
+#   define ALIMER_SUPPORTS_VULKAN 1
 #elif defined(__APPLE__) // macOS, iOS, tvOS
 #   include <TargetConditionals.h>
 #   if TARGET_OS_IOS
 #       undef ALIMER_PLATFORM_IOS
 #       define ALIMER_PLATFORM_IOS 1
+#       if !TARGET_OS_SIMULATOR
+#           define ALIMER_SUPPORTS_METAL 1
+#       endif
 #   elif TARGET_OS_TV
 #       undef ALIMER_PLATFORM_TVOS
 #       define ALIMER_PLATFORM_TVOS 1
+#       if !TARGET_OS_SIMULATOR
+#           define ALIMER_SUPPORTS_METAL 1
+#       endif
 #   elif TARGET_OS_MAC
 #       undef ALIMER_PLATFORM_MACOS 
 #       define ALIMER_PLATFORM_MACOS 1
+#       if !TARGET_OS_SIMULATOR
+#           define ALIMER_SUPPORTS_METAL 1
+#       endif
 #   endif
 #elif defined(__ANDROID__)
 #	undef ALIMER_PLATFORM_ANDROID
 #	define ALIMER_PLATFORM_ANDROID 1
+#   define ALIMER_SUPPORTS_OPENGL 1
+#   define ALIMER_SUPPORTS_OPENGLES 1
+#   define ALIMER_OPENGL_INTERFACE_EGL 1
+#   define ALIMER_SUPPORTS_VULKAN 1
 #elif defined(__linux__) 
 #	undef ALIMER_PLATFORM_LINUX
 #	define ALIMER_PLATFORM_LINUX 1
+#   define ALIMER_SUPPORTS_OPENGL 1
+#   define ALIMER_SUPPORTS_VULKAN 1
 #elif defined(__EMSCRIPTEN__) // Emscripten
 #   undef ALIMER_PLATFORM_WEB
 #   define ALIMER_PLATFORM_WEB 1
+#   define ALIMER_SUPPORTS_OPENGL 1
+#   define ALIMER_SUPPORTS_OPENGLES 1
+#   define ALIMER_OPENGL_INTERFACE_EGL 1
 #endif
 
 /**

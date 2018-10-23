@@ -48,15 +48,15 @@ namespace Alimer
 	private:
         void BeginContext() override;
         void FlushImpl(bool waitForCompletion) override;
-        void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) override;
+        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
 
         void SetProgramImpl(Program* program) override;
 
         void SetVertexDescriptor(const VertexDescriptor* descriptor) override;
-        void SetVertexBufferImpl(GpuBuffer* buffer, uint64_t offset) override;
-        void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint64_t* offsets) override;
-        void SetIndexBufferImpl(GpuBuffer* buffer, uint64_t offset, IndexType indexType) override;
+        void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
+        void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
+        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
 
         void DrawImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount) override;
         void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance) override;
@@ -128,6 +128,7 @@ namespace Alimer
 
         CommandBufferDirtyFlags _dirtyFlags = ~0u;
         VkBuffer _currentVertexBuffers[MaxVertexBufferBindings];
+        VkDeviceSize _vboOffsets[MaxVertexBufferBindings];
 
         void SetDirty(CommandBufferDirtyFlags flags)
         {

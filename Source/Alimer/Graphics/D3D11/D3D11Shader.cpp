@@ -25,12 +25,12 @@
 #include "../D3D/D3DShaderCompiler.h"
 #include "../D3D/D3DPlatformFunctions.h"
 #include "../../Core/Log.h"
-#include "../../Graphics/VertexFormat.h"
-#include <spirv_hlsl.hpp>
+#include <spirv-cross/spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
+#if TODO_D3D11
     static ID3DBlob* ConvertAndCompileHLSL(D3D11Graphics* graphics, ShaderModule* shaderModule)
     {
         auto spirv = shaderModule->AcquireBytecode();
@@ -132,4 +132,6 @@ namespace Alimer
             context->PSSetShader(_pixelShader, nullptr, 0);
         }
     }
+#endif // TODO_D3D11
+
 }

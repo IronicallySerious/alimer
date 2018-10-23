@@ -22,6 +22,7 @@
 
 #include "D3D11VertexInputFormat.h"
 #include "D3D11GraphicsDevice.h"
+#if TODO_D3D11
 #include "D3D11Convert.h"
 #include "../D3D/D3DConvert.h"
 
@@ -78,3 +79,5 @@ namespace Alimer
     {
     }
 }
+
+#endif // TODO_D3D11

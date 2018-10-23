@@ -30,14 +30,15 @@ namespace Alimer
 {
 	class D3D11Graphics;
 
-	class D3D11Shader final : public ShaderProgram
-	{
-	public:
-		/// Constructor.
+#if TODO_D3D11
+    class D3D11Shader final : public ShaderModule
+    {
+    public:
+        /// Constructor.
         D3D11Shader(D3D11Graphics* graphics, const ShaderProgramDescriptor* descriptor);
 
-		/// Destructor.
-		~D3D11Shader() override;
+        /// Destructor.
+        ~D3D11Shader() override;
 
         void Destroy() override;
 
@@ -48,11 +49,13 @@ namespace Alimer
         using BindingIndexInfo = std::array<std::array<uint32_t, MaxBindingsPerSet>, MaxDescriptorSets>;
         const BindingIndexInfo& GetBindingIndexInfo() const { return _indexInfo; }
 
-	private:
+    private:
         ID3D11VertexShader* _vertexShader = nullptr;
         ID3D11PixelShader* _pixelShader = nullptr;
         ID3D11ComputeShader* _computeShader = nullptr;
         ID3DBlob* _vsBlob = nullptr;
         BindingIndexInfo _indexInfo;
-	};
+    };
+#endif // TODO_D3D11
+
 }

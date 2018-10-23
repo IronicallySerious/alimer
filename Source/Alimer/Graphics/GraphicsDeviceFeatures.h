@@ -55,6 +55,8 @@ namespace Alimer
         void SetMultithreading(bool value) { _multithreading = value; }
 
         void SetVendorId(uint32_t vendorID);
+        void SetDeviceId(uint32_t deviceID);
+        void SetDeviceName(const std::string& deviceName);
 
     protected:
         uint32_t _vendorID;

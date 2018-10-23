@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "D3D11RenderPass.h"
+#include "D3D11Framebuffer.h"
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Texture.h"
 #include "../D3D/D3DConvert.h"
@@ -28,12 +28,10 @@
 
 namespace Alimer
 {
-    D3D11RenderPass::D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription* descriptor)
-        : RenderPass(graphics, descriptor)
-        , _d3dDevice(graphics->GetD3DDevice())
-        , _depthStencilView(nullptr)
+    D3D11Framebuffer::D3D11Framebuffer(D3D11GraphicsDevice* device)
+        : Framebuffer(device)
     {
-        for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+        /*for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
             const RenderPassAttachment& colorAttachment = descriptor->colorAttachments[i];
             Texture* texture = colorAttachment.texture;
@@ -122,15 +120,15 @@ namespace Alimer
 
             _views.push_back(view);
             _viewsCount++;
-        }
+        }*/
     }
 
-    D3D11RenderPass::~D3D11RenderPass()
+    D3D11Framebuffer::~D3D11Framebuffer()
     {
         Destroy();
     }
 
-    void D3D11RenderPass::Destroy()
+    void D3D11Framebuffer::Destroy()
     {
         for (ID3D11RenderTargetView* view : _views)
         {
@@ -141,7 +139,7 @@ namespace Alimer
     }
 
 
-    void D3D11RenderPass::Bind(ID3D11DeviceContext1* context)
+    void D3D11Framebuffer::Bind(ID3D11DeviceContext* context)
     {
         context->OMSetRenderTargets(_viewsCount, _views.data(), _depthStencilView);
     }

@@ -61,4 +61,14 @@ namespace Alimer
             break;
         }
     }
+
+    void GraphicsDeviceFeatures::SetDeviceId(uint32_t deviceID)
+    {
+        _deviceID = deviceID;
+    }
+
+    void GraphicsDeviceFeatures::SetDeviceName(const std::string& deviceName)
+    {
+        _deviceName = deviceName;
+    }
 }

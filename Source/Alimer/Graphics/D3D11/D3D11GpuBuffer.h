@@ -27,14 +27,14 @@
 
 namespace Alimer
 {
-	class D3D11Graphics;
+	class D3D11GraphicsDevice;
 
 	/// D3D11 GpuBuffer implementation.
 	class D3D11Buffer final : public GpuBuffer
 	{
 	public:
 		/// Constructor.
-        D3D11Buffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData);
+        D3D11Buffer(D3D11GraphicsDevice* device, const BufferDescriptor* descriptor, const void* initialData);
 
 		/// Destructor.
 		~D3D11Buffer() override;
@@ -46,6 +46,7 @@ namespace Alimer
         ID3D11Buffer* GetHandle() const { return _handle; }
 
 	private:
+        ID3D11DeviceContext1* _deviceContext;
         ID3D11Buffer* _handle;
 	};
 }

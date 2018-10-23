@@ -176,6 +176,27 @@ namespace Alimer
            { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VkExtensionType::Required, false }
     };
 
+    bool VulkanGraphicsDevice::IsSupported()
+    {
+        static bool availableCheck = false;
+        static bool isAvailable = false;
+
+        if (availableCheck)
+            return isAvailable;
+
+        availableCheck = true;
+        VkResult vkRes = volkInitialize();
+        if (vkRes != VK_SUCCESS)
+        {
+            isAvailable = false;
+            return false;
+        }
+
+        // TODO: Try to create instance and get device with minimum extensions
+        isAvailable = true;
+        return isAvailable;
+    }
+
     VulkanGraphicsDevice::VulkanGraphicsDevice(bool validation)
         : GraphicsDevice(GraphicsBackend::Vulkan, validation)
     {
@@ -184,10 +205,9 @@ namespace Alimer
 #endif
         uint32_t apiVersion = VK_MAKE_VERSION(1, 0, 57);
 
-        VkResult vkRes = volkInitialize();
-        if (vkRes != VK_SUCCESS)
+        if (!IsSupported())
         {
-            ALIMER_LOGERROR("[Vulkan] - Failed to initialize Vulkan.");
+            ALIMER_LOGERROR("[Vulkan] - Not supported.");
             return;
         }
 
@@ -1038,9 +1058,9 @@ namespace Alimer
         return surface;
     }
 
-    TextureView* VulkanGraphicsDevice::GetSwapchainView() const
+    Framebuffer* VulkanGraphicsDevice::GetSwapchainFramebuffer() const
     {
-        return _mainSwapchain->GetCurrentTextureView();
+        return _mainSwapchain->GetCurrentFramebuffer();
     }
 
     GpuBuffer* VulkanGraphicsDevice::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
@@ -1053,7 +1073,7 @@ namespace Alimer
         return new VulkanTexture(this, descriptor, initialData);
     }
 
-    std::unique_ptr<ShaderModule> VulkanGraphicsDevice::CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size)
+    /*std::unique_ptr<ShaderModule> VulkanGraphicsDevice::CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size)
     {
         return std::make_unique<VulkanShader>(this, hash, pCode, size);
     }
@@ -1061,7 +1081,7 @@ namespace Alimer
     std::unique_ptr<Program> VulkanGraphicsDevice::CreateProgramImpl(Util::Hash hash, const std::vector<ShaderModule*>& stages)
     {
         return std::make_unique<VulkanProgram>(this, hash, stages);
-    }
+    }*/
 
     VkCommandPool VulkanGraphicsDevice::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
     {

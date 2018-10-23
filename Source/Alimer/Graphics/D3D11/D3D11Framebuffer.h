@@ -20,50 +20,31 @@
 // THE SOFTWARE.
 //
 
-#include "D3D11GpuAdapter.h"
-#include "../../Base/String.h"
-using namespace Microsoft::WRL;
+#pragma once
+
+#include "../Framebuffer.h"
+#include "D3D11Prerequisites.h"
+#include <map>
 
 namespace Alimer
 {
-    D3D11GpuAdapter::D3D11GpuAdapter(IDXGIAdapter1* adapter)
-        : _adapter(adapter)
+    class D3D11GraphicsDevice;
+
+    /// D3D11 Framebuffer implementation.
+    class D3D11Framebuffer final : public Framebuffer
     {
-        DXGI_ADAPTER_DESC1 desc;
-        adapter->GetDesc1(&desc);
+    public:
+        D3D11Framebuffer(D3D11GraphicsDevice* device);
+        ~D3D11Framebuffer() override;
+        void Destroy() override;
 
-        switch (desc.VendorId)
-        {
-        case 0x13B5:
-            _vendor = GpuVendor::Arm;
-            break;
-        case 0x10DE:
-            _vendor = GpuVendor::Nvidia;
-            break;
-        case 0x1002:
-        case 0x1022:
-            _vendor = GpuVendor::Amd;
-            break;
-        case 0x8086:
-            _vendor = GpuVendor::Intel;
-            break;
+        void Bind(ID3D11DeviceContext* context);
+        ID3D11RenderTargetView* GetRTV(uint32_t index) const { return _views[index]; }
 
-        case 0x1414:
-            _vendor = GpuVendor::Warp;
-            break;
+    private:
+        uint32_t _viewsCount = 0;
+        std::vector<ID3D11RenderTargetView*> _views;
+        ID3D11DepthStencilView* _depthStencilView = nullptr;
+    };
 
-        default:
-            _vendor = GpuVendor::Unknown;
-            break;
-        }
-
-        _vendorID = desc.VendorId;
-        _deviceID = desc.DeviceId;
-        _deviceName.SetUTF8FromWChar(desc.Description);
-    }
-
-    D3D11GpuAdapter::~D3D11GpuAdapter()
-    {
-        SafeRelease(_adapter, "IDXGIAdapter1");
-    }
 }

@@ -25,6 +25,7 @@
 #include "../Graphics/Types.h"
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/RenderPass.h"
+#include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
@@ -32,6 +33,31 @@
 namespace Alimer
 {
     class GraphicsDevice;
+
+    struct ColorAttachmentAction {
+        LoadAction  loadAction = LoadAction::Clear;
+        StoreAction storeAction = StoreAction::Store;
+        Color4      clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
+    };
+
+    struct DepthAttachmentAction {
+        LoadAction  loadAction = LoadAction::Clear;
+        StoreAction storeAction = StoreAction::DontCare;
+        float       clearDepth = 1.0f;
+    };
+
+    struct StencilAttachmentAction {
+        LoadAction  loadAction = LoadAction::DontCare;
+        StoreAction storeAction = StoreAction::DontCare;
+        uint8_t     clearStencil = 0;
+    };
+
+    struct RenderPassBeginDescriptor
+    {
+        ColorAttachmentAction   colors[MaxColorAttachments];
+        DepthAttachmentAction   depth;
+        StencilAttachmentAction stencil;
+    };
 
     /// Defines a command context for recording gpu commands.
     class ALIMER_API CommandContext : public RefCounted
@@ -48,12 +74,13 @@ namespace Alimer
         // Flush existing commands to the GPU and optionally wait for execution.
         void Flush(bool waitForCompletion = false);
 
-        void BeginRenderPass(const RenderPassDescriptor* descriptor);
+        void BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor);
+        void BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
         void EndRenderPass();
 
-        void SetVertexBuffer(GpuBuffer* buffer, uint64_t offset, uint32_t index);
-        void SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint64_t* offsets);
-        void SetIndexBuffer(GpuBuffer* buffer, uint64_t offset, IndexType indexType);
+        void SetVertexBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t index);
+        void SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets);
+        void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType);
         virtual void SetViewport(const rect& viewport) = 0;
         virtual void SetScissor(const irect& scissor) = 0;
 
@@ -80,14 +107,14 @@ namespace Alimer
 
         // Backend methods.
         virtual void FlushImpl(bool waitForCompletion) = 0;
-        virtual void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) = 0;
+        virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
         virtual void EndRenderPassImpl() = 0;
 
         virtual void SetProgramImpl(Program* program) = 0;
 
-        virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint64_t offset) = 0;
-        virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint64_t* offsets) = 0;
-        virtual void SetIndexBufferImpl(GpuBuffer* buffer, uint64_t offset, IndexType indexType) = 0;
+        virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) = 0;
+        virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) = 0;
+        virtual void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
         virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount) = 0;
         virtual void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance) = 0;

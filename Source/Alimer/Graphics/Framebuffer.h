@@ -22,35 +22,28 @@
 
 #pragma once
 
-#include "Graphics/RenderPass.h"
-#include "D3D11Prerequisites.h"
-#include <map>
+#include "../Graphics/Texture.h"
 
 namespace Alimer
 {
-    class D3D11Graphics;
-
-    /// D3D11 RenderPass implementation.
-    class D3D11RenderPass final : public RenderPass
+    /// Defines a Framebuffer class.
+    class ALIMER_API Framebuffer : public GraphicsResource
     {
-    public:
+    protected:
         /// Constructor.
-        D3D11RenderPass(D3D11Graphics* graphics, const RenderPassDescription* descriptor);
+        Framebuffer(GraphicsDevice* device);
 
-        /// Destructor.
-        ~D3D11RenderPass() override;
+    public:
+        struct Attachment
+        {
+            SharedPtr<Texture> texture = nullptr;
+            uint32_t mipLevel = 0;
+            uint32_t arraySize = 1;
+            uint32_t firstArraySlice = 0;
+        };
 
-        void Destroy() override;
-
-        void Bind(ID3D11DeviceContext1* context);
-
-        ID3D11RenderTargetView* GetRTV(uint32_t index) const { return _views[index]; }
-
-    private:
-        ID3D11Device1* _d3dDevice;
-
-        uint32_t _viewsCount = 0;
-        std::vector<ID3D11RenderTargetView*> _views;
-        ID3D11DepthStencilView* _depthStencilView;
+    protected:
+        std::vector<Attachment> _colorAttachments;
+        Attachment _depthStencil;
     };
 }

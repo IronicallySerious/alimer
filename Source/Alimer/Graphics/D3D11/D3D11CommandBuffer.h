@@ -22,76 +22,61 @@
 
 #pragma once
 
-#include "../CommandBuffer.h"
+#include "../CommandContext.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-    class D3D11RenderPass;
     class D3D11Shader;
-    class D3D11Graphics;
-    class D3D11VertexInputFormat;
+    class D3D11Framebuffer;
+    class D3D11GraphicsDevice;
 
-    class D3D11CommandBuffer final : public CommandBuffer
+    class D3D11CommandContext final : public CommandContext
     {
     public:
         /// Constructor.
-        D3D11CommandBuffer(D3D11Graphics* graphics, ID3D11DeviceContext1* context);
+        D3D11CommandContext(D3D11GraphicsDevice* device, ID3D11DeviceContext1* context);
 
         /// Destructor.
-        ~D3D11CommandBuffer() override;
+        ~D3D11CommandContext() override;
 
-        bool BeginCore() override;
-        bool EndCore() override;
+        void FlushImpl(bool waitForCompletion) override;
+        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        void EndRenderPassImpl() override;
 
-        void Reset();
+        void SetProgramImpl(Program* program) override;
 
-        void BeginRenderPassCore(RenderPass* renderPass, const Color4* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
-        void EndRenderPassCore() override;
+        void SetVertexDescriptor(const VertexDescriptor* descriptor) override;
+        void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
+        void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
+        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+
+        void DrawImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount) override;
+        void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance) override;
 
         void SetViewport(const rect& viewport) override;
         void SetScissor(const irect& scissor) override;
 
-        void SetShaderProgramImpl(ShaderProgram* program) override;
-        void BindVertexBufferImpl(GpuBuffer* buffer, uint32_t binding, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
-        void SetVertexInputFormatImpl(VertexInputFormat* format) override;
-        void BindIndexBufferImpl(GpuBuffer* buffer, GpuSize offset, IndexType indexType) override;
-        void BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding) override;
-        void BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding) override;
+        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
-        void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
-        void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
-
-        bool IsImmediate() const { return _immediate; }
     private:
+        void BeginContext() override;
         bool PrepareDraw(PrimitiveTopology topology);
-        void UpdateVbos(uint32_t binding, uint32_t count);
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
 
     private:
-        D3D11Graphics* _graphics;
         ID3D11DeviceContext1* _context;
         bool _immediate;
         bool _needWorkaround = false;
 
-        D3D11RenderPass* _currentRenderPass;
+        const D3D11Framebuffer* _currentFramebuffer = nullptr;
         uint32_t _currentColorAttachmentsBound;
         PrimitiveTopology _currentTopology;
         D3D11Shader* _currentShader;
         ID3D11RasterizerState1* _currentRasterizerState;
         ID3D11DepthStencilState* _currentDepthStencilState;
         ID3D11BlendState1* _currentBlendState;
-        D3D11VertexInputFormat* _currentVertexInputFormat;
-
-        struct VertexBindingState
-        {
-            GpuBuffer* buffers[MaxVertexBufferBindings];
-            ID3D11Buffer* d3dBuffers[MaxVertexBufferBindings];
-            uint32_t offsets[MaxVertexBufferBindings];
-            uint32_t strides[MaxVertexBufferBindings];
-            VertexInputRate inputRates[MaxVertexBufferBindings];
-        };
 
         struct BufferBindingInfo {
             GpuBuffer*  buffer;
@@ -112,8 +97,10 @@ namespace Alimer
             uint8_t push_constant_data[MaxDescriptorSets];
         };
 
+        ID3D11Buffer* _currentVertexBuffers[MaxVertexBufferBindings];
+        UINT _vboStrides[MaxVertexBufferBindings];
+        UINT _vboOffsets[MaxVertexBufferBindings];
 
-        VertexBindingState _vbo = {};
         bool _inputLayoutDirty;
         ResourceBindings _bindings;
         uint32_t _dirtySets = 0;
