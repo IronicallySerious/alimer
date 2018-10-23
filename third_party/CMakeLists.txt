@@ -21,45 +21,7 @@
 #
 
 # SPIRV-Cross
-set(SPIRV_CROSS_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/GLSL.std.450.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_common.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_cfg.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_cfg.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_cross.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_cross.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv.hpp
-)
-
-set(NEED_SPIRV_CROSS_GLSL OFF)
-if (ALIMER_D3D11 OR ALIMER_D3D12)
-	list(APPEND SPIRV_CROSS_SOURCES
-		${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_hlsl.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_hlsl.hpp
-	)
-
-	set(NEED_SPIRV_CROSS_GLSL ON)
-endif()
-
-if (ALIMER_METAL)
-    list(APPEND SPIRV_CROSS_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_msl.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_msl.hpp
-    )
-    set(NEED_SPIRV_CROSS_GLSL ON)
-endif()
-
-if (ALIMER_VULKAN OR ALIMER_OPENGL OR NEED_SPIRV_CROSS_GLSL)
-	list(APPEND SPIRV_CROSS_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_glsl.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross/spirv_glsl.hpp
-	)
-endif()
-
-add_library (spirv_cross STATIC ${SPIRV_CROSS_SOURCES})
-target_compile_definitions(spirv_cross PUBLIC SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
-set(SPIRV_CROSS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
-alimer_external_target("third_party" spirv_cross)
+add_subdirectory(spirv-cross)
 
 # glslang
 option (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
@@ -113,7 +75,7 @@ if (ALIMER_DESKTOP AND ALIMER_TOOLS)
     alimer_external_target("third_party" ImGui)
 endif ()
 
-if (ALIMER_SDL2)
+if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
     add_subdirectory(SDL2)
     alimer_external_target("third_party" SDL2)
 endif ()
