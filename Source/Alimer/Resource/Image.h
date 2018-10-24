@@ -82,7 +82,7 @@ namespace Alimer
         /// Image dimensions.
         uvec2 _size;
         /// Image format.
-        PixelFormat _format = PixelFormat::Undefined;
+        PixelFormat _format = PixelFormat::Unknown;
         /// Number of mip levels. 1 for uncompressed images.
         uint32_t _mipLevels = 1;
         /// Image pixel data.

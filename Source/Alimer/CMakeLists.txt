@@ -159,7 +159,7 @@ endif ()
 
 # Add OS-specific library dependencies
 if (ALIMER_WINDOWS)
-    target_link_libraries (${TARGET_NAME} winmm ws2_32)
+    target_link_libraries (${TARGET_NAME} winmm ws2_32 d3d11 dxgi)
 elseif (ALIMER_UWP)
     target_link_libraries (${TARGET_NAME} PRIVATE d3d12 d3d11 dxgi d3dcompiler)
 elseif (ALIMER_ANDROID)

@@ -35,7 +35,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        D3D11CommandContext(D3D11GraphicsDevice* device, ID3D11DeviceContext1* context);
+        D3D11CommandContext(D3D11GraphicsDevice* device);
 
         /// Destructor.
         ~D3D11CommandContext() override;
@@ -60,13 +60,19 @@ namespace Alimer
         void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
     private:
-        void BeginContext() override;
+        void CheckWorkaround();
+
+        void BeginCompute();
+        void BeginGraphics();
+        void BeginContext();
         bool PrepareDraw(PrimitiveTopology topology);
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
 
     private:
-        ID3D11DeviceContext1* _context;
+        ID3D11DeviceContext*         _d3dContext;
+        ID3D11DeviceContext1*        _d3dContext1;
+
         bool _immediate;
         bool _needWorkaround = false;
 

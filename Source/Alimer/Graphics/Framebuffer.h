@@ -34,13 +34,43 @@ namespace Alimer
         Framebuffer(GraphicsDevice* device);
 
     public:
+        /**
+        * Attach a color texture.
+        *
+        * @param colorTexture The color texture.
+        * @param index The render-target index to attach the texture to.
+        * @param mipLevel The selected mip-level to attach.
+        * @param firstArraySlice The first array slice to attach.
+        * @param arraySize The number of array sliced to attach or RemainingArrayLayers for range [firstArraySlice, texture->GetArraySize()]
+        */
+        void AttachColorTarget(const SharedPtr<Texture>& colorTexture, uint32_t index, uint32_t mipLevel = 0, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingArrayLayers);
+
+        /**
+        * Attach a depth-stencil texture.
+        *
+        * @param depthStencil The depth-stencil texture.
+        * @param mipLevel The selected mip-level to attach.
+        * @param firstArraySlice The first array slice to attach.
+        * @param arraySize The number of array sliced to attach or RemainingArrayLayers for range [firstArraySlice, texture->GetArraySize()]
+        */
+        void AttachDepthStencilTarget(const SharedPtr<Texture>& depthStencil, uint32_t mipLevel = 0, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingArrayLayers);
+
+        /**
+        * Get an attached color texture. If no texture is attached will return nullptr.
+        */
+        SharedPtr<Texture> GetColorTexture(uint32_t index) const;
+
         struct Attachment
         {
             SharedPtr<Texture> texture = nullptr;
             uint32_t mipLevel = 0;
-            uint32_t arraySize = 1;
             uint32_t firstArraySlice = 0;
+            uint32_t arraySize = RemainingArrayLayers;
         };
+
+    private:
+        virtual void ApplyColorAttachment(uint32_t index) = 0;
+        virtual void ApplyDepthAttachment() = 0;
 
     protected:
         std::vector<Attachment> _colorAttachments;

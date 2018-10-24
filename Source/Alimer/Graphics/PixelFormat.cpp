@@ -26,87 +26,54 @@
 
 namespace Alimer
 {
-    const char* EnumToString(PixelFormat format)
+    extern ALIMER_API const PixelFormatDesc FormatDesc[] =
     {
-#define CASE_STRING(ENUM_VALUE) case PixelFormat::##ENUM_VALUE : return #ENUM_VALUE
+        // Format                           Name,               BytesPerBlock, ChannelCount,  Type  {Depth,  Stencil, Compressed},      {CompressionRatio.Width, CompressionRatio.Height}
+        { PixelFormat::Unknown,             "Unknown",          0,  0,  PixelFormatType::Unknown,    { false, false, false},            {1, 1}},
+        { PixelFormat::R8UNorm,             "R8UNorm",          1,  1,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::R8SNorm,             "R8SNorm",          1,  1,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::R16UNorm,            "R16UNorm",         2,  1,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::R16SNorm,            "R16SNorm",         2,  1,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::RG8UNorm,            "RG8UNorm",         2,  2,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::RG8SNorm,            "RG8SNorm",         2,  2,  PixelFormatType::SNorm,      { false, false, false,},            {1, 1}},
+        { PixelFormat::RG16UNorm,           "RG16UNorm",        4,  2,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::RG16SNorm,           "RG16SNorm",        4,  2,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::RGB16UNorm,          "RGB16UNorm",       6,  3,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::RGB16SNorm,          "RGB16SNorm",       6,  3,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
 
-        switch (format)
-        {
-            CASE_STRING(Undefined);
-            CASE_STRING(R8UNorm);
-            CASE_STRING(RG8UNorm);
-            CASE_STRING(RGBA8UNorm);
-            CASE_STRING(BGRA8UNorm);
+        { PixelFormat::RGBA8UNorm,          "RGBA8UNorm",       4,  4,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::RGBA8UNormSrgb,      "RGBA8UNormSrgb",   4,  4,  PixelFormatType::UNormSrgb,  { false, false, false},            {1, 1}},
+        { PixelFormat::RGBA8SNorm,          "RGBA8SNorm",       4,  4,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
+                                                                                                       
+        { PixelFormat::BGRA8UNorm,          "BGRA8UNorm",       4,  4,  PixelFormatType::UNorm,      { false,  false, false},           {1, 1}},
+        { PixelFormat::BGRA8UNormSrgb,      "BGRA8UNormSrgb",   4,  4,  PixelFormatType::UNormSrgb,  { false,  false, false},           {1, 1}},
 
-            CASE_STRING(Depth16UNorm);
-            CASE_STRING(Depth32Float);
-            CASE_STRING(Depth24UNormStencil8);
-            CASE_STRING(Depth32FloatStencil8);
+        { PixelFormat::D32Float,            "D32Float",         4,  1,  PixelFormatType::Float,      { true,   false, false},           {1, 1}},
+        { PixelFormat::D16UNorm,            "D16UNorm",         2,  1,  PixelFormatType::UNorm,      { true,   false, false},           {1, 1}},
+        { PixelFormat::D24UNormS8,          "D24UNormS8",       4,  2,  PixelFormatType::UNorm,      { true,   true,  false},           {1, 1}},
+        { PixelFormat::D32FloatS8,          "D32FloatS8",       8,  2,  PixelFormatType::Float,      { true,   true,  false},           {1, 1}},
 
-            CASE_STRING(BC1);
-            CASE_STRING(BC2);
-            CASE_STRING(BC3);
-            CASE_STRING(BC4UNorm);
-            CASE_STRING(BC4SNorm);
-            CASE_STRING(BC5UNorm);
-            CASE_STRING(BC5SNorm);
+        { PixelFormat::BC1UNorm,            "BC1UNorm",         8,  3,  PixelFormatType::UNorm,      { false,  false, true },           {4, 4}},
+        { PixelFormat::BC1UNormSrgb,        "BC1UNormSrgb",     8,  3,  PixelFormatType::UNormSrgb,  { false,  false, true },           {4, 4}},
+        { PixelFormat::BC2UNorm,            "BC2UNorm",         16, 4,  PixelFormatType::UNorm,      { false,  false, true },           {4, 4}},
+        { PixelFormat::BC2UNormSrgb,        "BC2UNormSrgb",     16, 4,  PixelFormatType::UNormSrgb,  { false,  false, true },           {4, 4}},
+        { PixelFormat::BC3UNorm,            "BC3UNorm",         16, 4,  PixelFormatType::UNorm,      { false,  false, true },           {4, 4}},
+        { PixelFormat::BC3UNormSrgb,        "BC3UNormSrgb",     16, 4,  PixelFormatType::UNormSrgb,  { false,  false, true },           {4, 4}},
+        { PixelFormat::BC4UNorm,            "BC4UNorm",         8,  1,  PixelFormatType::UNorm,      { false,  false, true },           {4, 4}},
+        { PixelFormat::BC4SNorm,            "BC4SNorm",         8,  1,  PixelFormatType::SNorm,      { false,  false, true },           {4, 4}},
+        { PixelFormat::BC5UNorm,            "BC5UNorm",         16, 2,  PixelFormatType::UNorm,      { false,  false, true },           {4, 4}},
+        { PixelFormat::BC5SNorm,            "BC5SNorm",         16, 2,  PixelFormatType::SNorm,      { false,  false, true },           {4, 4}},
 
-            CASE_STRING(BC6HSFloat);
-            CASE_STRING(BC6HUFloat);
-        }
+        { PixelFormat::BC6HS16,             "BC6HS16",          16, 3,  PixelFormatType::Float,      { false,  false, true, },          { 4, 4 }},
+        { PixelFormat::BC6HU16,             "BC6HU16",          16, 3,  PixelFormatType::Float,      { false,  false, true, },          { 4, 4 } },
+        { PixelFormat::BC7UNorm,            "BC7UNorm",         16, 4,  PixelFormatType::UNorm,      { false,  false, true, },          { 4, 4 } },
+        { PixelFormat::BC7UNormSrgb,        "BC7UNormSrgb",     16, 4,  PixelFormatType::UNormSrgb,  { false,  false, true, },          { 4, 4 } },
+    };
 
-#undef CASE_STRING
-        return nullptr;
-    }
-
-    bool IsDepthFormat(PixelFormat format)
+    const std::string& EnumToString(PixelFormat format)
     {
-        switch (format)
-        {
-        case PixelFormat::Depth16UNorm:
-        case PixelFormat::Depth24UNormStencil8:
-        case PixelFormat::Depth32Float:
-        case PixelFormat::Depth32FloatStencil8:
-            return true;
-        default:
-            return false;
-        }
-    }
-
-    bool IsStencilFormat(PixelFormat format)
-    {
-        switch (format)
-        {
-        case PixelFormat::Depth24UNormStencil8:
-        case PixelFormat::Depth32FloatStencil8:
-            return true;
-        default:
-            return false;
-        }
-    }
-
-    bool IsDepthStencilFormat(PixelFormat format)
-    {
-        return IsDepthFormat(format) || IsStencilFormat(format);
-    }
-
-    bool IsCompressed(PixelFormat format)
-    {
-        switch (format)
-        {
-        case PixelFormat::BC1:
-        case PixelFormat::BC2:
-        case PixelFormat::BC3:
-        case PixelFormat::BC4UNorm:
-        case PixelFormat::BC4SNorm:
-        case PixelFormat::BC5UNorm:
-        case PixelFormat::BC5SNorm:
-        case PixelFormat::BC6HSFloat:
-        case PixelFormat::BC6HUFloat:
-            return true;
-        default:
-            return false;
-        }
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].name;
     }
 
     uint32_t GetPixelFormatSize(PixelFormat format)

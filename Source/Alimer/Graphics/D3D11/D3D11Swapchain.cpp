@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "D3D11SwapChain.h"
+#include "D3D11Swapchain.h"
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Texture.h"
 #include "D3D11Framebuffer.h"
@@ -30,57 +30,65 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11SwapChain::D3D11SwapChain(D3D11GraphicsDevice* device)
+    D3D11Swapchain::D3D11Swapchain(D3D11GraphicsDevice* device, const SwapchainDescriptor* descriptor, uint32_t backBufferCount)
         : _device(device)
-        , _swapChainFlags(0)
-        , _syncInterval(1)
-        , _presentFlags(0)
-        , _currentBackBufferIndex(0)
+        , _backBufferCount(backBufferCount)
     {
+        switch (descriptor->colorFormat)
+        {
+        case PixelFormat::BGRA8UNorm:
+            _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+            break;
+
+        case PixelFormat::BGRA8UNormSrgb:
+            _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+            break;
+
+        default:
+            _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+            break;
+        }
+
+       _depthStencilFormat = descriptor->depthStencilFormat;
+
+#if ALIMER_PLATFORM_UWP
+        _window = static_cast<IUnknown*>(descriptor->windowHandle);
+#else
+        _hwnd = static_cast<HWND>(descriptor->windowHandle);
+#endif
+
+        Resize(descriptor->width, descriptor->height, true);
     }
 
-    D3D11SwapChain::~D3D11SwapChain()
+    D3D11Swapchain::~D3D11Swapchain()
     {
         Destroy();
     }
 
-    void D3D11SwapChain::Destroy()
+    void D3D11Swapchain::Destroy()
     {
         _swapChain->SetFullscreenState(false, nullptr);
 
-        for (size_t i = 0, count = _framebuffers.size(); i < count; i++)
-        {
-            SafeDelete(_framebuffers[i]);
-        }
         _framebuffers.clear();
         _renderTarget.Reset();
+        _depthStencil.Reset();
         _swapChain.Reset();
         _swapChain1.Reset();
     }
 
-    void D3D11SwapChain::SetWindow(HWND handle, uint32_t width, uint32_t height)
+    void D3D11Swapchain::Resize(uint32_t width, uint32_t height, bool force)
     {
-        _hwnd = handle;
-        Resize(width, height, true);
-    }
-
-    void D3D11SwapChain::SetCoreWindow(IUnknown* window, uint32_t width, uint32_t height)
-    {
-        _window = window;
-        Resize(width, height, true);
-    }
-
-    void D3D11SwapChain::Resize(uint32_t width, uint32_t height, bool force)
-    {
-        if (_width == width &&
-            _height == height &&
-            !force) {
+        if (_width == width && _height == height && !force)
+        {
             return;
         }
 
         // Clear the previous window size specific context.
         ID3D11RenderTargetView* nullViews[] = { nullptr };
-        _device->GetD3DDeviceContext1()->OMSetRenderTargets(1, nullViews, nullptr);
+        _device->GetD3DDeviceContext()->OMSetRenderTargets(1, nullViews, nullptr);
+        _renderTarget.Reset();
+        _depthStencil.Reset();
+        _device->GetD3DDeviceContext()->Flush();
 
         HRESULT hr = S_OK;
 
@@ -160,12 +168,12 @@ namespace Alimer
                         &swapChainDesc,
                         &fsSwapChainDesc,
                         nullptr,
-                        &_swapChain1
+                        _swapChain1.ReleaseAndGetAddressOf()
                     );
 
                     if (FAILED(hr))
                     {
-                        ALIMER_LOGCRITICAL("Failed to create DXGI SwapChain");
+                        ALIMER_LOGCRITICALF("Failed to create DXGI SwapChain, HRESULT %08X", static_cast<unsigned int>(hr));
                     }
 
                     ThrowIfFailed(_swapChain1.As(&_swapChain));
@@ -218,10 +226,14 @@ namespace Alimer
             }
         }
 
-        ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(_renderTarget.ReleaseAndGetAddressOf())));
+        _framebuffers.resize(1);
+        _framebuffers[0] = new D3D11Framebuffer(_device);
+
+        ID3D11Texture2D* renderTarget;
+        ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
 
         D3D11_TEXTURE2D_DESC d3dTextureDesc;
-        _renderTarget->GetDesc(&d3dTextureDesc);
+        renderTarget->GetDesc(&d3dTextureDesc);
 
         TextureDescriptor textureDesc = {};
         textureDesc.type = TextureType::Type2D;
@@ -256,14 +268,27 @@ namespace Alimer
             textureDesc.usage |= TextureUsage::RenderTarget;
         }
 
-        //_backbufferTexture = new D3D11Texture(_device, &textureDesc, nullptr, d3dBackbufferTexture);
+        _renderTarget = new D3D11Texture(_device, &textureDesc, nullptr, renderTarget);
+        _framebuffers[0]->AttachColorTarget(_renderTarget, 0);
+
+        // Create depth stencil if required.
+        if (_depthStencilFormat != PixelFormat::Unknown)
+        {
+            textureDesc.type = TextureType::Type2D;
+            textureDesc.format = _depthStencilFormat;
+            textureDesc.width = d3dTextureDesc.Width;
+            textureDesc.height = d3dTextureDesc.Height;
+            textureDesc.usage = TextureUsage::RenderTarget;
+            _depthStencil = new D3D11Texture(_device, &textureDesc, nullptr, nullptr);
+            _framebuffers[0]->AttachDepthStencilTarget(_depthStencil);
+        }
 
         // Set new size.
         _width = width;
         _height = height;
     }
 
-    void D3D11SwapChain::Present()
+    void D3D11Swapchain::Present()
     {
         HRESULT hr = _swapChain->Present(_syncInterval, _presentFlags);
         //m_d3dContext->DiscardView(m_d3dRenderTargetView.Get());
@@ -287,7 +312,7 @@ namespace Alimer
         }
     }
 
-    Framebuffer* D3D11SwapChain::GetCurrentFramebuffer() const
+    Framebuffer* D3D11Swapchain::GetCurrentFramebuffer() const
     {
         return _framebuffers[_currentBackBufferIndex];
     }

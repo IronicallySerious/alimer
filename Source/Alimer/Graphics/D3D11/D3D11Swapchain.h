@@ -32,43 +32,43 @@ namespace Alimer
     class D3D11Framebuffer;
     class D3D11GraphicsDevice;
 
-    /// D3D11 SwapChain implementation.
-    class D3D11SwapChain final
+    /// D3D11 Swapchain implementation.
+    class D3D11Swapchain final
     {
     public:
         /// Constructor.
-        D3D11SwapChain(D3D11GraphicsDevice* device);
+        D3D11Swapchain(D3D11GraphicsDevice* device, const SwapchainDescriptor* descriptor, uint32_t backBufferCount = 2);
 
         /// Destructor.
-        ~D3D11SwapChain();
+        ~D3D11Swapchain();
 
         void Destroy();
-
-        void SetWindow(HWND handle, uint32_t width, uint32_t height);
-        void SetCoreWindow(IUnknown* window, uint32_t width, uint32_t height);
 
         void Resize(uint32_t width, uint32_t height, bool force = false);
         void Present();
 
         Framebuffer* GetCurrentFramebuffer() const;
+        uint32_t     GetBackBufferCount() const { return _backBufferCount; }
 
     private:
         D3D11GraphicsDevice* _device;
-        uint32_t _backBufferCount = 2u;
         uint32_t _width = 0;
         uint32_t _height = 0;
+        uint32_t _backBufferCount = 2u;
+        DXGI_FORMAT _backBufferFormat;
+        PixelFormat _depthStencilFormat = PixelFormat::Unknown;
         HWND _hwnd = nullptr;
         IUnknown* _window = nullptr;
-        DXGI_FORMAT _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
 
-        UINT _swapChainFlags;
-        UINT _syncInterval;
-        UINT _presentFlags;
+        UINT _swapChainFlags = 0;
+        UINT _syncInterval = 1;
+        UINT _presentFlags = 0;
         Microsoft::WRL::ComPtr<IDXGISwapChain>      _swapChain;
         Microsoft::WRL::ComPtr<IDXGISwapChain1>     _swapChain1;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>     _renderTarget;
 
-        std::vector<D3D11Framebuffer*> _framebuffers;
-        uint32_t _currentBackBufferIndex;
+        SharedPtr<Texture> _renderTarget;
+        SharedPtr<Texture> _depthStencil;
+        std::vector<SharedPtr<D3D11Framebuffer>> _framebuffers;
+        uint32_t _currentBackBufferIndex = 0;
     };
 }

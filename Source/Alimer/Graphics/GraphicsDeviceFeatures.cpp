@@ -36,6 +36,7 @@ namespace Alimer
         _deviceID = 0;
         _deviceName.clear();
         _multithreading = false;
+        _maxColorAttachments = 1;
     }
 
     void GraphicsDeviceFeatures::SetVendorId(uint32_t vendorID)

@@ -69,7 +69,7 @@ namespace Alimer
         //std::vector<SharedPtr<VulkanFramebuffer>> _framebuffers;
 
         uint32_t _imageCount;
-        PixelFormat _format = PixelFormat::Undefined;
+        PixelFormat _format = PixelFormat::Unknown;
         uint32_t _currentBackBufferIndex = 0;
 
         uvec2 _size;

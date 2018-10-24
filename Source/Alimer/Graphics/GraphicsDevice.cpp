@@ -208,8 +208,6 @@ namespace Alimer
 
     bool GraphicsDevice::Initialize(const RenderingSettings& settings)
     {
-        ALIMER_ASSERT_MSG(settings.windowHandle, "Invalid window handle for graphics creation.");
-
         if (_initialized)
         {
             ALIMER_LOGCRITICAL("Cannot Initialize Graphics if already initialized.");

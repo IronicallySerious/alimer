@@ -77,7 +77,7 @@ namespace Alimer
 
         void Render(SharedPtr<CommandContext> context)
         {
-            context->SetProgram("assets://shaders/color.vert", "assets://shaders/color.frag");
+            /*context->SetProgram("assets://shaders/color.vert", "assets://shaders/color.frag");
             context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
 
             VertexDescriptor vertexDescriptor;
@@ -88,7 +88,7 @@ namespace Alimer
             vertexDescriptor.attributes[1].semantic = VertexElementSemantic::Color0;
             context->SetVertexDescriptor(&vertexDescriptor);
             //context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
-            context->Draw(PrimitiveTopology::Triangles, 0, 3);
+            context->Draw(PrimitiveTopology::Triangles, 0, 3);*/
         }
 
     private:

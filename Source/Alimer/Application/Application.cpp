@@ -70,11 +70,17 @@ namespace Alimer
         // Init Window and Gpu.
         if (!_headless)
         {
-            uvec2 windowSize = uvec2(_settings.renderingSettings.backBufferWidth, _settings.renderingSettings.backBufferHeight);
+            uvec2 windowSize = uvec2(800, 600);
             _mainWindow = new Window("Alimer", windowSize);
 
             // Assign as window handle.
-            _settings.renderingSettings.windowHandle = _mainWindow->GetHandle();
+            SwapchainDescriptor swapchainDesc = {};
+            swapchainDesc.width = windowSize.x;
+            swapchainDesc.height = windowSize.y;
+            swapchainDesc.windowHandle = _mainWindow->GetHandle();
+
+            // Set settings
+            _settings.renderingSettings.swapchain = swapchainDesc;
 
             // Create and init graphics.
             _graphicsDevice = GraphicsDevice::Create(_settings.prefferedGraphicsBackend, _settings.validation);

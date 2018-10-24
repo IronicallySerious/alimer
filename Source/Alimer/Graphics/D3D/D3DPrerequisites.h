@@ -65,7 +65,7 @@
 #pragma warning(disable : 4324)
 
 #include <exception>
-#include <memory>
+#include "../Types.h"
 
 namespace Alimer
 {
@@ -93,6 +93,39 @@ namespace Alimer
             throw com_exception(hr);
         }
     }
+
+    struct D3DResourceViewInfo
+    {
+        D3DResourceViewInfo() = default;
+        D3DResourceViewInfo(uint32_t mipLevel_, uint32_t mipLevelCount_, uint32_t firstArraySlice_, uint32_t arraySize_)
+            : mipLevel(mipLevel_)
+            , mipLevelCount(mipLevelCount_)
+            , firstArraySlice(firstArraySlice_)
+            , arraySize(arraySize_)
+        {
+        }
+
+        uint32_t mipLevel = 0;
+        uint32_t mipLevelCount = RemainingMipLevels;
+        uint32_t firstArraySlice = 0;
+        uint32_t arraySize = RemainingArrayLayers;
+
+        bool operator==(const D3DResourceViewInfo& other) const
+        {
+            return (mipLevel == other.mipLevel) && (mipLevelCount == other.mipLevelCount) && (firstArraySlice == other.firstArraySlice) && (arraySize == other.arraySize);
+        }
+    };
+
+    struct ViewInfoHashFunc
+    {
+        std::size_t operator()(const D3DResourceViewInfo& v) const
+        {
+            return ((std::hash<uint32_t>()(v.firstArraySlice)
+                ^ (std::hash<uint32_t>()(v.arraySize) << 1)) >> 1)
+                ^ (std::hash<uint32_t>()(v.mipLevelCount) << 1)
+                ^ (std::hash<uint32_t>()(v.mipLevel) << 3);
+        }
+    };
 
     template <typename T>
     void SafeRelease(T& resource, const char* typeName = nullptr)

@@ -24,7 +24,7 @@
 
 #if ALIMER_COMPILE_D3D11
 #include "D3D11GraphicsDevice.h"
-#include "D3D11SwapChain.h"
+#include "D3D11Swapchain.h"
 #include "D3D11Framebuffer.h"
 #include "D3D11Texture.h"
 #include "D3D11CommandBuffer.h"
@@ -43,9 +43,9 @@ namespace Alimer
 {
 #if defined(_DEBUG)
     // Check for SDK Layer support.
-    inline bool SdkLayersAvailable(const D3DPlatformFunctions* functions)
+    inline bool SdkLayersAvailable()
     {
-        HRESULT hr = functions->D3D11CreateDevice(
+        HRESULT hr = D3D11CreateDevice(
             nullptr,
             D3D_DRIVER_TYPE_NULL,       // There is no need to create a real hardware device.
             0,
@@ -75,38 +75,42 @@ namespace Alimer
     D3D11GraphicsDevice::~D3D11GraphicsDevice()
     {
         Shutdown();
-
-        SafeRelease(_d3dAnnotation, "ID3DUserDefinedAnnotation");
-        SafeRelease(_d3dImmediateContext, "ID3D11DeviceContext");
-
-        ID3D11Debug* d3dDebug;
-        if (SUCCEEDED(_d3dDevice->QueryInterface(&d3dDebug)))
-        {
-            d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
-            d3dDebug->Release();
-        }
-
-        SafeRelease(_d3dDevice, "ID3D11Device");
-        SafeDelete(_functions);
     }
 
     void D3D11GraphicsDevice::Shutdown()
     {
-        WaitIdle();
+        SafeDelete(_mainSwapchain);
 
-        SafeDelete(_swapChain);
-
+        // Clear pending resources.
         GraphicsDevice::Shutdown();
+
+        _d3dContext.Reset();
+        _d3dContext1.Reset();
+        _d3dAnnotation.Reset();
+        _d3dDevice1.Reset();
+
+#ifdef _DEBUG
+        {
+            ComPtr<ID3D11Debug> d3dDebug;
+            if (SUCCEEDED(_d3dDevice.As(&d3dDebug)))
+            {
+                d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY);
+            }
+        }
+#endif
+
+        _d3dDevice.Reset();
+        SafeDelete(_functions);
     }
 
     bool D3D11GraphicsDevice::Initialize(const RenderingSettings& settings)
     {
         UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
-#if defined(_DEBUG)
+#if defined(ALIMER_DEV)
         if (_validation)
         {
-            if (SdkLayersAvailable(_functions))
+            if (SdkLayersAvailable())
             {
                 // If the project is in a debug build, enable debugging via SDK Layers with this flag.
                 creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -120,6 +124,10 @@ namespace Alimer
         // Determine DirectX hardware feature levels this app will support.
         static const D3D_FEATURE_LEVEL s_featureLevels[] =
         {
+#if ALIMER_PLATFORM_UWP
+            D3D_FEATURE_LEVEL_12_1,
+            D3D_FEATURE_LEVEL_12_0,
+#endif
             D3D_FEATURE_LEVEL_11_1,
             D3D_FEATURE_LEVEL_11_0,
             D3D_FEATURE_LEVEL_10_1,
@@ -140,7 +148,7 @@ namespace Alimer
         // Create the Direct3D 11 API device object and a corresponding context.
         if (adapter)
         {
-            hr = _functions->D3D11CreateDevice(
+            hr = D3D11CreateDevice(
                 adapter.Get(),
                 D3D_DRIVER_TYPE_UNKNOWN,
                 0,
@@ -171,13 +179,6 @@ namespace Alimer
                     _d3dContext.ReleaseAndGetAddressOf()
                 );
             }
-
-            // Find vendor.
-            DXGI_ADAPTER_DESC1 desc;
-            adapter->GetDesc1(&desc);
-            _features.SetVendorId(desc.VendorId);
-            _features.SetDeviceId(desc.DeviceId);
-            //_features.SetDeviceName(desc.Description);
         }
 #if defined(NDEBUG)
         else
@@ -190,7 +191,7 @@ namespace Alimer
             // If the initialization fails, fall back to the WARP device.
             // For more information on WARP, see: 
             // http://go.microsoft.com/fwlink/?LinkId=286690
-            hr = _functions->D3D11CreateDevice(
+            hr = D3D11CreateDevice(
                 nullptr,
                 D3D_DRIVER_TYPE_WARP, // Create a WARP device instead of a hardware device.
                 0,
@@ -198,10 +199,30 @@ namespace Alimer
                 s_featureLevels,
                 _countof(s_featureLevels),
                 D3D11_SDK_VERSION,
-                device.GetAddressOf(),
+                _d3dDevice.ReleaseAndGetAddressOf(),
                 &_d3dFeatureLevel,
-                context.GetAddressOf()
+                _d3dContext.ReleaseAndGetAddressOf()
             );
+
+            if (hr == E_INVALIDARG && featLevelCount > 1)
+            {
+                assert(s_featureLevels[0] == D3D_FEATURE_LEVEL_11_1);
+
+                // DirectX 11.0 platforms will not recognize D3D_FEATURE_LEVEL_11_1 so we need to retry without it
+                hr = D3D11CreateDevice(
+                    nullptr,
+                    D3D_DRIVER_TYPE_WARP,
+                    nullptr,
+                    creationFlags,
+                    &s_featureLevels[1],
+                    featLevelCount - 1,
+                    D3D11_SDK_VERSION,
+                    _d3dDevice.ReleaseAndGetAddressOf(),
+                    &_d3dFeatureLevel,
+                    _d3dContext.ReleaseAndGetAddressOf()
+                );
+            }
+
 
             if (SUCCEEDED(hr))
             {
@@ -211,41 +232,17 @@ namespace Alimer
 #endif
         ThrowIfFailed(hr);
 
-#if defined(_DEBUG)
-        // https://blogs.msdn.microsoft.com/chuckw/2015/07/27/dxgi-debug-device/
-#if ALIMER_PLATFORM_UWP
-        Microsoft::WRL::ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
-        if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf()))))
-        {
-            dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
-            dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
-        }
-#else
-        typedef HRESULT(WINAPI * LPDXGIGETDEBUGINTERFACE)(REFIID, void **);
-
-        HMODULE dxgidebug = LoadLibraryExW(L"dxgidebug.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-        if (dxgidebug)
-        {
-            Microsoft::WRL::ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
-
-            auto dxgiGetDebugInterface = reinterpret_cast<LPDXGIGETDEBUGINTERFACE>(GetProcAddress(dxgidebug, "DXGIGetDebugInterface"));
-
-            if (SUCCEEDED(dxgiGetDebugInterface(IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf()))))
-            {
-                const GUID ALIMER_DXGI_DEBUG_ALL = { 0xe48ae283, 0xda80, 0x490b, { 0x87, 0xe6, 0x43, 0xe9, 0xa9, 0xcf, 0xda, 0x8 } };
-
-                dxgiInfoQueue->SetBreakOnSeverity(ALIMER_DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
-                dxgiInfoQueue->SetBreakOnSeverity(ALIMER_DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
-            }
-        }
-#endif
-
+#ifndef NDEBUG
         ComPtr<ID3D11Debug> d3dDebug;
-        if (SUCCEEDED(device.As(&d3dDebug)))
+        if (SUCCEEDED(_d3dDevice.As(&d3dDebug)))
         {
             ComPtr<ID3D11InfoQueue> d3dInfoQueue;
             if (SUCCEEDED(d3dDebug.As(&d3dInfoQueue)))
             {
+#ifdef _DEBUG
+                d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+                d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+#endif
                 D3D11_INFO_QUEUE_FILTER filter;
                 memset(&filter, 0, sizeof(filter));
 
@@ -264,33 +261,24 @@ namespace Alimer
                 filter.DenyList.NumIDs = sizeof(denyIds) / sizeof(D3D11_MESSAGE_ID);
                 filter.DenyList.pIDList = (D3D11_MESSAGE_ID*)&denyIds;
                 d3dInfoQueue->PushStorageFilter(&filter);
-
-                d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
-                d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
-
-                //d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, true);
             }
         }
-#endif
+#endif /* NDEBUG */
 
-        ThrowIfFailed(device->QueryInterface(&_d3dDevice));
-        ThrowIfFailed(context->QueryInterface(&_d3dImmediateContext));
-        //context->QueryInterface(&_d3dAnnotation);
+        // Obtain Direct3D 11.1 interfaces (if available)
+        if (SUCCEEDED(_d3dDevice.As(&_d3dDevice1)))
+        {
+            (void)_d3dContext.As(&_d3dContext1);
+            (void)_d3dContext.As(&_d3dAnnotation);
+        }
 
-        if (!InitializeCaps())
-            return false;
+        InitializeCaps();
 
         // Create Swapchain.
-        _swapChain = new D3D11SwapChain(this);
-
-#if ALIMER_PLATFORM_UWP
-        _swapChain->SetCoreWindow(static_cast<IUnknown*>(_settings.windowHandle), _settings.backBufferWidth, _settings.backBufferHeight);
-#else
-        _swapChain->SetWindow(_settings.windowHandle, _settings.backBufferWidth, _settings.backBufferHeight);
-#endif
+        _mainSwapchain = new D3D11Swapchain(this, &settings.swapchain);
 
         // Create default command context.
-        _context = new D3D11CommandContext(this, _d3dImmediateContext);
+        _context = new D3D11CommandContext(this);
 
         return GraphicsDevice::Initialize(settings);
     }
@@ -298,7 +286,7 @@ namespace Alimer
     void D3D11GraphicsDevice::PresentImpl()
     {
         // Present the frame.
-        _swapChain->Present();
+        _mainSwapchain->Present();
 
         // Flush immediate context.
         //_d3dContext->Flush();
@@ -306,7 +294,7 @@ namespace Alimer
 
     Framebuffer* D3D11GraphicsDevice::GetSwapchainFramebuffer() const
     {
-        return _swapChain->GetCurrentFramebuffer();
+        return _mainSwapchain->GetCurrentFramebuffer();
     }
 
     void D3D11GraphicsDevice::GenerateScreenshot(const std::string& fileName)
@@ -392,7 +380,7 @@ namespace Alimer
 
     bool D3D11GraphicsDevice::WaitIdle()
     {
-        _d3dImmediateContext->Flush();
+        _d3dContext->Flush();
         return true;
     }
 
@@ -402,17 +390,10 @@ namespace Alimer
 
         ComPtr<IDXGIFactory1> dxgiFactory;
 
-#if ALIMER_PLATFORM_UWP
         if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory))))
         {
             ALIMER_LOGCRITICAL("D3D11 - Failed to create DXGI factory");
         }
-#else
-        if (FAILED(_functions->createDxgiFactory1(IID_PPV_ARGS(&dxgiFactory))))
-        {
-            ALIMER_LOGCRITICAL("D3D11 - Failed to create DXGI factory");
-        }
-#endif
 
         ComPtr<IDXGIAdapter1> adapter;
         for (UINT adapterIndex = 0;
@@ -440,8 +421,20 @@ namespace Alimer
         *ppAdapter = adapter.Detach();
     }
 
-    bool D3D11GraphicsDevice::InitializeCaps()
+    void D3D11GraphicsDevice::InitializeCaps()
     {
+        ComPtr<IDXGIDevice1> dxgiDevice;
+        ThrowIfFailed(_d3dDevice.As(&dxgiDevice));
+
+        ComPtr<IDXGIAdapter> dxgiAdapter;
+        ThrowIfFailed(dxgiDevice->GetAdapter(dxgiAdapter.GetAddressOf()));
+
+        DXGI_ADAPTER_DESC desc;
+        dxgiAdapter->GetDesc(&desc);
+        _features.SetVendorId(desc.VendorId);
+        _features.SetDeviceId(desc.DeviceId);
+        //_features.SetDeviceName(desc.Description);
+
         switch (_d3dFeatureLevel)
         {
         case D3D_FEATURE_LEVEL_10_0:
@@ -481,7 +474,7 @@ namespace Alimer
             _features.SetMultithreading(true);
         }
 
-        return true;
+        _features.SetMaxColorAttachments(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
     }
 
     void D3D11GraphicsDevice::HandleDeviceLost()

@@ -31,7 +31,7 @@ namespace Alimer
 {
     class D3DPlatformFunctions;
     class D3D11Texture;
-    class D3D11SwapChain;
+    class D3D11Swapchain;
 
     /// D3D11 graphics device implementation.
     class D3D11GraphicsDevice final : public GraphicsDevice
@@ -66,17 +66,20 @@ namespace Alimer
         void StoreInputLayout(const InputLayoutDesc& desc, ID3D11InputLayout* layout);
 
         // Getters
-        D3D_FEATURE_LEVEL GetFeatureLevel() const { return _d3dFeatureLevel; }
-        ID3D11Device1* GetD3DDevice() const { return _d3dDevice; }
-        ID3D11DeviceContext1* GetD3DDeviceContext1() const { return _d3dImmediateContext; }
-        uint32_t GetShaderModerMajor() const { return _shaderModelMajor; }
-        uint32_t GetShaderModerMinor() const { return _shaderModelMinor; }
+        ID3D11Device*           GetD3DDevice() const { return _d3dDevice.Get(); }
+        ID3D11Device1*          GetD3DDevice1() const { return _d3dDevice1.Get(); }
+        ID3D11DeviceContext*    GetD3DDeviceContext() const { return _d3dContext.Get(); }
+        ID3D11DeviceContext1*   GetD3DDeviceContext1() const { return _d3dContext1.Get(); }
+        D3D_FEATURE_LEVEL       GetDeviceFeatureLevel() const { return _d3dFeatureLevel; }
+        
+        uint32_t                GetShaderModerMajor() const { return _shaderModelMajor; }
+        uint32_t                GetShaderModerMinor() const { return _shaderModelMinor; }
 
         const D3DPlatformFunctions* GetFunctions() { return _functions; }
 
     private:
         void GetHardwareAdapter(IDXGIAdapter1** ppAdapter);
-        bool InitializeCaps();
+        void InitializeCaps();
 
         void GenerateScreenshot(const std::string& fileName);
 
@@ -84,15 +87,15 @@ namespace Alimer
         D3D_FEATURE_LEVEL           _d3dMinFeatureLevel = D3D_FEATURE_LEVEL_10_0;
         D3D_FEATURE_LEVEL           _d3dFeatureLevel;
 
-        Microsoft::WRL::ComPtr<ID3D11Device>            _d3dDevice;
-        Microsoft::WRL::ComPtr<ID3D11Device1>           _d3dDevice1;
+        Microsoft::WRL::ComPtr<ID3D11Device>                _d3dDevice;
+        Microsoft::WRL::ComPtr<ID3D11Device1>               _d3dDevice1;
 
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext>     _d3dContext;
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext1>    _d3dContext1;
-        ID3D11DeviceContext1*       _d3dImmediateContext = nullptr;
-        ID3DUserDefinedAnnotation*  _d3dAnnotation = nullptr;
+        Microsoft::WRL::ComPtr<ID3D11DeviceContext>         _d3dContext;
+        Microsoft::WRL::ComPtr<ID3D11DeviceContext1>        _d3dContext1;
+        Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
-        D3D11SwapChain* _swapChain = nullptr;
+
+        D3D11Swapchain* _mainSwapchain = nullptr;
 
         uint32_t _shaderModelMajor = 4;
         uint32_t _shaderModelMinor = 0;

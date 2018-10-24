@@ -37,7 +37,7 @@ namespace Alimer
         VkAttachmentReference depthReference = {};
         bool hasDepth = false;
 
-        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        /*for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
             const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor->colorAttachments[i];
             auto attachment = colorAttachment.attachment;
@@ -87,7 +87,7 @@ namespace Alimer
             attachmentCount++;
 
             hasDepth = true;
-        }
+        }*/
 
         VkSubpassDescription subpassDescription = {};
         subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -165,7 +165,7 @@ namespace Alimer
         VkImageView views[MaxColorAttachments + 1];
         uint32_t attachmentCount = 0;
 
-        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        /*for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
             const RenderPassColorAttachmentDescriptor& attachment = descriptor->colorAttachments[i];
             if (attachment.attachment == nullptr)
@@ -176,7 +176,7 @@ namespace Alimer
             _width = std::min(_width, texture->GetLevelWidth(mipLevel));
             _height = std::min(_height, texture->GetLevelHeight(mipLevel));
             views[attachmentCount++] = static_cast<VulkanTextureView*>(attachment.attachment)->GetVkImageView();
-        }
+        }*/
 
         VkFramebufferCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

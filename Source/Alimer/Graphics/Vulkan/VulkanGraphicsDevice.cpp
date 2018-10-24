@@ -451,7 +451,7 @@ namespace Alimer
             SafeDelete(_pinnedMemoryBuffer);
         }
 
-        // Clear base resources.
+        // Clear pending resources.
         GraphicsDevice::Shutdown();
 
         _framebuffers.Clear();
@@ -650,11 +650,8 @@ namespace Alimer
         if (!requiredExtensionsEnabled)
             return nullptr;
 
-        // Find vendor.
-        _features.SetVendorId(_deviceProperties.vendorID);
-
         // Create main surface.
-        VkSurfaceKHR surface = CreateSurface(settings);
+        VkSurfaceKHR surface = CreateSurface(settings.swapchain);
         const uint32_t queueFamilyProps = static_cast<uint32_t>(_queueFamilyProperties.size());
         for (uint32_t i = 0; i < queueFamilyProps; i++)
         {
@@ -854,6 +851,8 @@ namespace Alimer
         }
         volkLoadDevice(_device);
 
+        InitializeCaps();
+
         // Get queue's.
         vkGetDeviceQueue(_device, _graphicsQueueFamily, graphicsQueueIndex, &_graphicsQueue);
         vkGetDeviceQueue(_device, _computeQueueFamily, computeQueueIndex, &_computeQueue);
@@ -869,8 +868,8 @@ namespace Alimer
         _mainSwapchain.Reset(new VulkanSwapchain(
             this,
             surface,
-            settings.backBufferWidth,
-            settings.backBufferHeight)
+            settings.swapchain.width,
+            settings.swapchain.height)
         );
 
         // Create default command context;
@@ -898,6 +897,17 @@ namespace Alimer
         }
 
         return true;
+    }
+
+    void VulkanGraphicsDevice::InitializeCaps()
+    {
+        // Set vendor.
+        _features.SetVendorId(_deviceProperties.vendorID);
+        _features.SetDeviceId(_deviceProperties.deviceID);
+        _features.SetDeviceName(_deviceProperties.deviceName);
+        _features.SetMultithreading(true);
+        _features.SetMaxColorAttachments(_deviceProperties.limits.maxColorAttachments);
+        //_features.SetMaxColorAttachments(_deviceProperties.limits.maxFragmentOutputAttachments);
     }
 
     void VulkanGraphicsDevice::CreateMemoryAllocator()
@@ -1021,16 +1031,19 @@ namespace Alimer
         vkResetFences(_device, 1, &fence);
     }
 
-    VkSurfaceKHR VulkanGraphicsDevice::CreateSurface(const RenderingSettings& settings)
+    VkSurfaceKHR VulkanGraphicsDevice::CreateSurface(const SwapchainDescriptor& descriptor)
     {
         VkResult result = VK_SUCCESS;
         VkSurfaceKHR surface = VK_NULL_HANDLE;
 
         // Create the os-specific surface.
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.pNext = nullptr;
+        surfaceCreateInfo.flags = 0;
         surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-        surfaceCreateInfo.hwnd = settings.windowHandle;
+        surfaceCreateInfo.hwnd = static_cast<HWND>(descriptor.windowHandle);
         result = vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &surface);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
         VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
@@ -1187,7 +1200,7 @@ namespace Alimer
         Util::Hasher h;
         h.u64(renderPass->GetHash());
 
-        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        /*for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
             if (descriptor->colorAttachments[i].attachment)
             {
@@ -1198,7 +1211,7 @@ namespace Alimer
         if (descriptor->depthStencil)
         {
             h.u64(static_cast<VulkanTextureView*>(descriptor->depthStencil)->GetId());
-        }
+        }*/
 
         uint64_t hash = h.get();
         auto framebuffer = _framebuffers.Find(hash);
@@ -1279,7 +1292,7 @@ namespace Alimer
     {
         Util::Hasher renderPassHasher;
 
-        for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        /*for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
             const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor->colorAttachments[i];
             auto attachment = colorAttachment.attachment;
@@ -1289,7 +1302,7 @@ namespace Alimer
             renderPassHasher.u32(static_cast<uint32_t>(attachment->GetFormat()));
             renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.loadAction));
             renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.storeAction));
-        }
+        }*/
 
         uint64_t hash = renderPassHasher.get();
         auto renderPass = _renderPasses.Find(hash);

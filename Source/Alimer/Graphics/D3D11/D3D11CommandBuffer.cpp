@@ -34,20 +34,32 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
-
-    D3D11CommandContext::D3D11CommandContext(D3D11GraphicsDevice* device, ID3D11DeviceContext1* context)
+    D3D11CommandContext::D3D11CommandContext(D3D11GraphicsDevice* device)
         : CommandContext(device)
-        , _context(context)
-        , _immediate(context->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+        , _immediate(true)
+        , _d3dContext(device->GetD3DDeviceContext())
+        , _d3dContext1(device->GetD3DDeviceContext1())
     {
-        HRESULT hr = S_OK;
+        CheckWorkaround();
+        BeginCompute();
+    }
 
-        if (context->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+    D3D11CommandContext::~D3D11CommandContext()
+    {
+        if (!_immediate)
+        {
+            SafeRelease(_d3dContext);
+            SafeRelease(_d3dContext1);
+        }
+    }
+
+    void D3D11CommandContext::CheckWorkaround()
+    {
+        if (_d3dContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
         {
             D3D11_FEATURE_DATA_THREADING threadingCaps = { FALSE, FALSE };
 
-            hr = device->GetD3DDevice()->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingCaps, sizeof(threadingCaps));
+            HRESULT hr = static_cast<D3D11GraphicsDevice*>(_device)->GetD3DDevice()->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingCaps, sizeof(threadingCaps));
             if (SUCCEEDED(hr) && !threadingCaps.DriverCommandLists)
             {
                 // The runtime emulates command lists.
@@ -56,12 +68,16 @@ namespace Alimer
         }
     }
 
-    D3D11CommandContext::~D3D11CommandContext()
+    void D3D11CommandContext::BeginCompute()
     {
-        if (!_immediate)
-        {
-            SafeRelease(_context);
-        }
+        _isCompute = true;
+        BeginContext();
+    }
+
+    void D3D11CommandContext::BeginGraphics()
+    {
+        _isCompute = false;
+        BeginContext();
     }
 
     void D3D11CommandContext::BeginContext()
@@ -85,28 +101,28 @@ namespace Alimer
 
     void D3D11CommandContext::FlushImpl(bool waitForCompletion)
     {
-        _context->Flush();
+        _d3dContext->Flush();
     }
 
     void D3D11CommandContext::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
-        /*if (!framebuffer)
+        if (!framebuffer)
         {
-            framebuffer = _graphics->GetBackbufferRenderPass();
+            framebuffer = _device->GetSwapchainFramebuffer();
         }
 
-        _currentRenderPass = static_cast<D3D11RenderPass*>(renderPass);
-        _currentRenderPass->Bind(_context);
-        _currentColorAttachmentsBound = renderPass->GetColorAttachmentsCount();
+        _currentFramebuffer = static_cast<D3D11Framebuffer*>(framebuffer);
+        _currentColorAttachmentsBound = _currentFramebuffer->Bind(_d3dContext);
 
         for (uint32_t i = 0; i < _currentColorAttachmentsBound; ++i)
         {
-            const RenderPassAttachment& colorAttachment = renderPass->GetColorAttachment(i);
-
-            switch (colorAttachment.loadAction)
+            switch (descriptor[i].colors->loadAction)
             {
             case LoadAction::Clear:
-                _context->ClearRenderTargetView(_currentRenderPass->GetRTV(i), &clearColors[i].r);
+                _d3dContext->ClearRenderTargetView(
+                    _currentFramebuffer->GetColorRTV(i),
+                    &descriptor[i].colors->clearColor[i]
+                );
                 break;
 
             default:
@@ -115,9 +131,9 @@ namespace Alimer
         }
 
         // Set viewport and scissor from fbo.
-        D3D11_VIEWPORT viewport = {
+        /*D3D11_VIEWPORT viewport = {
             0.0f, 0.0f,
-            float(renderPass->GetWidth()), float(renderPass->GetHeight()),
+            float(_currentFramebuffer->GetWidth()), float(renderPass->GetHeight()),
             0.0f, 1.0f
         };
 
@@ -125,13 +141,15 @@ namespace Alimer
             LONG(renderPass->GetWidth()), LONG(renderPass->GetHeight())
         };
 
-        _context->RSSetViewports(1, &viewport);
-        _context->RSSetScissorRects(1, &scissor);*/
+        _d3dContext->RSSetViewports(1, &viewport);
+        _d3dContext->RSSetScissorRects(1, &scissor);*/
     }
 
     void D3D11CommandContext::EndRenderPassImpl()
     {
-        _context->OMSetRenderTargets(_currentColorAttachmentsBound, nullViews, nullptr);
+        static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+
+        _d3dContext->OMSetRenderTargets(_currentColorAttachmentsBound, nullViews, nullptr);
         _currentFramebuffer = nullptr;
     }
 
@@ -142,7 +160,7 @@ namespace Alimer
             viewport.width, viewport.height,
             D3D11_MIN_DEPTH, D3D11_MAX_DEPTH
         };
-        _context->RSSetViewports(1, &d3dViewport);
+        _d3dContext->RSSetViewports(1, &d3dViewport);
     }
 
     void D3D11CommandContext::SetScissor(const irect& scissor)
@@ -152,7 +170,7 @@ namespace Alimer
         scissorD3D.top = scissor.y;
         scissorD3D.right = scissor.x + scissor.width;
         scissorD3D.bottom = scissor.y + scissor.height;
-        _context->RSSetScissorRects(1, &scissorD3D);
+        _d3dContext->RSSetScissorRects(1, &scissorD3D);
     }
 
     void D3D11CommandContext::SetProgramImpl(Program* program)
@@ -172,7 +190,7 @@ namespace Alimer
     {
         auto d3dBuffer = static_cast<D3D11Buffer*>(buffer)->GetHandle();
         UINT stride = buffer->GetStride();
-        _context->IASetVertexBuffers(0, 1, &d3dBuffer, &stride, &offset);
+        _d3dContext->IASetVertexBuffers(0, 1, &d3dBuffer, &stride, &offset);
     }
 
     void D3D11CommandContext::SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets)
@@ -184,7 +202,7 @@ namespace Alimer
             _vboOffsets[i] = offsets[i];
         }
 
-        _context->IASetVertexBuffers(firstBinding, count, _currentVertexBuffers, _vboStrides, _vboOffsets);
+        _d3dContext->IASetVertexBuffers(firstBinding, count, _currentVertexBuffers, _vboStrides, _vboOffsets);
     }
 
     void D3D11CommandContext::SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
@@ -196,7 +214,7 @@ namespace Alimer
             dxgiFormat = DXGI_FORMAT_R32_UINT;
         }
 
-        _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
+        _d3dContext->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
     }
 
     /*void D3D11CommandBuffer::BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
@@ -383,7 +401,7 @@ namespace Alimer
 
         if (_currentTopology != topology)
         {
-            _context->IASetPrimitiveTopology(d3d::Convert(topology));
+            _d3dContext->IASetPrimitiveTopology(d3d::Convert(topology));
             _currentTopology = topology;
         }
 
@@ -458,7 +476,7 @@ namespace Alimer
         if (!PrepareDraw(topology))
             return;
 
-        _context->Draw(vertexCount, vertexStart);
+        _d3dContext->Draw(vertexCount, vertexStart);
     }
 
     void D3D11CommandContext::DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
@@ -466,12 +484,12 @@ namespace Alimer
         if (!PrepareDraw(topology))
             return;
 
-        _context->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
+        _d3dContext->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
     void D3D11CommandContext::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        _context->Dispatch(groupCountX, groupCountY, groupCountZ);
+        _d3dContext->Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 }
 

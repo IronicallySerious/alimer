@@ -24,6 +24,7 @@
 
 #include "Graphics/Texture.h"
 #include "D3D11Prerequisites.h"
+#include <unordered_map>
 
 namespace Alimer
 {
@@ -34,20 +35,22 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        D3D11Texture(D3D11GraphicsDevice* graphics, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture);
+        D3D11Texture(D3D11GraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture);
 
         /// Destructor.
         ~D3D11Texture() override;
 
         void Destroy() override;
 
-        TextureView* CreateTextureViewImpl(const TextureViewDescriptor* descriptor) override;
+        void InvalidateViews();
 
+        ID3D11Device*  GetD3DDevice() const { return _d3dDevice; }
         ID3D11Resource* GetResource() const { return _resource; }
         DXGI_FORMAT GetDXGIFormat() const { return _dxgiFormat; }
-        ID3D11ShaderResourceView* GetShaderResourceView() const { return _shaderResourceView; }
-        ID3D11SamplerState* GetSamplerState() const { return _samplerState.Get(); }
+        ID3D11RenderTargetView* GetRTV(uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize) const;
+        ID3D11DepthStencilView* GetDSV(uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize) const;
     private:
+        ID3D11Device* _d3dDevice;
         DXGI_FORMAT _dxgiFormat;
 
         union {
@@ -57,7 +60,7 @@ namespace Alimer
             ID3D11Texture3D* _texture3D;
         };
 
-        ID3D11ShaderResourceView* _shaderResourceView = nullptr;
-        Microsoft::WRL::ComPtr<ID3D11SamplerState> _samplerState{};
+        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11RenderTargetView>, ViewInfoHashFunc> _rtvs;
+        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11DepthStencilView>, ViewInfoHashFunc> _dsvs;
     };
 }

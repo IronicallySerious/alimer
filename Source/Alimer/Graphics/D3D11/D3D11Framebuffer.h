@@ -38,12 +38,18 @@ namespace Alimer
         ~D3D11Framebuffer() override;
         void Destroy() override;
 
-        void Bind(ID3D11DeviceContext* context);
-        ID3D11RenderTargetView* GetRTV(uint32_t index) const { return _views[index]; }
+        uint32_t Bind(ID3D11DeviceContext* context) const;
+        ID3D11RenderTargetView* GetColorRTV(uint32_t index) const
+        {
+            return _colorRtvs[index];
+        }
 
     private:
+        void ApplyColorAttachment(uint32_t index) override;
+        void ApplyDepthAttachment() override;
+
         uint32_t _viewsCount = 0;
-        std::vector<ID3D11RenderTargetView*> _views;
+        ID3D11RenderTargetView* _colorRtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
         ID3D11DepthStencilView* _depthStencilView = nullptr;
     };
 

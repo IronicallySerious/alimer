@@ -82,6 +82,19 @@ namespace Alimer
         Staging
     };
 
+    enum class LoadAction
+    {
+        DontCare,
+        Load,
+        Clear
+    };
+
+    enum class StoreAction
+    {
+        DontCare,
+        Store
+    };
+
     /// Primitive topology.
     enum class PrimitiveTopology : uint32_t
     {
@@ -204,20 +217,6 @@ namespace Alimer
 
         /// Size of each individual element in the buffer, in bytes. 
         uint32_t stride = 0;
-    };
-
-    class ALIMER_API RenderingSettings
-    {
-    public:
-        // Main swap chain settings.
-        uint32_t backBufferWidth = 1280;
-        uint32_t backBufferHeight = 720;
-
-#if ALIMER_PLATFORM_UWP
-        IUnknown*   windowHandle = nullptr;
-#elif ALIMER_PLATFORM_WINDOWS
-        HWND        windowHandle = nullptr;
-#endif
     };
 
     struct PipelineResource

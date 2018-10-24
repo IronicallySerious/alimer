@@ -37,9 +37,9 @@ namespace Alimer
         if (usageFlags & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))
         {
-            TextureViewDescriptor viewDescriptor = {};
-            viewDescriptor.format = descriptor->format;
-            _defaultTextureView = CreateTextureView(&viewDescriptor);
+            //TextureViewDescriptor viewDescriptor = {};
+            //viewDescriptor.format = descriptor->format;
+            //_defaultTextureView = CreateTextureView(&viewDescriptor);
         }
     }
 
@@ -60,12 +60,7 @@ namespace Alimer
         }
     }
 
-    TextureView* VulkanTexture::CreateTextureViewImpl(const TextureViewDescriptor* descriptor)
-    {
-        return new VulkanTextureView(static_cast<VulkanGraphicsDevice*>(_device), this, descriptor);
-    }
-
-    VulkanTextureView::VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor)
+    /*VulkanTextureView::VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor)
         : TextureView(texture, descriptor)
         , _logicalDevice(device->GetDevice())
         , _id(device->AllocateCookie())
@@ -101,5 +96,5 @@ namespace Alimer
             vkDestroyImageView(_logicalDevice, _vkImageView, nullptr);
             _vkImageView = VK_NULL_HANDLE;
         }
-    }
+    }*/
 }

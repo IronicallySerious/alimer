@@ -41,8 +41,7 @@ namespace Alimer
 
     void CommandContext::BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor)
     {
-        BeginRenderPassImpl(nullptr, descriptor);
-        _insideRenderPass = true;
+        BeginRenderPass(_device->GetSwapchainFramebuffer(), descriptor);
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)

@@ -37,6 +37,25 @@
 
 namespace Alimer
 {
+    struct SwapchainDescriptor
+    {
+        uint32_t width;
+        uint32_t height;
+        /// Preferred color format.
+        PixelFormat colorFormat = PixelFormat::BGRA8UNorm;
+        /// Preferred depth stencil format.
+        PixelFormat depthStencilFormat = PixelFormat::D24UNormS8;
+        /// Preferred samples.
+        SampleCount samples = SampleCount::Count1;
+        /// Per platform window handle.
+        void* windowHandle = nullptr;
+    };
+
+    struct RenderingSettings
+    {
+        SwapchainDescriptor swapchain;
+    };
+
     /// Low-level 3D graphics module.
     class ALIMER_API GraphicsDevice : public Object
     {

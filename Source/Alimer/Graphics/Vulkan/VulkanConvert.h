@@ -103,7 +103,7 @@ namespace Alimer
                     //case PixelFormat::BC3:					return VK_FORMAT_BC3_UNORM_BLOCK;
                     //case PixelFormat::BC3_SRGB:				return VK_FORMAT_BC3_SRGB_BLOCK;
                 default:
-                    return PixelFormat::Undefined;
+                    return PixelFormat::Unknown;
             }
         }
 

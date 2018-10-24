@@ -40,8 +40,6 @@ namespace Alimer
         VkImage GetVkImage() const { return _vkImage; }
 
 	private:
-        TextureView* CreateTextureViewImpl(const TextureViewDescriptor* descriptor) override;
-
         VkDevice _logicalDevice;
         VmaAllocator _allocator;
         VkImage _vkImage = VK_NULL_HANDLE;
@@ -49,11 +47,11 @@ namespace Alimer
 	};
 
     /// Vulkan TextureView implementation.
-    class VulkanTextureView final : public TextureView
+    /*class VulkanTextureView final 
     {
     public:
         VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor);
-        ~VulkanTextureView() override;
+        ~VulkanTextureView();
 
         VkImageView GetVkImageView() const { return _vkImageView; }
         uint64_t GetId() const { return _id; }
@@ -62,5 +60,5 @@ namespace Alimer
         VkDevice _logicalDevice;
         VkImageView _vkImageView = VK_NULL_HANDLE;
         uint64_t _id;
-    };
+    };*/
 }

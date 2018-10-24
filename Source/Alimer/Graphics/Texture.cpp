@@ -26,6 +26,12 @@
 
 namespace Alimer
 {
+    Texture::Texture(GraphicsDevice* device)
+        : GraphicsResource(device)
+    {
+
+    }
+
     Texture::Texture(GraphicsDevice* device, const TextureDescriptor* descriptor)
         : GraphicsResource(device)
         , _type(descriptor->type)
@@ -36,28 +42,7 @@ namespace Alimer
         _height = descriptor->height;
         _depth = descriptor->depth;
         _mipLevels = descriptor->depth;
-        _arrayLayers = descriptor->arrayLayers;
+        _arraySize = descriptor->arrayLayers;
         _samples = descriptor->samples;
-        _colorSpace = descriptor->colorSpace;
-    }
-
-    void Texture::Destroy()
-    {
-        _views.clear();
-    }
-
-    TextureView* Texture::CreateTextureView(const TextureViewDescriptor* descriptor)
-    {
-        SharedPtr<TextureView> newView(CreateTextureViewImpl(descriptor));
-        _views.push_back(newView);
-        return newView.Get();
-    }
-
-    // TextureView
-    TextureView::TextureView(Texture* texture, const TextureViewDescriptor* descriptor)
-        : _texture(texture)
-        , _format(descriptor->format)
-        , _baseMipLevel(descriptor->baseMipLevel)
-    {
     }
 }

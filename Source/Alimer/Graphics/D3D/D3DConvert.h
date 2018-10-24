@@ -29,48 +29,32 @@
 
 namespace Alimer
 {
+    struct DxgiFormatDesc
+    {
+        PixelFormat format;
+        DXGI_FORMAT dxgiFormat;
+    };
+
+    extern const DxgiFormatDesc s_DxgiFormatDesc[];
+
+    inline DXGI_FORMAT GetDxgiFormat(PixelFormat format)
+    {
+        assert(s_DxgiFormatDesc[(uint32_t)format].format == format);
+        return s_DxgiFormatDesc[(uint32_t)format].dxgiFormat;
+    }
+
     namespace d3d
     {
-        static inline DXGI_FORMAT Convert(PixelFormat format, bool srgb)
-        {
-            switch (format)
-            {
-            case PixelFormat::R8UNorm:              return DXGI_FORMAT_R8_UNORM;
-            case PixelFormat::RG8UNorm:             return DXGI_FORMAT_R8G8_UNORM;
-            case PixelFormat::RGBA8UNorm:			return srgb ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
-            case PixelFormat::BGRA8UNorm:			return srgb ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
-            case PixelFormat::Depth16UNorm:			return DXGI_FORMAT_D16_UNORM;
-            case PixelFormat::Depth32Float:			return DXGI_FORMAT_D32_FLOAT;
-            case PixelFormat::Depth24UNormStencil8:	return DXGI_FORMAT_D24_UNORM_S8_UINT;
-            case PixelFormat::Depth32FloatStencil8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-
-
-            case PixelFormat::BC1:					return srgb ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_BC1_UNORM;
-            case PixelFormat::BC2:					return srgb ? DXGI_FORMAT_BC2_UNORM_SRGB : DXGI_FORMAT_BC2_UNORM;
-            case PixelFormat::BC3:					return srgb ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
-            case PixelFormat::BC4UNorm:             return DXGI_FORMAT_BC4_UNORM;
-            case PixelFormat::BC4SNorm:             return DXGI_FORMAT_BC4_SNORM;
-            case PixelFormat::BC5UNorm:             return DXGI_FORMAT_BC5_UNORM;
-            case PixelFormat::BC5SNorm:             return DXGI_FORMAT_BC5_SNORM;
-
-            case PixelFormat::BC6HSFloat:           return DXGI_FORMAT_BC6H_SF16;
-            case PixelFormat::BC6HUFloat:           return DXGI_FORMAT_BC6H_UF16;
-
-            default:
-                ALIMER_UNREACHABLE();
-            }
-        }
-
         static inline PixelFormat Convert(DXGI_FORMAT format)
         {
             switch (format)
             {
-            case DXGI_FORMAT_R8_UNORM:            return PixelFormat::R8UNorm;
-            case DXGI_FORMAT_R8G8_UNORM:          return PixelFormat::RG8UNorm;
-            case DXGI_FORMAT_R8G8B8A8_UNORM:		return PixelFormat::RGBA8UNorm;
-            case DXGI_FORMAT_B8G8R8A8_UNORM:		return PixelFormat::BGRA8UNorm;
+            case DXGI_FORMAT_R8_UNORM:          return PixelFormat::R8UNorm;
+            case DXGI_FORMAT_R8G8_UNORM:        return PixelFormat::RG8UNorm;
+            case DXGI_FORMAT_R8G8B8A8_UNORM:    return PixelFormat::RGBA8UNorm;
+            case DXGI_FORMAT_B8G8R8A8_UNORM:    return PixelFormat::BGRA8UNorm;
             default:
-                return PixelFormat::Undefined;
+                return PixelFormat::Unknown;
             }
         }
 

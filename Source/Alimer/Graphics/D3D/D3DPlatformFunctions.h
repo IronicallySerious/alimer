@@ -34,26 +34,11 @@ namespace Alimer
 
         bool LoadFunctions(bool loadD3D12);
 
-        // DXGI
-        using PFN_DXGI_GET_DEBUG_INTERFACE1 = HRESULT(WINAPI*)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
-        PFN_DXGI_GET_DEBUG_INTERFACE1 dxgiGetDebugInterface1 = nullptr;
-
-        using PFN_CREATE_DXGI_FACTORY1 = HRESULT(WINAPI*)(REFIID riid, _COM_Outptr_ void** ppFactory);
-        PFN_CREATE_DXGI_FACTORY1 createDxgiFactory1 = nullptr;
-
-        using PFN_CREATE_DXGI_FACTORY2 = HRESULT(WINAPI*)(UINT Flags, REFIID riid, _COM_Outptr_ void** ppFactory);
-        PFN_CREATE_DXGI_FACTORY2 createDxgiFactory2 = nullptr;
-
-        // D3D11
-        PFN_D3D11_CREATE_DEVICE D3D11CreateDevice = nullptr;
-
         // Functions from d3d3compiler.dll
         pD3DCompile d3dCompile = nullptr;
 
     private:
-        HMODULE _dxgiLib = nullptr;
         HMODULE _d3dCompilerLib = nullptr;
-        HMODULE _d3d11Lib = nullptr;
         HMODULE _d3d12Lib = nullptr;
     };
 }

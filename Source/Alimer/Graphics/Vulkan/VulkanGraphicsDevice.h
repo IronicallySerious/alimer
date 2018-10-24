@@ -113,8 +113,10 @@ namespace Alimer
 
     private:
         int32_t ScorePhysicalDevice(VkPhysicalDevice physicalDevice);
+
+        void InitializeCaps();
         void CreateMemoryAllocator();
-        VkSurfaceKHR CreateSurface(const RenderingSettings& settings);
+        VkSurfaceKHR CreateSurface(const SwapchainDescriptor& descriptor);
 
 #ifdef ALIMER_THREADING
         std::atomic<uint64_t> _cookie;

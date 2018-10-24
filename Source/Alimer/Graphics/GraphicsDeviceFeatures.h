@@ -54,6 +54,9 @@ namespace Alimer
         bool GetMultithreading() const { return _multithreading; }
         void SetMultithreading(bool value) { _multithreading = value; }
 
+        uint32_t GetMaxColorAttachments() const { return _maxColorAttachments; }
+        void SetMaxColorAttachments(uint32_t value) { _maxColorAttachments = value; }
+
         void SetVendorId(uint32_t vendorID);
         void SetDeviceId(uint32_t deviceID);
         void SetDeviceName(const std::string& deviceName);
@@ -64,5 +67,6 @@ namespace Alimer
         uint32_t _deviceID;
         std::string _deviceName;
         bool _multithreading;
+        uint32_t _maxColorAttachments;
 	};
 }

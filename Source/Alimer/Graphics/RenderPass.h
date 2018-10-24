@@ -27,22 +27,9 @@
 
 namespace Alimer
 {
-    enum class LoadAction
-    {
-        DontCare,
-        Load,
-        Clear
-    };
-
-    enum class StoreAction
-    {
-        DontCare,
-        Store
-    };
-
     struct RenderPassColorAttachmentDescriptor
     {
-        TextureView* attachment;
+        //TextureView* attachment;
         LoadAction loadAction = LoadAction::Clear;
         StoreAction storeAction = StoreAction::Store;
         Color4 clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -60,7 +47,7 @@ namespace Alimer
     struct RenderPassDescriptor
     {
         RenderPassColorAttachmentDescriptor colorAttachments[MaxColorAttachments];
-        TextureView* depthStencil = nullptr;
+        //TextureView* depthStencil = nullptr;
 
         RenderPassDepthOperation depthOperation = RenderPassDepthOperation::None;
         float       clearDepth = 1.0f;

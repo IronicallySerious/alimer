@@ -29,6 +29,133 @@ namespace Alimer
     Framebuffer::Framebuffer(GraphicsDevice* device)
         : GraphicsResource(device)
     {
-        
+        _colorAttachments.resize(device->GetFeatures().GetMaxColorAttachments());
+    }
+
+    static bool ValidateAttachment(const Texture* texture,
+        uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize,
+        bool isDepthAttachment)
+    {
+#ifndef _DEBUG
+        return true;
+#endif
+        if (texture == nullptr)
+        {
+            return true;
+        }
+
+        if (mipLevel >= texture->GetMipLevels())
+        {
+            ALIMER_LOGERROR("Framebuffer attachment error : mipLevel out of bound.");
+            return false;
+        }
+
+        if (arraySize != RemainingArrayLayers)
+        {
+            if (arraySize == 0)
+            {
+                ALIMER_LOGERROR("Error when attaching texture to framebuffer : Requested to attach zero array slices");
+                return false;
+            }
+
+            if (texture->GetTextureType() == TextureType::Type3D)
+            {
+                if (arraySize + firstArraySlice > texture->GetDepth())
+                {
+                    ALIMER_LOGERROR("Error when attaching texture to framebuffer : Requested depth index is out of bound.");
+                    return false;
+                }
+            }
+            else
+            {
+                if (arraySize + firstArraySlice > texture->GetArraySize())
+                {
+                    ALIMER_LOGERROR("Error when attaching texture to framebuffer : Requested array index is out of bound.");
+                    return false;
+                }
+            }
+        }
+
+        if (isDepthAttachment)
+        {
+            if (IsDepthStencilFormat(texture->GetFormat()) == false)
+            {
+                ALIMER_LOGERROR("Error when attaching texture to framebuffer : Attaching to depth-stencil target, but resource has color format.");
+                return false;
+            }
+
+            if (!any(texture->GetUsage() & TextureUsage::RenderTarget))
+            {
+                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to depth-stencil target, the texture has no RenderTarget usage flag.");
+                return false;
+            }
+        }
+        else
+        {
+            if (IsDepthStencilFormat(texture->GetFormat()))
+            {
+                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to color target, but resource has depth-stencil format.");
+                return false;
+            }
+
+            if (!any(texture->GetUsage() & TextureUsage::RenderTarget))
+            {
+                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to color target, the texture has no RenderTarget usage flag.");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    void Framebuffer::AttachColorTarget(const SharedPtr<Texture>& colorTexture, uint32_t index, uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize)
+    {
+        if (index >= _colorAttachments.size())
+        {
+            ALIMER_LOGERRORF("Framebuffer attachment error, requested color index %u need to be in rage 0-%u", index, static_cast<uint32_t>(_colorAttachments.size()));
+            return;
+        }
+
+        if (ValidateAttachment(
+            colorTexture.Get(),
+            mipLevel,
+            firstArraySlice,
+            arraySize,
+            false))
+        {
+            _colorAttachments[index].texture = colorTexture;
+            _colorAttachments[index].mipLevel = mipLevel;
+            _colorAttachments[index].firstArraySlice = firstArraySlice;
+            _colorAttachments[index].arraySize = arraySize;
+            ApplyColorAttachment(index);
+        }
+    }
+
+    void Framebuffer::AttachDepthStencilTarget(const SharedPtr<Texture>& depthStencil, uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize)
+    {
+        if (ValidateAttachment(
+            depthStencil.Get(),
+            mipLevel,
+            firstArraySlice,
+            arraySize,
+            true))
+        {
+            _depthStencil.texture = depthStencil;
+            _depthStencil.mipLevel = mipLevel;
+            _depthStencil.firstArraySlice = firstArraySlice;
+            _depthStencil.arraySize = arraySize;
+            ApplyDepthAttachment();
+        }
+    }
+
+    SharedPtr<Texture> Framebuffer::GetColorTexture(uint32_t index) const
+    {
+        if (index >= _colorAttachments.size())
+        {
+            ALIMER_LOGERRORF("Framebuffer::GetColorTexture: Index is out of range. Requested %u but only %u color slots are available.", index, (uint32_t)(_colorAttachments.size()));
+            return nullptr;
+        }
+
+        return _colorAttachments[index].texture;
     }
 }
