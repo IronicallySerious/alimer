@@ -21,6 +21,7 @@
 //
 
 #include "D3D11Framebuffer.h"
+#include "D3D11TextureView.h"
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Texture.h"
 #include "../D3D/D3DConvert.h"
@@ -33,13 +34,15 @@ namespace Alimer
     {
     }
 
-    D3D11Framebuffer::~D3D11Framebuffer()
+    void D3D11Framebuffer::ClearImpl()
     {
-        Destroy();
-    }
+        for (uint32_t i = 0; i < _viewsCount; ++i)
+        {
+            _colorRtvs[i] = nullptr;
+        }
 
-    void D3D11Framebuffer::Destroy()
-    {
+        _viewsCount = 0;
+        _depthStencilView = nullptr;
     }
 
 
@@ -52,19 +55,11 @@ namespace Alimer
     void D3D11Framebuffer::ApplyColorAttachment(uint32_t index)
     {
         _viewsCount = std::max<uint32_t>(_viewsCount, index + 1);
-        _colorRtvs[index] = StaticCast<D3D11Texture>(_colorAttachments[index].texture)->GetRTV(
-            _colorAttachments[index].mipLevel,
-            _colorAttachments[index].firstArraySlice,
-            _colorAttachments[index].arraySize
-        );
+        _colorRtvs[index] = StaticCast<D3D11TextureView>(_colorAttachments[index])->GetRTV();
     }
 
     void D3D11Framebuffer::ApplyDepthAttachment()
     {
-        _depthStencilView = StaticCast<D3D11Texture>(_depthStencil.texture)->GetDSV(
-            _depthStencil.mipLevel,
-            _depthStencil.firstArraySlice,
-            _depthStencil.arraySize
-        );
+        _depthStencilView = StaticCast<D3D11TextureView>(_depthStencil)->GetDSV();
     }
 }

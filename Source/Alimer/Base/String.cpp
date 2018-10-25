@@ -1218,4 +1218,27 @@ namespace Alimer
             _length = newLength;
         }
     }
+
+    std::string str::Format(const char* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        char buf[256];
+        uint32_t n = std::vsnprintf(buf, sizeof(buf), format, args);
+        va_end(args);
+
+        // Static buffer large enough?
+        if (n < sizeof(buf))
+        {
+            return std::string(buf, n);
+        }
+
+        // Static buffer too small
+        std::string s;
+        s.resize(n + 1);
+        va_start(args, format);
+        std::vsnprintf((char *)s.c_str(), s.length(), format, args);
+        va_end(args);
+        return s;
+    }
 }

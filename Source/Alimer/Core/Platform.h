@@ -36,7 +36,8 @@
 #   endif
 #endif
 
-#include "../Base/String.h"
+#include "../AlimerConfig.h"
+#include <string>
 
 namespace Alimer
 {
@@ -116,7 +117,7 @@ namespace Alimer
     ALIMER_API const char* GetPlatformName();
 
     /// Get the operating system description.
-    ALIMER_API String GetOSDescription();
+    ALIMER_API std::string GetOSDescription();
 
     /// Load native library
     ALIMER_API void* LoadNativeLibrary(const char* name);
@@ -129,4 +130,7 @@ namespace Alimer
 
     /// Try to set the current thread name.
     ALIMER_API void SetCurrentThreadName(const char* name);
+
+    /// Suspends execution for given milliseconds.
+    ALIMER_API void Sleep(uint32_t milliseconds);
 }

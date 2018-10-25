@@ -60,6 +60,11 @@ namespace Alimer
         }
     }
 
+    SharedPtr<TextureView> VulkanTexture::CreateTextureView(const TextureViewDescriptor* descriptor) const
+    {
+        return nullptr;
+    }
+
     /*VulkanTextureView::VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor)
         : TextureView(texture, descriptor)
         , _logicalDevice(device->GetDevice())

@@ -224,18 +224,27 @@ namespace Alimer
         vkCmdBindIndexBuffer(_handle, vkBuffer, offset, vkIndexType);
     }
 
-    void VulkanCommandBuffer::DrawImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount)
+    void VulkanCommandBuffer::DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
     {
-        FlushRenderState(topology);
-        vkCmdDraw(_handle, vertexCount, 1, vertexStart, 0);
+        DrawInstancedImpl(topology, vertexCount, 1, startVertexLocation, 0);
     }
 
-    void VulkanCommandBuffer::DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
+    void VulkanCommandBuffer::DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
     {
         FlushRenderState(topology);
-        vkCmdDraw(_handle, vertexCount, instanceCount, vertexStart, baseInstance);
+        vkCmdDraw(_handle, vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
     }
 
+    void VulkanCommandBuffer::DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
+    {
+        DrawIndexedInstancedImpl(topology, indexCount, 1, startIndexLocation, baseVertexLocation, 0);
+    }
+
+    void VulkanCommandBuffer::DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
+    {
+        FlushRenderState(topology);
+        vkCmdDrawIndexed(_handle, indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
+    }
 
     void VulkanCommandBuffer::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {

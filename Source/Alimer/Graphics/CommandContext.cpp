@@ -114,31 +114,39 @@ namespace Alimer
         SetProgram(program->GetVariant(variant));
     }
 
-    void CommandContext::Draw(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount)
+    void CommandContext::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
     {
         ALIMER_ASSERT(_currentProgram);
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(vertexCount > 0);
-        DrawImpl(topology, vertexStart, vertexCount);
+        DrawImpl(topology, vertexCount, startVertexLocation);
     }
 
-    void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount)
+    void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
     {
         ALIMER_ASSERT(_currentProgram);
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(!_isCompute);
-        ALIMER_ASSERT(vertexCount > 1);
-        ALIMER_ASSERT(instanceCount > 1);
-        DrawInstancedImpl(topology, vertexStart, vertexCount, instanceCount, 0);
+        DrawInstancedImpl(topology, vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
     }
 
-    void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
+    void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
     {
         ALIMER_ASSERT(_currentProgram);
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(!_isCompute);
-        DrawInstancedImpl(topology, vertexStart, vertexCount, instanceCount, baseInstance);
+        ALIMER_ASSERT(indexCount > 1);
+        DrawIndexedImpl(topology, indexCount, startIndexLocation, baseVertexLocation);
+    }
+
+    void CommandContext::DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
+    {
+        ALIMER_ASSERT(_currentProgram);
+        ALIMER_ASSERT(_insideRenderPass);
+        ALIMER_ASSERT(!_isCompute);
+        ALIMER_ASSERT(indexCount > 1);
+        DrawIndexedInstancedImpl(topology, indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
     }
 
     void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -228,24 +236,6 @@ namespace Alimer
 
         BindTextureImpl(texture, set, binding);
     }
-
-    void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
-    {
-        if (!IsInsideRenderPass())
-        {
-            ALIMER_LOGCRITICAL("Cannot draw outside RenderPass.");
-        }
-
-        DrawIndexedCore(topology, indexCount, instanceCount, startIndex);
-    }
-
-    /*void CommandBuffer::ExecuteCommands(uint32_t commandBufferCount, CommandBuffer* const* commandBuffers)
-    {
-        ALIMER_ASSERT(commandBufferCount);
-        ALIMER_ASSERT(commandBuffers);
-
-        ExecuteCommandsCore(commandBufferCount, commandBuffers);
-    }*/
 #endif // TODO
 
     }

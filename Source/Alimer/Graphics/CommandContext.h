@@ -40,23 +40,19 @@ namespace Alimer
         Color4      clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
     };
 
-    struct DepthAttachmentAction {
-        LoadAction  loadAction = LoadAction::Clear;
-        StoreAction storeAction = StoreAction::DontCare;
+    struct DepthStencilAttachmentAction {
+        LoadAction  depthLoadAction = LoadAction::Clear;
+        StoreAction depthStoreAction = StoreAction::DontCare;
+        LoadAction  stencilLoadAction = LoadAction::DontCare;
+        StoreAction stencilStoreAction = StoreAction::DontCare;
         float       clearDepth = 1.0f;
-    };
-
-    struct StencilAttachmentAction {
-        LoadAction  loadAction = LoadAction::DontCare;
-        StoreAction storeAction = StoreAction::DontCare;
         uint8_t     clearStencil = 0;
     };
 
     struct RenderPassBeginDescriptor
     {
-        ColorAttachmentAction   colors[MaxColorAttachments];
-        DepthAttachmentAction   depth;
-        StencilAttachmentAction stencil;
+        ColorAttachmentAction           colors[MaxColorAttachments];
+        DepthStencilAttachmentAction    depthStencil;
     };
 
     /// Defines a command context for recording gpu commands.
@@ -88,9 +84,11 @@ namespace Alimer
         void SetProgram(Program* program);
         void SetProgram(const std::string &vertex, const std::string &fragment, const std::vector<std::pair<std::string, int>> &defines = {});
 
-        void Draw(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount);
-        void DrawInstanced(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount);
-        void DrawInstanced(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance);
+        void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation);
+        void DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation);
+
+        void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation);
+        void DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation);
 
         // Compute
         void Dispatch(uint32_t groupCountX = 1, uint32_t groupCountY = 1, uint32_t groupCountZ = 1);
@@ -116,8 +114,10 @@ namespace Alimer
         virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) = 0;
         virtual void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
-        virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount) = 0;
-        virtual void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance) = 0;
+        virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) = 0;
+        virtual void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) = 0;
+        virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) = 0;
+        virtual void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;
 
         virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
@@ -130,7 +130,5 @@ namespace Alimer
 
         uint32_t _dirtySets = 0;
         uint32_t _dirtyVbos = 0;
-
-    private:
     };
 }

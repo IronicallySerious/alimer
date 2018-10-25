@@ -23,7 +23,9 @@
 #pragma once
 
 #include "../AlimerConfig.h"
+#include <cassert>
 #include <string>
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4201) 

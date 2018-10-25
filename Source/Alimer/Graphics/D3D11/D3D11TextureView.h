@@ -24,38 +24,24 @@
 
 #include "Graphics/Texture.h"
 #include "D3D11Prerequisites.h"
-#include <unordered_map>
 
 namespace Alimer
 {
-    class D3D11GraphicsDevice;
+    class D3D11Texture;
 
-    /// D3D11 Texture implementation.
-    class D3D11Texture final : public Texture
+    /// D3D11 TextureView implementation.
+    class D3D11TextureView final : public TextureView
     {
     public:
-        /// Constructor.
-        D3D11Texture(D3D11GraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture);
+        D3D11TextureView(const D3D11Texture* texture, const TextureViewDescriptor* descriptor);
 
-        /// Destructor.
-        ~D3D11Texture() override;
+        ~D3D11TextureView() override;
 
-        void Destroy() override;
+        ID3D11RenderTargetView* GetRTV() const { return _rtv.Get(); }
+        ID3D11DepthStencilView* GetDSV() const { return _dsv.Get(); }
 
-        ID3D11Device*  GetD3DDevice() const { return _d3dDevice; }
-        ID3D11Resource* GetResource() const { return _resource; }
-        DXGI_FORMAT GetDXGIFormat() const { return _dxgiFormat; }
-
-        SharedPtr<TextureView> CreateTextureView(const TextureViewDescriptor* descriptor) const override;
     private:
-        ID3D11Device* _d3dDevice;
-        DXGI_FORMAT _dxgiFormat;
-
-        union {
-            ID3D11Resource* _resource;
-            ID3D11Texture1D* _texture1D;
-            ID3D11Texture2D* _texture2D;
-            ID3D11Texture3D* _texture3D;
-        };
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> _rtv;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> _dsv;
     };
 }

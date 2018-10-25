@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "D3D11CommandBuffer.h"
+#include "D3D11CommandContext.h"
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Texture.h"
 #include "D3D11Framebuffer.h"
@@ -130,19 +130,49 @@ namespace Alimer
             }
         }
 
+        // Depth/stencil now.
+        auto depthStencilTexture = framebuffer->GetDepthStencilTexture();
+        if (depthStencilTexture)
+        {
+            UINT clearFlags = 0;
+            if (IsDepthFormat(depthStencilTexture->GetFormat())
+                && (descriptor->depthStencil.depthLoadAction == LoadAction::Clear))
+            {
+                clearFlags |= D3D11_CLEAR_DEPTH;
+            }
+
+            if (IsStencilFormat(depthStencilTexture->GetFormat()) &&
+                (descriptor->depthStencil.stencilLoadAction == LoadAction::Clear))
+            {
+                clearFlags |= D3D11_CLEAR_STENCIL;
+            }
+
+            if (clearFlags != 0)
+            {
+                _d3dContext->ClearDepthStencilView(
+                    _currentFramebuffer->GetDSV(),
+                    clearFlags,
+                    descriptor->depthStencil.clearDepth,
+                    descriptor->depthStencil.clearStencil);
+            }
+        }
+
+
         // Set viewport and scissor from fbo.
-        /*D3D11_VIEWPORT viewport = {
+        D3D11_VIEWPORT viewport = {
             0.0f, 0.0f,
-            float(_currentFramebuffer->GetWidth()), float(renderPass->GetHeight()),
+            static_cast<float>(_currentFramebuffer->GetWidth()),
+            static_cast<float>(_currentFramebuffer->GetHeight()),
             0.0f, 1.0f
         };
 
         D3D11_RECT scissor = { 0, 0,
-            LONG(renderPass->GetWidth()), LONG(renderPass->GetHeight())
+            static_cast<LONG>(_currentFramebuffer->GetWidth()),
+            static_cast<LONG>(_currentFramebuffer->GetHeight())
         };
 
         _d3dContext->RSSetViewports(1, &viewport);
-        _d3dContext->RSSetScissorRects(1, &scissor);*/
+        _d3dContext->RSSetScissorRects(1, &scissor);
     }
 
     void D3D11CommandContext::EndRenderPassImpl()
@@ -256,7 +286,7 @@ namespace Alimer
         }
     }*/
 
-    bool D3D11CommandContext::PrepareDraw(PrimitiveTopology topology)
+    void D3D11CommandContext::FlushRenderState(PrimitiveTopology topology)
     {
 #if TODO
         uint32_t updateVboMask = _dirtyVbos & _currentPipeline->GetBindingMask();
@@ -429,8 +459,6 @@ namespace Alimer
         }
 
         FlushDescriptorSets();*/
-
-        return true;
     }
 
     /*void D3D11CommandBuffer::FlushDescriptorSet(uint32_t set)
@@ -471,20 +499,28 @@ namespace Alimer
         _dirtySets &= ~updateSet;
     }*/
 
-    void D3D11CommandContext::DrawImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount)
+    void D3D11CommandContext::DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
     {
-        if (!PrepareDraw(topology))
-            return;
-
-        _d3dContext->Draw(vertexCount, vertexStart);
+        FlushRenderState(topology);
+        _d3dContext->Draw(vertexCount, startVertexLocation);
     }
 
-    void D3D11CommandContext::DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexStart, uint32_t vertexCount, uint32_t instanceCount, uint32_t baseInstance)
+    void D3D11CommandContext::DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
     {
-        if (!PrepareDraw(topology))
-            return;
+        FlushRenderState(topology);
+        _d3dContext->DrawInstanced(vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
+    }
 
-        _d3dContext->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
+    void D3D11CommandContext::DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
+    {
+        FlushRenderState(topology);
+        _d3dContext->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation);
+    }
+
+    void D3D11CommandContext::DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
+    {
+        FlushRenderState(topology);
+        _d3dContext->DrawIndexedInstanced(indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
     }
 
     void D3D11CommandContext::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)

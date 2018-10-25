@@ -43,6 +43,26 @@ namespace Alimer
         return s_DxgiFormatDesc[(uint32_t)format].dxgiFormat;
     }
 
+    inline DXGI_FORMAT GetDxgiTypelessDepthFormat(PixelFormat format)
+    {
+        switch (format)
+        {
+        case PixelFormat::D16UNorm:
+            return DXGI_FORMAT_R16_TYPELESS;
+        case PixelFormat::D32FloatS8:
+            return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        case PixelFormat::D24UNormS8:
+            return DXGI_FORMAT_R24G8_TYPELESS;
+        case PixelFormat::D32Float:
+            return DXGI_FORMAT_R32_TYPELESS;
+        default:
+            assert(IsDepthStencilFormat(format) == false);
+            assert(s_DxgiFormatDesc[(uint32_t)format].format == format);
+            return s_DxgiFormatDesc[(uint32_t)format].dxgiFormat;
+        }
+    }
+
+
     namespace d3d
     {
         static inline PixelFormat Convert(DXGI_FORMAT format)

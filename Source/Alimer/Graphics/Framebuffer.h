@@ -35,6 +35,11 @@ namespace Alimer
 
     public:
         /**
+        * Clear the framebuffer attachments.
+        */
+        void Clear();
+
+        /**
         * Attach a color texture.
         *
         * @param colorTexture The color texture.
@@ -58,22 +63,34 @@ namespace Alimer
         /**
         * Get an attached color texture. If no texture is attached will return nullptr.
         */
-        SharedPtr<Texture> GetColorTexture(uint32_t index) const;
+        const Texture* GetColorTexture(uint32_t index) const;
 
-        struct Attachment
-        {
-            SharedPtr<Texture> texture = nullptr;
-            uint32_t mipLevel = 0;
-            uint32_t firstArraySlice = 0;
-            uint32_t arraySize = RemainingArrayLayers;
-        };
+        /**
+        * Get the attached depth-stencil texture, or nullptr if no texture is attached.
+        */
+        const Texture* GetDepthStencilTexture() const;
+
+        /**
+        * Get the width of the framebuffer.
+        */
+        uint32_t GetWidth() const { return _width; }
+
+        /**
+        * Get the height of the framebuffer.
+        */
+        uint32_t GetHeight() const { return _height; }
 
     private:
         virtual void ApplyColorAttachment(uint32_t index) = 0;
         virtual void ApplyDepthAttachment() = 0;
+        virtual void ClearImpl() = 0;
 
     protected:
-        std::vector<Attachment> _colorAttachments;
-        Attachment _depthStencil;
+        std::vector<SharedPtr<TextureView>> _colorAttachments;
+        SharedPtr<TextureView> _depthStencil = nullptr;
+
+        uint32_t _width;
+        uint32_t _height;
+        uint32_t _depth;
     };
 }

@@ -26,12 +26,6 @@
 
 namespace Alimer
 {
-    Texture::Texture(GraphicsDevice* device)
-        : GraphicsResource(device)
-    {
-
-    }
-
     Texture::Texture(GraphicsDevice* device, const TextureDescriptor* descriptor)
         : GraphicsResource(device)
         , _type(descriptor->type)
@@ -42,7 +36,76 @@ namespace Alimer
         _height = descriptor->height;
         _depth = descriptor->depth;
         _mipLevels = descriptor->depth;
-        _arraySize = descriptor->arrayLayers;
+        _arrayLayers = descriptor->arrayLayers;
         _samples = descriptor->samples;
+    }
+
+    void Texture::InvalidateViews()
+    {
+        _views.clear();
+    }
+
+    SharedPtr<TextureView> Texture::GetView(uint32_t baseMipLevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount) const
+    {
+        if (baseMipLevel >= _mipLevels)
+        {
+            baseMipLevel = _mipLevels - 1;
+        }
+
+        if (baseArrayLayer >= _arrayLayers)
+        {
+            baseArrayLayer = _arrayLayers - 1;
+        }
+
+        if (levelCount == RemainingMipLevels)
+        {
+            levelCount = _mipLevels - baseMipLevel;
+        }
+        else if (levelCount + baseMipLevel > _mipLevels)
+        {
+            levelCount = _mipLevels - baseMipLevel;
+        }
+
+        if (layerCount == RemainingArrayLayers)
+        {
+            layerCount = _arrayLayers - baseArrayLayer;
+        }
+        else if (layerCount + baseArrayLayer > _arrayLayers)
+        {
+            layerCount = _arrayLayers - baseArrayLayer;
+        }
+
+        Util::Hasher hasher;
+        hasher.u32(baseMipLevel);
+        hasher.u32(levelCount);
+        hasher.u32(baseArrayLayer);
+        hasher.u32(layerCount);
+        auto hash = hasher.get();
+
+        auto it = _views.find(hash);
+        if (it != end(_views))
+        {
+            return it->second;
+        }
+
+        TextureViewDescriptor viewDescriptor;
+        viewDescriptor.format = _format;
+        viewDescriptor.baseMipLevel = baseMipLevel;
+        viewDescriptor.levelCount = levelCount;
+        viewDescriptor.baseArrayLayer = baseArrayLayer;
+        viewDescriptor.layerCount = layerCount;
+        _views[hash] = CreateTextureView(&viewDescriptor);
+
+        return _views[hash];
+    }
+
+    SharedPtr<TextureView> Texture::GetDefaultTextureView() const
+    {
+        if (_defaultTextureView.IsNull())
+        {
+            _defaultTextureView = GetView(0, _mipLevels, 0, _arrayLayers);
+        }
+
+        return _defaultTextureView;
     }
 }

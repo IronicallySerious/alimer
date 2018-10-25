@@ -29,7 +29,23 @@ namespace Alimer
     Framebuffer::Framebuffer(GraphicsDevice* device)
         : GraphicsResource(device)
     {
-        _colorAttachments.resize(device->GetFeatures().GetMaxColorAttachments());
+        _colorAttachments.resize(_device->GetFeatures().GetMaxColorAttachments());
+        _width = (uint32_t)-1;
+        _height = (uint32_t)-1;
+        _depth = (uint32_t)-1;
+    }
+
+    void Framebuffer::Clear()
+    {
+        for (size_t i = 0; i < _colorAttachments.size(); i++)
+        {
+            _colorAttachments[i] = nullptr;
+        }
+
+        _width = (uint32_t)-1;
+        _height = (uint32_t)-1;
+        _depth = (uint32_t)-1;
+        ClearImpl();
     }
 
     static bool ValidateAttachment(const Texture* texture,
@@ -68,7 +84,7 @@ namespace Alimer
             }
             else
             {
-                if (arraySize + firstArraySlice > texture->GetArraySize())
+                if (arraySize + firstArraySlice > texture->GetArrayLayers())
                 {
                     ALIMER_LOGERROR("Error when attaching texture to framebuffer : Requested array index is out of bound.");
                     return false;
@@ -123,10 +139,18 @@ namespace Alimer
             arraySize,
             false))
         {
-            _colorAttachments[index].texture = colorTexture;
-            _colorAttachments[index].mipLevel = mipLevel;
-            _colorAttachments[index].firstArraySlice = firstArraySlice;
-            _colorAttachments[index].arraySize = arraySize;
+            if (colorTexture)
+            {
+                _width = min(_width, colorTexture->GetWidth(mipLevel));
+                _height = min(_height, colorTexture->GetHeight(mipLevel));
+                _depth = min(_depth, colorTexture->GetDepth(mipLevel));
+                _colorAttachments[index] = colorTexture->GetView(mipLevel, 1, firstArraySlice, arraySize);
+            }
+            else
+            {
+                _colorAttachments[index] = nullptr;
+            }
+
             ApplyColorAttachment(index);
         }
     }
@@ -140,15 +164,23 @@ namespace Alimer
             arraySize,
             true))
         {
-            _depthStencil.texture = depthStencil;
-            _depthStencil.mipLevel = mipLevel;
-            _depthStencil.firstArraySlice = firstArraySlice;
-            _depthStencil.arraySize = arraySize;
+            if (depthStencil)
+            {
+                _width = min(_width, depthStencil->GetWidth(mipLevel));
+                _height = min(_height, depthStencil->GetHeight(mipLevel));
+                _depth = min(_depth, depthStencil->GetDepth(mipLevel));
+                _depthStencil = depthStencil->GetView(mipLevel, 1, firstArraySlice, arraySize);
+            }
+            else
+            {
+                _depthStencil = nullptr;
+            }
+
             ApplyDepthAttachment();
         }
     }
 
-    SharedPtr<Texture> Framebuffer::GetColorTexture(uint32_t index) const
+    const Texture* Framebuffer::GetColorTexture(uint32_t index) const
     {
         if (index >= _colorAttachments.size())
         {
@@ -156,6 +188,11 @@ namespace Alimer
             return nullptr;
         }
 
-        return _colorAttachments[index].texture;
+        return _colorAttachments[index]->GetTexture();
+    }
+
+    const Texture* Framebuffer::GetDepthStencilTexture() const
+    {
+        return _depthStencil->GetTexture();
     }
 }

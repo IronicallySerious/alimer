@@ -28,7 +28,7 @@
 
 // ntdll.dll function pointer typedefs
 typedef LONG NTSTATUS, *PNTSTATUS;
-typedef NTSTATUS(WINAPI* PFN_RtlGetVersion)(PRTL_OSVERSIONINFOW);
+typedef NTSTATUS(WINAPI* PFN_RtlGetVersion)(PRTL_OSVERSIONINFOEXW);
 typedef LONG(WINAPI * PFN_RtlVerifyVersionInfo)(OSVERSIONINFOEXW*, ULONG, ULONGLONG);
 
 static HMODULE s_ntdllHandle = LoadLibraryA("ntdll.dll");
@@ -158,13 +158,13 @@ namespace Alimer
         }
     }
 
-    String GetOSDescription()
+    std::string GetOSDescription()
     {
 #if ALIMER_PLATFORM_WINDOWS
-        RTL_OSVERSIONINFOW osvi = { 0 };
-        osvi.dwOSVersionInfoSize = sizeof(osvi);
+        RTL_OSVERSIONINFOEXW osvi = { 0 };
+        osvi.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
 
-        String version = "Microsoft Windows";
+        std::string version = "Microsoft Windows";
 
         static PFN_RtlGetVersion RtlGetVersion_ = nullptr;
 
@@ -175,13 +175,25 @@ namespace Alimer
 
         if (RtlGetVersion_(&osvi) == 0)
         {
-            version = String::Format("%s %d.%d.%d %s",
-                version.CString(),
-                osvi.dwMajorVersion,
-                osvi.dwMinorVersion,
-                osvi.dwBuildNumber,
-                String(osvi.szCSDVersion).CString()
-            );
+            if (osvi.szCSDVersion[0] != '\0')
+            {
+                version = str::Format("%s %d.%d.%d %s",
+                    version.c_str(),
+                    osvi.dwMajorVersion,
+                    osvi.dwMinorVersion,
+                    osvi.dwBuildNumber,
+                    String(osvi.szCSDVersion).CString()
+                );
+            }
+            else
+            {
+                version = str::Format("%s %d.%d.%d",
+                    version.c_str(),
+                    osvi.dwMajorVersion,
+                    osvi.dwMinorVersion,
+                    osvi.dwBuildNumber
+                );
+            }
         }
 
         return version;
@@ -252,6 +264,15 @@ namespace Alimer
             ALIMER_LOGERROR("Failed to set thread name");
         }
 #  endif
+#endif
+    }
+
+    void Sleep(uint32_t milliseconds)
+    {
+#if defined(_MSC_VER)
+        ::Sleep(milliseconds);
+#else
+        usleep(milliseconds * 1000);
 #endif
     }
 }

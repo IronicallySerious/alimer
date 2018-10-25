@@ -701,6 +701,9 @@ namespace Alimer
             inner::JoinHelper(stream, std::forward<Ts>(ts)...);
             return stream.str();
         }
+
+        /// Return a formatted string.
+        std::string Format(const char* format, ...);
     }
 }
 
