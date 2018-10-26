@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+include(ucm)
 
 # Source environment
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -152,23 +152,22 @@ alimer_option (ALIMER_VULKAN "Enable Vulkan backend")
 alimer_option (ALIMER_CSHARP "Enable C# support")
 alimer_option (ALIMER_TOOLS "Enable Tools")
 
+
 set (ALIMER_FLAGS "")
 set (ALIMER_DEFS "")
 set (ALIMER_INTERNAL_FLAGS "")
 set (ALIMER_INTERNAL_DEFS "")
 set (ALIMER_GENERATED_FLAGS "")
 
+# Select static/dynamic runtime library
+if( ALIMER_WINDOWS )
+    ucm_set_runtime(STATIC)
+elseif( ALIMER_UWP OR ALIMER_XBOX_ONE )
+    ucm_set_runtime(DYNAMIC)
+endif()
+
 # Setup global per-platform compiler/linker options
 if( MSVC )
-    # Select static/dynamic runtime library
-    if( ALIMER_WINDOWS )
-        set(CMAKE_C_FLAGS_DEV "${CMAKE_C_FLAGS_DEV} /MT ")
-        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT ")
-
-        set(CMAKE_CXX_FLAGS_DEV "${CMAKE_CXX_FLAGS_DEV} /MT")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-    endif()
-
 	# Disable specific warnings
 	add_compile_options(/wd4127 /wd4351 /wd4005)
 

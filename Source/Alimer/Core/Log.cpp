@@ -51,7 +51,7 @@ namespace Alimer
         "OFF"
     };
 
-#if defined(ALIMER_DEV) && !ALIMER_PLATFORM_UWP 
+#if ALIMER_DEV && !ALIMER_PLATFORM_UWP 
     WORD SetConsoleAttribs(HANDLE consoleHandle, WORD attribs)
     {
         CONSOLE_SCREEN_BUFFER_INFO orig_buffer_info;
@@ -85,7 +85,7 @@ namespace Alimer
         SetLevel(LogLevel::Info);
 #endif
 
-#ifdef ALIMER_DEV
+#if ALIMER_DEV
         AllocConsole();
 #endif
         __logInstance = this;
@@ -185,7 +185,7 @@ namespace Alimer
 
         OutputDebugStringW(szBuffer.data());
 
-#if defined(ALIMER_DEV) && !ALIMER_PLATFORM_UWP 
+#if ALIMER_DEV && !ALIMER_PLATFORM_UWP 
         HANDLE handle = nullptr;
         switch (level)
         {

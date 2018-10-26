@@ -92,7 +92,7 @@ namespace Alimer
 
         Timer &GetFrameTimer() { return _timer; }
 
-        inline ResourceManager* GetResources() { return &_resources; }
+        inline ResourceManager& GetResources() { return _resources; }
         inline Window* GetMainWindow() const { return _mainWindow; }
         inline GraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice; }
         inline Input& GetInput() { return _input; }

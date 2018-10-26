@@ -51,7 +51,7 @@ namespace Alimer
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
 
-        void SetProgramImpl(Program* program) override;
+        void SetShaderImpl(Shader* shader) override;
 
         void SetVertexDescriptor(const VertexDescriptor* descriptor) override;
         void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;

@@ -45,6 +45,10 @@ alimer_external_target("third_party" OSDependent)
 alimer_external_target("third_party" SPIRV)
 target_compile_options(glslang PUBLIC -DAMD_EXTENSIONS -DNV_EXTENSIONS )
 
+# if (NOT ALIMER_DISABLE_LUA)
+    # add_subdirectory(Lua)
+# endif()
+
 # Vulkan libs
 if (ALIMER_VULKAN)
     # volk

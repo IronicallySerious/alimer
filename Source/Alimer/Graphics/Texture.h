@@ -50,7 +50,6 @@ namespace Alimer
 
     struct TextureDescriptor
     {
-    public:
         TextureType type = TextureType::Type2D;
         TextureUsage usage = TextureUsage::ShaderRead;
         PixelFormat format = PixelFormat::RGBA8UNorm;
@@ -140,8 +139,13 @@ namespace Alimer
     class ALIMER_API TextureView : public RefCounted
     {
     protected:
-        TextureView(const Texture* resource)
+        TextureView(const Texture* resource, const TextureViewDescriptor* descriptor)
             : _texture(resource)
+            , _format(descriptor->format)
+            , _baseMipLevel(descriptor->baseMipLevel)
+            , _levelCount(descriptor->levelCount)
+            , _baseArrayLayer(descriptor->baseArrayLayer)
+            , _layerCount(descriptor->layerCount)
         {
 
         }
@@ -153,5 +157,10 @@ namespace Alimer
 
     protected:
         const Texture* _texture;
+        PixelFormat _format = PixelFormat::Unknown;
+        uint32_t _baseMipLevel = 0;
+        uint32_t _levelCount = RemainingMipLevels;
+        uint32_t _baseArrayLayer = 0;
+        uint32_t _layerCount = RemainingArrayLayers;
     };
 }

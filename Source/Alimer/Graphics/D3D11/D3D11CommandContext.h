@@ -44,7 +44,7 @@ namespace Alimer
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
 
-        void SetProgramImpl(Program* program) override;
+        void SetShaderImpl(Shader* shader) override;
 
         void SetVertexDescriptor(const VertexDescriptor* descriptor) override;
         void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
@@ -81,10 +81,11 @@ namespace Alimer
         const D3D11Framebuffer* _currentFramebuffer = nullptr;
         uint32_t _currentColorAttachmentsBound;
         PrimitiveTopology _currentTopology;
-        D3D11Shader* _currentShader;
+        D3D11Shader* _currentD3DShader;
         ID3D11RasterizerState1* _currentRasterizerState;
         ID3D11DepthStencilState* _currentDepthStencilState;
         ID3D11BlendState1* _currentBlendState;
+        VertexDescriptor _vertexDescriptor;
 
         struct BufferBindingInfo {
             GpuBuffer*  buffer;

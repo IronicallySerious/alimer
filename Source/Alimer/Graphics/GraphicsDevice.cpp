@@ -51,7 +51,6 @@ namespace Alimer
     GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation)
         : _backend(backend)
         , _validation(validation)
-        , _shaderManager(this)
     {
         AddSubsystem(this);
     }
@@ -78,7 +77,6 @@ namespace Alimer
         }
 
         _shaders.Clear();
-        _programs.Clear();
         _context.Reset();
     }
 
@@ -309,66 +307,18 @@ namespace Alimer
         return ret;
     }
 
-    Program* GraphicsDevice::RequestProgram(ShaderModule* vertex, ShaderModule* fragment)
+    Shader* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)
     {
-        ALIMER_ASSERT(vertex);
-        ALIMER_ASSERT(fragment);
-
-        if (vertex->GetStage() != ShaderStage::Vertex)
-            ALIMER_LOGCRITICAL("Invalid vertex stage module");
-
-        if (fragment->GetStage() != ShaderStage::Fragment)
-            ALIMER_LOGCRITICAL("Invalid fragment stage module");
-
-        Util::Hasher hasher;
-        hasher.u64(vertex->GetHash());
-        hasher.u64(fragment->GetHash());
-
-        auto hash = hasher.get();
-        auto *ret = _programs.Find(hash);
-        if (!ret)
-        {
-            std::vector<ShaderModule*> modules(2);
-            modules[0] = vertex;
-            modules[1] = fragment;
-            //ret = _programs.Insert(hash, CreateProgramImpl(hash, modules));
-            ALIMER_LOGDEBUGF("New graphics program created: '%s'", std::to_string(hash).c_str());
-        }
-        return ret;
+        ALIMER_ASSERT(descriptor);
+        return CreateShaderImpl(descriptor);
     }
 
-    Program* GraphicsDevice::RequestProgram(ShaderModule* compute)
+    Shader* GraphicsDevice::CreateShader(const ShaderBlob& compute)
     {
-        ALIMER_ASSERT(compute);
-
-        if (compute->GetStage() != ShaderStage::Compute)
-        {
-            ALIMER_LOGCRITICAL("Shader stage module is not compute");
-        }
-
-        Util::Hasher hasher;
-        hasher.u64(compute->GetHash());
-
-        auto hash = hasher.get();
-        auto *ret = _programs.Find(hash);
-        if (!ret)
-        {
-            std::vector<ShaderModule*> modules(1);
-            modules[0] = compute;
-            //ret = _programs.Insert(hash, CreateProgramImpl(hash, modules));
-            //ALIMER_LOGDEBUGF("New compute program created: '%s'", std::to_string(hash).c_str());
-        }
-
-        return ret;
-    }
-
-    Program* GraphicsDevice::RequestProgram(
-        const uint32_t *vertexData, size_t vertexSize,
-        const uint32_t *fragmentData, size_t fragmentSize)
-    {
-        ShaderModule* vertex = RequestShader(vertexData, vertexSize);
-        ShaderModule* fragment = RequestShader(fragmentData, fragmentSize);
-        return RequestProgram(vertex, fragment);
+        ALIMER_ASSERT(compute.size);
+        ShaderDescriptor descriptor;
+        descriptor.stages[static_cast<uint32_t>(ShaderStage::Compute)] = compute;
+        return CreateShader(&descriptor);
     }
 
     void GraphicsDevice::AddGraphicsResource(GraphicsResource* resource)
@@ -391,10 +341,5 @@ namespace Alimer
     {
         // TODO: Add callback.
         ALIMER_UNUSED(message);
-    }
-
-    ShaderManager &GraphicsDevice::GetShaderManager()
-    {
-        return _shaderManager;
     }
 }

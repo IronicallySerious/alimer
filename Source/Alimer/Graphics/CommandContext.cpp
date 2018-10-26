@@ -98,34 +98,27 @@ namespace Alimer
         SetIndexBufferImpl(buffer, offset, indexType);
     }
 
-    void CommandContext::SetProgram(Program* program)
+    void CommandContext::SetShader(Shader* shader)
     {
-        if (_currentProgram == program)
+        if (_currentShader == shader)
             return;
 
-        _currentProgram = program;
-        SetProgramImpl(program);
-    }
-
-    void CommandContext::SetProgram(const std::string &vertex, const std::string &fragment, const std::vector<std::pair<std::string, int>> &defines)
-    {
-        ShaderProgram* program = _device->GetShaderManager().RegisterGraphics(vertex, fragment);
-        uint32_t variant = program->RegisterVariant(defines);
-        SetProgram(program->GetVariant(variant));
+        _currentShader = shader;
+        SetShaderImpl(shader);
     }
 
     void CommandContext::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
     {
-        ALIMER_ASSERT(_currentProgram);
+        ALIMER_ASSERT(_currentShader );
         ALIMER_ASSERT(_insideRenderPass);
-        ALIMER_ASSERT(!_isCompute);
+        //ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(vertexCount > 0);
         DrawImpl(topology, vertexCount, startVertexLocation);
     }
 
     void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
     {
-        ALIMER_ASSERT(_currentProgram);
+        ALIMER_ASSERT(_currentShader);
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(!_isCompute);
         DrawInstancedImpl(topology, vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
@@ -133,7 +126,7 @@ namespace Alimer
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
     {
-        ALIMER_ASSERT(_currentProgram);
+        ALIMER_ASSERT(_currentShader);
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(indexCount > 1);
@@ -142,7 +135,7 @@ namespace Alimer
 
     void CommandContext::DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
     {
-        ALIMER_ASSERT(_currentProgram);
+        ALIMER_ASSERT(_currentShader);
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(indexCount > 1);
@@ -194,7 +187,7 @@ namespace Alimer
     {
         _dirtySets = ~0u;
         _dirtyVbos = ~0u;
-        _currentProgram = nullptr;
+        _currentShader = nullptr;
         _insideRenderPass = false;
     }
 

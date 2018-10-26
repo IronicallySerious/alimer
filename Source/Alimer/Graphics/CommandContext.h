@@ -81,8 +81,7 @@ namespace Alimer
         virtual void SetScissor(const irect& scissor) = 0;
 
         virtual void SetVertexDescriptor(const VertexDescriptor* descriptor) = 0;
-        void SetProgram(Program* program);
-        void SetProgram(const std::string &vertex, const std::string &fragment, const std::vector<std::pair<std::string, int>> &defines = {});
+        void SetShader(Shader* shader);
 
         void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation);
         void DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation);
@@ -108,7 +107,7 @@ namespace Alimer
         virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
         virtual void EndRenderPassImpl() = 0;
 
-        virtual void SetProgramImpl(Program* program) = 0;
+        virtual void SetShaderImpl(Shader* shader) = 0;
 
         virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) = 0;
         virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) = 0;
@@ -126,7 +125,7 @@ namespace Alimer
         GraphicsDevice* _device;
         bool _isCompute;
         bool _insideRenderPass;
-        Program* _currentProgram = nullptr;
+        Shader* _currentShader = nullptr;
 
         uint32_t _dirtySets = 0;
         uint32_t _dirtyVbos = 0;

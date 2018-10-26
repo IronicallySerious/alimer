@@ -102,16 +102,11 @@ namespace Alimer
         /// Request shader module using SPIRV bytecode.
         ShaderModule* RequestShader(const uint32_t* pCode, size_t size);
 
-        /// Create new shader program with vertex and fragment module.
-        Program* RequestProgram(ShaderModule* vertex, ShaderModule* fragment);
+        /// Create new shader with given descriptor.
+        Shader* CreateShader(const ShaderDescriptor* descriptor);
 
-        /// Create new shader compute shader program.
-        Program* RequestProgram(ShaderModule* compute);
-
-        /// Create new shader program with descriptor.
-        Program* RequestProgram(
-            const uint32_t *vertexData, size_t vertexSize,
-            const uint32_t *fragmentData, size_t fragmentSize);
+        /// Create new shader compute shader.
+        Shader* CreateShader(const ShaderBlob& compute);
 
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
@@ -128,17 +123,14 @@ namespace Alimer
         /// Get the default command context.
         const SharedPtr<CommandContext>& GetContext() const { return _context; }
 
-        ShaderManager &GetShaderManager();
-
         void NotifyValidationError(const char* message);
 
     protected:
         virtual void Shutdown();
         virtual void PresentImpl() = 0;
         virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
-        //virtual std::unique_ptr<ShaderModule> CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size) = 0;
-        //virtual std::unique_ptr<Program> CreateProgramImpl(Util::Hash hash, const std::vector<ShaderModule*>& stages) = 0;
         virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
+        virtual Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
 
         GraphicsBackend _backend = GraphicsBackend::Empty;
         bool _validation;
@@ -150,9 +142,7 @@ namespace Alimer
         SharedPtr<CommandContext> _context;
 
     private:
-        ShaderManager _shaderManager;
         Cache<ShaderModule> _shaders;
-        Cache<Program> _programs;
         uint32_t _frameIndex = 0;
     };
 }

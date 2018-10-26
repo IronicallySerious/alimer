@@ -31,37 +31,39 @@ namespace Alimer
 {
     class GraphicsDevice;
 
-    
-    class ALIMER_API ShaderManager final
+    enum class ShaderLanguage
     {
-    public:
-        ShaderManager(GraphicsDevice* device)
-            : _device(device)
-        {
-        }
-
-        ~ShaderManager();
-
-        ShaderProgram* RegisterGraphics(const std::string &vertex, const std::string &fragment);
-
-    private:
-        ShaderTemplate* GetTemplate(const std::string &source);
-
-    private:
-        GraphicsDevice* _device;
-
-        Cache<ShaderTemplate> _templates;
-        Cache<ShaderProgram> _programs;
-
-#ifdef ALIMER_THREADING
-        std::mutex _lock;
-#endif
+        GLSL,
+        HLSL
     };
 
 	/// Class for shader compilation support.
-	namespace ShaderCompiler
+	class ALIMER_API ShaderCompiler final
 	{
-		ALIMER_API bool Compile(const String& filePath, const String& entryPoint, std::vector<uint32_t>& spirv, String& infoLog);
-        ALIMER_API bool Compile(ShaderStage stage, const String& source, const String& entryPoint, std::vector<uint32_t>& spirv, const String& filePath, String& infoLog);
-	}
+    public:
+        ShaderCompiler() = default;
+
+        ShaderBlob Compile(
+            const char* filePath,
+            const char* entryPoint,
+            ShaderLanguage language,
+            const std::vector<std::pair<std::string, int>> &defines = {});
+        ShaderBlob Compile(
+            const char* source,
+            const char* entryPoint,
+            ShaderLanguage language,
+            ShaderStage stage,
+            const char* filePath = nullptr,
+            const std::vector<std::pair<std::string, int>> &defines = {});
+
+        const std::string &get_error_message() const
+        {
+            return _errorMessage;
+        }
+
+    private:
+        std::string _errorMessage;
+
+        DISALLOW_COPY_MOVE_AND_ASSIGN(ShaderCompiler);
+    };
 }

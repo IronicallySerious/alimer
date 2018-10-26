@@ -56,7 +56,7 @@
 #include <stdio.h>
 #include <pix.h>
 
-#ifdef ALIMER_DEV
+#ifdef _DEBUG
 #include <dxgidebug.h>
 #endif
 

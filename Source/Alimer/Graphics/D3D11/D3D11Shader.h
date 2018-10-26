@@ -28,21 +28,20 @@
 
 namespace Alimer
 {
-	class D3D11Graphics;
+	class D3D11GraphicsDevice;
 
-#if TODO_D3D11
-    class D3D11Shader final : public ShaderModule
+    class D3D11Shader final : public Shader
     {
     public:
         /// Constructor.
-        D3D11Shader(D3D11Graphics* graphics, const ShaderProgramDescriptor* descriptor);
+        D3D11Shader(D3D11GraphicsDevice* device, const ShaderDescriptor* descriptor);
 
         /// Destructor.
         ~D3D11Shader() override;
 
-        void Destroy() override;
+        void Destroy();
 
-        void Bind(ID3D11DeviceContext1* context);
+        void Bind(ID3D11DeviceContext* context);
 
         ID3DBlob* GetVertexShaderBlob() const { return _vsBlob; }
 
@@ -56,6 +55,5 @@ namespace Alimer
         ID3DBlob* _vsBlob = nullptr;
         BindingIndexInfo _indexInfo;
     };
-#endif // TODO_D3D11
 
 }

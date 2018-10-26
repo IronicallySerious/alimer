@@ -107,7 +107,7 @@ namespace Alimer
     {
         UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
-#if defined(ALIMER_DEV)
+#if defined(_DEBUG)
         if (_validation)
         {
             if (SdkLayersAvailable())
@@ -526,6 +526,11 @@ namespace Alimer
     Texture* D3D11GraphicsDevice::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         return new D3D11Texture(this, descriptor, initialData, nullptr);
+    }
+
+    Shader* D3D11GraphicsDevice::CreateShaderImpl(const ShaderDescriptor* descriptor)
+    {
+        return new D3D11Shader(this, descriptor);
     }
 }
 #endif /* ALIMER_COMPILE_D3D11 */

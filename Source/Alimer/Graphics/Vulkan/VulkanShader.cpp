@@ -66,7 +66,7 @@ namespace Alimer
     }
 
     VulkanProgram::VulkanProgram(VulkanGraphicsDevice* device, Util::Hash hash, const std::vector<ShaderModule*>& shaders)
-        : Program(device, hash, shaders)
+        : Shader(device, nullptr)
         , _logicalDevice(device->GetDevice())
     {
         VulkanResourceLayout layout;

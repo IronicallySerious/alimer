@@ -169,10 +169,10 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandBuffer::SetProgramImpl(Program* program)
+    void VulkanCommandBuffer::SetShaderImpl(Shader* shader)
     {
         SetDirty(COMMAND_BUFFER_DIRTY_PIPELINE_BIT | COMMAND_BUFFER_DYNAMIC_BITS);
-        _currentVkProgram = static_cast<VulkanProgram*>(program);
+        _currentVkProgram = static_cast<VulkanProgram*>(shader);
 
         auto pipelineLayout = _currentVkProgram->GetPipelineLayout();
         if (_currentLayout == nullptr)
@@ -253,7 +253,7 @@ namespace Alimer
 
     void VulkanCommandBuffer::FlushRenderState(PrimitiveTopology topology)
     {
-        ALIMER_ASSERT(_currentProgram);
+        ALIMER_ASSERT(_currentShader);
         ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(_currentLayout);
 
@@ -310,7 +310,7 @@ namespace Alimer
 
         h.u64(_currentRenderPass->GetHash());
         h.u32(_currentSubpass);
-        h.u64(_currentProgram->GetHash());
+        //h.u64(_currentShader->GetHash());
         h.u32(static_cast<uint32_t>(_currentTopology));
 
         auto hash = h.get();

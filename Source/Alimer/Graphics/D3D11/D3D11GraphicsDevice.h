@@ -51,13 +51,9 @@ namespace Alimer
 
         Framebuffer* GetSwapchainFramebuffer() const override;
 
-        //RenderPass* CreateRenderPassImpl(const RenderPassDescription* descriptor) override;
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
-        //VertexInputFormat* CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor) override;
-        //ShaderModule* CreateShaderModuleImpl(const std::vector<uint32_t>& spirv) override;
-        //ShaderProgram* CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor) override;
-
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
+        Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
 
 
         void HandleDeviceLost();

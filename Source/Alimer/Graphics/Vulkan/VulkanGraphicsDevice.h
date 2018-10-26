@@ -71,9 +71,7 @@ namespace Alimer
         Framebuffer* GetSwapchainFramebuffer() const override;
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
-
-        //std::unique_ptr<ShaderModule> CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size) override;
-        //std::unique_ptr<Program> CreateProgramImpl(Util::Hash hash, const std::vector<ShaderModule*>& stages) override;
+        Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
 
         // Fence
         VkFence AcquireFence();

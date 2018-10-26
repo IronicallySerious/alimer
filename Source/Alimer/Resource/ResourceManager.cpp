@@ -22,14 +22,124 @@
 
 #include "../Resource/ResourceManager.h"
 #include "../Application/Application.h"
+#include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
+    class ShaderLoader final : public ResourceLoader
+    {
+    public:
+        void SetSource(ShaderStage stage, const String& source);
+
+        StringHash GetType() const override;
+
+        bool BeginLoad(Stream& source) override;
+        Object* EndLoad() override;
+
+    private:
+        String _shaderSources[static_cast<unsigned>(ShaderStage::Count)] = {};
+        ShaderDescriptor _descriptor;
+    };
+
+    void ShaderLoader::SetSource(ShaderStage stage, const String& source)
+    {
+        _shaderSources[static_cast<unsigned>(stage)] = source;
+    }
+
+    StringHash ShaderLoader::GetType() const
+    {
+        return Shader::GetTypeStatic();
+    }
+
+    bool ShaderLoader::BeginLoad(Stream& source)
+    {
+        size_t length = source.GetSize();
+        char *shaderText = new char[length + 1];
+        source.Read(shaderText, length);
+        shaderText[length] = '\0';
+
+        char* vertex = strstr(shaderText, "[vertex]");
+        char* fragment = strstr(shaderText, "[fragment]");
+
+        char* header = (shaderText[0] != '[') ? shaderText : nullptr;
+
+        uint32_t vs_line = 0;
+        uint32_t fs_line = 0;
+
+        if (vertex != nullptr)
+        {
+            *vertex = '\0';
+            vertex += strlen("[vertex]");
+            while (*vertex == '\r' || *vertex == '\n') vertex++;
+
+            char *str = shaderText;
+            while (str < vertex) {
+                if (*str == '\n') vs_line++;
+                str++;
+            }
+        }
+        
+        if (fragment != nullptr)
+        {
+            *fragment = '\0';
+            fragment += strlen("[fragment]");
+            while (*fragment == '\r' || *fragment == '\n') fragment++;
+
+            char *str = shaderText;
+            while (str < fragment) {
+                if (*str == '\n') fs_line++;
+                str++;
+            }
+        }
+
+        if (vertex != nullptr)
+        {
+            String shaderString;
+            //if (extra != NULL) shaderString += extra;
+            if (header != NULL) shaderString += String(header);
+            shaderString += String::Format("#line %d\n", vs_line + 1);
+            shaderString += String(vertex);
+            SetSource(ShaderStage::Vertex, shaderString);
+        }
+
+        if (fragment != nullptr)
+        {
+            String shaderString;
+            //if (extra != NULL) shaderString += extra;
+            if (header != NULL) shaderString += String(header);
+            shaderString += String::Format("#line %d\n", fs_line + 1);
+            shaderString += String(fragment);
+            SetSource(ShaderStage::Fragment, shaderString);
+        }
+
+        return true;
+    }
+
+    Object* ShaderLoader::EndLoad()
+    {
+        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        {
+            if (_shaderSources[i].IsEmpty())
+                continue;
+
+            ShaderStage stage = static_cast<ShaderStage>(i);
+            ShaderCompiler compiler;
+            _descriptor.stages[i] = compiler.Compile(
+                _shaderSources[i].CString(),
+                "main",
+                ShaderLanguage::GLSL,
+                stage, _fileName.CString());
+        }
+
+        return Object::GetSubsystem<GraphicsDevice>()->CreateShader(&_descriptor);
+    }
+
     ResourceManager::ResourceManager()
     {
+        AddLoader(new ShaderLoader());
     }
 
     ResourceManager::~ResourceManager()
@@ -73,6 +183,18 @@ namespace Alimer
         return true;
     }
 
+    void ResourceManager::AddLoader(ResourceLoader* loader)
+    {
+        ALIMER_ASSERT(loader);
+        _loaders[loader->GetType()].Reset(loader);
+    }
+
+    ResourceLoader* ResourceManager::GetLoader(StringHash type) const
+    {
+        auto it = _loaders.find(type);
+        return it != end(_loaders) ? it->second.Get() : nullptr;
+    }
+
     UniquePtr<Stream> ResourceManager::Open(const String &assetName, StreamMode mode)
     {
         ALIMER_UNUSED(mode);
@@ -95,6 +217,11 @@ namespace Alimer
                 stream = SearchResourceDirs(sanitatedName);
                 if (!stream)
                     stream = SearchPackages(sanitatedName);
+            }
+
+            if (!stream)
+            {
+                stream = FileSystem::Get().Open("assets://" + assetName);
             }
 
             return stream;
@@ -131,23 +258,11 @@ namespace Alimer
         return false;
     }
 
-    SharedPtr<Resource> ResourceManager::LoadResource(const String& assetName)
+    SharedPtr<Object> ResourceManager::LoadObject(StringHash type, const String& assetName)
     {
-        ALIMER_UNUSED(assetName);
-        /*auto paths = Path::ProtocolSplit(assetName);
-        string fullPath = Path::Join(_dataDirectory, paths.second);
-        string compiledAssetName = fullPath + ".alb";
-
-        if (!FileSystem::Get().FileExists(compiledAssetName))
-        {
-            if (!FileSystem::Get().FileExists(assetName))
-            {
-                return nullptr;
-            }
-        }
-
-        auto b = FileSystem::Get().FileExists(assetName);*/
-        return nullptr;
+        auto stream = Open(assetName);
+        auto loader = GetLoader(type);
+        return loader->Load(*stream);
     }
 
     String ResourceManager::SanitateResourceName(const String& name) const

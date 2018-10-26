@@ -1086,15 +1086,10 @@ namespace Alimer
         return new VulkanTexture(this, descriptor, initialData);
     }
 
-    /*std::unique_ptr<ShaderModule> VulkanGraphicsDevice::CreateShaderModuleImpl(Util::Hash hash, const uint32_t* pCode, size_t size)
+    Shader* VulkanGraphicsDevice::CreateShaderImpl(const ShaderDescriptor* descriptor)
     {
-        return std::make_unique<VulkanShader>(this, hash, pCode, size);
+        return nullptr;
     }
-
-    std::unique_ptr<Program> VulkanGraphicsDevice::CreateProgramImpl(Util::Hash hash, const std::vector<ShaderModule*>& stages)
-    {
-        return std::make_unique<VulkanProgram>(this, hash, stages);
-    }*/
 
     VkCommandPool VulkanGraphicsDevice::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
     {

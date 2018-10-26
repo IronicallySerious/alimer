@@ -52,7 +52,7 @@ namespace Alimer
     class TriangleExample
     {
     public:
-        void Initialize(GraphicsDevice* device)
+        void Initialize(GraphicsDevice* device, ResourceManager& resources)
         {
             VertexColor triangleVertices[] =
             {
@@ -68,6 +68,8 @@ namespace Alimer
             vertexBufferDesc.stride = sizeof(VertexColor);
             _vertexBuffer = device->CreateBuffer(&vertexBufferDesc, triangleVertices);
 
+            _shader = resources.Load<Shader>("shaders/color.shader");
+
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
@@ -77,7 +79,7 @@ namespace Alimer
 
         void Render(SharedPtr<CommandContext> context)
         {
-            /*context->SetProgram("assets://shaders/color.vert", "assets://shaders/color.frag");
+            context->SetShader(_shader);
             context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
 
             VertexDescriptor vertexDescriptor;
@@ -88,10 +90,11 @@ namespace Alimer
             vertexDescriptor.attributes[1].semantic = VertexElementSemantic::Color0;
             context->SetVertexDescriptor(&vertexDescriptor);
             //context->BindBuffer(_perCameraUboBuffer.Get(), 0, 0);
-            context->Draw(PrimitiveTopology::Triangles, 0, 3);*/
+            context->Draw(PrimitiveTopology::Triangles, 3, 0);
         }
 
     private:
+        SharedPtr<Shader> _shader;
         SharedPtr<GpuBuffer> _vertexBuffer;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
@@ -353,14 +356,13 @@ namespace Alimer
     };
 
     RuntimeApplication::RuntimeApplication()
-        : _triangleExample()
     {
         _settings.prefferedGraphicsBackend = GraphicsBackend::Direct3D11;
     }
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_graphicsDevice);
+        _triangleExample.Initialize(_graphicsDevice, _resources);
         //_quadExample.Initialize(_graphicsDevice);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());

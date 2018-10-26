@@ -32,6 +32,22 @@ namespace Alimer
 {
     ALIMER_API void SPIRVReflectResources(const uint32_t* pCode, size_t size, ShaderReflection* reflection);
 
+    struct ShaderBlob
+    {
+        uint64_t size;
+        uint8_t *data;
+    };
+
+    struct ShaderStageDescriptor
+    {
+
+    };
+
+    struct ShaderDescriptor
+    {
+        ShaderBlob stages[static_cast<unsigned>(ShaderStage::Count)];
+    };
+
     /// Defines a shader module class.
     class ALIMER_API ShaderModule : public GraphicsResource
     {
@@ -51,60 +67,14 @@ namespace Alimer
         ShaderReflection _reflection;
     };
 
-    /// Defines a shader program
-    class ALIMER_API Program : public GraphicsResource
+    /// Defines a shader class.
+    class ALIMER_API Shader : public Resource
     {
+        ALIMER_OBJECT(Shader, Resource);
+
     protected:
         /// Constructor.
-        Program(GraphicsDevice* device, Util::Hash hash, const std::vector<ShaderModule*>& shaders);
+        Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor);
 
-    public:
-        Util::Hash GetHash() const { return _hash; }
-
-    private:
-        Util::Hash _hash;
-    };
-
-    class ALIMER_API ShaderTemplate final
-    {
-    public:
-        ShaderTemplate(const std::string& path);
-
-        struct Variant
-        {
-            std::vector<uint32_t> spirv;
-            std::vector<std::pair<std::string, int>> defines;
-            uint32_t instance = 0;
-        };
-
-        const Variant* RegisterVariant(const std::vector<std::pair<std::string, int>> *defines = nullptr);
-
-    private:
-        std::string _path;
-        Cache<Variant> _variants;
-    };
-
-    /// Defines a shader program class.
-    class ALIMER_API ShaderProgram : public GraphicsResource
-    {
-    public:
-        /// Constructor.
-        ShaderProgram(GraphicsDevice* device);
-
-        void SetStage(ShaderStage stage, ShaderTemplate* shader);
-        uint32_t RegisterVariant(const std::vector<std::pair<std::string, int>> &defines);
-        Program* GetVariant(uint32_t variant);
-
-    private:
-        struct Variant
-        {
-            const ShaderTemplate::Variant* stages[static_cast<unsigned>(ShaderStage::Count)] = {};
-            uint32_t shaderInstance[static_cast<unsigned>(ShaderStage::Count)] = {};
-            Program* program;
-        };
-
-        ShaderTemplate* _stages[static_cast<unsigned>(ShaderStage::Count)] = {};
-        std::vector<Variant> _variants;
-        std::vector<Util::Hash> _variantHashes;
     };
 }

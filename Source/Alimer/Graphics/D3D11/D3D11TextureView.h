@@ -37,11 +37,15 @@ namespace Alimer
 
         ~D3D11TextureView() override;
 
-        ID3D11RenderTargetView* GetRTV() const { return _rtv.Get(); }
-        ID3D11DepthStencilView* GetDSV() const { return _dsv.Get(); }
+        ID3D11ShaderResourceView* GetSRV() const;
+        ID3D11RenderTargetView* GetRTV() const;
+        ID3D11DepthStencilView* GetDSV() const;
 
     private:
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> _rtv;
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> _dsv;
+        const D3D11Texture* _d3dTexture;
+        TextureUsage _textureUsage;
+        mutable Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> _srv;
+        mutable Microsoft::WRL::ComPtr<ID3D11RenderTargetView> _rtv;
+        mutable Microsoft::WRL::ComPtr<ID3D11DepthStencilView> _dsv;
     };
 }

@@ -56,13 +56,13 @@ namespace Alimer
         uint32_t descriptorSetMask = 0;
     };
 
-    class VulkanProgram final : public Program
+    class VulkanProgram final : public Shader
     {
     public:
         /// Constructor.
         VulkanProgram(VulkanGraphicsDevice* device, Util::Hash hash, const std::vector<ShaderModule*>& stages);
         ~VulkanProgram() override;
-        void Destroy() override;
+        void Destroy();
 
         VkShaderModule GetVkShaderModule(unsigned stage) const { return _shaderModules[stage]; }
         VkShaderModule GetVkShaderModule(ShaderStage stage) const;

@@ -33,53 +33,6 @@
 
 namespace Alimer
 {
-    ShaderManager::~ShaderManager()
-    {
-    }
-
-    ShaderProgram* ShaderManager::RegisterGraphics(const std::string &vertex, const std::string &fragment)
-    {
-        ShaderTemplate* vertexTemplate = GetTemplate(vertex);
-        ShaderTemplate* fragmentTemplate = GetTemplate(fragment);
-
-        Util::Hasher h;
-        h.pointer(vertexTemplate);
-        h.pointer(fragmentTemplate);
-        auto hash = h.get();
-        auto *ret = _programs.Find(hash);
-        if (!ret)
-        {
-            auto prog = std::make_unique<ShaderProgram>(_device);
-            prog->SetStage(ShaderStage::Vertex, vertexTemplate);
-            prog->SetStage(ShaderStage::Fragment, fragmentTemplate);
-            ret = _programs.Insert(hash, std::move(prog));
-        }
-        return ret;
-    }
-
-    ShaderTemplate *ShaderManager::GetTemplate(const std::string &path)
-    {
-        Util::Hasher hasher;
-        hasher.string(path);
-        auto hash = hasher.get();
-
-        auto *ret = _templates.Find(hash);
-        if (!ret)
-        {
-            ALIMER_LOGDEBUGF("Shader template registered at path: '%s'", path.c_str());
-            auto shaderTemplate = std::make_unique<ShaderTemplate>(path);
-            {
-#ifdef ALIMER_THREADING
-                std::lock_guard<std::mutex> holder(_lock);
-#endif
-                //register_dependency_nolock(shader.get(), path);
-                //shader->RegisterDependencies(*this);
-            }
-            ret = _templates.Insert(hash, std::move(shaderTemplate));
-        }
-        return ret;
-    }
-
     class AlimerIncluder : public glslang::TShader::Includer
     {
     public:
@@ -213,178 +166,194 @@ namespace Alimer
         }
     }
 
-    namespace ShaderCompiler
+    ShaderBlob ShaderCompiler::Compile(
+        const char* filePath,
+        const char* entryPoint,
+        ShaderLanguage language,
+        const std::vector<std::pair<std::string, int>> &defines)
     {
-        bool Compile(
-            const String& filePath,
-            const String& entryPoint,
-            std::vector<uint32_t>& spirv,
-            String& infoLog)
+        auto stream = FileSystem::Get().Open(filePath);
+        if (!stream)
         {
-            auto stream = FileSystem::Get().Open(filePath);
-            if (!stream)
-            {
-                infoLog = String::Format("Shader file '%s' does not exists", filePath.CString());
-                return false;
-            }
-
-            String shaderSource = stream->ReadAllText();
-            uint32_t firstExtStart = filePath.FindLast(".");
-            bool hasFirstExt = firstExtStart != String::NPOS;
-            uint32_t secondExtStart = hasFirstExt ? filePath.FindLast(".", firstExtStart - 1) : String::NPOS;
-            bool hasSecondExt = secondExtStart != String::NPOS;
-            String firstExt = filePath.Substring(firstExtStart + 1);
-            bool usesUnifiedExt = hasFirstExt && (firstExt == "glsl" || firstExt == "hlsl");
-            if (usesUnifiedExt && firstExt == "hlsl")
-            {
-                // Add HLSL to glslang
-            }
-
-            String stageName;
-            if (hasFirstExt && !usesUnifiedExt)
-                stageName = firstExt;
-            else if (usesUnifiedExt && hasSecondExt)
-                stageName = filePath.Substring(secondExtStart + 1, firstExtStart - secondExtStart - 1);
-
-            ShaderStage stage = ShaderStage::Vertex;
-            if (stageName == "vert")
-                stage = ShaderStage::Vertex;
-            else if (stageName == "tesc")
-                stage = ShaderStage::TessControl;
-            else if (stageName == "tese")
-                stage = ShaderStage::TessEvaluation;
-            else if (stageName == "geom")
-                stage = ShaderStage::Geometry;
-            else if (stageName == "frag")
-                stage = ShaderStage::Fragment;
-            else if (stageName == "comp")
-                stage = ShaderStage::Compute;
-
-            return Compile(stage, shaderSource, entryPoint, spirv, stream->GetName(), infoLog);
+            _errorMessage = str::Format("Shader file '%s' does not exists", filePath);
+            return {};
         }
 
-        bool Compile(
-            ShaderStage stage,
-            const String& source,
-            const String& entryPoint,
-            std::vector<uint32_t>& spirv,
-            const String& filePath,
-            String& infoLog)
+        std::string filePathStr = filePath;
+        String shaderSource = stream->ReadAllText();
+        auto firstExtStart = filePathStr.find_last_of(".");
+        bool hasFirstExt = firstExtStart != String::NPOS;
+        auto secondExtStart = hasFirstExt ? filePathStr.find_last_of(".", firstExtStart - 1) : String::NPOS;
+        bool hasSecondExt = secondExtStart != String::NPOS;
+        String firstExt = filePathStr.substr(firstExtStart + 1);
+        bool usesUnifiedExt = hasFirstExt && (firstExt == "glsl" || firstExt == "hlsl");
+        if (usesUnifiedExt && firstExt == "hlsl")
         {
-            // Get default built in resource limits.
-            auto resourceLimits = glslang::DefaultTBuiltInResource;
-
-            // construct semantics mapping defines
-            // to be used in layout(location = SEMANTIC) inside GLSL
-            String semanticsDef;
-            for (uint32_t i = 0; i < static_cast<uint32_t>(VertexElementSemantic::Count); i++)
-            {
-                VertexElementSemantic semantic = static_cast<VertexElementSemantic>(i);
-                semanticsDef += String::Format("#define %s %d\n", EnumToString(semantic), i);
-            }
-
-            // Add SV_Target semantics for more HLSL compatibility
-            for (int i = 0; i < 8; i++)
-            {
-                semanticsDef += String::Format("#define SV_Target%d %d\n", i, i);
-            }
-
-            const String macroDefinitions = "";
-            String poundExtension = "#extension GL_GOOGLE_include_directive : require\n";
-            poundExtension += semanticsDef;
-            const String preamble = macroDefinitions + poundExtension;
-
-            EShLanguage language = MapShaderStage(stage);
-            glslang::TShader shader(language);
-
-            const char* shaderStrings = source.CString();
-            const int shaderLengths = static_cast<int>(source.Length());
-            const char* stringNames = filePath.CString();
-            shader.setStringsWithLengthsAndNames(
-                &shaderStrings,
-                &shaderLengths,
-                &stringNames, 1);
-            shader.setPreamble(preamble.CString());
-            shader.setEntryPoint(entryPoint.CString());
-            shader.setSourceEntryPoint(entryPoint.CString());
-            shader.setShiftSamplerBinding(0);
-            shader.setShiftTextureBinding(0);
-            shader.setShiftImageBinding(0);
-            shader.setShiftUboBinding(0);
-            shader.setShiftSsboBinding(0);
-            shader.setFlattenUniformArrays(false);
-            shader.setNoStorageFormat(false);
-
-            // Set message options.
-            int options = EOptionSpv | EOptionVulkanRules | EOptionLinkProgram;
-            EShMessages messages = EShMsgDefault;
-            SetMessageOptions(options, messages);
-
-            AlimerIncluder includer(GetPath(filePath));
-
-            const EProfile DefaultProfile = ENoProfile;
-            const bool ForceVersionProfile = false;
-            const bool NotForwardCompatible = false;
-
-            bool parseSuccess = shader.parse(
-                &resourceLimits,
-                100,
-                DefaultProfile,
-                ForceVersionProfile,
-                NotForwardCompatible,
-                messages,
-                includer);
-
-            if (!parseSuccess)
-            {
-                infoLog = shader.getInfoLog();
-
-                return false;
-            }
-
-            glslang::TProgram program;
-            program.addShader(&shader);
-            if (!program.link(messages))
-            {
-                infoLog = program.getInfoLog();
-
-                return false;
-            }
-
-            // Map IO for SPIRV generation.
-            if (!program.mapIO())
-            {
-                infoLog = program.getInfoLog();
-
-                return false;
-            }
-
-            // Save any info log that was generated.
-            if (strlen(shader.getInfoLog()))
-                infoLog += String(shader.getInfoLog()) + "\n" + String(shader.getInfoDebugLog()) + "\n";
-
-            if (strlen(program.getInfoLog()))
-                infoLog += String(program.getInfoLog()) + "\n" + String(program.getInfoDebugLog());
-
-            // Translate to SPIRV.
-            if (program.getIntermediate(language))
-            {
-                glslang::SpvOptions spvOptions;
-                spvOptions.generateDebugInfo = false;
-                spvOptions.disableOptimizer = true;
-                spvOptions.optimizeSize = false;
-
-                spv::SpvBuildLogger logger;
-
-                glslang::GlslangToSpv(*program.getIntermediate(language), spirv, &logger, &spvOptions);
-                auto spvMessages = logger.getAllMessages();
-                if (!spvMessages.empty())
-                {
-                    infoLog += spvMessages + "\n";
-                }
-            }
-
-            return true;
+            // Add HLSL to glslang
         }
+
+        String stageName;
+        if (hasFirstExt && !usesUnifiedExt)
+            stageName = firstExt;
+        else if (usesUnifiedExt && hasSecondExt)
+            stageName = filePathStr.substr(secondExtStart + 1, firstExtStart - secondExtStart - 1);
+
+        ShaderStage stage = ShaderStage::Vertex;
+        if (stageName == "vert")
+            stage = ShaderStage::Vertex;
+        else if (stageName == "tesc")
+            stage = ShaderStage::TessControl;
+        else if (stageName == "tese")
+            stage = ShaderStage::TessEvaluation;
+        else if (stageName == "geom")
+            stage = ShaderStage::Geometry;
+        else if (stageName == "frag")
+            stage = ShaderStage::Fragment;
+        else if (stageName == "comp")
+            stage = ShaderStage::Compute;
+
+        return Compile(shaderSource.CString(), entryPoint, language, stage, filePath, defines);
+    }
+
+    ShaderBlob ShaderCompiler::Compile(
+        const char* source,
+        const char* entryPoint,
+        ShaderLanguage language,
+        ShaderStage stage,
+        const char* filePath,
+        const std::vector<std::pair<std::string, int>> &defines)
+    {
+        static bool glslInitialized = false;
+        if (!glslInitialized)
+        {
+            // Initialize glslang library.
+            glslang::InitializeProcess();
+
+            glslInitialized = true;
+        }
+
+        // Get default built in resource limits.
+        auto resourceLimits = glslang::DefaultTBuiltInResource;
+
+        // construct semantics mapping defines
+        // to be used in layout(location = SEMANTIC) inside GLSL
+        String semanticsDef;
+        for (uint32_t i = 0; i < static_cast<uint32_t>(VertexElementSemantic::Count); i++)
+        {
+            VertexElementSemantic semantic = static_cast<VertexElementSemantic>(i);
+            semanticsDef += String::Format("#define %s %d\n", EnumToString(semantic), i);
+        }
+
+        // Add SV_Target semantics for more HLSL compatibility
+        for (int i = 0; i < 8; i++)
+        {
+            semanticsDef += String::Format("#define SV_Target%d %d\n", i, i);
+        }
+
+        const String macroDefinitions = "";
+        String poundExtension = "#extension GL_GOOGLE_include_directive : require\n";
+        poundExtension += semanticsDef;
+        const String preamble = macroDefinitions + poundExtension;
+
+        EShLanguage eshLanguage = MapShaderStage(stage);
+        glslang::TShader shader(eshLanguage);
+
+        const char* shaderStrings = source;
+        const int shaderLengths = static_cast<int>(strlen(source));
+        const char* stringNames = filePath && strlen(filePath) ? filePath : "unknown";
+        shader.setStringsWithLengthsAndNames(
+            &shaderStrings,
+            &shaderLengths,
+            &stringNames, 1);
+        shader.setPreamble(preamble.CString());
+        shader.setEntryPoint(entryPoint);
+        shader.setSourceEntryPoint(entryPoint);
+        shader.setShiftSamplerBinding(0);
+        shader.setShiftTextureBinding(0);
+        shader.setShiftImageBinding(0);
+        shader.setShiftUboBinding(0);
+        shader.setShiftSsboBinding(0);
+        shader.setFlattenUniformArrays(false);
+        shader.setNoStorageFormat(false);
+
+        // Set message options.
+        int options = EOptionSpv | EOptionVulkanRules | EOptionLinkProgram;
+        EShMessages messages = EShMsgDefault;
+        SetMessageOptions(options, messages);
+
+        AlimerIncluder includer(GetPath(filePath));
+
+        const EProfile DefaultProfile = ENoProfile;
+        const bool ForceVersionProfile = false;
+        const bool NotForwardCompatible = false;
+
+        bool parseSuccess = shader.parse(
+            &resourceLimits,
+            450,
+            DefaultProfile,
+            ForceVersionProfile,
+            NotForwardCompatible,
+            messages,
+            includer);
+
+        if (!parseSuccess)
+        {
+            _errorMessage = shader.getInfoLog();
+            return {};
+        }
+
+        glslang::TProgram program;
+        program.addShader(&shader);
+        if (!program.link(messages))
+        {
+            _errorMessage = program.getInfoLog();
+            return {};
+        }
+
+        // Map IO for SPIRV generation.
+        if (!program.mapIO())
+        {
+            _errorMessage = program.getInfoLog();
+            return {};
+        }
+
+        // Save any info log that was generated.
+        if (strlen(shader.getInfoLog()))
+            _errorMessage += std::string(shader.getInfoLog()) + "\n" + std::string(shader.getInfoDebugLog()) + "\n";
+
+        if (strlen(program.getInfoLog()))
+            _errorMessage += std::string(program.getInfoLog()) + "\n" + std::string(program.getInfoDebugLog());
+
+        // Translate to SPIRV.
+        ShaderBlob blob = {};
+        if (program.getIntermediate(eshLanguage))
+        {
+            glslang::SpvOptions spvOptions;
+            spvOptions.generateDebugInfo = false;
+            spvOptions.disableOptimizer = true;
+            spvOptions.optimizeSize = false;
+
+            spv::SpvBuildLogger logger;
+            std::vector<uint32_t> spirv;
+            glslang::GlslangToSpv(
+                *program.getIntermediate(eshLanguage),
+                spirv,
+                &logger,
+                &spvOptions);
+
+            auto spvMessages = logger.getAllMessages();
+            if (!spvMessages.empty())
+            {
+                _errorMessage += spvMessages + "\n";
+            }
+            else
+            {
+                blob.size = spirv.size() * sizeof(uint32_t);
+                blob.data = new uint8_t[blob.size];
+                memcpy(blob.data, spirv.data(), blob.size);
+            }
+        }
+
+        return blob;
     }
 }

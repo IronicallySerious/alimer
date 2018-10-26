@@ -47,14 +47,17 @@ namespace Alimer
         /// Add a resource load directory. Optional priority parameter which will control search order.
         bool AddResourceDir(const String& assetName, uint32_t priority = PRIORITY_LAST);
 
+        void AddLoader(ResourceLoader* loader);
+        ResourceLoader* GetLoader(StringHash type) const;
+
         UniquePtr<Stream> Open(const String &assetName, StreamMode mode = StreamMode::ReadOnly);
         bool Exists(const String &assetName);
 
-        SharedPtr<Resource> LoadResource(const String& assetName);
+        SharedPtr<Object> LoadObject(StringHash type, const String& assetName);
 
 		template <class T> SharedPtr<T> Load(const String& assetName)
 		{
-			return StaticCast<T>(LoadResource(assetName));
+			return StaticCast<T>(LoadObject(T::GetTypeStatic(), assetName));
 		}
 
         /// Remove unsupported constructs from the resource name to prevent ambiguity, and normalize absolute filename to resource path relative if possible.
@@ -81,6 +84,7 @@ namespace Alimer
         /// Resource load directories.
         std::vector<String> _resourceDirs;
 
+        std::unordered_map<StringHash, UniquePtr<ResourceLoader>> _loaders;
 		std::map<String, SharedPtr<Resource>> _resources;
 
         /// Search priority flag.
