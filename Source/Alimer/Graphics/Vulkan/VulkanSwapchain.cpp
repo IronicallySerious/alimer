@@ -23,7 +23,7 @@
 #include "VulkanGraphicsDevice.h"
 #include "VulkanSwapchain.h"
 #include "VulkanTexture.h"
-//#include "VulkanFramebuffer.h"
+#include "VulkanRenderPass.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
@@ -336,8 +336,7 @@ namespace Alimer
 
     Framebuffer* VulkanSwapchain::GetCurrentFramebuffer() const
     {
-        return nullptr;
-        //return _framebuffers[_currentBackBufferIndex];
+        return _framebuffers[_currentBackBufferIndex].Get();
     }
 
     void VulkanSwapchain::QueuePresent(VkQueue queue, VkSemaphore waitSemaphore)

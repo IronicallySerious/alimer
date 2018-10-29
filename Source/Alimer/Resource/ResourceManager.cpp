@@ -274,7 +274,7 @@ namespace Alimer
         // If the path refers to one of the resource directories, normalize the resource name
         if (_resourceDirs.size())
         {
-            String namePath = GetPath(sanitatedName);
+            String namePath = FileSystem::GetPath(sanitatedName);
             String exePath = GetExecutableFolder().Replaced("/./", "/");
             for (size_t i = 0; i < _resourceDirs.size(); ++i)
             {
@@ -288,7 +288,7 @@ namespace Alimer
                     namePath = namePath.Substring(relativeResourcePath.Length());
             }
 
-            sanitatedName = namePath + GetFileNameAndExtension(sanitatedName);
+            sanitatedName = namePath + FileSystem::GetFileNameAndExtension(sanitatedName);
         }
 
         return sanitatedName.Trimmed();

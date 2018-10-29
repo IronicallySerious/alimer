@@ -30,7 +30,7 @@
 #include "D3D11CommandContext.h"
 #include "D3D11GpuBuffer.h"
 #include "D3D11Shader.h"
-#include "D3D11VertexInputFormat.h"
+#include "D3D11Pipeline.h"
 #include "../D3D/D3DPlatformFunctions.h"
 #include "../ShaderCompiler.h"
 #include "../../Core/Platform.h"
@@ -498,39 +498,34 @@ namespace Alimer
         _inputLayouts[desc] = layout;
     }
 
-    /*RenderPass* D3D11GraphicsDevice::CreateRenderPassImpl(const RenderPassDescription* descriptor)
-    {
-        return new D3D11RenderPass(this, descriptor);
-    }*/
-
     GpuBuffer* D3D11GraphicsDevice::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
         return new D3D11Buffer(this, descriptor, initialData);
     }
 
-    /*VertexInputFormat* D3D11GraphicsDevice::CreateVertexInputFormatImpl(const VertexInputFormatDescriptor* descriptor)
-    {
-        return new D3D11VertexInputFormat(this, descriptor);
-    }
-
-    ShaderModule* D3D11GraphicsDevice::CreateShaderModuleImpl(const std::vector<uint32_t>& spirv)
-    {
-        return new ShaderModule(this, spirv);
-    }
-
-    ShaderProgram* D3D11GraphicsDevice::CreateShaderProgramImpl(const ShaderProgramDescriptor* descriptor)
-    {
-        return new D3D11Shader(this, descriptor);
-    }
-    */
     Texture* D3D11GraphicsDevice::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         return new D3D11Texture(this, descriptor, initialData, nullptr);
     }
 
+    Framebuffer* D3D11GraphicsDevice::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
+    {
+        return new D3D11Framebuffer(this, descriptor);
+    }
+
+    UniquePtr<ShaderModule> D3D11GraphicsDevice::CreateShaderModuleImpl(uint64_t hash, const ShaderBlob& blob)
+    {
+        return UniquePtr<ShaderModule>(new D3D11ShaderModule(this, hash, blob));
+    }
+
     Shader* D3D11GraphicsDevice::CreateShaderImpl(const ShaderDescriptor* descriptor)
     {
         return new D3D11Shader(this, descriptor);
+    }
+
+    Pipeline* D3D11GraphicsDevice::CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor)
+    {
+        return new D3D11Pipeline(this, descriptor);
     }
 }
 #endif /* ALIMER_COMPILE_D3D11 */

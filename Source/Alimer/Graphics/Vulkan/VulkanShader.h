@@ -32,12 +32,12 @@ namespace Alimer
     class VulkanPipelineLayout;
 
     /// Vulkan ShaderModule implementation.
-    class VulkanShader final : public ShaderModule
+    class VulkanShaderModule final : public ShaderModule
     {
     public:
         /// Constructor.
-        VulkanShader(VulkanGraphicsDevice* device, Util::Hash hash, const uint32_t* pCode, size_t size);
-        ~VulkanShader() override;
+        VulkanShaderModule(VulkanGraphicsDevice* device, uint64_t hash, const ShaderBlob& blob);
+        ~VulkanShaderModule() override;
         void Destroy() override;
 
         VkShaderModule GetHandle() const { return _handle; }
@@ -60,20 +60,20 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        VulkanProgram(VulkanGraphicsDevice* device, Util::Hash hash, const std::vector<ShaderModule*>& stages);
+        VulkanProgram(VulkanGraphicsDevice* device, uint64_t hash, const std::vector<ShaderModule*>& stages);
         ~VulkanProgram() override;
         void Destroy();
 
         VkShaderModule GetVkShaderModule(unsigned stage) const { return _shaderModules[stage]; }
         VkShaderModule GetVkShaderModule(ShaderStage stage) const;
         VulkanPipelineLayout* GetPipelineLayout() const { return _pipelineLayout; }
-        VkPipeline GetGraphicsPipeline(Util::Hash hash);
-        void AddPipeline(Util::Hash hash, VkPipeline pipeline);
+        VkPipeline GetGraphicsPipeline(uint64_t hash);
+        void AddPipeline(uint64_t hash, VkPipeline pipeline);
 
     private:
         VkDevice _logicalDevice;
         VkShaderModule _shaderModules[static_cast<unsigned>(ShaderStage::Count)] = {};
         VulkanPipelineLayout* _pipelineLayout = nullptr;
-        Util::HashMap<VkPipeline> _graphicsPipelineCache;
+        HashMap<VkPipeline> _graphicsPipelineCache;
     };
 }

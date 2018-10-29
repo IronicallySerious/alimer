@@ -25,6 +25,7 @@
 #include "D3DPrerequisites.h"
 #include "../Shader.h"
 #include <vector>
+#include <d3dcompiler.h>
 
 namespace Alimer
 {

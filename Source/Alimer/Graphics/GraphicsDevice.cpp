@@ -22,6 +22,7 @@
 
 #include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/ShaderCompiler.h"
+#include "../IO/FileSystem.h"
 #include "../Core/Log.h"
 #include <inttypes.h>
 
@@ -62,6 +63,9 @@ namespace Alimer
 
     void GraphicsDevice::Shutdown()
     {
+        // Clear cached data.
+        _shaders.Clear();
+
         // Destroy undestroyed resources.
         if (_gpuResources.size())
         {
@@ -237,6 +241,14 @@ namespace Alimer
             ALIMER_LOGCRITICAL("Immutable Buffer needs valid initial data.");
         }
 
+        if (any(descriptor->usage & BufferUsage::Index))
+        {
+            if (descriptor->stride != 2 && descriptor->stride != 4)
+            {
+                ALIMER_LOGCRITICAL("IndexBuffer needs to be created with stride 2 or 4.");
+            }
+        }
+
         GpuBuffer* buffer = CreateBufferImpl(descriptor, initialData);
         if (buffer == nullptr)
         {
@@ -286,6 +298,13 @@ namespace Alimer
         return CreateTextureImpl(descriptor, initialData);
     }
 
+    Framebuffer* GraphicsDevice::CreateFramebuffer(const FramebufferDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+
+        return CreateFramebufferImpl(descriptor);
+    }
+
     ShaderModule* GraphicsDevice::RequestShader(const uint32_t* pCode, size_t size)
     {
         if (!size || pCode == nullptr)
@@ -293,10 +312,10 @@ namespace Alimer
             ALIMER_LOGCRITICAL("Cannot create shader module with invalid bytecode");
         }
 
-        Util::Hasher hasher;
-        hasher.data(pCode, size);
+        Hasher hasher;
+        hasher.Data(pCode, size);
 
-        auto hash = hasher.get();
+        auto hash = hasher.GetValue();
         auto *ret = _shaders.Find(hash);
         if (!ret)
         {
@@ -305,6 +324,79 @@ namespace Alimer
         }
 
         return ret;
+    }
+
+    ShaderModule* GraphicsDevice::RequestShader(const ShaderBlob& blob)
+    {
+        if (blob.size <= 0 || blob.data == nullptr)
+        {
+            ALIMER_LOGCRITICAL("Cannot create shader module with invalid bytecode");
+        }
+
+        Hasher hasher;
+        hasher.Data(blob.data, blob.size);
+
+        auto hash = hasher.GetValue();
+        auto *ret = _shaders.Find(hash);
+        if (!ret)
+        {
+            ret = _shaders.Insert(hash, CreateShaderModuleImpl(hash, blob));
+            ALIMER_LOGDEBUGF("New %s shader created: '%s'", EnumToString(ret->GetStage()), std::to_string(hash).c_str());
+        }
+
+        return ret;
+    }
+
+    ShaderModule* GraphicsDevice::RequestShader(const String& url)
+    {
+        // TODO: Shader cache.
+        if (!FileSystem::Get().Exists("assets://" + url))
+        {
+            ALIMER_LOGCRITICALF("Shader does not exists: '%s'", url.CString());
+        }
+
+        ShaderStage stage = ShaderStage::Count;
+        String ext = FileSystem::GetExtension(url);
+        if (ext == ".vert")
+        {
+            stage = ShaderStage::Vertex;
+        }
+        else if (ext == ".frag")
+        {
+            stage = ShaderStage::Fragment;
+        }
+        else if (ext == ".tesc")
+        {
+            stage = ShaderStage::TessControl;
+        }
+        else if (ext == ".tese")
+        {
+            stage = ShaderStage::TessEvaluation;
+        }
+        else if (ext == ".geom")
+        {
+            stage = ShaderStage::Geometry;
+        }
+        else if (ext == ".comp")
+        {
+            stage = ShaderStage::Geometry;
+        }
+        else
+        {
+            ALIMER_LOGCRITICALF("Invalid shader extension: '%s'", ext.CString());
+        }
+
+        auto stream = FileSystem::Get().Open("assets://" + url);
+        auto shaderSource = stream->ReadAllText();
+        ShaderCompiler compiler;
+        ShaderBlob blob = compiler.Compile(
+            shaderSource.CString(),
+            "main",
+            ShaderLanguage::GLSL,
+            stage,
+            stream->GetName().CString());
+
+        return RequestShader(blob);
     }
 
     Shader* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)
@@ -319,6 +411,19 @@ namespace Alimer
         ShaderDescriptor descriptor;
         descriptor.stages[static_cast<uint32_t>(ShaderStage::Compute)] = compute;
         return CreateShader(&descriptor);
+    }
+
+    Pipeline* GraphicsDevice::CreateRenderPipeline(const RenderPipelineDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+#ifdef _DEBUG
+        if (descriptor->vertexShader.IsNull())
+        {
+            ALIMER_LOGERROR("CreateRenderPipeline: Invalid vertex shader");
+        }
+#endif
+
+        return CreateRenderPipelineImpl(descriptor);
     }
 
     void GraphicsDevice::AddGraphicsResource(GraphicsResource* resource)

@@ -68,7 +68,7 @@ namespace Alimer
 
         SharedPtr<Texture> _renderTarget;
         SharedPtr<Texture> _depthStencil;
-        std::vector<SharedPtr<D3D11Framebuffer>> _framebuffers;
+        std::vector<SharedPtr<Framebuffer>> _framebuffers;
         uint32_t _currentBackBufferIndex = 0;
     };
 }

@@ -46,17 +46,17 @@ namespace Alimer
         VkFence GetVkFence() const { return _vkFence; }
 
 	private:
-        void BeginContext() override;
+        void BeginContext();
         void FlushImpl(bool waitForCompletion) override;
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
 
-        void SetShaderImpl(Shader* shader) override;
+        void SetPipelineImpl(Pipeline* pipeline) override;
 
-        void SetVertexDescriptor(const VertexDescriptor* descriptor) override;
+        void SetShaderImpl(Shader* shader) override;
         void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
         void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
-        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) override;
 
         void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) override;
         void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) override;

@@ -22,36 +22,55 @@
 
 #pragma once
 
-#ifndef NOMINMAX
-#  define NOMINMAX
-#endif
-#include <Windows.h>
+#include <WinSDKVer.h>
+#define _WIN32_WINNT 0x0A00
+#include <SDKDDKVer.h>
+
+// Use the C++ standard templated min/max
+#define NOMINMAX
+
+// DirectX apps don't need GDI
+#define NODRAWTEXT
+#define NOGDI
+#define NOBITMAP
+
+// Include <mcx.h> if you need this
+#define NOMCX
+
+// Include <winsvc.h> if you need this
+#define NOSERVICE
+
+// WinHelp is deprecated
+#define NOHELP
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#include <wrl/client.h>
+#include <wrl/event.h>
+
+#include <d3d12.h>
 
 #define D3D11_NO_HELPERS
+#include <d3d11_1.h>
+#include <DirectXMath.h>
+#include <DirectXColors.h>
 
-#if defined(_XBOX_ONE) && defined(_TITLE)
-#   include <d3d11_x.h>
-#   define DCOMMON_H_INCLUDED
+#if defined(NTDDI_WIN10_RS2)
+#   include <dxgi1_6.h>
 #else
-#   include <d3d11_4.h>
+#   include <dxgi1_5.h>
 #endif
 
-#include <dxgi1_4.h>
-#include <d3dcompiler.h>
-
 #pragma warning(push)
-#pragma warning(disable : 4702)
-#include <functional>
+#pragma warning(disable : 4324)
+#include "d3dx12.h"
 #pragma warning(pop)
 
-#include <malloc.h>
-#include <stddef.h>
-#include <stdint.h>
-
-#pragma warning(push)
-#pragma warning(disable : 4467 5038)
-#include <wrl.h>
-#pragma warning(pop)
+#include <algorithm>
+#include <exception>
+#include <memory>
+#include <stdexcept>
 
 #include <stdio.h>
 #include <pix.h>
@@ -60,37 +79,16 @@
 #include <dxgidebug.h>
 #endif
 
-#include <wincodec.h>
-
-#pragma warning(disable : 4324)
-
-#include <exception>
 #include "../Types.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {
-    // Helper class for COM exceptions
-    class com_exception : public std::exception
-    {
-    public:
-        com_exception(HRESULT hr) : result(hr) {}
-
-        const char* what() const noexcept override
-        {
-            static char s_str[64] = {};
-            sprintf_s(s_str, "Failure with HRESULT of %08X", static_cast<unsigned int>(result));
-            return s_str;
-        }
-
-    private:
-        HRESULT result;
-    };
-
     inline void ThrowIfFailed(HRESULT hr)
     {
         if (FAILED(hr))
         {
-            throw com_exception(hr);
+            ALIMER_LOGCRITICALF("Failure with HRESULT of %08X", static_cast<unsigned int>(hr));
         }
     }
 
@@ -120,4 +118,20 @@ namespace Alimer
             resource = nullptr;
         }
     }
+
+    struct ResourceViewInfo
+    {
+        ResourceViewInfo() = default;
+        ResourceViewInfo(uint32_t mostDetailedMip_, uint32_t mipCount_, uint32_t firstArraySlice_, uint32_t arraySize_) : mostDetailedMip(mostDetailedMip_), mipCount(mipCount_), firstArraySlice(firstArraySlice_), arraySize(arraySize_) {}
+        uint32_t mostDetailedMip = 0;
+        uint32_t mipCount = RemainingMipLevels;
+        uint32_t firstArraySlice = 0;
+        uint32_t arraySize = RemainingArrayLayers;
+
+        bool operator==(const ResourceViewInfo& other) const
+        {
+            return (firstArraySlice == other.firstArraySlice) && (arraySize == other.arraySize) && (mipCount == other.mipCount) && (mostDetailedMip == other.mostDetailedMip);
+        }
+    };
+
 }

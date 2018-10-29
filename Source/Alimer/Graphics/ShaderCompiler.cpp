@@ -281,7 +281,7 @@ namespace Alimer
         EShMessages messages = EShMsgDefault;
         SetMessageOptions(options, messages);
 
-        AlimerIncluder includer(GetPath(filePath));
+        AlimerIncluder includer(FileSystem::GetPath(filePath));
 
         const EProfile DefaultProfile = ENoProfile;
         const bool ForceVersionProfile = false;

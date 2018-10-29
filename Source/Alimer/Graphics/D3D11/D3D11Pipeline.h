@@ -22,24 +22,24 @@
 
 #pragma once
 
-#include "D3DPrerequisites.h"
-#include <d3dcompiler.h>
+#include "../Pipeline.h"
+#include "D3D11Prerequisites.h"
+#include <unordered_map>
 
 namespace Alimer
 {
-    class D3DPlatformFunctions final
+    class D3D11GraphicsDevice;
+
+    /// D3D11 Pipeline implementation.
+    class D3D11Pipeline final : public Pipeline
     {
     public:
-        D3DPlatformFunctions();
-        ~D3DPlatformFunctions();
+        D3D11Pipeline(D3D11GraphicsDevice* device, const RenderPipelineDescriptor* descriptor);
+        ~D3D11Pipeline() override;
 
-        bool LoadFunctions(bool loadD3D12);
-
-        // Functions from d3d3compiler.dll
-        pD3DCompile d3dCompile = nullptr;
+        void Destroy() override;
 
     private:
-        HMODULE _d3dCompilerLib = nullptr;
-        HMODULE _d3d12Lib = nullptr;
+        ID3D11Device* _d3dDevice;
     };
 }

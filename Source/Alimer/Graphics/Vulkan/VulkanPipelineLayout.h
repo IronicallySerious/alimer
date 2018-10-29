@@ -34,16 +34,16 @@ namespace Alimer
     {
     public:
         VulkanPipelineLayout(
-            VulkanGraphicsDevice* device, Util::Hash hash, const VulkanResourceLayout* layout);
+            VulkanGraphicsDevice* device, uint64_t hash, const VulkanResourceLayout* layout);
         ~VulkanPipelineLayout();
 
-        Util::Hash GetHash() const { return _hash; }
+        uint64_t GetHash() const { return _hash; }
         const VulkanResourceLayout& GetResourceLayout() const { return _layout; }
         VkPipelineLayout GetHandle() const { return _handle; }
 
     private:
         VulkanGraphicsDevice* _device;
-        Util::Hash _hash;
+        uint64_t _hash;
         VkPipelineLayout _handle = VK_NULL_HANDLE;
         VulkanResourceLayout _layout;
     };

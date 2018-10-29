@@ -21,7 +21,6 @@
 //
 
 #include "D3D11Texture.h"
-#include "D3D11TextureView.h"
 #include "D3D11GraphicsDevice.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
@@ -155,8 +154,423 @@ namespace Alimer
         SafeRelease(_resource, "ID3D11Texture");
     }
 
-    SharedPtr<TextureView> D3D11Texture::CreateTextureView(const TextureViewDescriptor* descriptor) const
+    void D3D11Texture::InvalidateViews()
     {
-        return MakeShared<D3D11TextureView>(this, descriptor);
+        _srvs.clear();
+        _uavs.clear();
+        _rtvs.clear();
+        _dsvs.clear();
+    }
+
+    template<typename ViewType>
+    using CreateViewFunc = std::function<typename ComPtr<ViewType>(const D3D11Texture* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)>;
+
+    template<typename ViewType, typename ViewMapType>
+    typename ViewType* FindViewCommon(
+        const D3D11Texture* texture,
+        uint32_t mipLevel,
+        uint32_t mipLevelCount,
+        uint32_t firstArraySlice,
+        uint32_t arraySize,
+        ViewMapType& viewMap,
+        CreateViewFunc<ViewType> createFunc)
+    {
+        uint32_t textureArraySize = texture->GetArrayLayers();
+        uint32_t textureMipLevels = texture->GetMipLevels();
+
+        if (firstArraySlice >= textureArraySize)
+        {
+            firstArraySlice = textureArraySize - 1;
+        }
+
+        if (mipLevel >= textureMipLevels)
+        {
+            mipLevel = textureMipLevels - 1;
+        }
+
+        if (mipLevelCount == RemainingMipLevels)
+        {
+            mipLevelCount = textureMipLevels - mipLevel;
+        }
+        else if (mipLevelCount + mipLevel > textureMipLevels)
+        {
+            mipLevelCount = textureMipLevels - mipLevel;
+        }
+
+        if (arraySize == RemainingArrayLayers)
+        {
+            arraySize = textureArraySize - firstArraySlice;
+        }
+        else if (arraySize + firstArraySlice > textureArraySize)
+        {
+            arraySize = textureArraySize - firstArraySlice;
+        }
+
+        auto viewInfo = ResourceViewInfo(mipLevel, mipLevelCount, firstArraySlice, arraySize);
+        if (viewMap.find(viewInfo) == viewMap.end())
+        {
+            viewMap[viewInfo] = createFunc(texture, mipLevel, mipLevelCount, firstArraySlice, arraySize);
+        }
+
+        return viewMap[viewInfo].Get();
+    }
+
+    ID3D11ShaderResourceView* D3D11Texture::GetSRV(uint32_t mostDetailedMip, uint32_t mipCount, uint32_t firstArraySlice, uint32_t arraySize) const
+    {
+        auto createFunc = [](const D3D11Texture* texture, uint32_t mostDetailMip, uint32_t mipLevels, uint32_t firstArraySlice, uint32_t arraySize)
+        {
+            uint32_t arrayMultiplier = (texture->GetTextureType() == TextureType::TypeCube) ? 6 : 1;
+            const uint32_t arrayLayers = texture->GetArrayLayers();
+            const bool isTextureMs = static_cast<uint32_t>(texture->GetSamples()) > 1;
+
+            D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
+            desc.Format = texture->GetDXGIFormat();
+            switch (texture->GetTextureType())
+            {
+            case TextureType::Type1D:
+                if (arrayLayers > 1)
+                {
+                    desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE1DARRAY;
+                    desc.Texture1DArray.MostDetailedMip = mostDetailMip;
+                    desc.Texture1DArray.MipLevels = mipLevels;
+                    desc.Texture1DArray.FirstArraySlice = firstArraySlice;
+                    desc.Texture1DArray.ArraySize = arraySize;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE1D;
+                    desc.Texture1D.MostDetailedMip = mostDetailMip;
+                    desc.Texture1D.MipLevels = mipLevels;
+                }
+                break;
+            case TextureType::Type2D:
+                if (arrayLayers > 1)
+                {
+                    if (isTextureMs)
+                    {
+                        desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
+                        desc.Texture2DMSArray.FirstArraySlice = firstArraySlice;
+                        desc.Texture2DMSArray.ArraySize = arraySize;
+                    }
+                    else
+                    {
+                        desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+                        desc.Texture2DArray.MostDetailedMip = mostDetailMip;
+                        desc.Texture2DArray.MipLevels = mipLevels;
+                        desc.Texture2DArray.FirstArraySlice = firstArraySlice * arrayMultiplier;
+                        desc.Texture2DArray.ArraySize = arraySize * arrayMultiplier;
+                    }
+                }
+                else
+                {
+                    if (isTextureMs)
+                    {
+                        desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+                    }
+                    else
+                    {
+                        desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+                        desc.Texture2D.MostDetailedMip = mostDetailMip;
+                        desc.Texture2D.MipLevels = mipLevels;
+                    }
+                }
+
+                break;
+
+            case TextureType::Type3D:
+                assert(arraySize == 1);
+                desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+                desc.Texture3D.MostDetailedMip = mostDetailMip;
+                desc.Texture3D.MipLevels = mipLevels;
+                break;
+
+            case TextureType::TypeCube:
+                if (arraySize > 1)
+                {
+                    desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
+                    desc.TextureCubeArray.MostDetailedMip = mostDetailMip;
+                    desc.TextureCubeArray.MipLevels = mipLevels;
+                    desc.TextureCubeArray.First2DArrayFace = firstArraySlice;
+                    desc.TextureCubeArray.NumCubes = arraySize;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+                    desc.TextureCube.MostDetailedMip = mostDetailMip;
+                    desc.TextureCube.MipLevels = mipLevels;
+                }
+                break;
+
+            default:
+                desc.ViewDimension = D3D11_SRV_DIMENSION_UNKNOWN;
+                ALIMER_LOGCRITICAL("Invalid texture type");
+                break;
+            }
+
+            ComPtr<ID3D11ShaderResourceView> view;
+            HRESULT hr = texture->GetD3DDevice()->CreateShaderResourceView(
+                texture->GetResource(),
+                &desc,
+                view.ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                ALIMER_LOGCRITICAL("[D3D] - CreateShaderResourceView failed");
+            }
+
+            return view;
+        };
+
+        return FindViewCommon<ID3D11ShaderResourceView>(this, mostDetailedMip, mipCount, firstArraySlice, arraySize, _srvs, createFunc);
+    }
+
+    ID3D11UnorderedAccessView* D3D11Texture::GetUAV(uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize) const
+    {
+        auto createFunc = [](const D3D11Texture* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)
+        {
+            D3D11_UNORDERED_ACCESS_VIEW_DESC  desc = {};
+            desc.Format = texture->GetDXGIFormat();
+            switch (texture->GetTextureType())
+            {
+            case TextureType::Type1D:
+                if (texture->GetArrayLayers() > 1)
+                {
+                    desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE1DARRAY;
+                    desc.Texture1DArray.MipSlice = mipLevel;
+                    desc.Texture1DArray.FirstArraySlice = firstArraySlice;
+                    desc.Texture1DArray.ArraySize = arraySize;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE1D;
+                    desc.Texture1D.MipSlice = mipLevel;
+                }
+                break;
+            case TextureType::Type2D:
+                if (texture->GetArrayLayers() > 1)
+                {
+                    desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+                    desc.Texture2DArray.MipSlice = mipLevel;
+                    desc.Texture2DArray.FirstArraySlice = firstArraySlice;
+                    desc.Texture2DArray.ArraySize = arraySize;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+                    desc.Texture2D.MipSlice = mipLevel;
+                }
+
+                break;
+
+            case TextureType::Type3D:
+                assert(texture->GetArrayLayers() == 1);
+                desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
+                desc.Texture3D.MipSlice = mipLevel;
+                desc.Texture3D.FirstWSlice = firstArraySlice;
+                desc.Texture3D.WSize = texture->GetDepth();
+                break;
+
+            case TextureType::TypeCube:
+                assert(texture->GetArrayLayers() == 1);
+                desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+                desc.Texture2DArray.MipSlice = mipLevel;
+                desc.Texture2DArray.FirstArraySlice = firstArraySlice;
+                desc.Texture2DArray.ArraySize = arraySize;
+                break;
+
+            default:
+                desc.ViewDimension = D3D11_UAV_DIMENSION_UNKNOWN;
+                ALIMER_LOGCRITICAL("Texture type not supported for UAV creation");
+                break;
+            }
+
+            ComPtr<ID3D11UnorderedAccessView> view;
+            HRESULT hr = texture->GetD3DDevice()->CreateUnorderedAccessView(
+                texture->GetResource(),
+                &desc,
+                view.ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                ALIMER_LOGCRITICAL("[D3D] - CreateUnorderedAccessView failed");
+            }
+
+            return view;
+        };
+
+        return FindViewCommon<ID3D11UnorderedAccessView>(this, mipLevel, 1, firstArraySlice, arraySize, _uavs, createFunc);
+    }
+
+    ID3D11RenderTargetView* D3D11Texture::GetRTV(uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize) const
+    {
+        auto createFunc = [](const D3D11Texture* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)
+        {
+            uint32_t arrayMultiplier = (texture->GetTextureType() == TextureType::TypeCube) ? 6 : 1;
+            const bool isTextureMs = static_cast<uint32_t>(texture->GetSamples()) > 1;
+
+            D3D11_RENDER_TARGET_VIEW_DESC desc = {};
+            desc.Format = texture->GetDXGIFormat();
+            switch (texture->GetTextureType())
+            {
+            case TextureType::Type1D:
+                if (texture->GetArrayLayers() > 1)
+                {
+                    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1DARRAY;
+                    desc.Texture1DArray.MipSlice = mipLevel;
+                    desc.Texture1DArray.FirstArraySlice = firstArraySlice;
+                    desc.Texture1DArray.ArraySize = arraySize;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1D;
+                    desc.Texture1D.MipSlice = mipLevel;
+                }
+                break;
+            case TextureType::Type2D:
+            case TextureType::TypeCube:
+                if (texture->GetArrayLayers() * arrayMultiplier > 1)
+                {
+                    if (isTextureMs)
+                    {
+                        desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
+                        desc.Texture2DMSArray.FirstArraySlice = firstArraySlice;
+                        desc.Texture2DMSArray.ArraySize = arraySize;
+                    }
+                    else
+                    {
+                        desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+                        desc.Texture2DArray.MipSlice = mipLevel;
+                        desc.Texture2DArray.FirstArraySlice = firstArraySlice * arrayMultiplier;
+                        desc.Texture2DArray.ArraySize = arraySize * arrayMultiplier;
+                    }
+                }
+                else
+                {
+                    if (isTextureMs)
+                    {
+                        desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
+                    }
+                    else
+                    {
+                        desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+                        desc.Texture2D.MipSlice = mipLevel;
+                    }
+                }
+
+                break;
+
+            case TextureType::Type3D:
+                assert(texture->GetArrayLayers() == 1);
+                desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
+                desc.Texture3D.MipSlice = mipLevel;
+                desc.Texture3D.FirstWSlice = firstArraySlice;
+                desc.Texture3D.WSize = texture->GetDepth();
+                break;
+
+            default:
+                desc.ViewDimension = D3D11_RTV_DIMENSION_UNKNOWN;
+                ALIMER_LOGCRITICAL("Invalid texture type");
+                break;
+            }
+
+            ComPtr<ID3D11RenderTargetView> view;
+            HRESULT hr = texture->GetD3DDevice()->CreateRenderTargetView(
+                texture->GetResource(),
+                &desc,
+                view.ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                ALIMER_LOGCRITICAL("[D3D] - CreateRenderTargetView failed");
+            }
+
+            return view;
+        };
+
+        return FindViewCommon<ID3D11RenderTargetView>(this, mipLevel, 1, firstArraySlice, arraySize, _rtvs, createFunc);
+    }
+
+    ID3D11DepthStencilView* D3D11Texture::GetDSV(uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize) const
+    {
+        auto createFunc = [](const D3D11Texture* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)
+        {
+            uint32_t arrayMultiplier = (texture->GetTextureType() == TextureType::TypeCube) ? 6 : 1;
+            const bool isTextureMs = static_cast<uint32_t>(texture->GetSamples()) > 1;
+
+            D3D11_DEPTH_STENCIL_VIEW_DESC desc = {};
+            desc.Format = texture->GetDXGIFormat();
+            switch (texture->GetTextureType())
+            {
+            case TextureType::Type1D:
+                if (texture->GetArrayLayers() > 1)
+                {
+                    desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE1DARRAY;
+                    desc.Texture1DArray.MipSlice = mipLevel;
+                    desc.Texture1DArray.FirstArraySlice = firstArraySlice;
+                    desc.Texture1DArray.ArraySize = arraySize;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE1D;
+                    desc.Texture1D.MipSlice = mipLevel;
+                }
+                break;
+            case TextureType::Type2D:
+            case TextureType::TypeCube:
+                if (texture->GetArrayLayers() * arrayMultiplier > 1)
+                {
+                    if (isTextureMs)
+                    {
+                        desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
+                        desc.Texture2DMSArray.FirstArraySlice = firstArraySlice;
+                        desc.Texture2DMSArray.ArraySize = arraySize;
+                    }
+                    else
+                    {
+                        desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+                        desc.Texture2DArray.MipSlice = mipLevel;
+                        desc.Texture2DArray.FirstArraySlice = firstArraySlice * arrayMultiplier;
+                        desc.Texture2DArray.ArraySize = arraySize * arrayMultiplier;
+                    }
+                }
+                else
+                {
+                    if (isTextureMs)
+                    {
+                        desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+                    }
+                    else
+                    {
+                        desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+                        desc.Texture2D.MipSlice = mipLevel;
+                    }
+                }
+
+                break;
+
+            case TextureType::Type3D:
+                desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+                desc.Texture2DArray.MipSlice = mipLevel;
+                desc.Texture2DArray.FirstArraySlice = firstArraySlice;
+                desc.Texture2DArray.ArraySize = texture->GetDepth();
+                break;
+
+            default:
+                desc.ViewDimension = D3D11_DSV_DIMENSION_UNKNOWN;
+                ALIMER_LOGCRITICAL("Invalid texture type");
+                break;
+            }
+
+            ComPtr<ID3D11DepthStencilView> view;
+            HRESULT hr = texture->GetD3DDevice()->CreateDepthStencilView(
+                texture->GetResource(),
+                &desc,
+                view.ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                ALIMER_LOGCRITICAL("[D3D] - CreateRenderTargetView failed");
+            }
+
+            return view;
+        };
+
+        return FindViewCommon<ID3D11DepthStencilView>(this, mipLevel, 1, firstArraySlice, arraySize, _dsvs, createFunc);
     }
 }

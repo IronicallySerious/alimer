@@ -27,16 +27,16 @@
 
 namespace Alimer
 {
-    VulkanShader::VulkanShader(VulkanGraphicsDevice* device, Util::Hash hash, const uint32_t* pCode, size_t size)
-        : ShaderModule(device, hash, pCode, size)
+    VulkanShaderModule::VulkanShaderModule(VulkanGraphicsDevice* device, uint64_t hash, const ShaderBlob& blob)
+        : ShaderModule(device, hash, blob)
         , _logicalDevice(device->GetDevice())
     {
         VkShaderModuleCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.codeSize = size;
-        createInfo.pCode = pCode;
+        createInfo.codeSize = blob.size;
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(blob.data);
 
         VkResult result = vkCreateShaderModule(
             _logicalDevice,
@@ -51,12 +51,12 @@ namespace Alimer
         }
     }
 
-    VulkanShader::~VulkanShader()
+    VulkanShaderModule::~VulkanShaderModule()
     {
         Destroy();
     }
 
-    void VulkanShader::Destroy()
+    void VulkanShaderModule::Destroy()
     {
         if (_handle != VK_NULL_HANDLE)
         {
@@ -65,7 +65,7 @@ namespace Alimer
         }
     }
 
-    VulkanProgram::VulkanProgram(VulkanGraphicsDevice* device, Util::Hash hash, const std::vector<ShaderModule*>& shaders)
+    VulkanProgram::VulkanProgram(VulkanGraphicsDevice* device, uint64_t hash, const std::vector<ShaderModule*>& shaders)
         : Shader(device, nullptr)
         , _logicalDevice(device->GetDevice())
     {
@@ -74,7 +74,7 @@ namespace Alimer
 
         for (size_t i = 0, count = shaders.size(); i < count; ++i)
         {
-            auto shader = static_cast<VulkanShader*>(shaders[i]);
+            auto shader = static_cast<VulkanShaderModule*>(shaders[i]);
             if (shader->GetStage() == ShaderStage::Vertex)
             {
                 layout.vertexAttributeMask = shader->GetReflection().inputMask;
@@ -104,7 +104,7 @@ namespace Alimer
         return _shaderModules[static_cast<unsigned>(stage)];
     }
 
-    VkPipeline VulkanProgram::GetGraphicsPipeline(Util::Hash hash)
+    VkPipeline VulkanProgram::GetGraphicsPipeline(uint64_t hash)
     {
         auto it = _graphicsPipelineCache.find(hash);
         if (it != _graphicsPipelineCache.end())
@@ -113,7 +113,7 @@ namespace Alimer
         return VK_NULL_HANDLE;
     }
 
-    void VulkanProgram::AddPipeline(Util::Hash hash, VkPipeline pipeline)
+    void VulkanProgram::AddPipeline(uint64_t hash, VkPipeline pipeline)
     {
         _graphicsPipelineCache[hash] = pipeline;
     }

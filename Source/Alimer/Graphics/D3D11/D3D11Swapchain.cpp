@@ -226,9 +226,6 @@ namespace Alimer
             }
         }
 
-        _framebuffers.resize(1);
-        _framebuffers[0] = new D3D11Framebuffer(_device);
-
         ID3D11Texture2D* renderTarget;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
 
@@ -269,8 +266,9 @@ namespace Alimer
         }
 
         _renderTarget = new D3D11Texture(_device, &textureDesc, nullptr, renderTarget);
-        _framebuffers[0]->AttachColorTarget(_renderTarget, 0);
 
+        FramebufferDescriptor fboDescriptor = {};
+        fboDescriptor.colorAttachments[0].texture = _renderTarget.Get();
         // Create depth stencil if required.
         if (_depthStencilFormat != PixelFormat::Unknown)
         {
@@ -280,8 +278,11 @@ namespace Alimer
             textureDesc.height = d3dTextureDesc.Height;
             textureDesc.usage = TextureUsage::RenderTarget;
             _depthStencil = new D3D11Texture(_device, &textureDesc, nullptr, nullptr);
-            _framebuffers[0]->AttachDepthStencilTarget(_depthStencil);
+            fboDescriptor.depthStencilAttachment.texture = _depthStencil.Get();
         }
+
+        _framebuffers.resize(1);
+        _framebuffers[0] = _device->CreateFramebuffer(&fboDescriptor);
 
         // Set new size.
         _width = width;

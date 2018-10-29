@@ -75,6 +75,16 @@ namespace Alimer
         return nullptr;
     }
 
+    bool FileSystem::Exists(const String &path)
+    {
+        auto paths = Path::ProtocolSplit(path);
+        auto *backend = GetProcotol(paths.first);
+        if (!backend)
+            return {};
+
+        return backend->Exists(paths.second);
+    }
+
     UniquePtr<Stream> FileSystem::Open(const String &path, StreamMode mode)
     {
         auto paths = Path::ProtocolSplit(path);
@@ -152,28 +162,28 @@ namespace Alimer
         }
     }
 
-    String GetPath(const String& fullPath)
+    String FileSystem::GetPath(const String& fullPath)
     {
         String path, file, extension;
         SplitPath(fullPath, path, file, extension);
         return path;
     }
 
-    String GetFileName(const String& fullPath)
+    String FileSystem::GetFileName(const String& fullPath)
     {
         String path, file, extension;
         SplitPath(fullPath, path, file, extension);
         return file;
     }
 
-    String GetExtension(const String& fullPath, bool lowercaseExtension)
+    String FileSystem::GetExtension(const String& fullPath, bool lowercaseExtension)
     {
         String path, file, extension;
         SplitPath(fullPath, path, file, extension, lowercaseExtension);
         return extension;
     }
 
-    String GetFileNameAndExtension(const String& fileName, bool lowercaseExtension)
+    String FileSystem::GetFileNameAndExtension(const String& fileName, bool lowercaseExtension)
     {
         String path, file, extension;
         SplitPath(fileName, path, file, extension, lowercaseExtension);
@@ -226,7 +236,7 @@ namespace Alimer
         wchar_t exeName[MAX_PATH];
         exeName[0] = 0;
         GetModuleFileNameW(nullptr, exeName, MAX_PATH);
-        return GetPath(ToUniversalPath(String(exeName)));
+        return FileSystem::GetPath(ToUniversalPath(String(exeName)));
     }
 
     bool FileExists(const String& fileName)

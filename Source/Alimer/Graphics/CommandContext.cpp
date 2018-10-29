@@ -31,7 +31,7 @@ namespace Alimer
         : _device(device)
     {
         ALIMER_ASSERT(device);
-        BeginCompute();
+        BeginContext();
     }
 
     void CommandContext::Flush(bool waitForCompletion)
@@ -56,6 +56,13 @@ namespace Alimer
     {
         EndRenderPassImpl();
         _insideRenderPass = false;
+    }
+
+    void CommandContext::SetPipeline(Pipeline* pipeline)
+    {
+        ALIMER_ASSERT(pipeline);
+
+        SetPipelineImpl(pipeline);
     }
 
     void CommandContext::SetVertexBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t index)
@@ -86,7 +93,7 @@ namespace Alimer
         SetVertexBuffersImpl(firstBinding, count, buffers, offsets);
     }
 
-    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset)
     {
         ALIMER_ASSERT(buffer);
         if (!any(buffer->GetUsage() & BufferUsage::Index))
@@ -95,7 +102,7 @@ namespace Alimer
             return;
         }
 
-        SetIndexBufferImpl(buffer, offset, indexType);
+        SetIndexBufferImpl(buffer, offset, buffer->GetStride());
     }
 
     void CommandContext::SetShader(Shader* shader)
@@ -118,34 +125,30 @@ namespace Alimer
 
     void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
     {
-        ALIMER_ASSERT(_currentShader);
+        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
-        ALIMER_ASSERT(!_isCompute);
         DrawInstancedImpl(topology, vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
     {
-        ALIMER_ASSERT(_currentShader);
+        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
-        ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(indexCount > 1);
         DrawIndexedImpl(topology, indexCount, startIndexLocation, baseVertexLocation);
     }
 
     void CommandContext::DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
     {
-        ALIMER_ASSERT(_currentShader);
+        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
-        ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(indexCount > 1);
         DrawIndexedInstancedImpl(topology, indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
     }
 
     void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        //ALIMER_ASSERT(_currentShader);
-        ALIMER_ASSERT(_isCompute);
+        ALIMER_ASSERT(_currentShader && _currentShader->IsCompute());
         FlushComputeState();
         DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
@@ -169,18 +172,6 @@ namespace Alimer
             DivideByMultiple(threadCountX, groupSizeX),
             DivideByMultiple(threadCountY, groupSizeY),
             DivideByMultiple(threadCountZ, groupSizeZ));
-    }
-
-    void CommandContext::BeginCompute()
-    {
-        _isCompute = true;
-        BeginContext();
-    }
-
-    void CommandContext::BeginGraphics()
-    {
-        _isCompute = false;
-        BeginContext();
     }
 
     void CommandContext::BeginContext()

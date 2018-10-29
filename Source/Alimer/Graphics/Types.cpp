@@ -62,20 +62,6 @@ namespace Alimer
         return "None";
     }
 
-    const char* EnumToString(IndexType type)
-    {
-#define CASE_STRING(ENUM_VALUE) case IndexType::##ENUM_VALUE : return #ENUM_VALUE
-
-        switch (type)
-        {
-            CASE_STRING(UInt16);
-            CASE_STRING(UInt32);
-        }
-
-#undef CASE_STRING
-        return nullptr;
-    }
-
     const char* EnumToString(ShaderStage stage)
     {
 #define CASE_STRING(ENUM_VALUE) case ShaderStage::##ENUM_VALUE : return #ENUM_VALUE

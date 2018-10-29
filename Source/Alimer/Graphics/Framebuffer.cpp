@@ -26,26 +26,34 @@
 
 namespace Alimer
 {
-    Framebuffer::Framebuffer(GraphicsDevice* device)
+    Framebuffer::Framebuffer(GraphicsDevice* device, const FramebufferDescriptor* descriptor)
         : GraphicsResource(device)
     {
-        _colorAttachments.resize(_device->GetFeatures().GetMaxColorAttachments());
-        _width = (uint32_t)-1;
-        _height = (uint32_t)-1;
-        _depth = (uint32_t)-1;
-    }
+        _width = UINT32_MAX;
+        _height = UINT32_MAX;
+        _layers = 1;
 
-    void Framebuffer::Clear()
-    {
-        for (size_t i = 0; i < _colorAttachments.size(); i++)
+        for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
-            _colorAttachments[i] = nullptr;
+            const FramebufferAttachment& attachment = descriptor->colorAttachments[i];
+            if (attachment.texture == nullptr)
+                continue;
+
+            uint32_t mipLevel = attachment.mipLevel;
+            Texture* texture = attachment.texture;
+            _width = min(_width, texture->GetWidth(mipLevel));
+            _height = min(_height, texture->GetHeight(mipLevel));
+            _colorAttachments.push_back(attachment);
         }
 
-        _width = (uint32_t)-1;
-        _height = (uint32_t)-1;
-        _depth = (uint32_t)-1;
-        ClearImpl();
+        if (descriptor->depthStencilAttachment.texture != nullptr)
+        {
+            uint32_t mipLevel = descriptor->depthStencilAttachment.mipLevel;
+            Texture* texture = descriptor->depthStencilAttachment.texture;
+            _width = min(_width, texture->GetWidth(mipLevel));
+            _height = min(_height, texture->GetHeight(mipLevel));
+            _depthStencilAttachment = descriptor->depthStencilAttachment;
+        }
     }
 
     static bool ValidateAttachment(const Texture* texture,
@@ -143,15 +151,10 @@ namespace Alimer
             {
                 _width = min(_width, colorTexture->GetWidth(mipLevel));
                 _height = min(_height, colorTexture->GetHeight(mipLevel));
-                _depth = min(_depth, colorTexture->GetDepth(mipLevel));
-                _colorAttachments[index] = colorTexture->GetView(mipLevel, 1, firstArraySlice, arraySize);
             }
             else
             {
-                _colorAttachments[index] = nullptr;
             }
-
-            ApplyColorAttachment(index);
         }
     }
 
@@ -168,15 +171,10 @@ namespace Alimer
             {
                 _width = min(_width, depthStencil->GetWidth(mipLevel));
                 _height = min(_height, depthStencil->GetHeight(mipLevel));
-                _depth = min(_depth, depthStencil->GetDepth(mipLevel));
-                _depthStencil = depthStencil->GetView(mipLevel, 1, firstArraySlice, arraySize);
             }
             else
             {
-                _depthStencil = nullptr;
             }
-
-            ApplyDepthAttachment();
         }
     }
 
@@ -188,11 +186,11 @@ namespace Alimer
             return nullptr;
         }
 
-        return _colorAttachments[index]->GetTexture();
+        return _colorAttachments[index].texture;
     }
 
     const Texture* Framebuffer::GetDepthStencilTexture() const
     {
-        return _depthStencil->GetTexture();
+        return _depthStencilAttachment.texture;
     }
 }

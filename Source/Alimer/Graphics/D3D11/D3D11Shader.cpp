@@ -61,6 +61,23 @@ namespace Alimer
         return D3DShaderCompiler::Compile(graphics->GetFunctions()->d3dCompile, hlslSource, stage, major, minor);
     }
 
+    D3D11ShaderModule::D3D11ShaderModule(D3D11GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob)
+        : ShaderModule(device, hash, blob)
+        , _vertexShader(nullptr)
+    {
+        _d3dBlob = ConvertAndCompileHLSL(device, blob, GetReflection().stage);
+    }
+
+    D3D11ShaderModule::~D3D11ShaderModule()
+    {
+
+    }
+
+    void D3D11ShaderModule::Destroy()
+    {
+
+    }
+
     D3D11Shader::D3D11Shader(D3D11GraphicsDevice* device, const ShaderDescriptor* descriptor)
         : Shader(device, descriptor)
     {

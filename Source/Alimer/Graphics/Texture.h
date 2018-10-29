@@ -61,17 +61,6 @@ namespace Alimer
         SampleCount samples = SampleCount::Count1;
     };
 
-    struct TextureViewDescriptor
-    {
-        PixelFormat format;
-        uint32_t baseMipLevel = 0;
-        uint32_t levelCount = RemainingMipLevels;
-        uint32_t baseArrayLayer = 0;
-        uint32_t layerCount = RemainingArrayLayers;
-    };
-
-    class TextureView;
-
     /// Defines a Texture class.
     class ALIMER_API Texture : public GraphicsResource
     {
@@ -80,9 +69,6 @@ namespace Alimer
         Texture(GraphicsDevice* device, const TextureDescriptor* descriptor);
 
     public:
-        SharedPtr<TextureView> GetView(uint32_t mipLevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount) const;
-        SharedPtr<TextureView> GetDefaultTextureView() const;
-
         TextureType GetTextureType() const { return _type; }
         TextureUsage GetUsage() const { return _usage; }
         PixelFormat GetFormat() const { return _format; }
@@ -118,8 +104,6 @@ namespace Alimer
         SampleCount GetSamples() const { return _samples; }
 
     protected:
-        void InvalidateViews();
-
         TextureType _type = TextureType::Type1D;
         TextureUsage _usage = TextureUsage::Unknown;
         PixelFormat _format = PixelFormat::Unknown;
@@ -129,38 +113,5 @@ namespace Alimer
         uint32_t _mipLevels = 1;
         uint32_t _arrayLayers = 1;
         SampleCount _samples = SampleCount::Count1;
-
-    private:
-        virtual SharedPtr<TextureView> CreateTextureView(const TextureViewDescriptor* descriptor) const = 0;
-        mutable SharedPtr<TextureView> _defaultTextureView;
-        mutable Util::HashMap<SharedPtr<TextureView>> _views;
-    };
-
-    class ALIMER_API TextureView : public RefCounted
-    {
-    protected:
-        TextureView(const Texture* resource, const TextureViewDescriptor* descriptor)
-            : _texture(resource)
-            , _format(descriptor->format)
-            , _baseMipLevel(descriptor->baseMipLevel)
-            , _levelCount(descriptor->levelCount)
-            , _baseArrayLayer(descriptor->baseArrayLayer)
-            , _layerCount(descriptor->layerCount)
-        {
-
-        }
-    public:
-        /**
-        * Get the texture referenced by the view.
-        */
-        const Texture* GetTexture() const { return _texture; }
-
-    protected:
-        const Texture* _texture;
-        PixelFormat _format = PixelFormat::Unknown;
-        uint32_t _baseMipLevel = 0;
-        uint32_t _levelCount = RemainingMipLevels;
-        uint32_t _baseArrayLayer = 0;
-        uint32_t _layerCount = RemainingArrayLayers;
     };
 }

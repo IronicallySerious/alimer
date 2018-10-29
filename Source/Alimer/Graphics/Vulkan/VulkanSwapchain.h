@@ -66,7 +66,7 @@ namespace Alimer
 
         std::vector<VkImage> _vkImages;
         std::vector<SharedPtr<VulkanTexture>> _textures;
-        //std::vector<SharedPtr<VulkanFramebuffer>> _framebuffers;
+        std::vector<SharedPtr<VulkanFramebuffer>> _framebuffers;
 
         uint32_t _imageCount;
         PixelFormat _format = PixelFormat::Unknown;

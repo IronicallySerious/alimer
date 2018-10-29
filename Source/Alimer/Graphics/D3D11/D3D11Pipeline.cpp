@@ -20,32 +20,27 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "Graphics/Texture.h"
-#include "D3D11Prerequisites.h"
+#include "D3D11Pipeline.h"
+#include "D3D11GraphicsDevice.h"
+#include "../D3D/D3DConvert.h"
+#include "../../Core/Log.h"
+using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    class D3D11Texture;
-
-    /// D3D11 TextureView implementation.
-    class D3D11TextureView final : public TextureView
+    D3D11Pipeline::D3D11Pipeline(D3D11GraphicsDevice* device, const RenderPipelineDescriptor* descriptor)
+        : Pipeline(device, descriptor)
+        , _d3dDevice(device->GetD3DDevice())
     {
-    public:
-        D3D11TextureView(const D3D11Texture* texture, const TextureViewDescriptor* descriptor);
+        
+    }
 
-        ~D3D11TextureView() override;
+    D3D11Pipeline::~D3D11Pipeline()
+    {
+        Destroy();
+    }
 
-        ID3D11ShaderResourceView* GetSRV() const;
-        ID3D11RenderTargetView* GetRTV() const;
-        ID3D11DepthStencilView* GetDSV() const;
-
-    private:
-        const D3D11Texture* _d3dTexture;
-        TextureUsage _textureUsage;
-        mutable Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> _srv;
-        mutable Microsoft::WRL::ComPtr<ID3D11RenderTargetView> _rtv;
-        mutable Microsoft::WRL::ComPtr<ID3D11DepthStencilView> _dsv;
-    };
+    void D3D11Pipeline::Destroy()
+    {
+    }
 }

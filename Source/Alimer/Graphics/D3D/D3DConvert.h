@@ -111,17 +111,6 @@ namespace Alimer
             }
         }
 
-        static inline DXGI_FORMAT Convert(IndexType type)
-        {
-            switch (type)
-            {
-            case IndexType::UInt16: return DXGI_FORMAT_R16_UINT;
-            case IndexType::UInt32: return DXGI_FORMAT_R32_UINT;
-            default:
-                ALIMER_UNREACHABLE();
-            }
-        }
-
         static inline D3D_PRIMITIVE_TOPOLOGY Convert(PrimitiveTopology topology)
         {
             switch (topology)

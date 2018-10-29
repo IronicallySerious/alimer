@@ -171,12 +171,6 @@ namespace Alimer
         Output = 1,
     };
 
-    enum class IndexType : uint32_t
-    {
-        UInt16,
-        UInt32,
-    };
-
     /// Defines shader stage
     enum class ShaderStage : uint32_t
     {
@@ -276,27 +270,9 @@ namespace Alimer
         uint32_t                bufferIndex = 0;
     };
 
-    struct VertexBufferLayoutDescriptor
-    {
-        uint32_t        stride = 0;
-        VertexInputRate inputRate = VertexInputRate::Vertex;
-    };
-
-    struct VertexDescriptor
-    {
-        VertexBufferLayoutDescriptor buffers[MaxVertexBufferBindings];
-        VertexAttributeDescriptor attributes[MaxVertexAttributes];
-    };
-
-    struct RenderPipelineDescriptor
-    {
-        VertexDescriptor vertexDescriptor;
-    };
-
     ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
     ALIMER_API const char* EnumToString(ResourceUsage usage);
     ALIMER_API const char* EnumToString(BufferUsage usage);
-    ALIMER_API const char* EnumToString(IndexType type);
     ALIMER_API const char* EnumToString(ShaderStage stage);
     ALIMER_API const char* EnumToString(VertexElementSemantic semantic);
 }

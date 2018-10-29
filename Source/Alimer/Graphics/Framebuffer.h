@@ -26,19 +26,27 @@
 
 namespace Alimer
 {
+    struct FramebufferAttachment
+    {
+        Texture* texture = nullptr;
+        uint32_t mipLevel = 0;
+        uint32_t slice = 0;
+    };
+
+    struct FramebufferDescriptor
+    {
+        FramebufferAttachment colorAttachments[MaxColorAttachments];
+        FramebufferAttachment depthStencilAttachment;
+    };
+
     /// Defines a Framebuffer class.
     class ALIMER_API Framebuffer : public GraphicsResource
     {
     protected:
         /// Constructor.
-        Framebuffer(GraphicsDevice* device);
+        Framebuffer(GraphicsDevice* device, const FramebufferDescriptor* descriptor);
 
     public:
-        /**
-        * Clear the framebuffer attachments.
-        */
-        void Clear();
-
         /**
         * Attach a color texture.
         *
@@ -80,17 +88,17 @@ namespace Alimer
         */
         uint32_t GetHeight() const { return _height; }
 
-    private:
-        virtual void ApplyColorAttachment(uint32_t index) = 0;
-        virtual void ApplyDepthAttachment() = 0;
-        virtual void ClearImpl() = 0;
+        /**
+        * Get the layers of the framebuffer.
+        */
+        uint32_t GetLayers() const { return _layers; }
 
     protected:
-        std::vector<SharedPtr<TextureView>> _colorAttachments;
-        SharedPtr<TextureView> _depthStencil = nullptr;
+        std::vector<FramebufferAttachment> _colorAttachments;
+        FramebufferAttachment _depthStencilAttachment;
 
-        uint32_t _width;
-        uint32_t _height;
-        uint32_t _depth;
+        uint32_t _width = 0;
+        uint32_t _height = 0;
+        uint32_t _layers = 1;
     };
 }

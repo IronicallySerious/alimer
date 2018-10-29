@@ -52,14 +52,6 @@ namespace Alimer
     /// Split a full path to path, filename and extension. The extension will be converted to lowercase by default.
     ALIMER_API void SplitPath(const String& fullPath, String& pathName, String& fileName, String& extension, bool lowerCaseExtension = true);
 
-    /// Return the path from a full path.
-    ALIMER_API String GetPath(const String& fullPath);
-    /// Return the filename from a full path.
-    ALIMER_API String GetFileName(const String& fullPath);
-    /// Return the extension from a full path, converted to lowercase by default.
-    ALIMER_API String GetExtension(const String& fullPath, bool lowercaseExtension = true);
-    /// Return the filename and extension from a full path. The case of the extension is preserved by default, so that the file can be opened in case-sensitive operating systems.
-    ALIMER_API String GetFileNameAndExtension(const String& fileName, bool lowercaseExtension = false);
     /// Return the parent path, or the path itself if not available.
     ALIMER_API String GetParentPath(const String& path);
     /// Return whether a path is absolute.
@@ -84,6 +76,7 @@ namespace Alimer
     public:
         virtual ~FileSystemProtocol() = default;
 
+        virtual bool Exists(const String &path) = 0;
         virtual UniquePtr<Stream> Open(const String &path, StreamMode mode = StreamMode::ReadOnly) = 0;
 
         inline virtual String GetFileSystemPath(const String&)
@@ -108,11 +101,25 @@ namespace Alimer
         /// Returns the FileSystem instance.
         static FileSystem &Get();
 
+        /// Return the path from a full path.
+        static String GetPath(const String& fullPath);
+        /// Return the filename from a full path.
+        static String GetFileName(const String& fullPath);
+
+        /// Return the extension from a full path, converted to lowercase by default.
+        static String GetExtension(const String& fullPath, bool lowercaseExtension = true);
+
+        /// Return the filename and extension from a full path. The case of the extension is preserved by default, so that the file can be opened in case-sensitive operating systems.
+        static String GetFileNameAndExtension(const String& fileName, bool lowercaseExtension = false);
+
         /// Register protocol with given name.
         void RegisterProtocol(const String &name, FileSystemProtocol* protocol);
 
         /// Get protocol by name or empty for default protocol.
         FileSystemProtocol* GetProcotol(const String &name);
+
+        /// Check if file exists.
+        bool Exists(const String &path);
 
         /// Open stream from given path with given access mode.
         UniquePtr<Stream> Open(const String &path, StreamMode mode = StreamMode::ReadOnly);

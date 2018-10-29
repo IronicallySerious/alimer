@@ -176,6 +176,18 @@ namespace Alimer
         return Path::Join(_rootDirectory, path);
     }
 
+    bool OSFileSystemProtocol::Exists(const String &path)
+    {
+        String fullPath = Path::Join(_rootDirectory, path);
+        String fixedName = fullPath.Replaced('/', '\\');
+
+        DWORD attributes = GetFileAttributesW(WString(fixedName).CString());
+        if (attributes == INVALID_FILE_ATTRIBUTES || attributes & FILE_ATTRIBUTE_DIRECTORY)
+            return false;
+
+        return true;
+    }
+
     UniquePtr<Stream> OSFileSystemProtocol::Open(const String &path, StreamMode mode)
     {
         try

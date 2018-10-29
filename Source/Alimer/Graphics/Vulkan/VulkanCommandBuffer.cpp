@@ -144,6 +144,10 @@ namespace Alimer
         vkCmdEndRenderPass(_handle);
     }
 
+    void VulkanCommandBuffer::SetPipelineImpl(Pipeline* pipeline)
+    {
+    }
+
     void VulkanCommandBuffer::Begin()
     {
         VkCommandBufferBeginInfo beginInfo;
@@ -194,11 +198,6 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandBuffer::SetVertexDescriptor(const VertexDescriptor* descriptor)
-    {
-        _graphicsState.SetVertexDescriptor(descriptor);
-    }
-
     void VulkanCommandBuffer::SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset)
     {
         VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetHandle();
@@ -217,10 +216,10 @@ namespace Alimer
         vkCmdBindVertexBuffers(_handle, firstBinding, count, _currentVertexBuffers, _vboOffsets);
     }
 
-    void VulkanCommandBuffer::SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void VulkanCommandBuffer::SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride)
     {
         VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer)->GetHandle();
-        VkIndexType vkIndexType = vk::Convert(indexType);
+        VkIndexType vkIndexType = stride == 4 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16;
         vkCmdBindIndexBuffer(_handle, vkBuffer, offset, vkIndexType);
     }
 
@@ -253,8 +252,7 @@ namespace Alimer
 
     void VulkanCommandBuffer::FlushRenderState(PrimitiveTopology topology)
     {
-        ALIMER_ASSERT(_currentShader);
-        ALIMER_ASSERT(!_isCompute);
+        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_currentLayout);
 
         // We've invalidated pipeline state, update the VkPipeline.
@@ -291,7 +289,7 @@ namespace Alimer
 
     void VulkanCommandBuffer::FlushGraphicsPipeline()
     {
-        Util::Hasher h;
+        Hasher h;
         /*const VulkanResourceLayout& layout = _currentLayout->GetResourceLayout();
         ForEachBit(layout.vertexAttributeMask, [&](uint32_t bit)
         {
@@ -308,12 +306,12 @@ namespace Alimer
             h.u32(_vbo.strides[bit]);
         });*/
 
-        h.u64(_currentRenderPass->GetHash());
-        h.u32(_currentSubpass);
-        //h.u64(_currentShader->GetHash());
-        h.u32(static_cast<uint32_t>(_currentTopology));
+        h.UInt64(_currentRenderPass->GetHash());
+        h.UInt32(_currentSubpass);
+        //h.UInt32(_currentShader->GetHash());
+        h.UInt32(static_cast<uint32_t>(_currentTopology));
 
-        auto hash = h.get();
+        auto hash = h.GetValue();
         _currentPipeline = _currentVkProgram->GetGraphicsPipeline(hash);
         if (_currentPipeline == VK_NULL_HANDLE)
         {

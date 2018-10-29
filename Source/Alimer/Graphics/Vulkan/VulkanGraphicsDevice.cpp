@@ -1086,7 +1086,22 @@ namespace Alimer
         return new VulkanTexture(this, descriptor, initialData);
     }
 
+    Framebuffer* VulkanGraphicsDevice::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
+    {
+        return nullptr;
+    }
+
+    UniquePtr<ShaderModule> VulkanGraphicsDevice::CreateShaderModuleImpl(uint64_t hash, const ShaderBlob& blob)
+    {
+        return UniquePtr<ShaderModule>(new VulkanShaderModule(this, hash, blob));
+    }
+
     Shader* VulkanGraphicsDevice::CreateShaderImpl(const ShaderDescriptor* descriptor)
+    {
+        return nullptr;
+    }
+
+    Pipeline* VulkanGraphicsDevice::CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor)
     {
         return nullptr;
     }
@@ -1192,8 +1207,8 @@ namespace Alimer
     VulkanFramebuffer* VulkanGraphicsDevice::RequestFramebuffer(const RenderPassDescriptor* descriptor)
     {
         auto renderPass = RequestRenderPass(descriptor);
-        Util::Hasher h;
-        h.u64(renderPass->GetHash());
+        Hasher h;
+        h.UInt64(renderPass->GetHash());
 
         /*for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
@@ -1208,12 +1223,13 @@ namespace Alimer
             h.u64(static_cast<VulkanTextureView*>(descriptor->depthStencil)->GetId());
         }*/
 
-        uint64_t hash = h.get();
+        uint64_t hash = h.GetValue();
         auto framebuffer = _framebuffers.Find(hash);
         if (!framebuffer)
         {
-            framebuffer = _framebuffers.Insert(hash, std::make_unique<VulkanFramebuffer>(this, renderPass, descriptor));
+            //framebuffer = _framebuffers.Insert(hash, std::make_unique<VulkanFramebuffer>(this, renderPass, descriptor));
         }
+
         return framebuffer;
     }
 
@@ -1285,7 +1301,7 @@ namespace Alimer
 
     VulkanRenderPass* VulkanGraphicsDevice::RequestRenderPass(const RenderPassDescriptor* descriptor)
     {
-        Util::Hasher renderPassHasher;
+        Hasher renderPassHasher;
 
         /*for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
@@ -1299,29 +1315,29 @@ namespace Alimer
             renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.storeAction));
         }*/
 
-        uint64_t hash = renderPassHasher.get();
+        uint64_t hash = renderPassHasher.GetValue();
         auto renderPass = _renderPasses.Find(hash);
         if (!renderPass)
         {
-            renderPass = _renderPasses.Insert(hash, std::make_unique<VulkanRenderPass>(hash, this, descriptor));
+            //renderPass = _renderPasses.Insert(hash, std::make_unique<VulkanRenderPass>(hash, this, descriptor));
         }
         return renderPass;
     }
 
     VulkanPipelineLayout* VulkanGraphicsDevice::RequestPipelineLayout(const VulkanResourceLayout* layout)
     {
-        Util::Hasher h;
+        Hasher h;
         //h.data(reinterpret_cast<const uint32_t*>(layout.sets), sizeof(layout.sets));
         //h.data(reinterpret_cast<const uint32_t *>(layout.ranges), sizeof(layout.ranges));
-        h.u32(layout->vertexAttributeMask);
-        h.u32(layout->renderTargetMask);
+        h.UInt32(layout->vertexAttributeMask);
+        h.UInt32(layout->renderTargetMask);
 
-        auto hash = h.get();
+        auto hash = h.GetValue();
 
         auto *ret = _pipelineLayouts.Find(hash);
         if (!ret)
         {
-            ret = _pipelineLayouts.Insert(hash, std::make_unique<VulkanPipelineLayout>(this, hash, layout));
+            //ret = _pipelineLayouts.Insert(hash, std::make_unique<VulkanPipelineLayout>(this, hash, layout));
         }
 
         return ret;

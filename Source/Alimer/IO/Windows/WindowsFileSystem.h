@@ -54,6 +54,7 @@ namespace Alimer
 
         String GetFileSystemPath(const String& path) override;
 
+        bool Exists(const String &path) override;
         UniquePtr<Stream> Open(const String &path, StreamMode mode) override;
 
     protected:

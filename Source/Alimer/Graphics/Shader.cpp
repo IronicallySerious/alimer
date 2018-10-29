@@ -169,15 +169,28 @@ namespace Alimer
         ExtractInputOutputs(reflection->stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, reflection->resources);
     }
 
-    ShaderModule::ShaderModule(GraphicsDevice* device, Util::Hash hash, const uint32_t* pCode, size_t size)
+    ShaderModule::ShaderModule(GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob)
         : GraphicsResource(device)
         , _hash(hash)
     {
         // Reflection all shader resouces.
-        SPIRVReflectResources(pCode, size, &_reflection);
+        SPIRVReflectResources(reinterpret_cast<const uint32_t*>(blob.data), blob.size, &_reflection);
     }
 
     Shader::Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor)
+        : _isCompute(false)
     {
+        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        {
+            auto shaderBlob = descriptor->stages[i];
+            if (shaderBlob.size == 0 || shaderBlob.data == nullptr)
+                continue;
+
+            ShaderStage stage = static_cast<ShaderStage>(i);
+            if (stage == ShaderStage::Compute)
+            {
+                _isCompute = true;
+            }
+        }
     }
 }

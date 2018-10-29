@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Base/HashMap.h"
+#include "../Core/Ptr.h"
 #include <memory>
 #include <utility>
 
@@ -37,34 +38,34 @@ namespace Alimer
             _hashMap.clear();
         }
 
-        T* Find(Util::Hash hash) const
+        T* Find(uint64_t hash) const
         {
             auto itr = _hashMap.find(hash);
-            auto *ret = itr != end(_hashMap) ? itr->second.get() : nullptr;
+            auto *ret = itr != end(_hashMap) ? itr->second.Get() : nullptr;
             return ret;
         }
 
-        T* Insert(Util::Hash hash, std::unique_ptr<T> value)
+        T* Insert(uint64_t hash, UniquePtr<T> value)
         {
             auto &cache = _hashMap[hash];
             if (!cache)
                 cache = std::move(value);
 
-            auto *ret = cache.get();
+            auto *ret = cache.Get();
             return ret;
         }
 
-        Util::HashMap<std::unique_ptr<T>> &GetHashMap()
+        HashMap<UniquePtr<T>>& GetMap()
         {
             return _hashMap;
         }
 
-        const Util::HashMap<std::unique_ptr<T>> &GetHashMap() const
+        const HashMap<UniquePtr<T>> &GetMap() const
         {
             return _hashMap;
         }
 
     private:
-        Util::HashMap<std::unique_ptr<T>> _hashMap;
+        HashMap<UniquePtr<T>> _hashMap;
     };
 }

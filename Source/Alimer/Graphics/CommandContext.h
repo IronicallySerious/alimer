@@ -27,6 +27,7 @@
 #include "../Graphics/RenderPass.h"
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
+#include "../Graphics/Pipeline.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
 
@@ -74,13 +75,15 @@ namespace Alimer
         void BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
         void EndRenderPass();
 
+        void SetPipeline(Pipeline* pipeline);
+
         void SetVertexBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t index);
         void SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets);
-        void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType);
+        void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset);
         virtual void SetViewport(const rect& viewport) = 0;
         virtual void SetScissor(const irect& scissor) = 0;
 
-        virtual void SetVertexDescriptor(const VertexDescriptor* descriptor) = 0;
+        
         void SetShader(Shader* shader);
 
         void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation);
@@ -96,9 +99,7 @@ namespace Alimer
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
     protected:
-        void BeginCompute();
-        void BeginGraphics();
-        virtual void BeginContext();
+        void BeginContext();
         
         void FlushComputeState();
 
@@ -111,19 +112,20 @@ namespace Alimer
 
         virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) = 0;
         virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) = 0;
-        virtual void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
+        virtual void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) = 0;
 
         virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) = 0;
         virtual void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) = 0;
         virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) = 0;
         virtual void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;
 
+    private:
+        virtual void SetPipelineImpl(Pipeline* pipeline) = 0;
         virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
     protected:
         /// Graphics subsystem.
         GraphicsDevice* _device;
-        bool _isCompute;
         bool _insideRenderPass;
         Shader* _currentShader = nullptr;
 

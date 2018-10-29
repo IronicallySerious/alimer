@@ -22,24 +22,41 @@
 
 #pragma once
 
-#include "D3DPrerequisites.h"
-#include <d3dcompiler.h>
+#include "../Graphics/Shader.h"
 
 namespace Alimer
 {
-    class D3DPlatformFunctions final
+    struct VertexBufferLayoutDescriptor
     {
+        uint32_t        stride = 0;
+        VertexInputRate inputRate = VertexInputRate::Vertex;
+    };
+
+    struct VertexDescriptor
+    {
+        VertexBufferLayoutDescriptor buffers[MaxVertexBufferBindings];
+        VertexAttributeDescriptor attributes[MaxVertexAttributes];
+    };
+
+    struct RenderPipelineDescriptor
+    {
+        SharedPtr<ShaderModule> vertexShader;
+        SharedPtr<ShaderModule> fragmentShader;
+        VertexDescriptor vertexDescriptor;
+    };
+
+    /// Defines a Pipeline class.
+    class ALIMER_API Pipeline : public GraphicsResource
+    {
+    protected:
+        /// Constructor.
+        Pipeline(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor);
+
     public:
-        D3DPlatformFunctions();
-        ~D3DPlatformFunctions();
-
-        bool LoadFunctions(bool loadD3D12);
-
-        // Functions from d3d3compiler.dll
-        pD3DCompile d3dCompile = nullptr;
+        /// Get whether pipeline is compute.
+        bool IsCompute() const { return _isCompute; }
 
     private:
-        HMODULE _d3dCompilerLib = nullptr;
-        HMODULE _d3d12Lib = nullptr;
+        bool _isCompute;
     };
 }

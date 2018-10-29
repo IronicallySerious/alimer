@@ -156,7 +156,8 @@ namespace Alimer
     }
 
     VulkanFramebuffer::VulkanFramebuffer(VulkanGraphicsDevice* device, const VulkanRenderPass* renderPass, const RenderPassDescriptor* descriptor)
-        : _id(device->AllocateCookie())
+        : Framebuffer(device, nullptr)
+        , _id(device->AllocateCookie())
         , _device(device)
         , _renderPass(renderPass)
     {

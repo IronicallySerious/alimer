@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../RenderPass.h"
+#include "../Framebuffer.h"
 #include "VulkanBackend.h"
 
 namespace Alimer
@@ -49,7 +50,7 @@ namespace Alimer
         DISALLOW_COPY_MOVE_AND_ASSIGN(VulkanRenderPass);
     };
 
-    class VulkanFramebuffer 
+    class VulkanFramebuffer final : public Framebuffer
     {
     public:
         VulkanFramebuffer(VulkanGraphicsDevice* device, const VulkanRenderPass* renderPass, const RenderPassDescriptor* descriptor);

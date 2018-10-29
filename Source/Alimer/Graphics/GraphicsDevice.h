@@ -30,6 +30,7 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
+#include "../Graphics/Pipeline.h"
 #include "../Graphics/ShaderCompiler.h"
 #include <vector>
 #include <mutex>
@@ -99,14 +100,26 @@ namespace Alimer
         /// Create new buffer with given descriptor and optional initial data.
         Texture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
 
+        /// Create new framebuffer with given descriptor.
+        Framebuffer* CreateFramebuffer(const FramebufferDescriptor* descriptor);
+
         /// Request shader module using SPIRV bytecode.
         ShaderModule* RequestShader(const uint32_t* pCode, size_t size);
+
+        /// Request shader module using shader blob.
+        ShaderModule* RequestShader(const ShaderBlob& blob);
+
+        /// Request shader module from assets path.
+        ShaderModule* RequestShader(const String& url);
 
         /// Create new shader with given descriptor.
         Shader* CreateShader(const ShaderDescriptor* descriptor);
 
         /// Create new shader compute shader.
         Shader* CreateShader(const ShaderBlob& compute);
+
+        /// Create new render pipeline with given descriptor.
+        Pipeline* CreateRenderPipeline(const RenderPipelineDescriptor* descriptor);
 
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
@@ -130,7 +143,11 @@ namespace Alimer
         virtual void PresentImpl() = 0;
         virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
         virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
+        virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
+
+        virtual UniquePtr<ShaderModule> CreateShaderModuleImpl(uint64_t hash, const ShaderBlob& blob) = 0;
         virtual Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
+        virtual Pipeline* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) = 0;
 
         GraphicsBackend _backend = GraphicsBackend::Empty;
         bool _validation;

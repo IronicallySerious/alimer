@@ -41,7 +41,7 @@ namespace Alimer
         , _d3dContext1(device->GetD3DDeviceContext1())
     {
         CheckWorkaround();
-        BeginCompute();
+        BeginContext();
     }
 
     D3D11CommandContext::~D3D11CommandContext()
@@ -66,18 +66,6 @@ namespace Alimer
                 _needWorkaround = true;
             }
         }
-    }
-
-    void D3D11CommandContext::BeginCompute()
-    {
-        _isCompute = true;
-        BeginContext();
-    }
-
-    void D3D11CommandContext::BeginGraphics()
-    {
-        _isCompute = false;
-        BeginContext();
     }
 
     void D3D11CommandContext::BeginContext()
@@ -212,15 +200,6 @@ namespace Alimer
         }
     }
 
-    void D3D11CommandContext::SetVertexDescriptor(const VertexDescriptor* descriptor)
-    {
-        if ((memcmp(&_vertexDescriptor, descriptor, sizeof(VertexDescriptor)) != 0))
-        {
-            memcpy(&_vertexDescriptor, descriptor, sizeof(VertexDescriptor));
-            _inputLayoutDirty = true;
-        }
-    }
-
     void D3D11CommandContext::SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset)
     {
         auto d3dBuffer = static_cast<D3D11Buffer*>(buffer)->GetHandle();
@@ -240,15 +219,10 @@ namespace Alimer
         _d3dContext->IASetVertexBuffers(firstBinding, count, _currentVertexBuffers, _vboStrides, _vboOffsets);
     }
 
-    void D3D11CommandContext::SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void D3D11CommandContext::SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride)
     {
         ID3D11Buffer* d3dBuffer = static_cast<D3D11Buffer*>(buffer)->GetHandle();
-        DXGI_FORMAT dxgiFormat = DXGI_FORMAT_R16_UINT;
-        if (indexType == IndexType::UInt32)
-        {
-            dxgiFormat = DXGI_FORMAT_R32_UINT;
-        }
-
+        DXGI_FORMAT dxgiFormat = stride == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
         _d3dContext->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
     }
 
@@ -562,6 +536,11 @@ namespace Alimer
     {
         FlushRenderState(topology);
         _d3dContext->DrawIndexedInstanced(indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
+    }
+
+    void D3D11CommandContext::SetPipelineImpl(Pipeline* pipeline)
+    {
+
     }
 
     void D3D11CommandContext::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)

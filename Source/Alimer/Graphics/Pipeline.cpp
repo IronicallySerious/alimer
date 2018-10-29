@@ -20,26 +20,15 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "D3DPrerequisites.h"
-#include <d3dcompiler.h>
+#include "../Graphics/Pipeline.h"
+#include "../Graphics/GraphicsDevice.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
-    class D3DPlatformFunctions final
+    Pipeline::Pipeline(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor)
+        : GraphicsResource(device)
+        , _isCompute(false)
     {
-    public:
-        D3DPlatformFunctions();
-        ~D3DPlatformFunctions();
-
-        bool LoadFunctions(bool loadD3D12);
-
-        // Functions from d3d3compiler.dll
-        pD3DCompile d3dCompile = nullptr;
-
-    private:
-        HMODULE _d3dCompilerLib = nullptr;
-        HMODULE _d3d12Lib = nullptr;
-    };
+    }
 }

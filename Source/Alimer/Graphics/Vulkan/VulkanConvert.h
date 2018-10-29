@@ -196,16 +196,5 @@ namespace Alimer
                 return VK_VERTEX_INPUT_RATE_VERTEX;
             }
         }
-
-        static inline VkIndexType Convert(IndexType type)
-        {
-            switch (type)
-            {
-            case IndexType::UInt16: return VK_INDEX_TYPE_UINT16;
-            case IndexType::UInt32: return VK_INDEX_TYPE_UINT32;
-            default:
-                return VK_INDEX_TYPE_UINT16;
-            }
-        }
     }
 }

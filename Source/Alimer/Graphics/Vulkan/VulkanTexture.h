@@ -40,7 +40,6 @@ namespace Alimer
         VkImage GetVkImage() const { return _vkImage; }
 
 	private:
-        SharedPtr<TextureView> CreateTextureView(const TextureViewDescriptor* descriptor) const override;
         VkDevice _logicalDevice;
         VmaAllocator _allocator;
         VkImage _vkImage = VK_NULL_HANDLE;

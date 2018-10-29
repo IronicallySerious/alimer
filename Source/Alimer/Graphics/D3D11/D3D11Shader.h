@@ -30,20 +30,35 @@ namespace Alimer
 {
 	class D3D11GraphicsDevice;
 
+    class D3D11ShaderModule final : public ShaderModule
+    {
+    public:
+        D3D11ShaderModule(D3D11GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob);
+        ~D3D11ShaderModule() override;
+        void Destroy();
+
+        ID3DBlob* GetD3DBlob() const { return _d3dBlob; }
+
+    private:
+        ID3DBlob* _d3dBlob = nullptr;
+
+        union {
+            ID3D11VertexShader* _vertexShader;
+            ID3D11PixelShader* _pixelShader;
+            ID3D11ComputeShader* _computeShader;
+        };
+    };
+
     class D3D11Shader final : public Shader
     {
     public:
-        /// Constructor.
         D3D11Shader(D3D11GraphicsDevice* device, const ShaderDescriptor* descriptor);
-
-        /// Destructor.
         ~D3D11Shader() override;
-
         void Destroy();
 
         void Bind(ID3D11DeviceContext* context);
 
-        ID3DBlob* GetVertexShaderBlob() const { return _vsBlob; }
+       
 
         using BindingIndexInfo = std::array<std::array<uint32_t, MaxBindingsPerSet>, MaxDescriptorSets>;
         const BindingIndexInfo& GetBindingIndexInfo() const { return _indexInfo; }
@@ -52,7 +67,6 @@ namespace Alimer
         ID3D11VertexShader* _vertexShader = nullptr;
         ID3D11PixelShader* _pixelShader = nullptr;
         ID3D11ComputeShader* _computeShader = nullptr;
-        ID3DBlob* _vsBlob = nullptr;
         BindingIndexInfo _indexInfo;
     };
 

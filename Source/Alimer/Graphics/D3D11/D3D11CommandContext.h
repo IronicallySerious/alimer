@@ -34,10 +34,7 @@ namespace Alimer
     class D3D11CommandContext final : public CommandContext
     {
     public:
-        /// Constructor.
         D3D11CommandContext(D3D11GraphicsDevice* device);
-
-        /// Destructor.
         ~D3D11CommandContext() override;
 
         void FlushImpl(bool waitForCompletion) override;
@@ -46,10 +43,9 @@ namespace Alimer
 
         void SetShaderImpl(Shader* shader) override;
 
-        void SetVertexDescriptor(const VertexDescriptor* descriptor) override;
         void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
         void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
-        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) override;
 
         void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) override;
         void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) override;
@@ -59,17 +55,16 @@ namespace Alimer
         void SetViewport(const rect& viewport) override;
         void SetScissor(const irect& scissor) override;
 
-        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-
     private:
         void CheckWorkaround();
 
-        void BeginCompute();
-        void BeginGraphics();
         void BeginContext();
         void FlushRenderState(PrimitiveTopology topology);
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
+
+        void SetPipelineImpl(Pipeline* pipeline) override;
+        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
     private:
         ID3D11DeviceContext*         _d3dContext;

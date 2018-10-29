@@ -29,7 +29,7 @@ namespace Alimer
 {
     VulkanPipelineLayout::VulkanPipelineLayout(
         VulkanGraphicsDevice* device,
-        Util::Hash hash,
+        uint64_t hash,
         const VulkanResourceLayout* layout)
         : _device(device)
         , _hash(hash)

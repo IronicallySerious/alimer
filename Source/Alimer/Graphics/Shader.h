@@ -53,15 +53,15 @@ namespace Alimer
     {
     protected:
         /// Constructor.
-        ShaderModule(GraphicsDevice* device, Util::Hash hash, const uint32_t* pCode, size_t size);
+        ShaderModule(GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob);
 
     public:
-        Util::Hash GetHash() const { return _hash; }
+        uint64_t GetHash() const { return _hash; }
         ShaderStage GetStage() const { return _reflection.stage; }
         const ShaderReflection& GetReflection() const { return _reflection; }
 
     private:
-        Util::Hash _hash;
+        uint64_t _hash;
         String _source;
         String _infoLog;
         ShaderReflection _reflection;
@@ -76,5 +76,11 @@ namespace Alimer
         /// Constructor.
         Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor);
 
+    public:
+        /// Get whether shader is compute.
+        bool IsCompute() const { return _isCompute; }
+
+    private:
+        bool _isCompute;
     };
 }

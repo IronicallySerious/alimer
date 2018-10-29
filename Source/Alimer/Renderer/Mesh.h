@@ -86,6 +86,6 @@ namespace Alimer
         uint32_t _vertexCount = 0;
         uint32_t _vertexStride = 0;
         uint32_t _indexCount = 0;
-        IndexType _indexType = IndexType::UInt16;
+        uint32_t _indexStride = 2;
     };
 }
