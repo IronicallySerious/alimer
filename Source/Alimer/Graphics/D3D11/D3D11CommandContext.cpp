@@ -26,7 +26,7 @@
 #include "D3D11Framebuffer.h"
 #include "D3D11Shader.h"
 #include "D3D11GpuBuffer.h"
-#include "D3D11VertexInputFormat.h"
+#include "D3D11Pipeline.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Math/MathUtil.h"
 #include "../../Core/Log.h"
@@ -72,6 +72,8 @@ namespace Alimer
     {
         _currentFramebuffer = nullptr;
         _currentColorAttachmentsBound = 0;
+        _renderPipeline = nullptr;
+        _computePipeline = nullptr;
         _currentTopology = PrimitiveTopology::Count;
         _currentShader = nullptr;
         _currentRasterizerState = nullptr;
@@ -193,11 +195,6 @@ namespace Alimer
 
     void D3D11CommandContext::SetShaderImpl(Shader* shader)
     {
-        if (_currentD3DShader != shader)
-        {
-            _currentD3DShader = static_cast<D3D11Shader*>(shader);
-            _inputLayoutDirty = true;
-        }
     }
 
     void D3D11CommandContext::SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset)
@@ -268,13 +265,14 @@ namespace Alimer
     void D3D11CommandContext::FlushRenderState(PrimitiveTopology topology)
     {
         // InputLayout
+#if TODO
         if (_inputLayoutDirty)
         {
             _inputLayoutDirty = false;
 
             InputLayoutDesc newInputLayout;
             newInputLayout.first = reinterpret_cast<uint64_t>(&_vertexDescriptor);
-            newInputLayout.second = reinterpret_cast<uint64_t>(_currentD3DShader->GetVertexShaderBlob());
+            newInputLayout.second = reinterpret_cast<uint64_t>(_currentD3DShader->GetVertexShader());
 
             if (_currentInputLayout != newInputLayout)
             {
@@ -443,6 +441,8 @@ namespace Alimer
                 }
             }
         }
+#endif // TODO
+
 
         if (_currentTopology != topology)
         {
@@ -450,9 +450,9 @@ namespace Alimer
             _currentTopology = topology;
         }
 
-        _currentD3DShader->Bind(_d3dContext);
+        /*_currentD3DShader->Bind(_d3dContext);
 
-        /*auto rasterizerState = _currentPipeline->GetD3DRasterizerState();
+        auto rasterizerState = _currentPipeline->GetD3DRasterizerState();
         if (_currentRasterizerState != rasterizerState)
         {
             _currentRasterizerState = rasterizerState;
@@ -540,7 +540,14 @@ namespace Alimer
 
     void D3D11CommandContext::SetPipelineImpl(Pipeline* pipeline)
     {
-
+        if (pipeline->IsCompute())
+        {
+            _computePipeline = static_cast<D3D11Pipeline*>(pipeline);
+        }
+        else
+        {
+            _renderPipeline = static_cast<D3D11Pipeline*>(pipeline);
+        }
     }
 
     void D3D11CommandContext::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)

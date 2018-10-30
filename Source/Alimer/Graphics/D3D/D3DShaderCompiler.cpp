@@ -83,7 +83,7 @@ namespace Alimer
                 shaderBlob.ReleaseAndGetAddressOf(),
                 errors.ReleaseAndGetAddressOf())))
             {
-                ALIMER_LOGERRORF("D3DCompile failed with error: {}", reinterpret_cast<char*>(errors->GetBufferPointer()));
+                ALIMER_LOGERRORF("D3DCompile failed with error: %s", reinterpret_cast<char*>(errors->GetBufferPointer()));
                 return {};
             }
 

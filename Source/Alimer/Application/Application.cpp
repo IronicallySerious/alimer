@@ -91,11 +91,12 @@ namespace Alimer
             }
         }
 
-        // Create per platform Audio module.
-        Audio::Create();
-
         // Load plugins
         LoadPlugins();
+
+        // Create per platform Audio module.
+        auto audio = Audio::Create();
+        audio->Initialize();
 
         // Initialize this instance and all systems.
         Initialize();

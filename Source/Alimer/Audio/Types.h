@@ -26,8 +26,15 @@
 
 namespace Alimer
 {
+    enum class AudioResult 
+    {
+        OK = 0,
+        Error = -1,
+        NoDeviceError = -2
+    };
+
     /// Enum describing the Audio backend.
-    enum class AudioBackend : uint32_t
+    enum class AudioBackend : unsigned
     {
         /// Best device supported for running platform.
         Default,

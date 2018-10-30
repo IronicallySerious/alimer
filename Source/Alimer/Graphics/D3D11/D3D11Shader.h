@@ -37,16 +37,10 @@ namespace Alimer
         ~D3D11ShaderModule() override;
         void Destroy();
 
-        ID3DBlob* GetD3DBlob() const { return _d3dBlob; }
+        ID3DBlob* GetD3DBlob() const { return _d3dBlob.Get(); }
 
     private:
-        ID3DBlob* _d3dBlob = nullptr;
-
-        union {
-            ID3D11VertexShader* _vertexShader;
-            ID3D11PixelShader* _pixelShader;
-            ID3D11ComputeShader* _computeShader;
-        };
+        Microsoft::WRL::ComPtr<ID3DBlob> _d3dBlob = {};
     };
 
     class D3D11Shader final : public Shader
@@ -57,8 +51,6 @@ namespace Alimer
         void Destroy();
 
         void Bind(ID3D11DeviceContext* context);
-
-       
 
         using BindingIndexInfo = std::array<std::array<uint32_t, MaxBindingsPerSet>, MaxDescriptorSets>;
         const BindingIndexInfo& GetBindingIndexInfo() const { return _indexInfo; }

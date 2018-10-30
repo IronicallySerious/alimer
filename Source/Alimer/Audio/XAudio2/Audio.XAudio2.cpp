@@ -456,7 +456,44 @@ namespace Alimer
             _xaudio2->SetDebugConfiguration(&debugConfiguration);
             ALIMER_LOGDEBUGF("XAudio %d.%d debugging enabled.", _apiMajorVersion, _apiMinorVersion);
         }
+    }
 
+    AudioXAudio2::~AudioXAudio2()
+    {
+        SafeDestroyVoice(_reverbVoice);
+        SafeDestroyVoice(_masteringVoice);
+        if (_apiMinorVersion == 7)
+        {
+            _xaudio27->Release();
+            _xaudio27 = nullptr;
+        }
+        else
+        {
+            _xaudio2->Release();
+            _xaudio2 = nullptr;
+        }
+        memset(&_X3DAudio, 0, X3DAUDIO_HANDLE_BYTESIZE);
+
+#if !ALIMER_PLATFORM_UWP
+        if (_deviceEnumerator)
+        {
+            _deviceEnumerator->UnregisterEndpointNotificationCallback(_notificationClient);
+            _deviceEnumerator->Release();
+            _deviceEnumerator = nullptr;
+        }
+
+        if (_apiMinorVersion == 7)
+        {
+            FreeLibrary(_x3DAudioModule);
+        }
+
+        FreeLibrary(_xAudio2Module);
+#endif
+    }
+
+    AudioResult AudioXAudio2::InitializeImpl()
+    {
+        HRESULT hr = S_OK;
         if (_apiMajorVersion == 2 && _apiMinorVersion == 7)
         {
             UINT32 count = 0;
@@ -465,7 +502,7 @@ namespace Alimer
                 || !count)
             {
                 _xaudio27->Release();
-                return;
+                return AudioResult::NoDeviceError;
             }
 
             const wchar_t* deviceId = nullptr;
@@ -492,7 +529,7 @@ namespace Alimer
                 if (devIndex == UINT32(-1))
                 {
                     _xaudio27->Release();
-                    return;
+                    return AudioResult::NoDeviceError;
                 }
             }
             else
@@ -503,7 +540,7 @@ namespace Alimer
                 if (FAILED(hr))
                 {
                     _xaudio27->Release();
-                    return;
+                    return AudioResult::NoDeviceError;
                 }
 
                 _masterChannelMask = details.OutputFormat.dwChannelMask;
@@ -550,7 +587,7 @@ namespace Alimer
             if (FAILED(hr))
             {
                 _xaudio2->Release();
-                ALIMER_LOGCRITICAL("Failed to create XAudio2 mastering voice.");
+                return AudioResult::NoDeviceError;
             }
 
             if (FAILED(_xaudio2->StartEngine()))
@@ -567,7 +604,7 @@ namespace Alimer
                 _masteringVoice->DestroyVoice();
                 _masteringVoice = nullptr;
                 _xaudio2->Release();
-                return;
+                return AudioResult::Error;
             }
 
             XAUDIO2_VOICE_DETAILS details;
@@ -589,7 +626,7 @@ namespace Alimer
 
             PFN_X3DAudioInitialize27 X3DAudioInitializeFunc27 = (PFN_X3DAudioInitialize27)GetProcAddress(_x3DAudioModule, "X3DAudioInitialize");
             if (!X3DAudioInitializeFunc27)
-                return;
+                return AudioResult::Error;
 
             X3DAudioInitializeFunc27(_masterChannelMask, SPEEDOFSOUND, _X3DAudio);
         }
@@ -600,7 +637,7 @@ namespace Alimer
 
             PFN_X3DAudioInitialize X3DAudioInitializeFunc = (PFN_X3DAudioInitialize)GetProcAddress(_xAudio2Module, "X3DAudioInitialize");
             if (!X3DAudioInitializeFunc)
-                return;
+                return AudioResult::Error;
 
             hr = X3DAudioInitializeFunc(_masterChannelMask, SPEEDOFSOUND, _X3DAudio);
 #else
@@ -615,39 +652,8 @@ namespace Alimer
                 _xaudio2->Release();
             }
         }
-    }
 
-    AudioXAudio2::~AudioXAudio2()
-    {
-        SafeDestroyVoice(_reverbVoice);
-        SafeDestroyVoice(_masteringVoice);
-        if (_apiMinorVersion == 7)
-        {
-            _xaudio27->Release();
-            _xaudio27 = nullptr;
-        }
-        else
-        {
-            _xaudio2->Release();
-            _xaudio2 = nullptr;
-        }
-        memset(&_X3DAudio, 0, X3DAUDIO_HANDLE_BYTESIZE);
-
-#if !ALIMER_PLATFORM_UWP
-        if (_deviceEnumerator)
-        {
-            _deviceEnumerator->UnregisterEndpointNotificationCallback(_notificationClient);
-            _deviceEnumerator->Release();
-            _deviceEnumerator = nullptr;
-        }
-
-        if (_apiMinorVersion == 7)
-        {
-            FreeLibrary(_x3DAudioModule);
-        }
-
-        FreeLibrary(_xAudio2Module);
-#endif
+        return AudioResult::OK;
     }
 
     void AudioXAudio2::SetMasterVolumeImpl(float volume)

@@ -42,7 +42,7 @@ namespace Alimer
         /// Create the audio module.
         static Audio* Create(AudioBackend prefferedBackend = AudioBackend::Default, bool validation = false);
 
-        /// Shutdown the plugin manager.
+        /// Shutdown the audio manager.
         static void Shutdown();
 
         /// Get the best platform backend.
@@ -54,6 +54,9 @@ namespace Alimer
         /// Get the backend.
         AudioBackend GetBackend() const { return _backend; }
 
+        /// Initialize the audio engine.
+        AudioResult Initialize();
+
         /// Pause the audio.
         void Pause();
 
@@ -64,11 +67,13 @@ namespace Alimer
         void SetMasterVolume(float volume);
 
 	private:
+        virtual AudioResult InitializeImpl() = 0;
         virtual void SetMasterVolumeImpl(float volume) = 0;
         virtual void SetPaused(bool paused) = 0;
 
         static Audio *_instance;
         AudioBackend _backend = AudioBackend::Empty;
+        bool _initialized = false;
         float _masterVolume = 1.0f;
         bool _paused = false;
 

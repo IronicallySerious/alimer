@@ -55,6 +55,7 @@ namespace Alimer
 		/// Destructor.
 		~AudioXAudio2() override;
 
+        AudioResult InitializeImpl() override;
         void SetMasterVolumeImpl(float volume) override;
         void SetPaused(bool paused) override;
 

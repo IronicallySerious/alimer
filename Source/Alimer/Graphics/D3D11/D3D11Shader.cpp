@@ -30,6 +30,38 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
+    enum class DescriptorType
+    {
+        UniformBuffer,
+        Sampler,
+        SampledTexture,
+        StorageBuffer
+    };
+
+    template <typename T>
+    class BindingTypeMap {
+    public:
+        T& operator[](DescriptorType type)
+        {
+            switch (type) {
+            case DescriptorType::UniformBuffer:
+                return _map[0];
+            case DescriptorType::Sampler:
+                return _map[1];
+            case DescriptorType::SampledTexture:
+                return _map[2];
+            case DescriptorType::StorageBuffer:
+                return _map[3];
+            default:
+                ALIMER_LOGCRITICAL("Invalid descriptor type");
+            }
+        }
+
+    private:
+        static constexpr int kNumBindingTypes = 4;
+        std::array<T, kNumBindingTypes> _map{};
+    };
+
     static ID3DBlob* ConvertAndCompileHLSL(
         D3D11GraphicsDevice* graphics,
         const ShaderBlob& blob,
@@ -48,6 +80,18 @@ namespace Alimer
         options_hlsl.shader_model = major * 10 + minor;
         compiler.set_hlsl_options(options_hlsl);
 
+        auto resources = compiler.get_shader_resources();
+
+        BindingTypeMap<uint32_t> baseRegisters{};
+        for (auto &ubo : resources.uniform_buffers)
+        {
+            auto set = compiler.get_decoration(ubo.id, spv::DecorationDescriptorSet);
+            uint32_t& baseRegister = baseRegisters[DescriptorType::UniformBuffer];
+            uint32_t bindGroupOffset = set * MaxBindingsPerSet;
+            auto binding = bindGroupOffset + baseRegister++;
+            compiler.set_decoration(ubo.id, spv::DecorationBinding, binding);
+        }
+
         // Remap attributes with HLSL semantic.
         std::vector<spirv_cross::HLSLVertexAttributeRemap> remaps;
         for (int i = 0; i < static_cast<uint32_t>(VertexElementSemantic::Count); i++)
@@ -63,7 +107,6 @@ namespace Alimer
 
     D3D11ShaderModule::D3D11ShaderModule(D3D11GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob)
         : ShaderModule(device, hash, blob)
-        , _vertexShader(nullptr)
     {
         _d3dBlob = ConvertAndCompileHLSL(device, blob, GetReflection().stage);
     }
@@ -81,7 +124,7 @@ namespace Alimer
     D3D11Shader::D3D11Shader(D3D11GraphicsDevice* device, const ShaderDescriptor* descriptor)
         : Shader(device, descriptor)
     {
-        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        /*for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
         {
             auto shaderBlob = descriptor->stages[i];
             if (shaderBlob.size == 0 || shaderBlob.data == nullptr)
@@ -93,7 +136,6 @@ namespace Alimer
             {
             case ShaderStage::Vertex:
             {
-                _vsBlob = blob;
                 device->GetD3DDevice()->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &_vertexShader);
                 break;
             }
@@ -117,7 +159,7 @@ namespace Alimer
             {
                 blob->Release();
             }
-        }
+        }*/
     }
 
     D3D11Shader::~D3D11Shader()
@@ -127,7 +169,7 @@ namespace Alimer
 
     void D3D11Shader::Destroy()
     {
-        if (_computeShader != nullptr)
+        /*if (_computeShader != nullptr)
         {
             SafeRelease(_computeShader, "ID3D11ComputeShader");
         }
@@ -136,12 +178,12 @@ namespace Alimer
             SafeRelease(_vertexShader, "ID3D11VertexShader");
             SafeRelease(_vsBlob, "ID3DBlob");
             SafeRelease(_pixelShader, "ID3D11PixelShader");
-        }
+        }*/
     }
 
     void D3D11Shader::Bind(ID3D11DeviceContext* context)
     {
-        if (_computeShader != nullptr)
+        /*if (_computeShader != nullptr)
         {
             context->CSSetShader(_computeShader, nullptr, 0);
         }
@@ -149,6 +191,6 @@ namespace Alimer
         {
             context->VSSetShader(_vertexShader, nullptr, 0);
             context->PSSetShader(_pixelShader, nullptr, 0);
-        }
+        }*/
     }
 }

@@ -27,7 +27,7 @@
 
 namespace Alimer
 {
-    class D3D11Shader;
+    class D3D11Pipeline;
     class D3D11Framebuffer;
     class D3D11GraphicsDevice;
 
@@ -76,7 +76,8 @@ namespace Alimer
         const D3D11Framebuffer* _currentFramebuffer = nullptr;
         uint32_t _currentColorAttachmentsBound;
         PrimitiveTopology _currentTopology;
-        D3D11Shader* _currentD3DShader;
+        const D3D11Pipeline* _renderPipeline = nullptr;
+        const D3D11Pipeline* _computePipeline = nullptr;
         ID3D11RasterizerState1* _currentRasterizerState;
         ID3D11DepthStencilState* _currentDepthStencilState;
         ID3D11BlendState1* _currentBlendState;

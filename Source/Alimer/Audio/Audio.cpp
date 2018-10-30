@@ -83,11 +83,28 @@ namespace Alimer
         return AudioBackend::XAudio2;
 #endif
     }
-
-    void Audio::SetMasterVolume(float volume)
+    
+    AudioResult Audio::Initialize()
     {
-        _masterVolume = volume;
-        SetMasterVolumeImpl(volume);
+        if (_initialized)
+            return AudioResult::OK;
+
+        auto result = InitializeImpl();
+        _initialized = result == AudioResult::OK;
+        if (result != AudioResult::OK)
+        {
+            switch (result)
+            {
+            case AudioResult::NoDeviceError:
+                ALIMER_LOGERROR("AudioEngine found no default audio device.");
+                break;
+            default:
+                ALIMER_LOGERROR("AudioEngine failed to initialize.");
+                break;
+            }
+        }
+
+        return result;
     }
 
     void Audio::Pause()
@@ -107,6 +124,13 @@ namespace Alimer
         SetPaused(false);
         _paused = false;
     }
+
+    void Audio::SetMasterVolume(float volume)
+    {
+        _masterVolume = volume;
+        SetMasterVolumeImpl(volume);
+    }
+
 
     Audio& gAudio()
     {
