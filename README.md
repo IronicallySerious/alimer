@@ -25,6 +25,9 @@
 - Binaries - TODO
 - Compile From Source - TODO
 
+## Documentation
+- Visit [Documentation](https://amerkoleci.github.io/alimer-docs/)
+
 ## Credits
 
 Alimer development, contributions and bugfixes by:
