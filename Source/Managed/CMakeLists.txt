@@ -27,7 +27,7 @@ if (NOT DOTNET_BINARY)
 endif ()
 
 # Add commont macro
-macro (add_target_csharp TARGET PROJECT_FILE)
+macro (add_target_csharp TARGET PROJECT_FILE SOLUTION_FOLDER)
     if (NOT ALIMER_CSHARP)
         return ()
     endif ()
@@ -44,6 +44,8 @@ macro (add_target_csharp TARGET PROJECT_FILE)
         else ()
 
         endif()
+
+        set_property(TARGET ${TARGET} PROPERTY FOLDER "${SOLUTION_FOLDER}")
 
         if (MSVC)
             set (NET_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>)
