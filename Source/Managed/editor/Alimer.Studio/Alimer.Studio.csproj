@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <TieredCompilation>True</TieredCompilation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\core\AlimerSharp\AlimerSharp.csproj" />
+  </ItemGroup>
+
+</Project>
