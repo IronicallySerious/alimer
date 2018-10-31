@@ -20,8 +20,8 @@
 # THE SOFTWARE.
 #
 
-file (GLOB_RECURSE HEADER_FILES *.h *.hpp)
-file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
+file (GLOB HEADER_FILES *.h *.hpp)
+file (GLOB SOURCE_FILES *.cpp)
 
 # Define the target.
 add_alimer_executable(Alimer ${SOURCE_FILES} ${HEADER_FILES})

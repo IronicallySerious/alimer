@@ -23,6 +23,9 @@
 # Engine
 add_subdirectory (Alimer)
 
+# Alimer C bindings
+add_subdirectory(libalimerc)
+
 # Plugins
 add_subdirectory (Plugins)
 

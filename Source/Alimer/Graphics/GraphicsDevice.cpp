@@ -340,7 +340,7 @@ namespace Alimer
         auto *ret = _shaders.Find(hash);
         if (!ret)
         {
-            ret = _shaders.Insert(hash, CreateShaderModuleImpl(hash, blob));
+            ret = _shaders.Insert(hash, UniquePtr<ShaderModule>(new ShaderModule(hash, blob)));
             ALIMER_LOGDEBUGF("New %s shader created: '%s'", EnumToString(ret->GetStage()), std::to_string(hash).c_str());
         }
 
@@ -417,9 +417,14 @@ namespace Alimer
     {
         ALIMER_ASSERT(descriptor);
 #ifdef _DEBUG
-        if (descriptor->vertexShader.IsNull())
+        if (descriptor->shaders[static_cast<unsigned>(ShaderStage::Vertex)] == nullptr)
         {
-            ALIMER_LOGERROR("CreateRenderPipeline: Invalid vertex shader");
+            ALIMER_LOGERROR("CreateRenderPipeline: Invalid vertex shader.");
+        }
+
+        if (descriptor->shaders[static_cast<unsigned>(ShaderStage::Compute)] != nullptr)
+        {
+            ALIMER_LOGERROR("CreateRenderPipeline: Cannot contain compute shader.");
         }
 #endif
 

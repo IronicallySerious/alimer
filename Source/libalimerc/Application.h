@@ -21,7 +21,6 @@
 // THE SOFTWARE.
 //
 
-
 #pragma once
 #include "Alimer.h"
 using namespace Alimer;

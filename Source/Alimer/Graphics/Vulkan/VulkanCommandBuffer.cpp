@@ -173,6 +173,7 @@ namespace Alimer
         }
     }
 
+#if TODO
     void VulkanCommandBuffer::SetShaderImpl(Shader* shader)
     {
         SetDirty(COMMAND_BUFFER_DIRTY_PIPELINE_BIT | COMMAND_BUFFER_DYNAMIC_BITS);
@@ -197,6 +198,8 @@ namespace Alimer
             _currentPipelineLayout = _currentLayout->GetHandle();
         }
     }
+#endif // TODO
+
 
     void VulkanCommandBuffer::SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset)
     {
@@ -252,7 +255,7 @@ namespace Alimer
 
     void VulkanCommandBuffer::FlushRenderState(PrimitiveTopology topology)
     {
-        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
+        //ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
         ALIMER_ASSERT(_currentLayout);
 
         // We've invalidated pipeline state, update the VkPipeline.
@@ -316,7 +319,7 @@ namespace Alimer
         if (_currentPipeline == VK_NULL_HANDLE)
         {
             // VertexInputState
-            uint32_t vertexStride = 0;
+            /*uint32_t vertexStride = 0;
 
             VkPipelineVertexInputStateCreateInfo vertexInputState = {};
             vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -366,7 +369,7 @@ namespace Alimer
                 attributeDesc.format = vk::Convert(attributeInfo.format);
                 attributeDesc.offset = useAutoOffset ? vertexStride : attributeInfo.offset;
                 vertexStride += GetVertexFormatSize(attributeInfo.format);
-            }
+            }*/
             
             // Rasterization state
             VkPipelineRasterizationStateCreateInfo rasterizationState = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
@@ -454,7 +457,7 @@ namespace Alimer
             createInfo.flags = 0;
             createInfo.stageCount = numStages;
             createInfo.pStages = stages;
-            createInfo.pVertexInputState = &vertexInputState;
+            //createInfo.pVertexInputState = &vertexInputState;
             createInfo.pTessellationState = nullptr;
             createInfo.pViewportState = &viewportState;
             createInfo.pRasterizationState = &rasterizationState;
@@ -531,6 +534,7 @@ namespace Alimer
         _dirty = false;
     }
 
+#if TODO
     void VulkanCommandBuffer::GraphicsState::SetVertexDescriptor(const VertexDescriptor* descriptor)
     {
         if (_vertexDescriptor != *descriptor)
@@ -540,7 +544,6 @@ namespace Alimer
         }
     }
 
-#if TODO
     void VulkanCommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
         ALIMER_ASSERT(_currentShader);

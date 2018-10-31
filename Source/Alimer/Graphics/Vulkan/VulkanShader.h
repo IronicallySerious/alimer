@@ -32,7 +32,7 @@ namespace Alimer
     class VulkanPipelineLayout;
 
     /// Vulkan ShaderModule implementation.
-    class VulkanShaderModule final : public ShaderModule
+    /*class VulkanShaderModule final : public ShaderModule
     {
     public:
         /// Constructor.
@@ -44,8 +44,7 @@ namespace Alimer
     private:
         VkDevice _logicalDevice;
         VkShaderModule _handle = VK_NULL_HANDLE;
-    };
-
+    };*/
 
     struct VulkanResourceLayout
     {

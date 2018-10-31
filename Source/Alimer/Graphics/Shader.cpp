@@ -169,10 +169,10 @@ namespace Alimer
         ExtractInputOutputs(reflection->stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, reflection->resources);
     }
 
-    ShaderModule::ShaderModule(GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob)
-        : GraphicsResource(device)
-        , _hash(hash)
+    ShaderModule::ShaderModule(uint64_t hash, const ShaderBlob& blob)
+        : _hash(hash)
     {
+        _byteCode.assign(blob.data, blob.data + blob.size);
         // Reflection all shader resouces.
         SPIRVReflectResources(reinterpret_cast<const uint32_t*>(blob.data), blob.size, &_reflection);
     }

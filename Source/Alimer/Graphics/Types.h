@@ -267,7 +267,6 @@ namespace Alimer
         VertexElementSemantic   semantic = VertexElementSemantic::Position;
         VertexFormat            format = VertexFormat::Invalid;
         uint32_t                offset = 0;
-        uint32_t                bufferIndex = 0;
     };
 
     ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);

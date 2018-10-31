@@ -39,7 +39,18 @@ namespace Alimer
 
         void Destroy() override;
 
+        ID3D11VertexShader* GetVertexShader() const { return _vertexShader; }
+        ID3D11PixelShader* GetPixelShader() const { return _pixelShader; }
+        ID3D11ComputeShader* GetComputeShader() const { return _computeShader; }
+        ID3D11InputLayout* GetInputLayout() const { return _inputLayout; }
+
     private:
         ID3D11Device* _d3dDevice;
+
+        ID3D11VertexShader* _vertexShader = nullptr;
+        ID3D11PixelShader* _pixelShader = nullptr;
+        ID3D11ComputeShader* _computeShader = nullptr;
+        std::vector<uint8_t> vsBytecode{};
+        ID3D11InputLayout* _inputLayout = nullptr;
     };
 }

@@ -61,7 +61,7 @@ namespace Alimer
     void CommandContext::SetPipeline(Pipeline* pipeline)
     {
         ALIMER_ASSERT(pipeline);
-
+        _currentPipeline = pipeline;
         SetPipelineImpl(pipeline);
     }
 
@@ -105,18 +105,9 @@ namespace Alimer
         SetIndexBufferImpl(buffer, offset, buffer->GetStride());
     }
 
-    void CommandContext::SetShader(Shader* shader)
-    {
-        if (_currentShader == shader)
-            return;
-
-        _currentShader = shader;
-        SetShaderImpl(shader);
-    }
-
     void CommandContext::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
     {
-        ALIMER_ASSERT(_currentShader );
+        ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         //ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(vertexCount > 0);
@@ -125,14 +116,14 @@ namespace Alimer
 
     void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
     {
-        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
+        ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         DrawInstancedImpl(topology, vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
     {
-        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
+        ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(indexCount > 1);
         DrawIndexedImpl(topology, indexCount, startIndexLocation, baseVertexLocation);
@@ -140,7 +131,7 @@ namespace Alimer
 
     void CommandContext::DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
     {
-        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
+        ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(indexCount > 1);
         DrawIndexedInstancedImpl(topology, indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
@@ -148,7 +139,7 @@ namespace Alimer
 
     void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        ALIMER_ASSERT(_currentShader && _currentShader->IsCompute());
+        ALIMER_ASSERT(_currentPipeline && _currentPipeline->IsCompute());
         FlushComputeState();
         DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
@@ -178,7 +169,6 @@ namespace Alimer
     {
         _dirtySets = ~0u;
         _dirtyVbos = ~0u;
-        _currentShader = nullptr;
         _insideRenderPass = false;
     }
 

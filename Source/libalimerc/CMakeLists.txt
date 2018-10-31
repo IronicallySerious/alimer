@@ -24,10 +24,10 @@
 file (GLOB SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 source_group ("" FILES ${SOURCE_FILES})
 
-add_library (libAlimerSharp SHARED ${SOURCE_FILES})
-target_link_libraries (libAlimerSharp libAlimer)
+set (TARGET_NAME libalimerc)
+add_library (${TARGET_NAME} SHARED ${SOURCE_FILES})
+target_link_libraries (${TARGET_NAME} libAlimer)
+target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMERC_EXPORTS=1)
 
-# Set Solution folder.
-set_target_properties(libAlimerSharp PROPERTIES FOLDER Managed)
-
-install(TARGETS libAlimerSharp RUNTIME DESTINATION bin)
+#  Install library to bin folder.
+install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION bin)

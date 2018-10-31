@@ -8,7 +8,7 @@ namespace Alimer
 {
     internal static partial class AlimerApi
     {
-        public const string Library = "libAlimerSharp";
+        public const string Library = "libalimerc";
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void ActionVoid();

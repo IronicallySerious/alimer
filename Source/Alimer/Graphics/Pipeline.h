@@ -28,21 +28,15 @@ namespace Alimer
 {
     struct VertexBufferLayoutDescriptor
     {
-        uint32_t        stride = 0;
-        VertexInputRate inputRate = VertexInputRate::Vertex;
-    };
-
-    struct VertexDescriptor
-    {
-        VertexBufferLayoutDescriptor buffers[MaxVertexBufferBindings];
-        VertexAttributeDescriptor attributes[MaxVertexAttributes];
+        VertexAttributeDescriptor       attributes[MaxVertexAttributes];
+        uint32_t                        stride = 0;
+        VertexInputRate                 inputRate = VertexInputRate::Vertex;
     };
 
     struct RenderPipelineDescriptor
     {
-        SharedPtr<ShaderModule> vertexShader;
-        SharedPtr<ShaderModule> fragmentShader;
-        VertexDescriptor vertexDescriptor;
+        ShaderModule*                   shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
+        VertexBufferLayoutDescriptor    vertexLayouts[MaxVertexBufferBindings];
     };
 
     /// Defines a Pipeline class.

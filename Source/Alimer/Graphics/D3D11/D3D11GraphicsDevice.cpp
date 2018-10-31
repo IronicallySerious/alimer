@@ -65,6 +65,7 @@ namespace Alimer
     D3D11GraphicsDevice::D3D11GraphicsDevice(bool validation)
         : GraphicsDevice(GraphicsBackend::Direct3D11, validation)
         , _functions(new D3DPlatformFunctions())
+        , _cache(this)
     {
         if (!_functions->LoadFunctions(false))
         {
@@ -83,6 +84,8 @@ namespace Alimer
 
         // Clear pending resources.
         GraphicsDevice::Shutdown();
+
+        _cache.Clear();
 
         _d3dContext.Reset();
         _d3dContext1.Reset();
@@ -482,21 +485,11 @@ namespace Alimer
         // TODO
     }
 
-    ID3D11InputLayout* D3D11GraphicsDevice::GetInputLayout(const InputLayoutDesc& desc)
+    D3D11Cache &D3D11GraphicsDevice::GetCache()
     {
-        // Check if layout already exists
-        auto it = _inputLayouts.find(desc);
-        if (it != end(_inputLayouts))
-            return it->second;
-
-        return nullptr;
+        return _cache;
     }
 
-    void D3D11GraphicsDevice::StoreInputLayout(const InputLayoutDesc& desc, ID3D11InputLayout* layout)
-    {
-        ALIMER_ASSERT(_inputLayouts[desc] == nullptr);
-        _inputLayouts[desc] = layout;
-    }
 
     GpuBuffer* D3D11GraphicsDevice::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
@@ -511,11 +504,6 @@ namespace Alimer
     Framebuffer* D3D11GraphicsDevice::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
     {
         return new D3D11Framebuffer(this, descriptor);
-    }
-
-    UniquePtr<ShaderModule> D3D11GraphicsDevice::CreateShaderModuleImpl(uint64_t hash, const ShaderBlob& blob)
-    {
-        return UniquePtr<ShaderModule>(new D3D11ShaderModule(this, hash, blob));
     }
 
     Shader* D3D11GraphicsDevice::CreateShaderImpl(const ShaderDescriptor* descriptor)

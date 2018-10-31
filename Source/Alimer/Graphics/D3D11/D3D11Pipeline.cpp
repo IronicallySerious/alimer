@@ -32,7 +32,41 @@ namespace Alimer
         : Pipeline(device, descriptor)
         , _d3dDevice(device->GetD3DDevice())
     {
-        
+        auto &cache = device->GetCache();
+        for (uint32_t i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        {
+            auto shaderModule = descriptor->shaders[i];
+            if (shaderModule == nullptr)
+                continue;
+
+            ShaderStage stage = static_cast<ShaderStage>(i);
+            switch (stage)
+            {
+            case ShaderStage::Vertex:
+                _vertexShader = (ID3D11VertexShader*)cache.GetShader(shaderModule, vsBytecode);
+                break;
+            case ShaderStage::TessControl:
+                break;
+            case ShaderStage::TessEvaluation:
+                break;
+            case ShaderStage::Geometry:
+                break;
+            case ShaderStage::Fragment:
+                _pixelShader = (ID3D11PixelShader*)cache.GetShader(shaderModule);
+                break;
+            case ShaderStage::Compute:
+                _computeShader = (ID3D11ComputeShader*)cache.GetShader(shaderModule);
+                break;
+            default:
+                break;
+            }
+        }
+
+        auto vertexShader = descriptor->shaders[static_cast<uint32_t>(ShaderStage::Vertex)];
+        if (vertexShader != nullptr)
+        {
+            _inputLayout = cache.GetInputLayout(vertexShader, descriptor);
+        }
     }
 
     D3D11Pipeline::~D3D11Pipeline()

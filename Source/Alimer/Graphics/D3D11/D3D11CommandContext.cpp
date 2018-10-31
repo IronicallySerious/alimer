@@ -41,7 +41,7 @@ namespace Alimer
         , _d3dContext1(device->GetD3DDeviceContext1())
     {
         CheckWorkaround();
-        BeginContext();
+        Reset();
     }
 
     D3D11CommandContext::~D3D11CommandContext()
@@ -68,20 +68,21 @@ namespace Alimer
         }
     }
 
-    void D3D11CommandContext::BeginContext()
+    void D3D11CommandContext::Reset()
     {
         _currentFramebuffer = nullptr;
         _currentColorAttachmentsBound = 0;
         _renderPipeline = nullptr;
         _computePipeline = nullptr;
         _currentTopology = PrimitiveTopology::Count;
-        _currentShader = nullptr;
         _currentRasterizerState = nullptr;
         _currentDepthStencilState = nullptr;
         _currentBlendState = nullptr;
 
-        _currentInputLayout.first = 0;
-        _currentInputLayout.second = 0;
+        _vertexShader = nullptr;
+        _pixelShader = nullptr;
+        _computeShader = nullptr;
+        _inputLayout = nullptr;
 
         memset(&_bindings, 0, sizeof(_bindings));
         _inputLayoutDirty = false;
@@ -191,10 +192,6 @@ namespace Alimer
         scissorD3D.right = scissor.x + scissor.width;
         scissorD3D.bottom = scissor.y + scissor.height;
         _d3dContext->RSSetScissorRects(1, &scissorD3D);
-    }
-
-    void D3D11CommandContext::SetShaderImpl(Shader* shader)
-    {
     }
 
     void D3D11CommandContext::SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset)
@@ -547,6 +544,34 @@ namespace Alimer
         else
         {
             _renderPipeline = static_cast<D3D11Pipeline*>(pipeline);
+
+            // Unset compute shader if any.
+            if (_computeShader != nullptr)
+            {
+                _d3dContext->CSSetShader(nullptr, nullptr, 0);
+                _computeShader = nullptr;
+            }
+
+            ID3D11VertexShader* vertexShader = _renderPipeline->GetVertexShader();
+            if (_vertexShader != vertexShader)
+            {
+                _vertexShader = vertexShader;
+                _d3dContext->VSSetShader(vertexShader, nullptr, 0);
+            }
+
+            ID3D11PixelShader* pixelShader = _renderPipeline->GetPixelShader();
+            if (_pixelShader != pixelShader)
+            {
+                _pixelShader = pixelShader;
+                _d3dContext->PSSetShader(pixelShader, nullptr, 0);
+            }
+
+            ID3D11InputLayout* inputLayout = _renderPipeline->GetInputLayout();
+            if (_inputLayout != inputLayout)
+            {
+                _inputLayout = inputLayout;
+                _d3dContext->IASetInputLayout(inputLayout);
+            }
         }
     }
 

@@ -41,8 +41,6 @@ namespace Alimer
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
 
-        void SetShaderImpl(Shader* shader) override;
-
         void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
         void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
         void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) override;
@@ -58,7 +56,7 @@ namespace Alimer
     private:
         void CheckWorkaround();
 
-        void BeginContext();
+        void Reset();
         void FlushRenderState(PrimitiveTopology topology);
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
@@ -81,7 +79,11 @@ namespace Alimer
         ID3D11RasterizerState1* _currentRasterizerState;
         ID3D11DepthStencilState* _currentDepthStencilState;
         ID3D11BlendState1* _currentBlendState;
-        VertexDescriptor _vertexDescriptor;
+
+        ID3D11VertexShader* _vertexShader = nullptr;
+        ID3D11PixelShader* _pixelShader = nullptr;
+        ID3D11ComputeShader* _computeShader = nullptr;
+        ID3D11InputLayout* _inputLayout = nullptr;
 
         struct BufferBindingInfo {
             GpuBuffer*  buffer;
@@ -110,8 +112,5 @@ namespace Alimer
         ResourceBindings _bindings;
         uint32_t _dirtySets = 0;
         uint32_t _dirtyVbos = 0;
-
-        /// Current input layout: vertex buffers' element mask and vertex shader's element mask combined.
-        InputLayoutDesc _currentInputLayout;
     };
 }

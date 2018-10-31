@@ -83,8 +83,6 @@ namespace Alimer
         virtual void SetViewport(const rect& viewport) = 0;
         virtual void SetScissor(const irect& scissor) = 0;
 
-        
-        void SetShader(Shader* shader);
 
         void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation);
         void DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation);
@@ -108,8 +106,6 @@ namespace Alimer
         virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
         virtual void EndRenderPassImpl() = 0;
 
-        virtual void SetShaderImpl(Shader* shader) = 0;
-
         virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) = 0;
         virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) = 0;
         virtual void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) = 0;
@@ -127,7 +123,7 @@ namespace Alimer
         /// Graphics subsystem.
         GraphicsDevice* _device;
         bool _insideRenderPass;
-        Shader* _currentShader = nullptr;
+        Pipeline* _currentPipeline = nullptr;
 
         uint32_t _dirtySets = 0;
         uint32_t _dirtyVbos = 0;

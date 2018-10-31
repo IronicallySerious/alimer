@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../../Graphics/GraphicsDevice.h"
-#include "D3D11Prerequisites.h"
+#include "D3D11Cache.h"
 #include <array>
 #include <thread>
 
@@ -54,14 +54,10 @@ namespace Alimer
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
         Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
-        UniquePtr<ShaderModule> CreateShaderModuleImpl(uint64_t hash, const ShaderBlob& blob) override;
         Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
         Pipeline* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) override;
 
         void HandleDeviceLost();
-
-        ID3D11InputLayout* GetInputLayout(const InputLayoutDesc& desc);
-        void StoreInputLayout(const InputLayoutDesc& desc, ID3D11InputLayout* layout);
 
         // Getters
         ID3D11Device*           GetD3DDevice() const { return _d3dDevice.Get(); }
@@ -74,6 +70,7 @@ namespace Alimer
         uint32_t                GetShaderModerMinor() const { return _shaderModelMinor; }
 
         const D3DPlatformFunctions* GetFunctions() { return _functions; }
+        D3D11Cache &GetCache();
 
     private:
         void GetHardwareAdapter(IDXGIAdapter1** ppAdapter);
@@ -98,7 +95,6 @@ namespace Alimer
         uint32_t _shaderModelMajor = 4;
         uint32_t _shaderModelMinor = 0;
 
-        /// Input layouts.
-        InputLayoutMap _inputLayouts;
+        D3D11Cache _cache;
     };
 }

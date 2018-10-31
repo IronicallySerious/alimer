@@ -4,7 +4,8 @@
     <PlatformTarget Condition=" '$(PlatformTarget)' == '' ">x64</PlatformTarget>
     <RepoBinPath>$(MSBuildThisFileDirectory)..\..\bin\</RepoBinPath>
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\..\bin\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
-    <OutputPath>$(RepoBinPath)$(Configuration)\$(MSBuildProjectName)\</OutputPath>
+    <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+    <OutputPath>$(RepoBinPath)$(Configuration)\</OutputPath>
     <PackageOutputPath>$(RepoBinPath)$(Configuration)\Packages\</PackageOutputPath>
 
     <DebugType Condition=" '$(Configuration)' == 'Release' ">pdbonly</DebugType>
@@ -13,6 +14,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>CS1591;CS1701</NoWarn>
     <NeutralLanguage>en-US</NeutralLanguage>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 
     <Authors>Amer Koleci</Authors>
     <Owners>Amer Koleci</Owners>

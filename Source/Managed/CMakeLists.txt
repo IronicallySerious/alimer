@@ -20,9 +20,6 @@
 # THE SOFTWARE.
 #
 
-# Native .NET bindings
-add_subdirectory(libAlimerSharp)
-
 # Find dotnet program
 find_program(DOTNET_BINARY dotnet)
 if (NOT DOTNET_BINARY)
@@ -43,7 +40,7 @@ macro (add_target_csharp TARGET PROJECT_FILE)
         execute_process(COMMAND ${DOTNET_BINARY} pack -c Release ${PROJECT_FILE})
     else()
         if (WIN32 AND NOT ALIMER_WITH_MONO)
-            include_external_msproject(${TARGET} ${PROJECT_FILE} TYPE {FAE04EC0-301F-11D3-BF4B-00C04F79EFBC})
+            include_external_msproject(${TARGET} ${PROJECT_FILE} TYPE 9A19103F-16F7-4668-BE54-9A1E7A4F7556 ${ARGN})
         else ()
 
         endif()
@@ -62,6 +59,8 @@ macro (add_target_csharp TARGET PROJECT_FILE)
     endif()
 endmacro()
 
-# CMake install has issues with new C# project format.
-add_target_csharp(AlimerSharp ${CMAKE_CURRENT_SOURCE_DIR}/AlimerSharp/AlimerSharp.csproj)
-set_target_properties(AlimerSharp PROPERTIES FOLDER Managed)
+# Core
+add_subdirectory (core)
+
+# Editor
+add_subdirectory (editor)

@@ -145,7 +145,6 @@ namespace Alimer
         virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
         virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
 
-        virtual UniquePtr<ShaderModule> CreateShaderModuleImpl(uint64_t hash, const ShaderBlob& blob) = 0;
         virtual Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
         virtual Pipeline* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) = 0;
 

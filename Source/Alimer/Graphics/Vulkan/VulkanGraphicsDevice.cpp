@@ -1091,11 +1091,6 @@ namespace Alimer
         return nullptr;
     }
 
-    UniquePtr<ShaderModule> VulkanGraphicsDevice::CreateShaderModuleImpl(uint64_t hash, const ShaderBlob& blob)
-    {
-        return UniquePtr<ShaderModule>(new VulkanShaderModule(this, hash, blob));
-    }
-
     Shader* VulkanGraphicsDevice::CreateShaderImpl(const ShaderDescriptor* descriptor)
     {
         return nullptr;

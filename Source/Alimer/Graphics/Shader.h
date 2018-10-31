@@ -48,22 +48,22 @@ namespace Alimer
         ShaderBlob stages[static_cast<unsigned>(ShaderStage::Count)];
     };
 
-    /// Defines a shader module class.
-    class ALIMER_API ShaderModule : public GraphicsResource
+    /// Defines a shader module - created by GraphicsDevice.
+    class ALIMER_API ShaderModule final
     {
-    protected:
+        friend class GraphicsDevice;
+    private:
         /// Constructor.
-        ShaderModule(GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob);
+        ShaderModule(uint64_t hash, const ShaderBlob& blob);
 
     public:
         uint64_t GetHash() const { return _hash; }
         ShaderStage GetStage() const { return _reflection.stage; }
         const ShaderReflection& GetReflection() const { return _reflection; }
-
+        const std::vector<uint8_t>& GetBytecode() const { return _byteCode; }
     private:
         uint64_t _hash;
-        String _source;
-        String _infoLog;
+        std::vector<uint8_t> _byteCode;
         ShaderReflection _reflection;
     };
 

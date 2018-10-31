@@ -30,19 +30,6 @@ namespace Alimer
 {
 	class D3D11GraphicsDevice;
 
-    class D3D11ShaderModule final : public ShaderModule
-    {
-    public:
-        D3D11ShaderModule(D3D11GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob);
-        ~D3D11ShaderModule() override;
-        void Destroy();
-
-        ID3DBlob* GetD3DBlob() const { return _d3dBlob.Get(); }
-
-    private:
-        Microsoft::WRL::ComPtr<ID3DBlob> _d3dBlob = {};
-    };
-
     class D3D11Shader final : public Shader
     {
     public:

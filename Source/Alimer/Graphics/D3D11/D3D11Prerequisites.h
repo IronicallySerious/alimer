@@ -27,6 +27,4 @@
 
 namespace Alimer
 {
-    using InputLayoutDesc = std::pair<uint64_t, uint64_t>;
-    using InputLayoutMap = std::map<InputLayoutDesc, ID3D11InputLayout*>;
 }

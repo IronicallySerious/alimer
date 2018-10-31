@@ -53,7 +53,6 @@ namespace Alimer
 
         void SetPipelineImpl(Pipeline* pipeline) override;
 
-        void SetShaderImpl(Shader* shader) override;
         void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
         void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
         void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) override;
@@ -86,14 +85,14 @@ namespace Alimer
 
             void Reset();
 
-            const VertexDescriptor& GetVertexDescriptor() const { return _vertexDescriptor; }
-            void SetVertexDescriptor(const VertexDescriptor* descriptor);
+            //const VertexDescriptor& GetVertexDescriptor() const { return _vertexDescriptor; }
+            //void SetVertexDescriptor(const VertexDescriptor* descriptor);
 
             bool IsDirty() const { return _dirty; }
             void ClearDirty() { _dirty = false; }
 
         private:
-            VertexDescriptor _vertexDescriptor;
+            //VertexDescriptor _vertexDescriptor;
             bool _dirty;
         };
 
