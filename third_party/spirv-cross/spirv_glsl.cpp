@@ -5856,11 +5856,21 @@ std::pair<std::string, uint32_t> CompilerGLSL::flattened_access_chain_offset(con
 
 bool CompilerGLSL::should_forward(uint32_t id)
 {
-	// Immutable expression can always be forwarded.
-	// If not immutable, we can speculate about it by forwarding potentially mutable variables.
+	// If id is a variable we will try to forward it regardless of force_temporary check below
+	// This is important because otherwise we'll get local sampler copies (highp sampler2D foo = bar) that are invalid in OpenGL GLSL
 	auto *var = maybe_get<SPIRVariable>(id);
-	bool forward = var ? var->forwardable : false;
-	return (is_immutable(id) || forward) && !options.force_temporary;
+	if (var && var->forwardable)
+		return true;
+
+	// For debugging emit temporary variables for all expressions
+	if (options.force_temporary)
+		return false;
+
+	// Immutable expression can always be forwarded.
+	if (is_immutable(id))
+		return true;
+
+	return false;
 }
 
 void CompilerGLSL::track_expression_read(uint32_t id)
@@ -9283,7 +9293,7 @@ void CompilerGLSL::branch(uint32_t from, uint32_t to)
 		// Only sensible solution is to make a ladder variable, which we declare at the top of the switch block,
 		// write to the ladder here, and defer the break.
 		// The loop we're breaking out of must dominate the switch block, or there is no ladder breaking case.
-		if (current_emitting_switch && is_loop_break(to) && current_emitting_switch->loop_dominator != -1u &&
+		if (current_emitting_switch && is_loop_break(to) && current_emitting_switch->loop_dominator != ~0u &&
 		    get<SPIRBlock>(current_emitting_switch->loop_dominator).merge_block == to)
 		{
 			if (!current_emitting_switch->need_ladder_break)
