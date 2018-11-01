@@ -87,6 +87,7 @@ typedef unsigned int uintptr_t;
 #define HAVE_ENDPOINTVOLUME_H 1
 
 /* This is disabled by default to avoid C runtime dependencies and manifest requirements */
+#define HAVE_LIBC 1
 #ifdef HAVE_LIBC
 /* Useful headers */
 #define STDC_HEADERS 1
@@ -185,10 +186,10 @@ typedef unsigned int uintptr_t;
 
 /* Enable various audio drivers */
 #define SDL_AUDIO_DRIVER_WASAPI 1
-#define SDL_AUDIO_DRIVER_DSOUND 1
+// #define SDL_AUDIO_DRIVER_DSOUND 1
 #define SDL_AUDIO_DRIVER_WINMM  1
 #define SDL_AUDIO_DRIVER_DISK   1
-#define SDL_AUDIO_DRIVER_DUMMY  1
+// #define SDL_AUDIO_DRIVER_DUMMY  1
 
 /* Enable various input drivers */
 #define SDL_JOYSTICK_DINPUT 1
@@ -241,7 +242,7 @@ typedef unsigned int uintptr_t;
 #endif
 
 /* Enable Vulkan support */
-#define SDL_VIDEO_VULKAN 1
+#define SDL_VIDEO_VULKAN 0
 
 /* Enable system power support */
 #define SDL_POWER_WINDOWS 1
