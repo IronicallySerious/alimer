@@ -29,7 +29,14 @@ set (HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set (SRC_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # General header files
-file(GLOB HEADER_FILES ${HEADER_DIR}/*.h)
+file(GLOB HEADER_FILES 
+    ${HEADER_DIR}/*.h
+    ${SRC_DIR}/*.h
+    ${SRC_DIR}/audio/*.h
+    ${SRC_DIR}/audio/disk/*.h
+    ${SRC_DIR}/audio/dsp/*.h
+    ${SRC_DIR}/audio/dummy/*.h
+)
 
 # General source files
 file(GLOB SOURCE_FILES
@@ -44,9 +51,13 @@ file(GLOB SOURCE_FILES
     ${SRC_DIR}/file/*.c
     ${SRC_DIR}/joystick/*.c
     ${SRC_DIR}/joystick/steam/*.c
+    ${SRC_DIR}/joystick/hidapi/*.c
     ${SRC_DIR}/haptic/*.c
+    ${SRC_DIR}/hidapi/*.c
     ${SRC_DIR}/libm/*.c
     ${SRC_DIR}/power/*.c
+    ${SRC_DIR}/sensor/*.c
+    ${SRC_DIR}/sensor/dummy/*.c
     ${SRC_DIR}/stdlib/*.c
     ${SRC_DIR}/thread/*.c
     ${SRC_DIR}/timer/*.c
@@ -77,6 +88,7 @@ if (WIN32)
         ${SRC_DIR}/timer/windows/*.c
         ${SRC_DIR}/joystick/windows/*.c
         ${SRC_DIR}/haptic/windows/*.c
+        ${SRC_DIR}/hidapi/windows/*.c
         ${SRC_DIR}/loadso/windows/*.c
         ${SRC_DIR}/audio/winmm/*.c
         ${SRC_DIR}/audio/wasapi/*.c
@@ -84,7 +96,7 @@ if (WIN32)
 
     set(HEADER_FILES ${HEADER_FILES} ${HEADER_FILES_WIN32})
     set(SOURCE_FILES ${SOURCE_FILES} ${SOURCE_FILES_WIN32})
-    list(APPEND EXTRA_LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 shell32)
+    list(APPEND EXTRA_LIBS user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 shell32 setupapi)
 endif()
 
 # we're building a library
