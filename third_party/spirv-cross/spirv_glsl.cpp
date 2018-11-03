@@ -459,6 +459,42 @@ std::string CompilerGLSL::get_partial_source()
 	return buffer ? buffer->str() : "No compiled source available yet.";
 }
 
+void CompilerGLSL::build_workgroup_size(vector<string> &arguments, const SpecializationConstant &wg_x,
+                                        const SpecializationConstant &wg_y, const SpecializationConstant &wg_z)
+{
+	auto &execution = get_entry_point();
+
+	if (wg_x.id)
+	{
+		if (options.vulkan_semantics)
+			arguments.push_back(join("local_size_x_id = ", wg_x.constant_id));
+		else
+			arguments.push_back(join("local_size_x = ", get<SPIRConstant>(wg_x.id).specialization_constant_macro_name));
+	}
+	else
+		arguments.push_back(join("local_size_x = ", execution.workgroup_size.x));
+
+	if (wg_y.id)
+	{
+		if (options.vulkan_semantics)
+			arguments.push_back(join("local_size_y_id = ", wg_y.constant_id));
+		else
+			arguments.push_back(join("local_size_y = ", get<SPIRConstant>(wg_y.id).specialization_constant_macro_name));
+	}
+	else
+		arguments.push_back(join("local_size_y = ", execution.workgroup_size.y));
+
+	if (wg_z.id)
+	{
+		if (options.vulkan_semantics)
+			arguments.push_back(join("local_size_z_id = ", wg_z.constant_id));
+		else
+			arguments.push_back(join("local_size_z = ", get<SPIRConstant>(wg_z.id).specialization_constant_macro_name));
+	}
+	else
+		arguments.push_back(join("local_size_z = ", execution.workgroup_size.z));
+}
+
 void CompilerGLSL::emit_header()
 {
 	auto &execution = get_entry_point();
@@ -564,35 +600,10 @@ void CompilerGLSL::emit_header()
 			SpecializationConstant wg_x, wg_y, wg_z;
 			get_work_group_size_specialization_constants(wg_x, wg_y, wg_z);
 
-			if (wg_x.id)
-			{
-				if (options.vulkan_semantics)
-					inputs.push_back(join("local_size_x_id = ", wg_x.constant_id));
-				else
-					inputs.push_back(join("local_size_x = ", get<SPIRConstant>(wg_x.id).scalar()));
-			}
-			else
-				inputs.push_back(join("local_size_x = ", execution.workgroup_size.x));
-
-			if (wg_y.id)
-			{
-				if (options.vulkan_semantics)
-					inputs.push_back(join("local_size_y_id = ", wg_y.constant_id));
-				else
-					inputs.push_back(join("local_size_y = ", get<SPIRConstant>(wg_y.id).scalar()));
-			}
-			else
-				inputs.push_back(join("local_size_y = ", execution.workgroup_size.y));
-
-			if (wg_z.id)
-			{
-				if (options.vulkan_semantics)
-					inputs.push_back(join("local_size_z_id = ", wg_z.constant_id));
-				else
-					inputs.push_back(join("local_size_z = ", get<SPIRConstant>(wg_z.id).scalar()));
-			}
-			else
-				inputs.push_back(join("local_size_z = ", execution.workgroup_size.z));
+			// If there are any spec constants on legacy GLSL, defer declaration, we need to set up macro
+			// declarations before we can emit the work group size.
+			if (options.vulkan_semantics || ((wg_x.id == 0) && (wg_y.id == 0) && (wg_z.id == 0)))
+				build_workgroup_size(inputs, wg_x, wg_y, wg_z);
 		}
 		else
 		{
@@ -1031,8 +1042,7 @@ uint32_t CompilerGLSL::type_to_packed_size(const SPIRType &type, const Bitset &f
 {
 	if (!type.array.empty())
 	{
-		return to_array_size_literal(type, uint32_t(type.array.size()) - 1) *
-		       type_to_packed_array_stride(type, flags, packing);
+		return to_array_size_literal(type) * type_to_packed_array_stride(type, flags, packing);
 	}
 
 	uint32_t size = 0;
@@ -1110,6 +1120,9 @@ bool CompilerGLSL::buffer_is_packing_standard(const SPIRType &type, BufferPackin
 	uint32_t offset = 0;
 	uint32_t pad_alignment = 1;
 
+	bool is_top_level_block =
+	    has_decoration(type.self, DecorationBlock) || has_decoration(type.self, DecorationBufferBlock);
+
 	for (uint32_t i = 0; i < type.member_types.size(); i++)
 	{
 		auto &memb_type = get<SPIRType>(type.member_types[i]);
@@ -1117,8 +1130,26 @@ bool CompilerGLSL::buffer_is_packing_standard(const SPIRType &type, BufferPackin
 
 		// Verify alignment rules.
 		uint32_t packed_alignment = type_to_packed_alignment(memb_type, member_flags, packing);
-		uint32_t packed_size = type_to_packed_size(memb_type, member_flags, packing);
 
+		// This is a rather dirty workaround to deal with some cases of OpSpecConstantOp used as array size, e.g:
+		// layout(constant_id = 0) const int s = 10;
+		// const int S = s + 5; // SpecConstantOp
+		// buffer Foo { int data[S]; }; // <-- Very hard for us to deduce a fixed value here,
+		// we would need full implementation of compile-time constant folding. :(
+		// If we are the last member of a struct, there might be cases where the actual size of that member is irrelevant
+		// for our analysis (e.g. unsized arrays).
+		// This lets us simply ignore that there are spec constant op sized arrays in our buffers.
+		// Querying size of this member will fail, so just don't call it unless we have to.
+		//
+		// This is likely "best effort" we can support without going into unacceptably complicated workarounds.
+		bool member_can_be_unsized =
+		    is_top_level_block && size_t(i + 1) == type.member_types.size() && !memb_type.array.empty();
+
+		uint32_t packed_size = 0;
+		if (!member_can_be_unsized)
+			packed_size = type_to_packed_size(memb_type, member_flags, packing);
+
+		// We only need to care about this if we have non-array types which can straddle the vec4 boundary.
 		if (packing_is_hlsl(packing))
 		{
 			// If a member straddles across a vec4 boundary, alignment is actually vec4.
@@ -1710,6 +1741,11 @@ void CompilerGLSL::emit_uniform(const SPIRVariable &var)
 	statement(layout_for_variable(var), variable_decl(var), ";");
 }
 
+string CompilerGLSL::constant_value_macro_name(uint32_t id)
+{
+	return join("SPIRV_CROSS_CONSTANT_ID_", id);
+}
+
 void CompilerGLSL::emit_specialization_constant_op(const SPIRConstantOp &constant)
 {
 	auto &type = get<SPIRType>(constant.basetype);
@@ -1725,18 +1761,46 @@ void CompilerGLSL::emit_constant(const SPIRConstant &constant)
 	SpecializationConstant wg_x, wg_y, wg_z;
 	uint32_t workgroup_size_id = get_work_group_size_specialization_constants(wg_x, wg_y, wg_z);
 
-	if (constant.self == workgroup_size_id || constant.self == wg_x.id || constant.self == wg_y.id ||
-	    constant.self == wg_z.id)
+	// This specialization constant is implicitly declared by emitting layout() in;
+	if (constant.self == workgroup_size_id)
+		return;
+
+	// These specialization constants are implicitly declared by emitting layout() in;
+	// In legacy GLSL, we will still need to emit macros for these, so a layout() in; declaration
+	// later can use macro overrides for work group size.
+	bool is_workgroup_size_constant = constant.self == wg_x.id || constant.self == wg_y.id || constant.self == wg_z.id;
+
+	if (options.vulkan_semantics && is_workgroup_size_constant)
 	{
-		// These specialization constants are implicitly declared by emitting layout() in;
+		// Vulkan GLSL does not need to declare workgroup spec constants explicitly, it is handled in layout().
+		return;
+	}
+	else if (!options.vulkan_semantics && is_workgroup_size_constant &&
+	         !has_decoration(constant.self, DecorationSpecId))
+	{
+		// Only bother declaring a workgroup size if it is actually a specialization constant, because we need macros.
 		return;
 	}
 
 	// Only scalars have constant IDs.
 	if (has_decoration(constant.self, DecorationSpecId))
 	{
-		statement("layout(constant_id = ", get_decoration(constant.self, DecorationSpecId), ") const ",
-		          variable_decl(type, name), " = ", constant_expression(constant), ";");
+		if (options.vulkan_semantics)
+		{
+			statement("layout(constant_id = ", get_decoration(constant.self, DecorationSpecId), ") const ",
+			          variable_decl(type, name), " = ", constant_expression(constant), ";");
+		}
+		else
+		{
+			const string &macro_name = constant.specialization_constant_macro_name;
+			statement("#ifndef ", macro_name);
+			statement("#define ", macro_name, " ", constant_expression(constant));
+			statement("#endif");
+
+			// For workgroup size constants, only emit the macros.
+			if (!is_workgroup_size_constant)
+				statement("const ", variable_decl(type, name), " = ", macro_name, ";");
+		}
 	}
 	else
 	{
@@ -2144,15 +2208,20 @@ void CompilerGLSL::emit_resources()
 		{
 			auto &c = id.get<SPIRConstant>();
 
-			bool needs_declaration = (c.specialization && options.vulkan_semantics) || c.is_used_as_lut;
+			bool needs_declaration = c.specialization || c.is_used_as_lut;
 
 			if (needs_declaration)
 			{
+				if (!options.vulkan_semantics && c.specialization)
+				{
+					c.specialization_constant_macro_name =
+					    constant_value_macro_name(get_decoration(c.self, DecorationSpecId));
+				}
 				emit_constant(c);
 				emitted = true;
 			}
 		}
-		else if (options.vulkan_semantics && id.get_type() == TypeConstantOp)
+		else if (id.get_type() == TypeConstantOp)
 		{
 			emit_specialization_constant_op(id.get<SPIRConstantOp>());
 			emitted = true;
@@ -2161,6 +2230,25 @@ void CompilerGLSL::emit_resources()
 
 	if (emitted)
 		statement("");
+
+	// If we needed to declare work group size late, check here.
+	// If the work group size depends on a specialization constant, we need to declare the layout() block
+	// after constants (and their macros) have been declared.
+	if (execution.model == ExecutionModelGLCompute && !options.vulkan_semantics &&
+	    execution.workgroup_size.constant != 0)
+	{
+		SpecializationConstant wg_x, wg_y, wg_z;
+		get_work_group_size_specialization_constants(wg_x, wg_y, wg_z);
+
+		if ((wg_x.id != 0) || (wg_y.id != 0) || (wg_z.id != 0))
+		{
+			vector<string> inputs;
+			build_workgroup_size(inputs, wg_x, wg_y, wg_z);
+			statement("layout(", merge(inputs), ") in;");
+			statement("");
+		}
+	}
+
 	emitted = false;
 
 	// Output all basic struct types which are not Block or BufferBlock as these are declared inplace
@@ -2494,7 +2582,7 @@ string CompilerGLSL::to_expression(uint32_t id)
 		auto &dec = ir.meta[c.self].decoration;
 		if (dec.builtin)
 			return builtin_to_glsl(dec.builtin_type, StorageClassGeneric);
-		else if (c.specialization && options.vulkan_semantics)
+		else if (c.specialization)
 			return to_name(id);
 		else if (c.is_used_as_lut)
 			return to_name(id);
@@ -2507,10 +2595,7 @@ string CompilerGLSL::to_expression(uint32_t id)
 	}
 
 	case TypeConstantOp:
-		if (options.vulkan_semantics)
-			return to_name(id);
-		else
-			return constant_op_expression(get<SPIRConstantOp>(id));
+		return to_name(id);
 
 	case TypeVariable:
 	{
@@ -2760,7 +2845,7 @@ string CompilerGLSL::constant_expression(const SPIRConstant &c)
 		for (auto &elem : c.subconstants)
 		{
 			auto &subc = get<SPIRConstant>(elem);
-			if (subc.specialization && options.vulkan_semantics)
+			if (subc.specialization)
 				res += to_name(elem);
 			else
 				res += constant_expression(subc);
@@ -2781,7 +2866,7 @@ string CompilerGLSL::constant_expression(const SPIRConstant &c)
 		string res = type_to_glsl(get<SPIRType>(c.constant_type)) + "(";
 		for (uint32_t col = 0; col < c.columns(); col++)
 		{
-			if (options.vulkan_semantics && c.specialization_constant_id(col) != 0)
+			if (c.specialization_constant_id(col) != 0)
 				res += to_name(c.specialization_constant_id(col));
 			else
 				res += constant_expression_vector(c, col);
@@ -3012,7 +3097,7 @@ string CompilerGLSL::constant_expression_vector(const SPIRConstant &c, uint32_t 
 		// Cannot use constant splatting if we have specialization constants somewhere in the vector.
 		for (uint32_t i = 0; i < c.vector_size(); i++)
 		{
-			if (options.vulkan_semantics && c.specialization_constant_id(vector, i) != 0)
+			if (c.specialization_constant_id(vector, i) != 0)
 			{
 				splat = false;
 				swizzle_splat = false;
@@ -3066,7 +3151,7 @@ string CompilerGLSL::constant_expression_vector(const SPIRConstant &c, uint32_t 
 		{
 			for (uint32_t i = 0; i < c.vector_size(); i++)
 			{
-				if (options.vulkan_semantics && c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
+				if (c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
 					res += to_name(c.specialization_constant_id(vector, i));
 				else
 					res += convert_half_to_string(c, vector, i);
@@ -3088,7 +3173,7 @@ string CompilerGLSL::constant_expression_vector(const SPIRConstant &c, uint32_t 
 		{
 			for (uint32_t i = 0; i < c.vector_size(); i++)
 			{
-				if (options.vulkan_semantics && c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
+				if (c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
 					res += to_name(c.specialization_constant_id(vector, i));
 				else
 					res += convert_float_to_string(c, vector, i);
@@ -3110,7 +3195,7 @@ string CompilerGLSL::constant_expression_vector(const SPIRConstant &c, uint32_t 
 		{
 			for (uint32_t i = 0; i < c.vector_size(); i++)
 			{
-				if (options.vulkan_semantics && c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
+				if (c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
 					res += to_name(c.specialization_constant_id(vector, i));
 				else
 					res += convert_double_to_string(c, vector, i);
@@ -3134,7 +3219,7 @@ string CompilerGLSL::constant_expression_vector(const SPIRConstant &c, uint32_t 
 		{
 			for (uint32_t i = 0; i < c.vector_size(); i++)
 			{
-				if (options.vulkan_semantics && c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
+				if (c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
 					res += to_name(c.specialization_constant_id(vector, i));
 				else
 				{
@@ -3164,7 +3249,7 @@ string CompilerGLSL::constant_expression_vector(const SPIRConstant &c, uint32_t 
 		{
 			for (uint32_t i = 0; i < c.vector_size(); i++)
 			{
-				if (options.vulkan_semantics && c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
+				if (c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
 					res += to_name(c.specialization_constant_id(vector, i));
 				else
 				{
@@ -3199,7 +3284,7 @@ string CompilerGLSL::constant_expression_vector(const SPIRConstant &c, uint32_t 
 		{
 			for (uint32_t i = 0; i < c.vector_size(); i++)
 			{
-				if (options.vulkan_semantics && c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
+				if (c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
 					res += to_name(c.specialization_constant_id(vector, i));
 				else
 				{
@@ -3229,7 +3314,7 @@ string CompilerGLSL::constant_expression_vector(const SPIRConstant &c, uint32_t 
 		{
 			for (uint32_t i = 0; i < c.vector_size(); i++)
 			{
-				if (options.vulkan_semantics && c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
+				if (c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
 					res += to_name(c.specialization_constant_id(vector, i));
 				else
 					res += convert_to_string(c.scalar_i32(vector, i));
@@ -3246,7 +3331,7 @@ string CompilerGLSL::constant_expression_vector(const SPIRConstant &c, uint32_t 
 		{
 			for (uint32_t i = 0; i < c.vector_size(); i++)
 			{
-				if (options.vulkan_semantics && c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
+				if (c.vector_size() > 1 && c.specialization_constant_id(vector, i) != 0)
 					res += to_name(c.specialization_constant_id(vector, i));
 				else
 					res += c.scalar(vector, i) ? "true" : "false";
@@ -8509,6 +8594,11 @@ string CompilerGLSL::pls_decl(const PlsRemap &var)
 	            to_name(variable.self));
 }
 
+uint32_t CompilerGLSL::to_array_size_literal(const SPIRType &type) const
+{
+	return to_array_size_literal(type, uint32_t(type.array.size() - 1));
+}
+
 uint32_t CompilerGLSL::to_array_size_literal(const SPIRType &type, uint32_t index) const
 {
 	assert(type.array.size() == type.array_size_literal.size());
@@ -8522,6 +8612,12 @@ uint32_t CompilerGLSL::to_array_size_literal(const SPIRType &type, uint32_t inde
 		// Use the default spec constant value.
 		// This is the best we can do.
 		uint32_t array_size_id = type.array[index];
+
+		// Explicitly check for this case. The error message you would get (bad cast) makes no sense otherwise.
+		if (ir.ids[array_size_id].get_type() == TypeConstantOp)
+			SPIRV_CROSS_THROW("An array size was found to be an OpSpecConstantOp. This is not supported since "
+			                  "SPIRV-Cross cannot deduce the actual size here.");
+
 		uint32_t array_size = get<SPIRConstant>(array_size_id).scalar();
 		return array_size;
 	}

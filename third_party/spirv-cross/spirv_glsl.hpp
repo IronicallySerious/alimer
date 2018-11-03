@@ -232,6 +232,9 @@ protected:
 	virtual void emit_spv_amd_gcn_shader_op(uint32_t result_type, uint32_t result_id, uint32_t op, const uint32_t *args,
 	                                        uint32_t count);
 	virtual void emit_header();
+	void build_workgroup_size(std::vector<std::string> &arguments, const SpecializationConstant &x,
+	                          const SpecializationConstant &y, const SpecializationConstant &z);
+
 	virtual void emit_sampled_image_op(uint32_t result_type, uint32_t result_id, uint32_t image_id, uint32_t samp_id);
 	virtual void emit_texture_op(const Instruction &i);
 	virtual void emit_subgroup_op(const Instruction &i);
@@ -323,6 +326,7 @@ protected:
 	std::string type_to_array_glsl(const SPIRType &type);
 	std::string to_array_size(const SPIRType &type, uint32_t index);
 	uint32_t to_array_size_literal(const SPIRType &type, uint32_t index) const;
+	uint32_t to_array_size_literal(const SPIRType &type) const;
 	std::string variable_decl(const SPIRVariable &variable);
 	std::string variable_decl_function_local(SPIRVariable &variable);
 
@@ -391,6 +395,7 @@ protected:
 	void emit_flattened_io_block(const SPIRVariable &var, const char *qual);
 	void emit_block_chain(SPIRBlock &block);
 	void emit_hoisted_temporaries(std::vector<std::pair<uint32_t, uint32_t>> &temporaries);
+	std::string constant_value_macro_name(uint32_t id);
 	void emit_constant(const SPIRConstant &constant);
 	void emit_specialization_constant_op(const SPIRConstantOp &constant);
 	std::string emit_continue_block(uint32_t continue_block);
