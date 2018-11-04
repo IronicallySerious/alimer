@@ -65,12 +65,17 @@ typedef struct tagTHREADNAME_INFO
     DWORD dwFlags; // Reserved for future use, must be zero.
 } THREADNAME_INFO;
 #pragma pack(pop)
-
+#elif __EMSCRIPTEN__
+#   include <emscripten/emscripten.h>
 #elif defined(__APPLE__) 
 #   include <TargetConditionals.h>
+#   include <sys/time.h>
+#   include <unistd.h>
 #   include <dlfcn.h>
 #   include <pthread.h>
 #else
+#   include <sys/time.h>
+#   include <unistd.h>
 #   include <dlfcn.h>
 #   include <pthread.h>
 #endif
@@ -272,7 +277,8 @@ namespace Alimer
 #if defined(_MSC_VER)
         ::Sleep(milliseconds);
 #else
-        usleep(milliseconds * 1000);
+        timespec time{static_cast<time_t>(milliseconds / 1000), static_cast<long>((milliseconds % 1000) * 1000000)};
+        nanosleep(&time, nullptr);
 #endif
     }
 }
