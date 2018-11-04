@@ -29,5 +29,12 @@ add_library (${TARGET_NAME} SHARED ${SOURCE_FILES})
 target_link_libraries (${TARGET_NAME} libAlimer)
 target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMERC_EXPORTS=1)
 
-#  Install library to bin folder.
-install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION bin)
+# SDK installation
+if (NOT ALIMER_SKIP_INSTALL)
+    install(TARGETS ${TARGET_NAME}
+	    EXPORT ${TARGET_NAME}
+	    LIBRARY DESTINATION lib
+	    RUNTIME DESTINATION bin
+	    ARCHIVE DESTINATION lib
+    )
+endif ()

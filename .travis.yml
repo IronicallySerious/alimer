@@ -5,6 +5,10 @@ notifications:
     on_success: never
     on_failure: never
 
+branches:
+  except:
+    - /^(.*[^\w])?(appveyor|no-ci)-.+$/
+    
 matrix:
   include:
     - os: linux
