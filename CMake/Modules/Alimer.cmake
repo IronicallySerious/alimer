@@ -137,12 +137,8 @@ else ()
     set (ALIMER_VULKAN_DEFAULT OFF)
 endif ()
 
-# C#
-if (ALIMER_DESKTOP)
-    set (ALIMER_CSHARP_DEFAULT ON)
-else ()
-    set (ALIMER_CSHARP_DEFAULT OFF)
-endif()
+# Disable C#
+set (ALIMER_CSHARP_DEFAULT OFF)
 
 # Tools
 if (ALIMER_DESKTOP)

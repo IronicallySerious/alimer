@@ -20,15 +20,21 @@
 # THE SOFTWARE.
 #
 
-# Find dotnet program
-find_program(DOTNET_BINARY dotnet)
-if (NOT DOTNET_BINARY)
-    message (FATAL_ERROR "Please make sure dotnet is on the PATH.")
+if (ALIMER_WINDOWS)
+    # Find dotnet program
+    find_program(DOTNET_BINARY dotnet)
+    if (NOT DOTNET_BINARY)
+        message (FATAL_ERROR "Please make sure dotnet is on the PATH.")
+    endif ()
 endif ()
 
 # Add commont macro
 macro (add_target_csharp TARGET PROJECT_FILE SOLUTION_FOLDER)
     if (NOT ALIMER_CSHARP)
+        return ()
+    endif ()
+
+    if (NOT ALIMER_WINDOWS)
         return ()
     endif ()
 
@@ -39,7 +45,7 @@ macro (add_target_csharp TARGET PROJECT_FILE SOLUTION_FOLDER)
         # Under appveyor pack.
         execute_process(COMMAND ${DOTNET_BINARY} pack -c Release ${PROJECT_FILE})
     else()
-        if (WIN32 AND NOT ALIMER_WITH_MONO)
+        if (ALIMER_WINDOWS AND NOT ALIMER_WITH_MONO)
             include_external_msproject(${TARGET} ${PROJECT_FILE} TYPE 9A19103F-16F7-4668-BE54-9A1E7A4F7556 ${ARGN})
         else ()
 
