@@ -32,5 +32,5 @@ matrix:
 script:
   - mkdir build
   - cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Release -G "${GENERATOR}"
-  - cmake --build . --config Release
+  - cmake -G "${GENERATOR}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="Alimer-SDK" ..
+  - cmake --build . --target install
