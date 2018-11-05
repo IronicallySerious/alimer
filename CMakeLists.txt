@@ -143,6 +143,15 @@ add_subdirectory(Source)
 if (NOT ALIMER_SKIP_INSTALL)
     # Install CMake modules and toolchains provided by and for Alimer
     install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant
+
+    # Install data files
+    file (MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    if (NOT ANDROID)
+        foreach (ASSET_DIR ${ASSET_DIRS})
+            # get_filename_component (NAME ${ASSET_DIR} NAME)
+            install (DIRECTORY ${ASSET_DIR} DESTINATION bin)
+        endforeach ()
+    endif ()
 endif()
 
 # Set VS Startup project.
@@ -170,5 +179,4 @@ endif()
 message(STATUS "  Threading       ${ALIMER_THREADING}")
 message(STATUS "  GL              ${ALIMER_GL}")
 message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
-message(STATUS "  CSharp          ${ALIMER_CSHARP}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")

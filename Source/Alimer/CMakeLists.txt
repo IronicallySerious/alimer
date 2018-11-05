@@ -183,10 +183,6 @@ else ()
 	target_link_libraries (${TARGET_NAME} pthread)
 endif ()
 
-if (ALIMER_CSHARP)
-	target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_CSHARP)
-endif ()
-
 # Suppress some MSVC warnings
 if (MSVC)
     # = conversion possible loss of data -- for STB image

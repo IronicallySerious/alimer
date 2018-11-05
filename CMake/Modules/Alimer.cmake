@@ -137,9 +137,6 @@ else ()
     set (ALIMER_VULKAN_DEFAULT OFF)
 endif ()
 
-# Disable C#
-set (ALIMER_CSHARP_DEFAULT OFF)
-
 # Tools
 if (ALIMER_DESKTOP)
     set (ALIMER_TOOLS_DEFAULT ON)
@@ -152,7 +149,6 @@ option (ALIMER_ENABLE_ALL "Enables all optional subsystems by default" OFF)
 alimer_option (ALIMER_THREADING "Enable multithreading")
 alimer_option (ALIMER_GL "Enable OpenGL backend")
 alimer_option (ALIMER_VULKAN "Enable Vulkan backend")
-alimer_option (ALIMER_CSHARP "Enable C# support")
 alimer_option (ALIMER_TOOLS "Enable Tools")
 
 
@@ -201,7 +197,6 @@ endif ()
 set (DEST_BASE_INCLUDE_DIR include)
 set (DEST_INCLUDE_DIR ${DEST_BASE_INCLUDE_DIR}/Alimer)
 set (DEST_SHARE_DIR share)
-set (DEST_ASSETS_DIR ${DEST_BIN_DIR})
 
 # Functions and macros
 function(alimer_setup_common_properties target)

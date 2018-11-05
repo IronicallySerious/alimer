@@ -36,17 +36,20 @@ namespace Alimer
         // Register default file protocol.
         RegisterProtocol("file", new OSFileSystemProtocol("."));
 
-#ifdef ALIMER_DEFAULT_ASSETS_DIRECTORY
-        const char *assetsDir = ALIMER_DEFAULT_ASSETS_DIRECTORY;
-        if (assetsDir)
-        {
-            RegisterProtocol("assets", new OSFileSystemProtocol(assetsDir));
-        }
-#else
-        // Lookup assets folder
+        // Lookup assets folder at executable path first.
         if (DirectoryExists("assets"))
         {
             RegisterProtocol("assets", new OSFileSystemProtocol("assets"));
+        }
+#ifdef ALIMER_DEFAULT_ASSETS_DIRECTORY
+        else
+        {
+
+            const char *assetsDir = ALIMER_DEFAULT_ASSETS_DIRECTORY;
+            if (assetsDir)
+            {
+                RegisterProtocol("assets", new OSFileSystemProtocol(assetsDir));
+            }
         }
 #endif // ALIMER_DEFAULT_ASSETS_DIRECTORY
     }

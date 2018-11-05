@@ -29,10 +29,6 @@ add_subdirectory(libalimerc)
 # Plugins
 add_subdirectory (Plugins)
 
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_CSHARP)
-	add_subdirectory (Managed)
-endif ()
-
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
     add_subdirectory (Tools)
 endif ()
