@@ -79,7 +79,6 @@ elseif (ALIMER_UWP)
 endif ()
 
 if (ALIMER_WINDOWS OR ALIMER_UWP)
-    define_engine_source_files(IO/Windows)
     define_engine_source_files(Audio/XAudio2)
     define_engine_source_files(Graphics/D3D)
     define_engine_source_files(Graphics/D3D11)

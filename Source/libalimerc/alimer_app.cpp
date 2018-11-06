@@ -23,3 +23,15 @@
 
 
 #include "alimer_app.h"
+#include "Core/Platform.h"
+#include "Application/Application.h"
+using namespace Alimer;
+
+int alimerAppRun()
+{
+#if defined(_MSC_VER) && defined(_DEBUG)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
+    return 0;
+}

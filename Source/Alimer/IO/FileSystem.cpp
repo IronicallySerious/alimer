@@ -25,12 +25,46 @@
 #include "../Base/String.h"
 #include "../Core/Log.h"
 
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-#   include "../IO/Windows/WindowsFileSystem.h"
-#endif
-
 namespace Alimer
 {
+    class OSFileSystemProtocol final : public FileSystemProtocol
+    {
+    public:
+        OSFileSystemProtocol(const String &rootDirectory)
+            : _rootDirectory(rootDirectory)
+        {
+
+        }
+
+        ~OSFileSystemProtocol() override = default;
+
+        String GetFileSystemPath(const String& path) override
+        {
+            return Path::Join(_rootDirectory, path);
+        }
+
+        bool Exists(const String &path) override
+        {
+            String fullPath = Path::Join(_rootDirectory, path);
+            return FileSystem::FileExists(fullPath);
+        }
+
+        UniquePtr<Stream> Open(const String &path, FileAccess mode) override
+        {
+            if (mode == FileAccess::ReadOnly
+                && !Exists(path))
+            {
+                ALIMER_LOGERROR("Cannot open file for read as it doesn't exists");
+                return false;
+            }
+
+            return UniquePtr<Stream>(new FileStream(Path::Join(_rootDirectory, path), mode));
+        }
+
+    protected:
+        String _rootDirectory;
+    };
+
     FileSystem::FileSystem()
     {
         // Register default file protocol.
@@ -88,7 +122,7 @@ namespace Alimer
         return backend->Exists(paths.second);
     }
 
-    UniquePtr<Stream> FileSystem::Open(const String &path, StreamMode mode)
+    UniquePtr<Stream> FileSystem::Open(const String &path, FileAccess mode)
     {
         auto paths = Path::ProtocolSplit(path);
         auto *backend = GetProcotol(paths.first);
@@ -105,12 +139,24 @@ namespace Alimer
 
     String GetNativePath(const String& path)
     {
-#ifdef _WIN32
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         return path.Replaced('/', '\\');
 #else
         return path;
 #endif
     }
+
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+    WString GetWideNativePath(const String& path)
+    {
+        return WString(path.Replaced('/', '\\'));
+    }
+
+    String GetUniversalPath(const String& path)
+    {
+        return path.Replaced("\\", "/");
+    }
+#endif
 
     String AddTrailingSlash(const String& path)
     {
@@ -220,72 +266,109 @@ namespace Alimer
         return false;
     }
 
-#ifdef _WIN32
-    static String ToUniversalPath(const String& path)
-    {
-        return path.Replaced("\\", "/");
-    }
-
-    String GetCurrentDir()
-    {
-        wchar_t path[MAX_PATH];
-        path[0] = 0;
-        GetCurrentDirectoryW(MAX_PATH, path);
-        return String(path);
-    }
-
-    String GetExecutableFolder()
-    {
-        wchar_t exeName[MAX_PATH];
-        exeName[0] = 0;
-        GetModuleFileNameW(nullptr, exeName, MAX_PATH);
-        return FileSystem::GetPath(ToUniversalPath(String(exeName)));
-    }
-
-    bool FileExists(const String& fileName)
+    // File
+    bool FileSystem::FileExists(const String& fileName)
     {
         String fixedName = GetNativePath(RemoveTrailingSlash(fileName));
 
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         DWORD attributes = GetFileAttributesW(WString(fixedName).CString());
         if (attributes == INVALID_FILE_ATTRIBUTES || attributes & FILE_ATTRIBUTE_DIRECTORY)
+        {
             return false;
-
+        }
+#else
+        struct stat st {};
+        if (stat(fixedName.CString(), &st) || st.st_mode & S_IFDIR)
+        {
+            return false;
+        }
+#endif
         return true;
     }
 
-    bool DirectoryExists(const String& path)
+    bool FileSystem::DirectoryExists(const String& path)
     {
+#ifndef _WIN32
+        // Always return true for the root directory
+        if (path == "/")
+            return true;
+#endif
+
         String fixedName = GetNativePath(RemoveTrailingSlash(path));
 
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         DWORD attributes = GetFileAttributesW(WString(fixedName).CString());
         if (attributes == INVALID_FILE_ATTRIBUTES
             || !(attributes & FILE_ATTRIBUTE_DIRECTORY))
         {
             return false;
         }
+#else
+        struct stat st;
+        if (stat(fixedName.CString(), &st) || !(st.st_mode & S_IFDIR))
+            return false;
+#endif
         return true;
     }
 
-    UniquePtr<Stream> OpenStream(const String &path, StreamMode mode)
+    bool FileSystem::CreateDirectory(const String& path)
     {
-        if (mode == StreamMode::ReadOnly
-            && !FileExists(path))
-        {
-            return nullptr;
-        }
-
-        try
-        {
-            UniquePtr<Stream> file(new WindowsFileStream(path, mode));
-            return file;
-        }
-        catch (const std::exception &e)
-        {
-            ALIMER_LOGERRORF("OSFileSystem::Open(): %s", e.what());
-            return {};
-        }
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+        WString normalizePath = GetWideNativePath(RemoveTrailingSlash(path));
+        return CreateDirectoryW(normalizePath.CString(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS;
+#else
+        return mkdir(RemoveTrailingSlash(path).CString(), S_IRWXU) == 0 || errno == EEXIST;
+#endif
     }
 
+    String FileSystem::GetCurrentDirectory()
+    {
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+        wchar_t path[MAX_PATH];
+        path[0] = 0;
+        GetCurrentDirectoryW(MAX_PATH, path);
+        return String(path);
+#else
+        char path[MAX_PATH];
+        path[0] = 0;
+        getcwd(path, MAX_PATH);
+        return String(path);
+#endif
+    }
+
+    String FileSystem::GetExecutableFolder()
+    {
+        String result = String::EMPTY;
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+        wchar_t exeName[MAX_PATH];
+        exeName[0] = 0;
+        GetModuleFileNameW(nullptr, exeName, MAX_PATH);
+        result = FileSystem::GetPath(GetUniversalPath(String(exeName)));
+#elif defined(__APPLE__)
+        char exeName[MAX_PATH];
+        memset(exeName, 0, MAX_PATH);
+        unsigned size = MAX_PATH;
+        _NSGetExecutablePath(exeName, &size);
+        result = FileSystem::GetPath(String(exeName));
+#elif defined(__linux__)
+        char exeName[MAX_PATH];
+        memset(exeName, 0, MAX_PATH);
+        pid_t pid = getpid();
+        String link = "/proc/" + String(pid) + "/exe";
+        readlink(link.CString(), exeName, MAX_PATH);
+        result = FileSystem::GetPath(String(exeName));
+#endif
+        if (!result.IsEmpty())
+        {
+            // Sanitate /./ construct away
+            result.Replace("/./", "/");
+        }
+
+        return result;
+    }
+
+#ifdef _WIN32
     void ScanDirInternal(
         std::vector<String>& result, String path, const String& startPath,
         const String& filter, ScanDirFlags flags, bool recursive)
@@ -348,61 +431,5 @@ namespace Alimer
         String initialPath = AddTrailingSlash(pathName);
         ScanDirInternal(result, initialPath, initialPath, filter, flags, recursive);
     }
-
-#else
-    string GetCurrentDir()
-    {
-        char path[MAX_PATH];
-        path[0] = 0;
-        getcwd(path, MAX_PATH);
-        return string(path);
-    }
-
-    string GetExecutableFolder()
-    {
-#if defined(__linux__)
-        char exeName[MAX_PATH];
-        memset(exeName, 0, MAX_PATH);
-        pid_t pid = getpid();
-        String link = "/proc/" + String(pid) + "/exe";
-        readlink(link.CString(), exeName, MAX_PATH);
-        return GetPath(string(exeName));
-#elif defined(__APPLE__)
-        char exeName[MAX_PATH];
-        memset(exeName, 0, MAX_PATH);
-        unsigned size = MAX_PATH;
-        _NSGetExecutablePath(exeName, &size);
-        return GetPath(string(exeName));
-#else
-        return GetCurrentDir();
-#endif
-    }
-
-    bool FileExists(const std::string& fileName)
-    {
-        string fixedName = GetNativePath(RemoveTrailingSlash(fileName));
-
-        struct stat st {};
-        if (stat(fixedName.c_str(), &st) || st.st_mode & S_IFDIR)
-            return false;
-
-        return true;
-    }
-
-    bool DirectoryExists(const string& path)
-    {
-        // Always return true for the root directory
-        if (path == "/")
-            return true;
-
-        string fixedName = GetNativePath(RemoveTrailingSlash(path));
-
-        struct stat st {};
-        if (stat(fixedName.CString(), &st) || !(st.st_mode & S_IFDIR))
-            return false;
-        return true;
-    }
-
-
 #endif
 }

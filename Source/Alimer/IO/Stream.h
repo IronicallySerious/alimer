@@ -27,32 +27,25 @@
 
 namespace Alimer
 {
-	enum class StreamMode
-	{
-		ReadOnly,
-		WriteOnly,
-		ReadWrite
-	};
-
 	/// Abstract stream for reading and writing.
 	class ALIMER_API Stream
 	{
-	public:
+	protected:
 		/// Constructor.
 		Stream();
 
+        /// Constructor.
+        Stream(size_t sizeInBytes);
+
+    public:
 		/// Destructor.
 		virtual ~Stream() = default;
 
 		/// Return whether stream supports reading.
-		bool CanRead() const {
-			return _mode == StreamMode::ReadOnly || _mode == StreamMode::ReadWrite;
-		}
+        virtual bool CanRead() const = 0;
 
 		/// Return whether stream supports writing.
-		virtual bool CanWrite() const {
-			return _mode == StreamMode::WriteOnly || _mode == StreamMode::ReadWrite;
-		}
+        virtual bool CanWrite() const = 0;
 
 		/// Return whether stream supports seeking.
 		virtual bool CanSeek() const = 0;
@@ -71,14 +64,21 @@ namespace Alimer
 		*
 		* @param data The source data to write.
 		* @param size Number of bytes to write.
+        * @return Number of bytes actually written.
 		*/
-		virtual void Write(const void* data, size_t size) = 0;
+		virtual size_t Write(const void* data, size_t size) = 0;
 
 		/// Read entire file as text.
 		String ReadAllText();
 
 		/// Read content as vector bytes.
 		std::vector<uint8_t> ReadBytes(size_t count = 0);
+
+        /// Write an 8-bit unsigned integer.
+        void WriteUByte(uint8_t value);
+
+        /// Write a text line with end line automatically appended.
+        void WriteLine(const String& value);
 
 		/**
 		* Get current position in bytes.
@@ -103,9 +103,8 @@ namespace Alimer
 
 	protected:
         String _name;
-		StreamMode _mode;
-		size_t _position = 0;
-		size_t _size = 0;
+		size_t _position;
+		size_t _size;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Stream);

@@ -31,6 +31,8 @@ extern "C"
 {
 #endif // __cplusplus
 
+    EXPORT_API int alimerAppRun();
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

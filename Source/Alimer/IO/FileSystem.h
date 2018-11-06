@@ -24,9 +24,8 @@
 
 #include "../Base/String.h"
 #include "../Core/Ptr.h"
-#include "../IO/Stream.h"
-#include <memory>
-#include <string>
+#include "../Core/Platform.h"
+#include "../IO/FileStream.h"
 #include <unordered_map>
 
 namespace Alimer
@@ -57,16 +56,6 @@ namespace Alimer
     /// Return whether a path is absolute.
     ALIMER_API bool IsAbsolutePath(const String& pathName);
 
-    /// Check if a file exists.
-    ALIMER_API bool FileExists(const String& fileName);
-    /// Check if a directory exists.
-    ALIMER_API bool DirectoryExists(const String& path);
-    /// Return the absolute current working directory.
-    ALIMER_API String GetCurrentDir();
-    /// Return the executable application folder.
-    ALIMER_API String GetExecutableFolder();
-    /// Open stream from given path with given access mode.
-    ALIMER_API UniquePtr<Stream> OpenStream(const String &path, StreamMode mode = StreamMode::ReadOnly);
     /// Scan a directory for specified files.
     ALIMER_API void ScanDirectory(std::vector<String>& result, const String& pathName, const String& filter, ScanDirFlags flags, bool recursive);
 
@@ -77,7 +66,7 @@ namespace Alimer
         virtual ~FileSystemProtocol() = default;
 
         virtual bool Exists(const String &path) = 0;
-        virtual UniquePtr<Stream> Open(const String &path, StreamMode mode = StreamMode::ReadOnly) = 0;
+        virtual UniquePtr<Stream> Open(const String &path, FileAccess mode = FileAccess::ReadOnly) = 0;
 
         inline virtual String GetFileSystemPath(const String&)
         {
@@ -112,6 +101,21 @@ namespace Alimer
         /// Return the filename and extension from a full path. The case of the extension is preserved by default, so that the file can be opened in case-sensitive operating systems.
         static String GetFileNameAndExtension(const String& fileName, bool lowercaseExtension = false);
 
+        /// Check if a file exists.
+        static bool FileExists(const String& fileName);
+
+        /// Check if a directory exists.
+        static bool DirectoryExists(const String& path);
+
+        /// Create a directory.
+        static bool CreateDirectory(const String& path);
+
+        /// Return the absolute current working directory.
+        static String GetCurrentDirectory();
+
+        /// Return the executable application folder.
+        static String GetExecutableFolder();
+
         /// Register protocol with given name.
         void RegisterProtocol(const String &name, FileSystemProtocol* protocol);
 
@@ -122,7 +126,7 @@ namespace Alimer
         bool Exists(const String &path);
 
         /// Open stream from given path with given access mode.
-        UniquePtr<Stream> Open(const String &path, StreamMode mode = StreamMode::ReadOnly);
+        UniquePtr<Stream> Open(const String &path, FileAccess mode = FileAccess::ReadOnly);
 
     private:
         FileSystem();

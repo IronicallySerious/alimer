@@ -20,70 +20,40 @@
 // THE SOFTWARE.
 //
 
+#pragma once
+
 #include "../IO/Stream.h"
-#include "../Core/Log.h"
+#include <vector>
 
 namespace Alimer
 {
-	Stream::Stream()
-		: _position(0)
-        , _size(0)
+	/// A MemoryStream represents a Stream in memory.
+	class ALIMER_API MemoryStream : public Stream
 	{
-	}
+	public:
+        /// Construct with a pointer and size.
+        MemoryStream(void* data, size_t sizeInBytes);
+        /// Construct as read-only with a pointer and size.
+        MemoryStream(const void* data, size_t sizeInBytes);
+        /// Construct from a vector, which must not go out of scope before MemoryBuffer.
+        MemoryStream(std::vector<uint8_t>& data);
+        /// Construct from a read-only vector, which must not go out of scope before MemoryBuffer.
+        MemoryStream(const std::vector<uint8_t>& data);
 
-    Stream::Stream(size_t sizeInBytes)
-        : _position(0)
-        , _size(sizeInBytes)
-    {
-    }
+        bool CanRead() const override;
+        bool CanWrite() const override;
+        bool CanSeek() const override;
 
-    void Stream::SetName(const String& name)
-    {
-        _name = name;
-    }
+		size_t Read(void* dest, size_t size) override;
+        size_t Write(const void* data, size_t size) override;
 
-	String Stream::ReadAllText()
-	{
-		String content;
-		uint64_t length = _size;
-		if (length)
-		{
-			content.Resize(length);
-			Read(&content[0], length);
-		}
+        /// Return memory area.
+        uint8_t* Data() { return _buffer; }
 
-		return content;
-	}
-
-	std::vector<uint8_t> Stream::ReadBytes(size_t count)
-	{
-		if (!count)
-			count = _size;
-
-		std::vector<uint8_t> result(count);
-
-		size_t read = Read(result.data(), count);
-		if (read != count)
-		{
-			ALIMER_LOGERRORF("Failed to read complete contents of stream (amount read vs. file size: %u < %u).",
-                static_cast<uint32_t>(read),
-                static_cast<uint32_t>(count)
-            );
-			return {};
-		}
-
-		return result;
-	}
-
-    void Stream::WriteUByte(uint8_t value)
-    {
-        Write(&value, sizeof value);
-    }
-
-    void Stream::WriteLine(const String& value)
-    {
-        Write(value.CString(), value.Length());
-        WriteUByte('\r');
-        WriteUByte('\n');
-    }
+    private:
+        /// Pointer to the memory area.
+        uint8_t* _buffer;
+        /// Read-only flag.
+        bool _readOnly;
+	};
 }

@@ -41,6 +41,8 @@ namespace Alimer
         , _scene(_entities)
     {
         PlatformConstruct();
+        AddSubsystem(this);
+        _log = new Logger();
         __appInstance = this;
     }
 
@@ -53,6 +55,7 @@ namespace Alimer
         SafeDelete(_graphicsDevice);
         Audio::Shutdown();
         PluginManager::Shutdown();
+        SafeDelete(_log);
         __appInstance = nullptr;
     }
 
@@ -64,6 +67,7 @@ namespace Alimer
     bool Application::InitializeBeforeRun()
     {
         SetCurrentThreadName("Main");
+        _log->Open("Alimer.log");
 
         ALIMER_LOGINFOF("Initializing engine %s...", ALIMER_VERSION_STR);
 
@@ -120,7 +124,7 @@ namespace Alimer
 
     void Application::LoadPlugins()
     {
-        PluginManager::GetInstance()->LoadPlugins(GetExecutableFolder());
+        PluginManager::GetInstance()->LoadPlugins(FileSystem::GetExecutableFolder());
     }
 
     void Application::RunFrame()

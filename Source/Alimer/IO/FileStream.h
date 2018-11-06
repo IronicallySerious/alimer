@@ -22,42 +22,55 @@
 
 #pragma once
 
-#include "../FileSystem.h"
-#ifndef NOMINMAX
-#   define NOMINMAX
-#endif
-#include <Windows.h>
+#include "../IO/Stream.h"
 
 namespace Alimer
 {
-    class WindowsFileStream final : public Stream
-    {
-    public:
-        WindowsFileStream(const String &path, StreamMode mode);
-        ~WindowsFileStream() override;
+	enum class FileAccess
+	{
+        ReadOnly,
+		WriteOnly,
+		ReadWrite
+	};
 
-        bool CanSeek() const override { return _handle != nullptr; }
+	/// OS file stream.
+	class ALIMER_API FileStream : public Stream
+	{
+	public:
+		/// Constructor.
+        FileStream();
 
-        size_t Read(void* dest, size_t size) override;
-        void Write(const void* data, size_t size) override;
+        /// Construct and open a file.
+        FileStream(const String& fileName, FileAccess mode = FileAccess::ReadOnly);
+
+        /// Destructor. Close the file if open.
+        ~FileStream() override;
+
+        /// Open a file. Return true on success.
+        bool Open(const String& fileName, FileAccess mode = FileAccess::ReadOnly);
+
+        /// Close the file.
+        void Close();
+
+        /// Flush any buffered output to the file.
+        void Flush();
+
+        bool CanRead() const override;
+        bool CanWrite() const override;
+        bool CanSeek() const override;
+
+		size_t Read(void* dest, size_t size) override;
+        size_t Write(const void* data, size_t size) override;
+
+        /// Return whether is open.
+        bool IsOpen() const;
+
+        /// Return the file handle.
+        void* GetHandle() const { return _handle; }
 
     private:
-        HANDLE _handle = nullptr;
-    };
-
-    /// OS file system protocol protocol for file system.
-    class OSFileSystemProtocol final : public FileSystemProtocol
-    {
-    public:
-        OSFileSystemProtocol(const String &rootDirectory);
-        ~OSFileSystemProtocol();
-
-        String GetFileSystemPath(const String& path) override;
-
-        bool Exists(const String &path) override;
-        UniquePtr<Stream> Open(const String &path, StreamMode mode) override;
-
-    protected:
-        String _rootDirectory;
-    };
+        FileAccess _mode;
+        void* _handle;
+        bool _canSeek;
+	};
 }

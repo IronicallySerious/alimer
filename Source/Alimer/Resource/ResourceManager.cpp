@@ -150,7 +150,7 @@ namespace Alimer
     {
         std::lock_guard<std::mutex> guard(_resourceMutex);
 
-        if (!DirectoryExists(path))
+        if (!FileSystem::DirectoryExists(path))
         {
             ALIMER_LOGERRORF("Directory '%s' does not exists", path.CString());
             return false;
@@ -195,9 +195,8 @@ namespace Alimer
         return it != end(_loaders) ? it->second.Get() : nullptr;
     }
 
-    UniquePtr<Stream> ResourceManager::Open(const String &assetName, StreamMode mode)
+    UniquePtr<Stream> ResourceManager::Open(const String &assetName)
     {
-        ALIMER_UNUSED(mode);
         std::lock_guard<std::mutex> guard(_resourceMutex);
 
         String sanitatedName = SanitateResourceName(assetName);
@@ -275,7 +274,7 @@ namespace Alimer
         if (_resourceDirs.size())
         {
             String namePath = FileSystem::GetPath(sanitatedName);
-            String exePath = GetExecutableFolder().Replaced("/./", "/");
+            String exePath = FileSystem::GetExecutableFolder().Replaced("/./", "/");
             for (size_t i = 0; i < _resourceDirs.size(); ++i)
             {
                 String relativeResourcePath = _resourceDirs[i];
@@ -298,7 +297,7 @@ namespace Alimer
     {
         String cleanName = AddTrailingSlash(name);
         if (!IsAbsolutePath(name))
-            cleanName = Path::Join(GetCurrentDir(), name);
+            cleanName = Path::Join(FileSystem::GetCurrentDirectory(), name);
 
         // Sanitate away /./ construct
         cleanName = cleanName.Replaced("/./", "/").Trimmed();
@@ -309,15 +308,17 @@ namespace Alimer
     {
         for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
-            if (FileExists(_resourceDirs[i] + name))
+            if (FileSystem::FileExists(_resourceDirs[i] + name))
             {
-                return OpenStream(_resourceDirs[i] + name);
+                return UniquePtr<Stream>(new FileStream(_resourceDirs[i] + name));
             }
         }
 
         // Fallback using absolute path
-        if (FileExists(name))
-            return OpenStream(name);
+        if (FileSystem::FileExists(name))
+        {
+            return UniquePtr<Stream>(new FileStream(name));
+        }
 
         return {};
     }
@@ -333,14 +334,14 @@ namespace Alimer
     {
         for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
-            if (FileExists(_resourceDirs[i] + name))
+            if (FileSystem::FileExists(_resourceDirs[i] + name))
             {
                 return true;
             }
         }
 
         // Fallback using absolute path
-        if (FileExists(name))
+        if (FileSystem::FileExists(name))
             return true;
 
         return false;

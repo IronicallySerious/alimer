@@ -34,6 +34,15 @@
 #   ifdef DrawText
 #       undef DrawText
 #   endif
+
+#   ifdef CreateDirectory
+#       undef CreateDirectory
+#   endif
+
+#   ifdef GetCurrentDirectory
+#       undef GetCurrentDirectory
+#   endif
+
 #endif
 
 #include "../AlimerConfig.h"

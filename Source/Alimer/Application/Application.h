@@ -121,7 +121,7 @@ namespace Alimer
         std::atomic<bool> _headless;
         ApplicationSettings _settings;
 
-        Logger _log;
+        Logger* _log;
         Timer _timer;
         ResourceManager _resources;
         Window* _mainWindow = nullptr;

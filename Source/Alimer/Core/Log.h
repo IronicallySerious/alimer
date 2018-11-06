@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "../Base/String.h"
+#include "../Core/Object.h"
+#include "../Core/Ptr.h"
 #include <memory>
 #include <vector>
 
@@ -39,6 +40,8 @@ namespace Alimer
         Off = 6
     };
 
+    class FileStream;
+
     /// Listener interface for Log events.
     class ALIMER_API LogListener
     {
@@ -50,14 +53,21 @@ namespace Alimer
     };
 
     /// Class for logging functionalities.
-    class ALIMER_API Logger final
+    class ALIMER_API Logger final : public Object
     {
+        ALIMER_OBJECT(Logger, Object);
+
     public:
         /// Construcor.
         Logger();
 
         /// Destructor.
         ~Logger();
+
+        /// Open the log file.
+        void Open(const String& fileName);
+        /// Close the log file.
+        void Close();
 
         /// Set logging level.
         void SetLevel(LogLevel newLevel);
@@ -78,11 +88,18 @@ namespace Alimer
         /// Removes a log listener.
         void RemoveListener(LogListener* listener);
 
+        /// Return instance of opened log file.
+        const FileStream* GetLogFile() const { return _logFile; }
+
     private:
         void OnLog(LogLevel level, const String& message);
 
     private:
         LogLevel _level;
+
+        /// Log file.
+        FileStream* _logFile;
+
         /// List of Listener's on the Log.
         std::vector<LogListener*> _listeners;
 

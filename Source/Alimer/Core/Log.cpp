@@ -21,6 +21,7 @@
 //
 
 #include "../Core/Log.h"
+#include "../IO/FileStream.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
@@ -78,6 +79,7 @@ namespace Alimer
     static Alimer::Logger* __logInstance = nullptr;
 
     Logger::Logger()
+        : _logFile(nullptr)
     {
 #ifdef _DEBUG
         SetLevel(LogLevel::Debug);
@@ -88,12 +90,51 @@ namespace Alimer
 #if ALIMER_DEV
         AllocConsole();
 #endif
+        AddSubsystem(this);
         __logInstance = this;
     }
 
     Logger::~Logger()
     {
+        Close();
+        RemoveSubsystem(this);
         __logInstance = nullptr;
+    }
+
+    void Logger::Open(const String& fileName)
+    {
+        if (fileName.IsEmpty())
+            return;
+
+        if (_logFile && _logFile->IsOpen())
+        {
+            if (_logFile->GetName() == fileName)
+            {
+                return;
+            }
+
+            Close();
+        }
+
+        _logFile = new FileStream();
+        if (_logFile->Open(fileName, FileAccess::WriteOnly))
+        {
+            Log(LogLevel::Info, String::Format("Opened log file '%s'", fileName.CString()));
+        }
+        else
+        {
+            SafeDelete(_logFile);
+            Log(LogLevel::Error, String::Format("Failed to create log file '%s'", fileName.CString()));
+        }
+    }
+
+    void Logger::Close()
+    {
+        if (_logFile
+            && _logFile->IsOpen())
+        {
+            SafeDelete(_logFile);
+        }
     }
 
     void Logger::SetLevel(LogLevel newLevel)
@@ -273,6 +314,15 @@ namespace Alimer
         }
 #endif 
 #endif
+
+        if (_logFile)
+        {
+            String formattedMessage = LogLevelPrefix[static_cast<uint32_t>(level)];
+            formattedMessage += ": " + message;
+
+            _logFile->WriteLine(formattedMessage);
+            _logFile->Flush();
+        }
 
         // Log listeners.
         for (auto listener : _listeners)

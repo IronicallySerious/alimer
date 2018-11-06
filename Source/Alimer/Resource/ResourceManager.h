@@ -50,7 +50,7 @@ namespace Alimer
         void AddLoader(ResourceLoader* loader);
         ResourceLoader* GetLoader(StringHash type) const;
 
-        UniquePtr<Stream> Open(const String &assetName, StreamMode mode = StreamMode::ReadOnly);
+        UniquePtr<Stream> Open(const String &assetName);
         bool Exists(const String &assetName);
 
         SharedPtr<Object> LoadObject(StringHash type, const String& assetName);
