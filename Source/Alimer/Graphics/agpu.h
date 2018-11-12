@@ -40,6 +40,7 @@ extern "C"
     typedef uint32_t AgpuFlags;
     typedef uint32_t AgpuBool32;
 
+    AGPU_DEFINE_HANDLE(AgpuFence);
     AGPU_DEFINE_HANDLE(AgpuBuffer);
 
 #define AGPU_TRUE                           1

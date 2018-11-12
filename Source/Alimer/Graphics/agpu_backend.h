@@ -46,13 +46,20 @@
 #   include <dxgidebug.h>
 #endif
 
+typedef struct AgpuFence_T {
+#if AGPU_D3D12
+    ID3D12Fence*        d3d12Fence = nullptr;
+    HANDLE              d3d12FenceEvent = INVALID_HANDLE_VALUE;
+#endif
+} AgpuFence_T;
+
 typedef struct AgpuBuffer_T {
 #if AGPU_D3D11
-    ID3D11Buffer*       d3d11Buffer;
+    ID3D11Buffer*       d3d11Buffer = nullptr;
 #endif
 
 #if AGPU_D3D12
-    ID3D12Resource*     d3d12Buffer;
+    ID3D12Resource*     d3d12Buffer = nullptr;
 #endif
 
 } AgpuBuffer_T;
@@ -146,6 +153,8 @@ typedef struct AGpuRenderer {
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   commandList;
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator>      commandAllocators[MAX_BACK_BUFFER_COUNT];
         D3D_FEATURE_LEVEL                                   featureLevel;
+
+        AgpuFence_T*                                        frameFence;
 
         UINT                                                backBufferIndex;
     } d3d12;

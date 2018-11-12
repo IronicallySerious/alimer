@@ -149,6 +149,13 @@ AgpuResult agpuD3D12BeginFrame(AGpuRenderer* renderer);
 uint64_t agpuD3D12EndFrame(AGpuRenderer* renderer);
 void agpuD3D12WaitForGpu(AGpuRenderer* renderer);
 
+/* Fence */
+AgpuFence agpuD3D12CreateFence(AGpuRenderer* renderer);
+void agpuD3D12FenceSignal(AgpuFence fence, ID3D12CommandQueue* queue, uint64_t fenceValue);
+void agpuD3D12FenceWait(AgpuFence fence, uint64_t fenceValue);
+bool agpuD3D12FenceSignaled(AgpuFence fence, uint64_t fenceValue);
+void agpuD3D12FenceClear(AgpuFence fence, uint64_t fenceValue);
+
 AgpuBool32 agpuIsD3D12Supported(AGpuRenderer* renderer)
 {
     static AgpuBool32 availableCheck = AGPU_FALSE;
@@ -234,7 +241,7 @@ AgpuResult agpuSetupD3D12Backend(AGpuRenderer* renderer, const AgpuDescriptor* d
             d3d12debug->EnableDebugLayer();
 
             ComPtr<ID3D12Debug1> d3d12debug1;
-            if (d3d12debug.As(&d3d12debug1))
+            if (SUCCEEDED(d3d12debug.As(&d3d12debug1)))
             {
                 d3d12debug1->SetEnableGPUBasedValidation(true);
             }
@@ -304,19 +311,20 @@ AgpuResult agpuSetupD3D12Backend(AGpuRenderer* renderer, const AgpuDescriptor* d
     // Determine maximum supported feature level for this device
     static const D3D_FEATURE_LEVEL s_featureLevels[] =
     {
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_11_1,
-        D3D_FEATURE_LEVEL_12_0,
         D3D_FEATURE_LEVEL_12_1,
+        D3D_FEATURE_LEVEL_12_0,
+        D3D_FEATURE_LEVEL_11_1,
+        D3D_FEATURE_LEVEL_11_0,
     };
 
-    D3D12_FEATURE_DATA_FEATURE_LEVELS dataFeatureLevels = { };
-    dataFeatureLevels.NumFeatureLevels = _countof(s_featureLevels);
-    dataFeatureLevels.pFeatureLevelsRequested = s_featureLevels;
-    hr = renderer->d3d12.device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &dataFeatureLevels, sizeof(dataFeatureLevels));
+    D3D12_FEATURE_DATA_FEATURE_LEVELS featLevels =
+    {
+        _countof(s_featureLevels), s_featureLevels, D3D_FEATURE_LEVEL_11_0
+    };
+    hr = renderer->d3d12.device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featLevels, sizeof(featLevels));
     if (SUCCEEDED(hr))
     {
-        renderer->d3d12.featureLevel = dataFeatureLevels.MaxSupportedFeatureLevel;
+        renderer->d3d12.featureLevel = featLevels.MaxSupportedFeatureLevel;
     }
     else
     {
@@ -363,6 +371,9 @@ AgpuResult agpuSetupD3D12Backend(AGpuRenderer* renderer, const AgpuDescriptor* d
     );
     hr = renderer->d3d12.commandList->Close();
     renderer->d3d12.commandList->SetName(L"MainDirectCommandList");
+
+    // Create frame fence
+    renderer->d3d12.frameFence = agpuD3D12CreateFence(renderer);
 
     // Setup backend callbacks.
     renderer->shutdown = agpuShutdownD3D12Backend;
@@ -432,7 +443,61 @@ uint64_t agpuD3D12EndFrame(AGpuRenderer* renderer)
     ID3D12CommandList* ppCommandLists[] = { commandList };
     renderer->d3d12.commandQueue->ExecuteCommandLists(1, ppCommandLists);
 
+    //++CurrentCPUFrame;
+
+    // Signal the fence with the current frame number, so that we can check back on it
+    //FrameFence.Signal(GfxQueue, CurrentCPUFrame);
+
     return 0;
+}
+
+/* Fence implementation */
+AgpuFence agpuD3D12CreateFence(AGpuRenderer* renderer)
+{
+    AgpuFence fence = new AgpuFence_T();
+    renderer->d3d12.device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence->d3d12Fence));
+
+    fence->d3d12FenceEvent = CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE);
+    ALIMER_ASSERT(fence->d3d12FenceEvent != INVALID_HANDLE_VALUE);
+
+    return fence;
+}
+
+void agpuD3D12FenceSignal(AgpuFence fence, ID3D12CommandQueue* queue, uint64_t fenceValue)
+{
+    ALIMER_ASSERT(fence->d3d12Fence != nullptr);
+    HRESULT hr = queue->Signal(fence->d3d12Fence, fenceValue);
+    if (FAILED(hr))
+    {
+        ALIMER_LOGERROR("agpuD3D12FenceSignal failed");
+    }
+}
+
+void agpuD3D12FenceWait(AgpuFence fence, uint64_t fenceValue)
+{
+    ALIMER_ASSERT(fence->d3d12Fence != nullptr);
+    if (fence->d3d12Fence->GetCompletedValue() < fenceValue)
+    {
+        HRESULT hr = fence->d3d12Fence->SetEventOnCompletion(fenceValue, fence->d3d12FenceEvent);
+        if (FAILED(hr))
+        {
+            ALIMER_LOGERROR("D3D12 Fence SetEventOnCompletion failed");
+        }
+
+        WaitForSingleObjectEx(fence->d3d12FenceEvent, INFINITE, FALSE);
+    }
+}
+
+bool agpuD3D12FenceSignaled(AgpuFence fence, uint64_t fenceValue)
+{
+    ALIMER_ASSERT(fence->d3d12Fence != nullptr);
+    return fence->d3d12Fence->GetCompletedValue() >= fenceValue;
+}
+
+void agpuD3D12FenceClear(AgpuFence fence, uint64_t fenceValue)
+{
+    ALIMER_ASSERT(fence->d3d12Fence != nullptr);
+    fence->d3d12Fence->Signal(fenceValue);
 }
 
 #endif /* AGPU_D3D12 */

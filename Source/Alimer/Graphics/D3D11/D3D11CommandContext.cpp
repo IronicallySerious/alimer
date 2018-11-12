@@ -513,8 +513,8 @@ namespace Alimer
 
     void D3D11CommandContext::DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
     {
-        FlushRenderState(topology);
-        _d3dContext->Draw(vertexCount, startVertexLocation);
+        //FlushRenderState(topology);
+        //_d3dContext->Draw(vertexCount, startVertexLocation);
     }
 
     void D3D11CommandContext::DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
