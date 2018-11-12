@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Core/Ptr.h"
+#include "../Base/Ptr.h"
 #include "../Graphics/Types.h"
 
 namespace Alimer

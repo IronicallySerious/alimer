@@ -195,7 +195,7 @@ namespace Alimer
             m21, m22, m23, m24,
             m31, m32, m33, m34,
             m41, m42, m43, m44);
-        return std::string(tempBuffer);
+        return String(tempBuffer);
     }
 
     Matrix4x4 Matrix4x4::Transpose() const

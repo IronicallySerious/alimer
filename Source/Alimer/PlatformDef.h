@@ -56,19 +56,23 @@
 #	error "Unknown compiler"
 #endif
 
-#define ALIMER_PLATFORM_UWP 0
-#define ALIMER_PLATFORM_WINDOWS 0
-#define ALIMER_PLATFORM_IOS 0
-#define ALIMER_PLATFORM_TVOS 0
-#define ALIMER_PLATFORM_MACOS 0
-#define ALIMER_PLATFORM_ANDROID 0
-#define ALIMER_PLATFORM_LINUX 0
-#define ALIMER_PLATFORM_WEB 0
+#define ALIMER_PLATFORM_WINDOWS     0
+#define ALIMER_PLATFORM_UWP         0
+#define ALIMER_PLATFORM_XBOX_ONE    0
+#define ALIMER_PLATFORM_IOS         0
+#define ALIMER_PLATFORM_TVOS        0
+#define ALIMER_PLATFORM_MACOS       0
+#define ALIMER_PLATFORM_ANDROID     0
+#define ALIMER_PLATFORM_LINUX       0
+#define ALIMER_PLATFORM_WEB         0
 
 /**
 * Operating system defines, see http://sourceforge.net/p/predef/wiki/OperatingSystems/
 */
-#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
+#if defined(_DURANGO) || defined(_XBOX_ONE)
+#	undef  ALIMER_PLATFORM_XBOX_ONE
+#	define ALIMER_PLATFORM_XBOX_ONE 1
+#elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
 #	undef ALIMER_PLATFORM_UWP
 #	define ALIMER_PLATFORM_UWP 1 // Universal Windows platform
 #   define ALIMER_SUPPORTS_D3D 1

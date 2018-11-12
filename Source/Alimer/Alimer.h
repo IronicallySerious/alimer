@@ -22,15 +22,8 @@
 
 #pragma once
 
-#include <new>
-#include <memory>
-#include <string>
-#include <cstring>
-#include <array>
-#include <vector>
-#include <string>
-
 #include "Base/Swap.h"
+#include "Base/Ptr.h"
 #include "Base/String.h"
 #include "Base/StringHash.h"
 

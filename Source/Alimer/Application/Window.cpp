@@ -24,7 +24,7 @@
 
 namespace Alimer
 {
-    Window::Window(const std::string& title, const uvec2& size, WindowFlags flags)
+    Window::Window(const String& title, const uvec2& size, WindowFlags flags)
         : _title(title)
         , _size(size)
         , _flags(flags)

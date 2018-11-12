@@ -24,7 +24,7 @@
 #pragma once
 
 #include "../Base/String.h"
-#include "../Core/Ptr.h"
+#include "../Base/Ptr.h"
 #include "../Core/Plugin.h"
 #include <vector>
 #include <unordered_map>

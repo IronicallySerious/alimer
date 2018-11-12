@@ -22,8 +22,8 @@
 
 #pragma once
 
+#include "../Base/Ptr.h"
 #include "../Core/Object.h"
-#include "../Core/Ptr.h"
 #include <memory>
 #include <vector>
 
@@ -37,7 +37,7 @@ namespace Alimer
         Warn = 3,
         Error = 4,
         Critical = 5,
-        Off = 6
+        Count
     };
 
     class FileStream;

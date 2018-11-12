@@ -35,7 +35,7 @@
 #include "../../Math/Math.h"
 #include "../../Core/Log.h"
 #include "AlimerVersion.h"
-#include <SPIRV/GlslangToSpv.h>
+#include <map>
 
 namespace Alimer
 {
@@ -426,9 +426,6 @@ namespace Alimer
         vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, nullptr);
         _queueFamilyProperties.resize(queueFamilyProps);
         vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyProps, _queueFamilyProperties.data());
-
-        // Initialize glslang library.
-        glslang::InitializeProcess();
     }
 
     VulkanGraphicsDevice::~VulkanGraphicsDevice()
@@ -439,8 +436,6 @@ namespace Alimer
 
     void VulkanGraphicsDevice::Shutdown()
     {
-        glslang::FinalizeProcess();
-
         // Destroy main swap chain.
         _mainSwapchain.Reset();
 
@@ -865,12 +860,7 @@ namespace Alimer
         _commandPool = CreateCommandPool(_graphicsQueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
         // Create the main swap chain.
-        _mainSwapchain.Reset(new VulkanSwapchain(
-            this,
-            surface,
-            settings.swapchain.width,
-            settings.swapchain.height)
-        );
+        _mainSwapchain.Reset(new VulkanSwapchain(this, surface, &settings.swapchain));
 
         // Create default command context;
         _context = new VulkanCommandBuffer(this, _graphicsQueue, VK_COMMAND_BUFFER_LEVEL_PRIMARY);

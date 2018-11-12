@@ -47,7 +47,7 @@ namespace Alimer
             windowFlags |= SDL_WINDOW_FULLSCREEN;
         }
 
-        _window = SDL_CreateWindow(_title.c_str(),
+        _window = SDL_CreateWindow(_title.CString(),
             x, y,
             static_cast<int>(_size.x),
             static_cast<int>(_size.y),
@@ -121,9 +121,9 @@ namespace Alimer
         return (SDL_GetWindowFlags(_window) & SDL_WINDOW_MINIMIZED) != 0;
     }
 
-    void Window::SetTitle(const std::string& newTitle)
+    void Window::SetTitle(const String& newTitle)
     {
         _title = newTitle;
-        SDL_SetWindowTitle(_window, newTitle.c_str());
+        SDL_SetWindowTitle(_window, newTitle.CString());
     }
 }

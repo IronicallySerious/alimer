@@ -102,7 +102,7 @@ namespace Alimer
         }
 
         std::string hlslSource = compiler.compile(std::move(remaps));
-        return D3DShaderCompiler::Compile(graphics->GetFunctions()->d3dCompile, hlslSource, stage, major, minor);
+        return D3DShaderCompiler::Compile(graphics->GetFunctions()->d3dCompile, hlslSource.c_str(), hlslSource.length(), stage, major, minor);
     }
 
     /*D3D11ShaderModule::D3D11ShaderModule(D3D11GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob)

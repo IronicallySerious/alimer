@@ -65,12 +65,27 @@ namespace Alimer
         std::string outputFile;
     };
 
-    class Compiler final 
+    /**
+    * Defines class for compiling shaders.
+    */
+    class Compiler final
     {
     public:
         Compiler();
         ~Compiler();
+        Compiler(const Compiler&) = delete;
+        Compiler& operator=(const Compiler&) = delete;
+        Compiler(const Compiler&&) = delete;
+        Compiler& operator=(const Compiler&&) = delete;
 
         bool Compile(const CompilerOptions& options);
+
+        const std::string& GetErrorMessage() const
+        {
+            return _errorMessage;
+        }
+
+    private:
+        std::string _errorMessage;
     };
 }

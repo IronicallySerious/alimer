@@ -24,6 +24,10 @@
 #include "../Core/Log.h"
 
 #if defined(_WIN32)
+#ifndef NOMINMAX
+#   define NOMINMAX
+#endif
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 // ntdll.dll function pointer typedefs
@@ -44,8 +48,6 @@ bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wSer
     {
         RtlVerifyVersionInfo_ = reinterpret_cast<PFN_RtlVerifyVersionInfo>(GetProcAddress(s_ntdllHandle, "RtlVerifyVersionInfo"));
     }
-
-    std::string version = "Microsoft Windows";
 
     OSVERSIONINFOEXW osvi = { sizeof(osvi), wMajorVersion, wMinorVersion, 0, 0, {0}, wServicePackMajor };
     DWORD mask = VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR;
@@ -80,205 +82,211 @@ typedef struct tagTHREADNAME_INFO
 #   include <pthread.h>
 #endif
 
-namespace Alimer
+PlatformType GetPlatformType()
 {
-    PlatformType GetPlatformType()
-    {
-#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
-        return PlatformType::UWP;
+#if defined(_DURANGO) || defined(_XBOX_ONE)
+    return PLATFORM_TYPE_XBOX_ONE;
+#elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
+    return PLATFORM_TYPE_UWP;
 #elif defined(_WIN64) || defined(_WIN32) 
-        return PlatformType::Windows;
+    return PLATFORM_TYPE_WINDOWS;
 #elif defined(__APPLE__)
 #   if TARGET_OS_IOS
-#       return PlatformType::iOS;
+    return PLATFORM_TYPE_IOS;
 #   elif TARGET_OS_TV
-        return PlatformType::AppleTV;
+    return PLATFORM_TYPE_APPLE_TV;
 #   elif TARGET_OS_MAC
-        return PlatformType::macOS;
+    return PLATFORM_TYPE_MACOS;
 #   endif
 #elif defined(__ANDROID__)
-        return PlatformType::Android;
+    return PLATFORM_TYPE_ANDROID;
 #elif defined(__linux__)
-        return PlatformType::Linux;
+    return PLATFORM_TYPE_LINUX;
 #elif defined(__EMSCRIPTEN__)
-        return PlatformType::Web;
+    return PLATFORM_TYPE_WEB;
 #else
-        return PlatformType::Unknown;
+    return PLATFORM_TYPE_UNKNOWN;
 #endif
-    }
+}
 
-    PlatformFamily GetPlatformFamily()
-    {
+PlatformFamily GetPlatformFamily()
+{
 #if ALIMER_PLATFORM_ANDROID || ALIMER_PLATFORM_APPLE_IOS || ALIMER_PLATFORM_APPLE_TV
-        return PlatformFamily::Mobile;
-#elif ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_APPLE_OSX
-        return PlatformFamily::Desktop;
+    return PLATFORM_FAMILY_MOBILE;
+#elif ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
+    return PLATFORM_FAMILY_DESKTOP;
+#elif ALIMER_PLATFORM_XBOXONE
+    return PLATFORM_FAMILY_CONSOLE;
 #elif ALIMER_PLATFORM_UWP
-        Windows::System::Profile::AnalyticsVersionInfo^ versionInfo = Windows::System::Profile::AnalyticsInfo::VersionInfo;
-        Platform::String^ DeviceFamily = versionInfo->DeviceFamily;
-        if (DeviceFamily->Equals("Windows.Desktop"))
-        {
-            return PlatformFamily::Desktop;
-        }
-        else if (DeviceFamily->Equals("Windows.Mobile"))
-        {
-            return PlatformFamily::Mobile;
-        }
-        else if (DeviceFamily->Equals("Windows.Xbox"))
-        {
-            return PlatformFamily::Console;
-        }
+    Windows::System::Profile::AnalyticsVersionInfo^ versionInfo = Windows::System::Profile::AnalyticsInfo::VersionInfo;
+    Platform::String^ DeviceFamily = versionInfo->DeviceFamily;
+    if (DeviceFamily->Equals("Windows.Desktop"))
+    {
+        return PLATFORM_FAMILY_DESKTOP;
+    }
+    else if (DeviceFamily->Equals("Windows.Mobile"))
+    {
+        return PLATFORM_FAMILY_MOBILE;
+    }
+    else if (DeviceFamily->Equals("Windows.Xbox"))
+    {
+        return PLATFORM_FAMILY_CONSOLE;
+    }
 
-        return PlatformFamily::Unknown;
+    return PLATFORM_FAMILY_UNKNOWN;
 #elif ALIMER_PLATFORM_WEB
-        return PlatformFamily::Console;
+    return PLATFORM_FAMILY_CONSOLE;
 #else
-        return PlatformFamily::Unknown;
+    return PLATFORM_FAMILY_UNKNOWN;
 #endif
-    }
+}
 
-    const char* GetPlatformName()
+const char* GetPlatformName()
+{
+    PlatformType platform = GetPlatformType();
+    switch (platform)
     {
-        PlatformType platform = GetPlatformType();
-        switch (platform)
-        {
-        case PlatformType::Windows:
-            return "Windows";
-        case PlatformType::UWP:
-            return "UWP";
-        case PlatformType::Linux:
-            return "Linux";
-        case PlatformType::macOS:
-            return "macOS";
-        case PlatformType::Android:
-            return "Android";
-        case PlatformType::iOS:
-            return "iOS";
-        case PlatformType::AppleTV:
-            return "AppleTV";
-        case PlatformType::Web:
-            return "Web";
-        default:
-            return "Unknown";
-        }
+    case PLATFORM_TYPE_WINDOWS:
+        return "Windows";
+    case PLATFORM_TYPE_UWP:
+        return "UWP";
+    case PLATFORM_TYPE_XBOX_ONE:
+        return "XboxOne";
+    case PLATFORM_TYPE_LINUX:
+        return "Linux";
+    case PLATFORM_TYPE_MACOS:
+        return "macOS";
+    case PLATFORM_TYPE_ANDROID:
+        return "Android";
+    case PLATFORM_TYPE_IOS:
+        return "iOS";
+    case PLATFORM_TYPE_APPLE_TV:
+        return "AppleTV";
+    case PLATFORM_TYPE_WEB:
+        return "Web";
+    default:
+        return "Unknown";
     }
+}
 
-    std::string GetOSDescription()
-    {
+const char* GetOSDescription()
+{
+    static Alimer::String version;
+    if (!version.IsEmpty())
+        return version.CString();
+
 #if ALIMER_PLATFORM_WINDOWS
-        RTL_OSVERSIONINFOEXW osvi = { 0 };
-        osvi.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
+    RTL_OSVERSIONINFOEXW osvi = { 0 };
+    osvi.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
 
-        std::string version = "Microsoft Windows";
+    version = "Microsoft Windows";
 
-        static PFN_RtlGetVersion RtlGetVersion_ = nullptr;
+    static PFN_RtlGetVersion RtlGetVersion_ = nullptr;
 
-        if (RtlGetVersion_ == nullptr)
-        {
-            RtlGetVersion_ = reinterpret_cast<PFN_RtlGetVersion>(GetProcAddress(s_ntdllHandle, "RtlGetVersion"));
-        }
-
-        if (RtlGetVersion_(&osvi) == 0)
-        {
-            if (osvi.szCSDVersion[0] != '\0')
-            {
-                version = str::Format("%s %d.%d.%d %s",
-                    version.c_str(),
-                    osvi.dwMajorVersion,
-                    osvi.dwMinorVersion,
-                    osvi.dwBuildNumber,
-                    String(osvi.szCSDVersion).CString()
-                );
-            }
-            else
-            {
-                version = str::Format("%s %d.%d.%d",
-                    version.c_str(),
-                    osvi.dwMajorVersion,
-                    osvi.dwMinorVersion,
-                    osvi.dwBuildNumber
-                );
-            }
-        }
-
-        return version;
-#elif ALIMER_PLATFORM_UWP
-        return "Microsoft Windows";
-#endif
+    if (RtlGetVersion_ == nullptr)
+    {
+        RtlGetVersion_ = reinterpret_cast<PFN_RtlGetVersion>(GetProcAddress(s_ntdllHandle, "RtlGetVersion"));
     }
 
-    void* LoadNativeLibrary(const char* name)
+    if (RtlGetVersion_(&osvi) == 0)
     {
+        if (osvi.szCSDVersion[0] != '\0')
+        {
+            version.AppendWithFormat(" %d.%d.%d %s",
+                osvi.dwMajorVersion,
+                osvi.dwMinorVersion,
+                osvi.dwBuildNumber,
+                Alimer::String(osvi.szCSDVersion).CString()
+            );
+        }
+        else
+        {
+            version.AppendWithFormat(" %d.%d.%d",
+                osvi.dwMajorVersion,
+                osvi.dwMinorVersion,
+                osvi.dwBuildNumber
+            );
+        }
+    }
+
+#elif ALIMER_PLATFORM_UWP
+    return "Microsoft Windows";
+#endif
+
+    return version.CString();
+}
+
+void* LoadNativeLibrary(const char* name)
+{
 #if ALIMER_PLATFORM_WINDOWS
-        auto wideName = WString(name);
-        HMODULE handle = LoadLibraryW(wideName.CString());
-        return handle;
+    auto wideName = Alimer::WString(name);
+    HMODULE handle = LoadLibraryW(wideName.CString());
+    return handle;
 #elif ALIMER_PLATFORM_UWP
-        auto wideName = WString(name);
-        HMODULE handle = LoadPackagedLibrary(wideName.CString(), 0);
-        return handle;
+    auto wideName = WString(name);
+    HMODULE handle = LoadPackagedLibrary(wideName.CString(), 0);
+    return handle;
 #else
-        return ::dlopen(name, RTLD_LOCAL | RTLD_LAZY);
+    return ::dlopen(name, RTLD_LOCAL | RTLD_LAZY);
 #endif
-    }
+}
 
-    void UnloadNativeLibrary(void* handle)
-    {
+void UnloadNativeLibrary(void* handle)
+{
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        ::FreeLibrary((HMODULE)handle);
+    ::FreeLibrary((HMODULE)handle);
 #else
-        ::dlclose(handle);
+    ::dlclose(handle);
 #endif
-    }
+}
 
-    void* GetSymbol(void* handle, const char* name)
-    {
+void* GetSymbol(void* handle, const char* name)
+{
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        return (void*)::GetProcAddress((HMODULE)handle, name);
+    return (void*)::GetProcAddress((HMODULE)handle, name);
 #else
-        return ::dlsym(handle, name);
+    return ::dlsym(handle, name);
 #endif
-    }
+}
 
-    void SetCurrentThreadName(const char* name)
-    {
+void SetCurrentThreadName(const char* name)
+{
 #if defined(_MSC_VER)
-        THREADNAME_INFO info;
-        info.dwType = 0x1000;
-        info.szName = name;
-        info.dwThreadID = static_cast<DWORD>(-1);
-        info.dwFlags = 0;
+    THREADNAME_INFO info;
+    info.dwType = 0x1000;
+    info.szName = name;
+    info.dwThreadID = static_cast<DWORD>(-1);
+    info.dwFlags = 0;
 
-        __try
-        {
-            RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), reinterpret_cast<ULONG_PTR*>(&info));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-        }
-        
+    __try
+    {
+        RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), reinterpret_cast<ULONG_PTR*>(&info));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+    }
+
 #else
 #  ifdef __APPLE__
-        if (pthread_setname_np(name) != 0)
-        {
-            ALIMER_LOGERROR("Failed to set thread name");
-        }
+    if (pthread_setname_np(name) != 0)
+    {
+        ALIMER_LOGERROR("Failed to set thread name");
+    }
 #  elif defined(__linux__) || defined(__ANDROID__)
-        if (pthread_setname_np(pthread_self(), name) != 0)
-        {
-            ALIMER_LOGERROR("Failed to set thread name");
-        }
+    if (pthread_setname_np(pthread_self(), name) != 0)
+    {
+        ALIMER_LOGERROR("Failed to set thread name");
+    }
 #  endif
 #endif
-    }
+}
 
-    void Sleep(uint32_t milliseconds)
-    {
+void Sleep(uint32_t milliseconds)
+{
 #if defined(_MSC_VER)
-        ::Sleep(milliseconds);
+    ::Sleep(static_cast<DWORD>(milliseconds));
 #else
-        timespec time{static_cast<time_t>(milliseconds / 1000), static_cast<long>((milliseconds % 1000) * 1000000)};
-        nanosleep(&time, nullptr);
+    timespec time{ static_cast<time_t>(milliseconds / 1000), static_cast<long>((milliseconds % 1000) * 1000000) };
+    nanosleep(&time, nullptr);
 #endif
-    }
 }

@@ -154,6 +154,9 @@ namespace Alimer
         if (_headless)
             return;
 
+        if (agpuBeginFrame() != AGPU_OK)
+            return;
+
         auto context = _graphicsDevice->GetContext();
 
         RenderPassBeginDescriptor renderPass = {};
@@ -174,7 +177,8 @@ namespace Alimer
         context->EndRenderPass();
 
         // Present rendering frame.
-        _graphicsDevice->Present();
+        agpuEndFrame();
+        //_graphicsDevice->Present();
     }
 
     void Application::OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime)

@@ -92,18 +92,18 @@ endif (ALIMER_GL)
 if (ALIMER_VULKAN)
     define_engine_source_files(Graphics/Vulkan)
 
-    set(GLSLANG_HEADER_FILES
-	    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
-	    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.h
-	    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/Worklist.h
-    )
+    #set(GLSLANG_HEADER_FILES
+	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
+	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.h
+	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/Worklist.h
+    #)
 
-    set(GLSLANG_SOURCE_FILES
-	    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.cpp
-    )
+    #set(GLSLANG_SOURCE_FILES
+	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.cpp
+    #)
 
-    list (APPEND HEADER_FILES ${GLSLANG_HEADER_FILES})
-    list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
+    #list (APPEND HEADER_FILES ${GLSLANG_HEADER_FILES})
+    #list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
 endif ()
 
 if (ALIMER_D3D12)
@@ -141,7 +141,7 @@ endif ()
 # endif()
 
 if (ALIMER_VULKAN)
-    list (APPEND THIRD_PARTY_DEPENDENCIES volk vkmemalloc glslang SPIRV)
+    list (APPEND THIRD_PARTY_DEPENDENCIES volk vkmemalloc)
 endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
@@ -162,7 +162,7 @@ endif ()
 
 # Add OS-specific library dependencies
 if (ALIMER_WINDOWS)
-    target_link_libraries (${TARGET_NAME} winmm ws2_32 d3d11 dxgi)
+    target_link_libraries (${TARGET_NAME} winmm ws2_32)
 elseif (ALIMER_UWP)
     target_link_libraries (${TARGET_NAME} PRIVATE d3d12 d3d11 dxgi d3dcompiler)
 elseif (ALIMER_ANDROID)

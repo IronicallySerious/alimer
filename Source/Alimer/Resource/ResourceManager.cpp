@@ -125,13 +125,13 @@ namespace Alimer
             if (_shaderSources[i].IsEmpty())
                 continue;
 
-            ShaderStage stage = static_cast<ShaderStage>(i);
+            /*ShaderStage stage = static_cast<ShaderStage>(i);
             ShaderCompiler compiler;
             _descriptor.stages[i] = compiler.Compile(
                 _shaderSources[i].CString(),
                 "main",
                 ShaderLanguage::GLSL,
-                stage, _fileName.CString());
+                stage, _fileName.CString());*/
         }
 
         return Object::GetSubsystem<GraphicsDevice>()->CreateShader(&_descriptor);

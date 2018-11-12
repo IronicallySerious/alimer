@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Base/String.h"
-#include "../Core/Ptr.h"
+#include "../Base/Ptr.h"
 #include "../Core/Platform.h"
 #include "../IO/FileStream.h"
 #include <unordered_map>

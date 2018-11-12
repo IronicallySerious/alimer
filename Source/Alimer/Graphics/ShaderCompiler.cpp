@@ -25,6 +25,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
+#if TODO_SHADER_COMPILER
 #include "glslang/Public/ShaderLang.h"
 #include "glslang/StandAlone/ResourceLimits.h"
 #include "SPIRV/GlslangToSpv.h"
@@ -357,3 +358,5 @@ namespace Alimer
         return blob;
     }
 }
+
+#endif // TODO_SHADER_COMPILER

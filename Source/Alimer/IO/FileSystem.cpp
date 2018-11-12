@@ -25,6 +25,16 @@
 #include "../Base/String.h"
 #include "../Core/Log.h"
 
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+#ifndef NOMINMAX
+#   define NOMINMAX
+#endif
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#undef CreateDirectory
+#undef GetCurrentDirectory
+#endif
+
 namespace Alimer
 {
     class OSFileSystemProtocol final : public FileSystemProtocol

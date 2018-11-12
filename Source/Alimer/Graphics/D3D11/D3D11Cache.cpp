@@ -117,7 +117,8 @@ namespace Alimer
             std::string hlslSource = compiler.compile(std::move(remaps));
             auto d3dBlob = D3DShaderCompiler::Compile(
                 _device->GetFunctions()->d3dCompile,
-                hlslSource,
+                hlslSource.c_str(),
+                hlslSource.length(),
                 stage, major, minor);
             hlslBytecode.resize(d3dBlob->GetBufferSize());
             memcpy(hlslBytecode.data(), d3dBlob->GetBufferPointer(), d3dBlob->GetBufferSize());

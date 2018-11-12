@@ -29,66 +29,66 @@
 
 namespace Alimer
 {
-    namespace D3DShaderCompiler
+    ID3DBlob* D3DShaderCompiler::Compile(pD3DCompile d3dCompile, const char* source, size_t sourceLength, ShaderStage stage, uint32_t major, uint32_t minor)
     {
-        ID3DBlob* Compile(pD3DCompile d3dCompile, const std::string& hlslSource, ShaderStage stage, uint32_t major, uint32_t minor)
-        {
-            UINT compileFlags = 0;
+        UINT compileFlags = 0;
 #if defined(_DEBUG)
-            // Enable better shader debugging with the graphics debugging tools.
-            compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+        // Enable better shader debugging with the graphics debugging tools.
+        compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
-            // Optimize.
-            compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+        // Optimize.
+        compileFlags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
-            // SPRIV-cross does matrix multiplication expecting row major matrices
-            compileFlags |= D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
+        // SPRIV-cross does matrix multiplication expecting row major matrices
+        compileFlags |= D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
 
-            String compileTarget;
-            switch (stage)
-            {
-            case ShaderStage::Vertex:
-                compileTarget = String::Format("vs_%u_%u", major, minor);
-                break;
-            case ShaderStage::TessControl:
-                compileTarget = String::Format("hs_%u_%u", major, minor);
-                break;
-            case ShaderStage::TessEvaluation:
-                compileTarget = String::Format("ds_%u_%u", major, minor);
-                break;
-            case ShaderStage::Geometry:
-                compileTarget = String::Format("gs_%u_%u", major, minor);
-                break;
-            case ShaderStage::Fragment:
-                compileTarget = String::Format("ps_%u_%u", major, minor);
-                break;
-            case ShaderStage::Compute:
-                compileTarget = String::Format("cs_%u_%u", major, minor);
-                break;
-            default:
-                break;
-            }
-
-            Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob;
-            Microsoft::WRL::ComPtr<ID3DBlob> errors;
-            if (FAILED(d3dCompile(
-                hlslSource.c_str(),
-                hlslSource.length(),
-                nullptr,
-                nullptr,
-                nullptr,
-                "main",
-                compileTarget.CString(),
-                compileFlags, 0,
-                shaderBlob.ReleaseAndGetAddressOf(),
-                errors.ReleaseAndGetAddressOf())))
-            {
-                ALIMER_LOGERRORF("D3DCompile failed with error: %s", reinterpret_cast<char*>(errors->GetBufferPointer()));
-                return {};
-            }
-
-            return shaderBlob.Detach();
+        String compileTarget;
+        switch (stage)
+        {
+        case ShaderStage::Vertex:
+            compileTarget = String::Format("vs_%u_%u", major, minor);
+            break;
+        case ShaderStage::TessControl:
+            compileTarget = String::Format("hs_%u_%u", major, minor);
+            break;
+        case ShaderStage::TessEvaluation:
+            compileTarget = String::Format("ds_%u_%u", major, minor);
+            break;
+        case ShaderStage::Geometry:
+            compileTarget = String::Format("gs_%u_%u", major, minor);
+            break;
+        case ShaderStage::Fragment:
+            compileTarget = String::Format("ps_%u_%u", major, minor);
+            break;
+        case ShaderStage::Compute:
+            compileTarget = String::Format("cs_%u_%u", major, minor);
+            break;
+        default:
+            break;
         }
+
+        ID3DBlob* shaderBlob;
+        ID3DBlob* errorsBlob;
+        if (FAILED(d3dCompile(
+            source,
+            sourceLength,
+            nullptr,
+            nullptr,
+            nullptr,
+            "main",
+            compileTarget.CString(),
+            compileFlags, 0,
+            &shaderBlob,
+            &errorsBlob)))
+        {
+            String errorMessage = String((const char*)errorsBlob->GetBufferPointer(), (uint32_t)errorsBlob->GetBufferSize() - 1);
+            ALIMER_LOGERRORF("D3DCompile failed with error: %s", errorMessage.CString());
+            return {};
+        }
+
+        SafeRelease(errorsBlob);
+
+        return shaderBlob;
     }
 }
 #endif /* ALIMER_COMPILE_D3D11 || ALIMER_COMPILE_D3D12 */

@@ -29,10 +29,9 @@
 
 namespace Alimer
 {
-    VulkanSwapchain::VulkanSwapchain(VulkanGraphicsDevice* device, VkSurfaceKHR surface, uint32_t width, uint32_t height)
+    VulkanSwapchain::VulkanSwapchain(VulkanGraphicsDevice* device, VkSurfaceKHR surface, const SwapchainDescriptor* descriptor)
         : _device(device)
         , _surface(surface)
-        , _size(width, height)
         , _physicalDevice(device->GetPhysicalDevice())
         , _logicalDevice(device->GetDevice())
         , _imageCount(0)

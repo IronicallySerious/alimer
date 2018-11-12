@@ -24,16 +24,6 @@
 #include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
 #include "../Core/Log.h"
-#include <inttypes.h>
-
-#if defined(_WIN32)
-// Prefer the high-performance GPU on switchable GPU systems
-extern "C"
-{
-    __declspec(dllexport) DWORD NvOptimusEnablement = 1;
-    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-}
-#endif /* defined(_WIN32) */
 
 #if ALIMER_COMPILE_D3D11
 #   include "../Graphics/D3D11/D3D11GraphicsDevice.h"
@@ -58,6 +48,7 @@ namespace Alimer
 
     GraphicsDevice::~GraphicsDevice()
     {
+        agpuShutdown();
         RemoveSubsystem(this);
     }
 
@@ -86,37 +77,7 @@ namespace Alimer
 
     bool GraphicsDevice::IsBackendSupported(GraphicsBackend backend)
     {
-        switch (backend)
-        {
-        case GraphicsBackend::Empty:
-            return true;
-        case GraphicsBackend::Vulkan:
-#if ALIMER_COMPILE_VULKAN
-            return VulkanGraphicsDevice::IsSupported();
-#else
-            return false;
-#endif
-        case GraphicsBackend::Direct3D11:
-#if ALIMER_COMPILE_D3D11
-            return true;
-#else
-            return false;
-#endif
-        case GraphicsBackend::Direct3D12:
-//#if ALIMER_COMPILE_D3D12
-//            return true;
-//#else
-            return false;
-//#endif
-        case GraphicsBackend::OpenGL:
-#if ALIMER_COMPILE_OPENGL
-            return true;
-#else
-            return false;
-#endif
-        default:
-            return false;
-        }
+        return agpuIsBackendSupported(static_cast<AgpuBackend>(backend));
     }
 
     std::set<GraphicsBackend> GraphicsDevice::GetAvailableBackends()
@@ -132,7 +93,7 @@ namespace Alimer
 #endif
 
 #if ALIMER_COMPILE_D3D11
-            backends.insert(GraphicsBackend::Direct3D11);
+            backends.insert(GraphicsBackend::D3D11);
 #endif
 
 #if ALIMER_COMPILE_D3D12
@@ -164,13 +125,13 @@ namespace Alimer
             {
                 prefferedBackend = GraphicsBackend::Metal;
             }
-            else if (availableBackends.find(GraphicsBackend::Direct3D12) != availableBackends.end())
+            else if (availableBackends.find(GraphicsBackend::D3D12) != availableBackends.end())
             {
-                prefferedBackend = GraphicsBackend::Direct3D12;
+                prefferedBackend = GraphicsBackend::D3D12;
             }
-            else if (availableBackends.find(GraphicsBackend::Direct3D11) != availableBackends.end())
+            else if (availableBackends.find(GraphicsBackend::D3D11) != availableBackends.end())
             {
-                prefferedBackend = GraphicsBackend::Direct3D11;
+                prefferedBackend = GraphicsBackend::D3D11;
             }
             else if (availableBackends.find(GraphicsBackend::OpenGL) != availableBackends.end())
             {
@@ -193,7 +154,7 @@ namespace Alimer
 #endif
             break;
 
-        case GraphicsBackend::Direct3D11:
+        case GraphicsBackend::D3D11:
 #if ALIMER_COMPILE_D3D11
             device = new D3D11GraphicsDevice(validation);
 #else
@@ -214,6 +175,11 @@ namespace Alimer
         {
             ALIMER_LOGCRITICAL("Cannot Initialize Graphics if already initialized.");
         }
+
+        AgpuDescriptor descriptor;
+        descriptor.validation = AGPU_TRUE;
+        descriptor.preferredBackend = AGPU_BACKEND_DEFAULT;
+        agpuInitialize(&descriptor);
 
         _settings = settings;
         _initialized = true;
@@ -355,7 +321,9 @@ namespace Alimer
             ALIMER_LOGCRITICALF("Shader does not exists: '%s'", url.CString());
         }
 
-        ShaderStage stage = ShaderStage::Count;
+        return nullptr;
+
+        /*ShaderStage stage = ShaderStage::Count;
         String ext = FileSystem::GetExtension(url);
         if (ext == ".vert")
         {
@@ -386,6 +354,8 @@ namespace Alimer
             ALIMER_LOGCRITICALF("Invalid shader extension: '%s'", ext.CString());
         }
 
+        
+
         auto stream = FileSystem::Get().Open("assets://" + url);
         auto shaderSource = stream->ReadAllText();
         ShaderCompiler compiler;
@@ -396,7 +366,7 @@ namespace Alimer
             stage,
             stream->GetName().CString());
 
-        return RequestShader(blob);
+        return RequestShader(blob);*/
     }
 
     Shader* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)

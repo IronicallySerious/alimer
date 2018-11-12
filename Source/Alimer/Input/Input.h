@@ -92,10 +92,6 @@ namespace Alimer
         /// Update input state and poll devices.
         void Update();
 
-#if ALIMER_PLATFORM_WINDOWS
-        void UpdateCursor();
-#endif
-
     private:
         void PlatformConstruct();
 
@@ -137,11 +133,6 @@ namespace Alimer
         ivec2 _previousMousePosition;
 
         bool _cursorVisible = true;
-
-#if ALIMER_PLATFORM_WINDOWS
-        HCURSOR _cursors[static_cast<unsigned>(CursorType::Count)] = {};
-        HCURSOR _cursor = nullptr;
-#endif
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Input);

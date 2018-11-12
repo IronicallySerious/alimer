@@ -148,7 +148,7 @@ namespace Alimer
                 pipelineResource.vecSize = spirType.vecsize;
                 pipelineResource.arraySize = (spirType.array.size() == 0) ? 1 : spirType.array[0];
 
-                pipelineResource.name = std::string(resource.name);
+                pipelineResource.name = String(resource.name.c_str());
                 shaderResources.push_back(pipelineResource);
             }
         };

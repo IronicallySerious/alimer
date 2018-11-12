@@ -22,10 +22,10 @@
 
 #pragma once
 
-#include "../Core/Platform.h"
+#include "../Base/String.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
-#include <string>
+#include "../Graphics/agpu.h"
 
 namespace Alimer
 {
@@ -42,19 +42,19 @@ namespace Alimer
     enum class GraphicsBackend : uint32_t
     {
         /// Best device supported for running platform.
-        Default,
+        Default = AGPU_BACKEND_DEFAULT,
         /// Empty/Headless device type.
-        Empty,
+        Empty = AGPU_BACKEND_EMPTY,
         /// Vulkan backend.
-        Vulkan,
-        /// DirectX 11.1+ backend.
-        Direct3D11,
+        Vulkan = AGPU_BACKEND_VULKAN,
+        /// DirectX 11 backend.
+        D3D11 = AGPU_BACKEND_D3D11,
         /// DirectX 12 backend.
-        Direct3D12,
+        D3D12 = AGPU_BACKEND_D3D12,
         /// Metal backend.
-        Metal,
+        Metal = AGPU_BACKEND_METAL,
         /// OpenGL backend.
-        OpenGL,
+        OpenGL = AGPU_BACKEND_OPENGL,
     };
 
     /// Enum describing the number of samples.
@@ -215,7 +215,7 @@ namespace Alimer
 
     struct PipelineResource
     {
-        std::string name;
+        String name;
         ShaderStageUsage stages;
         ResourceParamType resourceType;
         ParamDataType dataType;

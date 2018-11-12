@@ -70,7 +70,7 @@ namespace Alimer
         { PixelFormat::BC7UNormSrgb,        "BC7UNormSrgb",     16, 4,  PixelFormatType::UNormSrgb,  { false,  false, true, },          { 4, 4 } },
     };
 
-    const std::string& EnumToString(PixelFormat format)
+    const String& EnumToString(PixelFormat format)
     {
         assert(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].name;

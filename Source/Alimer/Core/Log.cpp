@@ -33,23 +33,23 @@
 #endif
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-#   ifndef NOMINMAX
-#       define NOMINMAX
-#   endif
-#   include <Windows.h>
-#   include <strsafe.h>
+#ifndef NOMINMAX
+#   define NOMINMAX
+#endif
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <strsafe.h>
 #endif
 
 namespace Alimer
 {
-    static const char *LogLevelPrefix[static_cast<unsigned>(LogLevel::Off) + 1] = {
+    static const char *LogLevelPrefix[static_cast<unsigned>(LogLevel::Count)] = {
         "TRACE",
         "DEBUG",
         "INFO",
         "WARN",
         "ERROR",
-        "CRITICAL",
-        "OFF"
+        "CRITICAL"
     };
 
 #if ALIMER_DEV && !ALIMER_PLATFORM_UWP 
@@ -144,7 +144,7 @@ namespace Alimer
 
     void Logger::Log(LogLevel level, const String& message)
     {
-        if (level == LogLevel::Off || _level > level)
+        if (_level > level)
             return;
 
         // Log to the default output

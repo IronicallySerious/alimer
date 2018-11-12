@@ -22,10 +22,9 @@
 
 #pragma once
 
+#include "../Base/String.h"
 #include <memory>
-#include <stdint.h>
 #include <unordered_map>
-#include <string>
 
 namespace Alimer
 {
@@ -99,7 +98,7 @@ namespace Alimer
             }
         }
 
-        inline void String(const std::string &str)
+        inline void String(const Alimer::String &str)
         {
             UInt32(0xff);
             for (auto &c : str)

@@ -22,10 +22,18 @@
 
 #pragma once
 
+#include "../Base/String.h"
 #include "../Core/Platform.h"
 #include "../Core/Object.h"
 #include "../Math/Math.h"
 #include <string>
+
+#if ALIMER_PLATFORM_WINDOWS
+struct HINSTANCE__;
+struct HWND__;
+#elif ALIMER_PLATFORM_UWP
+struct IUnknown;
+#endif
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
 struct SDL_Window;
@@ -58,13 +66,13 @@ namespace Alimer
 
     public:
         /// Constructor.
-        Window(const std::string& title, const uvec2& size, WindowFlags flags = WindowFlags::Default);
+        Window(const String& title, const uvec2& size, WindowFlags flags = WindowFlags::Default);
 
         /// Destructor.
         ~Window() override;
 
         /// Set window title.
-        void SetTitle(const std::string& newTitle);
+        void SetTitle(const String& newTitle);
 
         /// Show the window.
         void Show();
@@ -89,7 +97,7 @@ namespace Alimer
         bool IsFullscreen() const;
 
         /// Return window title.
-        const std::string& GetTitle() const { return _title; }
+        const String& GetTitle() const { return _title; }
 
         /// Return window client area size.
         const uvec2& GetSize() const { return _size; }
@@ -106,8 +114,8 @@ namespace Alimer
 #if ALIMER_PLATFORM_UWP
         IUnknown* GetHandle() const { return _handle; }
 #elif ALIMER_PLATFORM_WINDOWS
-        HINSTANCE GetHInstance() const { return _hInstance; }
-        HWND GetHandle() const { return _handle; }
+        HINSTANCE__* GetHInstance() const { return _hInstance; }
+        HWND__* GetHandle() const { return _handle; }
 #elif ALIMER_PLATFORM_LINUX
 #elif ALIMER_PLATFORM_MACOS
 #endif
@@ -122,11 +130,11 @@ namespace Alimer
         /// Window handle is IUnknown on UWP
         IUnknown* _handle = nullptr;
 #elif ALIMER_PLATFORM_WINDOWS
-        HINSTANCE _hInstance = nullptr;
-        HWND _handle = nullptr;
+        HINSTANCE__* _hInstance = nullptr;
+        HWND__* _handle = nullptr;
 #endif
         /// Window title.
-        std::string _title;
+        String _title;
         /// Window size.
         uvec2 _size;
         /// Flags

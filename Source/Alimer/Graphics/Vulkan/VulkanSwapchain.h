@@ -38,7 +38,7 @@ namespace Alimer
     {
     public:
         /// Construct. Set parent shader and defines but do not compile yet.
-        VulkanSwapchain(VulkanGraphicsDevice* device, VkSurfaceKHR surface, uint32_t width, uint32_t height);
+        VulkanSwapchain(VulkanGraphicsDevice* device, VkSurfaceKHR surface, const SwapchainDescriptor* descriptor);
         /// Destruct.
         ~VulkanSwapchain();
 

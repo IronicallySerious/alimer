@@ -23,6 +23,7 @@
 
 #include "../Base/String.h"
 #include "../Base/StringHash.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -437,6 +438,116 @@ namespace Alimer
         }
 
         return *this;
+    }
+
+    String& String::AppendWithFormat(const char* formatString, ...)
+    {
+        va_list args;
+        va_start(args, formatString);
+        AppendWithFormatArgs(formatString, args);
+        va_end(args);
+        return *this;
+    }
+
+    String& String::AppendWithFormatArgs(const char* formatString, va_list args)
+    {
+        int pos = 0, lastPos = 0;
+        auto length = (int)strlen(formatString);
+
+        while (true)
+        {
+            // Scan the format string and find %a argument where a is one of d, f, s ...
+            while (pos < length && formatString[pos] != '%') pos++;
+            Append(formatString + lastPos, (unsigned)(pos - lastPos));
+            if (pos >= length)
+                return *this;
+
+            char format = formatString[pos + 1];
+            pos += 2;
+            lastPos = pos;
+
+            switch (format)
+            {
+                // Integer
+            case 'd':
+            case 'i':
+            {
+                int arg = va_arg(args, int);
+                Append(String(arg));
+                break;
+            }
+
+            // Unsigned
+            case 'u':
+            {
+                unsigned arg = va_arg(args, unsigned);
+                Append(String(arg));
+                break;
+            }
+
+            // Unsigned long
+            case 'l':
+            {
+                unsigned long arg = va_arg(args, unsigned long);
+                Append(String(arg));
+                break;
+            }
+
+            // Real
+            case 'f':
+            {
+                double arg = va_arg(args, double);
+                Append(String(arg));
+                break;
+            }
+
+            // Character
+            case 'c':
+            {
+                int arg = va_arg(args, int);
+                Append((char)arg);
+                break;
+            }
+
+            // C string
+            case 's':
+            {
+                char* arg = va_arg(args, char*);
+                Append(arg);
+                break;
+            }
+
+            // Hex
+            case 'x':
+            {
+                char buf[CONVERSION_BUFFER_LENGTH];
+                int arg = va_arg(args, int);
+                int arglen = ::sprintf(buf, "%x", arg);
+                Append(buf, (unsigned)arglen);
+                break;
+            }
+
+            // Pointer
+            case 'p':
+            {
+                char buf[CONVERSION_BUFFER_LENGTH];
+                int arg = va_arg(args, int);
+                int arglen = ::sprintf(buf, "%p", reinterpret_cast<void*>((uintptr_t)arg));
+                Append(buf, (unsigned)arglen);
+                break;
+            }
+
+            case '%':
+            {
+                Append("%", 1);
+                break;
+            }
+
+            default:
+                ALIMER_LOGWARNF("Unsupported format specifier: '%c'", format);
+                break;
+            }
+        }
     }
 
     void String::Insert(uint32_t pos, const String& str)
@@ -1217,28 +1328,5 @@ namespace Alimer
             _buffer = newBuffer;
             _length = newLength;
         }
-    }
-
-    std::string str::Format(const char* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        char buf[256];
-        uint32_t n = std::vsnprintf(buf, sizeof(buf), format, args);
-        va_end(args);
-
-        // Static buffer large enough?
-        if (n < sizeof(buf))
-        {
-            return std::string(buf, n);
-        }
-
-        // Static buffer too small
-        std::string s;
-        s.resize(n + 1);
-        va_start(args, format);
-        std::vsnprintf((char *)s.c_str(), s.length(), format, args);
-        va_end(args);
-        return s;
     }
 }

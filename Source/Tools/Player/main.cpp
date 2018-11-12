@@ -362,7 +362,7 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
-        _settings.prefferedGraphicsBackend = GraphicsBackend::Direct3D11;
+        _settings.prefferedGraphicsBackend = GraphicsBackend::D3D11;
        // _settings.prefferedGraphicsBackend = GraphicsBackend::Vulkan;
     }
 

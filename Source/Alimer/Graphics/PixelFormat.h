@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "../Base/String.h"
 #include <cassert>
 #include <string>
 
@@ -103,7 +103,7 @@ namespace Alimer
     struct PixelFormatDesc
     {
         PixelFormat format;
-        const std::string name;
+        const String name;
         uint32_t bytesPerBlock;
         uint32_t channelCount;
         PixelFormatType Type;
@@ -122,7 +122,7 @@ namespace Alimer
 
     extern ALIMER_API const PixelFormatDesc FormatDesc[];
 
-    ALIMER_API const std::string& EnumToString(PixelFormat format);
+    ALIMER_API const String& EnumToString(PixelFormat format);
 
     /**
     * Check if the format has a depth component

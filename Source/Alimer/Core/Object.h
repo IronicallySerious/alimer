@@ -23,7 +23,7 @@
 #pragma once
 
 
-#include "../Core/Ptr.h"
+#include "../Base/Ptr.h"
 #include "../Base/StringHash.h"
 #include "../Core/Event.h"
 
@@ -51,7 +51,7 @@ namespace Alimer
         /// Return type.
         StringHash GetType() const { return _type; }
         /// Return type name.
-        const std::string& GetTypeName() const { return _typeName; }
+        const String& GetTypeName() const { return _typeName; }
         /// Return base type info.
         const TypeInfo* GetBaseTypeInfo() const { return _baseTypeInfo; }
 
@@ -59,7 +59,7 @@ namespace Alimer
         /// Type.
         StringHash _type;
         /// Type name.
-        std::string _typeName;
+        String _typeName;
         /// Base class type info.
         const TypeInfo* _baseTypeInfo;
 
@@ -76,7 +76,7 @@ namespace Alimer
         /// Return hash of the type name.
         virtual StringHash GetType() const = 0;
         /// Return type name.
-        virtual const std::string& GetTypeName() const = 0;
+        virtual const String& GetTypeName() const = 0;
         /// Return type info.
         virtual const TypeInfo* GetTypeInfo() const = 0;
 
@@ -129,8 +129,8 @@ namespace Alimer
 		using ClassName = typeName; \
 		using Parent = baseTypeName; \
 		virtual Alimer::StringHash GetType() const override { return GetTypeInfoStatic()->GetType(); } \
-		virtual const std::string& GetTypeName() const override { return GetTypeInfoStatic()->GetTypeName(); } \
+		virtual const Alimer::String& GetTypeName() const override { return GetTypeInfoStatic()->GetTypeName(); } \
 		virtual const Alimer::TypeInfo* GetTypeInfo() const override { return GetTypeInfoStatic(); } \
 		static Alimer::StringHash GetTypeStatic() { return GetTypeInfoStatic()->GetType(); } \
-		static const std::string& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
+		static const Alimer::String& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
 		static const Alimer::TypeInfo* GetTypeInfoStatic() { static const Alimer::TypeInfo typeInfoStatic(#typeName, Parent::GetTypeInfoStatic()); return &typeInfoStatic; }

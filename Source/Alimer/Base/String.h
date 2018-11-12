@@ -28,7 +28,6 @@
 #include <cstdarg>
 #include <cstring>
 #include <cctype>
-#include <string>
 #include <vector>
 #include <sstream>
 #include <algorithm>
@@ -150,24 +149,6 @@ namespace Alimer
         /// Construct from a character and fill length.
         explicit String(char value, uint32_t length);
 
-        /// Construct from std::string.
-        String(const std::string& str)
-            : _length(0)
-            , _capacity(0)
-            , _buffer(&END_ZERO)
-        {
-            *this = str.c_str();
-        }
-
-        /// Construct from std::wstring.
-        String(const std::wstring& str)
-            : _length(0)
-            , _capacity(0)
-            , _buffer(&END_ZERO)
-        {
-            SetUTF8FromWChar(str.c_str());
-        }
-
         /// Construct from a convertible value.
         template <class T> explicit String(const T& value)
             : _length(0)
@@ -210,16 +191,6 @@ namespace Alimer
             uint32_t rhsLength = CStringLength(rhs);
             Resize(rhsLength);
             CopyChars(_buffer, rhs, rhsLength);
-
-            return *this;
-        }
-
-        /// Assign a C string.
-        String& operator =(const std::string& rhs)
-        {
-            uint32_t rhsLength = static_cast<uint32_t>(rhs.length());
-            Resize(rhsLength);
-            CopyChars(_buffer, rhs.data(), rhsLength);
 
             return *this;
         }
@@ -275,16 +246,6 @@ namespace Alimer
         String& operator +=(float rhs);
         /// Add-assign (concatenate as string) a bool.
         String& operator +=(bool rhs);
-
-        /// Add-assign a string.
-        String& operator +=(const std::string& rhs)
-        {
-            uint32_t oldLength = _length;
-            Resize(_length + static_cast<uint32_t>(rhs.length()));
-            CopyChars(_buffer + oldLength, rhs.data(), rhs.length());
-
-            return *this;
-        }
 
         /// Add-assign (concatenate as string) an arbitrary type.
         template <class T> String& operator +=(const T& rhs) { return *this += rhs.ToString(); }
@@ -405,6 +366,10 @@ namespace Alimer
         String& Append(char c);
         /// Append characters.
         String& Append(const char* str, uint32_t length);
+        /// Append to string using formatting.
+        String& AppendWithFormat(const char* formatString, ...);
+        /// Append to string using variable arguments.
+        String& AppendWithFormatArgs(const char* formatString, va_list args);
 
         /// Insert a string.
         void Insert(uint32_t pos, const String& str);
@@ -529,6 +494,13 @@ namespace Alimer
 
             return hash;
         }
+
+        ///
+        Iterator begin() { return Iterator(_buffer); }
+        ConstIterator begin() const { return ConstIterator(_buffer); }
+
+        Iterator end() { return Iterator(_buffer + _length); }
+        ConstIterator end() const { return ConstIterator(_buffer + _length); }
 
         /// Return length of a C string.
         static uint32_t CStringLength(const char* str) { return str ? (uint32_t)strlen(str) : 0; }
@@ -675,36 +647,6 @@ namespace Alimer
         /// String buffer, null if not allocated.
         wchar_t* _buffer;
     };
-
-    namespace str
-    {
-        namespace inner
-        {
-            template<typename T>
-            void JoinHelper(std::ostringstream &stream, T &&t)
-            {
-                stream << std::forward<T>(t);
-            }
-
-            template<typename T, typename... Ts>
-            void JoinHelper(std::ostringstream &stream, T &&t, Ts &&... ts)
-            {
-                stream << std::forward<T>(t);
-                JoinHelper(stream, std::forward<Ts>(ts)...);
-            }
-        }
-
-        template<typename... Ts>
-        std::string Join(Ts &&... ts)
-        {
-            std::ostringstream stream;
-            inner::JoinHelper(stream, std::forward<Ts>(ts)...);
-            return stream.str();
-        }
-
-        /// Return a formatted string.
-        std::string Format(const char* format, ...);
-    }
 }
 
 namespace std

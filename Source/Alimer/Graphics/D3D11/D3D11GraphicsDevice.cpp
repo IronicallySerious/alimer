@@ -37,6 +37,13 @@
 #include "../../Core/Log.h"
 #include <STB/stb_image_write.h>
 
+#if defined(_DEBUG) || defined(PROFILE)
+#   if !defined(_XBOX_ONE) || !defined(_TITLE) || !defined(_DURANGO)
+#       pragma comment(lib,"d3d11.lib")
+#       pragma comment(lib,"dxgi.lib")
+#   endif
+#endif
+
 using namespace Microsoft::WRL;
 
 namespace Alimer
@@ -63,7 +70,7 @@ namespace Alimer
 #endif
 
     D3D11GraphicsDevice::D3D11GraphicsDevice(bool validation)
-        : GraphicsDevice(GraphicsBackend::Direct3D11, validation)
+        : GraphicsDevice(GraphicsBackend::D3D11, validation)
         , _functions(new D3DPlatformFunctions())
         , _cache(this)
     {

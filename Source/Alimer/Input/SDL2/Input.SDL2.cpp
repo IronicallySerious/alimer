@@ -29,25 +29,6 @@ namespace Alimer
 {
     void Input::PlatformConstruct()
     {
-        for (uint32_t i = 0; i < static_cast<unsigned>(CursorType::Count); ++i)
-        {
-            switch (static_cast<CursorType>(i))
-            {
-            case CursorType::Arrow:
-                _cursors[i] = LoadCursor(nullptr, IDC_ARROW);
-                break;
-
-            case CursorType::Cross:
-                _cursors[i] = LoadCursor(nullptr, IDC_CROSS);
-                break;
-
-            case CursorType::Hand:
-                _cursors[i] = LoadCursor(nullptr, IDC_HAND);
-                break;
-            }
-        }
-
-        _cursor = _cursors[static_cast<unsigned>(CursorType::Arrow)];
     }
 
     bool Input::IsCursorVisible() const

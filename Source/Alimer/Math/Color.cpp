@@ -39,6 +39,6 @@ namespace Alimer
     {
         char tempBuffer[128];
         sprintf(tempBuffer, "%g %g %g %g", r, g, b, a);
-        return std::string(tempBuffer);
+        return String(tempBuffer);
     }
 }

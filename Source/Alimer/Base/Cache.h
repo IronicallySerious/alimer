@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Base/HashMap.h"
-#include "../Core/Ptr.h"
+#include "../Base/Ptr.h"
 #include <memory>
 #include <utility>
 

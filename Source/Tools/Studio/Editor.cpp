@@ -26,7 +26,8 @@ namespace Alimer
 {
     Editor::Editor()
     {
-        
+        _settings.prefferedGraphicsBackend = GraphicsBackend::D3D11;
+        // _settings.prefferedGraphicsBackend = GraphicsBackend::Vulkan;
     }
 
     Editor::~Editor()
