@@ -41,10 +41,15 @@ extern "C"
     typedef uint32_t AgpuBool32;
 
     AGPU_DEFINE_HANDLE(AgpuFence);
+    AGPU_DEFINE_HANDLE(AgpuSwapchain);
     AGPU_DEFINE_HANDLE(AgpuBuffer);
 
 #define AGPU_TRUE                           1
 #define AGPU_FALSE                          0
+
+    enum {
+        AGPU_MAX_BACK_BUFFER_COUNT = 3
+    };
 
     typedef enum AgpuResult {
         AGPU_OK = 0,
@@ -91,6 +96,9 @@ extern "C"
     AGPU_API void agpuShutdown();
     AGPU_API AgpuResult agpuBeginFrame();
     AGPU_API uint64_t agpuEndFrame();
+
+    AGPU_API AgpuFence agpuCreateFence();
+    AGPU_API void agpuDestroyFence(AgpuFence fence);
 
 #ifdef __cplusplus
 }

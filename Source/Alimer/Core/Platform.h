@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "../Base/String.h"
 
 /**
 * Identifiers the running platform type.
@@ -120,3 +120,11 @@ ALIMER_API void SetCurrentThreadName(const char* name);
 
 /// Suspends execution for given milliseconds.
 ALIMER_API void Sleep(uint32_t milliseconds);
+
+namespace Alimer
+{
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+    ALIMER_API String GetWin32ErrorString(unsigned long errorCode);
+    ALIMER_API String GetDXErrorString(long hr);
+#endif
+}

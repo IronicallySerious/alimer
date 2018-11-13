@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "../Base/Debug.h"
 
 #ifdef _MSC_VER
 #   pragma warning(push)
@@ -179,11 +179,11 @@ namespace Alimer
 
     inline uint32_t ScanForward(uint32_t bits)
     {
-        ALIMER_ASSERT(bits != 0);
+        ALIMER_VERIFY(bits != 0);
 #if defined(_MSC_VER)
         unsigned long firstBitIndex = 0ul;
         uint8_t ret = _BitScanForward(&firstBitIndex, bits);
-        ALIMER_ASSERT(ret != 0);
+        ALIMER_VERIFY(ret != 0);
         return firstBitIndex;
 #else
         return static_cast<uint32_t>(__builtin_ctz(bits));

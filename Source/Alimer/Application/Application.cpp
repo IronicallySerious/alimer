@@ -53,6 +53,7 @@ namespace Alimer
 
         SafeDelete(_mainWindow);
         SafeDelete(_graphicsDevice);
+        agpuShutdown();
         Audio::Shutdown();
         PluginManager::Shutdown();
         SafeDelete(_log);
@@ -87,12 +88,16 @@ namespace Alimer
             _settings.renderingSettings.swapchain = swapchainDesc;
 
             // Create and init graphics.
-            _graphicsDevice = GraphicsDevice::Create(_settings.prefferedGraphicsBackend, _settings.validation);
+            AgpuDescriptor descriptor;
+            descriptor.validation = AGPU_TRUE;
+            descriptor.preferredBackend = AGPU_BACKEND_DEFAULT;
+            agpuInitialize(&descriptor);
+            /*_graphicsDevice = GraphicsDevice::Create(_settings.prefferedGraphicsBackend, _settings.validation);
             if (!_graphicsDevice->Initialize(_settings.renderingSettings))
             {
                 ALIMER_LOGERROR("Failed to initialize Graphics.");
                 return false;
-            }
+            }*/
         }
 
         // Load plugins
@@ -157,7 +162,7 @@ namespace Alimer
         if (agpuBeginFrame() != AGPU_OK)
             return;
 
-        auto context = _graphicsDevice->GetContext();
+        /*auto context = _graphicsDevice->GetContext();
 
         RenderPassBeginDescriptor renderPass = {};
         renderPass.colors[0].clearColor = Color4(0.0f, 0.2f, 0.4f, 1.0f);
@@ -174,7 +179,7 @@ namespace Alimer
         }
 
         // End swap chain render pass.
-        context->EndRenderPass();
+        context->EndRenderPass();*/
 
         // Present rendering frame.
         agpuEndFrame();

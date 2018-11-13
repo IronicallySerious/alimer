@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../AlimerConfig.h"
+#include "../Base/Debug.h"
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
 #include <vector>
@@ -36,7 +36,7 @@ extern "C"
 }
 #endif /* defined(_WIN32) */
 
-static AGpuRenderer s_gpu_renderer = { AGPU_FALSE };
+static AGpuRendererI* s_renderer = nullptr;
 
 std::vector<AgpuBackend> agpuGetSupportedBackends()
 {
@@ -47,12 +47,12 @@ std::vector<AgpuBackend> agpuGetSupportedBackends()
         backends.push_back(AGPU_BACKEND_EMPTY);
 
 #if AGPU_D3D11
-        if (agpuIsD3D11Supported(&s_gpu_renderer))
+        if (agpuIsD3D11Supported())
             backends.push_back(AGPU_BACKEND_D3D11);
 #endif
 
 #if AGPU_D3D12
-        if (agpuIsD3D12Supported(&s_gpu_renderer))
+        if (agpuIsD3D12Supported())
             backends.push_back(AGPU_BACKEND_D3D12);
 #endif
     }
@@ -90,27 +90,27 @@ AgpuBool32 agpuIsBackendSupported(AgpuBackend backend)
     case AGPU_BACKEND_EMPTY:
         return AGPU_TRUE;
     case AGPU_BACKEND_VULKAN:
-#if ALIMER_COMPILE_VULKAN
+#if AGPU_VULKAN
         return AGPU_TRUE; // VulkanGraphicsDevice::IsSupported();
 #else
         return AGPU_FALSE;
 #endif
     case AGPU_BACKEND_D3D11:
-#if ALIMER_COMPILE_D3D11
-        return AGPU_TRUE;
+#if AGPU_D3D11
+        return agpuIsD3D11Supported();
 #else
         return AGPU_FALSE;
 #endif
 
     case AGPU_BACKEND_D3D12:
-#if ALIMER_COMPILE_D3D12
-        return agpuIsD3D12Supported(&s_gpu_renderer) == AGPU_TRUE;
+#if AGPU_D3D12
+        return agpuIsD3D12Supported();
 #else
         return AGPU_FALSE;
 #endif
 
     case AGPU_BACKEND_OPENGL:
-#if ALIMER_COMPILE_OPENGL
+#if AGPU_OPENGL
         return AGPU_TRUE;
 #else
         return AGPU_FALSE;
@@ -134,7 +134,7 @@ AgpuBackend agpuGetAvailableBackend(uint32_t index)
 
 AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
 {
-    if (s_gpu_renderer.valid)
+    if (s_renderer != nullptr)
         return AGPU_ALREADY_INITIALIZED;
 
     AgpuBackend backend = descriptor->preferredBackend;
@@ -144,6 +144,7 @@ AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
     }
 
     AgpuResult result = AGPU_ERROR;
+    AGpuRendererI* renderer = nullptr;
     switch (backend)
     {
     case AGPU_BACKEND_EMPTY:
@@ -153,7 +154,7 @@ AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
     case AGPU_BACKEND_D3D11:
         break;
     case AGPU_BACKEND_D3D12:
-        result = agpuSetupD3D12Backend(&s_gpu_renderer, descriptor);
+        result = agpuCreateD3D12Backend(descriptor, &renderer);
         break;
     case AGPU_BACKEND_METAL:
         break;
@@ -163,26 +164,40 @@ AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
         break;
     }
 
-    s_gpu_renderer.valid = result != AGPU_ERROR;
-    s_gpu_renderer.backend = backend;
+    if (result == AGPU_OK)
+    {
+        s_renderer = renderer;
+        return AGPU_OK;
+    }
+
     return result;
 }
 
 void agpuShutdown()
 {
-    if (s_gpu_renderer.valid)
+    if (s_renderer != nullptr)
     {
-        s_gpu_renderer.shutdown(&s_gpu_renderer);
-        s_gpu_renderer.valid = false;
+        s_renderer->shutdown();
+        delete s_renderer;
+        s_renderer = nullptr;
     }
 }
 
 AgpuResult agpuBeginFrame()
 {
-    return s_gpu_renderer.beginFrame(&s_gpu_renderer);
+    return s_renderer->beginFrame();
 }
 
 uint64_t agpuEndFrame()
 {
-    return s_gpu_renderer.endFrame(&s_gpu_renderer);
+    return s_renderer->endFrame();
+}
+
+AgpuFence agpuCreateFence()
+{
+    return nullptr;
+}
+
+void agpuDestroyFence(AgpuFence fence)
+{
 }

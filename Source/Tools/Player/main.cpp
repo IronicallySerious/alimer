@@ -61,7 +61,9 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            BufferDescriptor vertexBufferDesc = {};
+            ALIMER_UNUSED(device);
+
+            /*BufferDescriptor vertexBufferDesc = {};
             vertexBufferDesc.usage = BufferUsage::Vertex;
             vertexBufferDesc.resourceUsage = ResourceUsage::Immutable;
             vertexBufferDesc.size = sizeof(triangleVertices);
@@ -74,12 +76,12 @@ namespace Alimer
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);*/
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
 
             RenderPipelineDescriptor renderPipelineDesc = {};
             renderPipelineDesc.shaders[ecast(ShaderStage::Vertex)] = device->RequestShader("shaders/color.vert");
             renderPipelineDesc.shaders[ecast(ShaderStage::Fragment)] = device->RequestShader("shaders/color.frag");
-            _pipeline = device->CreateRenderPipeline(&renderPipelineDesc);
+            _pipeline = device->CreateRenderPipeline(&renderPipelineDesc);*/
         }
 
         void Render(SharedPtr<CommandContext> context)
@@ -387,7 +389,7 @@ namespace Alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        _triangleExample.Render(context);
+        //_triangleExample.Render(context);
         //_quadExample.Render(context);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);

@@ -53,6 +53,14 @@ typedef struct AgpuFence_T {
 #endif
 } AgpuFence_T;
 
+typedef struct AgpuSwapchain_T {
+#if AGPU_D3D12
+    IDXGISwapChain3*             m_swapChain;
+    ID3D12Resource*              m_renderTargets[AGPU_MAX_BACK_BUFFER_COUNT];
+    ID3D12Resource*              m_depthStencil;
+#endif
+} AgpuSwapchain_T;
+
 typedef struct AgpuBuffer_T {
 #if AGPU_D3D11
     ID3D11Buffer*       d3d11Buffer = nullptr;
@@ -64,99 +72,28 @@ typedef struct AgpuBuffer_T {
 
 } AgpuBuffer_T;
 
-struct AGpuRenderer;
-
-#if AGPU_D3D11 || AGPU_D3D12
-#include <wrl/client.h>
-#include <wrl/event.h>
-
-#if defined(_DURANGO) || defined(_XBOX_ONE)
-#   define AGPU_D3D_DYNAMIC_LIB 0
-#elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
-#   define AGPU_D3D_DYNAMIC_LIB 0
-#elif defined(_WIN64) || defined(_WIN32)
-#   define AGPU_D3D_DYNAMIC_LIB 1
-#endif
-
-typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY1)(REFIID riid, _COM_Outptr_ void **ppFactory);
-typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY2)(UINT flags, REFIID _riid, void** _factory);
-typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE)(REFIID riid, _COM_Outptr_ void** pDebug);
-typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE1)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
-
-typedef struct AGpuD3DDynamicLib
+struct AGpuRendererI
 {
-#ifdef AGPU_D3D_DYNAMIC_LIB
-    HMODULE dxgiLib;
-    HMODULE d3d11Lib;
-    HMODULE d3d12Lib;
-#endif
+    virtual ~AGpuRendererI() = 0;
 
-    PFN_CREATE_DXGI_FACTORY1            CreateDXGIFactory1;
-    PFN_CREATE_DXGI_FACTORY2            CreateDXGIFactory2;
-    PFN_GET_DXGI_DEBUG_INTERFACE        DXGIGetDebugInterface;
-    PFN_GET_DXGI_DEBUG_INTERFACE1       DXGIGetDebugInterface1;
+    virtual void shutdown() = 0;
+    virtual AgpuResult beginFrame() = 0;
+    virtual uint64_t endFrame() = 0;
+
+    virtual AgpuFence CreateFence() = 0;
+    virtual void DestroyFence(AgpuFence fence) = 0;
+};
+
+inline AGpuRendererI::~AGpuRendererI()
+{
+}
 
 #if AGPU_D3D11
-    PFN_D3D11_CREATE_DEVICE             D3D11CreateDevice;
-#endif
-
-#if AGPU_D3D12
-    PFN_D3D12_GET_DEBUG_INTERFACE       D3D12GetDebugInterface;
-    PFN_D3D12_CREATE_DEVICE             D3D12CreateDevice;
-    PFN_D3D12_SERIALIZE_ROOT_SIGNATURE  D3D12SerializeRootSignature;
-#endif
-
-} AGpuD3DDynamicLib;
-
-#endif /* AGPU_D3D11 || AGPU_D3D12 */
-
-#if AGPU_D3D11
-
-typedef struct AGpuD3D11Context
-{
-#if AGPU_D3D_DYNAMIC_LIB
-    AGpuD3DDynamicLib dynLib;
-#endif
-
-} AGpuD3D11Context;
-
-AgpuBool32 agpuIsD3D11Supported(AGpuRenderer* renderer);
+AgpuBool32 agpuIsD3D11Supported();
+AgpuResult agpuCreateD3D11Backend(const AgpuDescriptor* descriptor, AGpuRendererI** pRenderer);
 #endif /* AGPU_D3D11 */
 
 #ifdef AGPU_D3D12
-AgpuBool32 agpuIsD3D12Supported(AGpuRenderer* renderer);
-AgpuResult agpuSetupD3D12Backend(AGpuRenderer* renderer, const AgpuDescriptor* descriptor);
+AgpuBool32 agpuIsD3D12Supported();
+AgpuResult agpuCreateD3D12Backend(const AgpuDescriptor* descriptor, AGpuRendererI** pRenderer);
 #endif /* AGPU_D3D12 */
-
-typedef struct AGpuRenderer {
-    AgpuBool32              valid;
-    AgpuBackend             backend;
-
-    // backend callbacks
-    void(*shutdown)(AGpuRenderer*);
-    AgpuResult(*beginFrame)(AGpuRenderer*);
-    uint64_t(*endFrame)(AGpuRenderer*);
-
-#if AGPU_D3D_DYNAMIC_LIB
-    AGpuD3DDynamicLib dynLib;
-#endif
-
-#if AGPU_D3D12
-    static const size_t MAX_BACK_BUFFER_COUNT = 3;
-
-    struct {
-        DWORD                                               factoryFlags;
-        Microsoft::WRL::ComPtr<IDXGIFactory4>               factory;
-        Microsoft::WRL::ComPtr<IDXGIAdapter1>               adapter;
-        Microsoft::WRL::ComPtr<ID3D12Device>                device;
-        Microsoft::WRL::ComPtr<ID3D12CommandQueue>          commandQueue;
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   commandList;
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator>      commandAllocators[MAX_BACK_BUFFER_COUNT];
-        D3D_FEATURE_LEVEL                                   featureLevel;
-
-        AgpuFence_T*                                        frameFence;
-
-        UINT                                                backBufferIndex;
-    } d3d12;
-#endif
-} AGpuRenderer;

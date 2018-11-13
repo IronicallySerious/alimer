@@ -75,36 +75,20 @@
 #elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
 #	undef ALIMER_PLATFORM_UWP
 #	define ALIMER_PLATFORM_UWP 1 // Universal Windows platform
-#   define ALIMER_SUPPORTS_D3D 1
-#   define ALIMER_SUPPORTS_D3D11 1
-#   define ALIMER_SUPPORTS_D3D12 1
 #elif defined(_WIN64) || defined(_WIN32) // Windows
 #	undef ALIMER_PLATFORM_WINDOWS
 #	define ALIMER_PLATFORM_WINDOWS 1
-#   define ALIMER_SUPPORTS_D3D 1
-#   define ALIMER_SUPPORTS_D3D11 1
-#   define ALIMER_SUPPORTS_D3D12 1
-#   define ALIMER_SUPPORTS_VULKAN 1
 #elif defined(__APPLE__) // macOS, iOS, tvOS
 #   include <TargetConditionals.h>
 #   if TARGET_OS_IOS
 #       undef ALIMER_PLATFORM_IOS
 #       define ALIMER_PLATFORM_IOS 1
-#       if !TARGET_OS_SIMULATOR
-#           define ALIMER_SUPPORTS_METAL 1
-#       endif
 #   elif TARGET_OS_TV
 #       undef ALIMER_PLATFORM_TVOS
 #       define ALIMER_PLATFORM_TVOS 1
-#       if !TARGET_OS_SIMULATOR
-#           define ALIMER_SUPPORTS_METAL 1
-#       endif
 #   elif TARGET_OS_MAC
 #       undef ALIMER_PLATFORM_MACOS 
 #       define ALIMER_PLATFORM_MACOS 1
-#       if !TARGET_OS_SIMULATOR
-#           define ALIMER_SUPPORTS_METAL 1
-#       endif
 #   endif
 #elif defined(__ANDROID__)
 #	undef ALIMER_PLATFORM_ANDROID
@@ -112,12 +96,10 @@
 #   define ALIMER_SUPPORTS_OPENGL 1
 #   define ALIMER_SUPPORTS_OPENGLES 1
 #   define ALIMER_OPENGL_INTERFACE_EGL 1
-#   define ALIMER_SUPPORTS_VULKAN 1
 #elif defined(__linux__) 
 #	undef ALIMER_PLATFORM_LINUX
 #	define ALIMER_PLATFORM_LINUX 1
 #   define ALIMER_SUPPORTS_OPENGL 1
-#   define ALIMER_SUPPORTS_VULKAN 1
 #elif defined(__EMSCRIPTEN__) // Emscripten
 #   undef ALIMER_PLATFORM_WEB
 #   define ALIMER_PLATFORM_WEB 1
@@ -225,6 +207,10 @@
 #	endif
 #endif
 
+#ifndef ALIMER_UNUSED
+#   define ALIMER_UNUSED(x) do { (void)sizeof(x); } while(0)
+#endif
+
 /**
 * C++17 features
 * @see: https://infektor.net/posts/2017-01-19-using-cpp17-attributes-today.html
@@ -275,57 +261,6 @@
 #   define MAYBE_UNUSED
 #endif
 
-#if defined(__GNUC__)
-
-#if defined(__i386__) || defined(__x86_64__)
-#   define ALIMER_BREAKPOINT() __asm__ __volatile__("int $3\n\t")
-#else
-#   define ALIMER_BREAKPOINT() ((void)0)
-#endif
-
-#   define ALIMER_UNREACHABLE() __builtin_unreachable()
-
-#elif defined(_MSC_VER)
-
-extern void __cdecl __debugbreak(void);
-#define ALIMER_BREAKPOINT() __debugbreak()
-#define ALIMER_UNREACHABLE() __assume(false)
-
-#else
-
-#define ALIMER_BREAKPOINT() ((void)0)
-#define ALIMER_UNREACHABLE()((void)0)
-
-#endif
-
-#ifndef ALIMER_ASSERT
-#	ifdef _DEBUG
-#   include <assert.h>
-#	define ALIMER_ASSERT(expression) assert(expression)
-#	define ALIMER_ASSERT_MSG(expression, msg) assert(expression && msg)
-#	else
-#	define ALIMER_ASSERT(expression) ((void)0)
-#	define ALIMER_ASSERT_MSG(expression, msg) ((void)0)
-#	endif
-#endif
-
-#if defined (__GNUC__)
-#	define ALIMER_UNIX_EXPORT __attribute__((visibility("default")))
-#else
-#	define ALIMER_UNIX_EXPORT
-#endif
-
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-#	define ALIMER_DLL_EXPORT __declspec(dllexport)
-#	define ALIMER_DLL_IMPORT __declspec(dllimport)
-#elif defined (__GNUC__)
-#	define ALIMER_DLL_EXPORT __attribute__((visibility("default")))
-#	define ALIMER_DLL_IMPORT
-#else
-#	define ALIMER_DLL_EXPORT
-#	define ALIMER_DLL_IMPORT
-#endif
-
 #ifndef _MSC_VER
 // SAL annotations
 #   define _In_reads_(size)
@@ -334,13 +269,6 @@ extern void __cdecl __debugbreak(void);
 #ifdef __cplusplus
 
 #include <type_traits>
-
-// avoid unreferenced parameter warning
-// preferred solution: omit the parameter's name from the declaration
-template <class T>
-ALIMER_INLINE void ALIMER_UNUSED(T const&)
-{
-}
 
 // Utility to enable bitmask operators on enum classes.
 // To use define an enum class with valid bitmask values and an underlying type

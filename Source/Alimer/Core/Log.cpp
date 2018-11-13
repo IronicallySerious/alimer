@@ -193,14 +193,14 @@ namespace Alimer
 
     void Logger::AddListener(LogListener* listener)
     {
-        ALIMER_ASSERT(listener);
+        ALIMER_VERIFY(listener != nullptr);
 
         _listeners.push_back(listener);
     }
 
     void Logger::RemoveListener(LogListener* listener)
     {
-        ALIMER_ASSERT(listener);
+        ALIMER_VERIFY(listener != nullptr);
 
 
         for (auto it = _listeners.begin(); it != _listeners.end(); ++it)

@@ -26,6 +26,8 @@
 #include "Base/Ptr.h"
 #include "Base/String.h"
 #include "Base/StringHash.h"
+#include "Base/Debug.h"
+#include "Base/Containers.h"
 
 // Core
 #include "Core/Platform.h"

@@ -29,10 +29,6 @@
 #   include "../Graphics/D3D11/D3D11GraphicsDevice.h"
 #endif
 
-#if ALIMER_COMPILE_D3D12
-// #   include "../Graphics/D3D12/D3D12GraphicsDevice.h"
-#endif
-
 #if ALIMER_COMPILE_VULKAN
 #   include "../Graphics/Vulkan/VulkanGraphicsDevice.h"
 #endif
@@ -94,10 +90,6 @@ namespace Alimer
 
 #if ALIMER_COMPILE_D3D11
             backends.insert(GraphicsBackend::D3D11);
-#endif
-
-#if ALIMER_COMPILE_D3D12
-            //backends.insert(GraphicsBackend::Direct3D12);
 #endif
 
 #if ALIMER_COMPILE_VULKAN

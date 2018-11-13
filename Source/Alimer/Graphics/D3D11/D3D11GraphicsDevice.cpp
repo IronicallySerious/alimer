@@ -37,11 +37,9 @@
 #include "../../Core/Log.h"
 #include <STB/stb_image_write.h>
 
-#if defined(_DEBUG) || defined(PROFILE)
-#   if !defined(_XBOX_ONE) || !defined(_TITLE) || !defined(_DURANGO)
-#       pragma comment(lib,"d3d11.lib")
-#       pragma comment(lib,"dxgi.lib")
-#   endif
+#if !defined(_XBOX_ONE) || !defined(_TITLE) || !defined(_DURANGO)
+#   pragma comment(lib,"d3d11.lib")
+#   pragma comment(lib,"dxgi.lib")
 #endif
 
 using namespace Microsoft::WRL;
