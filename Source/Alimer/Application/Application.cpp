@@ -88,10 +88,14 @@ namespace Alimer
             _settings.renderingSettings.swapchain = swapchainDesc;
 
             // Create and init graphics.
-            AgpuDescriptor descriptor;
+            AgpuDescriptor descriptor = {};
             descriptor.validation = AGPU_TRUE;
             descriptor.preferredBackend = AGPU_BACKEND_DEFAULT;
+            descriptor.swapchain.width = windowSize.x;
+            descriptor.swapchain.height = windowSize.y;
+            descriptor.swapchain.handle.handle = (void*) _mainWindow->GetHandle();
             agpuInitialize(&descriptor);
+
             /*_graphicsDevice = GraphicsDevice::Create(_settings.prefferedGraphicsBackend, _settings.validation);
             if (!_graphicsDevice->Initialize(_settings.renderingSettings))
             {
@@ -159,9 +163,6 @@ namespace Alimer
         if (_headless)
             return;
 
-        if (agpuBeginFrame() != AGPU_OK)
-            return;
-
         /*auto context = _graphicsDevice->GetContext();
 
         RenderPassBeginDescriptor renderPass = {};
@@ -182,7 +183,7 @@ namespace Alimer
         context->EndRenderPass();*/
 
         // Present rendering frame.
-        agpuEndFrame();
+        agpuFrame();
         //_graphicsDevice->Present();
     }
 

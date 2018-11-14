@@ -40,7 +40,6 @@ extern "C"
     typedef uint32_t AgpuFlags;
     typedef uint32_t AgpuBool32;
 
-    AGPU_DEFINE_HANDLE(AgpuFence);
     AGPU_DEFINE_HANDLE(AgpuSwapchain);
     AGPU_DEFINE_HANDLE(AgpuBuffer);
 
@@ -82,8 +81,9 @@ extern "C"
     } AgpuSwapchainDescriptor;
 
     typedef struct AgpuDescriptor {
-        AgpuBool32                  validation;
         AgpuBackend                 preferredBackend;
+        AgpuBool32                  validation;
+        AgpuBool32                  headless;
         AgpuSwapchainDescriptor     swapchain;
     } AgpuDescriptor;
 
@@ -94,11 +94,7 @@ extern "C"
 
     AGPU_API AgpuResult agpuInitialize(const AgpuDescriptor* descriptor);
     AGPU_API void agpuShutdown();
-    AGPU_API AgpuResult agpuBeginFrame();
-    AGPU_API uint64_t agpuEndFrame();
-
-    AGPU_API AgpuFence agpuCreateFence();
-    AGPU_API void agpuDestroyFence(AgpuFence fence);
+    AGPU_API uint64_t agpuFrame();
 
 #ifdef __cplusplus
 }

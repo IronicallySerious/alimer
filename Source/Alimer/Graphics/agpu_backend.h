@@ -42,32 +42,26 @@
 #   endif
 #endif
 
-#if (defined(AGPU_D3D11) || defined(AGPU_D3D12)) && defined(_DEBUG)
-#   include <dxgidebug.h>
-#endif
-
-typedef struct AgpuFence_T {
-#if AGPU_D3D12
-    ID3D12Fence*        d3d12Fence = nullptr;
-    HANDLE              d3d12FenceEvent = INVALID_HANDLE_VALUE;
-#endif
-} AgpuFence_T;
-
 typedef struct AgpuSwapchain_T {
+    uint32_t            backBufferIndex;
+    uint32_t            backbufferCount;
+
 #if AGPU_D3D12
-    IDXGISwapChain3*             m_swapChain;
-    ID3D12Resource*              m_renderTargets[AGPU_MAX_BACK_BUFFER_COUNT];
-    ID3D12Resource*              m_depthStencil;
+    IDXGISwapChain3*            d3d12SwapChain;
+    ID3D12Resource*             d3d12RenderTargets[AGPU_MAX_BACK_BUFFER_COUNT];
+    ID3D12Resource*             d3d12DepthStencil;
+    D3D12_CPU_DESCRIPTOR_HANDLE d3d12RTV[AGPU_MAX_BACK_BUFFER_COUNT] = { };
+    D3D12_CPU_DESCRIPTOR_HANDLE d3d12DSV = { };
 #endif
 } AgpuSwapchain_T;
 
 typedef struct AgpuBuffer_T {
 #if AGPU_D3D11
-    ID3D11Buffer*       d3d11Buffer = nullptr;
+    ID3D11Buffer*       d3d11Buffer;
 #endif
 
 #if AGPU_D3D12
-    ID3D12Resource*     d3d12Buffer = nullptr;
+    ID3D12Resource*     d3d12Buffer;
 #endif
 
 } AgpuBuffer_T;
@@ -76,12 +70,8 @@ struct AGpuRendererI
 {
     virtual ~AGpuRendererI() = 0;
 
-    virtual void shutdown() = 0;
-    virtual AgpuResult beginFrame() = 0;
-    virtual uint64_t endFrame() = 0;
-
-    virtual AgpuFence CreateFence() = 0;
-    virtual void DestroyFence(AgpuFence fence) = 0;
+    virtual void Shutdown() = 0;
+    virtual uint64_t Frame() = 0;
 };
 
 inline AGpuRendererI::~AGpuRendererI()

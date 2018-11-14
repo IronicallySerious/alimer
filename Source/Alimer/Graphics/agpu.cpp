@@ -23,6 +23,7 @@
 #include "../Base/Debug.h"
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
+#include "../Core/Log.h"
 #include <vector>
 
 #if defined(_WIN32)
@@ -152,9 +153,20 @@ AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
     case AGPU_BACKEND_VULKAN:
         break;
     case AGPU_BACKEND_D3D11:
+#if AGPU_D3D11
+        result = agpuCreateD3D11Backend(descriptor, &renderer);
+#else
+        ALIMER_LOGERROR("D3D11 backend is not supported");
+        result = AGPU_ERROR;
+#endif
         break;
     case AGPU_BACKEND_D3D12:
+#if AGPU_D3D12
         result = agpuCreateD3D12Backend(descriptor, &renderer);
+#else
+        ALIMER_LOGERROR("D3D12 backend is not supported");
+        result = AGPU_ERROR;
+#endif
         break;
     case AGPU_BACKEND_METAL:
         break;
@@ -177,27 +189,13 @@ void agpuShutdown()
 {
     if (s_renderer != nullptr)
     {
-        s_renderer->shutdown();
+        s_renderer->Shutdown();
         delete s_renderer;
         s_renderer = nullptr;
     }
 }
 
-AgpuResult agpuBeginFrame()
+uint64_t agpuFrame()
 {
-    return s_renderer->beginFrame();
-}
-
-uint64_t agpuEndFrame()
-{
-    return s_renderer->endFrame();
-}
-
-AgpuFence agpuCreateFence()
-{
-    return nullptr;
-}
-
-void agpuDestroyFence(AgpuFence fence)
-{
+    return s_renderer->Frame();
 }

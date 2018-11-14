@@ -30,6 +30,10 @@
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
 
+#if (defined(AGPU_D3D11) || defined(AGPU_D3D12)) && defined(_DEBUG)
+#   include <dxgidebug.h>
+#endif
+
 #if defined(_DEBUG) || defined(PROFILE)
 #   if !defined(_XBOX_ONE) || !defined(_TITLE) || !defined(_DURANGO)
 #       pragma comment(lib,"dxguid.lib")
@@ -80,6 +84,8 @@ namespace d3d12
 
 #endif
 
+#define ArraySize_(x) ((sizeof(x) / sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
+
 #ifdef AGPU_D3D12_DYNAMIC_LIB
     HMODULE s_dxgiLib = nullptr;
     HMODULE s_d3d12Lib = nullptr;
@@ -95,10 +101,193 @@ namespace d3d12
     static const uint64_t RenderLatency = 2;
     static const uint64_t NumCmdAllocators = RenderLatency;
 
-    DWORD           factoryFlags = 0;
-    IDXGIFactory4*  factory = nullptr;
+    DWORD           _dxgiFactoryFlags = 0;
+    IDXGIFactory4*  _dxgiFactory = nullptr;
 
-    void agpuD3D12GetDXGIAdapter(IDXGIAdapter1** ppAdapter);
+    void GetDXGIAdapter(IDXGIAdapter1** ppAdapter)
+    {
+        *ppAdapter = nullptr;
+
+        HRESULT hr = S_OK;
+        bool releaseFactory = false;
+        if (_dxgiFactory == nullptr)
+        {
+            hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&_dxgiFactory));
+            if (FAILED(hr))
+            {
+                ALIMER_LOGERROR("Unable to create a DXGI factory. Make sure that your OS and driver support DirectX 12");
+                return;
+            }
+            releaseFactory = true;
+        }
+
+        ComPtr<IDXGIAdapter1> adapter;
+#if defined(__dxgi1_6_h__) && defined(NTDDI_WIN10_RS4)
+        ComPtr<IDXGIFactory6> factory6;
+        hr = _dxgiFactory->QueryInterface(factory6.ReleaseAndGetAddressOf());
+        if (SUCCEEDED(hr))
+        {
+            for (UINT adapterIndex = 0;
+                DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
+                    adapterIndex,
+                    DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                    IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
+                adapterIndex++)
+            {
+                DXGI_ADAPTER_DESC1 desc;
+                adapter->GetDesc1(&desc);
+
+                if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+                {
+                    // Don't select the Basic Render Driver adapter.
+                    continue;
+                }
+
+                // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
+                if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+                {
+#ifdef _DEBUG
+                    wchar_t buff[256] = {};
+                    swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description);
+                    OutputDebugStringW(buff);
+#endif
+                    break;
+                }
+            }
+        }
+        else
+#endif
+            for (UINT adapterIndex = 0;
+                DXGI_ERROR_NOT_FOUND != _dxgiFactory->EnumAdapters1(
+                    adapterIndex,
+                    adapter.ReleaseAndGetAddressOf());
+                ++adapterIndex)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            if (FAILED(adapter->GetDesc1(&desc)))
+            {
+                ALIMER_LOGERROR("DXGI - Failed to get desc");
+            }
+
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+            {
+                // Don't select the Basic Render Driver adapter.
+                continue;
+            }
+
+            // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
+            if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+            {
+#ifdef _DEBUG
+                wchar_t buff[256] = {};
+                swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description);
+                OutputDebugStringW(buff);
+#endif
+                break;
+            }
+        }
+
+#if !defined(NDEBUG)
+        if (!adapter)
+        {
+            // Try WARP12 instead
+            if (FAILED(_dxgiFactory->EnumWarpAdapter(IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()))))
+            {
+                throw std::exception("WARP12 not available. Enable the 'Graphics Tools' optional feature");
+            }
+
+            OutputDebugStringA("Direct3D Adapter - WARP12\n");
+        }
+#endif
+
+        if (!adapter)
+        {
+            ALIMER_ASSERT_MSG(false, "No Direct3D 12 device found");
+        }
+
+        *ppAdapter = adapter.Detach();
+
+        if (releaseFactory)
+        {
+            Release(_dxgiFactory);
+        }
+    }
+
+    // Resource Barriers
+    void TransitionResource(ID3D12GraphicsCommandList* cmdList,
+        ID3D12Resource* resource,
+        D3D12_RESOURCE_STATES before,
+        D3D12_RESOURCE_STATES after,
+        uint32_t subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+    {
+        D3D12_RESOURCE_BARRIER barrier = { };
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = resource;
+        barrier.Transition.StateBefore = before;
+        barrier.Transition.StateAfter = after;
+        barrier.Transition.Subresource = subResource;
+        cmdList->ResourceBarrier(1, &barrier);
+    }
+
+    struct AgpuFence
+    {
+        ID3D12Fence*        Fence;
+        HANDLE              Event;
+    };
+
+    struct PersistentDescriptorAlloc
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE Handles[RenderLatency] = { };
+        uint32_t Index = static_cast<uint32_t>(-1);
+    };
+
+    struct TempDescriptorAlloc
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE StartCPUHandle = { };
+        D3D12_GPU_DESCRIPTOR_HANDLE StartGPUHandle = { };
+        uint32_t StartIndex = static_cast<uint32_t>(-1);
+    };
+
+    struct DescriptorHeap
+    {
+        ID3D12DescriptorHeap* Heaps[RenderLatency] = { };
+        uint32_t NumPersistent = 0;
+        uint32_t PersistentAllocated = 0;
+        std::vector<uint32_t> DeadList;
+        uint32_t NumTemporary = 0;
+        volatile int64_t TemporaryAllocated = 0;
+        uint32_t HeapIndex = 0;
+        uint32_t NumHeaps = 0;
+        uint32_t DescriptorSize = 0;
+        AgpuBool32 ShaderVisible = false;
+        D3D12_DESCRIPTOR_HEAP_TYPE HeapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        D3D12_CPU_DESCRIPTOR_HANDLE CPUStart[RenderLatency] = { };
+        D3D12_GPU_DESCRIPTOR_HANDLE GPUStart[RenderLatency] = { };
+        SRWLOCK Lock = SRWLOCK_INIT;
+
+        ~DescriptorHeap();
+
+        void Initialize(ID3D12Device* device, uint32_t numPersistent, uint32_t numTemporary, D3D12_DESCRIPTOR_HEAP_TYPE heapType, bool shaderVisible);
+        void Shutdown();
+
+        PersistentDescriptorAlloc AllocatePersistent();
+        void FreePersistent(uint32_t& index);
+        void FreePersistent(D3D12_CPU_DESCRIPTOR_HANDLE& handle);
+        void FreePersistent(D3D12_GPU_DESCRIPTOR_HANDLE& handle);
+
+        D3D12_CPU_DESCRIPTOR_HANDLE CPUHandleFromIndex(uint32_t descriptorIndex) const;
+        D3D12_GPU_DESCRIPTOR_HANDLE GPUHandleFromIndex(uint32_t descriptorIndex) const;
+
+        D3D12_CPU_DESCRIPTOR_HANDLE CPUHandleFromIndex(uint32_t descriptorIndex, uint64_t heapIndex) const;
+        D3D12_GPU_DESCRIPTOR_HANDLE GPUHandleFromIndex(uint32_t descriptorIndex, uint64_t heapIndex) const;
+
+        uint32_t IndexFromHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle);
+        uint32_t IndexFromHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
+
+        ID3D12DescriptorHeap* CurrentHeap() const;
+        uint32_t TotalNumDescriptors() const { return NumPersistent + NumTemporary; }
+    };
 
     struct AGpuRendererD3D12 : public AGpuRendererI
     {
@@ -110,20 +299,23 @@ namespace d3d12
         {
         }
 
-        AgpuResult initialize(const AgpuDescriptor* descriptor);
-        void shutdown() override;
-        void waitIdle();
-        AgpuResult beginFrame() override;
-        uint64_t endFrame() override;
+        AgpuResult Initialize(const AgpuDescriptor* descriptor);
+        void Shutdown() override;
+        void WaitIdle();
+        void BeginFrame();
+        uint64_t Frame() override;
 
         /* Fence */
-        AgpuFence CreateFence() override;
-        void DestroyFence(AgpuFence fence) override;
-        void FenceSignal(AgpuFence fence, ID3D12CommandQueue* queue, uint64_t fenceValue);
-        void FenceWait(AgpuFence fence, uint64_t fenceValue);
-        bool FenceSignaled(AgpuFence fence, uint64_t fenceValue);
-        void FenceClear(AgpuFence fence, uint64_t fenceValue);
+        AgpuFence* CreateFence(uint64_t initialValue);
+        void DestroyFence(AgpuFence* fence);
+        void SignalFence(AgpuFence* fence, ID3D12CommandQueue* queue, uint64_t fenceValue);
+        void WaitFence(AgpuFence* fence, uint64_t fenceValue);
+        bool IsFenceSignaled(AgpuFence* fence, uint64_t fenceValue);
+        void ClearFence(AgpuFence* fence, uint64_t fenceValue);
 
+        /* Swapchain */
+        AgpuSwapchain CreateSwapchain(const AgpuSwapchainDescriptor* descriptor);
+        void DestroySwapchain(AgpuSwapchain swapchain);
         template<typename T> void DeferredRelease(T*& resource, bool forceDeferred = false)
         {
             IUnknown* base = resource;
@@ -139,21 +331,202 @@ namespace d3d12
         IDXGIAdapter1*              _dxgiAdapter = nullptr;
         ID3D12Device*               _d3dDevice = nullptr;
         D3D_FEATURE_LEVEL           _d3dFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-        AgpuFence                   _frameFence = nullptr;
+        AgpuFence*                  _frameFence = nullptr;
+        uint64_t                    _fenceValues[AGPU_MAX_BACK_BUFFER_COUNT] = {};
         ID3D12CommandQueue*         _graphicsQueue = nullptr;
         ID3D12GraphicsCommandList*  _commandList = nullptr;
         ID3D12CommandAllocator*     _commandAllocators[AGPU_MAX_BACK_BUFFER_COUNT];
-        uint64_t                    _currentCPUFrame = 0;
-        uint64_t                    _currentGPUFrame = 0;
         uint64_t                    _currentFrameIndex = 0;
         bool                        _shuttingDown = false;
         std::vector<IUnknown*>      _deferredReleases[RenderLatency];
+        bool                        _headless = false;
+        AgpuSwapchain               _mainSwapchain = nullptr;
+
+        DescriptorHeap              _RTVDescriptorHeap;
     };
 
-    AgpuResult AGpuRendererD3D12::initialize(const AgpuDescriptor* descriptor)
+    /* DescriptorHeap */
+    DescriptorHeap::~DescriptorHeap()
+    {
+        ALIMER_ASSERT(Heaps[0] == nullptr);
+    }
+
+    void DescriptorHeap::Initialize(ID3D12Device* device, uint32_t numPersistent, uint32_t numTemporary, D3D12_DESCRIPTOR_HEAP_TYPE heapType, bool shaderVisible)
+    {
+        Shutdown();
+
+        uint32_t totalNumDescriptors = numPersistent + numTemporary;
+        ALIMER_ASSERT(totalNumDescriptors > 0);
+
+        NumPersistent = numPersistent;
+        NumTemporary = numTemporary;
+        HeapType = heapType;
+        ShaderVisible = shaderVisible;
+        if (heapType == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || heapType == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+            ShaderVisible = false;
+
+        NumHeaps = ShaderVisible ? 2 : 1;
+
+        DeadList.resize(numPersistent);
+        for (uint32_t i = 0u; i < numPersistent; ++i)
+        {
+            DeadList[i] = i;
+        }
+
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
+        heapDesc.Type = heapType;
+        heapDesc.NumDescriptors = totalNumDescriptors;
+        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        heapDesc.NodeMask = 0;
+        if (ShaderVisible)
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+        for (uint32_t i = 0; i < NumHeaps; ++i)
+        {
+            DXCall(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&Heaps[i])));
+            CPUStart[i] = Heaps[i]->GetCPUDescriptorHandleForHeapStart();
+            if (ShaderVisible)
+            {
+                GPUStart[i] = Heaps[i]->GetGPUDescriptorHandleForHeapStart();
+            }
+        }
+
+        DescriptorSize = device->GetDescriptorHandleIncrementSize(heapType);
+    }
+
+    void DescriptorHeap::Shutdown()
+    {
+        ALIMER_ASSERT(PersistentAllocated == 0);
+        for (uint64_t i = 0; i < ArraySize_(Heaps); ++i)
+        {
+            Release(Heaps[i]);
+        }
+    }
+
+    PersistentDescriptorAlloc DescriptorHeap::AllocatePersistent()
+    {
+        ALIMER_ASSERT(Heaps[0] != nullptr);
+
+        AcquireSRWLockExclusive(&Lock);
+
+        ALIMER_ASSERT(PersistentAllocated < NumPersistent);
+        uint32_t index = DeadList[PersistentAllocated];
+        ++PersistentAllocated;
+
+        ReleaseSRWLockExclusive(&Lock);
+
+        PersistentDescriptorAlloc alloc;
+        alloc.Index = index;
+        for (uint32_t i = 0; i < NumHeaps; ++i)
+        {
+            alloc.Handles[i] = CPUStart[i];
+            alloc.Handles[i].ptr += index * DescriptorSize;
+        }
+
+        return alloc;
+    }
+
+    void DescriptorHeap::FreePersistent(uint32_t& index)
+    {
+        if (index == static_cast<uint32_t>(-1))
+            return;
+
+        ALIMER_ASSERT(index < NumPersistent);
+        ALIMER_ASSERT(Heaps[0] != nullptr);
+
+        AcquireSRWLockExclusive(&Lock);
+
+        ALIMER_ASSERT(PersistentAllocated > 0);
+        DeadList[PersistentAllocated - 1] = index;
+        --PersistentAllocated;
+
+        ReleaseSRWLockExclusive(&Lock);
+
+        index = static_cast<uint32_t>(-1);
+    }
+
+    void DescriptorHeap::FreePersistent(D3D12_CPU_DESCRIPTOR_HANDLE& handle)
+    {
+        ALIMER_ASSERT(NumHeaps == 1);
+        if (handle.ptr != 0)
+        {
+            uint32_t index = IndexFromHandle(handle);
+            FreePersistent(index);
+            handle = { };
+        }
+    }
+
+    void DescriptorHeap::FreePersistent(D3D12_GPU_DESCRIPTOR_HANDLE& handle)
+    {
+        ALIMER_ASSERT(NumHeaps == 1);
+        if (handle.ptr != 0)
+        {
+            uint32_t index = IndexFromHandle(handle);
+            FreePersistent(index);
+            handle = { };
+        }
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CPUHandleFromIndex(uint32_t descriptorIndex) const
+    {
+        return CPUHandleFromIndex(descriptorIndex, HeapIndex);
+    }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GPUHandleFromIndex(uint32_t descriptorIndex) const
+    {
+        return GPUHandleFromIndex(descriptorIndex, HeapIndex);
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CPUHandleFromIndex(uint32_t descriptorIndex, uint64_t heapIndex) const
+    {
+        ALIMER_ASSERT(Heaps[0] != nullptr);
+        ALIMER_ASSERT(heapIndex < NumHeaps);
+        ALIMER_ASSERT(descriptorIndex < TotalNumDescriptors());
+        D3D12_CPU_DESCRIPTOR_HANDLE handle = CPUStart[heapIndex];
+        handle.ptr += descriptorIndex * DescriptorSize;
+        return handle;
+    }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GPUHandleFromIndex(uint32_t descriptorIndex, uint64_t heapIndex) const
+    {
+        ALIMER_ASSERT(Heaps[0] != nullptr);
+        ALIMER_ASSERT(heapIndex < NumHeaps);
+        ALIMER_ASSERT(descriptorIndex < TotalNumDescriptors());
+        ALIMER_ASSERT(ShaderVisible);
+        D3D12_GPU_DESCRIPTOR_HANDLE handle = GPUStart[heapIndex];
+        handle.ptr += descriptorIndex * DescriptorSize;
+        return handle;
+    }
+
+    uint32_t DescriptorHeap::IndexFromHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle)
+    {
+        ALIMER_ASSERT(Heaps[0] != nullptr);
+        ALIMER_ASSERT(handle.ptr >= CPUStart[HeapIndex].ptr);
+        ALIMER_ASSERT(handle.ptr < CPUStart[HeapIndex].ptr + DescriptorSize * TotalNumDescriptors());
+        ALIMER_ASSERT((handle.ptr - CPUStart[HeapIndex].ptr) % DescriptorSize == 0);
+        return uint32_t(handle.ptr - CPUStart[HeapIndex].ptr) / DescriptorSize;
+    }
+
+    uint32_t DescriptorHeap::IndexFromHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle)
+    {
+        ALIMER_ASSERT(Heaps[0] != nullptr);
+        ALIMER_ASSERT(handle.ptr >= GPUStart[HeapIndex].ptr);
+        ALIMER_ASSERT(handle.ptr < GPUStart[HeapIndex].ptr + DescriptorSize * TotalNumDescriptors());
+        ALIMER_ASSERT((handle.ptr - GPUStart[HeapIndex].ptr) % DescriptorSize == 0);
+        return uint32_t(handle.ptr - GPUStart[HeapIndex].ptr) / DescriptorSize;
+    }
+
+    ID3D12DescriptorHeap* DescriptorHeap::CurrentHeap() const
+    {
+        ALIMER_ASSERT(Heaps[0] != nullptr);
+        return Heaps[HeapIndex];
+    }
+
+    /* AGpuRendererD3D12 */
+    AgpuResult AGpuRendererD3D12::Initialize(const AgpuDescriptor* descriptor)
     {
         _shuttingDown = false;
-        agpuD3D12GetDXGIAdapter(&_dxgiAdapter);
+        GetDXGIAdapter(&_dxgiAdapter);
 
         DXCall(D3D12CreateDevice(_dxgiAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&_d3dDevice)));
 
@@ -243,20 +616,43 @@ namespace d3d12
         DXCall(_commandList->Close());
         _commandList->SetName(L"Primary Graphics Command List");
 
-        _currentFrameIndex = _currentCPUFrame % NumCmdAllocators;
-        DXCall(_commandAllocators[_currentFrameIndex]->Reset());
-        DXCall(_commandList->Reset(_commandAllocators[_currentFrameIndex], nullptr));
-
         // Create fence
-        _frameFence = CreateFence();
+        _frameFence = CreateFence(0);
+        _fenceValues[_currentFrameIndex]++;
+        _currentFrameIndex = 0;
+
+        // Initialize helpers
+        _RTVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false);
+
+        WaitIdle();
+        for (UINT n = 0; n < NumCmdAllocators; n++)
+        {
+            _fenceValues[n] = _fenceValues[_currentFrameIndex];
+        }
+
+        // Create main swap chain if not headless and valid width and height.
+        _headless = descriptor->headless;
+        if (!_headless
+            && descriptor->swapchain.width > 0
+            && descriptor->swapchain.height > 0)
+        {
+            _mainSwapchain = CreateSwapchain(&descriptor->swapchain);
+        }
+
+        BeginFrame();
 
         return AGPU_OK;
     }
 
-    void AGpuRendererD3D12::shutdown()
+    void AGpuRendererD3D12::Shutdown()
     {
-        ALIMER_ASSERT(_currentCPUFrame == _currentGPUFrame);
+        WaitIdle();
         _shuttingDown = true;
+
+        if (_mainSwapchain)
+        {
+            DestroySwapchain(_mainSwapchain);
+        }
 
         for (uint64_t i = 0; i < RenderLatency; ++i)
         {
@@ -271,9 +667,15 @@ namespace d3d12
         Release(_commandList);
         Release(_graphicsQueue);
 
-        Release(_d3dDevice);
-        Release(factory);
+
+        _RTVDescriptorHeap.Shutdown();
+        //_SRVDescriptorHeap.Shutdown();
+        //_DSVDescriptorHeap.Shutdown();
+        //_UAVDescriptorHeap.Shutdown();
+
+        Release(_dxgiFactory);
         Release(_dxgiAdapter);
+        Release(_d3dDevice);
 
 #ifdef _DEBUG
         {
@@ -287,24 +689,52 @@ namespace d3d12
 #endif
     }
 
-    void AGpuRendererD3D12::waitIdle()
+    void AGpuRendererD3D12::WaitIdle()
     {
+        // Schedule a Signal command in the queue.
+        const uint64_t fenceValue = _fenceValues[_currentFrameIndex];
+        SignalFence(_frameFence, _graphicsQueue, fenceValue);
 
+        // Wait until the fence has been processed.
+        DXCall(_frameFence->Fence->SetEventOnCompletion(fenceValue, _frameFence->Event));
+        WaitForSingleObjectEx(_frameFence->Event, INFINITE, FALSE);
+
+        // Increment the fence value for the current frame.
+        _fenceValues[_currentFrameIndex]++;
     }
 
-    AgpuResult AGpuRendererD3D12::beginFrame()
+    void AGpuRendererD3D12::BeginFrame()
     {
-        // Transition the render target into the correct state to allow for drawing into it.
-        //D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_backBufferIndex].Get(), beforeState, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        //s_renderD3D12->commandList->ResourceBarrier(1, &barrier);
-        return AGPU_OK;
+        // Prepare the command buffers to be used for the next frame
+        DXCall(_commandAllocators[_currentFrameIndex]->Reset());
+        DXCall(_commandList->Reset(_commandAllocators[_currentFrameIndex], nullptr));
+
+        if (!_headless)
+        {
+            _mainSwapchain->backBufferIndex = _mainSwapchain->d3d12SwapChain->GetCurrentBackBufferIndex();
+
+            // Indicate that the back buffer will be used as a render target.
+            TransitionResource(_commandList,
+                _mainSwapchain->d3d12RenderTargets[_mainSwapchain->backBufferIndex],
+                D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[1] = { _mainSwapchain->d3d12RTV[_mainSwapchain->backBufferIndex] };
+            _commandList->OMSetRenderTargets(1, rtvHandles, FALSE, nullptr);
+
+            const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+            _commandList->ClearRenderTargetView(rtvHandles[0], clearColor, 0, nullptr);
+        }
     }
 
-    uint64_t AGpuRendererD3D12::endFrame()
+    uint64_t AGpuRendererD3D12::Frame()
     {
-        // Transition the render target to the state that allows it to be presented to the display.
-        //D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_backBufferIndex].Get(), beforeState, D3D12_RESOURCE_STATE_PRESENT);
-        //commandList->ResourceBarrier(1, &barrier);
+        if (!_headless)
+        {
+            // Indicate that the back buffer will now be used to present.
+            TransitionResource(_commandList,
+                _mainSwapchain->d3d12RenderTargets[_mainSwapchain->backBufferIndex],
+                D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+        }
 
         // Send the command list off to the GPU for processing.
         DXCall(_commandList->Close());
@@ -312,32 +742,38 @@ namespace d3d12
         ID3D12CommandList* ppCommandLists[] = { _commandList };
         _graphicsQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-        ++_currentCPUFrame;
-
-        // Signal the fence with the current frame number, so that we can check back on it
-        FenceSignal(_frameFence, _graphicsQueue, _currentCPUFrame);
-
-        // Wait for the GPU to catch up before we stomp an executing command buffer
-        const uint64_t gpuLag = _currentCPUFrame - _currentGPUFrame;
-        ALIMER_ASSERT(gpuLag <= RenderLatency);
-        if (gpuLag >= RenderLatency)
+        // Present the frame.
+        if (_mainSwapchain)
         {
-            // Make sure that the previous frame is finished
-            FenceWait(_frameFence, _currentGPUFrame + 1);
-            ++_currentGPUFrame;
+            const bool vsync = true;
+            uint32_t syncIntervals = vsync ? 1 : 0;
+            DXCall(_mainSwapchain->d3d12SwapChain->Present(syncIntervals, syncIntervals == 0 ? DXGI_PRESENT_ALLOW_TEARING : 0));
         }
 
-        _currentFrameIndex = _currentCPUFrame % NumCmdAllocators;
+        // Prepare to render the next frame.
+        // Schedule a Signal command in the queue.
+        const uint64_t currentFenceValue = _fenceValues[_currentFrameIndex];
+        SignalFence(_frameFence, _graphicsQueue, currentFenceValue);
 
-        // Prepare the command buffers to be used for the next frame
-        DXCall(_commandAllocators[_currentFrameIndex]->Reset());
-        DXCall(_commandList->Reset(_commandAllocators[_currentFrameIndex], nullptr));
+        // Update frame index.
+        _currentFrameIndex = (_currentFrameIndex + 1) % NumCmdAllocators;
 
+        // If the next frame is not ready to be rendered yet, wait until it is ready.
+        WaitFence(_frameFence, _fenceValues[_currentFrameIndex]);
+
+        // Set the fence value for the next frame.
+        _fenceValues[_currentFrameIndex] = currentFenceValue + 1;
+       
         //EndFrame_Helpers();
 
         // See if we have any deferred releases to process
         ProcessDeferredReleases(_currentFrameIndex);
-        return _currentCPUFrame;
+
+        // Begin new frame.
+        BeginFrame();
+
+        // Return fence value.
+        return _fenceValues[_currentFrameIndex];
     }
 
     void AGpuRendererD3D12::DeferredRelease_(IUnknown* resource, bool forceDeferred)
@@ -345,7 +781,7 @@ namespace d3d12
         if (resource == nullptr)
             return;
 
-        if ((_currentCPUFrame == _currentGPUFrame && forceDeferred == false)
+        if ((forceDeferred == false)
             || _shuttingDown || _d3dDevice == nullptr)
         {
             // Free-for-all!
@@ -361,159 +797,128 @@ namespace d3d12
 
     }
 
-    AgpuFence AGpuRendererD3D12::CreateFence()
+    AgpuFence* AGpuRendererD3D12::CreateFence(uint64_t initialValue)
     {
-        AgpuFence fence = new AgpuFence_T();
-        _d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence->d3d12Fence));
+        AgpuFence* fence = new AgpuFence();
+        _d3dDevice->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence->Fence));
 
-        fence->d3d12FenceEvent = CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE);
-        ALIMER_ASSERT(fence->d3d12FenceEvent != INVALID_HANDLE_VALUE);
+        fence->Event = CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE);
+        ALIMER_ASSERT(fence->Event != INVALID_HANDLE_VALUE);
 
         return fence;
     }
 
-    void AGpuRendererD3D12::DestroyFence(AgpuFence fence)
+    void AGpuRendererD3D12::DestroyFence(AgpuFence* fence)
     {
-        DeferredRelease(fence->d3d12Fence);
+        DeferredRelease(fence->Fence);
         delete fence;
         fence = nullptr;
     }
 
-    void AGpuRendererD3D12::FenceSignal(AgpuFence fence, ID3D12CommandQueue* queue, uint64_t fenceValue)
+    void AGpuRendererD3D12::SignalFence(AgpuFence* fence, ID3D12CommandQueue* queue, uint64_t fenceValue)
     {
-        ALIMER_ASSERT(fence->d3d12Fence != nullptr);
-        DXCall(queue->Signal(fence->d3d12Fence, fenceValue));
+        ALIMER_ASSERT(fence->Fence != nullptr);
+        DXCall(queue->Signal(fence->Fence, fenceValue));
     }
 
-    void AGpuRendererD3D12::FenceWait(AgpuFence fence, uint64_t fenceValue)
+    void AGpuRendererD3D12::WaitFence(AgpuFence* fence, uint64_t fenceValue)
     {
-        ALIMER_ASSERT(fence->d3d12Fence != nullptr);
-        if (fence->d3d12Fence->GetCompletedValue() < fenceValue)
+        ALIMER_ASSERT(fence->Fence != nullptr);
+        if (fence->Fence->GetCompletedValue() < fenceValue)
         {
-            DXCall(fence->d3d12Fence->SetEventOnCompletion(fenceValue, fence->d3d12FenceEvent));
-            WaitForSingleObjectEx(fence->d3d12FenceEvent, INFINITE, FALSE);
+            DXCall(fence->Fence->SetEventOnCompletion(fenceValue, fence->Event));
+            WaitForSingleObjectEx(fence->Event, INFINITE, FALSE);
         }
     }
 
-    bool AGpuRendererD3D12::FenceSignaled(AgpuFence fence, uint64_t fenceValue)
+    bool AGpuRendererD3D12::IsFenceSignaled(AgpuFence* fence, uint64_t fenceValue)
     {
-        ALIMER_ASSERT(fence->d3d12Fence != nullptr);
-        return fence->d3d12Fence->GetCompletedValue() >= fenceValue;
+        ALIMER_ASSERT(fence->Fence != nullptr);
+        return fence->Fence->GetCompletedValue() >= fenceValue;
     }
 
-    void AGpuRendererD3D12::FenceClear(AgpuFence fence, uint64_t fenceValue)
+    void AGpuRendererD3D12::ClearFence(AgpuFence* fence, uint64_t fenceValue)
     {
-        ALIMER_ASSERT(fence->d3d12Fence != nullptr);
-        DXCall(fence->d3d12Fence->Signal(fenceValue));
+        ALIMER_ASSERT(fence->Fence != nullptr);
+        DXCall(fence->Fence->Signal(fenceValue));
     }
 
-    void agpuD3D12GetDXGIAdapter(IDXGIAdapter1** ppAdapter)
+    AgpuSwapchain AGpuRendererD3D12::CreateSwapchain(const AgpuSwapchainDescriptor* descriptor)
     {
-        *ppAdapter = nullptr;
+        // Create a descriptor for the swap chain.
+        const DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+        swapChainDesc.Width = descriptor->width;
+        swapChainDesc.Height = descriptor->height;
+        swapChainDesc.Format = backBufferFormat;
+        swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        swapChainDesc.BufferCount = RenderLatency;
+        swapChainDesc.SampleDesc.Count = 1;
+        swapChainDesc.SampleDesc.Quality = 0;
+        swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+        swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+        swapChainDesc.Flags =
+            DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH |
+            DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-        HRESULT hr = S_OK;
-        bool releaseFactory = false;
-        if (factory == nullptr)
+        /* TODO: DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT*/
+
+        DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
+        fsSwapChainDesc.Windowed = TRUE;
+
+        // Create a swap chain for the window.
+        IDXGISwapChain1* swapChain;
+        DXCall(_dxgiFactory->CreateSwapChainForHwnd(
+            _graphicsQueue,
+            static_cast<HWND>(descriptor->handle.handle),
+            &swapChainDesc,
+            &fsSwapChainDesc,
+            nullptr,
+            &swapChain
+        ));
+
+        IDXGISwapChain3* swapChain3;
+        DXCall(swapChain->QueryInterface(&swapChain3));
+        swapChain->Release();
+
+        // Create engine instance and assign.
+        AgpuSwapchain swapchain = new AgpuSwapchain_T();
+        swapchain->backbufferCount = 2;
+        swapchain->d3d12SwapChain = swapChain3;
+        swapchain->backBufferIndex = swapChain3->GetCurrentBackBufferIndex();
+
+        for (uint32_t i = 0; i < swapchain->backbufferCount; i++)
         {
-            hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
-            if (FAILED(hr))
-            {
-                ALIMER_LOGERROR("Unable to create a DXGI factory. Make sure that your OS and driver support DirectX 12");
-                return;
-            }
-            releaseFactory = true;
+            swapchain->d3d12RTV[i] = _RTVDescriptorHeap.AllocatePersistent().Handles[0];
+            DXCall(swapChain3->GetBuffer(i, IID_PPV_ARGS(&swapchain->d3d12RenderTargets[i])));
+
+            D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = { };
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            rtvDesc.Format = backBufferFormat;
+            rtvDesc.Texture2D.MipSlice = 0;
+            rtvDesc.Texture2D.PlaneSlice = 0;
+            _d3dDevice->CreateRenderTargetView(swapchain->d3d12RenderTargets[i], &rtvDesc, swapchain->d3d12RTV[i]);
+
+            wchar_t name[25] = {};
+            swprintf_s(name, L"Back Buffer %u", i);
+            swapchain->d3d12RenderTargets[i]->SetName(name);
         }
 
-        ComPtr<IDXGIAdapter1> adapter;
-#if defined(__dxgi1_6_h__) && defined(NTDDI_WIN10_RS4)
-        ComPtr<IDXGIFactory6> factory6;
-        hr = factory->QueryInterface(factory6.ReleaseAndGetAddressOf());
-        if (SUCCEEDED(hr))
+        return swapchain;
+    }
+
+    void AGpuRendererD3D12::DestroySwapchain(AgpuSwapchain swapchain)
+    {
+        for (uint32_t i = 0; i < swapchain->backbufferCount; ++i)
         {
-            for (UINT adapterIndex = 0;
-                DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
-                    adapterIndex,
-                    DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                    IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
-                adapterIndex++)
-            {
-                DXGI_ADAPTER_DESC1 desc;
-                adapter->GetDesc1(&desc);
-
-                if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                {
-                    // Don't select the Basic Render Driver adapter.
-                    continue;
-                }
-
-                // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-                if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
-                {
-#ifdef _DEBUG
-                    wchar_t buff[256] = {};
-                    swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description);
-                    OutputDebugStringW(buff);
-#endif
-                    break;
-                }
-            }
-        }
-        else
-#endif
-            for (UINT adapterIndex = 0;
-                DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(
-                    adapterIndex,
-                    adapter.ReleaseAndGetAddressOf());
-                ++adapterIndex)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            if (FAILED(adapter->GetDesc1(&desc)))
-            {
-                ALIMER_LOGERROR("DXGI - Failed to get desc");
-            }
-
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-            {
-                // Don't select the Basic Render Driver adapter.
-                continue;
-            }
-
-            // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-            if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
-            {
-#ifdef _DEBUG
-                wchar_t buff[256] = {};
-                swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description);
-                OutputDebugStringW(buff);
-#endif
-                break;
-            }
+            Release(swapchain->d3d12RenderTargets[i]);
+            _RTVDescriptorHeap.FreePersistent(swapchain->d3d12RTV[i]);
         }
 
-#if !defined(NDEBUG)
-        if (!adapter)
-        {
-            // Try WARP12 instead
-            if (FAILED(factory->EnumWarpAdapter(IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()))))
-            {
-                throw std::exception("WARP12 not available. Enable the 'Graphics Tools' optional feature");
-            }
-
-            OutputDebugStringA("Direct3D Adapter - WARP12\n");
-        }
-#endif
-
-        if (!adapter)
-        {
-            throw std::exception("No Direct3D 12 device found");
-        }
-
-        *ppAdapter = adapter.Detach();
-
-        if (releaseFactory)
-        {
-            Release(factory);
-        }
+        DeferredRelease(swapchain->d3d12SwapChain);
+        delete swapchain;
+        swapchain = nullptr;
     }
 
     AgpuBool32 isSupported()
@@ -573,7 +978,7 @@ namespace d3d12
 #endif
 
         IDXGIAdapter1* adapter;
-        agpuD3D12GetDXGIAdapter(&adapter);
+        GetDXGIAdapter(&adapter);
         isAvailable = adapter != nullptr;
         Release(adapter);
         return isAvailable;
@@ -607,7 +1012,7 @@ namespace d3d12
             IDXGIInfoQueue* dxgiInfoQueue;
             if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiInfoQueue))))
             {
-                factoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+                _dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 
                 dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
                 dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
@@ -618,7 +1023,7 @@ namespace d3d12
 #endif
 
         // Create global dxgi factory.
-        HRESULT hr = CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&factory));
+        HRESULT hr = CreateDXGIFactory2(_dxgiFactoryFlags, IID_PPV_ARGS(&_dxgiFactory));
         if (FAILED(hr))
         {
             ALIMER_LOGERROR("Unable to create a DXGI 1.4 device. Make sure that your OS and driver support DirectX 12");
@@ -626,7 +1031,7 @@ namespace d3d12
         }
 
         AGpuRendererD3D12* renderD3D12 = new AGpuRendererD3D12();
-        AgpuResult result = renderD3D12->initialize(descriptor);
+        AgpuResult result = renderD3D12->Initialize(descriptor);
         *pRenderer = renderD3D12;
         return result;
     }
