@@ -43,17 +43,52 @@
 #endif
 
 typedef struct AgpuSwapchain_T {
-    uint32_t            backBufferIndex;
-    uint32_t            backbufferCount;
+    uint32_t                    backBufferIndex;
+    uint32_t                    backbufferCount;
+    AgpuPixelFormat             backBufferFormat;
+    AgpuTexture                 backBufferTexture[AGPU_MAX_BACK_BUFFER_COUNT];
+    AgpuFramebuffer             backBufferFramebuffers[AGPU_MAX_BACK_BUFFER_COUNT];
+
+#if AGPU_D3D11 || AGPU_D3D12
+    DXGI_FORMAT                 dxgiBackBufferFormat;
+#endif
 
 #if AGPU_D3D12
     IDXGISwapChain3*            d3d12SwapChain;
-    ID3D12Resource*             d3d12RenderTargets[AGPU_MAX_BACK_BUFFER_COUNT];
     ID3D12Resource*             d3d12DepthStencil;
-    D3D12_CPU_DESCRIPTOR_HANDLE d3d12RTV[AGPU_MAX_BACK_BUFFER_COUNT] = { };
-    D3D12_CPU_DESCRIPTOR_HANDLE d3d12DSV = { };
 #endif
 } AgpuSwapchain_T;
+
+typedef struct AgpuTexture_T {
+#if AGPU_D3D11 || AGPU_D3D12
+    DXGI_FORMAT                     dxgiFormat;
+#endif
+
+#if AGPU_D3D11
+    union {
+        ID3D11Texture1D*            d3d11Texture1D;
+        ID3D11Texture2D*            d3d11Texture2D;
+        ID3D11Texture3D*            d3d11Texture3D;
+    };
+#endif
+
+#if AGPU_D3D12
+    D3D12_RESOURCE_STATES           d3d12ResourceState;
+    ID3D12Resource*                 d3d12Resource;
+#endif
+
+} AgpuTexture_T;
+
+typedef struct AgpuFramebuffer_T {
+    AgpuFramebufferAttachment colorAttachments[AGPU_MAX_COLOR_ATTACHMENTS];
+    AgpuFramebufferAttachment depthStencilAttachment;
+
+#if AGPU_D3D12
+    uint32_t                    numRTVs;
+    D3D12_CPU_DESCRIPTOR_HANDLE d3d12RTVs[AGPU_MAX_COLOR_ATTACHMENTS];
+    D3D12_CPU_DESCRIPTOR_HANDLE d3d12DSV;
+#endif
+} AgpuFramebuffer_T;
 
 typedef struct AgpuBuffer_T {
 #if AGPU_D3D11
@@ -72,6 +107,12 @@ struct AGpuRendererI
 
     virtual void Shutdown() = 0;
     virtual uint64_t Frame() = 0;
+
+    virtual AgpuTexture CreateTexture(const AgpuTextureDescriptor* descriptor, void* externalHandle) = 0;
+    virtual void DestroyTexture(AgpuTexture texture) = 0;
+
+    virtual AgpuFramebuffer CreateFramebuffer(const AgpuFramebufferDescriptor* descriptor) = 0;
+    virtual void DestroyFramebuffer(AgpuFramebuffer framebuffer) = 0;
 };
 
 inline AGpuRendererI::~AGpuRendererI()

@@ -80,8 +80,8 @@ endif ()
 
 if (ALIMER_WINDOWS OR ALIMER_UWP)
     define_engine_source_files(Audio/XAudio2)
-    define_engine_source_files(Graphics/D3D)
-    define_engine_source_files(Graphics/D3D11)
+    # define_engine_source_files(Graphics/D3D)
+    # define_engine_source_files(Graphics/D3D11)
 endif()
 
 if (ALIMER_GL)
@@ -90,7 +90,7 @@ if (ALIMER_GL)
 endif (ALIMER_GL)
 
 if (ALIMER_VULKAN)
-    define_engine_source_files(Graphics/Vulkan)
+    # define_engine_source_files(Graphics/Vulkan)
 
     #set(GLSLANG_HEADER_FILES
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
@@ -104,10 +104,6 @@ if (ALIMER_VULKAN)
 
     #list (APPEND HEADER_FILES ${GLSLANG_HEADER_FILES})
     #list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
-endif ()
-
-if (ALIMER_D3D12)
-	define_engine_source_files(Graphics/D3D12)
 endif ()
 
 # Group source code in VS solution

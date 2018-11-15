@@ -21,7 +21,7 @@
 // THE SOFTWARE.
 //
 
-
+#include "alimer_platform.h"
 #include "Application.h"
 
 ApplicationProxy::ApplicationProxy(
@@ -45,24 +45,24 @@ void ApplicationProxy::OnExiting()
 
 extern "C"
 {
-    ALIMER_DLL_EXPORT ApplicationProxy* Application_new(
+    EXPORT_API ApplicationProxy* Application_new(
         ApplicationCallback_T initialize,
         ApplicationCallback_T exit)
     {
         return new ApplicationProxy(initialize, exit);
     }
 
-    ALIMER_DLL_EXPORT int Application_Run(ApplicationProxy* _this)
+    EXPORT_API int Application_Run(ApplicationProxy* _this)
     {
         return _this->Run();
     }
 
-    ALIMER_DLL_EXPORT void Application_RunFrame(ApplicationProxy* _this)
+    EXPORT_API void Application_RunFrame(ApplicationProxy* _this)
     {
         _this->RunFrame();
     }
 
-    ALIMER_DLL_EXPORT void Application_Exit(ApplicationProxy* _this)
+    EXPORT_API void Application_Exit(ApplicationProxy* _this)
     {
         _this->Exit();
     }

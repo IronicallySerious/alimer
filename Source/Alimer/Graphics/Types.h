@@ -61,17 +61,17 @@ namespace Alimer
     enum class SampleCount : uint32_t
     {
         /// 1 sample (no multi-sampling).
-        Count1 = 1,
+        Count1 = AGPU_SAMPLE_COUNT1,
         /// 2 Samples.
-        Count2 = 2,
+        Count2 = AGPU_SAMPLE_COUNT2,
         /// 4 Samples.
-        Count4 = 4,
+        Count4 = AGPU_SAMPLE_COUNT4,
         /// 8 Samples.
-        Count8 = 8,
+        Count8 = AGPU_SAMPLE_COUNT8,
         /// 16 Samples.
-        Count16 = 16,
+        Count16 = AGPU_SAMPLE_COUNT16,
         /// 32 Samples.
-        Count32 = 32,
+        Count32 = AGPU_SAMPLE_COUNT32,
     };
 
     enum class ResourceUsage : unsigned

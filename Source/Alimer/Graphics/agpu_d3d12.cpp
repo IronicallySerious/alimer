@@ -230,6 +230,116 @@ namespace d3d12
         cmdList->ResourceBarrier(1, &barrier);
     }
 
+    DXGI_FORMAT agpuD3D12ConvertPixelFormat(AgpuPixelFormat format)
+    {
+        switch (format)
+        {
+        case AGPU_PIXEL_FORMAT_UNKNOWN:
+            return DXGI_FORMAT_UNKNOWN;
+
+        case AGPU_PIXEL_FORMAT_R8_UNORM:
+            return DXGI_FORMAT_R8_UNORM;
+
+        case AGPU_PIXEL_FORMAT_R8_SNORM:
+            return DXGI_FORMAT_R8_SNORM;
+
+        case AGPU_PIXEL_FORMAT_R16_UNORM:
+            return DXGI_FORMAT_R16_UNORM;
+
+        case AGPU_PIXEL_FORMAT_R16_SNORM:
+            return DXGI_FORMAT_R16_SNORM;
+
+        case AGPU_PIXEL_FORMAT_RG8_UNORM:
+            return DXGI_FORMAT_R8G8_UNORM;
+
+        case AGPU_PIXEL_FORMAT_RG8_SNORM:
+            return DXGI_FORMAT_R8G8_SNORM;
+
+        case AGPU_PIXEL_FORMAT_RG16_UNORM:
+            return DXGI_FORMAT_R16G16_UNORM;
+
+        case AGPU_PIXEL_FORMAT_RG16_SNORM:
+            return DXGI_FORMAT_R16G16_SNORM;
+
+        case AGPU_PIXEL_FORMAT_RGB16_UNORM:
+            return DXGI_FORMAT_UNKNOWN;
+
+        case AGPU_PIXEL_FORMAT_RGB16_SNORM:
+            return DXGI_FORMAT_UNKNOWN;
+
+        case AGPU_PIXEL_FORMAT_RGBA8_UNORM:
+            return DXGI_FORMAT_R8G8B8A8_UNORM;
+
+        case AGPU_PIXEL_FORMAT_RGBA8_UNORM_SRGB:
+            return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
+        case AGPU_PIXEL_FORMAT_RGBA8_SNORM:
+            return DXGI_FORMAT_R8G8B8A8_SNORM;
+
+        case AGPU_PIXEL_FORMAT_BGRA8_UNORM:
+            return DXGI_FORMAT_B8G8R8A8_UNORM;
+
+        case AGPU_PIXEL_FORMAT_BGRA8_UNORM_SRGB:
+            return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+
+        case AGPU_PIXEL_FORMAT_D32_FLOAT:
+            return DXGI_FORMAT_D32_FLOAT;
+
+        case AGPU_PIXEL_FORMAT_D16_UNORM:
+            return DXGI_FORMAT_D16_UNORM;
+
+        case AGPU_PIXEL_FORMAT_D24_UNORM_S8:
+            return DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+        case AGPU_PIXEL_FORMAT_D32_FLOAT_S8:
+            return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+
+        case AGPU_PIXEL_FORMAT_BC1_UNORM:
+            return DXGI_FORMAT_BC1_UNORM;
+
+        case AGPU_PIXEL_FORMAT_BC1_UNORM_SRGB:
+            return DXGI_FORMAT_BC1_UNORM_SRGB;
+
+        case AGPU_PIXEL_FORMAT_BC2_UNORM:
+            return DXGI_FORMAT_BC2_UNORM;
+
+        case AGPU_PIXEL_FORMAT_BC2_UNORM_SRGB:
+            return DXGI_FORMAT_BC2_UNORM_SRGB;
+
+        case AGPU_PIXEL_FORMAT_BC3_UNORM:
+            return DXGI_FORMAT_BC3_UNORM;
+
+        case AGPU_PIXEL_FORMAT_BC3_UNORM_SRGB:
+            return DXGI_FORMAT_BC3_UNORM_SRGB;
+
+        case AGPU_PIXEL_FORMAT_BC4_UNORM:
+            return DXGI_FORMAT_BC4_UNORM;
+
+        case AGPU_PIXEL_FORMAT_BC4_SNORM:
+            return DXGI_FORMAT_BC4_SNORM;
+
+        case AGPU_PIXEL_FORMAT_BC5_UNORM:
+            return DXGI_FORMAT_BC5_UNORM;
+
+        case AGPU_PIXEL_FORMAT_BC5_SNORM:
+            return DXGI_FORMAT_BC5_SNORM;
+
+        case AGPU_PIXEL_FORMAT_BC6HS16:
+            return DXGI_FORMAT_BC6H_SF16;
+
+        case AGPU_PIXEL_FORMAT_BC6HU16:
+            return DXGI_FORMAT_BC6H_UF16;
+
+        case AGPU_PIXEL_FORMAT_BC7_UNORM:
+            return DXGI_FORMAT_BC7_UNORM;
+
+        case AGPU_PIXEL_FORMAT_BC7_UNORM_SRGB:
+            return DXGI_FORMAT_BC7_UNORM_SRGB;
+        default:
+            ALIMER_UNREACHABLE();
+        }
+    }
+
     struct AgpuFence
     {
         ID3D12Fence*        Fence;
@@ -249,27 +359,14 @@ namespace d3d12
         uint32_t StartIndex = static_cast<uint32_t>(-1);
     };
 
-    struct DescriptorHeap
+    class DescriptorHeap
     {
-        ID3D12DescriptorHeap* Heaps[RenderLatency] = { };
-        uint32_t NumPersistent = 0;
-        uint32_t PersistentAllocated = 0;
-        std::vector<uint32_t> DeadList;
-        uint32_t NumTemporary = 0;
-        volatile int64_t TemporaryAllocated = 0;
-        uint32_t HeapIndex = 0;
-        uint32_t NumHeaps = 0;
-        uint32_t DescriptorSize = 0;
-        AgpuBool32 ShaderVisible = false;
-        D3D12_DESCRIPTOR_HEAP_TYPE HeapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        D3D12_CPU_DESCRIPTOR_HANDLE CPUStart[RenderLatency] = { };
-        D3D12_GPU_DESCRIPTOR_HANDLE GPUStart[RenderLatency] = { };
-        SRWLOCK Lock = SRWLOCK_INIT;
-
+    public:
         ~DescriptorHeap();
 
         void Initialize(ID3D12Device* device, uint32_t numPersistent, uint32_t numTemporary, D3D12_DESCRIPTOR_HEAP_TYPE heapType, bool shaderVisible);
         void Shutdown();
+        void EndFrame();
 
         PersistentDescriptorAlloc AllocatePersistent();
         void FreePersistent(uint32_t& index);
@@ -287,6 +384,22 @@ namespace d3d12
 
         ID3D12DescriptorHeap* CurrentHeap() const;
         uint32_t TotalNumDescriptors() const { return NumPersistent + NumTemporary; }
+
+    private:
+        uint32_t _heapIndex = 0;
+        uint32_t _heapCount = 0;
+        ID3D12DescriptorHeap* _heaps[RenderLatency] = { };
+        uint32_t NumPersistent = 0;
+        uint32_t PersistentAllocated = 0;
+        std::vector<uint32_t> DeadList;
+        uint32_t NumTemporary = 0;
+        volatile int64_t TemporaryAllocated = 0;
+        uint32_t DescriptorSize = 0;
+        AgpuBool32 ShaderVisible = false;
+        D3D12_DESCRIPTOR_HEAP_TYPE HeapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        D3D12_CPU_DESCRIPTOR_HANDLE CPUStart[RenderLatency] = { };
+        D3D12_GPU_DESCRIPTOR_HANDLE GPUStart[RenderLatency] = { };
+        SRWLOCK Lock = SRWLOCK_INIT;
     };
 
     struct AGpuRendererD3D12 : public AGpuRendererI
@@ -316,6 +429,19 @@ namespace d3d12
         /* Swapchain */
         AgpuSwapchain CreateSwapchain(const AgpuSwapchainDescriptor* descriptor);
         void DestroySwapchain(AgpuSwapchain swapchain);
+
+        /* Texture */
+        AgpuTexture CreateTexture(const AgpuTextureDescriptor* descriptor, void* externalHandle) override;
+        void DestroyTexture(AgpuTexture texture) override;
+
+        /* Framebuffer */
+        AgpuFramebuffer CreateFramebuffer(const AgpuFramebufferDescriptor* descriptor) override;
+        void DestroyFramebuffer(AgpuFramebuffer framebuffer) override;
+
+        /* CommandList */
+        void BeginRenderPass(AgpuFramebuffer framebuffer);
+        void EndRenderPass();
+
         template<typename T> void DeferredRelease(T*& resource, bool forceDeferred = false)
         {
             IUnknown* base = resource;
@@ -343,12 +469,14 @@ namespace d3d12
         AgpuSwapchain               _mainSwapchain = nullptr;
 
         DescriptorHeap              _RTVDescriptorHeap;
+
+        AgpuFramebuffer             _currentFramebuffer = nullptr;
     };
 
     /* DescriptorHeap */
     DescriptorHeap::~DescriptorHeap()
     {
-        ALIMER_ASSERT(Heaps[0] == nullptr);
+        ALIMER_ASSERT(_heaps[0] == nullptr);
     }
 
     void DescriptorHeap::Initialize(ID3D12Device* device, uint32_t numPersistent, uint32_t numTemporary, D3D12_DESCRIPTOR_HEAP_TYPE heapType, bool shaderVisible)
@@ -365,7 +493,7 @@ namespace d3d12
         if (heapType == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || heapType == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
             ShaderVisible = false;
 
-        NumHeaps = ShaderVisible ? 2 : 1;
+        _heapCount = ShaderVisible ? 2 : 1;
 
         DeadList.resize(numPersistent);
         for (uint32_t i = 0u; i < numPersistent; ++i)
@@ -381,13 +509,13 @@ namespace d3d12
         if (ShaderVisible)
             heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-        for (uint32_t i = 0; i < NumHeaps; ++i)
+        for (uint32_t i = 0; i < _heapCount; ++i)
         {
-            DXCall(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&Heaps[i])));
-            CPUStart[i] = Heaps[i]->GetCPUDescriptorHandleForHeapStart();
+            DXCall(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&_heaps[i])));
+            CPUStart[i] = _heaps[i]->GetCPUDescriptorHandleForHeapStart();
             if (ShaderVisible)
             {
-                GPUStart[i] = Heaps[i]->GetGPUDescriptorHandleForHeapStart();
+                GPUStart[i] = _heaps[i]->GetGPUDescriptorHandleForHeapStart();
             }
         }
 
@@ -397,15 +525,22 @@ namespace d3d12
     void DescriptorHeap::Shutdown()
     {
         ALIMER_ASSERT(PersistentAllocated == 0);
-        for (uint64_t i = 0; i < ArraySize_(Heaps); ++i)
+        for (uint64_t i = 0; i < ArraySize_(_heaps); ++i)
         {
-            Release(Heaps[i]);
+            Release(_heaps[i]);
         }
+    }
+
+    void DescriptorHeap::EndFrame()
+    {
+        ALIMER_ASSERT(_heaps[0] != nullptr);
+        TemporaryAllocated = 0;
+        _heapIndex = (_heapIndex + 1) % _heapCount;
     }
 
     PersistentDescriptorAlloc DescriptorHeap::AllocatePersistent()
     {
-        ALIMER_ASSERT(Heaps[0] != nullptr);
+        ALIMER_ASSERT(_heaps[0] != nullptr);
 
         AcquireSRWLockExclusive(&Lock);
 
@@ -417,7 +552,7 @@ namespace d3d12
 
         PersistentDescriptorAlloc alloc;
         alloc.Index = index;
-        for (uint32_t i = 0; i < NumHeaps; ++i)
+        for (uint32_t i = 0; i < _heapCount; ++i)
         {
             alloc.Handles[i] = CPUStart[i];
             alloc.Handles[i].ptr += index * DescriptorSize;
@@ -432,7 +567,7 @@ namespace d3d12
             return;
 
         ALIMER_ASSERT(index < NumPersistent);
-        ALIMER_ASSERT(Heaps[0] != nullptr);
+        ALIMER_ASSERT(_heaps[0] != nullptr);
 
         AcquireSRWLockExclusive(&Lock);
 
@@ -447,7 +582,7 @@ namespace d3d12
 
     void DescriptorHeap::FreePersistent(D3D12_CPU_DESCRIPTOR_HANDLE& handle)
     {
-        ALIMER_ASSERT(NumHeaps == 1);
+        ALIMER_ASSERT(_heapCount == 1);
         if (handle.ptr != 0)
         {
             uint32_t index = IndexFromHandle(handle);
@@ -458,7 +593,7 @@ namespace d3d12
 
     void DescriptorHeap::FreePersistent(D3D12_GPU_DESCRIPTOR_HANDLE& handle)
     {
-        ALIMER_ASSERT(NumHeaps == 1);
+        ALIMER_ASSERT(_heapCount == 1);
         if (handle.ptr != 0)
         {
             uint32_t index = IndexFromHandle(handle);
@@ -469,18 +604,18 @@ namespace d3d12
 
     D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CPUHandleFromIndex(uint32_t descriptorIndex) const
     {
-        return CPUHandleFromIndex(descriptorIndex, HeapIndex);
+        return CPUHandleFromIndex(descriptorIndex, _heapIndex);
     }
 
     D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GPUHandleFromIndex(uint32_t descriptorIndex) const
     {
-        return GPUHandleFromIndex(descriptorIndex, HeapIndex);
+        return GPUHandleFromIndex(descriptorIndex, _heapIndex);
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CPUHandleFromIndex(uint32_t descriptorIndex, uint64_t heapIndex) const
     {
-        ALIMER_ASSERT(Heaps[0] != nullptr);
-        ALIMER_ASSERT(heapIndex < NumHeaps);
+        ALIMER_ASSERT(_heaps[0] != nullptr);
+        ALIMER_ASSERT(heapIndex < _heapCount);
         ALIMER_ASSERT(descriptorIndex < TotalNumDescriptors());
         D3D12_CPU_DESCRIPTOR_HANDLE handle = CPUStart[heapIndex];
         handle.ptr += descriptorIndex * DescriptorSize;
@@ -489,8 +624,8 @@ namespace d3d12
 
     D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GPUHandleFromIndex(uint32_t descriptorIndex, uint64_t heapIndex) const
     {
-        ALIMER_ASSERT(Heaps[0] != nullptr);
-        ALIMER_ASSERT(heapIndex < NumHeaps);
+        ALIMER_ASSERT(_heaps[0] != nullptr);
+        ALIMER_ASSERT(heapIndex < _heapCount);
         ALIMER_ASSERT(descriptorIndex < TotalNumDescriptors());
         ALIMER_ASSERT(ShaderVisible);
         D3D12_GPU_DESCRIPTOR_HANDLE handle = GPUStart[heapIndex];
@@ -500,26 +635,26 @@ namespace d3d12
 
     uint32_t DescriptorHeap::IndexFromHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle)
     {
-        ALIMER_ASSERT(Heaps[0] != nullptr);
-        ALIMER_ASSERT(handle.ptr >= CPUStart[HeapIndex].ptr);
-        ALIMER_ASSERT(handle.ptr < CPUStart[HeapIndex].ptr + DescriptorSize * TotalNumDescriptors());
-        ALIMER_ASSERT((handle.ptr - CPUStart[HeapIndex].ptr) % DescriptorSize == 0);
-        return uint32_t(handle.ptr - CPUStart[HeapIndex].ptr) / DescriptorSize;
+        ALIMER_ASSERT(_heaps[0] != nullptr);
+        ALIMER_ASSERT(handle.ptr >= CPUStart[_heapIndex].ptr);
+        ALIMER_ASSERT(handle.ptr < CPUStart[_heapIndex].ptr + DescriptorSize * TotalNumDescriptors());
+        ALIMER_ASSERT((handle.ptr - CPUStart[_heapIndex].ptr) % DescriptorSize == 0);
+        return uint32_t(handle.ptr - CPUStart[_heapIndex].ptr) / DescriptorSize;
     }
 
     uint32_t DescriptorHeap::IndexFromHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle)
     {
-        ALIMER_ASSERT(Heaps[0] != nullptr);
-        ALIMER_ASSERT(handle.ptr >= GPUStart[HeapIndex].ptr);
-        ALIMER_ASSERT(handle.ptr < GPUStart[HeapIndex].ptr + DescriptorSize * TotalNumDescriptors());
-        ALIMER_ASSERT((handle.ptr - GPUStart[HeapIndex].ptr) % DescriptorSize == 0);
-        return uint32_t(handle.ptr - GPUStart[HeapIndex].ptr) / DescriptorSize;
+        ALIMER_ASSERT(_heaps[0] != nullptr);
+        ALIMER_ASSERT(handle.ptr >= GPUStart[_heapIndex].ptr);
+        ALIMER_ASSERT(handle.ptr < GPUStart[_heapIndex].ptr + DescriptorSize * TotalNumDescriptors());
+        ALIMER_ASSERT((handle.ptr - GPUStart[_heapIndex].ptr) % DescriptorSize == 0);
+        return uint32_t(handle.ptr - GPUStart[_heapIndex].ptr) / DescriptorSize;
     }
 
     ID3D12DescriptorHeap* DescriptorHeap::CurrentHeap() const
     {
-        ALIMER_ASSERT(Heaps[0] != nullptr);
-        return Heaps[HeapIndex];
+        ALIMER_ASSERT(_heaps[0] != nullptr);
+        return _heaps[_heapIndex];
     }
 
     /* AGpuRendererD3D12 */
@@ -713,16 +848,7 @@ namespace d3d12
         {
             _mainSwapchain->backBufferIndex = _mainSwapchain->d3d12SwapChain->GetCurrentBackBufferIndex();
 
-            // Indicate that the back buffer will be used as a render target.
-            TransitionResource(_commandList,
-                _mainSwapchain->d3d12RenderTargets[_mainSwapchain->backBufferIndex],
-                D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[1] = { _mainSwapchain->d3d12RTV[_mainSwapchain->backBufferIndex] };
-            _commandList->OMSetRenderTargets(1, rtvHandles, FALSE, nullptr);
-
-            const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-            _commandList->ClearRenderTargetView(rtvHandles[0], clearColor, 0, nullptr);
+            BeginRenderPass(_mainSwapchain->backBufferFramebuffers[_mainSwapchain->backBufferIndex]);
         }
     }
 
@@ -730,10 +856,7 @@ namespace d3d12
     {
         if (!_headless)
         {
-            // Indicate that the back buffer will now be used to present.
-            TransitionResource(_commandList,
-                _mainSwapchain->d3d12RenderTargets[_mainSwapchain->backBufferIndex],
-                D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+            EndRenderPass();
         }
 
         // Send the command list off to the GPU for processing.
@@ -763,7 +886,8 @@ namespace d3d12
 
         // Set the fence value for the next frame.
         _fenceValues[_currentFrameIndex] = currentFenceValue + 1;
-       
+
+        _RTVDescriptorHeap.EndFrame();
         //EndFrame_Helpers();
 
         // See if we have any deferred releases to process
@@ -846,13 +970,38 @@ namespace d3d12
     AgpuSwapchain AGpuRendererD3D12::CreateSwapchain(const AgpuSwapchainDescriptor* descriptor)
     {
         // Create a descriptor for the swap chain.
-        const DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+        AgpuPixelFormat backBufferFormat = AGPU_PIXEL_FORMAT_BGRA8_UNORM;
+        DXGI_FORMAT dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+        uint32_t backbufferCount = 2;
+        if (descriptor->preferredColorFormat != AGPU_PIXEL_FORMAT_UNKNOWN)
+        {
+            switch (descriptor->preferredColorFormat)
+            {
+            case AGPU_PIXEL_FORMAT_BGRA8_UNORM_SRGB:
+                backBufferFormat = AGPU_PIXEL_FORMAT_BGRA8_UNORM_SRGB;
+                dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+                break;
+
+            default:
+                backBufferFormat = AGPU_PIXEL_FORMAT_BGRA8_UNORM;
+                dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+                break;
+            }
+        }
+
+        if (descriptor->bufferCount != 0)
+        {
+            backbufferCount = descriptor->bufferCount;
+            if (backbufferCount > 3)
+                backbufferCount = 3;
+        }
+
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
         swapChainDesc.Width = descriptor->width;
         swapChainDesc.Height = descriptor->height;
-        swapChainDesc.Format = backBufferFormat;
+        swapChainDesc.Format = dxgiBackBufferFormat;
         swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swapChainDesc.BufferCount = RenderLatency;
+        swapChainDesc.BufferCount = backbufferCount;
         swapChainDesc.SampleDesc.Count = 1;
         swapChainDesc.SampleDesc.Quality = 0;
         swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
@@ -871,7 +1020,7 @@ namespace d3d12
         IDXGISwapChain1* swapChain;
         DXCall(_dxgiFactory->CreateSwapChainForHwnd(
             _graphicsQueue,
-            static_cast<HWND>(descriptor->handle.handle),
+            static_cast<HWND>(descriptor->windowHandle),
             &swapChainDesc,
             &fsSwapChainDesc,
             nullptr,
@@ -884,25 +1033,39 @@ namespace d3d12
 
         // Create engine instance and assign.
         AgpuSwapchain swapchain = new AgpuSwapchain_T();
-        swapchain->backbufferCount = 2;
-        swapchain->d3d12SwapChain = swapChain3;
         swapchain->backBufferIndex = swapChain3->GetCurrentBackBufferIndex();
+        swapchain->backbufferCount = backbufferCount;
+        swapchain->backBufferFormat = backBufferFormat;
+        swapchain->dxgiBackBufferFormat = dxgiBackBufferFormat;
+        swapchain->d3d12SwapChain = swapChain3;
+
+        AgpuTextureDescriptor textureDescriptor = {};
+        textureDescriptor.type = AGPU_TEXTURE_TYPE_2D;
+        textureDescriptor.width = descriptor->width;
+        textureDescriptor.height = descriptor->height;
+        textureDescriptor.depthOrArraySize = 1;
+        textureDescriptor.mipLevels = 1;
+        textureDescriptor.format = backBufferFormat;
+        textureDescriptor.usage = AgpuTextureUsage(AGPU_TEXTURE_USAGE_OUTPUT_ATTACHMENT | AGPU_TEXTURE_USAGE_PRESENT);
+        textureDescriptor.samples = AGPU_SAMPLE_COUNT1;
+
+        AgpuFramebufferDescriptor fboDescriptor = {};
 
         for (uint32_t i = 0; i < swapchain->backbufferCount; i++)
         {
-            swapchain->d3d12RTV[i] = _RTVDescriptorHeap.AllocatePersistent().Handles[0];
-            DXCall(swapChain3->GetBuffer(i, IID_PPV_ARGS(&swapchain->d3d12RenderTargets[i])));
-
-            D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = { };
-            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-            rtvDesc.Format = backBufferFormat;
-            rtvDesc.Texture2D.MipSlice = 0;
-            rtvDesc.Texture2D.PlaneSlice = 0;
-            _d3dDevice->CreateRenderTargetView(swapchain->d3d12RenderTargets[i], &rtvDesc, swapchain->d3d12RTV[i]);
+            ID3D12Resource* resource;
+            DXCall(swapChain3->GetBuffer(i, IID_PPV_ARGS(&resource)));
 
             wchar_t name[25] = {};
             swprintf_s(name, L"Back Buffer %u", i);
-            swapchain->d3d12RenderTargets[i]->SetName(name);
+            resource->SetName(name);
+
+            // Create external texture.
+            swapchain->backBufferTexture[i] = CreateTexture(&textureDescriptor, resource);
+
+            // Create framebuffer.
+            fboDescriptor.colorAttachments[0].texture = swapchain->backBufferTexture[i];
+            swapchain->backBufferFramebuffers[i] = CreateFramebuffer(&fboDescriptor);
         }
 
         return swapchain;
@@ -912,13 +1075,158 @@ namespace d3d12
     {
         for (uint32_t i = 0; i < swapchain->backbufferCount; ++i)
         {
-            Release(swapchain->d3d12RenderTargets[i]);
-            _RTVDescriptorHeap.FreePersistent(swapchain->d3d12RTV[i]);
+            DestroyTexture(swapchain->backBufferTexture[i]);
+            DestroyFramebuffer(swapchain->backBufferFramebuffers[i]);
         }
 
         DeferredRelease(swapchain->d3d12SwapChain);
         delete swapchain;
         swapchain = nullptr;
+    }
+
+    AgpuTexture AGpuRendererD3D12::CreateTexture(const AgpuTextureDescriptor* descriptor, void* externalHandle)
+    {
+        AgpuTexture texture = new AgpuTexture_T();
+
+        texture->dxgiFormat = agpuD3D12ConvertPixelFormat(descriptor->format);
+        if (externalHandle == nullptr)
+        {
+
+        }
+        else
+        {
+            texture->d3d12Resource = static_cast<ID3D12Resource*>(externalHandle);
+        }
+
+        if (descriptor->usage & AGPU_TEXTURE_USAGE_PRESENT)
+        {
+            texture->d3d12ResourceState = D3D12_RESOURCE_STATE_PRESENT;
+        }
+        else
+        {
+            if (descriptor->usage & AGPU_TEXTURE_USAGE_TRANSFER_SRC)
+            {
+                texture->d3d12ResourceState |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+            }
+
+            if (descriptor->usage & AGPU_TEXTURE_USAGE_TRANSFER_DEST)
+            {
+                texture->d3d12ResourceState |= D3D12_RESOURCE_STATE_COPY_DEST;
+            }
+
+            if (descriptor->usage & AGPU_TEXTURE_USAGE_SAMPLED)
+            {
+                texture->d3d12ResourceState |= (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+                    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            }
+
+            if (descriptor->usage & AGPU_TEXTURE_USAGE_STORAGE)
+            {
+                texture->d3d12ResourceState |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            }
+            if (descriptor->usage & AGPU_TEXTURE_USAGE_OUTPUT_ATTACHMENT)
+            {
+                if (agpuIsDepthFormat(descriptor->format) || agpuIsStencilFormat(descriptor->format))
+                {
+                    texture->d3d12ResourceState |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
+                }
+                else
+                {
+                    texture->d3d12ResourceState |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+                }
+            }
+        }
+
+        return texture;
+    }
+
+    void AGpuRendererD3D12::DestroyTexture(AgpuTexture texture)
+    {
+        DeferredRelease(texture->d3d12Resource);
+        delete texture;
+        texture = nullptr;
+    }
+
+    /* Framebuffer */
+    AgpuFramebuffer AGpuRendererD3D12::CreateFramebuffer(const AgpuFramebufferDescriptor* descriptor)
+    {
+        AgpuFramebuffer framebuffer = new AgpuFramebuffer_T();
+        framebuffer->numRTVs = 0;
+        for (int i = 0; i < AGPU_MAX_COLOR_ATTACHMENTS; i++)
+        {
+            if (descriptor->colorAttachments[i].texture == nullptr)
+                continue;
+
+            framebuffer->colorAttachments[framebuffer->numRTVs] = descriptor->colorAttachments[i];
+            framebuffer->d3d12RTVs[framebuffer->numRTVs] = _RTVDescriptorHeap.AllocatePersistent().Handles[0];
+
+            D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = { };
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            rtvDesc.Format = descriptor->colorAttachments[i].texture->dxgiFormat;
+            rtvDesc.Texture2D.MipSlice = descriptor->colorAttachments[i].mipLevel;
+            rtvDesc.Texture2D.PlaneSlice = 0;
+
+            _d3dDevice->CreateRenderTargetView(
+                descriptor->colorAttachments[i].texture->d3d12Resource,
+                nullptr,
+                framebuffer->d3d12RTVs[framebuffer->numRTVs]
+            );
+
+            framebuffer->numRTVs++;
+        }
+
+        return framebuffer;
+    }
+
+    void AGpuRendererD3D12::DestroyFramebuffer(AgpuFramebuffer framebuffer)
+    {
+        for (uint32_t i = 0; i < framebuffer->numRTVs; i++)
+        {
+            _RTVDescriptorHeap.FreePersistent(framebuffer->d3d12RTVs[i]);
+        }
+
+        delete framebuffer;
+        framebuffer = nullptr;
+    }
+
+    void AGpuRendererD3D12::BeginRenderPass(AgpuFramebuffer framebuffer)
+    {
+        _currentFramebuffer = framebuffer;
+
+        for (uint32_t i = 0; i < framebuffer->numRTVs; ++i)
+        {
+            // Indicate that the resource will be used as a render target.
+            TransitionResource(_commandList,
+                framebuffer->colorAttachments[i].texture->d3d12Resource,
+                framebuffer->colorAttachments[i].texture->d3d12ResourceState,
+                D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+            const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+            _commandList->ClearRenderTargetView(framebuffer->d3d12RTVs[i], clearColor, 0, nullptr);
+        }
+
+        if (framebuffer->d3d12DSV.ptr)
+        {
+            _commandList->OMSetRenderTargets(framebuffer->numRTVs, framebuffer->d3d12RTVs, FALSE, &framebuffer->d3d12DSV);
+        }
+        else
+        {
+            _commandList->OMSetRenderTargets(framebuffer->numRTVs, framebuffer->d3d12RTVs, FALSE, nullptr);
+        }
+    }
+
+    void AGpuRendererD3D12::EndRenderPass()
+    {
+        for (uint32_t i = 0; i < _currentFramebuffer->numRTVs; ++i)
+        {
+            // Indicate that the back buffer will now be used to present.
+            TransitionResource(_commandList,
+                _currentFramebuffer->colorAttachments[i].texture->d3d12Resource,
+                D3D12_RESOURCE_STATE_RENDER_TARGET,
+                _currentFramebuffer->colorAttachments[i].texture->d3d12ResourceState);
+        }
+
+        _currentFramebuffer = nullptr;
     }
 
     AgpuBool32 isSupported()

@@ -21,22 +21,23 @@
 // THE SOFTWARE.
 //
 
+#include "alimer_platform.h"
 #include "Alimer.h"
 using namespace Alimer;
 
 extern "C"
 {
-	ALIMER_DLL_EXPORT uint32_t RefCounted_Refs(RefCounted* _this)
+    EXPORT_API uint32_t RefCounted_Refs(RefCounted* _this)
 	{
 		return _this->Refs();
 	}
 
-	ALIMER_DLL_EXPORT uint32_t RefCounted_WeakRefs(RefCounted* _this)
+    EXPORT_API uint32_t RefCounted_WeakRefs(RefCounted* _this)
 	{
 		return _this->WeakRefs();
 	}
 
-	ALIMER_DLL_EXPORT void Ref_TryDelete(RefCounted* _this)
+    EXPORT_API void Ref_TryDelete(RefCounted* _this)
 	{
 		if (_this && _this->RefCountPtr() && !_this->Refs()) {
 			delete _this;

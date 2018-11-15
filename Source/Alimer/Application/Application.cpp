@@ -91,9 +91,13 @@ namespace Alimer
             AgpuDescriptor descriptor = {};
             descriptor.validation = AGPU_TRUE;
             descriptor.preferredBackend = AGPU_BACKEND_DEFAULT;
+
             descriptor.swapchain.width = windowSize.x;
             descriptor.swapchain.height = windowSize.y;
-            descriptor.swapchain.handle.handle = (void*) _mainWindow->GetHandle();
+#if ALIMER_PLATFORM_WINDOWS
+            descriptor.swapchain.display = (void*)_mainWindow->GetHInstance();
+            descriptor.swapchain.windowHandle = (void*)_mainWindow->GetHandle();
+#endif
             agpuInitialize(&descriptor);
 
             /*_graphicsDevice = GraphicsDevice::Create(_settings.prefferedGraphicsBackend, _settings.validation);

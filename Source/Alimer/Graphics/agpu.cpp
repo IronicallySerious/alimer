@@ -21,6 +21,7 @@
 //
 
 #include "../Base/Debug.h"
+
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
 #include "../Core/Log.h"
@@ -38,6 +39,11 @@ extern "C"
 #endif /* defined(_WIN32) */
 
 static AGpuRendererI* s_renderer = nullptr;
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4201)   /* nonstandard extension used: nameless struct/union */
+#endif
 
 std::vector<AgpuBackend> agpuGetSupportedBackends()
 {
@@ -199,3 +205,137 @@ uint64_t agpuFrame()
 {
     return s_renderer->Frame();
 }
+
+AgpuTexture agpuCreateTexture(const AgpuTextureDescriptor* descriptor)
+{
+    return s_renderer->CreateTexture(descriptor, NULL);
+}
+
+AgpuTexture agpuCreateExternalTexture(const AgpuTextureDescriptor* descriptor, void* handle)
+{
+    return s_renderer->CreateTexture(descriptor, handle);
+}
+
+void agpuDestroyTexture(AgpuTexture texture)
+{
+    s_renderer->DestroyTexture(texture);
+}
+
+AgpuFramebuffer agpuCreateFramebuffer(const AgpuFramebufferDescriptor* descriptor)
+{
+    return s_renderer->CreateFramebuffer(descriptor);
+}
+
+void agpuDestroyFramebuffer(AgpuFramebuffer framebuffer)
+{
+    s_renderer->DestroyFramebuffer(framebuffer);
+}
+
+typedef enum AgpuPixelFormatType
+{
+    /// Unknown format Type
+    AGPU_PIXEL_FORMAT_TYPE_UNKNOWN      = 0,
+    /// _FLOATing-point formats
+    AGPU_PIXEL_FORMAT_TYPE_FLOAT        = 1,
+    /// Unsigned normalized formats
+    AGPU_PIXEL_FORMAT_TYPE_UNORM        = 2,
+    /// Unsigned normalized SRGB formats
+    AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB   = 3,
+    /// Signed normalized formats
+    AGPU_PIXEL_FORMAT_TYPE_SNORM        = 4,
+    /// Unsigned integer formats
+    AGPU_PIXEL_FORMAT_TYPE_UINT         = 5,
+    /// Signed integer formats
+    AGPU_PIXEL_FORMAT_TYPE_SINT         = 6
+} AgpuPixelFormatType;
+
+struct AgpuPixelFormatDesc
+{
+    AgpuPixelFormat format;
+    const char* name;
+    uint32_t bytesPerBlock;
+    uint32_t channelCount;
+    AgpuPixelFormatType Type;
+    struct
+    {
+        bool isDepth;
+        bool isStencil;
+        bool isCompressed;
+    };
+    struct
+    {
+        uint32_t width;
+        uint32_t height;
+    } compressionRatio;
+};
+
+const AgpuPixelFormatDesc FormatDesc[] =
+{
+    // Format                               Name,               BytesPerBlock, ChannelCount,  Type  {Depth,  Stencil, Compressed},      {CompressionRatio.Width, CompressionRatio.Height}
+    { AGPU_PIXEL_FORMAT_UNKNOWN,            "Unknown",          0,  0,  AGPU_PIXEL_FORMAT_TYPE_UNKNOWN,    { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_R8_UNORM,           "R8_UNORM",         1,  1,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_R8_SNORM,           "R8_SNORM",         1,  1,  AGPU_PIXEL_FORMAT_TYPE_SNORM,      { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_R16_UNORM,          "R16_UNORM",        2,  1,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_R16_SNORM,          "R16_SNORM",        2,  1,  AGPU_PIXEL_FORMAT_TYPE_SNORM,      { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_RG8_UNORM,          "RG8_UNORM",        2,  2,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_RG8_SNORM,          "RG8_SNORM",        2,  2,  AGPU_PIXEL_FORMAT_TYPE_SNORM,      { false, false, false,},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_RG16_UNORM,         "RG16_UNORM",       4,  2,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_RG16_SNORM,         "RG16_SNORM",       4,  2,  AGPU_PIXEL_FORMAT_TYPE_SNORM,      { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_RGB16_UNORM,        "RGB16_UNORM",      6,  3,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_RGB16_SNORM,        "RGB16_SNORM",      6,  3,  AGPU_PIXEL_FORMAT_TYPE_SNORM,      { false, false, false},            {1, 1}},
+
+    { AGPU_PIXEL_FORMAT_RGBA8_UNORM,        "RGBA8_UNORM",      4,  4,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_RGBA8_UNORM_SRGB,   "RGBA8_UNORMSrgb",  4,  4,  AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  { false, false, false},            {1, 1}},
+    { AGPU_PIXEL_FORMAT_RGBA8_SNORM,        "RGBA8_SNORM",      4,  4,  AGPU_PIXEL_FORMAT_TYPE_SNORM,      { false, false, false},            {1, 1}},
+
+    { AGPU_PIXEL_FORMAT_BGRA8_UNORM,        "BGRA8_UNORM",      4,  4,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false,  false, false},           {1, 1}},
+    { AGPU_PIXEL_FORMAT_BGRA8_UNORM_SRGB,   "BGRA8_UNORMSrgb",  4,  4,  AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  { false,  false, false},           {1, 1}},
+
+    { AGPU_PIXEL_FORMAT_D32_FLOAT,          "D32_FLOAT",        4,  1,  AGPU_PIXEL_FORMAT_TYPE_FLOAT,      { true,   false, false},           {1, 1}},
+    { AGPU_PIXEL_FORMAT_D16_UNORM,          "D16_UNORM",        2,  1,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { true,   false, false},           {1, 1}},
+    { AGPU_PIXEL_FORMAT_D24_UNORM_S8,       "D24_UNORMS8",      4,  2,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { true,   true,  false},           {1, 1}},
+    { AGPU_PIXEL_FORMAT_D32_FLOAT_S8,       "D32_FLOATS8",      8,  2,  AGPU_PIXEL_FORMAT_TYPE_FLOAT,      { true,   true,  false},           {1, 1}},
+
+    { AGPU_PIXEL_FORMAT_BC1_UNORM,          "BC1_UNORM",        8,  3,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false,  false, true },           {4, 4}},
+    { AGPU_PIXEL_FORMAT_BC1_UNORM_SRGB,     "BC1_UNORMSrgb",    8,  3,  AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  { false,  false, true },           {4, 4}},
+    { AGPU_PIXEL_FORMAT_BC2_UNORM,          "BC2_UNORM",        16, 4,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false,  false, true },           {4, 4}},
+    { AGPU_PIXEL_FORMAT_BC2_UNORM_SRGB,     "BC2_UNORMSrgb",    16, 4,  AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  { false,  false, true },           {4, 4}},
+    { AGPU_PIXEL_FORMAT_BC3_UNORM,          "BC3_UNORM",        16, 4,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false,  false, true },           {4, 4}},
+    { AGPU_PIXEL_FORMAT_BC3_UNORM_SRGB,     "BC3_UNORMSrgb",    16, 4,  AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  { false,  false, true },           {4, 4}},
+    { AGPU_PIXEL_FORMAT_BC4_UNORM,          "BC4_UNORM",        8,  1,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false,  false, true },           {4, 4}},
+    { AGPU_PIXEL_FORMAT_BC4_SNORM,          "BC4_SNORM",        8,  1,  AGPU_PIXEL_FORMAT_TYPE_SNORM,      { false,  false, true },           {4, 4}},
+    { AGPU_PIXEL_FORMAT_BC5_UNORM,          "BC5_UNORM",        16, 2,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false,  false, true },           {4, 4}},
+    { AGPU_PIXEL_FORMAT_BC5_SNORM,          "BC5_SNORM",        16, 2,  AGPU_PIXEL_FORMAT_TYPE_SNORM,      { false,  false, true },           {4, 4}},
+
+    { AGPU_PIXEL_FORMAT_BC6HS16,            "BC6HS16",          16, 3,  AGPU_PIXEL_FORMAT_TYPE_FLOAT,      { false,  false, true, },          { 4, 4 }},
+    { AGPU_PIXEL_FORMAT_BC6HU16,            "BC6HU16",          16, 3,  AGPU_PIXEL_FORMAT_TYPE_FLOAT,      { false,  false, true, },          { 4, 4 } },
+    { AGPU_PIXEL_FORMAT_BC7_UNORM,          "BC7_UNORM",        16, 4,  AGPU_PIXEL_FORMAT_TYPE_UNORM,      { false,  false, true, },          { 4, 4 } },
+    { AGPU_PIXEL_FORMAT_BC7_UNORM_SRGB,     "BC7_UNORMSrgb",    16, 4,  AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  { false,  false, true, },          { 4, 4 } },
+};
+
+AgpuBool32 agpuIsDepthFormat(AgpuPixelFormat format)
+{
+    ALIMER_ASSERT(FormatDesc[format].format == format);
+    return FormatDesc[format].isDepth;
+}
+
+AgpuBool32 agpuIsStencilFormat(AgpuPixelFormat format)
+{
+    ALIMER_ASSERT(FormatDesc[format].format == format);
+    return FormatDesc[format].isStencil;
+}
+
+AgpuBool32 agpuIsDepthStencilFormat(AgpuPixelFormat format)
+{
+    return agpuIsDepthFormat(format) || agpuIsStencilFormat(format);
+}
+
+AgpuBool32 agpuIsCompressed(AgpuPixelFormat format)
+{
+    ALIMER_ASSERT(FormatDesc[format].format == format);
+    return FormatDesc[format].isCompressed;
+}
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
