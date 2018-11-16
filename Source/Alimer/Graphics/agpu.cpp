@@ -231,6 +231,36 @@ void agpuDestroyFramebuffer(AgpuFramebuffer framebuffer)
     s_renderer->DestroyFramebuffer(framebuffer);
 }
 
+AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor)
+{
+    return s_renderer->CreateShader(descriptor);
+}
+
+void agpuDestroyShader(AgpuShader shader)
+{
+    s_renderer->DestroyShader(shader);
+}
+
+AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
+{
+    ALIMER_ASSERT_MSG(descriptor, "Invalid render pipeline descriptor.");
+    ALIMER_ASSERT_MSG(descriptor->shader, "Invalid shader.");
+    return s_renderer->CreateRenderPipeline(descriptor);
+}
+
+AgpuPipeline agpuCreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor)
+{
+    ALIMER_ASSERT_MSG(descriptor, "Invalid compute pipeline descriptor.");
+    ALIMER_ASSERT_MSG(descriptor->shader, "Invalid shader");
+
+    return s_renderer->CreateComputePipeline(descriptor);
+}
+
+void agpuDestroyPipeline(AgpuPipeline pipeline)
+{
+    s_renderer->DestroyPipeline(pipeline);
+}
+
 typedef enum AgpuPixelFormatType
 {
     /// Unknown format Type

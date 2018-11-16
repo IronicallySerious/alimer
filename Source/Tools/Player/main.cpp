@@ -76,9 +76,43 @@ namespace Alimer
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);*/
 
-            RenderPipelineDescriptor renderPipelineDesc = {};
+            const char* hlsl = R"(struct PSInput
+            {
+                float4 position : SV_POSITION;
+                float4 color : COLOR;
+            };
+
+            PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
+            {
+                PSInput result;
+
+                result.position = position;
+                result.color = color;
+
+                return result;
+            }
+
+            float4 PSMain(PSInput input) : SV_TARGET
+            {
+                return input.color;
+            })";
+
+            AgpuShaderDescriptor descriptor = {};
+            descriptor.stage = AGPU_SHADER_STAGE_VERTEX;
+            descriptor.source = hlsl;
+            descriptor.entryPoint = "VSMain";
+            auto vertexShader = agpuCreateShader(&descriptor);
+
+            descriptor.stage = AGPU_SHADER_STAGE_PIXEL;
+            descriptor.source = hlsl;
+            descriptor.entryPoint = "PSMain";
+            auto fragmentShader = agpuCreateShader(&descriptor);
+            ALIMER_UNUSED(vertexShader);
+            ALIMER_UNUSED(fragmentShader);
+
+            /*RenderPipelineDescriptor renderPipelineDesc = {};
             renderPipelineDesc.shaders[ecast(ShaderStage::Vertex)] = device->RequestShader("shaders/color.vert");
             renderPipelineDesc.shaders[ecast(ShaderStage::Fragment)] = device->RequestShader("shaders/color.frag");
             _pipeline = device->CreateRenderPipeline(&renderPipelineDesc);*/

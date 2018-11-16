@@ -44,6 +44,8 @@ extern "C"
     AGPU_DEFINE_HANDLE(AgpuTexture);
     AGPU_DEFINE_HANDLE(AgpuFramebuffer);
     AGPU_DEFINE_HANDLE(AgpuBuffer);
+    AGPU_DEFINE_HANDLE(AgpuShader);
+    AGPU_DEFINE_HANDLE(AgpuPipeline);
 
 #define AGPU_TRUE                           1
 #define AGPU_FALSE                          0
@@ -148,43 +150,82 @@ extern "C"
         AGPU_TEXTURE_USAGE_PRESENT              = 32,
     } AgpuTextureUsage;
 
+    typedef enum AgpuShaderStage {
+        AGPU_SHADER_STAGE_VERTEX    = 0,
+        AGPU_SHADER_STAGE_HULL      = 1,
+        AGPU_SHADER_STAGE_DOMAIN    = 2,
+        AGPU_SHADER_STAGE_GEOMETRY  = 3,
+        AGPU_SHADER_STAGE_PIXEL     = 4,
+        AGPU_SHADER_STAGE_COMPUTE   = 5,
+        AGPU_SHADER_STAGE_COUNT     = 6,
+    } AgpuShaderStage;
+
+    typedef enum AgpuShaderLanguage {
+        AGPU_SHADER_LANGUAGE_DEFAULT    = 0,
+        AGPU_SHADER_LANGUAGE_HLSL       = 1,
+        AGPU_SHADER_LANGUAGE_GLSL       = 2,
+    } AgpuShaderLanguage;
+
     typedef struct AgpuFramebufferAttachment
     {
-        AgpuTexture texture;
-        uint32_t mipLevel;
-        uint32_t slice;
+        AgpuTexture                 texture;
+        uint32_t                    mipLevel;
+        uint32_t                    slice;
     } AgpuFramebufferAttachment;
 
     typedef struct AgpuTextureDescriptor {
-        AgpuTextureType     type;
-        uint32_t            width;
-        uint32_t            height;
-        uint32_t            depthOrArraySize;
-        uint32_t            mipLevels;
-        AgpuPixelFormat     format;
-        AgpuTextureUsage    usage;
-        AgpuSampleCount     samples;
+        AgpuTextureType             type;
+        uint32_t                    width;
+        uint32_t                    height;
+        uint32_t                    depthOrArraySize;
+        uint32_t                    mipLevels;
+        AgpuPixelFormat             format;
+        AgpuTextureUsage            usage;
+        AgpuSampleCount             samples;
     } AgpuTextureDescriptor;
 
     typedef struct AgpuFramebufferDescriptor {
-        AgpuFramebufferAttachment colorAttachments[AGPU_MAX_COLOR_ATTACHMENTS];
-        AgpuFramebufferAttachment depthStencilAttachment;
+        AgpuFramebufferAttachment   colorAttachments[AGPU_MAX_COLOR_ATTACHMENTS];
+        AgpuFramebufferAttachment   depthStencilAttachment;
     } AgpuFramebufferDescriptor;
+
+    typedef struct AgpuShaderBlob
+    {
+        uint64_t size;
+        uint8_t *data;
+    } AgpuShaderBlob;
+
+    typedef struct AgpuShaderDescriptor {
+        AgpuShaderStage             stage;
+        uint64_t                    codeSize;
+        uint8_t*                    pCode;
+        const char*                 source;
+        const char*                 entryPoint;
+        AgpuShaderLanguage          language;
+    } AgpuShaderDescriptor;
+
+    typedef struct AgpuRenderPipelineDescriptor {
+        AgpuShader                  shader;
+    } AgpuRenderPipelineDescriptor;
+
+    typedef struct AgpuComputePipelineDescriptor {
+        AgpuShader                  shader;
+    } AgpuComputePipelineDescriptor;
 
     typedef struct AgpuSwapchainDescriptor {
         /// Native connection, display or instance type.
-        void*               display;
+        void*                       display;
         /// Native window handle.
-        void*               windowHandle;
+        void*                       windowHandle;
         /// Preferred color format.
-        AgpuPixelFormat     preferredColorFormat;
+        AgpuPixelFormat             preferredColorFormat;
         /// Preferred depth stencil format.
-        AgpuPixelFormat     preferredDepthStencilFormat;
-        uint32_t            width;
-        uint32_t            height;
-        uint32_t            bufferCount;
+        AgpuPixelFormat             preferredDepthStencilFormat;
+        uint32_t                    width;
+        uint32_t                    height;
+        uint32_t                    bufferCount;
         /// Preferred samples.
-        AgpuSampleCount     preferredSamples;
+        AgpuSampleCount             preferredSamples;
     } AgpuSwapchainDescriptor;
 
     typedef struct AgpuDescriptor {
@@ -209,6 +250,13 @@ extern "C"
 
     AGPU_API AgpuFramebuffer agpuCreateFramebuffer(const AgpuFramebufferDescriptor* descriptor);
     AGPU_API void agpuDestroyFramebuffer(AgpuFramebuffer framebuffer);
+
+    AGPU_API AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor);
+    AGPU_API void agpuDestroyShader(AgpuShader shader);
+
+    AGPU_API AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor);
+    AGPU_API AgpuPipeline agpuCreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor);
+    AGPU_API void agpuDestroyPipeline(AgpuPipeline pipeline);
 
     AGPU_API AgpuBool32 agpuIsDepthFormat(AgpuPixelFormat format);
     AGPU_API AgpuBool32 agpuIsStencilFormat(AgpuPixelFormat format);

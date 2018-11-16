@@ -40,6 +40,11 @@
 #   endif
 #endif
 
+#include <d3dcompiler.h>
+#if !(defined(WINAPI_FAMILY_PARTITION) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP))
+#   pragma comment (lib, "d3dcompiler.lib")
+#endif
+
 #if defined(_DURANGO) || defined(_XBOX_ONE)
 #   define AGPU_D3D12_DYNAMIC_LIB 0
 #elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
@@ -103,6 +108,7 @@ namespace d3d12
 
     DWORD           _dxgiFactoryFlags = 0;
     IDXGIFactory4*  _dxgiFactory = nullptr;
+    BOOL            _dxgiAllowTearing = FALSE;
 
     void GetDXGIAdapter(IDXGIAdapter1** ppAdapter)
     {
@@ -437,6 +443,15 @@ namespace d3d12
         /* Framebuffer */
         AgpuFramebuffer CreateFramebuffer(const AgpuFramebufferDescriptor* descriptor) override;
         void DestroyFramebuffer(AgpuFramebuffer framebuffer) override;
+
+        /* Shader */
+        AgpuShader CreateShader(const AgpuShaderDescriptor* descriptor) override;
+        void DestroyShader(AgpuShader shader) override;
+
+        /* Pipeline */
+        AgpuPipeline CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor) override;
+        AgpuPipeline CreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor) override;
+        void DestroyPipeline(AgpuPipeline pipeline) override;
 
         /* CommandList */
         void BeginRenderPass(AgpuFramebuffer framebuffer);
@@ -1189,6 +1204,175 @@ namespace d3d12
         framebuffer = nullptr;
     }
 
+    AgpuShader AGpuRendererD3D12::CreateShader(const AgpuShaderDescriptor* descriptor)
+    {
+        AgpuShader shader = new AgpuShader_T();
+        if (descriptor->pCode && descriptor->codeSize)
+        {
+            shader->d3d12Bytecode.BytecodeLength = descriptor->codeSize;
+            shader->d3d12Bytecode.pShaderBytecode = new uint8_t[descriptor->codeSize];
+            memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, descriptor->pCode, descriptor->codeSize);
+        }
+        else
+        {
+            const char* compileTarget = nullptr;
+            switch (descriptor->stage)
+            {
+            case AGPU_SHADER_STAGE_VERTEX:
+#ifdef AGPU_COMPILER_DXC
+                compileTarget = "vs_6_1";
+#else
+                compileTarget = "vs_5_1";
+#endif
+                break;
+            case AGPU_SHADER_STAGE_HULL:
+#ifdef AGPU_COMPILER_DXC
+                compileTarget = "hs_6_1";
+#else
+                compileTarget = "hs_5_1";
+#endif
+                break;
+
+            case AGPU_SHADER_STAGE_DOMAIN:
+#ifdef AGPU_COMPILER_DXC
+                compileTarget = "ds_6_1";
+#else
+                compileTarget = "ds_5_1";
+#endif
+                break;
+
+            case AGPU_SHADER_STAGE_GEOMETRY:
+#ifdef AGPU_COMPILER_DXC
+                compileTarget = "gs_6_1";
+#else
+                compileTarget = "gs_5_1";
+#endif
+                break;
+
+            case AGPU_SHADER_STAGE_PIXEL:
+#ifdef AGPU_COMPILER_DXC
+                compileTarget = "ps_6_1";
+#else
+                compileTarget = "ps_5_1";
+#endif
+                break;
+
+            case AGPU_SHADER_STAGE_COMPUTE:
+#ifdef AGPU_COMPILER_DXC
+                compileTarget = "cs_6_1";
+#else
+                compileTarget = "cs_5_1";
+#endif
+                break;
+
+            default:
+                break;
+            }
+
+#ifdef AGPU_COMPILER_DXC
+#else
+
+            // TODO: Cache.
+            UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
+            flags |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
+            flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
+#ifdef _DEBUG
+            flags |= D3DCOMPILE_DEBUG;
+#endif
+
+            const char* entryPoint = descriptor->entryPoint;
+            if (!entryPoint || !strlen(entryPoint))
+            {
+                entryPoint = "main";
+            }
+
+            ID3DBlob* compiledShader = nullptr;
+            ID3DBlob* errorMessages;
+            HRESULT hr = D3DCompile(
+                descriptor->source,
+                strlen(descriptor->source),
+                nullptr,
+                nullptr,
+                nullptr,
+                entryPoint,
+                compileTarget,
+                flags,
+                0,
+                &compiledShader,
+                &errorMessages);
+
+            if (FAILED(hr))
+            {
+                if (errorMessages)
+                {
+                    errorMessages->Release();
+                    errorMessages = nullptr;
+                }
+            }
+#endif
+        }
+
+        return shader;
+    }
+
+    void AGpuRendererD3D12::DestroyShader(AgpuShader shader)
+    {
+        delete[] shader->d3d12Bytecode.pShaderBytecode;
+        delete shader;
+        shader = nullptr;
+    }
+
+    AgpuPipeline AGpuRendererD3D12::CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
+    {
+        AgpuPipeline pipeline = new AgpuPipeline_T();
+        pipeline->isCompute = AGPU_FALSE;
+
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.pRootSignature = nullptr;
+        psoDesc.VS;
+        psoDesc.PS;
+        psoDesc.DS;
+        psoDesc.HS;
+        psoDesc.GS;
+        psoDesc.StreamOutput;
+        psoDesc.BlendState;
+        psoDesc.SampleMask;
+        psoDesc.RasterizerState;
+        psoDesc.DepthStencilState;
+        psoDesc.InputLayout;
+        psoDesc.IBStripCutValue;
+        psoDesc.PrimitiveTopologyType;
+        psoDesc.NumRenderTargets;
+        psoDesc.RTVFormats[8];
+        psoDesc.DSVFormat;
+        psoDesc.SampleDesc;
+        psoDesc.NodeMask = 0;
+        //psoDesc.CachedPSO;
+        psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        DXCall(_d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipeline->d3d12PipelineState)));
+        return pipeline;
+    }
+
+    AgpuPipeline AGpuRendererD3D12::CreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor)
+    {
+        AgpuPipeline pipeline = new AgpuPipeline_T();
+        pipeline->isCompute = AGPU_TRUE;
+
+        D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.pRootSignature = nullptr;
+        psoDesc.CS;
+        psoDesc.NodeMask = 0;
+        psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        DXCall(_d3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&pipeline->d3d12PipelineState)));
+        return pipeline;
+    }
+
+    void AGpuRendererD3D12::DestroyPipeline(AgpuPipeline pipeline)
+    {
+        delete pipeline;
+        pipeline = nullptr;
+    }
+
     void AGpuRendererD3D12::BeginRenderPass(AgpuFramebuffer framebuffer)
     {
         _currentFramebuffer = framebuffer;
@@ -1336,6 +1520,18 @@ namespace d3d12
         {
             ALIMER_LOGERROR("Unable to create a DXGI 1.4 device. Make sure that your OS and driver support DirectX 12");
             return AGPU_ERROR;
+        }
+
+
+        IDXGIFactory5* factory5;
+        if (SUCCEEDED(_dxgiFactory->QueryInterface(&factory5)))
+        {
+            BOOL allowTearing = FALSE;
+            hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
+            if (SUCCEEDED(hr) && allowTearing)
+            {
+                _dxgiAllowTearing = TRUE;
+            }
         }
 
         AGpuRendererD3D12* renderD3D12 = new AGpuRendererD3D12();

@@ -80,26 +80,41 @@ typedef struct AgpuTexture_T {
 } AgpuTexture_T;
 
 typedef struct AgpuFramebuffer_T {
-    AgpuFramebufferAttachment colorAttachments[AGPU_MAX_COLOR_ATTACHMENTS];
-    AgpuFramebufferAttachment depthStencilAttachment;
+    AgpuFramebufferAttachment       colorAttachments[AGPU_MAX_COLOR_ATTACHMENTS];
+    AgpuFramebufferAttachment       depthStencilAttachment;
 
 #if AGPU_D3D12
-    uint32_t                    numRTVs;
-    D3D12_CPU_DESCRIPTOR_HANDLE d3d12RTVs[AGPU_MAX_COLOR_ATTACHMENTS];
-    D3D12_CPU_DESCRIPTOR_HANDLE d3d12DSV;
+    uint32_t                        numRTVs;
+    D3D12_CPU_DESCRIPTOR_HANDLE     d3d12RTVs[AGPU_MAX_COLOR_ATTACHMENTS];
+    D3D12_CPU_DESCRIPTOR_HANDLE     d3d12DSV;
 #endif
 } AgpuFramebuffer_T;
 
 typedef struct AgpuBuffer_T {
 #if AGPU_D3D11
-    ID3D11Buffer*       d3d11Buffer;
+    ID3D11Buffer*                   d3d11Buffer;
 #endif
 
 #if AGPU_D3D12
-    ID3D12Resource*     d3d12Buffer;
+    ID3D12Resource*                 d3d12Buffer;
 #endif
 
 } AgpuBuffer_T;
+
+typedef struct AgpuShader_T {
+#if AGPU_D3D12
+    D3D12_SHADER_BYTECODE           d3d12Bytecode;
+#endif
+} AgpuShader_T;
+
+typedef struct AgpuPipeline_T {
+    AgpuBool32                      isCompute;
+
+#if AGPU_D3D12
+    ID3D12PipelineState*            d3d12PipelineState;
+#endif
+
+} AgpuPipeline_T;
 
 struct AGpuRendererI
 {
@@ -113,6 +128,13 @@ struct AGpuRendererI
 
     virtual AgpuFramebuffer CreateFramebuffer(const AgpuFramebufferDescriptor* descriptor) = 0;
     virtual void DestroyFramebuffer(AgpuFramebuffer framebuffer) = 0;
+
+    virtual AgpuShader CreateShader(const AgpuShaderDescriptor* descriptor) = 0;
+    virtual void DestroyShader(AgpuShader shader) = 0;
+
+    virtual AgpuPipeline CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor) = 0;
+    virtual AgpuPipeline CreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor) = 0;
+    virtual void DestroyPipeline(AgpuPipeline pipeline) = 0;
 };
 
 inline AGpuRendererI::~AGpuRendererI()
