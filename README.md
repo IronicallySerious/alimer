@@ -23,10 +23,11 @@
 
 ## Download
 
-- Binaries - TODO
-- Compile From Source - TODO
+- [Binaries](https://github.com/amerkoleci/alimer/releases) - Download binaries.
+- [Compile From Source](https://github.com/amerkoleci/alimer/blob/master/docs/compiling.md) - Learn how to compile the engine from the source code.
 
 ## Documentation
+
 - Visit [Documentation](https://amerkoleci.github.io/alimer-docs/)
 
 ## Credits
