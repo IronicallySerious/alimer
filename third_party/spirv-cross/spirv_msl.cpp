@@ -390,8 +390,14 @@ string CompilerMSL::compile()
 	backend.float_literal_suffix = false;
 	backend.half_literal_suffix = "h";
 	backend.uint32_t_literal_suffix = true;
+	backend.int16_t_literal_suffix = nullptr;
+	backend.uint16_t_literal_suffix = "u";
 	backend.basic_int_type = "int";
 	backend.basic_uint_type = "uint";
+	backend.basic_int8_type = "char";
+	backend.basic_uint8_type = "uchar";
+	backend.basic_int16_type = "short";
+	backend.basic_uint16_type = "ushort";
 	backend.discard_literal = "discard_fragment()";
 	backend.swizzle_is_function = false;
 	backend.shared_is_implied = false;
@@ -977,9 +983,7 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 				mbr_idx++;
 			}
 		}
-		else if (type.basetype == SPIRType::Boolean || type.basetype == SPIRType::Char ||
-		         type.basetype == SPIRType::Int || type.basetype == SPIRType::UInt ||
-		         type.basetype == SPIRType::Int64 || type.basetype == SPIRType::UInt64 ||
+		else if (type.basetype == SPIRType::Boolean || type.basetype == SPIRType::Char || type_is_integral(type) ||
 		         type_is_floating_point(type) || type.basetype == SPIRType::Boolean)
 		{
 			bool is_builtin = is_builtin_variable(*p_var);
@@ -1227,8 +1231,8 @@ bool CompilerMSL::is_member_packable(SPIRType &ib_type, uint32_t index)
 
 	auto &mbr_type = get<SPIRType>(ib_type.member_types[index]);
 
-	// Only 3-element vectors or 3-row matrices need to be packed.
-	if (mbr_type.vecsize != 3)
+	// Only vectors or 3-row matrices need to be packed.
+	if (mbr_type.vecsize == 1 || (is_matrix(mbr_type) && mbr_type.vecsize != 3))
 		return false;
 
 	// Only row-major matrices need to be packed.
@@ -1236,7 +1240,11 @@ bool CompilerMSL::is_member_packable(SPIRType &ib_type, uint32_t index)
 		return false;
 
 	uint32_t component_size = mbr_type.width / 8;
-	uint32_t unpacked_mbr_size = component_size * (mbr_type.vecsize + 1) * mbr_type.columns;
+	uint32_t unpacked_mbr_size;
+	if (mbr_type.vecsize == 3)
+		unpacked_mbr_size = component_size * (mbr_type.vecsize + 1) * mbr_type.columns;
+	else
+		unpacked_mbr_size = component_size * mbr_type.vecsize * mbr_type.columns;
 	if (is_array(mbr_type))
 	{
 		// If member is an array, and the array stride is larger than the type needs, don't pack it.
@@ -1252,11 +1260,15 @@ bool CompilerMSL::is_member_packable(SPIRType &ib_type, uint32_t index)
 	}
 	else
 	{
+		uint32_t mbr_offset_curr = get_member_decoration(ib_type.self, index, DecorationOffset);
+		// For vectors, pack if the member's offset doesn't conform to the
+		// type's usual alignment. For example, a float3 at offset 4.
+		if (!is_matrix(mbr_type) && (mbr_offset_curr % unpacked_mbr_size))
+			return true;
 		// Pack if there is not enough space between this member and next.
 		// If last member, only pack if it's a row-major matrix.
 		if (index < ib_type.member_types.size() - 1)
 		{
-			uint32_t mbr_offset_curr = get_member_decoration(ib_type.self, index, DecorationOffset);
 			uint32_t mbr_offset_next = get_member_decoration(ib_type.self, index + 1, DecorationOffset);
 			return unpacked_mbr_size > mbr_offset_next - mbr_offset_curr;
 		}
@@ -1389,6 +1401,16 @@ void CompilerMSL::emit_custom_functions()
 			begin_scope();
 			statement("T v = select(x, T(-1) - x, x < T(0));");
 			statement("return select(clz(T(0)) - (clz(v) + T(1)), T(-1), v == T(0));");
+			end_scope();
+			statement("");
+			break;
+
+		case SPVFuncImplSSign:
+			statement("// Implementation of the GLSL sign() function for integer types");
+			statement("template<typename T, typename E = typename enable_if<is_integral<T>::value>::type>");
+			statement("T sign(T x)");
+			begin_scope();
+			statement("return select(select(select(x, T(0), x == T(0)), T(1), x > T(0)), T(-1), x < T(0));");
 			end_scope();
 			statement("");
 			break;
@@ -2465,6 +2487,57 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 	}
 
 		// OpOuterProduct
+
+	case OpIAddCarry:
+	case OpISubBorrow:
+	{
+		uint32_t result_type = ops[0];
+		uint32_t result_id = ops[1];
+		uint32_t op0 = ops[2];
+		uint32_t op1 = ops[3];
+		forced_temporaries.insert(result_id);
+		auto &type = get<SPIRType>(result_type);
+		statement(variable_decl(type, to_name(result_id)), ";");
+		set<SPIRExpression>(result_id, to_name(result_id), result_type, true);
+
+		auto &res_type = get<SPIRType>(type.member_types[1]);
+		if (opcode == OpIAddCarry)
+		{
+			statement(to_expression(result_id), ".", to_member_name(type, 0), " = ", to_enclosed_expression(op0), " + ",
+			          to_enclosed_expression(op1), ";");
+			statement(to_expression(result_id), ".", to_member_name(type, 1), " = select(", type_to_glsl(res_type),
+			          "(1), ", type_to_glsl(res_type), "(0), ", to_expression(result_id), ".", to_member_name(type, 0),
+			          " >= max(", to_expression(op0), ", ", to_expression(op1), "));");
+		}
+		else
+		{
+			statement(to_expression(result_id), ".", to_member_name(type, 0), " = ", to_enclosed_expression(op0), " - ",
+			          to_enclosed_expression(op1), ";");
+			statement(to_expression(result_id), ".", to_member_name(type, 1), " = select(", type_to_glsl(res_type),
+			          "(1), ", type_to_glsl(res_type), "(0), ", to_enclosed_expression(op0),
+			          " >= ", to_enclosed_expression(op1), ");");
+		}
+		break;
+	}
+
+	case OpUMulExtended:
+	case OpSMulExtended:
+	{
+		uint32_t result_type = ops[0];
+		uint32_t result_id = ops[1];
+		uint32_t op0 = ops[2];
+		uint32_t op1 = ops[3];
+		forced_temporaries.insert(result_id);
+		auto &type = get<SPIRType>(result_type);
+		statement(variable_decl(type, to_name(result_id)), ";");
+		set<SPIRExpression>(result_id, to_name(result_id), result_type, true);
+
+		statement(to_expression(result_id), ".", to_member_name(type, 0), " = ", to_enclosed_expression(op0), " * ",
+		          to_enclosed_expression(op1), ";");
+		statement(to_expression(result_id), ".", to_member_name(type, 1), " = mulhi(", to_expression(op0), ", ",
+		          to_expression(op1), ");");
+		break;
+	}
 
 	default:
 		CompilerGLSL::emit_instruction(instruction);
@@ -3746,7 +3819,7 @@ string CompilerMSL::func_type_decl(SPIRType &type)
 		break;
 	case ExecutionModelFragment:
 		entry_type =
-		    execution.flags.get(ExecutionModeEarlyFragmentTests) ? "fragment [[ early_fragment_tests ]]" : "fragment";
+		    execution.flags.get(ExecutionModeEarlyFragmentTests) ? "[[ early_fragment_tests ]] fragment" : "fragment";
 		break;
 	case ExecutionModelGLCompute:
 	case ExecutionModelKernel:
@@ -4266,13 +4339,23 @@ string CompilerMSL::type_to_glsl(const SPIRType &type, uint32_t id)
 		type_name = "bool";
 		break;
 	case SPIRType::Char:
+	case SPIRType::SByte:
 		type_name = "char";
 		break;
+	case SPIRType::UByte:
+		type_name = "uchar";
+		break;
+	case SPIRType::Short:
+		type_name = "short";
+		break;
+	case SPIRType::UShort:
+		type_name = "ushort";
+		break;
 	case SPIRType::Int:
-		type_name = (type.width == 16 ? "short" : "int");
+		type_name = "int";
 		break;
 	case SPIRType::UInt:
-		type_name = (type.width == 16 ? "ushort" : "uint");
+		type_name = "uint";
 		break;
 	case SPIRType::Int64:
 		type_name = "long"; // Currently unsupported
@@ -4486,7 +4569,9 @@ string CompilerMSL::image_type_glsl(const SPIRType &type, uint32_t id)
 
 string CompilerMSL::bitcast_glsl_op(const SPIRType &out_type, const SPIRType &in_type)
 {
-	if ((out_type.basetype == SPIRType::UInt && in_type.basetype == SPIRType::Int) ||
+	if ((out_type.basetype == SPIRType::UShort && in_type.basetype == SPIRType::Short) ||
+	    (out_type.basetype == SPIRType::Short && in_type.basetype == SPIRType::UShort) ||
+	    (out_type.basetype == SPIRType::UInt && in_type.basetype == SPIRType::Int) ||
 	    (out_type.basetype == SPIRType::Int && in_type.basetype == SPIRType::UInt) ||
 	    (out_type.basetype == SPIRType::UInt64 && in_type.basetype == SPIRType::Int64) ||
 	    (out_type.basetype == SPIRType::Int64 && in_type.basetype == SPIRType::UInt64))
@@ -4501,7 +4586,17 @@ string CompilerMSL::bitcast_glsl_op(const SPIRType &out_type, const SPIRType &in
 	    (out_type.basetype == SPIRType::Double && in_type.basetype == SPIRType::Int64) ||
 	    (out_type.basetype == SPIRType::Double && in_type.basetype == SPIRType::UInt64) ||
 	    (out_type.basetype == SPIRType::Half && in_type.basetype == SPIRType::UInt) ||
-	    (out_type.basetype == SPIRType::UInt && in_type.basetype == SPIRType::Half))
+	    (out_type.basetype == SPIRType::UInt && in_type.basetype == SPIRType::Half) ||
+	    (out_type.basetype == SPIRType::Half && in_type.basetype == SPIRType::Int) ||
+	    (out_type.basetype == SPIRType::Int && in_type.basetype == SPIRType::Half) ||
+	    (out_type.basetype == SPIRType::Half && in_type.basetype == SPIRType::UShort) ||
+	    (out_type.basetype == SPIRType::UShort && in_type.basetype == SPIRType::Half) ||
+	    (out_type.basetype == SPIRType::Half && in_type.basetype == SPIRType::Short) ||
+	    (out_type.basetype == SPIRType::Short && in_type.basetype == SPIRType::Half) ||
+	    (out_type.basetype == SPIRType::UInt && in_type.basetype == SPIRType::UShort && in_type.vecsize == 2) ||
+	    (out_type.basetype == SPIRType::UShort && in_type.basetype == SPIRType::UInt && in_type.vecsize == 1) ||
+	    (out_type.basetype == SPIRType::Int && in_type.basetype == SPIRType::Short && in_type.vecsize == 2) ||
+	    (out_type.basetype == SPIRType::Short && in_type.basetype == SPIRType::Int && in_type.vecsize == 1))
 		return "as_type<" + type_to_glsl(out_type) + ">";
 
 	return "";
@@ -5037,6 +5132,8 @@ CompilerMSL::SPVFuncImpl CompilerMSL::OpCodePreprocessor::get_spv_func_impl(Op o
 				return SPVFuncImplFindSMsb;
 			case GLSLstd450FindUMsb:
 				return SPVFuncImplFindUMsb;
+			case GLSLstd450SSign:
+				return SPVFuncImplSSign;
 			case GLSLstd450MatrixInverse:
 			{
 				auto &mat_type = compiler.get<SPIRType>(args[0]);
