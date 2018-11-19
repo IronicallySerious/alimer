@@ -35,24 +35,21 @@
 
 namespace Alimer
 {
-    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation)
+    Graphics::Graphics(GraphicsBackend backend, bool validation)
         : _backend(backend)
         , _validation(validation)
     {
         AddSubsystem(this);
     }
 
-    GraphicsDevice::~GraphicsDevice()
+    Graphics::~Graphics()
     {
         agpuShutdown();
         RemoveSubsystem(this);
     }
 
-    void GraphicsDevice::Shutdown()
+    void Graphics::Shutdown()
     {
-        // Clear cached data.
-        _shaders.Clear();
-
         // Destroy undestroyed resources.
         if (_gpuResources.size())
         {
@@ -67,16 +64,15 @@ namespace Alimer
             _gpuResources.clear();
         }
 
-        _shaders.Clear();
         _context.Reset();
     }
 
-    bool GraphicsDevice::IsBackendSupported(GraphicsBackend backend)
+    bool Graphics::IsBackendSupported(GraphicsBackend backend)
     {
         return agpuIsBackendSupported(static_cast<AgpuBackend>(backend));
     }
 
-    std::set<GraphicsBackend> GraphicsDevice::GetAvailableBackends()
+    std::set<GraphicsBackend> Graphics::GetAvailableBackends()
     {
         static std::set<GraphicsBackend> backends;
 
@@ -103,11 +99,11 @@ namespace Alimer
         return backends;
     }
 
-    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend prefferedBackend, bool validation)
+    Graphics* Graphics::Create(GraphicsBackend prefferedBackend, bool validation)
     {
         if (prefferedBackend == GraphicsBackend::Default)
         {
-            auto availableBackends = GraphicsDevice::GetAvailableBackends();
+            auto availableBackends = Graphics::GetAvailableBackends();
 
             if (availableBackends.find(GraphicsBackend::Vulkan) != availableBackends.end())
             {
@@ -135,7 +131,7 @@ namespace Alimer
             }
         }
 
-        GraphicsDevice* device = nullptr;
+        Graphics* device = nullptr;
         switch (prefferedBackend)
         {
         case GraphicsBackend::Vulkan:
@@ -161,7 +157,7 @@ namespace Alimer
         return device;
     }
 
-    bool GraphicsDevice::Initialize(const RenderingSettings& settings)
+    bool Graphics::Initialize(const RenderingSettings& settings)
     {
         if (_initialized)
         {
@@ -179,7 +175,7 @@ namespace Alimer
         return _initialized;
     }
 
-    GpuBuffer* GraphicsDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
+    GpuBuffer* Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
     {
         ALIMER_ASSERT(descriptor);
 
@@ -223,14 +219,14 @@ namespace Alimer
         return buffer;
     }
 
-    uint32_t GraphicsDevice::Present()
+    uint32_t Graphics::Present()
     {
         _context->Flush();
         PresentImpl();
         return ++_frameIndex;
     }
 
-    Texture* GraphicsDevice::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    Texture* Graphics::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
     {
         ALIMER_ASSERT(descriptor);
 
@@ -256,150 +252,20 @@ namespace Alimer
         return CreateTextureImpl(descriptor, initialData);
     }
 
-    Framebuffer* GraphicsDevice::CreateFramebuffer(const FramebufferDescriptor* descriptor)
+    Framebuffer* Graphics::CreateFramebuffer(const FramebufferDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
 
         return CreateFramebufferImpl(descriptor);
     }
 
-    ShaderModule* GraphicsDevice::RequestShader(const uint32_t* pCode, size_t size)
-    {
-        if (!size || pCode == nullptr)
-        {
-            ALIMER_LOGCRITICAL("Cannot create shader module with invalid bytecode");
-        }
-
-        Hasher hasher;
-        hasher.Data(pCode, size);
-
-        auto hash = hasher.GetValue();
-        auto *ret = _shaders.Find(hash);
-        if (!ret)
-        {
-            //ret = _shaders.Insert(hash, CreateShaderModuleImpl(hash, pCode, size));
-            ALIMER_LOGDEBUGF("New %s shader created: '%s'", EnumToString(ret->GetStage()), std::to_string(hash).c_str());
-        }
-
-        return ret;
-    }
-
-    ShaderModule* GraphicsDevice::RequestShader(const ShaderBlob& blob)
-    {
-        if (blob.size <= 0 || blob.data == nullptr)
-        {
-            ALIMER_LOGCRITICAL("Cannot create shader module with invalid bytecode");
-        }
-
-        Hasher hasher;
-        hasher.Data(blob.data, blob.size);
-
-        auto hash = hasher.GetValue();
-        auto *ret = _shaders.Find(hash);
-        if (!ret)
-        {
-            ret = _shaders.Insert(hash, UniquePtr<ShaderModule>(new ShaderModule(hash, blob)));
-            ALIMER_LOGDEBUGF("New %s shader created: '%s'", EnumToString(ret->GetStage()), std::to_string(hash).c_str());
-        }
-
-        return ret;
-    }
-
-    ShaderModule* GraphicsDevice::RequestShader(const String& url)
-    {
-        // TODO: Shader cache.
-        if (!FileSystem::Get().Exists("assets://" + url))
-        {
-            ALIMER_LOGCRITICALF("Shader does not exists: '%s'", url.CString());
-        }
-
-        return nullptr;
-
-        /*ShaderStage stage = ShaderStage::Count;
-        String ext = FileSystem::GetExtension(url);
-        if (ext == ".vert")
-        {
-            stage = ShaderStage::Vertex;
-        }
-        else if (ext == ".frag")
-        {
-            stage = ShaderStage::Fragment;
-        }
-        else if (ext == ".tesc")
-        {
-            stage = ShaderStage::TessControl;
-        }
-        else if (ext == ".tese")
-        {
-            stage = ShaderStage::TessEvaluation;
-        }
-        else if (ext == ".geom")
-        {
-            stage = ShaderStage::Geometry;
-        }
-        else if (ext == ".comp")
-        {
-            stage = ShaderStage::Geometry;
-        }
-        else
-        {
-            ALIMER_LOGCRITICALF("Invalid shader extension: '%s'", ext.CString());
-        }
-
-        
-
-        auto stream = FileSystem::Get().Open("assets://" + url);
-        auto shaderSource = stream->ReadAllText();
-        ShaderCompiler compiler;
-        ShaderBlob blob = compiler.Compile(
-            shaderSource.CString(),
-            "main",
-            ShaderLanguage::GLSL,
-            stage,
-            stream->GetName().CString());
-
-        return RequestShader(blob);*/
-    }
-
-    Shader* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-        return CreateShaderImpl(descriptor);
-    }
-
-    Shader* GraphicsDevice::CreateShader(const ShaderBlob& compute)
-    {
-        ALIMER_ASSERT(compute.size);
-        ShaderDescriptor descriptor;
-        descriptor.stages[static_cast<uint32_t>(ShaderStage::Compute)] = compute;
-        return CreateShader(&descriptor);
-    }
-
-    Pipeline* GraphicsDevice::CreateRenderPipeline(const RenderPipelineDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-#ifdef _DEBUG
-        if (descriptor->shaders[static_cast<unsigned>(ShaderStage::Vertex)] == nullptr)
-        {
-            ALIMER_LOGERROR("CreateRenderPipeline: Invalid vertex shader.");
-        }
-
-        if (descriptor->shaders[static_cast<unsigned>(ShaderStage::Compute)] != nullptr)
-        {
-            ALIMER_LOGERROR("CreateRenderPipeline: Cannot contain compute shader.");
-        }
-#endif
-
-        return CreateRenderPipelineImpl(descriptor);
-    }
-
-    void GraphicsDevice::AddGraphicsResource(GraphicsResource* resource)
+    void Graphics::AddGraphicsResource(GraphicsResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.push_back(resource);
     }
 
-    void GraphicsDevice::RemoveGraphicsResource(GraphicsResource* resource)
+    void Graphics::RemoveGraphicsResource(GraphicsResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         auto it = std::find(_gpuResources.begin(), _gpuResources.end(), resource);
@@ -409,9 +275,25 @@ namespace Alimer
         }
     }
 
-    void GraphicsDevice::NotifyValidationError(const char* message)
+    void Graphics::NotifyValidationError(const char* message)
     {
         // TODO: Add callback.
         ALIMER_UNUSED(message);
+    }
+
+    void Graphics::RegisterObject()
+    {
+        static bool registered = false;
+        if (registered)
+            return;
+        registered = true;
+
+        Shader::RegisterObject();
+        Texture::RegisterObject();
+    }
+
+    void RegisterGraphicsLibrary()
+    {
+        Graphics::RegisterObject();
     }
 }

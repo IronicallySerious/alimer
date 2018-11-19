@@ -106,6 +106,27 @@ namespace Alimer
         /// Return a subsystem, template version.
         template <class T> static T* GetSubsystem() { return static_cast<T*>(GetSubsystem(T::GetTypeStatic())); }
 
+        /// Register an object factory, template version.
+        template <class T> static inline void RegisterFactory()
+        {
+            RegisterFactory(new ObjectFactoryImpl<T>());
+        }
+
+        /// Register an object factory.
+        static void RegisterFactory(ObjectFactory* factory);
+
+        /// Remove object factory.
+        static void RemoveFactory(StringHash type);
+
+        /// Create an object by type. Return pointer to it or null if no factory found.
+        template <class T> static inline SharedPtr<T> CreateObject()
+        {
+            return StaticCast<T>(CreateObject(T::GetTypeStatic()));
+        }
+
+        /// Create and return an object through a factory. The caller is assumed to take ownership of the object. Return null if no factory registered. 
+        static SharedPtr<Object> CreateObject(StringHash type);
+
         /// Subscribe to an event.
         void SubscribeToEvent(Event& event, EventHandler* handler);
         /// Unsubscribe from an event.
@@ -122,6 +143,47 @@ namespace Alimer
         /// Return whether is subscribed to an event.
         bool IsSubscribedToEvent(const Event& event) const;
     };
+
+    /// Base class for object factories.
+    class ALIMER_API ObjectFactory
+    {
+    public:
+        /// Destruct.
+        virtual ~ObjectFactory() = default;
+
+        /// Create and return an object.
+        virtual SharedPtr<Object> CreateObject() = 0;
+
+        /// Return type info of objects created by this factory.
+        const TypeInfo* GetTypeInfo() const { return _typeInfo; }
+
+        /// Return type name hash of the objects created by this factory.
+        StringHash GetType() const { return _typeInfo->GetType(); }
+        /// Return type name of the objects created by this factory.
+        const String& GetTypeName() const { return _typeInfo->GetTypeName(); }
+
+    protected:
+        /// Type info.
+        const TypeInfo* _typeInfo{};
+    };
+
+    /// Template implementation of the object factory.
+    template <class T> class ObjectFactoryImpl : public ObjectFactory
+    {
+    public:
+        /// Construct.
+        ObjectFactoryImpl()
+        {
+            _typeInfo = T::GetTypeInfoStatic();
+        }
+
+        /// Create and return an object of the specific type.
+        SharedPtr<Object> CreateObject() override
+        {
+            return SharedPtr<Object>(new T());
+        }
+    };
+
 }
 
 #define ALIMER_OBJECT(typeName, baseTypeName) \

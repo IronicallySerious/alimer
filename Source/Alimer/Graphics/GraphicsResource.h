@@ -27,14 +27,14 @@
 
 namespace Alimer
 {
-	class GraphicsDevice;
+	class Graphics;
 
 	/// Defines a base GraphicsResource.
 	class ALIMER_API GraphicsResource : public RefCounted
 	{
 	protected:
         /// Constructor.
-        GraphicsResource(GraphicsDevice* device);
+        GraphicsResource(Graphics* graphics);
 
 	public:
 		/// Destructor.
@@ -44,11 +44,11 @@ namespace Alimer
         virtual void Destroy() {}
 
         /// Return the graphics subsystem associated with this GPU object.
-        GraphicsDevice* GetDevice() const;
+        Graphics* GetGraphics() const;
 
     protected:
         /// Graphics subsystem.
-        GraphicsDevice* _device;
+        WeakPtr<Graphics> _graphics;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(GraphicsResource);

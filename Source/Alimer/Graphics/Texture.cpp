@@ -26,8 +26,8 @@
 
 namespace Alimer
 {
-    Texture::Texture(GraphicsDevice* device, const TextureDescriptor* descriptor)
-        : GraphicsResource(device)
+    Texture::Texture(const TextureDescriptor* descriptor)
+        : Resource()
         , _type(descriptor->type)
     {
         _usage = descriptor->usage;
@@ -38,5 +38,16 @@ namespace Alimer
         _mipLevels = descriptor->depth;
         _arrayLayers = descriptor->arrayLayers;
         _samples = descriptor->samples;
+    }
+
+    Texture::Texture()
+        : Resource()
+    {
+
+    }
+
+    void Texture::RegisterObject()
+    {
+        RegisterFactory<Texture>();
     }
 }

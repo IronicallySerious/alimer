@@ -27,10 +27,9 @@
 
 namespace Alimer
 {
-    CommandContext::CommandContext(GraphicsDevice* device)
-        : _device(device)
+    CommandContext::CommandContext(Graphics* graphics)
+        : _graphics(graphics)
     {
-        ALIMER_ASSERT(device);
         BeginContext();
     }
 
@@ -41,7 +40,7 @@ namespace Alimer
 
     void CommandContext::BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor)
     {
-        BeginRenderPass(_device->GetSwapchainFramebuffer(), descriptor);
+        BeginRenderPass(_graphics->GetSwapchainFramebuffer(), descriptor);
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
@@ -71,7 +70,7 @@ namespace Alimer
         ALIMER_ASSERT(index < MaxVertexBufferBindings);
         if (!any(buffer->GetUsage() & BufferUsage::Vertex))
         {
-            _device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+            _graphics->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
             return;
         }
 
@@ -85,7 +84,7 @@ namespace Alimer
         {
             if (!any(buffers[i]->GetUsage() & BufferUsage::Vertex))
             {
-                _device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+                _graphics->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
                 return;
             }
         }
@@ -98,7 +97,7 @@ namespace Alimer
         ALIMER_ASSERT(buffer);
         if (!any(buffer->GetUsage() & BufferUsage::Index))
         {
-            _device->NotifyValidationError("SetIndexBuffer need buffer with Index usage");
+            _graphics->NotifyValidationError("SetIndexBuffer need buffer with Index usage");
             return;
         }
 

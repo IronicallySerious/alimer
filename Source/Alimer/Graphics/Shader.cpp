@@ -169,28 +169,42 @@ namespace Alimer
         ExtractInputOutputs(reflection->stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, reflection->resources);
     }
 
-    ShaderModule::ShaderModule(uint64_t hash, const ShaderBlob& blob)
-        : _hash(hash)
+    Shader::Shader()
+        : Resource()
+        , _handle(nullptr)
     {
-        _byteCode.assign(blob.data, blob.data + blob.size);
         // Reflection all shader resouces.
-        SPIRVReflectResources(reinterpret_cast<const uint32_t*>(blob.data), blob.size, &_reflection);
+        //SPIRVReflectResources(reinterpret_cast<const uint32_t*>(blob.data), blob.size, &_reflection);
     }
 
-    Shader::Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor)
-        : _isCompute(false)
+    Shader::~Shader()
     {
-        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
-        {
-            auto shaderBlob = descriptor->stages[i];
-            if (shaderBlob.size == 0 || shaderBlob.data == nullptr)
-                continue;
+        Destroy();
+    }
 
-            ShaderStage stage = static_cast<ShaderStage>(i);
-            if (stage == ShaderStage::Compute)
-            {
-                _isCompute = true;
-            }
+    void Shader::Destroy()
+    {
+        if (_handle != nullptr)
+        {
+            agpuDestroyShader(_handle);
+            _handle = nullptr;
         }
+    }
+
+    bool Shader::Define(ShaderStage stage, const String& shaderSource, const String& entryPoint)
+    {
+        Destroy();
+
+        AgpuShaderDescriptor descriptor = {};
+        descriptor.stage = static_cast<AgpuShaderStage>(stage);
+        descriptor.source = shaderSource.CString();
+        descriptor.entryPoint = entryPoint.CString();
+        _handle = agpuCreateShader(&descriptor);
+        return _handle != nullptr;
+    }
+
+    void Shader::RegisterObject()
+    {
+        RegisterFactory<Shader>();
     }
 }

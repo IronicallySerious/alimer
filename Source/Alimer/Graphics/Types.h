@@ -174,13 +174,13 @@ namespace Alimer
     /// Defines shader stage
     enum class ShaderStage : uint32_t
     {
-        Vertex = 0,
-        TessControl = 1,
-        TessEvaluation = 2,
-        Geometry = 3,
-        Fragment = 4,
-        Compute = 5,
-        Count
+        Vertex = AGPU_SHADER_STAGE_VERTEX,
+        TessControl = AGPU_SHADER_STAGE_HULL,
+        TessEvaluation = AGPU_SHADER_STAGE_DOMAIN,
+        Geometry = AGPU_SHADER_STAGE_GEOMETRY,
+        Fragment = AGPU_SHADER_STAGE_FRAGMENT,
+        Compute = AGPU_SHADER_STAGE_COMPUTE,
+        Count = AGPU_SHADER_STAGE_COUNT
     };
 
     /// Defines shader stage usage.

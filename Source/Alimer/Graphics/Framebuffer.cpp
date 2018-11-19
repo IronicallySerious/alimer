@@ -26,7 +26,7 @@
 
 namespace Alimer
 {
-    Framebuffer::Framebuffer(GraphicsDevice* device, const FramebufferDescriptor* descriptor)
+    Framebuffer::Framebuffer(Graphics* device, const FramebufferDescriptor* descriptor)
         : GraphicsResource(device)
     {
         _width = UINT32_MAX;

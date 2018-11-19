@@ -26,21 +26,27 @@
 
 namespace Alimer
 {
-    GraphicsResource::GraphicsResource(GraphicsDevice* device)
-        : _device(device)
+    GraphicsResource::GraphicsResource(Graphics* graphics)
+        : _graphics(graphics)
     {
-        ALIMER_ASSERT(device);
-        device->AddGraphicsResource(this);
+        if (graphics)
+        {
+            graphics->AddGraphicsResource(this);
+        }
     }
 
     GraphicsResource::~GraphicsResource()
     {
-        _device->RemoveGraphicsResource(this);
+        if (_graphics)
+        {
+            _graphics->RemoveGraphicsResource(this);
+        }
+
         Destroy();
     }
 
-    GraphicsDevice* GraphicsResource::GetDevice() const
+    Graphics* GraphicsResource::GetGraphics() const
     {
-        return _device;
+        return _graphics;
     }
 }

@@ -52,7 +52,7 @@ namespace Alimer
     class TriangleExample
     {
     public:
-        void Initialize(GraphicsDevice* device, ResourceManager&)
+        void Initialize(ResourceManager&)
         {
             VertexColor triangleVertices[] =
             {
@@ -60,8 +60,6 @@ namespace Alimer
                 { vec3(0.5f, -0.5f, 0.0f), Color4::Lime },
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
-
-            ALIMER_UNUSED(device);
 
             /*BufferDescriptor vertexBufferDesc = {};
             vertexBufferDesc.usage = BufferUsage::Vertex;
@@ -99,30 +97,30 @@ namespace Alimer
                 return input.color;
             })";
 
-            AgpuShaderDescriptor descriptor = {};
-            descriptor.stage = AGPU_SHADER_STAGE_VERTEX;
-            descriptor.source = hlsl;
-            descriptor.entryPoint = "VSMain";
-            auto vertexShader = agpuCreateShader(&descriptor);
+            RenderPipelineDescriptor renderPipelineDesc = {};
 
-            descriptor.stage = AGPU_SHADER_STAGE_PIXEL;
-            descriptor.source = hlsl;
-            descriptor.entryPoint = "PSMain";
-            auto fragmentShader = agpuCreateShader(&descriptor);
-            ALIMER_UNUSED(vertexShader);
-            ALIMER_UNUSED(fragmentShader);
+            // Shaders
+            renderPipelineDesc.vertex = Object::CreateObject<Shader>();
+            renderPipelineDesc.vertex->Define(ShaderStage::Vertex, hlsl, "VSMain");
 
-            /*RenderPipelineDescriptor renderPipelineDesc = {};
-            renderPipelineDesc.shaders[ecast(ShaderStage::Vertex)] = device->RequestShader("shaders/color.vert");
-            renderPipelineDesc.shaders[ecast(ShaderStage::Fragment)] = device->RequestShader("shaders/color.frag");
-            _pipeline = device->CreateRenderPipeline(&renderPipelineDesc);*/
+            renderPipelineDesc.fragment = new Shader();
+            renderPipelineDesc.fragment->Define(ShaderStage::Fragment, hlsl, "PSMain");
+
+            // Define pipeline now.
+            _pipeline = new Pipeline();
+            _pipeline->Define(&renderPipelineDesc);
+
+            //RenderPipelineDescriptor renderPipelineDesc = {};
+            //renderPipelineDesc.shaders[ecast(ShaderStage::Vertex)] = device->RequestShader("shaders/color.vert");
+            //renderPipelineDesc.shaders[ecast(ShaderStage::Fragment)] = device->RequestShader("shaders/color.frag");
+            //_pipeline = device->CreateRenderPipeline(&renderPipelineDesc);
         }
 
         void Render(SharedPtr<CommandContext> context)
         {
-            context->SetPipeline(_pipeline);
-            context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
-            context->Draw(PrimitiveTopology::Triangles, 3, 0);
+            //context->SetPipeline(_pipeline);
+            //context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
+            //context->Draw(PrimitiveTopology::Triangles, 3, 0);
         }
 
     private:
@@ -404,7 +402,7 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_graphicsDevice, _resources);
+        _triangleExample.Initialize(_resources);
         //_quadExample.Initialize(_graphicsDevice, _resources);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());

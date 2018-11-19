@@ -29,8 +29,6 @@
 
 namespace Alimer
 {
-    class GraphicsDevice;
-
     enum class ShaderLanguage
     {
         GLSL,

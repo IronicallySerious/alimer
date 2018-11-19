@@ -244,7 +244,8 @@ void agpuDestroyShader(AgpuShader shader)
 AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
 {
     ALIMER_ASSERT_MSG(descriptor, "Invalid render pipeline descriptor.");
-    ALIMER_ASSERT_MSG(descriptor->shader, "Invalid shader.");
+    ALIMER_ASSERT_MSG(descriptor->vertex, "Invalid vertex shader.");
+    ALIMER_ASSERT_MSG(descriptor->fragment, "Invalid fragment shader.");
     return s_renderer->CreateRenderPipeline(descriptor);
 }
 

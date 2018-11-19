@@ -35,22 +35,34 @@ namespace Alimer
 
     struct RenderPipelineDescriptor
     {
-        ShaderModule*                   shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
+        SharedPtr<Shader>     vertex;
+        SharedPtr<Shader>     fragment;
+        SharedPtr<Shader>     domain;
+        SharedPtr<Shader>     hull;
+        SharedPtr<Shader>     geometry;
+
         VertexBufferLayoutDescriptor    vertexLayouts[MaxVertexBufferBindings];
     };
 
     /// Defines a Pipeline class.
-    class ALIMER_API Pipeline : public GraphicsResource
+    class ALIMER_API Pipeline final : public GraphicsResource
     {
-    protected:
-        /// Constructor.
-        Pipeline(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor);
-
     public:
+        /// Constructor.
+        Pipeline();
+
+        ~Pipeline() override;
+        void Destroy() override;
+
+        bool Define(const RenderPipelineDescriptor* descriptor);
+
+        AgpuPipeline GetHandle() const { return _handle; }
+
         /// Get whether pipeline is compute.
         bool IsCompute() const { return _isCompute; }
 
     private:
         bool _isCompute;
+        AgpuPipeline _handle;
     };
 }

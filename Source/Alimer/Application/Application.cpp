@@ -43,6 +43,11 @@ namespace Alimer
         PlatformConstruct();
         AddSubsystem(this);
         _log = new Logger();
+
+        // Register modules
+        RegisterGraphicsLibrary();
+        //RegisterResourceLibrary();
+
         __appInstance = this;
     }
 
@@ -52,7 +57,7 @@ namespace Alimer
         _running = false;
 
         SafeDelete(_mainWindow);
-        SafeDelete(_graphicsDevice);
+        SafeDelete(_graphics);
         agpuShutdown();
         Audio::Shutdown();
         PluginManager::Shutdown();
@@ -120,7 +125,6 @@ namespace Alimer
 
         // Setup and configure all systems.
         _systems.Add<CameraSystem>();
-        _renderContext.SetDevice(_graphicsDevice);
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;

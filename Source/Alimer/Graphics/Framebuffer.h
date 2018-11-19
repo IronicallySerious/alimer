@@ -44,7 +44,7 @@ namespace Alimer
     {
     protected:
         /// Constructor.
-        Framebuffer(GraphicsDevice* device, const FramebufferDescriptor* descriptor);
+        Framebuffer(Graphics* device, const FramebufferDescriptor* descriptor);
 
     public:
         /**

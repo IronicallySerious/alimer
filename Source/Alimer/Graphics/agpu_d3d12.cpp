@@ -95,12 +95,13 @@ namespace d3d12
     HMODULE s_dxgiLib = nullptr;
     HMODULE s_d3d12Lib = nullptr;
 
-    PFN_CREATE_DXGI_FACTORY2            CreateDXGIFactory2 = nullptr;
-    PFN_GET_DXGI_DEBUG_INTERFACE1       DXGIGetDebugInterface1 = nullptr;
+    PFN_CREATE_DXGI_FACTORY2                        CreateDXGIFactory2 = nullptr;
+    PFN_GET_DXGI_DEBUG_INTERFACE1                   DXGIGetDebugInterface1 = nullptr;
 
-    PFN_D3D12_GET_DEBUG_INTERFACE       D3D12GetDebugInterface = nullptr;
-    PFN_D3D12_CREATE_DEVICE             D3D12CreateDevice = nullptr;
-    PFN_D3D12_SERIALIZE_ROOT_SIGNATURE  D3D12SerializeRootSignature = nullptr;
+    PFN_D3D12_GET_DEBUG_INTERFACE                   D3D12GetDebugInterface = nullptr;
+    PFN_D3D12_CREATE_DEVICE                         D3D12CreateDevice = nullptr;
+    PFN_D3D12_SERIALIZE_ROOT_SIGNATURE              D3D12SerializeRootSignature = nullptr;
+    PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE    D3D12SerializeVersionedRootSignature = nullptr;
 #endif
 
     static const uint64_t RenderLatency = 2;
@@ -234,6 +235,131 @@ namespace d3d12
         barrier.Transition.StateAfter = after;
         barrier.Transition.Subresource = subResource;
         cmdList->ResourceBarrier(1, &barrier);
+    }
+
+    //------------------------------------------------------------------------------------------------
+// D3D12 exports a new method for serializing root signatures in the Windows 10 Anniversary Update.
+// To help enable root signature 1.1 features when they are available and not require maintaining
+// two code paths for building root signatures, this helper method reconstructs a 1.0 signature when
+// 1.1 is not supported.
+    inline HRESULT D3DX12SerializeVersionedRootSignature(
+        _In_ const D3D12_VERSIONED_ROOT_SIGNATURE_DESC* pRootSignatureDesc,
+        D3D_ROOT_SIGNATURE_VERSION MaxVersion,
+        _Outptr_ ID3DBlob** ppBlob,
+        _Always_(_Outptr_opt_result_maybenull_) ID3DBlob** ppErrorBlob)
+    {
+        if (ppErrorBlob != nullptr)
+        {
+            *ppErrorBlob = nullptr;
+        }
+
+        switch (MaxVersion)
+        {
+        case D3D_ROOT_SIGNATURE_VERSION_1_0:
+            switch (pRootSignatureDesc->Version)
+            {
+            case D3D_ROOT_SIGNATURE_VERSION_1_0:
+                return D3D12SerializeRootSignature(&pRootSignatureDesc->Desc_1_0, D3D_ROOT_SIGNATURE_VERSION_1, ppBlob, ppErrorBlob);
+
+            case D3D_ROOT_SIGNATURE_VERSION_1_1:
+            {
+                HRESULT hr = S_OK;
+                const D3D12_ROOT_SIGNATURE_DESC1& desc_1_1 = pRootSignatureDesc->Desc_1_1;
+
+                const SIZE_T ParametersSize = sizeof(D3D12_ROOT_PARAMETER) * desc_1_1.NumParameters;
+                void* pParameters = (ParametersSize > 0) ? HeapAlloc(GetProcessHeap(), 0, ParametersSize) : nullptr;
+                if (ParametersSize > 0 && pParameters == nullptr)
+                {
+                    hr = E_OUTOFMEMORY;
+                }
+                auto pParameters_1_0 = reinterpret_cast<D3D12_ROOT_PARAMETER*>(pParameters);
+
+                if (SUCCEEDED(hr))
+                {
+                    for (UINT n = 0; n < desc_1_1.NumParameters; n++)
+                    {
+                        __analysis_assume(ParametersSize == sizeof(D3D12_ROOT_PARAMETER) * desc_1_1.NumParameters);
+                        pParameters_1_0[n].ParameterType = desc_1_1.pParameters[n].ParameterType;
+                        pParameters_1_0[n].ShaderVisibility = desc_1_1.pParameters[n].ShaderVisibility;
+
+                        switch (desc_1_1.pParameters[n].ParameterType)
+                        {
+                        case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+                            pParameters_1_0[n].Constants.Num32BitValues = desc_1_1.pParameters[n].Constants.Num32BitValues;
+                            pParameters_1_0[n].Constants.RegisterSpace = desc_1_1.pParameters[n].Constants.RegisterSpace;
+                            pParameters_1_0[n].Constants.ShaderRegister = desc_1_1.pParameters[n].Constants.ShaderRegister;
+                            break;
+
+                        case D3D12_ROOT_PARAMETER_TYPE_CBV:
+                        case D3D12_ROOT_PARAMETER_TYPE_SRV:
+                        case D3D12_ROOT_PARAMETER_TYPE_UAV:
+                            pParameters_1_0[n].Descriptor.RegisterSpace = desc_1_1.pParameters[n].Descriptor.RegisterSpace;
+                            pParameters_1_0[n].Descriptor.ShaderRegister = desc_1_1.pParameters[n].Descriptor.ShaderRegister;
+                            break;
+
+                        case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+                            const D3D12_ROOT_DESCRIPTOR_TABLE1& table_1_1 = desc_1_1.pParameters[n].DescriptorTable;
+
+                            const SIZE_T DescriptorRangesSize = sizeof(D3D12_DESCRIPTOR_RANGE) * table_1_1.NumDescriptorRanges;
+                            void* pDescriptorRanges = (DescriptorRangesSize > 0 && SUCCEEDED(hr)) ? HeapAlloc(GetProcessHeap(), 0, DescriptorRangesSize) : nullptr;
+                            if (DescriptorRangesSize > 0 && pDescriptorRanges == nullptr)
+                            {
+                                hr = E_OUTOFMEMORY;
+                            }
+                            auto pDescriptorRanges_1_0 = reinterpret_cast<D3D12_DESCRIPTOR_RANGE*>(pDescriptorRanges);
+
+                            if (SUCCEEDED(hr))
+                            {
+                                for (UINT x = 0; x < table_1_1.NumDescriptorRanges; x++)
+                                {
+                                    __analysis_assume(DescriptorRangesSize == sizeof(D3D12_DESCRIPTOR_RANGE) * table_1_1.NumDescriptorRanges);
+                                    pDescriptorRanges_1_0[x].BaseShaderRegister = table_1_1.pDescriptorRanges[x].BaseShaderRegister;
+                                    pDescriptorRanges_1_0[x].NumDescriptors = table_1_1.pDescriptorRanges[x].NumDescriptors;
+                                    pDescriptorRanges_1_0[x].OffsetInDescriptorsFromTableStart = table_1_1.pDescriptorRanges[x].OffsetInDescriptorsFromTableStart;
+                                    pDescriptorRanges_1_0[x].RangeType = table_1_1.pDescriptorRanges[x].RangeType;
+                                    pDescriptorRanges_1_0[x].RegisterSpace = table_1_1.pDescriptorRanges[x].RegisterSpace;
+                                }
+                            }
+
+                            D3D12_ROOT_DESCRIPTOR_TABLE& table_1_0 = pParameters_1_0[n].DescriptorTable;
+                            table_1_0.NumDescriptorRanges = table_1_1.NumDescriptorRanges;
+                            table_1_0.pDescriptorRanges = pDescriptorRanges_1_0;
+                        }
+                    }
+                }
+
+                if (SUCCEEDED(hr))
+                {
+                    D3D12_ROOT_SIGNATURE_DESC desc_1_0 = {};
+                    desc_1_0.NumParameters = desc_1_1.NumParameters;
+                    desc_1_0.pParameters = pParameters_1_0;
+                    desc_1_0.NumStaticSamplers = desc_1_1.NumStaticSamplers;
+                    desc_1_0.pStaticSamplers = desc_1_1.pStaticSamplers;
+                    desc_1_0.Flags = desc_1_1.Flags;
+                    hr = D3D12SerializeRootSignature(&desc_1_0, D3D_ROOT_SIGNATURE_VERSION_1, ppBlob, ppErrorBlob);
+                }
+
+                if (pParameters)
+                {
+                    for (UINT n = 0; n < desc_1_1.NumParameters; n++)
+                    {
+                        if (desc_1_1.pParameters[n].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+                        {
+                            HeapFree(GetProcessHeap(), 0, reinterpret_cast<void*>(const_cast<D3D12_DESCRIPTOR_RANGE*>(pParameters_1_0[n].DescriptorTable.pDescriptorRanges)));
+                        }
+                    }
+                    HeapFree(GetProcessHeap(), 0, pParameters);
+                }
+                return hr;
+            }
+            }
+            break;
+
+        case D3D_ROOT_SIGNATURE_VERSION_1_1:
+            return D3D12SerializeVersionedRootSignature(pRootSignatureDesc, ppBlob, ppErrorBlob);
+        }
+
+        return E_INVALIDARG;
     }
 
     DXGI_FORMAT agpuD3D12ConvertPixelFormat(AgpuPixelFormat format)
@@ -457,6 +583,8 @@ namespace d3d12
         void BeginRenderPass(AgpuFramebuffer framebuffer);
         void EndRenderPass();
 
+        void CreateRootSignature(ID3D12RootSignature** rootSignature, const D3D12_ROOT_SIGNATURE_DESC1& desc);
+
         template<typename T> void DeferredRelease(T*& resource, bool forceDeferred = false)
         {
             IUnknown* base = resource;
@@ -472,6 +600,8 @@ namespace d3d12
         IDXGIAdapter1*              _dxgiAdapter = nullptr;
         ID3D12Device*               _d3dDevice = nullptr;
         D3D_FEATURE_LEVEL           _d3dFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+        D3D_ROOT_SIGNATURE_VERSION  _d3dRootSignatureVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
         AgpuFence*                  _frameFence = nullptr;
         uint64_t                    _fenceValues[AGPU_MAX_BACK_BUFFER_COUNT] = {};
         ID3D12CommandQueue*         _graphicsQueue = nullptr;
@@ -482,9 +612,12 @@ namespace d3d12
         std::vector<IUnknown*>      _deferredReleases[RenderLatency];
         bool                        _headless = false;
         AgpuSwapchain               _mainSwapchain = nullptr;
+        AgpuBool32                  _raytracingSupported = AGPU_FALSE;
 
         DescriptorHeap              _RTVDescriptorHeap;
-
+        DescriptorHeap              _SRVDescriptorHeap;
+        DescriptorHeap              _DSVDescriptorHeap;
+        DescriptorHeap              _UAVDescriptorHeap;
         AgpuFramebuffer             _currentFramebuffer = nullptr;
     };
 
@@ -720,9 +853,9 @@ namespace d3d12
         {
             _countof(s_featureLevels), s_featureLevels, D3D_FEATURE_LEVEL_11_0
         };
-        if (SUCCEEDED(
-            _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featLevels, sizeof(featLevels)))
-            )
+
+        HRESULT hr = _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featLevels, sizeof(featLevels));
+        if (SUCCEEDED(hr))
         {
             _d3dFeatureLevel = featLevels.MaxSupportedFeatureLevel;
         }
@@ -731,11 +864,25 @@ namespace d3d12
             _d3dFeatureLevel = D3D_FEATURE_LEVEL_11_0;
         }
 
-        /*D3D12_FEATURE_DATA_D3D12_OPTIONS5 dataOptions5 = { };
-        hr = renderer->d3d12.device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &dataOptions5, sizeof(dataOptions5));
-        if (SUCCEEDED(hr))
+        D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+
+        // This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
+        featureData.HighestVersion = _d3dRootSignatureVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
+        if (FAILED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
         {
-        }*/
+            _d3dRootSignatureVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+        }
+
+
+#if defined(NTDDI_WIN10_RS2)
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 options;
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options, sizeof(options)))
+            && options.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
+        {
+            _raytracingSupported = AGPU_TRUE;
+        }
+#endif
 
         // Create the command queue.
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -773,6 +920,9 @@ namespace d3d12
 
         // Initialize helpers
         _RTVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false);
+        _SRVDescriptorHeap.Initialize(_d3dDevice, 1024, 1024, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, true);
+        _DSVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, false);
+        _UAVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
 
         WaitIdle();
         for (UINT n = 0; n < NumCmdAllocators; n++)
@@ -819,9 +969,9 @@ namespace d3d12
 
 
         _RTVDescriptorHeap.Shutdown();
-        //_SRVDescriptorHeap.Shutdown();
-        //_DSVDescriptorHeap.Shutdown();
-        //_UAVDescriptorHeap.Shutdown();
+        _SRVDescriptorHeap.Shutdown();
+        _DSVDescriptorHeap.Shutdown();
+        _UAVDescriptorHeap.Shutdown();
 
         Release(_dxgiFactory);
         Release(_dxgiAdapter);
@@ -903,7 +1053,9 @@ namespace d3d12
         _fenceValues[_currentFrameIndex] = currentFenceValue + 1;
 
         _RTVDescriptorHeap.EndFrame();
-        //EndFrame_Helpers();
+        _SRVDescriptorHeap.EndFrame();
+        _DSVDescriptorHeap.EndFrame();
+        _UAVDescriptorHeap.EndFrame();
 
         // See if we have any deferred releases to process
         ProcessDeferredReleases(_currentFrameIndex);
@@ -1074,6 +1226,9 @@ namespace d3d12
             wchar_t name[25] = {};
             swprintf_s(name, L"Back Buffer %u", i);
             resource->SetName(name);
+
+            auto d3dTextureDesc = resource->GetDesc();
+            ALIMER_UNUSED(d3dTextureDesc);
 
             // Create external texture.
             swapchain->backBufferTexture[i] = CreateTexture(&textureDescriptor, resource);
@@ -1249,7 +1404,7 @@ namespace d3d12
 #endif
                 break;
 
-            case AGPU_SHADER_STAGE_PIXEL:
+            case AGPU_SHADER_STAGE_FRAGMENT:
 #ifdef AGPU_COMPILER_DXC
                 compileTarget = "ps_6_1";
 #else
@@ -1305,8 +1460,47 @@ namespace d3d12
             {
                 if (errorMessages)
                 {
+                    wchar_t message[1024] = { 0 };
+                    char* blobdata = reinterpret_cast<char*>(errorMessages->GetBufferPointer());
+
+                    MultiByteToWideChar(CP_ACP, 0, blobdata, static_cast<int>(errorMessages->GetBufferSize()), message, 1024);
+                    std::wstring fullMessage = L"Error compiling shader \"";
+                    fullMessage += L"\" - ";
+                    fullMessage += message;
+
+                    // Pop up a message box allowing user to retry compilation
+                    int retVal = MessageBoxW(nullptr, fullMessage.c_str(), L"Shader Compilation Error", MB_RETRYCANCEL);
+                    if (retVal != IDRETRY)
+                    {
+                        ALIMER_BREAKPOINT();
+                    }
+
                     errorMessages->Release();
                     errorMessages = nullptr;
+                }
+            }
+            else
+            {
+                const bool compress = false;
+                if (compress)
+                {
+                    ComPtr<ID3DBlob> compressedShader;
+
+                    // Compress the shader
+                    D3D_SHADER_DATA shaderData;
+                    shaderData.pBytecode = compiledShader->GetBufferPointer();
+                    shaderData.BytecodeLength = compiledShader->GetBufferSize();
+                    DXCall(D3DCompressShaders(1, &shaderData, D3D_COMPRESS_SHADER_KEEP_ALL_PARTS, &compressedShader));
+
+                    shader->d3d12Bytecode.BytecodeLength = compressedShader->GetBufferSize();
+                    shader->d3d12Bytecode.pShaderBytecode = new uint8_t[compressedShader->GetBufferSize()];
+                    memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, compressedShader->GetBufferPointer(), compressedShader->GetBufferSize());
+                }
+                else
+                {
+                    shader->d3d12Bytecode.BytecodeLength = compiledShader->GetBufferSize();
+                    shader->d3d12Bytecode.pShaderBytecode = new uint8_t[compiledShader->GetBufferSize()];
+                    memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, compiledShader->GetBufferPointer(), compiledShader->GetBufferSize());
                 }
             }
 #endif
@@ -1324,31 +1518,89 @@ namespace d3d12
 
     AgpuPipeline AGpuRendererD3D12::CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
     {
-        AgpuPipeline pipeline = new AgpuPipeline_T();
-        pipeline->isCompute = AGPU_FALSE;
-
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-        psoDesc.pRootSignature = nullptr;
-        psoDesc.VS;
-        psoDesc.PS;
-        psoDesc.DS;
-        psoDesc.HS;
-        psoDesc.GS;
-        psoDesc.StreamOutput;
-        psoDesc.BlendState;
-        psoDesc.SampleMask;
-        psoDesc.RasterizerState;
-        psoDesc.DepthStencilState;
-        psoDesc.InputLayout;
-        psoDesc.IBStripCutValue;
-        psoDesc.PrimitiveTopologyType;
-        psoDesc.NumRenderTargets;
-        psoDesc.RTVFormats[8];
-        psoDesc.DSVFormat;
-        psoDesc.SampleDesc;
+
+        // Root signature
+        D3D12_ROOT_SIGNATURE_DESC1 rootSignatureDesc = { };
+        rootSignatureDesc.NumParameters = 0;
+        rootSignatureDesc.pParameters = nullptr;
+        rootSignatureDesc.NumStaticSamplers = 0;
+        rootSignatureDesc.pStaticSamplers = nullptr;
+        rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        CreateRootSignature(&psoDesc.pRootSignature, rootSignatureDesc);
+
+        // Shaders
+        psoDesc.VS = descriptor->vertex->d3d12Bytecode;
+        psoDesc.PS = descriptor->fragment->d3d12Bytecode;
+        if (descriptor->domain)
+            psoDesc.DS = descriptor->domain->d3d12Bytecode;
+
+        if (descriptor->hull)
+            psoDesc.HS = descriptor->hull->d3d12Bytecode;
+
+        if (descriptor->geometry)
+            psoDesc.GS = descriptor->geometry->d3d12Bytecode;
+
+        // StreamOutput
+        //psoDesc.StreamOutput;
+
+        // BlendState
+        psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
+        psoDesc.BlendState.IndependentBlendEnable = FALSE;
+        const D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc =
+        {
+            FALSE,FALSE,
+            D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
+            D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
+            D3D12_LOGIC_OP_NOOP,
+            D3D12_COLOR_WRITE_ENABLE_ALL,
+        };
+        for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+        {
+            psoDesc.BlendState.RenderTarget[i] = defaultRenderTargetBlendDesc;
+        }
+        psoDesc.SampleMask = UINT_MAX;
+
+        // RasterizerState
+        psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+        psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+        psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
+        psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+        psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+        psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+        psoDesc.RasterizerState.DepthClipEnable = TRUE;
+        psoDesc.RasterizerState.MultisampleEnable = FALSE;
+        psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+        psoDesc.RasterizerState.ForcedSampleCount = 0;
+        psoDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+        // DepthStencilState
+        psoDesc.DepthStencilState.DepthEnable = FALSE;
+        psoDesc.DepthStencilState.StencilEnable = FALSE;
+
+        // InputLayout
+        D3D12_INPUT_ELEMENT_DESC inputElements[] =
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        };
+
+        psoDesc.InputLayout.pInputElementDescs = inputElements;
+        psoDesc.InputLayout.NumElements = ArraySize_(inputElements);
+
+        psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+        psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        psoDesc.NumRenderTargets = 1;
+        psoDesc.RTVFormats[0] = _mainSwapchain->dxgiBackBufferFormat;
+        psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+        psoDesc.SampleDesc.Count = 1;
         psoDesc.NodeMask = 0;
         //psoDesc.CachedPSO;
         psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+        // Create pipeline.
+        AgpuPipeline pipeline = new AgpuPipeline_T();
+        pipeline->isCompute = AGPU_FALSE;
         DXCall(_d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipeline->d3d12PipelineState)));
         return pipeline;
     }
@@ -1369,6 +1621,7 @@ namespace d3d12
 
     void AGpuRendererD3D12::DestroyPipeline(AgpuPipeline pipeline)
     {
+        DeferredRelease(pipeline->d3d12PipelineState);
         delete pipeline;
         pipeline = nullptr;
     }
@@ -1413,6 +1666,40 @@ namespace d3d12
         _currentFramebuffer = nullptr;
     }
 
+    void AGpuRendererD3D12::CreateRootSignature(
+        ID3D12RootSignature** rootSignature,
+        const D3D12_ROOT_SIGNATURE_DESC1& desc)
+    {
+        D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedDesc = { };
+        versionedDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+        versionedDesc.Desc_1_1 = desc;
+
+        ComPtr<ID3DBlob> signature;
+        ComPtr<ID3DBlob> error;
+        HRESULT hr = D3DX12SerializeVersionedRootSignature(
+            &versionedDesc,
+            _d3dRootSignatureVersion,
+            &signature,
+            &error);
+
+        if (FAILED(hr))
+        {
+            const char* errString = error ? reinterpret_cast<const char*>(error->GetBufferPointer()) : "";
+            ALIMER_ASSERT_MSG(false, "Failed to create root signature: %s", errString);
+        }
+
+        hr = _d3dDevice->CreateRootSignature(
+            0,
+            signature->GetBufferPointer(),
+            signature->GetBufferSize(),
+            IID_PPV_ARGS(rootSignature));
+
+        if (FAILED(hr))
+        {
+            ALIMER_LOGERRORF("Failed to create root signature, hr=0x%.8x", hr);
+        }
+    }
+
     AgpuBool32 isSupported()
     {
         static AgpuBool32 availableCheck = AGPU_FALSE;
@@ -1454,6 +1741,8 @@ namespace d3d12
         D3D12GetDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(s_d3d12Lib, "D3D12GetDebugInterface");
         D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(s_d3d12Lib, "D3D12CreateDevice");
         D3D12SerializeRootSignature = (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)GetProcAddress(s_d3d12Lib, "D3D12SerializeRootSignature");
+        D3D12SerializeVersionedRootSignature = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(s_d3d12Lib, "D3D12SerializeVersionedRootSignature");
+
         if (!D3D12CreateDevice)
         {
             OutputDebugStringW(L"Cannot find D3D12CreateDevice entry point.");

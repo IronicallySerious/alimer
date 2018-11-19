@@ -42,24 +42,20 @@ namespace Alimer
     {
         const uint64_t BufferSize = 2048;
         char buffer[BufferSize];
-        sprintf_s(buffer, BufferSize, "%s(%d): Assert Failure: ", file, line);
+        snprintf(buffer, BufferSize, "%s(%d): Assert Failure: ", file, line);
 
         if (condition != NULL)
-            sprintf_s(buffer, BufferSize, "%s'%s' ", buffer, condition);
+            snprintf(buffer, BufferSize, "%s'%s' ", buffer, condition);
 
         if (msg != NULL)
-            sprintf_s(buffer, BufferSize, "%s%s", buffer, msg);
+            snprintf(buffer, BufferSize, "%s%s", buffer, msg);
 
-#if defined(_MSC_VER)
-        sprintf_s(buffer, BufferSize, "%s\n", buffer);
-#else
         snprintf(buffer, BufferSize, "%s\n", buffer);
-#endif
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         OutputDebugStringA(buffer);
 #else
-        vfprintf(stderr, "%s", buffer);
+        fprintf(stderr, "%s", buffer);
 #endif
 
         return Assert::Halt;

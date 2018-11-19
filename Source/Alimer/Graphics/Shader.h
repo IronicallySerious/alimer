@@ -48,39 +48,35 @@ namespace Alimer
         ShaderBlob stages[static_cast<unsigned>(ShaderStage::Count)];
     };
 
-    /// Defines a shader module - created by GraphicsDevice.
-    class ALIMER_API ShaderModule final
+    /// Defines a shader resource.
+    class ALIMER_API Shader final : public Resource
     {
-        friend class GraphicsDevice;
-    private:
-        /// Constructor.
-        ShaderModule(uint64_t hash, const ShaderBlob& blob);
-
-    public:
-        uint64_t GetHash() const { return _hash; }
-        ShaderStage GetStage() const { return _reflection.stage; }
-        const ShaderReflection& GetReflection() const { return _reflection; }
-        const std::vector<uint8_t>& GetBytecode() const { return _byteCode; }
-    private:
-        uint64_t _hash;
-        std::vector<uint8_t> _byteCode;
-        ShaderReflection _reflection;
-    };
-
-    /// Defines a shader class.
-    class ALIMER_API Shader : public Resource
-    {
+        friend class Graphics;
         ALIMER_OBJECT(Shader, Resource);
 
-    protected:
-        /// Constructor.
-        Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor);
-
     public:
-        /// Get whether shader is compute.
-        bool IsCompute() const { return _isCompute; }
+        /// Constructor.
+        Shader();
+
+        ~Shader() override;
+        void Destroy();
+
+        bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
+
+        AgpuShader GetHandle() const { return _handle; }
+
+        //uint64_t GetHash() const { return _hash; }
+        ShaderStage GetStage() const { return _reflection.stage; }
+        //const ShaderReflection& GetReflection() const { return _reflection; }
+        //const std::vector<uint8_t>& GetBytecode() const { return _byteCode; }
 
     private:
-        bool _isCompute;
+        /// Register object factory.
+        static void RegisterObject();
+
+        //uint64_t _hash;
+        //std::vector<uint8_t> _byteCode;
+        ShaderReflection _reflection;
+        AgpuShader _handle;
     };
 }

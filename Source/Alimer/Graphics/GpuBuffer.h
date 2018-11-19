@@ -31,10 +31,10 @@ namespace Alimer
 	{
 	protected:
         /// Constructor.
-        GpuBuffer(GraphicsDevice* device, ResourceUsage resourceUsage, BufferUsage usage);
+        GpuBuffer(Graphics* device, ResourceUsage resourceUsage, BufferUsage usage);
 
 		/// Constructor.
-		GpuBuffer(GraphicsDevice* device, const BufferDescriptor* descriptor);
+		GpuBuffer(Graphics* device, const BufferDescriptor* descriptor);
 
 	public:
         /// Replace entire buffer data in synchronous way.

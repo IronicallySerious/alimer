@@ -33,7 +33,7 @@
 
 namespace Alimer
 {
-    class GraphicsDevice;
+    class Graphics;
 
     struct ColorAttachmentAction {
         LoadAction  loadAction = LoadAction::Clear;
@@ -59,10 +59,10 @@ namespace Alimer
     /// Defines a command context for recording gpu commands.
     class ALIMER_API CommandContext : public RefCounted
     {
-        friend class GraphicsDevice;
+        friend class Graphics;
 
     protected:
-        CommandContext(GraphicsDevice* device);
+        CommandContext(Graphics* graphics);
 
     public:
         /// Destructor.
@@ -121,7 +121,7 @@ namespace Alimer
 
     protected:
         /// Graphics subsystem.
-        GraphicsDevice* _device;
+        WeakPtr<Graphics> _graphics;
         bool _insideRenderPass;
         Pipeline* _currentPipeline = nullptr;
 

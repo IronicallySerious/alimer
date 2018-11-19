@@ -62,13 +62,18 @@ namespace Alimer
     };
 
     /// Defines a Texture class.
-    class ALIMER_API Texture : public GraphicsResource
+    class ALIMER_API Texture : public Resource
     {
+        friend class Graphics;
+        ALIMER_OBJECT(Texture, Resource);
+
     protected:
         /// Constructor.
-        Texture(GraphicsDevice* device, const TextureDescriptor* descriptor);
+        Texture(const TextureDescriptor* descriptor);
 
     public:
+        Texture();
+
         TextureType GetTextureType() const { return _type; }
         TextureUsage GetUsage() const { return _usage; }
         PixelFormat GetFormat() const { return _format; }
@@ -103,7 +108,10 @@ namespace Alimer
         */
         SampleCount GetSamples() const { return _samples; }
 
-    protected:
+    private:
+        /// Register object factory.
+        static void RegisterObject();
+
         TextureType _type = TextureType::Type1D;
         TextureUsage _usage = TextureUsage::Unknown;
         PixelFormat _format = PixelFormat::Unknown;

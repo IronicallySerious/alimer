@@ -58,17 +58,20 @@ namespace Alimer
     };
 
     /// Low-level 3D graphics module.
-    class ALIMER_API GraphicsDevice : public Object
+    class ALIMER_API Graphics : public Object
     {
-        ALIMER_OBJECT(GraphicsDevice, Object);
+        ALIMER_OBJECT(Graphics, Object);
 
     protected:
         /// Constructor.
-        GraphicsDevice(GraphicsBackend backend, bool validation);
+        Graphics(GraphicsBackend backend, bool validation);
 
     public:
+        /// Register object.
+        static void RegisterObject();
+
         /// Destructor.
-        virtual ~GraphicsDevice() override;
+        virtual ~Graphics() override;
 
         /// Check if backend is supported
         static bool IsBackendSupported(GraphicsBackend backend);
@@ -77,7 +80,7 @@ namespace Alimer
         static std::set<GraphicsBackend> GetAvailableBackends();
 
         /// Create new graphics device instance.
-        static GraphicsDevice* Create(GraphicsBackend prefferedBackend = GraphicsBackend::Default, bool validation = false);
+        static Graphics* Create(GraphicsBackend prefferedBackend = GraphicsBackend::Default, bool validation = false);
 
         /// Initialize graphics with given settings.
         virtual bool Initialize(const RenderingSettings& settings);
@@ -103,24 +106,6 @@ namespace Alimer
         /// Create new framebuffer with given descriptor.
         Framebuffer* CreateFramebuffer(const FramebufferDescriptor* descriptor);
 
-        /// Request shader module using SPIRV bytecode.
-        ShaderModule* RequestShader(const uint32_t* pCode, size_t size);
-
-        /// Request shader module using shader blob.
-        ShaderModule* RequestShader(const ShaderBlob& blob);
-
-        /// Request shader module from assets path.
-        ShaderModule* RequestShader(const String& url);
-
-        /// Create new shader with given descriptor.
-        Shader* CreateShader(const ShaderDescriptor* descriptor);
-
-        /// Create new shader compute shader.
-        Shader* CreateShader(const ShaderBlob& compute);
-
-        /// Create new render pipeline with given descriptor.
-        Pipeline* CreateRenderPipeline(const RenderPipelineDescriptor* descriptor);
-
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
 
@@ -145,8 +130,6 @@ namespace Alimer
         virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
         virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
 
-        virtual Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
-        virtual Pipeline* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) = 0;
 
         GraphicsBackend _backend = GraphicsBackend::Empty;
         bool _validation;
@@ -158,7 +141,9 @@ namespace Alimer
         SharedPtr<CommandContext> _context;
 
     private:
-        Cache<ShaderModule> _shaders;
         uint32_t _frameIndex = 0;
     };
+
+    /// Register Graphics related object factories and attributes.
+    ALIMER_API void RegisterGraphicsLibrary();
 }

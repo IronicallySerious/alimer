@@ -116,6 +116,12 @@ typedef struct AgpuPipeline_T {
 
 } AgpuPipeline_T;
 
+typedef struct AgpuCommandBuffer_T {
+#if AGPU_D3D12
+    ID3D12GraphicsCommandList*      d3d12CommandList;
+#endif
+} AgpuCommandBuffer_T;
+
 struct AGpuRendererI
 {
     virtual ~AGpuRendererI() = 0;

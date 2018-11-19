@@ -46,6 +46,7 @@ extern "C"
     AGPU_DEFINE_HANDLE(AgpuBuffer);
     AGPU_DEFINE_HANDLE(AgpuShader);
     AGPU_DEFINE_HANDLE(AgpuPipeline);
+    AGPU_DEFINE_HANDLE(AgpuCommandBuffer);
 
 #define AGPU_TRUE                           1
 #define AGPU_FALSE                          0
@@ -155,7 +156,7 @@ extern "C"
         AGPU_SHADER_STAGE_HULL      = 1,
         AGPU_SHADER_STAGE_DOMAIN    = 2,
         AGPU_SHADER_STAGE_GEOMETRY  = 3,
-        AGPU_SHADER_STAGE_PIXEL     = 4,
+        AGPU_SHADER_STAGE_FRAGMENT  = 4,
         AGPU_SHADER_STAGE_COMPUTE   = 5,
         AGPU_SHADER_STAGE_COUNT     = 6,
     } AgpuShaderStage;
@@ -205,7 +206,11 @@ extern "C"
     } AgpuShaderDescriptor;
 
     typedef struct AgpuRenderPipelineDescriptor {
-        AgpuShader                  shader;
+        AgpuShader                  vertex;
+        AgpuShader                  domain;
+        AgpuShader                  hull;
+        AgpuShader                  geometry;
+        AgpuShader                  fragment;
     } AgpuRenderPipelineDescriptor;
 
     typedef struct AgpuComputePipelineDescriptor {

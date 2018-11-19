@@ -94,7 +94,7 @@ namespace Alimer
 
         inline ResourceManager& GetResources() { return _resources; }
         inline Window* GetMainWindow() const { return _mainWindow; }
-        inline GraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice; }
+        inline Graphics* GetGraphics() const { return _graphics; }
         inline Input& GetInput() { return _input; }
 
     private:
@@ -125,7 +125,7 @@ namespace Alimer
         Timer _timer;
         ResourceManager _resources;
         Window* _mainWindow = nullptr;
-        GraphicsDevice* _graphicsDevice = nullptr;
+        Graphics* _graphics = nullptr;
         Input _input;
         Audio* _audio;
 

@@ -134,7 +134,7 @@ namespace Alimer
                 stage, _fileName.CString());*/
         }
 
-        return Object::GetSubsystem<GraphicsDevice>()->CreateShader(&_descriptor);
+        return Object::CreateObject<Shader>();
     }
 
     ResourceManager::ResourceManager()

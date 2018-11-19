@@ -50,9 +50,28 @@ namespace Alimer
                 return it != _subsystems.end() ? it->second : nullptr;
             }
 
+            void AddFactory(ObjectFactory* factory)
+            {
+                _factories.emplace(std::make_pair(factory->GetType(), factory));
+            }
+
+            void RemoveFactory(StringHash type)
+            {
+                _factories.erase(type);
+            }
+
+            SharedPtr<Object> CreateObject(StringHash type)
+            {
+                auto it = _factories.find(type);
+                return it != end(_factories) ? it->second->CreateObject() : nullptr;
+            }
+
         private:
             /// Registered subsystems.
             std::unordered_map<StringHash, Object*> _subsystems;
+
+            /// Registered object factories.
+            std::unordered_map<StringHash, UniquePtr<ObjectFactory>> _factories;
         };
 
         SubSystemContext& Context()
@@ -127,6 +146,24 @@ namespace Alimer
     Object* Object::GetSubsystem(StringHash type)
     {
         return details::Context().GetSubsystem(type);
+    }
+
+    void Object::RegisterFactory(ObjectFactory* factory)
+    {
+        if (!factory)
+            return;
+
+        details::Context().AddFactory(factory);
+    }
+
+    void Object::RemoveFactory(StringHash type)
+    {
+        details::Context().RemoveFactory(type);
+    }
+
+    SharedPtr<Object> Object::CreateObject(StringHash type)
+    {
+        return details::Context().CreateObject(type);
     }
 
     void Object::SubscribeToEvent(Event& event, EventHandler* handler)

@@ -26,9 +26,50 @@
 
 namespace Alimer
 {
-    Pipeline::Pipeline(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor)
-        : GraphicsResource(device)
-        , _isCompute(false)
+    Pipeline::Pipeline()
+        : GraphicsResource(Object::GetSubsystem<Graphics>())
+        , _isCompute(true)
+        , _handle(nullptr)
     {
+    }
+
+    Pipeline::~Pipeline()
+    {
+        Destroy();
+    }
+
+    void Pipeline::Destroy()
+    {
+        if (_handle != nullptr)
+        {
+            agpuDestroyPipeline(_handle);
+            _handle = nullptr;
+        }
+    }
+
+    bool Pipeline::Define(const RenderPipelineDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+#ifdef _DEBUG
+        if (descriptor->vertex == nullptr)
+        {
+            ALIMER_LOGERROR("RenderPipeline: Invalid vertex shader.");
+        }
+
+        if (descriptor->fragment == nullptr)
+        {
+            ALIMER_LOGERROR("RenderPipeline: Invalid fragment shader.");
+        }
+#endif
+
+        Destroy();
+        _isCompute = false;
+
+        AgpuRenderPipelineDescriptor gpuPipelineDesc = {};
+        gpuPipelineDesc.vertex = descriptor->vertex->GetHandle();
+        gpuPipelineDesc.fragment = descriptor->fragment->GetHandle();
+        _handle = agpuCreateRenderPipeline(&gpuPipelineDesc);
+
+        return true;
     }
 }
