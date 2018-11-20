@@ -21,50 +21,26 @@
 // THE SOFTWARE.
 //
 
-#include "alimer_platform.h"
-#include "Application.h"
-
-ApplicationProxy::ApplicationProxy(
-    ApplicationCallback_T initialize,
-    ApplicationCallback_T exit)
-    : _initializeCallback(initialize)
-    , _exitCallback(exit)
-{
-
-}
-
-void ApplicationProxy::Initialize()
-{
-    _initializeCallback();
-}
-
-void ApplicationProxy::OnExiting()
-{
-    _exitCallback();
-}
+#include "Alimer.h"
+using namespace Alimer;
 
 extern "C"
 {
-    EXPORT_API ApplicationProxy* Application_new(
-        ApplicationCallback_T initialize,
-        ApplicationCallback_T exit)
-    {
-        return new ApplicationProxy(initialize, exit);
-    }
+    ALIMER_API uint32_t ref_counted_refs(RefCounted* _this)
+	{
+		return _this->Refs();
+	}
 
-    EXPORT_API int Application_Run(ApplicationProxy* _this)
-    {
-        return _this->Run();
-    }
+    ALIMER_API uint32_t ref_counted_weak_refs(RefCounted* _this)
+	{
+		return _this->WeakRefs();
+	}
 
-    EXPORT_API void Application_RunFrame(ApplicationProxy* _this)
-    {
-        _this->RunFrame();
-    }
-
-    EXPORT_API void Application_Exit(ApplicationProxy* _this)
-    {
-        _this->Exit();
-    }
+    ALIMER_API void ref_counted_try_delete(RefCounted* _this)
+	{
+		if (_this && _this->RefCountPtr() && !_this->Refs()) {
+			delete _this;
+		}
+	}
 }
 

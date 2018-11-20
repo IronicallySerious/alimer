@@ -60,7 +60,7 @@ namespace Alimer
     };
 
     /// OS Window class.
-    class Window final : public Object
+    class ALIMER_API Window final : public Object
     {
         ALIMER_OBJECT(Window, Object);
 

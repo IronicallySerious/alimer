@@ -91,12 +91,16 @@ typedef struct AgpuFramebuffer_T {
 } AgpuFramebuffer_T;
 
 typedef struct AgpuBuffer_T {
+    uint64_t                        size;
+    uint64_t                        frameIndex;
 #if AGPU_D3D11
-    ID3D11Buffer*                   d3d11Buffer;
+    ID3D11Buffer*                   d3d11Resource;
 #endif
 
 #if AGPU_D3D12
-    ID3D12Resource*                 d3d12Buffer;
+    ID3D12Resource*                 d3d12Resource;
+    uint8_t*                        d3d12CPUAddress;
+    uint64_t                        d3d12GPUAddress;
 #endif
 
 } AgpuBuffer_T;
@@ -128,6 +132,9 @@ struct AGpuRendererI
 
     virtual void Shutdown() = 0;
     virtual uint64_t Frame() = 0;
+
+    virtual AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, void* externalHandle) = 0;
+    virtual void DestroyBuffer(AgpuBuffer buffer) = 0;
 
     virtual AgpuTexture CreateTexture(const AgpuTextureDescriptor* descriptor, void* externalHandle) = 0;
     virtual void DestroyTexture(AgpuTexture texture) = 0;

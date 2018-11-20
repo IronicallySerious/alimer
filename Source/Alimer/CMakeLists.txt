@@ -106,6 +106,10 @@ if (ALIMER_VULKAN)
     #list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
 endif ()
 
+if (ALIMER_CSHARP)
+    define_engine_source_files(CSharp)
+endif ()
+
 # Group source code in VS solution
 group_sources()
 
@@ -152,8 +156,14 @@ if (ALIMER_THREADING)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_THREADING=1)
 endif ()
 
-if (ALIMER_SHARED OR EMSCRIPTEN)
-	target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_SHARED INTERFACE -DALIMER_IMPORTS)
+if (ALIMER_SHARED OR ALIMER_CSHARP OR EMSCRIPTEN)
+	target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_EXPORTS INTERFACE -DALIMER_IMPORTS)
+else ()
+    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_STATIC)
+endif ()
+
+if (ALIMER_CSHARP)
+    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_CSHARP)
 endif ()
 
 # Add OS-specific library dependencies
@@ -181,7 +191,7 @@ endif ()
 # Suppress some MSVC warnings
 if (MSVC)
     # = conversion possible loss of data -- for STB image
-    set_property(TARGET ${TARGET_NAME} APPEND PROPERTY COMPILE_OPTIONS "/wd4100")
+    target_compile_options(${TARGET_NAME} PRIVATE /wd4100)
 endif()
 
 # SDK installation

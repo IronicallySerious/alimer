@@ -61,12 +61,12 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            /*BufferDescriptor vertexBufferDesc = {};
-            vertexBufferDesc.usage = BufferUsage::Vertex;
-            vertexBufferDesc.resourceUsage = ResourceUsage::Immutable;
-            vertexBufferDesc.size = sizeof(triangleVertices);
+            AgpuBufferDescriptor vertexBufferDesc = {};
             vertexBufferDesc.stride = sizeof(VertexColor);
-            _vertexBuffer = device->CreateBuffer(&vertexBufferDesc, triangleVertices);
+            vertexBufferDesc.elementCount = 3;
+            vertexBufferDesc.initialData = triangleVertices;
+            vertexBufferDesc.cpuAccessible = true; /* TODO: Disable when implemented upload in d3d12*/
+            _vertexBuffer = agpuCreateBuffer(&vertexBufferDesc);
 
             //_shader = resources.Load<Shader>("shaders/color.shader");
 
@@ -124,7 +124,7 @@ namespace Alimer
         }
 
     private:
-        SharedPtr<GpuBuffer> _vertexBuffer;
+        AgpuBuffer _vertexBuffer;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
         SharedPtr<Pipeline> _pipeline;
@@ -396,8 +396,8 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
-        _settings.prefferedGraphicsBackend = GraphicsBackend::D3D11;
-       // _settings.prefferedGraphicsBackend = GraphicsBackend::Vulkan;
+        _settings.preferredGraphicsBackend = GraphicsBackend::D3D11;
+       // _settings.preferredGraphicsBackend = GraphicsBackend::Vulkan;
     }
 
     void RuntimeApplication::Initialize()

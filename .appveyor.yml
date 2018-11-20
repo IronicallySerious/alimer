@@ -43,7 +43,7 @@ before_build:
 build_script:
   - mkdir "%APPVEYOR_BUILD_FOLDER%\build"
   - cd "%APPVEYOR_BUILD_FOLDER%\build"
-  - cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_VERSION="10.0.17763.0" -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%\Alimer-SDK" ..
+  - cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%\Alimer-SDK" ..
   - cmake --build . --target install
 
 after_build:

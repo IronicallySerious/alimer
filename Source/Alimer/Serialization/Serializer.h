@@ -31,7 +31,7 @@
 namespace Alimer
 {
     /// Serializer class.
-    class Serializer
+    class ALIMER_API Serializer
     {
     protected:
         /// Constructor.

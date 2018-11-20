@@ -24,10 +24,6 @@
 
 #include "../AlimerConfig.h"
 
-#ifndef AGPU_API
-#   define AGPU_API
-#endif
-
 #ifndef AGPU_DEFINE_HANDLE
 #   define AGPU_DEFINE_HANDLE(object) typedef struct object##_T* object
 #endif
@@ -174,6 +170,15 @@ extern "C"
         uint32_t                    slice;
     } AgpuFramebufferAttachment;
 
+    typedef struct AgpuBufferDescriptor {
+        uint64_t stride;
+        uint64_t elementCount;
+        AgpuBool32 dynamic;
+        AgpuBool32 cpuAccessible;
+        const void* initialData;
+        const char* name;
+    } AgpuBufferDescriptor;
+
     typedef struct AgpuTextureDescriptor {
         AgpuTextureType             type;
         uint32_t                    width;
@@ -240,33 +245,37 @@ extern "C"
         AgpuSwapchainDescriptor     swapchain;
     } AgpuDescriptor;
 
-    AGPU_API AgpuBackend agpuGetDefaultPlatformBackend();
-    AGPU_API AgpuBool32 agpuIsBackendSupported(AgpuBackend backend);
-    AGPU_API uint32_t agpuGetAvailableBackendsCount();
-    AGPU_API AgpuBackend agpuGetAvailableBackend(uint32_t index);
+    ALIMER_API AgpuBackend agpuGetDefaultPlatformBackend();
+    ALIMER_API AgpuBool32 agpuIsBackendSupported(AgpuBackend backend);
+    ALIMER_API uint32_t agpuGetAvailableBackendsCount();
+    ALIMER_API AgpuBackend agpuGetAvailableBackend(uint32_t index);
 
-    AGPU_API AgpuResult agpuInitialize(const AgpuDescriptor* descriptor);
-    AGPU_API void agpuShutdown();
-    AGPU_API uint64_t agpuFrame();
+    ALIMER_API AgpuResult agpuInitialize(const AgpuDescriptor* descriptor);
+    ALIMER_API void agpuShutdown();
+    ALIMER_API uint64_t agpuFrame();
 
-    AGPU_API AgpuTexture agpuCreateTexture(const AgpuTextureDescriptor* descriptor);
-    AGPU_API AgpuTexture agpuCreateExternalTexture(const AgpuTextureDescriptor* descriptor, void* handle);
-    AGPU_API void agpuDestroyTexture(AgpuTexture texture);
+    ALIMER_API AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor);
+    ALIMER_API AgpuBuffer agpuCreateExternalBuffer(const AgpuBufferDescriptor* descriptor, void* handle);
+    ALIMER_API void agpuDestroyBuffer(AgpuBuffer buffer);
 
-    AGPU_API AgpuFramebuffer agpuCreateFramebuffer(const AgpuFramebufferDescriptor* descriptor);
-    AGPU_API void agpuDestroyFramebuffer(AgpuFramebuffer framebuffer);
+    ALIMER_API AgpuTexture agpuCreateTexture(const AgpuTextureDescriptor* descriptor);
+    ALIMER_API AgpuTexture agpuCreateExternalTexture(const AgpuTextureDescriptor* descriptor, void* handle);
+    ALIMER_API void agpuDestroyTexture(AgpuTexture texture);
 
-    AGPU_API AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor);
-    AGPU_API void agpuDestroyShader(AgpuShader shader);
+    ALIMER_API AgpuFramebuffer agpuCreateFramebuffer(const AgpuFramebufferDescriptor* descriptor);
+    ALIMER_API void agpuDestroyFramebuffer(AgpuFramebuffer framebuffer);
 
-    AGPU_API AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor);
-    AGPU_API AgpuPipeline agpuCreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor);
-    AGPU_API void agpuDestroyPipeline(AgpuPipeline pipeline);
+    ALIMER_API AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor);
+    ALIMER_API void agpuDestroyShader(AgpuShader shader);
 
-    AGPU_API AgpuBool32 agpuIsDepthFormat(AgpuPixelFormat format);
-    AGPU_API AgpuBool32 agpuIsStencilFormat(AgpuPixelFormat format);
-    AGPU_API AgpuBool32 agpuIsDepthStencilFormat(AgpuPixelFormat format);
-    AGPU_API AgpuBool32 agpuIsCompressed(AgpuPixelFormat format);
+    ALIMER_API AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor);
+    ALIMER_API AgpuPipeline agpuCreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor);
+    ALIMER_API void agpuDestroyPipeline(AgpuPipeline pipeline);
+
+    ALIMER_API AgpuBool32 agpuIsDepthFormat(AgpuPixelFormat format);
+    ALIMER_API AgpuBool32 agpuIsStencilFormat(AgpuPixelFormat format);
+    ALIMER_API AgpuBool32 agpuIsDepthStencilFormat(AgpuPixelFormat format);
+    ALIMER_API AgpuBool32 agpuIsCompressed(AgpuPixelFormat format);
 
 #ifdef __cplusplus
 }

@@ -206,6 +206,21 @@ uint64_t agpuFrame()
     return s_renderer->Frame();
 }
 
+AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor)
+{
+    return s_renderer->CreateBuffer(descriptor, NULL);
+}
+
+AgpuBuffer agpuCreateExternalBuffer(const AgpuBufferDescriptor* descriptor, void* handle)
+{
+    return s_renderer->CreateBuffer(descriptor, handle);
+}
+
+void agpuDestroyBuffer(AgpuBuffer buffer)
+{
+    s_renderer->DestroyBuffer(buffer);
+}
+
 AgpuTexture agpuCreateTexture(const AgpuTextureDescriptor* descriptor)
 {
     return s_renderer->CreateTexture(descriptor, NULL);

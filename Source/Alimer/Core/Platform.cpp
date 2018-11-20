@@ -84,7 +84,7 @@ bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wSer
 #   include <pthread.h>
 #endif
 
-PlatformType GetPlatformType()
+PlatformType alimerGetPlatformType()
 {
 #if defined(_DURANGO) || defined(_XBOX_ONE)
     return PLATFORM_TYPE_XBOX_ONE;
@@ -111,7 +111,7 @@ PlatformType GetPlatformType()
 #endif
 }
 
-PlatformFamily GetPlatformFamily()
+PlatformFamily alimerGetPlatformFamily()
 {
 #if ALIMER_PLATFORM_ANDROID || ALIMER_PLATFORM_APPLE_IOS || ALIMER_PLATFORM_APPLE_TV
     return PLATFORM_FAMILY_MOBILE;
@@ -143,9 +143,9 @@ PlatformFamily GetPlatformFamily()
 #endif
 }
 
-const char* GetPlatformName()
+const char* alimerGetPlatformName()
 {
-    PlatformType platform = GetPlatformType();
+    PlatformType platform = alimerGetPlatformType();
     switch (platform)
     {
     case PLATFORM_TYPE_WINDOWS:
@@ -283,7 +283,7 @@ void SetCurrentThreadName(const char* name)
 #endif
 }
 
-void Sleep(uint32_t milliseconds)
+void alimerSleep(uint32_t milliseconds)
 {
 #if defined(_MSC_VER)
     ::Sleep(static_cast<DWORD>(milliseconds));

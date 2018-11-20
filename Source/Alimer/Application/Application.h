@@ -48,7 +48,7 @@ namespace Alimer
 {
     struct ApplicationSettings
     {
-        GraphicsBackend prefferedGraphicsBackend = GraphicsBackend::Default;
+        GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Default;
 
 #if defined(_DEBUG)
         bool validation = true;

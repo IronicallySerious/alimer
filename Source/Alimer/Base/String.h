@@ -41,7 +41,7 @@ namespace Alimer
     static constexpr size_t CONVERSION_BUFFER_LENGTH = 128;
 
     /// String class.
-    class ALIMER_API String
+    class ALIMER_API String final
     {
     public:
         using Iterator = RandomAccessIterator<char>;
@@ -583,7 +583,7 @@ namespace Alimer
     }
 
     /// Wide character string. Only meant for converting from String and passing to the operating system where necessary.
-    class ALIMER_API WString
+    class ALIMER_API WString final
     {
     public:
         /// Construct empty.

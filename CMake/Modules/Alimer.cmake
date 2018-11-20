@@ -146,11 +146,18 @@ endif()
 
 option (ALIMER_ENABLE_ALL "Enables all optional subsystems by default" OFF)
 
+
+if (NOT CMAKE_CROSS_COMPILING AND ALIMER_DESKTOP)
+    set (ALIMER_CSHARP_DEFAULT ON)
+else ()
+    set (ALIMER_CSHARP_DEFAULT OFF)
+endif ()
+
 alimer_option (ALIMER_THREADING "Enable multithreading")
 alimer_option (ALIMER_GL "Enable OpenGL backend")
 alimer_option (ALIMER_VULKAN "Enable Vulkan backend")
 alimer_option (ALIMER_TOOLS "Enable Tools")
-
+alimer_option (ALIMER_CSHARP "Enable C# support")
 
 set (ALIMER_FLAGS "")
 set (ALIMER_DEFS "")
@@ -281,7 +288,7 @@ function(alimer_setup_common_properties target)
 endfunction()
 
 function(add_alimer_library target)
-    if (ALIMER_SHARED)
+    if (ALIMER_SHARED OR ALIMER_CSHARP)
         add_library(${target} SHARED ${ARGN})
     else()
         add_library(${target} STATIC ${ARGN})

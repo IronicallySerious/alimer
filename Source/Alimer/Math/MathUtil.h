@@ -190,29 +190,16 @@ namespace Alimer
 #endif
     }
 
-    template <typename T> ALIMER_FORCE_INLINE T AlignUpWithMask(T value, size_t mask)
+    inline uint32_t AlignTo(uint32_t value, uint32_t alignment)
     {
-        return (T)(((size_t)value + mask) & ~mask);
+        ALIMER_ASSERT(alignment > 0);
+        return ((value + alignment - 1) / alignment) * alignment;
     }
 
-    template <typename T> ALIMER_FORCE_INLINE T AlignDownWithMask(T value, size_t mask)
+    inline uint64_t AlignTo(uint64_t value, uint64_t alignment)
     {
-        return (T)((size_t)value & ~mask);
-    }
-
-    template <typename T> ALIMER_FORCE_INLINE T AlignUp(T value, size_t alignment)
-    {
-        return AlignUpWithMask(value, alignment - 1);
-    }
-
-    template <typename T> ALIMER_FORCE_INLINE T AlignDown(T value, size_t alignment)
-    {
-        return AlignDownWithMask(value, alignment - 1);
-    }
-
-    template <typename T> ALIMER_FORCE_INLINE bool IsAligned(T value, size_t alignment)
-    {
-        return 0 == ((size_t)value & (alignment - 1));
+        ALIMER_ASSERT(alignment > 0);
+        return ((value + alignment - 1) / alignment) * alignment;
     }
 
     template <typename T> ALIMER_FORCE_INLINE T DivideByMultiple(T value, size_t alignment)

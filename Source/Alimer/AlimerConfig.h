@@ -25,9 +25,14 @@
 
 #include "PlatformDef.h"
 
-#if defined(_MSC_VER) && defined(ALIMER_SHARED)
+#ifdef _MSC_VER
+#pragma warning(disable: 4251)
+#pragma warning(disable: 4275)
+#endif
+
+#if defined(_MSC_VER) && defined(ALIMER_EXPORTS)
 #   define ALIMER_API __declspec(dllexport)
-#elif defined(_MSC_VER) && defined(ALIMER_USE_SHARED)
+#elif defined(_MSC_VER) && defined(ALIMER_IMPORTS)
 #   define ALIMER_API __declspec(dllimport)
 #else
 #   define ALIMER_API

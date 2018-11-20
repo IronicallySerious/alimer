@@ -27,6 +27,7 @@
 #include "agpu_backend.h"
 #include <wrl/client.h>
 #include <wrl/event.h>
+#include "../Math/MathUtil.h"
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
 
@@ -238,10 +239,10 @@ namespace d3d12
     }
 
     //------------------------------------------------------------------------------------------------
-// D3D12 exports a new method for serializing root signatures in the Windows 10 Anniversary Update.
-// To help enable root signature 1.1 features when they are available and not require maintaining
-// two code paths for building root signatures, this helper method reconstructs a 1.0 signature when
-// 1.1 is not supported.
+    // D3D12 exports a new method for serializing root signatures in the Windows 10 Anniversary Update.
+    // To help enable root signature 1.1 features when they are available and not require maintaining
+    // two code paths for building root signatures, this helper method reconstructs a 1.0 signature when
+    // 1.1 is not supported.
     inline HRESULT D3DX12SerializeVersionedRootSignature(
         _In_ const D3D12_VERSIONED_ROOT_SIGNATURE_DESC* pRootSignatureDesc,
         D3D_ROOT_SIGNATURE_VERSION MaxVersion,
@@ -360,6 +361,49 @@ namespace d3d12
         }
 
         return E_INVALIDARG;
+    }
+
+    // Heap helpers
+    const D3D12_HEAP_PROPERTIES* agpuD3D12GetDefaultHeapProps()
+    {
+        static D3D12_HEAP_PROPERTIES heapProps =
+        {
+            D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            D3D12_MEMORY_POOL_UNKNOWN,
+            0,
+            0,
+        };
+
+        return &heapProps;
+    }
+
+    const D3D12_HEAP_PROPERTIES* agpuD3D12GetUploadHeapProps()
+    {
+        static D3D12_HEAP_PROPERTIES heapProps =
+        {
+            D3D12_HEAP_TYPE_UPLOAD,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            D3D12_MEMORY_POOL_UNKNOWN,
+            0,
+            0,
+        };
+
+        return &heapProps;
+    }
+
+    const D3D12_HEAP_PROPERTIES* agpuD3D12GetReadbackHeapProps()
+    {
+        static D3D12_HEAP_PROPERTIES heapProps =
+        {
+            D3D12_HEAP_TYPE_READBACK,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            D3D12_MEMORY_POOL_UNKNOWN,
+            0,
+            0,
+        };
+
+        return &heapProps;
     }
 
     DXGI_FORMAT agpuD3D12ConvertPixelFormat(AgpuPixelFormat format)
@@ -562,6 +606,10 @@ namespace d3d12
         AgpuSwapchain CreateSwapchain(const AgpuSwapchainDescriptor* descriptor);
         void DestroySwapchain(AgpuSwapchain swapchain);
 
+        /* Buffer */
+        AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, void* externalHandle) override;
+        void DestroyBuffer(AgpuBuffer buffer) override;
+
         /* Texture */
         AgpuTexture CreateTexture(const AgpuTextureDescriptor* descriptor, void* externalHandle) override;
         void DestroyTexture(AgpuTexture texture) override;
@@ -607,6 +655,9 @@ namespace d3d12
         ID3D12CommandQueue*         _graphicsQueue = nullptr;
         ID3D12GraphicsCommandList*  _commandList = nullptr;
         ID3D12CommandAllocator*     _commandAllocators[AGPU_MAX_BACK_BUFFER_COUNT];
+
+        uint64_t                    _currentCPUFrame = 0;
+        uint64_t                    _currentGPUFrame = 0;
         uint64_t                    _currentFrameIndex = 0;
         bool                        _shuttingDown = false;
         std::vector<IUnknown*>      _deferredReleases[RenderLatency];
@@ -875,7 +926,7 @@ namespace d3d12
         }
 
 
-#if defined(NTDDI_WIN10_RS2)
+#if ALIMER_DXR
         D3D12_FEATURE_DATA_D3D12_OPTIONS5 options;
         if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options, sizeof(options)))
             && options.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
@@ -1037,6 +1088,8 @@ namespace d3d12
             uint32_t syncIntervals = vsync ? 1 : 0;
             DXCall(_mainSwapchain->d3d12SwapChain->Present(syncIntervals, syncIntervals == 0 ? DXGI_PRESENT_ALLOW_TEARING : 0));
         }
+
+        ++_currentCPUFrame;
 
         // Prepare to render the next frame.
         // Schedule a Signal command in the queue.
@@ -1308,6 +1361,120 @@ namespace d3d12
         }
 
         return texture;
+    }
+
+    AgpuBuffer AGpuRendererD3D12::CreateBuffer(const AgpuBufferDescriptor* descriptor, void* externalHandle)
+    {
+        AgpuBuffer buffer = new AgpuBuffer_T();
+        buffer->frameIndex = _currentCPUFrame;
+
+        uint64_t size = descriptor->stride * descriptor->elementCount;
+        size = Alimer::AlignTo(size, descriptor->stride);
+
+        const bool allowUAV = false;
+        D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
+
+        if (externalHandle == nullptr)
+        {
+            D3D12_RESOURCE_DESC resourceDesc = { };
+            resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+            resourceDesc.Width = descriptor->dynamic ? size * RenderLatency : size;
+            resourceDesc.Height = 1;
+            resourceDesc.DepthOrArraySize = 1;
+            resourceDesc.MipLevels = 1;
+            resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+            resourceDesc.Flags = allowUAV ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
+            resourceDesc.SampleDesc.Count = 1;
+            resourceDesc.SampleDesc.Quality = 0;
+            resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+            resourceDesc.Alignment = 0;
+
+            const D3D12_HEAP_PROPERTIES* heapProps = descriptor->cpuAccessible
+                ? agpuD3D12GetUploadHeapProps() : agpuD3D12GetDefaultHeapProps();
+            D3D12_RESOURCE_STATES resourceState = initialState;
+            if (descriptor->cpuAccessible)
+            {
+                resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+            }
+            else if (descriptor->initialData)
+            {
+                resourceState = D3D12_RESOURCE_STATE_COMMON;
+            }
+
+            ID3D12Heap* heap = nullptr;
+            const uint64_t heapOffset = 0;
+            if (heap)
+            {
+                DXCall(_d3dDevice->CreatePlacedResource(
+                    heap, 
+                    heapOffset, 
+                    &resourceDesc, 
+                    resourceState,
+                    nullptr, 
+                    IID_PPV_ARGS(&buffer->d3d12Resource))
+                );
+            }
+            else
+            {
+                DXCall(_d3dDevice->CreateCommittedResource(
+                    heapProps, 
+                    D3D12_HEAP_FLAG_NONE, 
+                    &resourceDesc,
+                    resourceState, 
+                    nullptr, 
+                    IID_PPV_ARGS(&buffer->d3d12Resource))
+                );
+            }
+        }
+        else
+        {
+            buffer->d3d12Resource = static_cast<ID3D12Resource*>(externalHandle);
+        }
+
+        if (descriptor->name)
+        {
+            //buffer->d3d12Resource->SetName(name);
+        }
+
+        buffer->size = size;
+        buffer->d3d12GPUAddress = buffer->d3d12Resource->GetGPUVirtualAddress();
+
+        if (descriptor->cpuAccessible)
+        {
+            D3D12_RANGE readRange = { };
+            DXCall(buffer->d3d12Resource->Map(0, &readRange, reinterpret_cast<void**>(&buffer->d3d12CPUAddress)));
+        }
+
+        if (descriptor->initialData && descriptor->cpuAccessible)
+        {
+            for (uint64_t i = 0; i < RenderLatency; ++i)
+            {
+                uint8_t* dstMem = buffer->d3d12CPUAddress + size * i;
+                memcpy(dstMem, descriptor->initialData, size);
+            }
+
+        }
+        else if (descriptor->initialData)
+        {
+            /*UploadContext uploadContext = ResourceUploadBegin(resourceDesc.Width);
+
+            memcpy(uploadContext.CPUAddress, initData, size);
+            if (dynamic)
+                memcpy((uint8*)uploadContext.CPUAddress + size, initData, size);
+
+            uploadContext.CmdList->CopyBufferRegion(Resource, 0, uploadContext.Resource, uploadContext.ResourceOffset, size);
+
+            ResourceUploadEnd(uploadContext);*/
+        }
+
+        return buffer;
+    }
+
+    void AGpuRendererD3D12::DestroyBuffer(AgpuBuffer buffer)
+    {
+        DeferredRelease(buffer->d3d12Resource);
+        delete buffer;
+        buffer = nullptr;
     }
 
     void AGpuRendererD3D12::DestroyTexture(AgpuTexture texture)

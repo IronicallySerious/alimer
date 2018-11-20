@@ -20,21 +20,41 @@
 # THE SOFTWARE.
 #
 
-# Define source files
-file (GLOB SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-source_group ("" FILES ${SOURCE_FILES})
+cmake_minimum_required(VERSION 3.5)
 
-set (TARGET_NAME libalimerc)
-add_library (${TARGET_NAME} SHARED ${SOURCE_FILES})
-target_link_libraries (${TARGET_NAME} libAlimer)
-target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMERC_EXPORTS=1)
+option (OPTION_BUILD_CSHARP_WITH_CSC "Build C# with Roslyn Compiler" ON)
 
-# SDK installation
-if (NOT ALIMER_SKIP_INSTALL)
-    install(TARGETS ${TARGET_NAME}
-	    EXPORT ${TARGET_NAME}
-	    LIBRARY DESTINATION lib
-	    RUNTIME DESTINATION bin
-	    ARCHIVE DESTINATION lib
-    )
-endif ()
+# Add commont macro
+macro (add_target_csharp TARGET FOLDER SOLUTION_FOLDER)
+    if (NOT ALIMER_CSHARP)
+        return ()
+    endif ()
+
+    if (WIN32 AND NOT ALIMER_CSHARP_MONO)
+        include_external_msproject(${TARGET} ${CMAKE_CURRENT_SOURCE_DIR}/${FOLDER}/${TARGET}.csproj)
+    else()
+
+    endif()
+
+    set_property(TARGET ${TARGET} PROPERTY FOLDER "${SOLUTION_FOLDER}")
+
+    if (NOT ALIMER_SKIP_INSTALL)
+        if (MSVC)
+            set (NET_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>)
+        else ()
+            set (NET_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+        endif ()
+
+        install (FILES
+            ${NET_OUTPUT_DIRECTORY}/${TARGET}.dll
+            DESTINATION bin
+        )
+    endif ()
+
+endmacro()
+
+# Alimer C# bindings
+add_target_csharp(AlimerSharp "AlimerSharp" "CSharp")
+
+# Editor
+add_target_csharp(Alimer.Studio "Alimer.Studio" "CSharp")

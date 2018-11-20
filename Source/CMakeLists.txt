@@ -23,12 +23,13 @@
 # Engine
 add_subdirectory (Alimer)
 
-# Alimer C bindings
-add_subdirectory(libalimerc)
-
 # Plugins
 add_subdirectory (Plugins)
 
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
     add_subdirectory (Tools)
+endif ()
+
+if (ALIMER_CSHARP)
+    add_subdirectory (Managed)
 endif ()
