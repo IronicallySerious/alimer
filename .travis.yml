@@ -84,7 +84,10 @@ install: |
       fi
       export PATH=$HOME/cmake-$CMAKE_VERSION.$CMAKE_PATCH-Linux-x86_64/bin:$PATH
       sudo apt-get install -y --force-yes mono-devel
-  else
+  fi
+
+  if [[ $TRAVIS_OS_NAME == 'osx' ]];
+  then
       # mono
       if [[ ! -f /tmp/downloads/Mono.pkg ]];
       then
