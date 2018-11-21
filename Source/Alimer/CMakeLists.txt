@@ -216,6 +216,8 @@ if (MSVC)
     target_compile_options(${TARGET_NAME} PRIVATE /wd4100)
 endif()
 
+add_dependencies(${TARGET_NAME} alimer_shaders)
+
 # SDK installation
 if (NOT ALIMER_SKIP_INSTALL)
     install(TARGETS ${TARGET_NAME}

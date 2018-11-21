@@ -57,10 +57,9 @@ set(TARGET shaderc)
 set(SOURCE_FILES main.cpp)
 
 # Define the target.
-set (ALIMER_WIN32_CONSOLE ON)
-add_alimer_executable(${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
+add_executable (${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
+alimer_setup_common_properties(${TARGET})
 target_link_libraries(${TARGET} libshaderc CLI11)
-
 set_target_properties(${TARGET} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
 set_target_properties(${TARGET} PROPERTIES FOLDER "Tools")
 
