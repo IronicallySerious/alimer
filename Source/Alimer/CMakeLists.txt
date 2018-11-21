@@ -59,6 +59,31 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
+# Compile built-in shaders
+set(SHADERS_SRCS
+    shaders/imgui.vert
+    shaders/imgui.frag
+)
+
+set(SHADER_BINS)
+foreach (shader_src ${SHADERS_SRCS})
+    get_filename_component(local_name "${shader_src}" NAME_WE)
+    get_filename_component(full_name "${shader_src}" ABSOLUTE)
+    set(output_path "${GENERATION_ROOT}/generated/shaders/${local_name}.inc")
+    add_custom_command(
+            OUTPUT ${output_path}
+            COMMAND shaderc --input=${full_name} -f header
+            -o ${output_path}
+            MAIN_DEPENDENCY ${shader_src}
+            DEPENDS shaderc
+            COMMENT "Compiling shader ${shader_src} to ${output_path}"
+    )
+
+    list(APPEND SHADER_BINS ${output_path})
+endforeach()
+
+add_custom_target(alimer_shaders DEPENDS ${SHADER_BINS})
+
 set (TARGET_NAME libAlimer)
 set (ALIMER_NATIVE_INCLUDE_DIRS ${SPIRV_TOOLS_INCLUDE_DIR} ${STB_INCLUDE_DIR})
 

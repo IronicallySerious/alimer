@@ -1,6 +1,9 @@
 shallow_clone: false
 
 environment:
+  global:
+    ALIMER_CSHARP: OFF
+
   matrix:
   - COMPILER: VS2017
     ARCHITECTURE: x64
