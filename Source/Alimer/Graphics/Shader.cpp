@@ -171,7 +171,6 @@ namespace Alimer
 
     Shader::Shader()
         : Resource()
-        , _handle(nullptr)
     {
         // Reflection all shader resouces.
         //SPIRVReflectResources(reinterpret_cast<const uint32_t*>(blob.data), blob.size, &_reflection);

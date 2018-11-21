@@ -62,8 +62,9 @@ endmacro()
 set (TARGET_NAME libAlimer)
 set (ALIMER_NATIVE_INCLUDE_DIRS ${SPIRV_TOOLS_INCLUDE_DIR} ${STB_INCLUDE_DIR})
 
-# Generate the AlimerVersion.h file
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerVersion.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerVersion.h)
+# Generate the AlimerConfig.h file
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h)
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer)
 
 # Add source files from subdirectories
 define_engine_source_files (NORECURSE . Base Core IO Math Graphics Input Audio Application)
@@ -151,10 +152,6 @@ foreach (dep ${THIRD_PARTY_DEPENDENCIES})
 endforeach()
 
 target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
-
-if (ALIMER_THREADING)
-    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_THREADING=1)
-endif ()
 
 if (ALIMER_SHARED OR ALIMER_CSHARP OR EMSCRIPTEN)
 	target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_EXPORTS INTERFACE -DALIMER_IMPORTS)

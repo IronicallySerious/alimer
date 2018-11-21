@@ -26,44 +26,50 @@
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* device, ResourceUsage resourceUsage, BufferUsage usage)
-        : GraphicsResource(device)
-        , _resourceUsage(resourceUsage)
-        , _usage(usage)
+    GpuBuffer::GpuBuffer()
     {
 
     }
 
-    GpuBuffer::GpuBuffer(Graphics* device, const BufferDescriptor* descriptor)
-        : GraphicsResource(device)
-        , _resourceUsage(descriptor->resourceUsage)
-        , _usage(descriptor->usage)
-        , _size(descriptor->size)
-        , _stride(descriptor->stride)
+    GpuBuffer::~GpuBuffer()
     {
+        Destroy();
     }
 
-    /*static const char* BufferUsageToString(BufferUsageFlags usage)
+    void GpuBuffer::Destroy()
     {
-        if (usage & BufferUsage::Vertex)
-            return "vertex";
-        if (usage & BufferUsage::Index)
-            return "index";
-        if (usage & BufferUsage::Uniform)
-            return "uniform";
+        if (_handle != nullptr)
+        {
+            agpuDestroyBuffer(_handle);
+            _handle = nullptr;
+        }
+    }
 
-        return "unknown";
-    }*/
+    bool GpuBuffer::Define(BufferUsage usage, uint64_t elementCount, uint64_t stride, void* initialData, const String& name)
+    {
+        Destroy();
+
+        _usage = usage;
+        _elementCount = elementCount;
+        _stride = stride;
+        _size = elementCount * stride;
+
+        AgpuBufferDescriptor descriptor = {};
+        descriptor.usage = static_cast<AgpuBufferUsage>(usage);
+        descriptor.elementCount = elementCount;
+        descriptor.stride = stride;
+        if (!name.IsEmpty())
+        {
+            descriptor.name = name.CString();
+        }
+
+        _handle = agpuCreateBuffer(&descriptor, initialData);
+        return _handle != nullptr;
+    }
 
     bool GpuBuffer::SetSubData(const void* pData)
     {
-        if (_resourceUsage == ResourceUsage::Immutable)
-        {
-            ALIMER_LOGERROR("Cannot change immutable buffer");
-            return false;
-        }
-
-        return SetSubDataImpl(0, _size, pData);
+        return false;
     }
 
     bool GpuBuffer::SetSubData(uint32_t offset, uint32_t size, const void* pData)
@@ -74,6 +80,6 @@ namespace Alimer
             return false;
         }
 
-        return SetSubDataImpl(offset, size, pData);
+        return false;
     }
 }

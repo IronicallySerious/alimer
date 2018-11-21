@@ -61,7 +61,7 @@ namespace Alimer
             vertices.push_back({ positions[i], colors[i] });
         }
 
-        BufferDescriptor vertexBufferDesc = {};
+        /*BufferDescriptor vertexBufferDesc = {};
         vertexBufferDesc.resourceUsage = ResourceUsage::Default;
         vertexBufferDesc.usage = BufferUsage::Vertex;
         vertexBufferDesc.size = positions.size() * _vertexStride;
@@ -77,7 +77,7 @@ namespace Alimer
             indexBufferDesc.size = indices.size() * sizeof(uint16_t);
             indexBufferDesc.stride = sizeof(uint16_t);
             //_indexBuffer = _graphicsDevice->CreateBuffer(&indexBufferDesc, indices.data());
-        }
+        }*/
 
         return true;
     }

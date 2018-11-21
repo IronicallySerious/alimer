@@ -98,9 +98,6 @@ namespace Alimer
         void RemoveGraphicsResource(GraphicsResource* resource);
 
         /// Create new buffer with given descriptor and optional initial data.
-        GpuBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData = nullptr);
-
-        /// Create new buffer with given descriptor and optional initial data.
         Texture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
 
         /// Create new framebuffer with given descriptor.
@@ -126,7 +123,6 @@ namespace Alimer
     protected:
         virtual void Shutdown();
         virtual void PresentImpl() = 0;
-        virtual GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
         virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
         virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
 

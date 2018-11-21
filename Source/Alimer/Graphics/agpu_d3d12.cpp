@@ -22,7 +22,7 @@
 
 #include "agpu.h"
 
-#if AGPU_D3D12
+#ifdef ALIMER_D3D12
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
 #include <wrl/client.h>
@@ -31,7 +31,7 @@
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
 
-#if (defined(AGPU_D3D11) || defined(AGPU_D3D12)) && defined(_DEBUG)
+#if defined(_DEBUG)
 #   include <dxgidebug.h>
 #endif
 
@@ -406,116 +406,6 @@ namespace d3d12
         return &heapProps;
     }
 
-    DXGI_FORMAT agpuD3D12ConvertPixelFormat(AgpuPixelFormat format)
-    {
-        switch (format)
-        {
-        case AGPU_PIXEL_FORMAT_UNKNOWN:
-            return DXGI_FORMAT_UNKNOWN;
-
-        case AGPU_PIXEL_FORMAT_R8_UNORM:
-            return DXGI_FORMAT_R8_UNORM;
-
-        case AGPU_PIXEL_FORMAT_R8_SNORM:
-            return DXGI_FORMAT_R8_SNORM;
-
-        case AGPU_PIXEL_FORMAT_R16_UNORM:
-            return DXGI_FORMAT_R16_UNORM;
-
-        case AGPU_PIXEL_FORMAT_R16_SNORM:
-            return DXGI_FORMAT_R16_SNORM;
-
-        case AGPU_PIXEL_FORMAT_RG8_UNORM:
-            return DXGI_FORMAT_R8G8_UNORM;
-
-        case AGPU_PIXEL_FORMAT_RG8_SNORM:
-            return DXGI_FORMAT_R8G8_SNORM;
-
-        case AGPU_PIXEL_FORMAT_RG16_UNORM:
-            return DXGI_FORMAT_R16G16_UNORM;
-
-        case AGPU_PIXEL_FORMAT_RG16_SNORM:
-            return DXGI_FORMAT_R16G16_SNORM;
-
-        case AGPU_PIXEL_FORMAT_RGB16_UNORM:
-            return DXGI_FORMAT_UNKNOWN;
-
-        case AGPU_PIXEL_FORMAT_RGB16_SNORM:
-            return DXGI_FORMAT_UNKNOWN;
-
-        case AGPU_PIXEL_FORMAT_RGBA8_UNORM:
-            return DXGI_FORMAT_R8G8B8A8_UNORM;
-
-        case AGPU_PIXEL_FORMAT_RGBA8_UNORM_SRGB:
-            return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-
-        case AGPU_PIXEL_FORMAT_RGBA8_SNORM:
-            return DXGI_FORMAT_R8G8B8A8_SNORM;
-
-        case AGPU_PIXEL_FORMAT_BGRA8_UNORM:
-            return DXGI_FORMAT_B8G8R8A8_UNORM;
-
-        case AGPU_PIXEL_FORMAT_BGRA8_UNORM_SRGB:
-            return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-
-        case AGPU_PIXEL_FORMAT_D32_FLOAT:
-            return DXGI_FORMAT_D32_FLOAT;
-
-        case AGPU_PIXEL_FORMAT_D16_UNORM:
-            return DXGI_FORMAT_D16_UNORM;
-
-        case AGPU_PIXEL_FORMAT_D24_UNORM_S8:
-            return DXGI_FORMAT_D24_UNORM_S8_UINT;
-
-        case AGPU_PIXEL_FORMAT_D32_FLOAT_S8:
-            return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-
-        case AGPU_PIXEL_FORMAT_BC1_UNORM:
-            return DXGI_FORMAT_BC1_UNORM;
-
-        case AGPU_PIXEL_FORMAT_BC1_UNORM_SRGB:
-            return DXGI_FORMAT_BC1_UNORM_SRGB;
-
-        case AGPU_PIXEL_FORMAT_BC2_UNORM:
-            return DXGI_FORMAT_BC2_UNORM;
-
-        case AGPU_PIXEL_FORMAT_BC2_UNORM_SRGB:
-            return DXGI_FORMAT_BC2_UNORM_SRGB;
-
-        case AGPU_PIXEL_FORMAT_BC3_UNORM:
-            return DXGI_FORMAT_BC3_UNORM;
-
-        case AGPU_PIXEL_FORMAT_BC3_UNORM_SRGB:
-            return DXGI_FORMAT_BC3_UNORM_SRGB;
-
-        case AGPU_PIXEL_FORMAT_BC4_UNORM:
-            return DXGI_FORMAT_BC4_UNORM;
-
-        case AGPU_PIXEL_FORMAT_BC4_SNORM:
-            return DXGI_FORMAT_BC4_SNORM;
-
-        case AGPU_PIXEL_FORMAT_BC5_UNORM:
-            return DXGI_FORMAT_BC5_UNORM;
-
-        case AGPU_PIXEL_FORMAT_BC5_SNORM:
-            return DXGI_FORMAT_BC5_SNORM;
-
-        case AGPU_PIXEL_FORMAT_BC6HS16:
-            return DXGI_FORMAT_BC6H_SF16;
-
-        case AGPU_PIXEL_FORMAT_BC6HU16:
-            return DXGI_FORMAT_BC6H_UF16;
-
-        case AGPU_PIXEL_FORMAT_BC7_UNORM:
-            return DXGI_FORMAT_BC7_UNORM;
-
-        case AGPU_PIXEL_FORMAT_BC7_UNORM_SRGB:
-            return DXGI_FORMAT_BC7_UNORM_SRGB;
-        default:
-            ALIMER_UNREACHABLE();
-        }
-    }
-
     struct AgpuFence
     {
         ID3D12Fence*        Fence;
@@ -588,7 +478,7 @@ namespace d3d12
         {
         }
 
-        AgpuResult Initialize(const AgpuDescriptor* descriptor);
+        AgpuResult Initialize(const AgpuDescriptor* descriptor) override;
         void Shutdown() override;
         void WaitIdle();
         void BeginFrame();
@@ -607,7 +497,7 @@ namespace d3d12
         void DestroySwapchain(AgpuSwapchain swapchain);
 
         /* Buffer */
-        AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, void* externalHandle) override;
+        AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData, void* externalHandle) override;
         void DestroyBuffer(AgpuBuffer buffer) override;
 
         /* Texture */
@@ -628,8 +518,18 @@ namespace d3d12
         void DestroyPipeline(AgpuPipeline pipeline) override;
 
         /* CommandList */
-        void BeginRenderPass(AgpuFramebuffer framebuffer);
-        void EndRenderPass();
+        ID3D12GraphicsCommandList* GetCommandList(AgpuCommandBuffer commandBuffer) const;
+        void BeginRenderPass(AgpuFramebuffer framebuffer) override;
+        void EndRenderPass() override;
+        void SetPipeline(AgpuPipeline pipeline) override;
+        void SetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index) override;
+
+        void CmdSetViewport(AgpuCommandBuffer commandBuffer, AgpuViewport viewport) override;
+        void CmdSetViewports(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuViewport* pViewports) override;
+
+        void CmdSetScissor(AgpuCommandBuffer commandBuffer, AgpuRect2D scissors) override;
+        void CmdSetScissors(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuRect2D* pScissors) override;
+        void Draw(uint32_t vertexCount, uint32_t startVertexLocation) override;
 
         void CreateRootSignature(ID3D12RootSignature** rootSignature, const D3D12_ROOT_SIGNATURE_DESC1& desc);
 
@@ -641,6 +541,7 @@ namespace d3d12
         }
 
     private:
+        void SetResourceName(ID3D12Object* object, const char* name);
         void DeferredRelease_(IUnknown* resource, bool forceDeferred = false);
         void ProcessDeferredReleases(uint64_t frameIndex);
 
@@ -1120,6 +1021,16 @@ namespace d3d12
         return _fenceValues[_currentFrameIndex];
     }
 
+    void AGpuRendererD3D12::SetResourceName(ID3D12Object* object, const char* name)
+    {
+        size_t length = strlen(name);
+        std::vector<wchar_t> szBuffer(length);
+        if (MultiByteToWideChar(CP_UTF8, 0, name, -1, szBuffer.data(), static_cast<int>(szBuffer.size())) == 0)
+            return;
+
+        object->SetName(szBuffer.data());
+    }
+
     void AGpuRendererD3D12::DeferredRelease_(IUnknown* resource, bool forceDeferred)
     {
         if (resource == nullptr)
@@ -1284,7 +1195,7 @@ namespace d3d12
             ALIMER_UNUSED(d3dTextureDesc);
 
             // Create external texture.
-            swapchain->backBufferTexture[i] = CreateTexture(&textureDescriptor, resource);
+            swapchain->backBufferTexture[i] = agpuCreateExternalTexture(&textureDescriptor, resource);
 
             // Create framebuffer.
             fboDescriptor.colorAttachments[0].texture = swapchain->backBufferTexture[i];
@@ -1310,8 +1221,7 @@ namespace d3d12
     AgpuTexture AGpuRendererD3D12::CreateTexture(const AgpuTextureDescriptor* descriptor, void* externalHandle)
     {
         AgpuTexture texture = new AgpuTexture_T();
-
-        texture->dxgiFormat = agpuD3D12ConvertPixelFormat(descriptor->format);
+        texture->dxgiFormat = agpuD3DConvertPixelFormat(descriptor->format);
         if (externalHandle == nullptr)
         {
 
@@ -1363,7 +1273,7 @@ namespace d3d12
         return texture;
     }
 
-    AgpuBuffer AGpuRendererD3D12::CreateBuffer(const AgpuBufferDescriptor* descriptor, void* externalHandle)
+    AgpuBuffer AGpuRendererD3D12::CreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData, void* externalHandle)
     {
         AgpuBuffer buffer = new AgpuBuffer_T();
         buffer->frameIndex = _currentCPUFrame;
@@ -1374,11 +1284,14 @@ namespace d3d12
         const bool allowUAV = false;
         D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
 
+        const bool dynamic = descriptor->usage & AGPU_BUFFER_USAGE_DYNAMIC;
+        const bool cpuAccessible = descriptor->usage & AGPU_BUFFER_USAGE_CPU_ACCESSIBLE;
+
         if (externalHandle == nullptr)
         {
             D3D12_RESOURCE_DESC resourceDesc = { };
             resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-            resourceDesc.Width = descriptor->dynamic ? size * RenderLatency : size;
+            resourceDesc.Width = dynamic ? size * RenderLatency : size;
             resourceDesc.Height = 1;
             resourceDesc.DepthOrArraySize = 1;
             resourceDesc.MipLevels = 1;
@@ -1389,14 +1302,14 @@ namespace d3d12
             resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
             resourceDesc.Alignment = 0;
 
-            const D3D12_HEAP_PROPERTIES* heapProps = descriptor->cpuAccessible
+            const D3D12_HEAP_PROPERTIES* heapProps = cpuAccessible
                 ? agpuD3D12GetUploadHeapProps() : agpuD3D12GetDefaultHeapProps();
             D3D12_RESOURCE_STATES resourceState = initialState;
-            if (descriptor->cpuAccessible)
+            if (cpuAccessible)
             {
                 resourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
             }
-            else if (descriptor->initialData)
+            else if (initialData)
             {
                 resourceState = D3D12_RESOURCE_STATE_COMMON;
             }
@@ -1406,22 +1319,22 @@ namespace d3d12
             if (heap)
             {
                 DXCall(_d3dDevice->CreatePlacedResource(
-                    heap, 
-                    heapOffset, 
-                    &resourceDesc, 
+                    heap,
+                    heapOffset,
+                    &resourceDesc,
                     resourceState,
-                    nullptr, 
+                    nullptr,
                     IID_PPV_ARGS(&buffer->d3d12Resource))
                 );
             }
             else
             {
                 DXCall(_d3dDevice->CreateCommittedResource(
-                    heapProps, 
-                    D3D12_HEAP_FLAG_NONE, 
+                    heapProps,
+                    D3D12_HEAP_FLAG_NONE,
                     &resourceDesc,
-                    resourceState, 
-                    nullptr, 
+                    resourceState,
+                    nullptr,
                     IID_PPV_ARGS(&buffer->d3d12Resource))
                 );
             }
@@ -1433,28 +1346,27 @@ namespace d3d12
 
         if (descriptor->name)
         {
-            //buffer->d3d12Resource->SetName(name);
+            SetResourceName(buffer->d3d12Resource, descriptor->name);
         }
 
-        buffer->size = size;
         buffer->d3d12GPUAddress = buffer->d3d12Resource->GetGPUVirtualAddress();
 
-        if (descriptor->cpuAccessible)
+        if (cpuAccessible)
         {
             D3D12_RANGE readRange = { };
             DXCall(buffer->d3d12Resource->Map(0, &readRange, reinterpret_cast<void**>(&buffer->d3d12CPUAddress)));
         }
 
-        if (descriptor->initialData && descriptor->cpuAccessible)
+        if (initialData && cpuAccessible)
         {
             for (uint64_t i = 0; i < RenderLatency; ++i)
             {
                 uint8_t* dstMem = buffer->d3d12CPUAddress + size * i;
-                memcpy(dstMem, descriptor->initialData, size);
+                memcpy(dstMem, initialData, size);
             }
 
         }
-        else if (descriptor->initialData)
+        else if (initialData)
         {
             /*UploadContext uploadContext = ResourceUploadBegin(resourceDesc.Width);
 
@@ -1488,6 +1400,8 @@ namespace d3d12
     AgpuFramebuffer AGpuRendererD3D12::CreateFramebuffer(const AgpuFramebufferDescriptor* descriptor)
     {
         AgpuFramebuffer framebuffer = new AgpuFramebuffer_T();
+        framebuffer->width = UINT32_MAX;
+        framebuffer->height = UINT32_MAX;
         framebuffer->numRTVs = 0;
         for (int i = 0; i < AGPU_MAX_COLOR_ATTACHMENTS; i++)
         {
@@ -1509,7 +1423,18 @@ namespace d3d12
                 framebuffer->d3d12RTVs[framebuffer->numRTVs]
             );
 
+            uint32_t mipLevel = descriptor->colorAttachments[i].mipLevel;
+            framebuffer->width = std::min(framebuffer->width, agpuGetTextureLevelWidth(descriptor->colorAttachments[i].texture, mipLevel));
+            framebuffer->height = std::min(framebuffer->height, agpuGetTextureLevelHeight(descriptor->colorAttachments[i].texture, mipLevel));
             framebuffer->numRTVs++;
+        }
+
+        // Depth stencil.
+        if (descriptor->depthStencilAttachment.texture)
+        {
+            uint32_t mipLevel = descriptor->depthStencilAttachment.mipLevel;
+            framebuffer->width = std::min(framebuffer->width, agpuGetTextureLevelWidth(descriptor->depthStencilAttachment.texture, mipLevel));
+            framebuffer->height = std::min(framebuffer->height, agpuGetTextureLevelHeight(descriptor->depthStencilAttachment.texture, mipLevel));
         }
 
         return framebuffer;
@@ -1693,17 +1618,51 @@ namespace d3d12
         rootSignatureDesc.pParameters = nullptr;
         rootSignatureDesc.NumStaticSamplers = 0;
         rootSignatureDesc.pStaticSamplers = nullptr;
-        rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-        CreateRootSignature(&psoDesc.pRootSignature, rootSignatureDesc);
+        rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
-        // Shaders
-        psoDesc.VS = descriptor->vertex->d3d12Bytecode;
-        psoDesc.PS = descriptor->fragment->d3d12Bytecode;
+        if (descriptor->vertex)
+        {
+            psoDesc.VS = descriptor->vertex->d3d12Bytecode;
+            rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        }
+
         if (descriptor->domain)
+        {
             psoDesc.DS = descriptor->domain->d3d12Bytecode;
+        }
+        else
+        {
+            rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+        }
 
         if (descriptor->hull)
+        {
             psoDesc.HS = descriptor->hull->d3d12Bytecode;
+        }
+        else
+        {
+            rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+        }
+
+        if (descriptor->geometry)
+        {
+            psoDesc.GS = descriptor->geometry->d3d12Bytecode;
+        }
+        else
+        {
+            rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+        }
+
+        if (descriptor->fragment)
+        {
+            psoDesc.PS = descriptor->fragment->d3d12Bytecode;
+        }
+        else
+        {
+            rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+        }
+
+        CreateRootSignature(&psoDesc.pRootSignature, rootSignatureDesc);
 
         if (descriptor->geometry)
             psoDesc.GS = descriptor->geometry->d3d12Bytecode;
@@ -1746,14 +1705,59 @@ namespace d3d12
         psoDesc.DepthStencilState.StencilEnable = FALSE;
 
         // InputLayout
-        D3D12_INPUT_ELEMENT_DESC inputElements[] =
+        /* resolve vertex attributes */
+        int autoOffset[AGPU_MAX_VERTEX_BUFFER_BINDINGS];
+        for (int i = 0; i < AGPU_MAX_VERTEX_BUFFER_BINDINGS; i++)
         {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        };
+            autoOffset[i] = 0;
+        }
+
+        bool useAutoOffset = true;
+        for (int i = 0; i < AGPU_MAX_VERTEX_ATTRIBUTES; i++)
+        {
+            if (descriptor->vertexDescriptor.attributes[i].offset != 0) {
+                useAutoOffset = false;
+            }
+        }
+
+        UINT inputElementsCount = 0u;
+        D3D12_INPUT_ELEMENT_DESC inputElements[AGPU_MAX_VERTEX_ATTRIBUTES];
+
+        for (uint32_t i = 0u; i < AGPU_MAX_VERTEX_ATTRIBUTES; i++)
+        {
+            const AgpuVertexAttributeDescriptor* attributeDesc = &descriptor->vertexDescriptor.attributes[i];
+            if (attributeDesc->format == AGPU_VERTEX_FORMAT_UNKNOWN) {
+                break;
+            }
+
+            ALIMER_ASSERT((attributeDesc->bufferIndex >= 0) && (attributeDesc->bufferIndex < AGPU_MAX_VERTEX_BUFFER_BINDINGS));
+            const AgpuVertexBufferLayoutDescriptor* layoutDesc = &descriptor->vertexDescriptor.layouts[attributeDesc->bufferIndex];
+
+            // If the HLSL semantic is TEXCOORDN the SemanticName should be "TEXCOORD" and the
+            // SemanticIndex N
+            D3D12_INPUT_ELEMENT_DESC* inputElement = &inputElements[inputElementsCount++];
+            inputElement->SemanticName = "TEXCOORD";
+            inputElement->SemanticIndex = i;
+            inputElement->Format = agpuD3DConvertVertexFormat(attributeDesc->format);
+            inputElement->InputSlot = attributeDesc->bufferIndex;
+            inputElement->AlignedByteOffset = useAutoOffset ? autoOffset[attributeDesc->bufferIndex] : attributeDesc->offset;
+
+            if (layoutDesc->inputRate == AGPU_VERTEX_INPUT_RATE_VERTEX)
+            {
+                inputElement->InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+                inputElement->InstanceDataStepRate = 0;
+            }
+            else
+            {
+                inputElement->InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+                inputElement->InstanceDataStepRate = 1;
+            }
+
+            autoOffset[attributeDesc->bufferIndex] += agpuGetVertexFormatSize(attributeDesc->format);
+        }
 
         psoDesc.InputLayout.pInputElementDescs = inputElements;
-        psoDesc.InputLayout.NumElements = ArraySize_(inputElements);
+        psoDesc.InputLayout.NumElements = inputElementsCount;
 
         psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
         psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -1765,10 +1769,15 @@ namespace d3d12
         //psoDesc.CachedPSO;
         psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
+        ID3D12PipelineState* pipelineState;
+        DXCall(_d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState)));
+
         // Create pipeline.
         AgpuPipeline pipeline = new AgpuPipeline_T();
         pipeline->isCompute = AGPU_FALSE;
-        DXCall(_d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipeline->d3d12PipelineState)));
+        pipeline->d3dPrimitiveTopology = agpuD3DConvertPrimitiveTopology(descriptor->primitiveTopology, 1);
+        pipeline->d3d12RootSignature = psoDesc.pRootSignature;
+        pipeline->d3d12PipelineState = pipelineState;
         return pipeline;
     }
 
@@ -1783,6 +1792,7 @@ namespace d3d12
         psoDesc.NodeMask = 0;
         psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
         DXCall(_d3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&pipeline->d3d12PipelineState)));
+        pipeline->d3d12RootSignature = psoDesc.pRootSignature;
         return pipeline;
     }
 
@@ -1791,6 +1801,14 @@ namespace d3d12
         DeferredRelease(pipeline->d3d12PipelineState);
         delete pipeline;
         pipeline = nullptr;
+    }
+
+    ID3D12GraphicsCommandList* AGpuRendererD3D12::GetCommandList(AgpuCommandBuffer commandBuffer) const
+    {
+        if (!commandBuffer)
+            return _commandList;
+
+        return commandBuffer->d3d12CommandList;
     }
 
     void AGpuRendererD3D12::BeginRenderPass(AgpuFramebuffer framebuffer)
@@ -1817,6 +1835,16 @@ namespace d3d12
         {
             _commandList->OMSetRenderTargets(framebuffer->numRTVs, framebuffer->d3d12RTVs, FALSE, nullptr);
         }
+
+        // Set viewport and scissor to framebuffer size.
+        uint32_t width = framebuffer->width;
+        uint32_t height = framebuffer->height;
+        D3D12_VIEWPORT viewport = {
+            0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+        D3D12_RECT scissorRect = { 0, 0, static_cast<long>(width), static_cast<long>(height) };
+
+        _commandList->RSSetViewports(1, &viewport);
+        _commandList->RSSetScissorRects(1, &scissorRect);
     }
 
     void AGpuRendererD3D12::EndRenderPass()
@@ -1831,6 +1859,62 @@ namespace d3d12
         }
 
         _currentFramebuffer = nullptr;
+    }
+
+    void AGpuRendererD3D12::SetPipeline(AgpuPipeline pipeline)
+    {
+        _commandList->SetPipelineState(pipeline->d3d12PipelineState);
+        if (pipeline->isCompute)
+        {
+            _commandList->SetComputeRootSignature(pipeline->d3d12RootSignature);
+        }
+        else
+        {
+            _commandList->SetGraphicsRootSignature(pipeline->d3d12RootSignature);
+        }
+
+        _commandList->IASetPrimitiveTopology(pipeline->d3dPrimitiveTopology);
+    }
+
+    void AGpuRendererD3D12::SetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index)
+    {
+        D3D12_VERTEX_BUFFER_VIEW vbView = {};
+        vbView.BufferLocation = buffer->d3d12GPUAddress + offset;
+        vbView.SizeInBytes = UINT(buffer->size) - offset;
+        vbView.StrideInBytes = UINT(buffer->stride);
+        _commandList->IASetVertexBuffers(index, 1, &vbView);
+    }
+
+    void AGpuRendererD3D12::CmdSetViewport(AgpuCommandBuffer commandBuffer, AgpuViewport viewport)
+    {
+        D3D12_VIEWPORT d3dViewport;
+        d3dViewport.TopLeftX = viewport.x;
+        d3dViewport.TopLeftY = viewport.y;
+        d3dViewport.Width = viewport.width;
+        d3dViewport.Height = viewport.height;
+        d3dViewport.MinDepth = viewport.minDepth;
+        d3dViewport.MaxDepth = viewport.maxDepth;
+
+        // Set viewport
+        ID3D12GraphicsCommandList* commandList = GetCommandList(commandBuffer);
+        commandList->RSSetViewports(1, &d3dViewport);
+    }
+
+    void AGpuRendererD3D12::CmdSetViewports(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuViewport* pViewports)
+    {
+    }
+
+    void AGpuRendererD3D12::CmdSetScissor(AgpuCommandBuffer commandBuffer, AgpuRect2D scissors)
+    {
+    }
+
+    void AGpuRendererD3D12::CmdSetScissors(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuRect2D* pScissors)
+    {
+    }
+
+    void AGpuRendererD3D12::Draw(uint32_t vertexCount, uint32_t startVertexLocation)
+    {
+        _commandList->DrawInstanced(vertexCount, 1u, startVertexLocation, 0u);
     }
 
     void AGpuRendererD3D12::CreateRootSignature(
@@ -1932,11 +2016,11 @@ namespace d3d12
         return isAvailable;
     }
 
-    AgpuResult createBackend(const AgpuDescriptor* descriptor, AGpuRendererI** pRenderer)
+    AGpuRendererI* createBackend(bool validation)
     {
 #if defined(_DEBUG)
         // Enable the debug layer (requires the Graphics Tools "optional feature").
-        if (descriptor->validation)
+        if (validation)
         {
             ID3D12Debug* d3d12debug;
             if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&d3d12debug))))
@@ -1975,9 +2059,8 @@ namespace d3d12
         if (FAILED(hr))
         {
             ALIMER_LOGERROR("Unable to create a DXGI 1.4 device. Make sure that your OS and driver support DirectX 12");
-            return AGPU_ERROR;
+            return nullptr;
         }
-
 
         IDXGIFactory5* factory5;
         if (SUCCEEDED(_dxgiFactory->QueryInterface(&factory5)))
@@ -1991,9 +2074,7 @@ namespace d3d12
         }
 
         AGpuRendererD3D12* renderD3D12 = new AGpuRendererD3D12();
-        AgpuResult result = renderD3D12->Initialize(descriptor);
-        *pRenderer = renderD3D12;
-        return result;
+        return renderD3D12;
     }
 }
 
@@ -2002,9 +2083,9 @@ AgpuBool32 agpuIsD3D12Supported()
     return d3d12::isSupported();
 }
 
-AgpuResult agpuCreateD3D12Backend(const AgpuDescriptor* descriptor, AGpuRendererI** pRenderer)
+AGpuRendererI* agpuCreateD3D12Backend(bool validation)
 {
-    return d3d12::createBackend(descriptor, pRenderer);
+    return d3d12::createBackend(validation);
 }
 
-#endif /* AGPU_D3D12 */
+#endif /* ALIMER_D3D12 */

@@ -28,12 +28,12 @@
 
 #include "agpu.h"
 
-#ifdef AGPU_D3D11
+#ifdef ALIMER_D3D11
 #   include <d3d11_1.h>
 #   include <dxgi1_2.h>
 #endif
 
-#ifdef AGPU_D3D12
+#ifdef ALIMER_D3D12
 #   include <d3d12.h>
 #   if defined(NTDDI_WIN10_RS2)
 #       include <dxgi1_6.h>
@@ -49,22 +49,27 @@ typedef struct AgpuSwapchain_T {
     AgpuTexture                 backBufferTexture[AGPU_MAX_BACK_BUFFER_COUNT];
     AgpuFramebuffer             backBufferFramebuffers[AGPU_MAX_BACK_BUFFER_COUNT];
 
-#if AGPU_D3D11 || AGPU_D3D12
+#if defined(ALIMER_D3D11) || defined(ALIMER_D3D12)
     DXGI_FORMAT                 dxgiBackBufferFormat;
 #endif
 
-#if AGPU_D3D12
+#if defined(ALIMER_D3D12)
     IDXGISwapChain3*            d3d12SwapChain;
     ID3D12Resource*             d3d12DepthStencil;
 #endif
 } AgpuSwapchain_T;
 
 typedef struct AgpuTexture_T {
-#if AGPU_D3D11 || AGPU_D3D12
+    uint32_t                        width;
+    uint32_t                        height;
+    uint32_t                        depthOrArraySize;
+    uint32_t                        mipLevels;
+
+#if defined(ALIMER_D3D11) || defined(ALIMER_D3D12)
     DXGI_FORMAT                     dxgiFormat;
 #endif
 
-#if AGPU_D3D11
+#if defined(ALIMER_D3D11)
     union {
         ID3D11Texture1D*            d3d11Texture1D;
         ID3D11Texture2D*            d3d11Texture2D;
@@ -72,7 +77,7 @@ typedef struct AgpuTexture_T {
     };
 #endif
 
-#if AGPU_D3D12
+#if defined(ALIMER_D3D12)
     D3D12_RESOURCE_STATES           d3d12ResourceState;
     ID3D12Resource*                 d3d12Resource;
 #endif
@@ -80,10 +85,12 @@ typedef struct AgpuTexture_T {
 } AgpuTexture_T;
 
 typedef struct AgpuFramebuffer_T {
+    uint32_t                        width;
+    uint32_t                        height;
     AgpuFramebufferAttachment       colorAttachments[AGPU_MAX_COLOR_ATTACHMENTS];
     AgpuFramebufferAttachment       depthStencilAttachment;
 
-#if AGPU_D3D12
+#if defined(ALIMER_D3D12)
     uint32_t                        numRTVs;
     D3D12_CPU_DESCRIPTOR_HANDLE     d3d12RTVs[AGPU_MAX_COLOR_ATTACHMENTS];
     D3D12_CPU_DESCRIPTOR_HANDLE     d3d12DSV;
@@ -91,13 +98,15 @@ typedef struct AgpuFramebuffer_T {
 } AgpuFramebuffer_T;
 
 typedef struct AgpuBuffer_T {
+    AgpuBufferUsage                 usage;
     uint64_t                        size;
+    uint64_t                        stride;
     uint64_t                        frameIndex;
-#if AGPU_D3D11
+#if defined(ALIMER_D3D11)
     ID3D11Buffer*                   d3d11Resource;
 #endif
 
-#if AGPU_D3D12
+#if defined(ALIMER_D3D12)
     ID3D12Resource*                 d3d12Resource;
     uint8_t*                        d3d12CPUAddress;
     uint64_t                        d3d12GPUAddress;
@@ -106,22 +115,27 @@ typedef struct AgpuBuffer_T {
 } AgpuBuffer_T;
 
 typedef struct AgpuShader_T {
-#if AGPU_D3D12
+#if defined(ALIMER_D3D12)
     D3D12_SHADER_BYTECODE           d3d12Bytecode;
 #endif
 } AgpuShader_T;
 
 typedef struct AgpuPipeline_T {
     AgpuBool32                      isCompute;
+    
+#if defined(ALIMER_D3D11) || defined(ALIMER_D3D12)
+    D3D_PRIMITIVE_TOPOLOGY          d3dPrimitiveTopology;
+#endif
 
-#if AGPU_D3D12
+#if defined(ALIMER_D3D12)
+    ID3D12RootSignature*            d3d12RootSignature;
     ID3D12PipelineState*            d3d12PipelineState;
 #endif
 
 } AgpuPipeline_T;
 
 typedef struct AgpuCommandBuffer_T {
-#if AGPU_D3D12
+#if defined(ALIMER_D3D12)
     ID3D12GraphicsCommandList*      d3d12CommandList;
 #endif
 } AgpuCommandBuffer_T;
@@ -130,10 +144,11 @@ struct AGpuRendererI
 {
     virtual ~AGpuRendererI() = 0;
 
+    virtual AgpuResult Initialize(const AgpuDescriptor* descriptor) = 0;
     virtual void Shutdown() = 0;
     virtual uint64_t Frame() = 0;
 
-    virtual AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, void* externalHandle) = 0;
+    virtual AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData, void* externalHandle) = 0;
     virtual void DestroyBuffer(AgpuBuffer buffer) = 0;
 
     virtual AgpuTexture CreateTexture(const AgpuTextureDescriptor* descriptor, void* externalHandle) = 0;
@@ -148,18 +163,37 @@ struct AGpuRendererI
     virtual AgpuPipeline CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor) = 0;
     virtual AgpuPipeline CreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor) = 0;
     virtual void DestroyPipeline(AgpuPipeline pipeline) = 0;
+
+    virtual void BeginRenderPass(AgpuFramebuffer framebuffer) = 0;
+    virtual void EndRenderPass() = 0;
+    virtual void SetPipeline(AgpuPipeline pipeline) = 0;
+    virtual void SetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index) = 0;
+
+    virtual void CmdSetViewport(AgpuCommandBuffer commandBuffer, AgpuViewport viewport) = 0;
+    virtual void CmdSetViewports(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuViewport* pViewports) = 0;
+
+    virtual void CmdSetScissor(AgpuCommandBuffer commandBuffer, AgpuRect2D scissors) = 0;
+    virtual void CmdSetScissors(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuRect2D* pScissors) = 0;
+
+    virtual void Draw(uint32_t vertexCount, uint32_t startVertexLocation) = 0;
 };
 
 inline AGpuRendererI::~AGpuRendererI()
 {
 }
 
-#if AGPU_D3D11
-AgpuBool32 agpuIsD3D11Supported();
-AgpuResult agpuCreateD3D11Backend(const AgpuDescriptor* descriptor, AGpuRendererI** pRenderer);
-#endif /* AGPU_D3D11 */
+#if defined(ALIMER_D3D11) || defined(ALIMER_D3D12)
+DXGI_FORMAT agpuD3DConvertPixelFormat(AgpuPixelFormat format);
+DXGI_FORMAT agpuD3DConvertVertexFormat(AgpuVertexFormat format);
+D3D_PRIMITIVE_TOPOLOGY agpuD3DConvertPrimitiveTopology(AgpuPrimitiveTopology topology, uint32_t patchCount);
+#endif
 
-#ifdef AGPU_D3D12
+#if defined(ALIMER_D3D11)
+AgpuBool32 agpuIsD3D11Supported();
+AGpuRendererI* agpuCreateD3D11Backend(bool validation);
+#endif /* defined(ALIMER_D3D11) */
+
+#if defined(ALIMER_D3D12)
 AgpuBool32 agpuIsD3D12Supported();
-AgpuResult agpuCreateD3D12Backend(const AgpuDescriptor* descriptor, AGpuRendererI** pRenderer);
-#endif /* AGPU_D3D12 */
+AGpuRendererI* agpuCreateD3D12Backend(bool validation);
+#endif /* defined(ALIMER_D3D12) */

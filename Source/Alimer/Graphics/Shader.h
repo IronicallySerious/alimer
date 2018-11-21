@@ -58,11 +58,15 @@ namespace Alimer
         /// Constructor.
         Shader();
 
+        /// Destructor.
         ~Shader() override;
+
+        /// Unconditionally destroy the GPU resource.
         void Destroy();
 
         bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
 
+        /// Get the gpu handle.
         AgpuShader GetHandle() const { return _handle; }
 
         //uint64_t GetHash() const { return _hash; }
@@ -77,6 +81,6 @@ namespace Alimer
         //uint64_t _hash;
         //std::vector<uint8_t> _byteCode;
         ShaderReflection _reflection;
-        AgpuShader _handle;
+        AgpuShader _handle = nullptr;
     };
 }

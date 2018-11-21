@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "AlimerConfig.h"
 
 #ifndef AGPU_DEFINE_HANDLE
 #   define AGPU_DEFINE_HANDLE(object) typedef struct object##_T* object
@@ -48,8 +48,10 @@ extern "C"
 #define AGPU_FALSE                          0
 
     enum {
-        AGPU_MAX_BACK_BUFFER_COUNT = 3,
-        AGPU_MAX_COLOR_ATTACHMENTS = 8
+        AGPU_MAX_BACK_BUFFER_COUNT          = 3,
+        AGPU_MAX_COLOR_ATTACHMENTS          = 8,
+        AGPU_MAX_VERTEX_BUFFER_BINDINGS     = 4,
+        AGPU_MAX_VERTEX_ATTRIBUTES          = 16
     };
 
     typedef enum AgpuResult {
@@ -147,6 +149,17 @@ extern "C"
         AGPU_TEXTURE_USAGE_PRESENT              = 32,
     } AgpuTextureUsage;
 
+    typedef enum AgpuBufferUsage {
+        AGPU_BUFFER_USAGE_NONE              = 0,
+        AGPU_BUFFER_USAGE_VERTEX            = 1,
+        AGPU_BUFFER_USAGE_INDEX             = 2,
+        AGPU_BUFFER_USAGE_UNIFORM           = 4,
+        AGPU_BUFFER_USAGE_STORAGE           = 8,
+        AGPU_BUFFER_USAGE_INDIRECT          = 16,
+        AGPU_BUFFER_USAGE_DYNAMIC           = 32,
+        AGPU_BUFFER_USAGE_CPU_ACCESSIBLE    = 64,
+    } AgpuBufferUsage;
+
     typedef enum AgpuShaderStage {
         AGPU_SHADER_STAGE_VERTEX    = 0,
         AGPU_SHADER_STAGE_HULL      = 1,
@@ -163,6 +176,44 @@ extern "C"
         AGPU_SHADER_LANGUAGE_GLSL       = 2,
     } AgpuShaderLanguage;
 
+    typedef enum AgpuVertexFormat {
+        AGPU_VERTEX_FORMAT_UNKNOWN      = 0,
+        AGPU_VERTEX_FORMAT_FLOAT        = 1,
+        AGPU_VERTEX_FORMAT_FLOAT2       = 2,
+        AGPU_VERTEX_FORMAT_FLOAT3       = 3,
+        AGPU_VERTEX_FORMAT_FLOAT4       = 4,
+        AGPU_VERTEX_FORMAT_BYTE4        = 5,
+        AGPU_VERTEX_FORMAT_BYTE4N       = 6,
+        AGPU_VERTEX_FORMAT_UBYTE4       = 7,
+        AGPU_VERTEX_FORMAT_UBYTE4N      = 8,
+        AGPU_VERTEX_FORMAT_SHORT2       = 9,
+        AGPU_VERTEX_FORMAT_SHORT2N      = 10,
+        AGPU_VERTEX_FORMAT_SHORT4       = 11,
+        AGPU_VERTEX_FORMAT_SHORT4N      = 12,
+        AGPU_VERTEX_FORMAT_COUNT        = (AGPU_VERTEX_FORMAT_SHORT2N - AGPU_VERTEX_FORMAT_UNKNOWN + 1),
+        AGPU_VERTEX_FORMAT_MAX_ENUM     = 0x7FFFFFFF
+    } AgpuVertexFormat;
+
+    typedef enum AgpuVertexInputRate {
+        AGPU_VERTEX_INPUT_RATE_VERTEX = 0,
+        AGPU_VERTEX_INPUT_RATE_INSTANCE = 1,
+    } AgpuVertexInputRate;
+
+    typedef enum AgpuPrimitiveTopology {
+        AGPU_PRIMITIVE_TOPOLOGY_POINT_LIST = 0,
+        AGPU_PRIMITIVE_TOPOLOGY_LINE_LIST = 1,
+        AGPU_PRIMITIVE_TOPOLOGY_LINE_STRIP = 2,
+        AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST = 3,
+        AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP = 4,
+        AGPU_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY = 5,
+        AGPU_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY = 6,
+        AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY = 7,
+        AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY = 8,
+        AGPU_PRIMITIVE_TOPOLOGY_PATCH_LIST = 9,
+        AGPU_PRIMITIVE_TOPOLOGY_COUNT = 10,
+        AGPU_PRIMITIVE_TOPOLOGY_MAX_ENUM = 0x7FFFFFFF
+    } AgpuPrimitiveTopology;
+
     typedef struct AgpuFramebufferAttachment
     {
         AgpuTexture                 texture;
@@ -171,12 +222,10 @@ extern "C"
     } AgpuFramebufferAttachment;
 
     typedef struct AgpuBufferDescriptor {
-        uint64_t stride;
-        uint64_t elementCount;
-        AgpuBool32 dynamic;
-        AgpuBool32 cpuAccessible;
-        const void* initialData;
-        const char* name;
+        AgpuBufferUsage             usage;
+        uint64_t                    elementCount;
+        uint64_t                    stride;
+        const char*                 name;
     } AgpuBufferDescriptor;
 
     typedef struct AgpuTextureDescriptor {
@@ -209,6 +258,22 @@ extern "C"
         const char*                 entryPoint;
         AgpuShaderLanguage          language;
     } AgpuShaderDescriptor;
+    
+    typedef struct AgpuVertexBufferLayoutDescriptor {
+        uint32_t                    stride;
+        AgpuVertexInputRate         inputRate;
+    } AgpuVertexBufferLayoutDescriptor;
+
+    typedef struct AgpuVertexAttributeDescriptor {
+        AgpuVertexFormat            format;
+        uint32_t                    offset;
+        uint32_t                    bufferIndex;
+    } AgpuVertexAttributeDescriptor;
+
+    typedef struct AgpuVertexDescriptor {
+        AgpuVertexBufferLayoutDescriptor    layouts[AGPU_MAX_VERTEX_BUFFER_BINDINGS];
+        AgpuVertexAttributeDescriptor       attributes[AGPU_MAX_VERTEX_ATTRIBUTES];
+    } AgpuVertexDescriptor;
 
     typedef struct AgpuRenderPipelineDescriptor {
         AgpuShader                  vertex;
@@ -216,6 +281,8 @@ extern "C"
         AgpuShader                  hull;
         AgpuShader                  geometry;
         AgpuShader                  fragment;
+        AgpuVertexDescriptor        vertexDescriptor;
+        AgpuPrimitiveTopology       primitiveTopology;
     } AgpuRenderPipelineDescriptor;
 
     typedef struct AgpuComputePipelineDescriptor {
@@ -245,6 +312,22 @@ extern "C"
         AgpuSwapchainDescriptor     swapchain;
     } AgpuDescriptor;
 
+    typedef struct AgpuViewport {
+        float       x;
+        float       y;
+        float       width;
+        float       height;
+        float       minDepth;
+        float       maxDepth;
+    } AgpuViewport;
+
+    typedef struct AgpuRect2D {
+        int32_t     x;
+        int32_t     y;
+        uint32_t    width;
+        uint32_t    height;
+    } AgpuRect2D;
+
     ALIMER_API AgpuBackend agpuGetDefaultPlatformBackend();
     ALIMER_API AgpuBool32 agpuIsBackendSupported(AgpuBackend backend);
     ALIMER_API uint32_t agpuGetAvailableBackendsCount();
@@ -254,50 +337,56 @@ extern "C"
     ALIMER_API void agpuShutdown();
     ALIMER_API uint64_t agpuFrame();
 
-    ALIMER_API AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor);
+    /* Buffer */
+    ALIMER_API AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData);
     ALIMER_API AgpuBuffer agpuCreateExternalBuffer(const AgpuBufferDescriptor* descriptor, void* handle);
     ALIMER_API void agpuDestroyBuffer(AgpuBuffer buffer);
 
+    /* Texture */
     ALIMER_API AgpuTexture agpuCreateTexture(const AgpuTextureDescriptor* descriptor);
     ALIMER_API AgpuTexture agpuCreateExternalTexture(const AgpuTextureDescriptor* descriptor, void* handle);
     ALIMER_API void agpuDestroyTexture(AgpuTexture texture);
 
+    /* Framebuffer */
     ALIMER_API AgpuFramebuffer agpuCreateFramebuffer(const AgpuFramebufferDescriptor* descriptor);
     ALIMER_API void agpuDestroyFramebuffer(AgpuFramebuffer framebuffer);
 
+    /* Shader */
     ALIMER_API AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor);
     ALIMER_API void agpuDestroyShader(AgpuShader shader);
 
+    /* Pipeline */
     ALIMER_API AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor);
     ALIMER_API AgpuPipeline agpuCreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor);
     ALIMER_API void agpuDestroyPipeline(AgpuPipeline pipeline);
+
+    /* Command buffer */
+    ALIMER_API void agpuBeginRenderPass(AgpuFramebuffer framebuffer);
+    ALIMER_API void agpuEndRenderPass();
+    ALIMER_API void agpuSetPipeline(AgpuPipeline pipeline);
+    ALIMER_API void agpuSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index);
+
+    ALIMER_API void agpuCmdSetViewport(AgpuViewport viewport);
+    ALIMER_API void agpuCmdSetViewports(uint32_t viewportCount, const AgpuViewport* pViewports);
+    ALIMER_API void agpuCmdSetScissor(AgpuRect2D scissor);
+    ALIMER_API void agpuCmdSetScissors(uint32_t scissorCount, const AgpuRect2D* pScissors);
+
+    ALIMER_API void agpuDraw(uint32_t vertexCount, uint32_t startVertexLocation);
+
+    /* Helper methods */
+    ALIMER_API uint32_t agpuGetTextureWidth(AgpuTexture texture);
+    ALIMER_API uint32_t agpuGetTextureLevelWidth(AgpuTexture texture, uint32_t mipLevel);
+    ALIMER_API uint32_t agpuGetTextureHeight(AgpuTexture texture);
+    ALIMER_API uint32_t agpuGetTextureLevelHeight(AgpuTexture texture, uint32_t mipLevel);
+    ALIMER_API uint32_t agpuGetTextureDepth(AgpuTexture texture);
+    ALIMER_API uint32_t agpuGetTextureLevelDepth(AgpuTexture texture, uint32_t mipLevel);
 
     ALIMER_API AgpuBool32 agpuIsDepthFormat(AgpuPixelFormat format);
     ALIMER_API AgpuBool32 agpuIsStencilFormat(AgpuPixelFormat format);
     ALIMER_API AgpuBool32 agpuIsDepthStencilFormat(AgpuPixelFormat format);
     ALIMER_API AgpuBool32 agpuIsCompressed(AgpuPixelFormat format);
+    ALIMER_API uint32_t agpuGetVertexFormatSize(AgpuVertexFormat format);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-
-
-#if !defined(AGPU_D3D11) && !defined(AGPU_DISABLE_D3D11)
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP || ALIMER_PLATFORM_XBOX_ONE
-#   define AGPU_D3D11 1
-#endif
-#endif
-
-#if !defined(AGPU_D3D12) && !defined(AGPU_DISABLE_D3D12)
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP || ALIMER_PLATFORM_XBOX_ONE
-#   define AGPU_D3D12 1
-#endif
-#endif
-
-#ifndef AGPU_D3D11
-#   define AGPU_D3D11 0
-#endif
-
-#ifndef AGPU_D3D12
-#   define AGPU_D3D12 0
-#endif

@@ -61,12 +61,11 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            AgpuBufferDescriptor vertexBufferDesc = {};
-            vertexBufferDesc.stride = sizeof(VertexColor);
-            vertexBufferDesc.elementCount = 3;
-            vertexBufferDesc.initialData = triangleVertices;
-            vertexBufferDesc.cpuAccessible = true; /* TODO: Disable when implemented upload in d3d12*/
-            _vertexBuffer = agpuCreateBuffer(&vertexBufferDesc);
+            _vertexBuffer.Define(
+                BufferUsage::Vertex | BufferUsage::CPUAccessible,
+                3, 
+                sizeof(VertexColor),
+                triangleVertices);
 
             //_shader = resources.Load<Shader>("shaders/color.shader");
 
@@ -82,7 +81,7 @@ namespace Alimer
                 float4 color : COLOR;
             };
 
-            PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
+            PSInput VSMain(float4 position : TEXCOORD0, float4 color : TEXCOORD1)
             {
                 PSInput result;
 
@@ -107,6 +106,9 @@ namespace Alimer
             renderPipelineDesc.fragment->Define(ShaderStage::Fragment, hlsl, "PSMain");
 
             // Define pipeline now.
+            renderPipelineDesc.vertexDescriptor.layouts[0].stride = sizeof(VertexColor);
+            renderPipelineDesc.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
+            renderPipelineDesc.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
             _pipeline = new Pipeline();
             _pipeline->Define(&renderPipelineDesc);
 
@@ -118,13 +120,16 @@ namespace Alimer
 
         void Render(SharedPtr<CommandContext> context)
         {
+            agpuSetPipeline(_pipeline->GetHandle());
+            agpuSetVertexBuffer(_vertexBuffer.GetHandle(), 0, 0);
+            agpuDraw(3, 0);
             //context->SetPipeline(_pipeline);
             //context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
             //context->Draw(PrimitiveTopology::Triangles, 3, 0);
         }
 
     private:
-        AgpuBuffer _vertexBuffer;
+        GpuBuffer _vertexBuffer;
         SharedPtr<GpuBuffer> _perCameraUboBuffer;
 
         SharedPtr<Pipeline> _pipeline;
@@ -421,7 +426,7 @@ namespace Alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        //_triangleExample.Render(context);
+        _triangleExample.Render(context);
         //_quadExample.Render(context);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);

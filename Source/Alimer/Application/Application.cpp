@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 //
 
-#include "AlimerVersion.h"
 #include "../Application/Application.h"
 #include "../Scene/Systems/CameraSystem.h"
 #include "../IO/Path.h"
@@ -176,12 +175,13 @@ namespace Alimer
         RenderPassBeginDescriptor renderPass = {};
         renderPass.colors[0].clearColor = Color4(0.0f, 0.2f, 0.4f, 1.0f);
         context->BeginDefaultRenderPass(&renderPass);
+        */
 
         // Call OnRenderFrame for custom rendering frame logic.
-        OnRenderFrame(context, frameTime, elapsedTime);
+        OnRenderFrame(nullptr, frameTime, elapsedTime);
 
         // Render scene to default command buffer.
-        if (_sceneRenderPipeline)
+        /*if (_sceneRenderPipeline)
         {
             //auto camera = _scene.GetActiveCamera()->GetComponent<CameraComponent>()->camera;
             //_renderPipeline->Render(_renderContext, { camera });

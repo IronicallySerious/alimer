@@ -175,50 +175,6 @@ namespace Alimer
         return _initialized;
     }
 
-    GpuBuffer* Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->usage == BufferUsage::None)
-        {
-            ALIMER_LOGCRITICAL("Invalid buffer usage");
-        }
-
-        if (!descriptor->size)
-        {
-            ALIMER_LOGCRITICAL("Cannot create empty buffer");
-        }
-
-        if (descriptor->resourceUsage == ResourceUsage::Immutable
-            && initialData == nullptr)
-        {
-            ALIMER_LOGCRITICAL("Immutable Buffer needs valid initial data.");
-        }
-
-        if (any(descriptor->usage & BufferUsage::Index))
-        {
-            if (descriptor->stride != 2 && descriptor->stride != 4)
-            {
-                ALIMER_LOGCRITICAL("IndexBuffer needs to be created with stride 2 or 4.");
-            }
-        }
-
-        GpuBuffer* buffer = CreateBufferImpl(descriptor, initialData);
-        if (buffer == nullptr)
-        {
-            ALIMER_LOGERROR("Failed to create buffer");
-            return nullptr;
-        }
-
-        ALIMER_LOGDEBUGF("Created %s %s buffer [size: %llu, stride: %u]",
-            EnumToString(descriptor->resourceUsage),
-            EnumToString(descriptor->usage),
-            descriptor->size,
-            descriptor->stride
-        );
-        return buffer;
-    }
-
     uint32_t Graphics::Present()
     {
         _context->Flush();

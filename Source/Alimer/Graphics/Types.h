@@ -98,48 +98,43 @@ namespace Alimer
     /// Primitive topology.
     enum class PrimitiveTopology : uint32_t
     {
-        Points,
-        Lines,
-        LineStrip,
-        Triangles,
-        TriangleStrip,
-        Count
+        PointList = AGPU_PRIMITIVE_TOPOLOGY_POINT_LIST,
+        LineList = AGPU_PRIMITIVE_TOPOLOGY_LINE_LIST,
+        LineStrip = AGPU_PRIMITIVE_TOPOLOGY_LINE_STRIP,
+        TriangleList = AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        TriangleStrip = AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
+        LineListWithAdjacency = AGPU_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY,
+        LineStripWithAdjacency = AGPU_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY,
+        TriangleListWithAdjacency = AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY,
+        TriangleStripWithAdjacency = AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY,
+        PatchList = AGPU_PRIMITIVE_TOPOLOGY_PATCH_LIST,
+        Count = AGPU_PRIMITIVE_TOPOLOGY_COUNT,
     };
 
-    enum class BufferUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        Index = 1 << 1,
-        Uniform = 1 << 2,
-        Storage = 1 << 3,
-        Indirect = 1 << 4,
-    };
-    ALIMER_BITMASK(BufferUsage);
-
+    
     enum class VertexFormat : uint32_t
     {
-        Invalid = 0,
-        Float,
-        Float2,
-        Float3,
-        Float4,
-        Byte4,
-        Byte4N,
-        UByte4,
-        UByte4N,
-        Short2,
-        Short2N,
-        Short4,
-        Short4N,
-        Count
+        Unknown = AGPU_VERTEX_FORMAT_UNKNOWN,
+        Float = AGPU_VERTEX_FORMAT_FLOAT,
+        Float2 = AGPU_VERTEX_FORMAT_FLOAT2,
+        Float3 = AGPU_VERTEX_FORMAT_FLOAT3,
+        Float4 = AGPU_VERTEX_FORMAT_FLOAT4,
+        Byte4 = AGPU_VERTEX_FORMAT_BYTE4,
+        Byte4N = AGPU_VERTEX_FORMAT_BYTE4N,
+        UByte4 = AGPU_VERTEX_FORMAT_UBYTE4,
+        UByte4N = AGPU_VERTEX_FORMAT_UBYTE4N,
+        Short2 = AGPU_VERTEX_FORMAT_SHORT2,
+        Short2N = AGPU_VERTEX_FORMAT_SHORT2N,
+        Short4 = AGPU_VERTEX_FORMAT_SHORT4,
+        Short4N = AGPU_VERTEX_FORMAT_SHORT4N,
+        Count = AGPU_VERTEX_FORMAT_COUNT
     };
     
     /// VertexInputRate
-    enum class VertexInputRate
+    enum class VertexInputRate : uint32_t
     {
-        Vertex,
-        Instance
+        Vertex = AGPU_VERTEX_INPUT_RATE_VERTEX,
+        Instance = AGPU_VERTEX_INPUT_RATE_INSTANCE
     };
 
     enum class ParamDataType
@@ -198,21 +193,6 @@ namespace Alimer
     };
     ALIMER_BITMASK(ShaderStageUsage);
 
-    struct BufferDescriptor
-    {
-        /// Buffer resource usage.
-        ResourceUsage resourceUsage = ResourceUsage::Default;
-
-        /// Buffer usage.
-        BufferUsage usage = BufferUsage::None;
-
-        /// Size in bytes of buffer.
-        uint64_t size = 0;
-
-        /// Size of each individual element in the buffer, in bytes. 
-        uint32_t stride = 0;
-    };
-
     struct PipelineResource
     {
         String name;
@@ -261,17 +241,8 @@ namespace Alimer
         Count
     };
 
-
-    struct VertexAttributeDescriptor
-    {
-        VertexElementSemantic   semantic = VertexElementSemantic::Position;
-        VertexFormat            format = VertexFormat::Invalid;
-        uint32_t                offset = 0;
-    };
-
     ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
     ALIMER_API const char* EnumToString(ResourceUsage usage);
-    ALIMER_API const char* EnumToString(BufferUsage usage);
     ALIMER_API const char* EnumToString(ShaderStage stage);
     ALIMER_API const char* EnumToString(VertexElementSemantic semantic);
 }

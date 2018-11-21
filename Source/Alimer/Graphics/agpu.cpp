@@ -53,12 +53,12 @@ std::vector<AgpuBackend> agpuGetSupportedBackends()
     {
         backends.push_back(AGPU_BACKEND_EMPTY);
 
-#if AGPU_D3D11
+#if defined(ALIMER_D3D11)
         if (agpuIsD3D11Supported())
             backends.push_back(AGPU_BACKEND_D3D11);
 #endif
 
-#if AGPU_D3D12
+#if defined(ALIMER_D3D12)
         if (agpuIsD3D12Supported())
             backends.push_back(AGPU_BACKEND_D3D12);
 #endif
@@ -103,14 +103,14 @@ AgpuBool32 agpuIsBackendSupported(AgpuBackend backend)
         return AGPU_FALSE;
 #endif
     case AGPU_BACKEND_D3D11:
-#if AGPU_D3D11
+#if defined(ALIMER_D3D11)
         return agpuIsD3D11Supported();
 #else
         return AGPU_FALSE;
 #endif
 
     case AGPU_BACKEND_D3D12:
-#if AGPU_D3D12
+#if defined(ALIMER_D3D12)
         return agpuIsD3D12Supported();
 #else
         return AGPU_FALSE;
@@ -150,7 +150,6 @@ AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
         backend = agpuGetDefaultPlatformBackend();
     }
 
-    AgpuResult result = AGPU_ERROR;
     AGpuRendererI* renderer = nullptr;
     switch (backend)
     {
@@ -159,19 +158,17 @@ AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
     case AGPU_BACKEND_VULKAN:
         break;
     case AGPU_BACKEND_D3D11:
-#if AGPU_D3D11
-        result = agpuCreateD3D11Backend(descriptor, &renderer);
+#if defined(ALIMER_D3D11)
+        renderer = agpuCreateD3D11Backend(descriptor->validation);
 #else
         ALIMER_LOGERROR("D3D11 backend is not supported");
-        result = AGPU_ERROR;
 #endif
         break;
     case AGPU_BACKEND_D3D12:
-#if AGPU_D3D12
-        result = agpuCreateD3D12Backend(descriptor, &renderer);
+#if defined(ALIMER_D3D12)
+        renderer = agpuCreateD3D12Backend(descriptor->validation);
 #else
         ALIMER_LOGERROR("D3D12 backend is not supported");
-        result = AGPU_ERROR;
 #endif
         break;
     case AGPU_BACKEND_METAL:
@@ -182,13 +179,13 @@ AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
         break;
     }
 
-    if (result == AGPU_OK)
+    if (renderer != nullptr)
     {
         s_renderer = renderer;
-        return AGPU_OK;
+        return renderer->Initialize(descriptor);
     }
 
-    return result;
+    return AGPU_ERROR;
 }
 
 void agpuShutdown()
@@ -206,14 +203,76 @@ uint64_t agpuFrame()
     return s_renderer->Frame();
 }
 
-AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor)
+static void agpuValidateBufferDescriptor(const AgpuBufferDescriptor* descriptor)
 {
-    return s_renderer->CreateBuffer(descriptor, NULL);
+    ALIMER_ASSERT_MSG(descriptor, "Invalid buffer descriptor.");
+#if !defined(ALIMER_DEV)
+    if (!descriptor->elementCount)
+    {
+        ALIMER_LOGCRITICAL("Cannot create empty buffer");
+    }
+
+    if (!descriptor->stride)
+    {
+        ALIMER_LOGCRITICAL("Invalid buffer stride");
+    }
+#endif
+}
+
+static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* descriptor)
+{
+    if (buffer != nullptr)
+    {
+        // Set properties
+        uint64_t size = descriptor->stride * descriptor->elementCount;
+        size = Alimer::AlignTo(size, descriptor->stride);
+
+        buffer->usage = descriptor->usage;
+        buffer->size = size;
+        buffer->stride = descriptor->stride;
+
+#if defined(ALIMER_DEV)
+        const char* usageStr = "";
+        if (buffer->usage & AGPU_BUFFER_USAGE_VERTEX)
+        {
+            usageStr = "vertex";
+        }
+        else if (buffer->usage & AGPU_BUFFER_USAGE_INDEX)
+        {
+            usageStr = "index";
+        }
+        else if (buffer->usage & AGPU_BUFFER_USAGE_UNIFORM)
+        {
+            usageStr = "uniform";
+        }
+
+        ALIMER_LOGDEBUGF("Created %s buffer [size: %llu, stride: %u]",
+            usageStr,
+            buffer->size,
+            buffer->stride
+        );
+#endif
+    }
+    else
+    {
+        ALIMER_LOGERROR("Failed to create buffer");
+    }
+}
+
+AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData)
+{
+    agpuValidateBufferDescriptor(descriptor);
+    AgpuBuffer buffer = s_renderer->CreateBuffer(descriptor, initialData, NULL);
+    agpuBufferInitialize(buffer, descriptor);
+    return buffer;
 }
 
 AgpuBuffer agpuCreateExternalBuffer(const AgpuBufferDescriptor* descriptor, void* handle)
 {
-    return s_renderer->CreateBuffer(descriptor, handle);
+    agpuValidateBufferDescriptor(descriptor);
+    AgpuBuffer buffer = s_renderer->CreateBuffer(descriptor, NULL, handle);
+    agpuBufferInitialize(buffer, descriptor);
+    return buffer;
 }
 
 void agpuDestroyBuffer(AgpuBuffer buffer)
@@ -221,14 +280,30 @@ void agpuDestroyBuffer(AgpuBuffer buffer)
     s_renderer->DestroyBuffer(buffer);
 }
 
+static void agpuTextureInitialize(AgpuTexture texture, const AgpuTextureDescriptor* descriptor)
+{
+    if (texture != nullptr)
+    {
+        // Set properties
+        texture->width = descriptor->width;
+        texture->height = descriptor->height;
+        texture->depthOrArraySize = descriptor->depthOrArraySize;
+        texture->mipLevels = descriptor->mipLevels;
+    }
+}
+
 AgpuTexture agpuCreateTexture(const AgpuTextureDescriptor* descriptor)
 {
-    return s_renderer->CreateTexture(descriptor, NULL);
+    AgpuTexture texture = s_renderer->CreateTexture(descriptor, NULL);
+    agpuTextureInitialize(texture, descriptor);
+    return texture;
 }
 
 AgpuTexture agpuCreateExternalTexture(const AgpuTextureDescriptor* descriptor, void* handle)
 {
-    return s_renderer->CreateTexture(descriptor, handle);
+    AgpuTexture texture = s_renderer->CreateTexture(descriptor, handle);
+    agpuTextureInitialize(texture, descriptor);
+    return texture;
 }
 
 void agpuDestroyTexture(AgpuTexture texture)
@@ -258,16 +333,45 @@ void agpuDestroyShader(AgpuShader shader)
 
 AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
 {
+#if defined(ALIMER_DEV)
     ALIMER_ASSERT_MSG(descriptor, "Invalid render pipeline descriptor.");
     ALIMER_ASSERT_MSG(descriptor->vertex, "Invalid vertex shader.");
     ALIMER_ASSERT_MSG(descriptor->fragment, "Invalid fragment shader.");
+
+    for (int i = 0; i < AGPU_MAX_VERTEX_BUFFER_BINDINGS; i++)
+    {
+        const AgpuVertexBufferLayoutDescriptor* desc = &descriptor->vertexDescriptor.layouts[i];
+        if (desc->stride == 0) {
+            continue;
+        }
+
+        ALIMER_ASSERT_MSG((desc->stride & 3) == 0, "AgpuVertexDescriptor buffer stride must be multiple of 4");
+    }
+
+    ALIMER_ASSERT_MSG(descriptor->vertexDescriptor.attributes[0].format != AGPU_VERTEX_FORMAT_UNKNOWN, "AgpuVertexDescriptor attributes is empty or not continuous");
+    bool attrsContinuous = true;
+
+    for (int i = 0; i < AGPU_MAX_VERTEX_ATTRIBUTES; i++)
+    {
+        const AgpuVertexAttributeDescriptor* desc = &descriptor->vertexDescriptor.attributes[i];
+        if (desc->format == AGPU_VERTEX_FORMAT_UNKNOWN) {
+            attrsContinuous = false;
+            continue;
+        }
+        ALIMER_ASSERT_MSG(attrsContinuous, "AgpuVertexDescriptor buffer stride must be multiple of 4");
+        ALIMER_ASSERT(desc->bufferIndex < AGPU_MAX_VERTEX_BUFFER_BINDINGS);
+    }
+#endif
+
     return s_renderer->CreateRenderPipeline(descriptor);
 }
 
 AgpuPipeline agpuCreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor)
 {
+#if defined(ALIMER_DEV)
     ALIMER_ASSERT_MSG(descriptor, "Invalid compute pipeline descriptor.");
     ALIMER_ASSERT_MSG(descriptor->shader, "Invalid shader");
+#endif
 
     return s_renderer->CreateComputePipeline(descriptor);
 }
@@ -275,6 +379,63 @@ AgpuPipeline agpuCreateComputePipeline(const AgpuComputePipelineDescriptor* desc
 void agpuDestroyPipeline(AgpuPipeline pipeline)
 {
     s_renderer->DestroyPipeline(pipeline);
+}
+
+void agpuBeginRenderPass(AgpuFramebuffer framebuffer)
+{
+    ALIMER_ASSERT_MSG(framebuffer, "Invalid framebuffer");
+    s_renderer->BeginRenderPass(framebuffer);
+}
+
+void agpuEndRenderPass()
+{
+    s_renderer->EndRenderPass();
+}
+
+void agpuSetPipeline(AgpuPipeline pipeline)
+{
+    ALIMER_ASSERT_MSG(pipeline, "Invalid pipeline");
+    s_renderer->SetPipeline(pipeline);
+}
+
+void agpuSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index)
+{
+    ALIMER_ASSERT_MSG(buffer, "Invalid buffer");
+    ALIMER_ASSERT(index < AGPU_MAX_VERTEX_BUFFER_BINDINGS);
+#ifdef ALIMER_DEV
+    if (!buffer->usage & AGPU_BUFFER_USAGE_VERTEX)
+    {
+        //agpuNotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+        return;
+    }
+#endif
+
+    s_renderer->SetVertexBuffer(buffer, offset, index);
+}
+
+void agpuCmdSetViewport(AgpuViewport viewport)
+{
+    s_renderer->CmdSetViewport(nullptr, viewport);
+}
+
+void agpuCmdSetViewports(uint32_t viewportCount, const AgpuViewport* pViewports)
+{
+    s_renderer->CmdSetViewports(nullptr, viewportCount, pViewports);
+}
+
+void agpuCmdSetScissor(AgpuRect2D scissor)
+{
+    s_renderer->CmdSetScissor(nullptr, scissor);
+}
+
+void agpuCmdSetScissor(uint32_t scissorCount, const AgpuRect2D* pScissors)
+{
+    s_renderer->CmdSetScissors(nullptr, scissorCount, pScissors);
+}
+
+void agpuDraw(uint32_t vertexCount, uint32_t startVertexLocation)
+{
+    s_renderer->Draw(vertexCount, startVertexLocation);
 }
 
 typedef enum AgpuPixelFormatType
@@ -359,6 +520,36 @@ const AgpuPixelFormatDesc FormatDesc[] =
     { AGPU_PIXEL_FORMAT_BC7_UNORM_SRGB,     "BC7_UNORMSrgb",    16, 4,  AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  { false,  false, true, },          { 4, 4 } },
 };
 
+uint32_t agpuGetTextureWidth(AgpuTexture texture)
+{
+    return texture->width;
+}
+
+uint32_t agpuGetTextureLevelWidth(AgpuTexture texture, uint32_t mipLevel)
+{
+    return std::max(1u, texture->width >> mipLevel);
+}
+
+uint32_t agpuGetTextureHeight(AgpuTexture texture)
+{
+    return texture->height;
+}
+
+uint32_t agpuGetTextureLevelHeight(AgpuTexture texture, uint32_t mipLevel)
+{
+    return std::max(1u, texture->height >> mipLevel);
+}
+
+uint32_t agpuGetTextureDepth(AgpuTexture texture)
+{
+    return texture->depthOrArraySize;
+}
+
+uint32_t agpuGetTextureLevelDepth(AgpuTexture texture, uint32_t mipLevel)
+{
+    return std::max(1u, texture->depthOrArraySize >> mipLevel);
+}
+
 AgpuBool32 agpuIsDepthFormat(AgpuPixelFormat format)
 {
     ALIMER_ASSERT(FormatDesc[format].format == format);
@@ -380,6 +571,32 @@ AgpuBool32 agpuIsCompressed(AgpuPixelFormat format)
 {
     ALIMER_ASSERT(FormatDesc[format].format == format);
     return FormatDesc[format].isCompressed;
+}
+
+uint32_t agpuGetVertexFormatSize(AgpuVertexFormat format)
+{
+    switch (format)
+    {
+    case AGPU_VERTEX_FORMAT_FLOAT:
+    case AGPU_VERTEX_FORMAT_BYTE4:
+    case AGPU_VERTEX_FORMAT_BYTE4N:
+    case AGPU_VERTEX_FORMAT_UBYTE4:
+    case AGPU_VERTEX_FORMAT_UBYTE4N:
+    case AGPU_VERTEX_FORMAT_SHORT2:
+    case AGPU_VERTEX_FORMAT_SHORT2N:
+        return 4;
+    case AGPU_VERTEX_FORMAT_FLOAT2:
+    case AGPU_VERTEX_FORMAT_SHORT4:
+    case AGPU_VERTEX_FORMAT_SHORT4N:
+        return 8;
+    case AGPU_VERTEX_FORMAT_FLOAT3:
+        return 12;
+    case AGPU_VERTEX_FORMAT_FLOAT4:
+        return 16;
+
+    default:
+        ALIMER_UNREACHABLE();
+    }
 }
 
 #ifdef _MSC_VER

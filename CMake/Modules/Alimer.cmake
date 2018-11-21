@@ -1,11 +1,10 @@
-include(ucm)
+# This module is shared; use include blocker.
+if( _ALIMER_GUARD_ )
+	return()
+endif()
+set (_ALIMER_GUARD_ 1)
 
-# Source environment
-if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-    execute_process(COMMAND cmd /c set OUTPUT_VARIABLE ENVIRONMENT)
-else ()
-    execute_process(COMMAND env OUTPUT_VARIABLE ENVIRONMENT)
-endif ()
+include(ucm)
 
 # Detect host.
 if (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
@@ -105,59 +104,6 @@ elseif( ALIMER_IOS OR ALIMER_ANDROID )
 else()
 	message(FATAL_ERROR "Unknown platform architecture!")
 endif()
-
-# Define CMake options
-include (CMakeDependentOption)
-macro (alimer_option NAME DESCRIPTION)
-    if (NOT ${NAME}_DEFAULT)
-        set (${NAME}_DEFAULT ${ALIMER_ENABLE_ALL})
-    endif ()
-    if (NOT DEFINED ${NAME})
-        option(${NAME} "${DESCRIPTION}" ${${NAME}_DEFAULT})
-    endif ()
-endmacro ()
-
-option (ALIMER_POSITION_INDEPENDENT "Position independent" ON)
-option (ALIMER_SANITIZE "Sanitize address, threads and other compiler options" OFF)
-option (ALIMER_SKIP_INSTALL "Skip installation" ${ALIMER_SKIP_INSTALL})
-option (ALIMER_SHARED "Enable shared library build" OFF)
-option (ALIMER_USE_DEBUG_INFO   "Enable debug information in all configurations." ON)
-
-# Threads are still experimental on emscripten.
-if (NOT ALIMER_EMSCRIPTEN OR ALIMER_ENABLE_ALL)
-    set (ALIMER_THREADING_DEFAULT ON)
-else ()
-    set (ALIMER_THREADING_DEFAULT OFF)
-endif ()
-
-# Graphics backends
-if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_ANDROID)
-    set (ALIMER_VULKAN_DEFAULT ON)
-else ()
-    set (ALIMER_VULKAN_DEFAULT OFF)
-endif ()
-
-# Tools
-if (ALIMER_DESKTOP)
-    set (ALIMER_TOOLS_DEFAULT ON)
-else ()
-    set (ALIMER_TOOLS_DEFAULT OFF)
-endif()
-
-option (ALIMER_ENABLE_ALL "Enables all optional subsystems by default" OFF)
-
-
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_DESKTOP)
-    set (ALIMER_CSHARP_DEFAULT ON)
-else ()
-    set (ALIMER_CSHARP_DEFAULT OFF)
-endif ()
-
-alimer_option (ALIMER_THREADING "Enable multithreading")
-alimer_option (ALIMER_GL "Enable OpenGL backend")
-alimer_option (ALIMER_VULKAN "Enable Vulkan backend")
-alimer_option (ALIMER_TOOLS "Enable Tools")
-alimer_option (ALIMER_CSHARP "Enable C# support")
 
 set (ALIMER_FLAGS "")
 set (ALIMER_DEFS "")

@@ -26,22 +26,36 @@
 
 namespace Alimer
 {
+    struct VertexAttributeDescriptor
+    {
+        VertexFormat                    format = VertexFormat::Unknown;
+        uint32_t                        offset = 0;
+        uint32_t                        bufferIndex = 0;
+
+    };
+
     struct VertexBufferLayoutDescriptor
     {
-        VertexAttributeDescriptor       attributes[MaxVertexAttributes];
         uint32_t                        stride = 0;
         VertexInputRate                 inputRate = VertexInputRate::Vertex;
     };
 
+    struct VertexDescriptor
+    {
+        VertexBufferLayoutDescriptor    layouts[AGPU_MAX_VERTEX_BUFFER_BINDINGS];
+        VertexAttributeDescriptor       attributes[AGPU_MAX_VERTEX_ATTRIBUTES];
+    };
+
     struct RenderPipelineDescriptor
     {
-        SharedPtr<Shader>     vertex;
-        SharedPtr<Shader>     fragment;
-        SharedPtr<Shader>     domain;
-        SharedPtr<Shader>     hull;
-        SharedPtr<Shader>     geometry;
+        SharedPtr<Shader>               vertex;
+        SharedPtr<Shader>               fragment;
+        SharedPtr<Shader>               domain;
+        SharedPtr<Shader>               hull;
+        SharedPtr<Shader>               geometry;
 
-        VertexBufferLayoutDescriptor    vertexLayouts[MaxVertexBufferBindings];
+        VertexDescriptor                vertexDescriptor;
+        PrimitiveTopology               primitiveTopology = PrimitiveTopology::TriangleList;
     };
 
     /// Defines a Pipeline class.

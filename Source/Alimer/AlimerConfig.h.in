@@ -25,6 +25,13 @@
 
 #include "PlatformDef.h"
 
+#define ALIMER_VERSION_MAJOR @PRODUCT_VERSION_MAJOR@
+#define ALIMER_VERSION_MINOR @PRODUCT_VERSION_MINOR@
+#define ALIMER_VERSION_PATCH @PRODUCT_VERSION_REVISION@
+#define ALIMER_VERSION_STR   "@PRODUCT_VERSION_MAJOR@.@PRODUCT_VERSION_MINOR@.@PRODUCT_VERSION_REVISION@"
+#define ALIMER_BRANCH "@GIT_BRANCH@"
+#define ALIMER_COMMIT_HASH "@GIT_COMMIT_HASH@"
+
 #ifdef _MSC_VER
 #pragma warning(disable: 4251)
 #pragma warning(disable: 4275)
@@ -41,3 +48,13 @@
 #ifndef ALIMER_API
 #   define ALIMER_API 0
 #endif
+
+// Alimer build configuration
+#cmakedefine ALIMER_LOGGING
+#cmakedefine ALIMER_PROFILING
+#cmakedefine ALIMER_THREADING
+
+#cmakedefine ALIMER_D3D11
+#cmakedefine ALIMER_D3D12
+#cmakedefine ALIMER_VULKAN
+#cmakedefine ALIMER_OPENGL

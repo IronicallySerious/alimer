@@ -42,26 +42,6 @@ namespace Alimer
         return nullptr;
     }
 
-    const char* EnumToString(BufferUsage usage)
-    {
-        if (any(usage & BufferUsage::Vertex))
-            return "Vertex";
-
-        if (any(usage & BufferUsage::Index))
-            return "Index";
-
-        if (any(usage & BufferUsage::Uniform))
-            return "Uniform";
-
-        if (any(usage & BufferUsage::Storage))
-            return "Storage";
-
-        if (any(usage & BufferUsage::Indirect))
-            return "Indirect";
-
-        return "None";
-    }
-
     const char* EnumToString(ShaderStage stage)
     {
 #define CASE_STRING(ENUM_VALUE) case ShaderStage::##ENUM_VALUE : return #ENUM_VALUE
@@ -108,27 +88,6 @@ namespace Alimer
 
     uint32_t GetVertexFormatSize(VertexFormat format)
     {
-        switch (format)
-        {
-        case VertexFormat::Float:
-        case VertexFormat::Byte4:
-        case VertexFormat::Byte4N:
-        case VertexFormat::UByte4:
-        case VertexFormat::UByte4N:
-        case VertexFormat::Short2:
-        case VertexFormat::Short2N:
-            return 4;
-        case VertexFormat::Float2:
-        case VertexFormat::Short4:
-        case VertexFormat::Short4N:
-            return 8;
-        case VertexFormat::Float3:
-            return 12;
-        case VertexFormat::Float4:
-            return 16;
-
-        default:
-            return static_cast<uint32_t>(-1);
-        }
+        return agpuGetVertexFormatSize(static_cast<AgpuVertexFormat>(format));
     }
 }

@@ -22,21 +22,70 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-option (OPTION_BUILD_CSHARP_WITH_CSC "Build C# with Roslyn Compiler" ON)
+if (NOT WIN32 OR ALIMER_CSHARP_MONO)
+    find_package(Mono REQUIRED)
+
+    find_program(CSC csc PATHS /Library/Frameworks/Mono.framework/Versions/Current/bin ${MONO_PATH}/bin)
+    if (NOT CSC)
+        message(FATAL_ERROR "csc could not be found.")
+    endif ()
+
+    find_program(MSBUILD msbuild PATHS /Library/Frameworks/Mono.framework/Versions/Current/bin ${MONO_PATH}/bin)
+    if (NOT MSBUILD)
+        message(FATAL_ERROR "MSBuild could not be found.")
+    endif ()
+
+    macro(create_mono_compiler_settings)
+	    set(MONO_LANGUAGE_VERSION 7)
+        if("${BUILD_PLATFORM}" STREQUAL "Win32")
+            set(MONO_CPU_PLATFORM x86)
+            set(MONO_PREPROCESSOR_DEFINE WIN32)
+        elseif("${BUILD_PLATFORM}" STREQUAL "Win64")
+            set(MONO_CPU_PLATFORM anycpu)
+            set(MONO_PREPROCESSOR_DEFINE WIN64)
+        endif()
+	    set(MONO_PREPROCESSOR_DEFINE ${MONO_PREPROCESSOR_DEFINE}$<SEMICOLON>$<UPPER_CASE:$<CONFIG>>)
+    endmacro()
+
+    option (ALIMER_CSHARP_WITH_CSC "Build C# with Roslyn Compiler" ON)
+
+    if(OPTION_BUILD_CSHARP_WITH_CSC)
+	    create_mono_compiler_settings()
+	    message(STATUS "C# Mono platform ${MONO_CPU_PLATFORM}")
+	    message(STATUS "C# Mono preprocessor define ${MONO_PREPROCESSOR_DEFINE}")
+	    message(STATUS "C# Language Version : ${MONO_LANGUAGE_VERSION}")
+    endif()
+endif ()
+
+if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
+    # Workaround for some cases where csc has issues when invoked by CMake.
+    set (TERM_WORKAROUND env TERM=xterm)
+endif ()
 
 # Add commont macro
-macro (add_target_csharp TARGET FOLDER SOLUTION_FOLDER)
+macro (add_target_csharp TARGET PROJECT_FILE LIBRARY SOLUTION_FOLDER)
     if (NOT ALIMER_CSHARP)
         return ()
     endif ()
 
     if (WIN32 AND NOT ALIMER_CSHARP_MONO)
-        include_external_msproject(${TARGET} ${CMAKE_CURRENT_SOURCE_DIR}/${FOLDER}/${TARGET}.csproj)
+        include_external_msproject(${TARGET} ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_FILE})
     else()
+        set (MSBUILD_COMMON_PARAMETERS /p:BuildDir="${CMAKE_BINARY_DIR}/" /p:Platform=${CSHARP_PLATFORM} /p:Configuration=$<CONFIG> /consoleloggerparameters:ErrorsOnly)
 
+        if (ALIMER_CSHARP_MONO)
+            list (APPEND MSBUILD_COMMON_PARAMETERS /p:TargetFramework=net45)
+        endif ()
+
+        add_custom_target(${TARGET}
+            COMMAND ${TERM_WORKAROUND} ${MSBUILD} ${PROJECT_FILE} ${MSBUILD_COMMON_PARAMETERS}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            DEPENDS ${ARGN}
+        )
+        set_target_properties(${TARGET} PROPERTIES EXCLUDE_FROM_ALL OFF)
     endif()
 
-    set_property(TARGET ${TARGET} PROPERTY FOLDER "${SOLUTION_FOLDER}")
+    set_target_properties(${TARGET} PROPERTIES FOLDER "${SOLUTION_FOLDER}")
 
     if (NOT ALIMER_SKIP_INSTALL)
         if (MSVC)
@@ -45,16 +94,17 @@ macro (add_target_csharp TARGET FOLDER SOLUTION_FOLDER)
             set (NET_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
         endif ()
 
-        install (FILES
-            ${NET_OUTPUT_DIRECTORY}/${TARGET}.dll
-            DESTINATION bin
-        )
+        if (${LIBRARY})
+            install (FILES ${NET_OUTPUT_DIRECTORY}/${TARGET}.dll DESTINATION bin)
+        else()
+            install (FILES ${NET_OUTPUT_DIRECTORY}/${TARGET}.exe DESTINATION bin)
+        endif ()
     endif ()
 
 endmacro()
 
 # Alimer C# bindings
-add_target_csharp(AlimerSharp "AlimerSharp" "CSharp")
+add_subdirectory(AlimerSharp)
 
 # Editor
-add_target_csharp(Alimer.Studio "Alimer.Studio" "CSharp")
+add_subdirectory(Alimer.Studio)

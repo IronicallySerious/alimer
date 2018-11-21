@@ -68,6 +68,21 @@ namespace Alimer
         AgpuRenderPipelineDescriptor gpuPipelineDesc = {};
         gpuPipelineDesc.vertex = descriptor->vertex->GetHandle();
         gpuPipelineDesc.fragment = descriptor->fragment->GetHandle();
+
+        for (uint32_t i = 0u; i < AGPU_MAX_VERTEX_BUFFER_BINDINGS; i++)
+        {
+            gpuPipelineDesc.vertexDescriptor.layouts[i].stride = descriptor->vertexDescriptor.layouts[i].stride;
+            gpuPipelineDesc.vertexDescriptor.layouts[i].inputRate = static_cast<AgpuVertexInputRate>(descriptor->vertexDescriptor.layouts[i].inputRate);
+        }
+
+        for (uint32_t i = 0u; i < AGPU_MAX_VERTEX_ATTRIBUTES; i++)
+        {
+            gpuPipelineDesc.vertexDescriptor.attributes[i].format = static_cast<AgpuVertexFormat>(descriptor->vertexDescriptor.attributes[i].format);
+            gpuPipelineDesc.vertexDescriptor.attributes[i].offset = descriptor->vertexDescriptor.attributes[i].offset;
+            gpuPipelineDesc.vertexDescriptor.attributes[i].bufferIndex = descriptor->vertexDescriptor.attributes[i].bufferIndex;
+        }
+
+        gpuPipelineDesc.primitiveTopology = static_cast<AgpuPrimitiveTopology>(descriptor->primitiveTopology);
         _handle = agpuCreateRenderPipeline(&gpuPipelineDesc);
 
         return true;

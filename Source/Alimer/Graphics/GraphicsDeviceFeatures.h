@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../AlimerConfig.h"
+#include "AlimerConfig.h"
 #include <string>
 
 namespace Alimer

@@ -247,12 +247,9 @@ namespace Alimer
         {
             DWORD bytesWritten;
 
-            String timeStamp = GetTimeStamp();
-            timeStamp += " [";
-
             WriteConsoleA(handle,
-                timeStamp.CString(),
-                static_cast<DWORD>(timeStamp.Length()),
+                "[",
+                1,
                 &bytesWritten,
                 nullptr);
 
@@ -302,8 +299,7 @@ namespace Alimer
                 nullptr);
             ::SetConsoleTextAttribute(handle, origAttribs); // Reset to original colors
 
-            String printMessage = "] ";
-            printMessage += message;
+            String printMessage = "] " + message;
             printMessage += "\r\n";
 
             WriteConsoleA(handle,
@@ -317,7 +313,8 @@ namespace Alimer
 
         if (_logFile)
         {
-            String formattedMessage = LogLevelPrefix[static_cast<uint32_t>(level)];
+            String formattedMessage = 
+                GetTimeStamp() + "[" +  LogLevelPrefix[static_cast<uint32_t>(level)] + "] ";
             formattedMessage += ": " + message;
 
             _logFile->WriteLine(formattedMessage);

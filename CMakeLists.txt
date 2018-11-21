@@ -83,6 +83,9 @@ endif ()
 # Set CMake modules search path
 set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 
+# Include file that sets up all configurable properties
+include (AlimerOptions)
+
 # Include Alimer module.
 include (Alimer)
 
@@ -164,7 +167,9 @@ else()
 endif()
 
 message(STATUS "  Threading       ${ALIMER_THREADING}")
-message(STATUS "  GL              ${ALIMER_GL}")
+message(STATUS "  D3D11           ${ALIMER_D3D11}")
+message(STATUS "  D3D12           ${ALIMER_D3D12}")
 message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
+message(STATUS "  OpenGL          ${ALIMER_OPENGL}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")

@@ -21,7 +21,7 @@
 //
 
 #include "agpu.h"
-#if AGPU_D3D11
+#ifdef ALIMER_D3D11
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
 #include <wrl/client.h>
@@ -29,7 +29,7 @@
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
 
-#if (defined(AGPU_D3D11) || defined(AGPU_D3D12)) && defined(_DEBUG)
+#if defined(_DEBUG)
 #   include <dxgidebug.h>
 #endif
 
@@ -103,10 +103,9 @@ namespace d3d11
         return isAvailable;
     }
 
-    AgpuResult createBackend(const AgpuDescriptor* descriptor, AGpuRendererI** pRenderer)
+    AGpuRendererI* createBackend(bool validation)
     {
-        *pRenderer = nullptr;
-        return AGPU_ERROR;
+        return nullptr;
     }
 }
 
@@ -115,9 +114,9 @@ AgpuBool32 agpuIsD3D11Supported()
     return d3d11::isSupported();
 }
 
-AgpuResult agpuCreateD3D11Backend(const AgpuDescriptor* descriptor, AGpuRendererI** pRenderer)
+AGpuRendererI* agpuCreateD3D11Backend(bool validation)
 {
-    return d3d11::createBackend(descriptor, pRenderer);
+    return d3d11::createBackend(validation);
 }
 
-#endif /* AGPU_D3D11 */
+#endif /* ALIMER_D3D11 */

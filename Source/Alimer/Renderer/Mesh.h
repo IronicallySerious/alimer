@@ -24,6 +24,7 @@
 
 #include "../Resource/Resource.h"
 #include "../Graphics/GpuBuffer.h"
+#include "../Graphics/Types.h"
 
 namespace Alimer
 {
@@ -46,7 +47,7 @@ namespace Alimer
 
     struct MeshAttributeLayout
     {
-        VertexFormat format = VertexFormat::Invalid;
+        VertexFormat format = VertexFormat::Unknown;
         uint32_t offset = 0;
     };
 

@@ -22,29 +22,48 @@
 
 #pragma once
 
-#include "../Graphics/GraphicsResource.h"
+#include "../Base/Ptr.h"
+#include "../Base/String.h"
+#include "../Graphics/agpu.h"
 
 namespace Alimer
 {
+    enum class BufferUsage : uint32_t
+    {
+        None = AGPU_BUFFER_USAGE_NONE,
+        Vertex = AGPU_BUFFER_USAGE_VERTEX,
+        Index = AGPU_BUFFER_USAGE_INDEX,
+        Uniform = AGPU_BUFFER_USAGE_UNIFORM,
+        Storage = AGPU_BUFFER_USAGE_STORAGE,
+        Indirect = AGPU_BUFFER_USAGE_INDIRECT,
+        Dynamic = AGPU_BUFFER_USAGE_DYNAMIC,
+        CPUAccessible = AGPU_BUFFER_USAGE_CPU_ACCESSIBLE,
+    };
+    ALIMER_BITMASK(BufferUsage);
+
 	/// Defines a Graphics Buffer class.
-	class GpuBuffer : public GraphicsResource
+	class ALIMER_API GpuBuffer final : public RefCounted
 	{
-	protected:
-        /// Constructor.
-        GpuBuffer(Graphics* device, ResourceUsage resourceUsage, BufferUsage usage);
-
-		/// Constructor.
-		GpuBuffer(Graphics* device, const BufferDescriptor* descriptor);
-
 	public:
+        /// Constructor.
+        GpuBuffer();
+
+        /// Destructor.
+        ~GpuBuffer();
+
+        /// Unconditionally destroy the GPU resource.
+        void Destroy();
+
+        bool Define(BufferUsage usage, uint64_t elementCount, uint64_t stride, void* initialData = nullptr, const String& name = "");
+
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 
         /// Replace buffer data in synchronous way.
         bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
 
-        /// Get the buffer memory flags.
-        ResourceUsage GetResourceUsage() const { return _resourceUsage; }
+        /// Get the gpu handle.
+        AgpuBuffer GetHandle() const { return _handle; }
 
         /// Get the buffer usage flags.
         BufferUsage GetUsage() const { return _usage; }
@@ -55,12 +74,11 @@ namespace Alimer
         /// Get single element size in bytes.
 		uint32_t GetStride() const { return _stride; }
 
-	protected:
-        virtual bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) = 0;
-
-        ResourceUsage _resourceUsage;
-        BufferUsage _usage;
-		uint64_t _size;
-        uint32_t _stride;
+	private:
+        AgpuBuffer _handle = nullptr;
+        BufferUsage _usage = BufferUsage::None;
+        uint64_t _elementCount = 0;
+        uint64_t _stride = 0;
+		uint64_t _size = 0;
 	};
 }
