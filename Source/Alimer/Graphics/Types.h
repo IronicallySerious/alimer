@@ -170,8 +170,8 @@ namespace Alimer
     enum class ShaderStage : uint32_t
     {
         Vertex = AGPU_SHADER_STAGE_VERTEX,
-        TessControl = AGPU_SHADER_STAGE_HULL,
-        TessEvaluation = AGPU_SHADER_STAGE_DOMAIN,
+        TessControl = AGPU_SHADER_STAGE_TESS_CONTROL,
+        TessEvaluation = AGPU_SHADER_STAGE_TESS_EVAL,
         Geometry = AGPU_SHADER_STAGE_GEOMETRY,
         Fragment = AGPU_SHADER_STAGE_FRAGMENT,
         Compute = AGPU_SHADER_STAGE_COMPUTE,

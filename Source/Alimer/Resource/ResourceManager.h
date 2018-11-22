@@ -35,8 +35,10 @@ namespace Alimer
     static constexpr uint32_t PRIORITY_LAST = 0xffffffff;
 
 	/// Resource cache subsystem. Loads resources on demand and stores them for later access.
-	class ALIMER_API ResourceManager final
+	class ALIMER_API ResourceManager final : public Object
 	{
+        ALIMER_OBJECT(ResourceManager, Object);
+
 	public:
 		/// Constructor.
 		ResourceManager();

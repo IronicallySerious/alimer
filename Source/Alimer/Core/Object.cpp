@@ -66,6 +66,12 @@ namespace Alimer
                 return it != end(_factories) ? it->second->CreateObject() : nullptr;
             }
 
+            const String& GetTypeNameFromType(StringHash type)
+            {
+                auto it = _factories.find(type);
+                return it != end(_factories) ? it->second->GetTypeName() : String::EMPTY;
+            }
+
         private:
             /// Registered subsystems.
             std::unordered_map<StringHash, Object*> _subsystems;
@@ -164,6 +170,11 @@ namespace Alimer
     SharedPtr<Object> Object::CreateObject(StringHash type)
     {
         return details::Context().CreateObject(type);
+    }
+
+    const String& Object::GetTypeNameFromType(StringHash type)
+    {
+        return details::Context().GetTypeNameFromType(type);
     }
 
     void Object::SubscribeToEvent(Event& event, EventHandler* handler)

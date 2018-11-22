@@ -38,6 +38,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND "${CMAKE_CXX_SIMULATE_ID
     set (ALIMER_COMPILER_NAME "MSVC Clang (ALIMER_CLANG)")
     set (CLANG ON)
     set (GNU ON)
+    set (CLANG_CL ON)
 elseif (MSVC)
     set (ALIMER_MSVC 1)
     set (ALIMER_COMPILER_NAME "VisualStudio (ALIMER_MSVC)")
@@ -130,7 +131,27 @@ if( MSVC )
 	endif()
 
 	# Force specific warnings as errors
-	add_compile_options(/we4101)
+    add_compile_options(/we4101)
+elseif (CLANG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_STANDARD} -fstrict-aliasing -Wno-unknown-pragmas -Wno-unused-function")
+    
+    if (WIN32)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_MATH_DEFINES=1")
+    endif()
+
+    if (CLANG_CL)
+        # Since the "secure" replacements that MSVC suggests are not portable, disable
+        # the deprecation warnings. Also disable warnings about use of POSIX functions (i.e. "unlink").
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE")
+    endif()
+
+    # ==================================================================================================
+    # Release compiler flags
+    # ==================================================================================================
+    if (NOT CLANG_CL)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer -ffunction-sections -fdata-sections")
+    endif()
 
 elseif (ALIMER_EMSCRIPTEN)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-warn-absolute-paths -Wno-unknown-warning-option")
@@ -216,8 +237,12 @@ function(alimer_setup_common_properties target)
             endif()
         endif()
 
-    elseif (CMAKE_COMPILER_IS_GNUCXX OR (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
+    elseif (CLANG)
         #
+        if (CLANG_CL)
+            target_compile_definitions(${target} PRIVATE NOMINMAX)
+            target_compile_definitions(${target} PRIVATE _UNICODE)
+        endif ()
     endif()
 
     # Define 32 versus 64 bit architecture

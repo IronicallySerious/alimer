@@ -27,6 +27,14 @@
 
 namespace Alimer
 {
+    //class JSONValue;
+    class StringHash;
+    //template <class T> class Vector;
+    struct ObjectRef;
+    struct ResourceRef;
+    struct ResourceRefList;
+
+
 	/// Abstract stream for reading and writing.
 	class ALIMER_API Stream
 	{
@@ -59,27 +67,75 @@ namespace Alimer
 		*/
 		virtual size_t Read(void* dest, size_t size) = 0;
 
-		/**
-		* Write bytes to the stream.
-		*
-		* @param data The source data to write.
-		* @param size Number of bytes to write.
-        * @return Number of bytes actually written.
-		*/
-		virtual size_t Write(const void* data, size_t size) = 0;
+        /// Read an 8-bit integer.
+        signed char ReadByte();
 
+        /// Read an 8-bit unsigned integer.
+        unsigned char ReadUByte();
+
+        /// Read a 16-bit unsigned integer.
+        unsigned short ReadUShort();
+
+        /// Read a 32-bit unsigned integer.
+        unsigned ReadUInt();
+
+        /// Read a bool.
+        bool ReadBool();
+        /// Read a float.
+        float ReadFloat();
+        /// Read a double.
+        double ReadDouble();
+
+        /// Read a variable-length encoded unsigned integer, which can use 29 bits maximum.
+        uint32_t ReadVLE();
+
+        /// Read a null-terminated string.
+        String ReadString();
+        /// Read a four-letter file ID.
+        String ReadFileID();
+        /// Read a 32-bit StringHash.
+        StringHash ReadStringHash();
 		/// Read entire file as text.
 		String ReadAllText();
 
 		/// Read content as vector bytes.
 		std::vector<uint8_t> ReadBytes(size_t count = 0);
+        
+        /**
+        * Write bytes to the stream.
+        *
+        * @param data The source data to write.
+        * @param size Number of bytes to write.
+        * @return Number of bytes actually written.
+        */
+        virtual size_t Write(const void* data, size_t size) = 0;
+
+        /// Write an 8-bit integer.
+        void WriteByte(signed char value);
 
         /// Write an 8-bit unsigned integer.
-        void WriteUByte(uint8_t value);
+        void WriteUByte(unsigned char value);
+
+        /// Write a 16-bit unsigned integer.
+        void WriteUShort(unsigned short value);
+
+        /// Write a 32-bit unsigned integer.
+        void WriteUInt(unsigned value);
+
+        /// Write a variable-length encoded unsigned integer, which can use 29 bits maximum.
+        void WriteVLE(unsigned value);
+
+        /// Write a null-terminated string.
+        void WriteString(const String& value);
+        /// Write a four-letter file ID. If the string is not long enough, spaces will be appended.
+        void WriteFileID(const String& value);
+        /// Write a 32-bit StringHash.
+        void WriteStringHash(const StringHash& value);
 
         /// Write a text line with end line automatically appended.
         void WriteLine(const String& value);
 
+        
 		/**
 		* Get current position in bytes.
 		*/

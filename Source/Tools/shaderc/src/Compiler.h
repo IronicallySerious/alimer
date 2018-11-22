@@ -26,14 +26,27 @@
 #include <vector>
 #include <unordered_map>
 
+#define COMPILER_VERSION_MAJOR 0
+#define COMPILER_VERSION_MINOR 9
+#define COMPILER_VERSION_PATCH 0
+
 namespace Alimer
 {
     enum class CompilerShaderLang : uint32_t
     {
+        DEFAULT,
         GLSL,
         GLES,
         HLSL,
-        METAL
+        METAL,
+        SPIRV
+    };
+
+    enum class CompilerShaderFormat : uint32_t
+    {
+        DEFAULT,
+        BLOB,
+        C_HEADER
     };
 
     enum class CompilerShaderStage : uint32_t
@@ -47,22 +60,18 @@ namespace Alimer
         Count
     };
 
-    struct CompilerStageOptions
-    {
-        std::string file;
-        std::string entryPoint = "main";
-    };
-
     class CompilerOptions
     {
     public:
-        CompilerShaderLang language = CompilerShaderLang::GLSL;
+        std::string inputFile;
+        std::string entryPoint = "main";
         bool invertY = false;
         bool preprocess = false;
         std::unordered_map<std::string, std::string> defines;
-        CompilerStageOptions shaders[static_cast<uint32_t>(CompilerShaderStage::Count)] = {};
         std::vector<std::string> includeDirs;
         std::string outputFile;
+        CompilerShaderLang language = CompilerShaderLang::DEFAULT;
+        CompilerShaderFormat format = CompilerShaderFormat::DEFAULT;
     };
 
     /**

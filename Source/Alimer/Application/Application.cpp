@@ -42,10 +42,13 @@ namespace Alimer
         PlatformConstruct();
         AddSubsystem(this);
         _log = new Logger();
+        _sceneManager = new SceneManager();
 
         // Register modules
         RegisterGraphicsLibrary();
         //RegisterResourceLibrary();
+
+        SceneManager::Register();
 
         __appInstance = this;
     }
@@ -110,6 +113,9 @@ namespace Alimer
                 ALIMER_LOGERROR("Failed to initialize Graphics.");
                 return false;
             }*/
+
+            // Create imgui system.
+            _gui = new Gui();
         }
 
         // Load plugins

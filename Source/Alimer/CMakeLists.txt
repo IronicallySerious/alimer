@@ -65,24 +65,25 @@ set(SHADERS_SRCS
     shaders/imgui.frag
 )
 
-set(SHADER_BINS)
+set (SHADER_BINS)
+set (SHADER_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/shaders_h")
+
 foreach (shader_src ${SHADERS_SRCS})
-    get_filename_component(local_name "${shader_src}" NAME_WE)
+    get_filename_component(local_name "${shader_src}" NAME)
     get_filename_component(full_name "${shader_src}" ABSOLUTE)
-    set(output_path "${GENERATION_ROOT}/generated/shaders/${local_name}.inc")
+    set (output_path "${SHADER_OUTPUT_PATH}/${local_name}.h")
+
+    # For now compile to spv
     add_custom_command(
             OUTPUT ${output_path}
-            COMMAND shaderc --input=${full_name} -f header
-            -o ${output_path}
+            COMMAND shaderc -i ${full_name} -o ${output_path} -f header
             MAIN_DEPENDENCY ${shader_src}
-            DEPENDS shaderc
+            DEPENDS ${shader_src} shaderc
             COMMENT "Compiling shader ${shader_src} to ${output_path}"
     )
 
     list(APPEND SHADER_BINS ${output_path})
 endforeach()
-
-add_custom_target(alimer_shaders DEPENDS ${SHADER_BINS})
 
 set (TARGET_NAME libAlimer)
 set (ALIMER_NATIVE_INCLUDE_DIRS ${SPIRV_TOOLS_INCLUDE_DIR} ${STB_INCLUDE_DIR})
@@ -94,7 +95,7 @@ install (FILES ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h DESTINATION ${DEST_BAS
 # Add source files from subdirectories
 define_engine_source_files (NORECURSE . Base Core IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
-define_engine_source_files (NORECURSE experimental)
+define_engine_source_files (NORECURSE UI)
 
 if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
     define_engine_source_files(Application/SDL2)
@@ -140,7 +141,7 @@ endif ()
 group_sources()
 
 # Define the library target.
-add_alimer_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+add_alimer_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${SHADER_BINS})
 
 target_include_directories(${TARGET_NAME}
     PUBLIC
@@ -215,8 +216,6 @@ if (MSVC)
     # = conversion possible loss of data -- for STB image
     target_compile_options(${TARGET_NAME} PRIVATE /wd4100)
 endif()
-
-add_dependencies(${TARGET_NAME} alimer_shaders)
 
 # SDK installation
 if (NOT ALIMER_SKIP_INSTALL)

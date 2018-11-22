@@ -41,8 +41,10 @@
 #include "../Audio/Audio.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Scene/Scene.h"
+#include "../Scene/SceneManager.h"
 #include "../Renderer/RenderContext.h"
 #include "../Renderer/RenderPipeline.h"
+#include "../UI/Gui.h"
 
 namespace Alimer
 {
@@ -133,8 +135,12 @@ namespace Alimer
         EntityManager _entities;
         SystemManager _systems;
         Scene _scene;
+        SharedPtr<SceneManager> _sceneManager;
         RenderContext _renderContext;
         SceneRenderPipeline* _sceneRenderPipeline = nullptr;
+
+        // Gui
+        SharedPtr<Gui> _gui;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

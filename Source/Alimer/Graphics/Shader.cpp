@@ -23,6 +23,8 @@
 #include "../Graphics/Shader.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/ShaderCompiler.h"
+#include "../Resource/ResourceManager.h"
+#include "../Resource/ResourceLoader.h"
 #include "../IO/FileSystem.h"
 #include "../Core/Log.h"
 #include <spirv-cross/spirv_glsl.hpp>
@@ -202,8 +204,59 @@ namespace Alimer
         return _handle != nullptr;
     }
 
+    bool Shader::Define(uint64_t size, const uint8_t* data)
+    {
+        Destroy();
+
+
+        AgpuShaderDescriptor descriptor = {};
+        descriptor.codeSize = size;
+        descriptor.pCode = data;
+        _handle = agpuCreateShader(&descriptor);
+        if (_handle != nullptr)
+        {
+            SPIRVReflectResources(reinterpret_cast<const uint32_t*>(data), size, &_reflection);
+        }
+
+        return _handle;
+    }
+
+    class ShaderLoader final : public ResourceLoader
+    {
+    public:
+        StringHash GetType() const override;
+
+        bool BeginLoad(Stream& source) override;
+        Object* EndLoad() override;
+
+    private:
+        std::vector<uint8_t> _bytecode;
+    };
+
+    StringHash ShaderLoader::GetType() const
+    {
+        return Shader::GetTypeStatic();
+    }
+
+    bool ShaderLoader::BeginLoad(Stream& source)
+    {
+        _bytecode = source.ReadBytes();
+        return true;
+    }
+
+    Object* ShaderLoader::EndLoad()
+    {
+        Shader* shader = new Shader();
+        shader->Define(_bytecode.size(), _bytecode.data());
+        return shader;
+    }
+
+
     void Shader::RegisterObject()
     {
         RegisterFactory<Shader>();
+
+        // Register loader.
+        GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());
     }
 }

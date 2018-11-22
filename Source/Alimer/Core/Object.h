@@ -127,6 +127,9 @@ namespace Alimer
         /// Create and return an object through a factory. The caller is assumed to take ownership of the object. Return null if no factory registered. 
         static SharedPtr<Object> CreateObject(StringHash type);
 
+        /// Return a type name from hash, or empty if not known. Requires a registered object factory.
+        static const String& GetTypeNameFromType(StringHash type);
+
         /// Subscribe to an event.
         void SubscribeToEvent(Event& event, EventHandler* handler);
         /// Unsubscribe from an event.

@@ -40,12 +40,14 @@ int main(int argc, char* argv[])
     CLI::App app{ "shaderc, Alimer shader compiler tool, version 0.9.", "shaderc" };
 
     CompilerOptions options;
+    std::string shaderLanguage;
+    std::string shaderFormat;
 
-    app.add_option("-v,--vert", options.shaders[static_cast<uint32_t>(CompilerShaderStage::Vertex)].file, "Vertex shader source file")->check(CLI::ExistingFile);
-    app.add_option("-f,--frag", options.shaders[static_cast<uint32_t>(CompilerShaderStage::Fragment)].file, "Fragment shader source file")->check(CLI::ExistingFile);
-    app.add_option("-c,--compute", options.shaders[static_cast<uint32_t>(CompilerShaderStage::Compute)].file, "Compute shader source file")->check(CLI::ExistingFile);
-    app.add_option("-i", options.includeDirs, "Target include paths.");
-    app.add_option("-o,--output", options.outputFile, "Path to output directory")->required(true);
+    app.add_option("-i,--input", options.inputFile, "Shader source file")->check(CLI::ExistingFile);
+    app.add_option("-o,--output", options.outputFile, "Compiled output file")->required(true);
+    app.add_option("-e,--entryPoint", options.entryPoint, "Shader entry point")->required(false);
+    app.add_option("-l,--lang", shaderLanguage, "Shader output language")->required(false);
+    app.add_option("-f,--format", shaderFormat, "Shader output format")->required(false);
 
     try {
         app.parse(argc, argv);
@@ -54,8 +56,51 @@ int main(int argc, char* argv[])
         return app.exit(e);
     }
 
+    if (!shaderLanguage.empty())
+    {
+        if (shaderLanguage == "hlsl")
+        {
+            options.language = CompilerShaderLang::HLSL;
+        }
+        else if (shaderLanguage == "glsl")
+        {
+            options.language = CompilerShaderLang::GLSL;
+        }
+        else if (shaderLanguage == "gles" || shaderLanguage == "es")
+        {
+            options.language = CompilerShaderLang::GLES;
+        }
+        else if (shaderLanguage == "msl" || shaderLanguage == "metal")
+        {
+            options.language = CompilerShaderLang::METAL;
+        }
+        else if (shaderLanguage == "spirv" || shaderLanguage == "vulkan")
+        {
+            options.language = CompilerShaderLang::SPIRV;
+        }
+    }
+
+    if (!shaderFormat.empty())
+    {
+        if (shaderFormat == "blob")
+        {
+            options.format = CompilerShaderFormat::BLOB;
+        }
+        else if (shaderFormat == "header")
+        {
+            options.format = CompilerShaderFormat::C_HEADER;
+        }
+    }
+
     Compiler compiler;
-    return compiler.Compile(options) ? EXIT_SUCCESS : EXIT_FAILURE;
+    if (!compiler.Compile(options))
+    {
+        auto errorMessage = compiler.GetErrorMessage();
+        fprintf(stderr, "%s\n", errorMessage.c_str());
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 #ifdef _MSC_VER

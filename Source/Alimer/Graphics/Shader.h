@@ -38,11 +38,6 @@ namespace Alimer
         uint8_t *data;
     };
 
-    struct ShaderStageDescriptor
-    {
-
-    };
-
     struct ShaderDescriptor
     {
         ShaderBlob stages[static_cast<unsigned>(ShaderStage::Count)];
@@ -65,6 +60,8 @@ namespace Alimer
         void Destroy();
 
         bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
+
+        bool Define(uint64_t size, const uint8_t* data);
 
         /// Get the gpu handle.
         AgpuShader GetHandle() const { return _handle; }

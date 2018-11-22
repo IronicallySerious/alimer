@@ -30,6 +30,7 @@
 #include "../Math/MathUtil.h"
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
+#include <spirv-cross/spirv_hlsl.hpp>
 
 #if defined(_DEBUG)
 #   include <dxgidebug.h>
@@ -1454,16 +1455,78 @@ namespace d3d12
     AgpuShader AGpuRendererD3D12::CreateShader(const AgpuShaderDescriptor* descriptor)
     {
         AgpuShader shader = new AgpuShader_T();
+        bool needCompile = true;
+        std::string convertedHlslSource;
+        AgpuShaderStage stage = descriptor->stage;
         if (descriptor->pCode && descriptor->codeSize)
         {
-            shader->d3d12Bytecode.BytecodeLength = descriptor->codeSize;
-            shader->d3d12Bytecode.pShaderBytecode = new uint8_t[descriptor->codeSize];
-            memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, descriptor->pCode, descriptor->codeSize);
+            // Check if dx bycode.
+            if (descriptor->codeSize > 4
+                && descriptor->pCode[0] == 'D'
+                && descriptor->pCode[1] == 'X'
+                && descriptor->pCode[2] == 'B'
+                && descriptor->pCode[3] == 'C')
+            {
+                shader->d3d12Bytecode.BytecodeLength = descriptor->codeSize;
+                shader->d3d12Bytecode.pShaderBytecode = new uint8_t[descriptor->codeSize];
+                memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, descriptor->pCode, descriptor->codeSize);
+                needCompile = false;
+            }
+            else
+            {
+                spirv_cross::CompilerGLSL::Options options_glsl;
+                //options_glsl.vertex.fixup_clipspace = true;
+                //options_glsl.vertex.flip_vert_y = true;
+                options_glsl.flatten_multidimensional_arrays = true;
+
+                spirv_cross::CompilerHLSL compiler(reinterpret_cast<const uint32_t*>(descriptor->pCode), descriptor->codeSize / 4);
+                compiler.set_common_options(options_glsl);
+
+                spirv_cross::CompilerHLSL::Options options_hlsl;
+                options_hlsl.shader_model = 51;
+                compiler.set_hlsl_options(options_hlsl);
+
+                uint32_t new_builtin = compiler.remap_num_workgroups_builtin();
+                if (new_builtin)
+                {
+                    compiler.set_decoration(new_builtin, spv::DecorationDescriptorSet, 0);
+                    compiler.set_decoration(new_builtin, spv::DecorationBinding, 0);
+                }
+
+                auto resources = compiler.get_shader_resources();
+
+                switch (compiler.get_execution_model())
+                {
+                case spv::ExecutionModelVertex:
+                    stage = AGPU_SHADER_STAGE_VERTEX;
+                    break;
+                case spv::ExecutionModelTessellationControl:
+                    stage = AGPU_SHADER_STAGE_TESS_CONTROL;
+                    break;
+                case spv::ExecutionModelTessellationEvaluation:
+                    stage = AGPU_SHADER_STAGE_TESS_EVAL;
+                    break;
+                case spv::ExecutionModelGeometry:
+                    stage = AGPU_SHADER_STAGE_GEOMETRY;
+                    break;
+                case spv::ExecutionModelFragment:
+                    stage = AGPU_SHADER_STAGE_FRAGMENT;
+                    break;
+                case spv::ExecutionModelGLCompute:
+                    stage = AGPU_SHADER_STAGE_COMPUTE;
+                    break;
+                default:
+                    ALIMER_LOGCRITICAL("Invalid shader execution model");
+                }
+
+                convertedHlslSource = compiler.compile();
+            }
         }
-        else
+
+        if (needCompile)
         {
             const char* compileTarget = nullptr;
-            switch (descriptor->stage)
+            switch (stage)
             {
             case AGPU_SHADER_STAGE_VERTEX:
 #ifdef AGPU_COMPILER_DXC
@@ -1472,7 +1535,7 @@ namespace d3d12
                 compileTarget = "vs_5_1";
 #endif
                 break;
-            case AGPU_SHADER_STAGE_HULL:
+            case AGPU_SHADER_STAGE_TESS_CONTROL:
 #ifdef AGPU_COMPILER_DXC
                 compileTarget = "hs_6_1";
 #else
@@ -1480,7 +1543,7 @@ namespace d3d12
 #endif
                 break;
 
-            case AGPU_SHADER_STAGE_DOMAIN:
+            case AGPU_SHADER_STAGE_TESS_EVAL:
 #ifdef AGPU_COMPILER_DXC
                 compileTarget = "ds_6_1";
 #else
@@ -1514,7 +1577,7 @@ namespace d3d12
 
             default:
                 break;
-            }
+        }
 
 #ifdef AGPU_COMPILER_DXC
 #else
@@ -1533,11 +1596,17 @@ namespace d3d12
                 entryPoint = "main";
             }
 
+            std::string compileSource = convertedHlslSource;
+            if (compileSource.empty())
+            {
+                compileSource = descriptor->source;
+            }
+
             ID3DBlob* compiledShader = nullptr;
             ID3DBlob* errorMessages;
             HRESULT hr = D3DCompile(
-                descriptor->source,
-                strlen(descriptor->source),
+                compileSource.c_str(),
+                compileSource.length(),
                 nullptr,
                 nullptr,
                 nullptr,
@@ -1596,10 +1665,10 @@ namespace d3d12
                 }
             }
 #endif
-        }
+    }
 
         return shader;
-    }
+}
 
     void AGpuRendererD3D12::DestroyShader(AgpuShader shader)
     {

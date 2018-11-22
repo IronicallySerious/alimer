@@ -52,7 +52,7 @@ namespace Alimer
     class TriangleExample
     {
     public:
-        void Initialize(ResourceManager&)
+        void Initialize(ResourceManager& resources)
         {
             VertexColor triangleVertices[] =
             {
@@ -75,35 +75,11 @@ namespace Alimer
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
             _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);*/
 
-            const char* hlsl = R"(struct PSInput
-            {
-                float4 position : SV_POSITION;
-                float4 color : COLOR;
-            };
-
-            PSInput VSMain(float4 position : TEXCOORD0, float4 color : TEXCOORD1)
-            {
-                PSInput result;
-
-                result.position = position;
-                result.color = color;
-
-                return result;
-            }
-
-            float4 PSMain(PSInput input) : SV_TARGET
-            {
-                return input.color;
-            })";
-
             RenderPipelineDescriptor renderPipelineDesc = {};
 
             // Shaders
-            renderPipelineDesc.vertex = Object::CreateObject<Shader>();
-            renderPipelineDesc.vertex->Define(ShaderStage::Vertex, hlsl, "VSMain");
-
-            renderPipelineDesc.fragment = new Shader();
-            renderPipelineDesc.fragment->Define(ShaderStage::Fragment, hlsl, "PSMain");
+            renderPipelineDesc.vertex = resources.Load<Shader>("shaders/color.vert.spv");
+            renderPipelineDesc.fragment = resources.Load<Shader>("shaders/color.frag.spv");
 
             // Define pipeline now.
             renderPipelineDesc.vertexDescriptor.layouts[0].stride = sizeof(VertexColor);

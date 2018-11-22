@@ -29,6 +29,8 @@
 #include "glslang/Include/revision.h"
 #include "glslang/Public/ShaderLang.h"
 #include "SPIRV/GlslangToSpv.h"
+#include "StandAlone/ResourceLimits.h"
+
 using namespace std;
 
 namespace Alimer
@@ -103,70 +105,107 @@ namespace Alimer
             messages = (EShMessages)(messages | EShMsgKeepUncalled);
     }
 
-    enum vertex_attribs
+    static inline std::string GetFileName(std::string path)
     {
-        VERTEX_POSITION = 0,
-        VERTEX_NORMAL,
-        VERTEX_TEXCOORD0,
-        VERTEX_TEXCOORD1,
-        VERTEX_TEXCOORD2,
-        VERTEX_TEXCOORD3,
-        VERTEX_TEXCOORD4,
-        VERTEX_TEXCOORD5,
-        VERTEX_TEXCOORD6,
-        VERTEX_TEXCOORD7,
-        VERTEX_COLOR0,
-        VERTEX_COLOR1,
-        VERTEX_COLOR2,
-        VERTEX_COLOR3,
-        VERTEX_TANGENT,
-        VERTEX_BITANGENT,
-        VERTEX_INDICES,
-        VERTEX_WEIGHTS,
-        VERTEX_ATTRIB_COUNT
-    };
+        int i = int(path.size()) - 1;
+        for (; i > 0; --i) {
+            if (path[i] == '/' || path[i] == '\\') {
+                ++i;
+                break;
+            }
+        }
+        return path.substr(i, std::string::npos);
+    }
 
-    static const char* k_attrib_names[VERTEX_ATTRIB_COUNT] = {
-        "POSITION",
-        "NORMAL",
-        "TEXCOORD0",
-        "TEXCOORD1",
-        "TEXCOORD2",
-        "TEXCOORD3",
-        "TEXCOORD4",
-        "TEXCOORD5",
-        "TEXCOORD6",
-        "TEXCOORD7",
-        "COLOR0",
-        "COLOR1",
-        "COLOR2",
-        "COLOR3",
-        "TANGENT",
-        "BINORMAL",
-        "BLENDINDICES",
-        "BLENDWEIGHT"
-    };
+    static inline std::string GetExtension(const std::string &path)
+    {
+        auto index = path.find_last_of('.');
+        if (index == std::string::npos)
+            return "";
+        
+        return path.substr(index + 1, std::string::npos);
+    }
 
-    static int k_attrib_sem_indices[VERTEX_ATTRIB_COUNT] = {
-        0,
-        0,
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        0,
-        1,
-        2,
-        3,
-        0,
-        0,
-        0,
-        0
-    };
+    static inline std::string RemoveExtension(std::string fileName)
+    {
+        int i = int(fileName.size()) - 1;
+        for (; i > 0; --i) {
+            if (fileName[i] == '.') {
+                break;
+            }
+        }
+        if (i == 0) 
+            return fileName;
+        
+        return fileName.substr(0, i);
+    }
+
+    static std::string GetStageName(EShLanguage stage)
+    {
+        switch (stage) {
+        case EShLangVertex:
+            return "vs";
+        case EShLangFragment:
+            return "fs";
+        case EShLangCompute:
+            return "cs";
+        default:
+            return "";
+        }
+    }
+
+    static inline void WriteSpirv(const std::string& fileName, std::vector<uint32_t>& words) 
+    {
+        std::ofstream out;
+        out.open(fileName, std::ios::binary | std::ios::out);
+
+        for (uint32_t i = 0; i < words.size(); ++i) {
+            out.put(words[i] & 0xff);
+            out.put((words[i] >> 8) & 0xff);
+            out.put((words[i] >> 16) & 0xff);
+            out.put((words[i] >> 24) & 0xff);
+        }
+
+        out.close();
+    }
+
+    static inline void WriteCHeader(const std::string& fileName, const std::string& name, std::vector<uint8_t>& bytecode)
+    {
+        std::ofstream out;
+        out.open(fileName, std::ios::out);
+        out << "// This file is automatically created by alimer shader compiler v" << COMPILER_VERSION_MAJOR  << "." << COMPILER_VERSION_MINOR << "." << COMPILER_VERSION_PATCH << std::endl;
+        out << "// https://github.com/amerkoleci/alimer" << std::endl;
+        out << std::endl;
+        out << "#pragma once" << std::endl << std::endl;
+
+        size_t size = bytecode.size();
+        out << "static const unsigned char " << name << "[" << size << "] = {" << std::endl << "\t";
+
+        char hexValue[32];
+        int char_offset = 0;
+        const int chars_per_line = 16;
+        for (size_t i = 0; i < size; i++)
+        {
+            if (i != size - 1)
+            {
+                snprintf(hexValue, sizeof(hexValue), "0x%02x, ", bytecode[i]);
+            }
+            else {
+                snprintf(hexValue, sizeof(hexValue), "0x%02x };\n", bytecode[i]);
+            }
+
+            out << hexValue;
+
+            ++char_offset;
+            if (char_offset == chars_per_line)
+            {
+                out << std::endl << "\t";
+                char_offset = 0;
+            }
+        }
+
+        out.close();
+    }
 
     Compiler::Compiler()
     {
@@ -180,32 +219,11 @@ namespace Alimer
 
     bool Compiler::Compile(const CompilerOptions& options)
     {
-        // construct semantics mapping defines
-        // to be used in layout(location = SEMANTIC) inside GLSL
-        std::string semantics_def;
-        for (int i = 0; i < VERTEX_ATTRIB_COUNT; i++) {
-            char sem_line[128];
-            snprintf(sem_line, sizeof(sem_line), "#define %s %d\n", k_attrib_names[i], i);
-            semantics_def += std::string(sem_line);
-        }
-
-        // Add SV_Target semantics for more HLSL compatibility
-        for (int i = 0; i < 8; i++)
-        {
-            char sv_target_line[128];
-            snprintf(sv_target_line, sizeof(sv_target_line), "#define SV_Target%d %d\n", i, i);
-            semantics_def += std::string(sv_target_line);
-        }
-
         // Set message options.
         int cOptions = EOptionSpv | EOptionVulkanRules | EOptionLinkProgram;
-        EShMessages messages = EShMsgDefault;
-        SetMessageOptions(cOptions, messages);
-        int defaultVersion = 100;
+        
 
-        glslang::TProgram program;
         std::string def("#extension GL_GOOGLE_include_directive : require\n");
-        def += semantics_def;
 
         std::vector<std::string> processes;
         for (auto define : options.defines)
@@ -225,36 +243,148 @@ namespace Alimer
             processes.push_back(process);
         }
 
-        for (uint32_t i = 0; i < static_cast<uint32_t>(CompilerShaderStage::Count); i++)
-        {
-            CompilerStageOptions stageOptions = options.shaders[i];
-            if (stageOptions.file.empty())
-                continue;
+        auto firstExtStart = options.inputFile.find_last_of(".");
+        bool hasFirstExt = firstExtStart != string::npos;
+        auto secondExtStart = hasFirstExt ? options.inputFile.find_last_of(".", firstExtStart - 1) : string::npos;
+        bool hasSecondExt = secondExtStart != string::npos;
+        string firstExt = options.inputFile.substr(firstExtStart + 1);
+        bool usesUnifiedExt = hasFirstExt && (firstExt == "glsl" || firstExt == "hlsl");
 
-            std::ifstream stream(stageOptions.file);
-            std::string shaderSource((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
-            
-            CompilerShaderStage stage = static_cast<CompilerShaderStage>(i);
-            EShLanguage language = MapShaderStage(stage);
-            glslang::TShader shader(language);
-            const char* shaderStrings = shaderSource.c_str();
-            const int shaderLengths = static_cast<int>(shaderSource.length());
-            const char* stringNames = stageOptions.file.c_str();
-            shader.setStringsWithLengthsAndNames( &shaderStrings, &shaderLengths, &stringNames, 1);
-            shader.setInvertY(options.invertY ? true : false);
-            shader.setEnvInput(glslang::EShSourceGlsl, language, glslang::EShClientOpenGL, defaultVersion);
-            shader.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
-            shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
-            shader.setEntryPoint(stageOptions.entryPoint.c_str());
-            shader.setShiftSamplerBinding(0);
-            shader.setShiftTextureBinding(0);
-            shader.setShiftImageBinding(0);
-            shader.setShiftUboBinding(0);
-            shader.setShiftSsboBinding(0);
-            shader.setFlattenUniformArrays(false);
-            shader.setNoStorageFormat(false);
-            shader.setPreamble(def.c_str());
-            shader.addProcesses(processes);
+        glslang::EShClient client = glslang::EShClientVulkan;
+        glslang::EShSource source = glslang::EShSourceGlsl;
+        if (usesUnifiedExt && firstExt == "hlsl")
+        {
+            source = glslang::EShSourceHlsl;
+            cOptions |= EOptionReadHlsl;
+        }
+
+        string stageName;
+        if (hasFirstExt && !usesUnifiedExt)
+        {
+            stageName = firstExt;
+        }
+        else if (usesUnifiedExt && hasSecondExt)
+        {
+            stageName = options.inputFile.substr(secondExtStart + 1, firstExtStart - secondExtStart - 1);
+        }
+
+        std::ifstream stream(options.inputFile);
+        std::string shaderSource((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+
+        CompilerShaderStage stage = CompilerShaderStage::Count;
+        if (stageName == "vert")
+            stage = CompilerShaderStage::Vertex;
+        else if (stageName == "tesc")
+            stage = CompilerShaderStage::TessControl;
+        else if (stageName == "tese")
+            stage = CompilerShaderStage::TessEvaluation;
+        else if (stageName == "geom")
+            stage = CompilerShaderStage::Geometry;
+        else if (stageName == "frag")
+            stage = CompilerShaderStage::Fragment;
+        else if (stageName == "comp")
+            stage = CompilerShaderStage::Compute;
+
+        EShMessages messages = EShMsgDefault;
+        SetMessageOptions(cOptions, messages);
+        int defaultVersion = 100;
+
+        EShLanguage language = MapShaderStage(stage);
+        glslang::TShader shader(language);
+        const char* shaderStrings = shaderSource.c_str();
+        const int shaderLengths = static_cast<int>(shaderSource.length());
+        const char* stringNames = options.inputFile.c_str();
+        shader.setStringsWithLengthsAndNames(&shaderStrings, &shaderLengths, &stringNames, 1);
+        shader.setInvertY(options.invertY ? true : false);
+        shader.setEnvInput(source, language, client, defaultVersion);
+        shader.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
+        shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
+        //shader.setEntryPoint(options.entryPoint.c_str());
+        //shader.setEnvTargetHlslFunctionality1();
+        shader.setShiftSamplerBinding(0);
+        shader.setShiftTextureBinding(0);
+        shader.setShiftImageBinding(0);
+        shader.setShiftUboBinding(0);
+        shader.setShiftSsboBinding(0);
+        shader.setFlattenUniformArrays(false);
+        shader.setNoStorageFormat(false);
+        shader.setPreamble(def.c_str());
+        shader.addProcesses(processes);
+
+        auto resourceLimits = glslang::DefaultTBuiltInResource;
+
+        if (!shader.parse(&glslang::DefaultTBuiltInResource, defaultVersion, false, messages))
+        {
+            _errorMessage = shader.getInfoLog();
+
+            return false;
+        }
+
+        glslang::TProgram program;
+        program.addShader(&shader);
+        if (!program.link(messages))
+        {
+            _errorMessage = program.getInfoLog();
+            return false;
+        }
+
+        // Map IO for SPIRV generation.
+        if (!program.mapIO())
+        {
+            _errorMessage = program.getInfoLog();
+            return false;
+        }
+
+        if (program.getIntermediate(language))
+        {
+            glslang::SpvOptions spvOptions;
+            //spvOptions.generateDebugInfo = false;
+            //spvOptions.disableOptimizer = true;
+            //spvOptions.optimizeSize = false;
+            spvOptions.validate = true;
+
+            spv::SpvBuildLogger logger;
+            std::vector<uint32_t> spirv;
+            glslang::GlslangToSpv(
+                *program.getIntermediate(language),
+                spirv,
+                &logger,
+                &spvOptions);
+
+            /* Write output spv first. */
+            CompilerShaderFormat format = options.format;
+            if (format == CompilerShaderFormat::DEFAULT)
+            {
+                auto fileExt = GetExtension(options.outputFile);
+                if (fileExt == "h")
+                {
+                    format = CompilerShaderFormat::C_HEADER;
+                }
+                else
+                {
+                    format = CompilerShaderFormat::BLOB;
+                }
+            }
+
+            switch (format)
+            {
+            case CompilerShaderFormat::DEFAULT:
+            case CompilerShaderFormat::BLOB:
+                WriteSpirv(options.outputFile, spirv);
+                break;
+            case Alimer::CompilerShaderFormat::C_HEADER:
+            {
+                std::vector<uint8_t> bytecode;
+                bytecode.resize(spirv.size() * sizeof(uint32_t));
+                memcpy(bytecode.data(), spirv.data(), bytecode.size());
+                string fileName = RemoveExtension(GetFileName(options.inputFile));
+                fileName += "_" + GetStageName(language);
+                WriteCHeader(options.outputFile, fileName, bytecode);
+            }
+                break;
+            default:
+                break;
+            }
         }
 
         return true;

@@ -1,13 +1,16 @@
 #version 450
 
-layout (location=COLOR0)     in vec4 f_color;
-layout (location=TEXCOORD0)  in vec2 f_coord;
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
 
-layout (location=SV_Target0) out vec4 frag_color;
+layout (location = 0) in vec4 inColor;
+layout (location = 1) in vec2 inUV;
+
+layout (location = 0) out vec4 fragColor;
 
 layout (binding=0) uniform sampler2D tex;
 
 void main()
 {
-    frag_color = f_color * texture(tex, f_coord);
+    fragColor = inColor * texture(tex, inUV);
 }

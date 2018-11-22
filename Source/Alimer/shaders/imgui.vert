@@ -1,20 +1,33 @@
 #version 450
 
-layout (location=POSITION)  in  vec2 a_pos;
-layout (location=TEXCOORD0) in  vec2 a_coord;
-layout (location=COLOR0)    in  vec4 a_color;
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
 
-layout (location=COLOR0)    out vec4 f_color;
-layout (location=TEXCOORD0) out vec2 f_coord;
+layout (location = 0) in vec2 inPosition;
+layout (location = 1) in vec2 inUV;
+layout (location = 2) in vec4 inColor;
 
-layout (std140) uniform globals {
-    vec4 disp_size;     // x,y = width/height of view
+layout (binding = 0) uniform Projection
+{
+    mat4 projection;
 };
+
+layout (location = 0) out vec4 outColor;
+layout (location = 1) out vec2 outUV;
+
+out gl_PerVertex 
+{
+    vec4 gl_Position;
+};
+
+vec3 SrgbToLinear(vec3 srgb)
+{
+    return srgb * (srgb * (srgb * 0.305306011 + 0.682171111) + 0.012522878);
+}
 
 void main() 
 {
-    vec2 proj_pos = ((a_pos/disp_size.xy)-0.5)*vec2(2.0f, -2.0f);
-    gl_Position = vec4(proj_pos.xy, 0.5, 1.0);
-    f_coord = a_coord;
-    f_color = a_color;
+    gl_Position = projection * vec4(inPosition, 0, 1);
+    outColor = vec4(SrgbToLinear(inColor.rgb), inColor.a);
+    outUV = inUV;
 }

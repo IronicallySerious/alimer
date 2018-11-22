@@ -64,7 +64,7 @@ namespace Alimer
             if (mode == FileAccess::ReadOnly
                 && !Exists(path))
             {
-                ALIMER_LOGERROR("Cannot open file for read as it doesn't exists");
+                ALIMER_LOGERRORF("Cannot open file '%s' as it doesn't exists", path.CString());
                 return false;
             }
 

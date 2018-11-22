@@ -42,6 +42,108 @@ namespace Alimer
         _name = name;
     }
 
+    signed char Stream::ReadByte()
+    {
+        signed char ret;
+        Read(&ret, sizeof ret);
+        return ret;
+    }
+
+    unsigned char Stream::ReadUByte()
+    {
+        unsigned char ret;
+        Read(&ret, sizeof ret);
+        return ret;
+    }
+
+    unsigned short Stream::ReadUShort()
+    {
+        unsigned short ret;
+        Read(&ret, sizeof ret);
+        return ret;
+    }
+
+    unsigned Stream::ReadUInt()
+    {
+        unsigned ret;
+        Read(&ret, sizeof ret);
+        return ret;
+    }
+
+    bool Stream::ReadBool()
+    {
+        return ReadUByte() != 0;
+    }
+
+    float Stream::ReadFloat()
+    {
+        float ret;
+        Read(&ret, sizeof ret);
+        return ret;
+    }
+
+    double Stream::ReadDouble()
+    {
+        double ret;
+        Read(&ret, sizeof ret);
+        return ret;
+    }
+
+    uint32_t Stream::ReadVLE()
+    {
+        uint32_t ret;
+        uint8_t byte;
+
+        byte = ReadUByte();
+        ret = byte & 0x7f;
+        if (byte < 0x80)
+            return ret;
+
+        byte = ReadUByte();
+        ret |= ((uint32_t)(byte & 0x7f)) << 7;
+        if (byte < 0x80)
+            return ret;
+
+        byte = ReadUByte();
+        ret |= ((uint32_t)(byte & 0x7f)) << 14;
+        if (byte < 0x80)
+            return ret;
+
+        byte = ReadUByte();
+        ret |= ((uint32_t)byte) << 21;
+        return ret;
+    }
+
+    String Stream::ReadString()
+    {
+        String ret;
+
+        while (!IsEof())
+        {
+            char c = ReadByte();
+            if (!c)
+                break;
+            else
+                ret += c;
+        }
+
+        return ret;
+    }
+
+    String Stream::ReadFileID()
+    {
+        String ret;
+        ret.Resize(4);
+        Read(&ret[0], 4);
+        return ret;
+    }
+
+    StringHash Stream::ReadStringHash()
+    {
+        return StringHash(ReadUInt());
+    }
+
+
 	String Stream::ReadAllText()
 	{
 		String content;
@@ -75,9 +177,79 @@ namespace Alimer
 		return result;
 	}
 
-    void Stream::WriteUByte(uint8_t value)
+    void Stream::WriteByte(signed char value)
     {
         Write(&value, sizeof value);
+    }
+    
+    void Stream::WriteUByte(unsigned char value)
+    {
+        Write(&value, sizeof value);
+    }
+
+    void Stream::WriteUShort(unsigned short value)
+    {
+        Write(&value, sizeof value);
+    }
+
+    void Stream::WriteUInt(unsigned value)
+    {
+        Write(&value, sizeof value);
+    }
+
+    void Stream::WriteVLE(unsigned value)
+    {
+        uint8_t data[4];
+
+        if (value < 0x80)
+        {
+            return WriteUByte((uint8_t)value);
+        }
+        else if (value < 0x4000)
+        {
+            data[0] = (uint8_t)(value | 0x80u);
+            data[1] = (uint8_t)(value >> 7u);
+            Write(data, 2);
+        }
+        else if (value < 0x200000)
+        {
+            data[0] = (uint8_t)(value | 0x80u);
+            data[1] = (uint8_t)(value >> 7u | 0x80u);
+            data[2] = (uint8_t)(value >> 14u);
+            Write(data, 3);
+        }
+        else
+        {
+            data[0] = (uint8_t)(value | 0x80u);
+            data[1] = (uint8_t)(value >> 7u | 0x80u);
+            data[2] = (uint8_t)(value >> 14u | 0x80u);
+            data[3] = (uint8_t)(value >> 21u);
+            Write(data, 4);
+        }
+    }
+
+    void Stream::WriteString(const String& value)
+    {
+        const char* chars = value.CString();
+        // Count length to the first zero, because ReadString() does the same
+        unsigned length = String::CStringLength(chars);
+        Write(chars, length + 1);
+    }
+
+    void Stream::WriteFileID(const String& value)
+    {
+        unsigned length = Min(value.Length(), 4U);
+
+        Write(value.CString(), length);
+        for (unsigned i = value.Length(); i < 4; ++i)
+        {
+            WriteByte(' ');
+        }
+    }
+
+    void Stream::WriteStringHash(const StringHash& value)
+    {
+        return WriteUInt(value.Value());
     }
 
     void Stream::WriteLine(const String& value)

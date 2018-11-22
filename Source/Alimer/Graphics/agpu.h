@@ -161,13 +161,13 @@ extern "C"
     } AgpuBufferUsage;
 
     typedef enum AgpuShaderStage {
-        AGPU_SHADER_STAGE_VERTEX    = 0,
-        AGPU_SHADER_STAGE_HULL      = 1,
-        AGPU_SHADER_STAGE_DOMAIN    = 2,
-        AGPU_SHADER_STAGE_GEOMETRY  = 3,
-        AGPU_SHADER_STAGE_FRAGMENT  = 4,
-        AGPU_SHADER_STAGE_COMPUTE   = 5,
-        AGPU_SHADER_STAGE_COUNT     = 6,
+        AGPU_SHADER_STAGE_VERTEX        = 0,
+        AGPU_SHADER_STAGE_TESS_CONTROL  = 1,
+        AGPU_SHADER_STAGE_TESS_EVAL     = 2,
+        AGPU_SHADER_STAGE_GEOMETRY      = 3,
+        AGPU_SHADER_STAGE_FRAGMENT      = 4,
+        AGPU_SHADER_STAGE_COMPUTE       = 5,
+        AGPU_SHADER_STAGE_COUNT         = 6,
     } AgpuShaderStage;
 
     typedef enum AgpuShaderLanguage {
@@ -253,7 +253,7 @@ extern "C"
     typedef struct AgpuShaderDescriptor {
         AgpuShaderStage             stage;
         uint64_t                    codeSize;
-        uint8_t*                    pCode;
+        const uint8_t*              pCode;
         const char*                 source;
         const char*                 entryPoint;
         AgpuShaderLanguage          language;

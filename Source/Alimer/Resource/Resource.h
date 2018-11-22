@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../IO/ResourceRef.h"
 #include "../Core/Object.h"
 #include <memory>
 #include <atomic>
@@ -58,17 +59,50 @@ namespace Alimer
 		/// Destructor.
 		virtual ~Resource() = default;
 
+        /// Load resource synchronously. Call both BeginLoad() & EndLoad() and return true if both succeeded.
+        bool Load(Stream& source);
+
+        /// Save the resource to a stream. Return true on success.
+        virtual bool Save(Stream& dest);
+
 		/// Set name.
 		void SetName(const String& name);
 
 		/// Return name.
 		const String& GetName() const { return _name; }
 
+        /// Set the asynchronous loading state. Called by ResourceCache. Resources in the middle of asynchronous loading are not normally returned to user.
+        void SetAsyncLoadState(AsyncLoadState newState);
+
 		/// Return the asynchronous loading state.
 		AsyncLoadState GetAsyncLoadState() const { return _asyncLoadState; }
 
 	protected:
+        /// Load resource from stream. May be called from a worker thread. Return true if successful.
+        virtual bool BeginLoad(Stream& source);
+        /// Finish resource loading. Always called from the main thread. Return true if successful.
+        virtual bool EndLoad();
+
+        /// Resource name
         String _name;
+        /// Resource name hash.
+        StringHash _nameHash;
 		AsyncLoadState _asyncLoadState;
 	};
+
+    inline const String& GetResourceName(Resource* resource)
+    {
+        return resource ? resource->GetName() : String::EMPTY;
+    }
+
+    inline StringHash GetResourceType(Resource* resource, StringHash defaultType)
+    {
+        return resource ? resource->GetType() : defaultType;
+    }
+
+    /// Make a resource ref from a resource pointer.
+    inline ResourceRef MakeResourceRef(Resource* resource, StringHash defaultType)
+    {
+        return ResourceRef(GetResourceType(resource, defaultType), GetResourceName(resource));
+    }
 }
