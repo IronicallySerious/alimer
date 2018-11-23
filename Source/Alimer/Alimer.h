@@ -26,13 +26,15 @@
 #include "Base/Ptr.h"
 #include "Base/String.h"
 #include "Base/StringHash.h"
-#include "Base/Debug.h"
 #include "Base/Containers.h"
+
+// Debug
+#include "Debug/Debug.h"
+#include "Debug/Log.h"
 
 // Core
 #include "Core/Platform.h"
 #include "Core/Plugin.h"
-#include "Core/Log.h"
 
 // IO
 #include "IO/Stream.h"

@@ -134,12 +134,6 @@ typedef struct AgpuPipeline_T {
 
 } AgpuPipeline_T;
 
-typedef struct AgpuCommandBuffer_T {
-#if defined(ALIMER_D3D12)
-    ID3D12GraphicsCommandList*      d3d12CommandList;
-#endif
-} AgpuCommandBuffer_T;
-
 struct AGpuRendererI
 {
     virtual ~AGpuRendererI() = 0;
@@ -164,18 +158,22 @@ struct AGpuRendererI
     virtual AgpuPipeline CreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor) = 0;
     virtual void DestroyPipeline(AgpuPipeline pipeline) = 0;
 
-    virtual void BeginRenderPass(AgpuFramebuffer framebuffer) = 0;
-    virtual void EndRenderPass() = 0;
+    virtual void BeginCommandBuffer(AgpuCommandBuffer commandBuffer) = 0;
+    virtual void EndCommandBuffer() = 0;
+
+    virtual void CmdBeginRenderPass(AgpuFramebuffer framebuffer) = 0;
+    virtual void CmdEndRenderPass() = 0;
     virtual void SetPipeline(AgpuPipeline pipeline) = 0;
-    virtual void SetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index) = 0;
+    virtual void CmdSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index) = 0;
+    virtual void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType) = 0;
 
-    virtual void CmdSetViewport(AgpuCommandBuffer commandBuffer, AgpuViewport viewport) = 0;
-    virtual void CmdSetViewports(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuViewport* pViewports) = 0;
+    virtual void CmdSetViewport(AgpuViewport viewport) = 0;
+    virtual void CmdSetViewports(uint32_t count, const AgpuViewport* pViewports) = 0;
 
-    virtual void CmdSetScissor(AgpuCommandBuffer commandBuffer, AgpuRect2D scissors) = 0;
-    virtual void CmdSetScissors(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuRect2D* pScissors) = 0;
+    virtual void CmdSetScissor(AgpuRect2D scissor) = 0;
+    virtual void CmdSetScissors(uint32_t count, const AgpuRect2D* pScissors) = 0;
 
-    virtual void Draw(uint32_t vertexCount, uint32_t startVertexLocation) = 0;
+    virtual void CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation) = 0;
 };
 
 inline AGpuRendererI::~AGpuRendererI()

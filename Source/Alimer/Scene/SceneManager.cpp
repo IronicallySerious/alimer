@@ -22,7 +22,7 @@
 
 #include "../Scene/SceneManager.h"
 #include "../Scene/Scene.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {

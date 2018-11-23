@@ -23,7 +23,7 @@
 #include "../IO/FileStream.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
 #ifndef NOMINMAX

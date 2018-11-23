@@ -22,7 +22,7 @@
 
 #include "../Graphics/PixelFormat.h"
 #include "../Math/MathUtil.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {

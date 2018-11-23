@@ -21,7 +21,7 @@
 //
 
 #include "../Audio/Audio.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 #if defined(_MSC_VER)
 #   include "../Audio/XAudio2/Audio.XAudio2.h"
 #endif

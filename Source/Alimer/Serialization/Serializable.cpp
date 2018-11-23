@@ -22,7 +22,7 @@
 
 #include "../Serialization/Serializable.h"
 #include "../Serialization/Serializer.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {

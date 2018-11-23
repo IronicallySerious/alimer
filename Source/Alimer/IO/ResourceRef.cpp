@@ -22,7 +22,7 @@
 
 #include "../IO/ResourceRef.h"
 #include "../IO/Stream.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {

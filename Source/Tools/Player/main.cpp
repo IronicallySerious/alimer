@@ -67,8 +67,6 @@ namespace Alimer
                 sizeof(VertexColor),
                 triangleVertices);
 
-            //_shader = resources.Load<Shader>("shaders/color.shader");
-
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
@@ -97,8 +95,8 @@ namespace Alimer
         void Render(SharedPtr<CommandContext> context)
         {
             agpuSetPipeline(_pipeline->GetHandle());
-            agpuSetVertexBuffer(_vertexBuffer.GetHandle(), 0, 0);
-            agpuDraw(3, 0);
+            agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0);
+            agpuCmdDraw(3, 0);
             //context->SetPipeline(_pipeline);
             //context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
             //context->Draw(PrimitiveTopology::Triangles, 3, 0);
@@ -106,7 +104,7 @@ namespace Alimer
 
     private:
         GpuBuffer _vertexBuffer;
-        SharedPtr<GpuBuffer> _perCameraUboBuffer;
+        GpuBuffer _perCameraUboBuffer;
 
         SharedPtr<Pipeline> _pipeline;
         PerCameraCBuffer _camera{};

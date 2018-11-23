@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Base/Debug.h"
+#include "../Debug/Debug.h"
 
 #ifdef _MSC_VER
 #   pragma warning(push)

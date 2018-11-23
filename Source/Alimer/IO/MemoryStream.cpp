@@ -21,7 +21,7 @@
 //
 
 #include "../IO/MemoryStream.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {

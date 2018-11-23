@@ -61,6 +61,11 @@ namespace Alimer
         /// Destruct. If no weak references, destroy also the reference count, else mark it expired.
         virtual ~RefCounted();
 
+        /// Prevent copy construction.
+        RefCounted(const RefCounted& rhs) = delete;
+        /// Prevent assignment.
+        RefCounted& operator =(const RefCounted& rhs) = delete;
+
         /// Add a strong reference. 
         void AddRef();
         /// Release a strong reference. 
@@ -76,9 +81,6 @@ namespace Alimer
     private:
         /// Reference count structure, allocated on demand.
         RefCount * _refCount;
-
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(RefCounted);
     };
 
     /// Shared pointer template class with intrusive reference counting.

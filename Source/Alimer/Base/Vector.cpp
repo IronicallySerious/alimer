@@ -1,4 +1,5 @@
 //
+// Alimer is based on the Turso3D codebase.
 // Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,20 +21,18 @@
 // THE SOFTWARE.
 //
 
-#include "../Serialization/JsonDeserializer.h"
-#include "../Debug/Log.h"
-#include <vector>
+#include "../Base/Vector.h"
+#include "../Debug/DebugNew.h"
 
 namespace Alimer
 {
-    JsonDeserializer::JsonDeserializer(Stream& stream)
-        : Deserializer(stream)
-        
+    uint8_t* VectorBase::AllocateBuffer(size_t size)
     {
+        return new uint8_t[size];
     }
 
-    JsonDeserializer::~JsonDeserializer()
+    void VectorBase::FreeBuffer(const uint8_t* buffer)
     {
-        
+        delete[] buffer;
     }
 }

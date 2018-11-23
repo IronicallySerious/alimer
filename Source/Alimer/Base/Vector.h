@@ -1,4 +1,5 @@
 //
+// Alimer is based on the Turso3D codebase.
 // Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,20 +21,40 @@
 // THE SOFTWARE.
 //
 
-#include "../Serialization/JsonDeserializer.h"
-#include "../Debug/Log.h"
-#include <vector>
+#pragma once
+
+#include "../Base/Swap.h"
+#include "../Base/Iterator.h"
 
 namespace Alimer
 {
-    JsonDeserializer::JsonDeserializer(Stream& stream)
-        : Deserializer(stream)
-        
-    {
-    }
+    /// Vector base class.
+    /** Note that to prevent extra memory use due to vtable pointer, %VectorBase intentionally does not declare a virtual destructor
+        and therefore %VectorBase pointers should never be used.
+    */
+	class ALIMER_API VectorBase
+	{
+	public:
+        /// Construct.
+        VectorBase() noexcept = default;
 
-    JsonDeserializer::~JsonDeserializer()
-    {
-        
-    }
+        /// Swap with another vector.
+        void Swap(VectorBase& rhs)
+        {
+            Alimer::Swap(_size, rhs._size);
+            Alimer::Swap(_capacity, rhs._capacity);
+            Alimer::Swap(_buffer, rhs._buffer);
+        }
+
+    protected:
+        static uint8_t* AllocateBuffer(size_t size);
+        static void FreeBuffer(const uint8_t* buffer);
+
+        /// Size of vector.
+        uint32_t _size = 0;
+        /// Buffer capacity.
+        uint32_t _capacity = 0;
+        /// Buffer.
+        uint8_t* _buffer = nullptr;
+	};
 }

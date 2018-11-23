@@ -29,7 +29,7 @@
 #include <wrl/event.h>
 #include "../Math/MathUtil.h"
 #include "../Core/Platform.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 #include <spirv-cross/spirv_hlsl.hpp>
 
 #if defined(_DEBUG)
@@ -469,6 +469,33 @@ namespace d3d12
         SRWLOCK Lock = SRWLOCK_INIT;
     };
 
+    class CommandBufferD3D12
+    {
+    public:
+        CommandBufferD3D12(ID3D12Device* device, ID3D12CommandAllocator* allocator);
+        ~CommandBufferD3D12();
+
+        void Begin(ID3D12CommandAllocator* allocator);
+        void End();
+
+        void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType);
+
+        ID3D12GraphicsCommandList* GetCommandList() const { return _commandList; }
+
+    private:
+        bool _isRecording = false;
+        ID3D12GraphicsCommandList* _commandList = nullptr;
+
+        struct IndexState
+        {
+            AgpuBuffer buffer;
+            uint64_t offset;
+            AgpuIndexType indexType;
+        };
+
+        IndexState _index = {};
+    };
+
     struct AGpuRendererD3D12 : public AGpuRendererI
     {
         AGpuRendererD3D12()
@@ -519,18 +546,20 @@ namespace d3d12
         void DestroyPipeline(AgpuPipeline pipeline) override;
 
         /* CommandList */
-        ID3D12GraphicsCommandList* GetCommandList(AgpuCommandBuffer commandBuffer) const;
-        void BeginRenderPass(AgpuFramebuffer framebuffer) override;
-        void EndRenderPass() override;
+        void BeginCommandBuffer(AgpuCommandBuffer commandBuffer) override;
+        void EndCommandBuffer() override;
+        void CmdBeginRenderPass(AgpuFramebuffer framebuffer) override;
+        void CmdEndRenderPass() override;
         void SetPipeline(AgpuPipeline pipeline) override;
-        void SetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index) override;
+        void CmdSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index) override;
+        void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType) override;
 
-        void CmdSetViewport(AgpuCommandBuffer commandBuffer, AgpuViewport viewport) override;
-        void CmdSetViewports(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuViewport* pViewports) override;
+        void CmdSetViewport(AgpuViewport viewport) override;
+        void CmdSetViewports(uint32_t count, const AgpuViewport* pViewports) override;
 
-        void CmdSetScissor(AgpuCommandBuffer commandBuffer, AgpuRect2D scissors) override;
-        void CmdSetScissors(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuRect2D* pScissors) override;
-        void Draw(uint32_t vertexCount, uint32_t startVertexLocation) override;
+        void CmdSetScissor(AgpuRect2D scissor) override;
+        void CmdSetScissors(uint32_t count, const AgpuRect2D* pScissors) override;
+        void CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation) override;
 
         void CreateRootSignature(ID3D12RootSignature** rootSignature, const D3D12_ROOT_SIGNATURE_DESC1& desc);
 
@@ -555,7 +584,7 @@ namespace d3d12
         AgpuFence*                  _frameFence = nullptr;
         uint64_t                    _fenceValues[AGPU_MAX_BACK_BUFFER_COUNT] = {};
         ID3D12CommandQueue*         _graphicsQueue = nullptr;
-        ID3D12GraphicsCommandList*  _commandList = nullptr;
+        CommandBufferD3D12*         _primaryCommandBuffer = nullptr;
         ID3D12CommandAllocator*     _commandAllocators[AGPU_MAX_BACK_BUFFER_COUNT];
 
         uint64_t                    _currentCPUFrame = 0;
@@ -758,6 +787,71 @@ namespace d3d12
         return _heaps[_heapIndex];
     }
 
+    /* CommandBufferD3D12 */
+    CommandBufferD3D12::CommandBufferD3D12(ID3D12Device* device, ID3D12CommandAllocator* allocator)
+    {
+        DXCall(device->CreateCommandList(
+            0,
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            allocator,
+            nullptr,
+            IID_PPV_ARGS(&_commandList)
+        ));
+        DXCall(_commandList->Close());
+    }
+
+    CommandBufferD3D12::~CommandBufferD3D12()
+    {
+        Release(_commandList);
+    }
+
+    void CommandBufferD3D12::Begin(ID3D12CommandAllocator* allocator)
+    {
+        if (_isRecording)
+            return;
+
+        _isRecording = true;
+        // Prepare the command buffers to be used for the next frame
+        DXCall(_commandList->Reset(allocator, nullptr));
+
+        /* Reset cache states. */
+        memset(&_index, 0, sizeof(_index));
+    }
+
+    void CommandBufferD3D12::End()
+    {
+        HRESULT hr = _commandList->Close();
+        if (FAILED(hr))
+        {
+            ALIMER_LOGERROR("Failed to end command buffer");
+        }
+
+        _isRecording = false;
+    }
+
+    void CommandBufferD3D12::CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType)
+    {
+        if (_index.buffer == buffer
+            && _index.offset == offset
+            && _index.indexType == indexType)
+        {
+            return;
+        }
+
+        _index.buffer = buffer;
+        _index.offset = offset;
+        _index.indexType = indexType;
+
+        D3D12_INDEX_BUFFER_VIEW bufferView = { };
+        bufferView.BufferLocation = buffer->d3d12GPUAddress + offset;
+        bufferView.SizeInBytes = buffer->size - offset;
+        bufferView.Format = indexType == AGPU_INDEX_TYPE_UINT16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+        _commandList->IASetIndexBuffer(&bufferView);
+    }
+
+    // Per thread command buffer currently being recorded.
+    static thread_local CommandBufferD3D12* s_pActiveCommandBuffer = nullptr;
+
     /* AGpuRendererD3D12 */
     AgpuResult AGpuRendererD3D12::Initialize(const AgpuDescriptor* descriptor)
     {
@@ -856,15 +950,8 @@ namespace d3d12
         }
 
         // Create a command list for recording graphics commands.
-        DXCall(_d3dDevice->CreateCommandList(
-            0,
-            D3D12_COMMAND_LIST_TYPE_DIRECT,
-            _commandAllocators[0],
-            nullptr,
-            IID_PPV_ARGS(&_commandList)
-        ));
-        DXCall(_commandList->Close());
-        _commandList->SetName(L"Primary Graphics Command List");
+        _primaryCommandBuffer = new CommandBufferD3D12(_d3dDevice, _commandAllocators[0]);
+        _primaryCommandBuffer->GetCommandList()->SetName(L"Primary Graphics Command List");
 
         // Create fence
         _frameFence = CreateFence(0);
@@ -917,7 +1004,10 @@ namespace d3d12
         for (uint64_t i = 0; i < RenderLatency; ++i)
             Release(_commandAllocators[i]);
 
-        Release(_commandList);
+        // Free primary command buffer.
+        delete _primaryCommandBuffer;
+        _primaryCommandBuffer = nullptr;
+
         Release(_graphicsQueue);
 
 
@@ -960,13 +1050,13 @@ namespace d3d12
     {
         // Prepare the command buffers to be used for the next frame
         DXCall(_commandAllocators[_currentFrameIndex]->Reset());
-        DXCall(_commandList->Reset(_commandAllocators[_currentFrameIndex], nullptr));
+        _primaryCommandBuffer->Begin(_commandAllocators[_currentFrameIndex]);
+        s_pActiveCommandBuffer = _primaryCommandBuffer;
 
         if (!_headless)
         {
             _mainSwapchain->backBufferIndex = _mainSwapchain->d3d12SwapChain->GetCurrentBackBufferIndex();
-
-            BeginRenderPass(_mainSwapchain->backBufferFramebuffers[_mainSwapchain->backBufferIndex]);
+            CmdBeginRenderPass(_mainSwapchain->backBufferFramebuffers[_mainSwapchain->backBufferIndex]);
         }
     }
 
@@ -974,13 +1064,14 @@ namespace d3d12
     {
         if (!_headless)
         {
-            EndRenderPass();
+            CmdEndRenderPass();
         }
 
         // Send the command list off to the GPU for processing.
-        DXCall(_commandList->Close());
+        _primaryCommandBuffer->End();
+        s_pActiveCommandBuffer = nullptr;
 
-        ID3D12CommandList* ppCommandLists[] = { _commandList };
+        ID3D12CommandList* ppCommandLists[] = { _primaryCommandBuffer->GetCommandList() };
         _graphicsQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
         // Present the frame.
@@ -1872,56 +1963,65 @@ namespace d3d12
         pipeline = nullptr;
     }
 
-    ID3D12GraphicsCommandList* AGpuRendererD3D12::GetCommandList(AgpuCommandBuffer commandBuffer) const
+    void AGpuRendererD3D12::BeginCommandBuffer(AgpuCommandBuffer commandBuffer)
     {
-        if (!commandBuffer)
-            return _commandList;
+        auto commandBufferD3D12{ reinterpret_cast<CommandBufferD3D12*>(commandBuffer) };
 
-        return commandBuffer->d3d12CommandList;
+        s_pActiveCommandBuffer = commandBufferD3D12;
+        s_pActiveCommandBuffer->Begin(_commandAllocators[_currentFrameIndex]);
     }
 
-    void AGpuRendererD3D12::BeginRenderPass(AgpuFramebuffer framebuffer)
+    void AGpuRendererD3D12::EndCommandBuffer()
+    {
+        if (!s_pActiveCommandBuffer)
+            return;
+
+        s_pActiveCommandBuffer->End();
+        s_pActiveCommandBuffer = nullptr;
+    }
+
+    void AGpuRendererD3D12::CmdBeginRenderPass(AgpuFramebuffer framebuffer)
     {
         _currentFramebuffer = framebuffer;
 
         for (uint32_t i = 0; i < framebuffer->numRTVs; ++i)
         {
             // Indicate that the resource will be used as a render target.
-            TransitionResource(_commandList,
+            TransitionResource(s_pActiveCommandBuffer->GetCommandList(),
                 framebuffer->colorAttachments[i].texture->d3d12Resource,
                 framebuffer->colorAttachments[i].texture->d3d12ResourceState,
                 D3D12_RESOURCE_STATE_RENDER_TARGET);
 
             const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-            _commandList->ClearRenderTargetView(framebuffer->d3d12RTVs[i], clearColor, 0, nullptr);
+            s_pActiveCommandBuffer->GetCommandList()->ClearRenderTargetView(framebuffer->d3d12RTVs[i], clearColor, 0, nullptr);
         }
 
         if (framebuffer->d3d12DSV.ptr)
         {
-            _commandList->OMSetRenderTargets(framebuffer->numRTVs, framebuffer->d3d12RTVs, FALSE, &framebuffer->d3d12DSV);
+            s_pActiveCommandBuffer->GetCommandList()->OMSetRenderTargets(framebuffer->numRTVs, framebuffer->d3d12RTVs, FALSE, &framebuffer->d3d12DSV);
         }
         else
         {
-            _commandList->OMSetRenderTargets(framebuffer->numRTVs, framebuffer->d3d12RTVs, FALSE, nullptr);
+            s_pActiveCommandBuffer->GetCommandList()->OMSetRenderTargets(framebuffer->numRTVs, framebuffer->d3d12RTVs, FALSE, nullptr);
         }
 
         // Set viewport and scissor to framebuffer size.
         uint32_t width = framebuffer->width;
         uint32_t height = framebuffer->height;
-        D3D12_VIEWPORT viewport = {
+        AgpuViewport viewport = {
             0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-        D3D12_RECT scissorRect = { 0, 0, static_cast<long>(width), static_cast<long>(height) };
+        AgpuRect2D scissorRect = { 0, 0, width, height};
 
-        _commandList->RSSetViewports(1, &viewport);
-        _commandList->RSSetScissorRects(1, &scissorRect);
+        CmdSetViewport(viewport);
+        CmdSetScissor(scissorRect);
     }
 
-    void AGpuRendererD3D12::EndRenderPass()
+    void AGpuRendererD3D12::CmdEndRenderPass()
     {
         for (uint32_t i = 0; i < _currentFramebuffer->numRTVs; ++i)
         {
             // Indicate that the back buffer will now be used to present.
-            TransitionResource(_commandList,
+            TransitionResource(s_pActiveCommandBuffer->GetCommandList(),
                 _currentFramebuffer->colorAttachments[i].texture->d3d12Resource,
                 D3D12_RESOURCE_STATE_RENDER_TARGET,
                 _currentFramebuffer->colorAttachments[i].texture->d3d12ResourceState);
@@ -1932,29 +2032,34 @@ namespace d3d12
 
     void AGpuRendererD3D12::SetPipeline(AgpuPipeline pipeline)
     {
-        _commandList->SetPipelineState(pipeline->d3d12PipelineState);
+        s_pActiveCommandBuffer->GetCommandList()->SetPipelineState(pipeline->d3d12PipelineState);
         if (pipeline->isCompute)
         {
-            _commandList->SetComputeRootSignature(pipeline->d3d12RootSignature);
+            s_pActiveCommandBuffer->GetCommandList()->SetComputeRootSignature(pipeline->d3d12RootSignature);
         }
         else
         {
-            _commandList->SetGraphicsRootSignature(pipeline->d3d12RootSignature);
+            s_pActiveCommandBuffer->GetCommandList()->SetGraphicsRootSignature(pipeline->d3d12RootSignature);
         }
 
-        _commandList->IASetPrimitiveTopology(pipeline->d3dPrimitiveTopology);
+        s_pActiveCommandBuffer->GetCommandList()->IASetPrimitiveTopology(pipeline->d3dPrimitiveTopology);
     }
 
-    void AGpuRendererD3D12::SetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index)
+    void AGpuRendererD3D12::CmdSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index)
     {
         D3D12_VERTEX_BUFFER_VIEW vbView = {};
         vbView.BufferLocation = buffer->d3d12GPUAddress + offset;
         vbView.SizeInBytes = UINT(buffer->size) - offset;
         vbView.StrideInBytes = UINT(buffer->stride);
-        _commandList->IASetVertexBuffers(index, 1, &vbView);
+        s_pActiveCommandBuffer->GetCommandList()->IASetVertexBuffers(index, 1, &vbView);
     }
 
-    void AGpuRendererD3D12::CmdSetViewport(AgpuCommandBuffer commandBuffer, AgpuViewport viewport)
+    void AGpuRendererD3D12::CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType)
+    {
+        s_pActiveCommandBuffer->CmdSetIndexBuffer(buffer, offset, indexType);
+    }
+
+    void AGpuRendererD3D12::CmdSetViewport(AgpuViewport viewport)
     {
         D3D12_VIEWPORT d3dViewport;
         d3dViewport.TopLeftX = viewport.x;
@@ -1965,25 +2070,30 @@ namespace d3d12
         d3dViewport.MaxDepth = viewport.maxDepth;
 
         // Set viewport
-        ID3D12GraphicsCommandList* commandList = GetCommandList(commandBuffer);
-        commandList->RSSetViewports(1, &d3dViewport);
+        s_pActiveCommandBuffer->GetCommandList()->RSSetViewports(1, &d3dViewport);
     }
 
-    void AGpuRendererD3D12::CmdSetViewports(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuViewport* pViewports)
+    void AGpuRendererD3D12::CmdSetViewports(uint32_t count, const AgpuViewport* pViewports)
     {
     }
 
-    void AGpuRendererD3D12::CmdSetScissor(AgpuCommandBuffer commandBuffer, AgpuRect2D scissors)
+    void AGpuRendererD3D12::CmdSetScissor(AgpuRect2D scissor)
+    {
+        D3D12_RECT d3dRect = {};
+        d3dRect.left = static_cast<long>(scissor.x);
+        d3dRect.top = static_cast<long>(scissor.y);
+        d3dRect.right = static_cast<long>(scissor.x + scissor.width);
+        d3dRect.bottom = static_cast<long>(scissor.y + scissor.height);
+        s_pActiveCommandBuffer->GetCommandList()->RSSetScissorRects(1, &d3dRect);
+    }
+
+    void AGpuRendererD3D12::CmdSetScissors(uint32_t count, const AgpuRect2D* pScissors)
     {
     }
 
-    void AGpuRendererD3D12::CmdSetScissors(AgpuCommandBuffer commandBuffer, uint32_t count, const AgpuRect2D* pScissors)
+    void AGpuRendererD3D12::CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation)
     {
-    }
-
-    void AGpuRendererD3D12::Draw(uint32_t vertexCount, uint32_t startVertexLocation)
-    {
-        _commandList->DrawInstanced(vertexCount, 1u, startVertexLocation, 0u);
+        s_pActiveCommandBuffer->GetCommandList()->DrawInstanced(vertexCount, 1u, startVertexLocation, 0u);
     }
 
     void AGpuRendererD3D12::CreateRootSignature(

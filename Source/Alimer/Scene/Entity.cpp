@@ -21,7 +21,7 @@
 //
 
 #include "../Scene/Entity.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {

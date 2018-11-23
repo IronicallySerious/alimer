@@ -20,11 +20,11 @@
 // THE SOFTWARE.
 //
 
-#include "../Base/Debug.h"
+#include "../Debug/Debug.h"
 
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 #include <vector>
 
 #if defined(_WIN32)
@@ -384,12 +384,12 @@ void agpuDestroyPipeline(AgpuPipeline pipeline)
 void agpuBeginRenderPass(AgpuFramebuffer framebuffer)
 {
     ALIMER_ASSERT_MSG(framebuffer, "Invalid framebuffer");
-    s_renderer->BeginRenderPass(framebuffer);
+    s_renderer->CmdBeginRenderPass(framebuffer);
 }
 
 void agpuEndRenderPass()
 {
-    s_renderer->EndRenderPass();
+    s_renderer->CmdEndRenderPass();
 }
 
 void agpuSetPipeline(AgpuPipeline pipeline)
@@ -398,44 +398,58 @@ void agpuSetPipeline(AgpuPipeline pipeline)
     s_renderer->SetPipeline(pipeline);
 }
 
-void agpuSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index)
+void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset)
 {
     ALIMER_ASSERT_MSG(buffer, "Invalid buffer");
-    ALIMER_ASSERT(index < AGPU_MAX_VERTEX_BUFFER_BINDINGS);
+    ALIMER_ASSERT(binding < AGPU_MAX_VERTEX_BUFFER_BINDINGS);
 #ifdef ALIMER_DEV
-    if (!buffer->usage & AGPU_BUFFER_USAGE_VERTEX)
+    if ((buffer->usage & AGPU_BUFFER_USAGE_VERTEX) == 0)
     {
-        //agpuNotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+        //agpuNotifyValidationError("agpuCmdSetVertexBuffer need buffer with Vertex usage");
         return;
     }
 #endif
 
-    s_renderer->SetVertexBuffer(buffer, offset, index);
+    s_renderer->CmdSetVertexBuffer(buffer, offset, binding);
+}
+
+void agpuCmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType)
+{
+    ALIMER_ASSERT_MSG(buffer, "Invalid buffer");
+#ifdef ALIMER_DEV
+    if ((buffer->usage & AGPU_BUFFER_USAGE_INDEX) == 0)
+    {
+        //agpuNotifyValidationError("agpuCmdSetIndexBuffer need buffer with Index usage");
+        return;
+    }
+#endif
+
+    s_renderer->CmdSetIndexBuffer(buffer, offset, indexType);
 }
 
 void agpuCmdSetViewport(AgpuViewport viewport)
 {
-    s_renderer->CmdSetViewport(nullptr, viewport);
+    s_renderer->CmdSetViewport(viewport);
 }
 
 void agpuCmdSetViewports(uint32_t viewportCount, const AgpuViewport* pViewports)
 {
-    s_renderer->CmdSetViewports(nullptr, viewportCount, pViewports);
+    s_renderer->CmdSetViewports(viewportCount, pViewports);
 }
 
 void agpuCmdSetScissor(AgpuRect2D scissor)
 {
-    s_renderer->CmdSetScissor(nullptr, scissor);
+    s_renderer->CmdSetScissor(scissor);
 }
 
-void agpuCmdSetScissor(uint32_t scissorCount, const AgpuRect2D* pScissors)
+void agpuCmdSetScissors(uint32_t scissorCount, const AgpuRect2D* pScissors)
 {
-    s_renderer->CmdSetScissors(nullptr, scissorCount, pScissors);
+    s_renderer->CmdSetScissors(scissorCount, pScissors);
 }
 
-void agpuDraw(uint32_t vertexCount, uint32_t startVertexLocation)
+void agpuCmdDraw(uint32_t vertexCount, uint32_t startVertexLocation)
 {
-    s_renderer->Draw(vertexCount, startVertexLocation);
+    s_renderer->CmdDraw(vertexCount, startVertexLocation);
 }
 
 typedef enum AgpuPixelFormatType

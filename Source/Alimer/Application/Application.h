@@ -29,7 +29,6 @@
 #include <string>
 #include <atomic>
 #include "../Core/Object.h"
-#include "../Core/Log.h"
 #include "../Core/Timer.h"
 #include "../Core/PluginManager.h"
 #include "../Application/Window.h"
@@ -48,6 +47,8 @@
 
 namespace Alimer
 {
+    class Logger;
+
     struct ApplicationSettings
     {
         GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Default;

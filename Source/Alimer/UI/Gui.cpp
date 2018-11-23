@@ -21,7 +21,7 @@
 //
 
 #include "../UI/Gui.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/Shader.h"
 #include "shaders_h/imgui.vert.h"

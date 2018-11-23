@@ -93,7 +93,7 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerConfig.h.in ${CMAKE_CURRENT_BI
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer)
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . Base Core IO Math Graphics Input Audio Application)
+define_engine_source_files (NORECURSE . Base Core Debug IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
 define_engine_source_files (NORECURSE UI)
 

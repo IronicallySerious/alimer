@@ -22,7 +22,7 @@
 
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/GraphicsDevice.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {

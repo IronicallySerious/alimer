@@ -210,9 +210,16 @@ extern "C"
         AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY = 7,
         AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY = 8,
         AGPU_PRIMITIVE_TOPOLOGY_PATCH_LIST = 9,
-        AGPU_PRIMITIVE_TOPOLOGY_COUNT = 10,
+        AGPU_PRIMITIVE_TOPOLOGY_COUNT = (AGPU_PRIMITIVE_TOPOLOGY_PATCH_LIST - AGPU_PRIMITIVE_TOPOLOGY_POINT_LIST + 1),
         AGPU_PRIMITIVE_TOPOLOGY_MAX_ENUM = 0x7FFFFFFF
     } AgpuPrimitiveTopology;
+
+    typedef enum AgpuIndexType {
+        AGPU_INDEX_TYPE_UINT16 = 0,
+        AGPU_INDEX_TYPE_UINT32 = 1,
+        AGPU_INDEX_TYPE_COUNT = (AGPU_INDEX_TYPE_UINT32 - AGPU_INDEX_TYPE_UINT16 + 1),
+        AGPU_INDEX_TYPE_MAX_ENUM = 0x7FFFFFFF
+    } AgpuIndexType;
 
     typedef struct AgpuFramebufferAttachment
     {
@@ -364,14 +371,15 @@ extern "C"
     ALIMER_API void agpuBeginRenderPass(AgpuFramebuffer framebuffer);
     ALIMER_API void agpuEndRenderPass();
     ALIMER_API void agpuSetPipeline(AgpuPipeline pipeline);
-    ALIMER_API void agpuSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index);
+    ALIMER_API void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset);
+    ALIMER_API void agpuCmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType);
 
     ALIMER_API void agpuCmdSetViewport(AgpuViewport viewport);
     ALIMER_API void agpuCmdSetViewports(uint32_t viewportCount, const AgpuViewport* pViewports);
     ALIMER_API void agpuCmdSetScissor(AgpuRect2D scissor);
     ALIMER_API void agpuCmdSetScissors(uint32_t scissorCount, const AgpuRect2D* pScissors);
 
-    ALIMER_API void agpuDraw(uint32_t vertexCount, uint32_t startVertexLocation);
+    ALIMER_API void agpuCmdDraw(uint32_t vertexCount, uint32_t startVertexLocation);
 
     /* Helper methods */
     ALIMER_API uint32_t agpuGetTextureWidth(AgpuTexture texture);

@@ -23,7 +23,7 @@
 
 #include "../Base/String.h"
 #include "../Base/StringHash.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {

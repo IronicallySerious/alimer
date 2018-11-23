@@ -22,7 +22,7 @@
 
 #include "../Core/PluginManager.h"
 #include "../IO/FileSystem.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 #include "../Core/Platform.h"
 
 #if defined(_WIN32)

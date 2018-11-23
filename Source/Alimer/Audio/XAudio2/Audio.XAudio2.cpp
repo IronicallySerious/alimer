@@ -21,7 +21,7 @@
 //
 
 #include "Audio.XAudio2.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 
 #if !ALIMER_PLATFORM_UWP
 static const wchar_t* XAUDIO2_DLL_29 = L"xaudio2_9.dll";

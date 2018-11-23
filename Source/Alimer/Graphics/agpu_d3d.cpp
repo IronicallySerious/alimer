@@ -25,7 +25,7 @@
 #if defined(ALIMER_D3D11) || defined(ALIMER_D3D12)
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
-#include "../Base/Debug.h"
+#include "../Debug/Debug.h"
 
 DXGI_FORMAT agpuD3DConvertPixelFormat(AgpuPixelFormat format)
 {

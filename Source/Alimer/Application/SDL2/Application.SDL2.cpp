@@ -21,8 +21,7 @@
 //
 
 #include "../Application.h"
-#include "../../Core/Log.h"
-#include "Core/Log.h"
+#include "../../Debug/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS
 #   include <ShellScalingAPI.h>

@@ -22,7 +22,8 @@
 
 #include "../../Application/Window.h"
 #include "../../Application/Application.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
+
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_syswm.h>

@@ -23,7 +23,7 @@
 #include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 #if ALIMER_COMPILE_D3D11
 #   include "../Graphics/D3D11/D3D11GraphicsDevice.h"

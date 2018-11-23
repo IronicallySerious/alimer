@@ -20,10 +20,10 @@
 // THE SOFTWARE.
 //
 
-// SIMD code adopte from DirectXMath: https://github.com/Microsoft/DirectXMath
+// SIMD code adopted from DirectXMath: https://github.com/Microsoft/DirectXMath
 
 #include "../Math/Matrix4x4.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 #include <cstdio>
 
 #if defined(__AVX2__)

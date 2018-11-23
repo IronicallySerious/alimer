@@ -21,7 +21,7 @@
 //
 
 #include "../Resource/Image.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 #include "../IO/Stream.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION

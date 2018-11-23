@@ -25,7 +25,7 @@
 #include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {

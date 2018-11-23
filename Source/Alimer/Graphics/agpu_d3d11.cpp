@@ -27,7 +27,7 @@
 #include <wrl/client.h>
 #include <wrl/event.h>
 #include "../Core/Platform.h"
-#include "../Core/Log.h"
+#include "../Debug/Log.h"
 
 #if defined(_DEBUG)
 #   include <dxgidebug.h>
