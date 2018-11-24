@@ -13,14 +13,12 @@
 *.userprefs
 
 # Build results
-[Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
 x64/
 x86/
 bld/
-[Bb]in/
 [Oo]bj/
 [Ll]og/
 
@@ -294,5 +292,6 @@ __pycache__/
 *.odx.cs
 *.xsd.cs
 
-# Build directory
-Build/
+# Build and bin directories
+[Bb]in/
+[Bb]uild/
