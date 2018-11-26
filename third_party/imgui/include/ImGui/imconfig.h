@@ -18,11 +18,22 @@
 //#define IM_ASSERT(_EXPR)  ((void)(_EXPR))     // Disable asserts
 
 //---- Define attributes of all API symbols declarations, e.g. for DLL under Windows.
-//#define IMGUI_API __declspec( dllexport )
-//#define IMGUI_API __declspec( dllimport )
+#if _WIN32
+#   if IMGUI_EXPORTS || ALIMER_EXPORTS
+#       define IMGUI_API __declspec(dllexport)
+#   elif IMGUI_IMPORTS || ALIMER_IMPORTS
+#       define IMGUI_API __declspec(dllimport)
+#	else
+#		define IMGUI_API
+#   endif
+#elif IMGUI_EXPORTS || IMGUI_IMPORTS
+#   define IMGUI_API __attribute__((visibility("default")))
+#else
+#   define IMGUI_API
+#endif
 
 //---- Don't define obsolete functions/enums names. Consider enabling from time to time after updating to avoid using soon-to-be obsolete function/names.
-//#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 
 //---- Don't implement demo windows functionality (ShowDemoWindow()/ShowStyleEditor()/ShowUserGuide() methods will be empty)
 //---- It is very strongly recommended to NOT disable the demo windows during development. Please read the comments in imgui_demo.cpp.
@@ -31,6 +42,7 @@
 //---- Don't implement some functions to reduce linkage requirements.
 //#define IMGUI_DISABLE_WIN32_DEFAULT_CLIPBOARD_FUNCTIONS   // [Win32] Don't implement default clipboard handler. Won't use and link with OpenClipboard/GetClipboardData/CloseClipboard etc.
 //#define IMGUI_DISABLE_WIN32_DEFAULT_IME_FUNCTIONS         // [Win32] Don't implement default IME handler. Won't use and link with ImmGetContext/ImmSetCompositionWindow.
+//#define IMGUI_DISABLE_WIN32_FUNCTIONS                     // [Win32] Won't use and link with any Win32 function.
 //#define IMGUI_DISABLE_FORMAT_STRING_FUNCTIONS             // Don't implement ImFormatString/ImFormatStringV so you can implement them yourself if you don't want to link with vsnprintf.
 //#define IMGUI_DISABLE_MATH_FUNCTIONS                      // Don't implement ImFabs/ImSqrt/ImPow/ImFmod/ImCos/ImSin/ImAcos/ImAtan2 wrapper so you can implement them yourself. Declare your prototypes in imconfig.h.
 //#define IMGUI_DISABLE_DEFAULT_ALLOCATORS                  // Don't implement default allocators calling malloc()/free() to avoid linking with them. You will need to call ImGui::SetAllocatorFunctions().
@@ -43,8 +55,8 @@
 
 //---- Avoid multiple STB libraries implementations, or redefine path/filenames to prioritize another version
 // By default the embedded implementations are declared static and not available outside of imgui cpp files.
-#define IMGUI_STB_TRUETYPE_FILENAME   "stb_truetype.h"
-#define IMGUI_STB_RECT_PACK_FILENAME  "stb_rect_pack.h"
+//#define IMGUI_STB_TRUETYPE_FILENAME   "my_folder/stb_truetype.h"
+//#define IMGUI_STB_RECT_PACK_FILENAME  "my_folder/stb_rect_pack.h"
 //#define IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
 //#define IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
 
