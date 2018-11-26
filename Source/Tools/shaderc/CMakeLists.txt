@@ -59,7 +59,10 @@ set(SOURCE_FILES main.cpp)
 # Define the target.
 add_executable (${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
 alimer_setup_common_properties(${TARGET})
-target_link_libraries(${TARGET} libshaderc CLI11)
+target_link_libraries(${TARGET} PRIVATE libshaderc CLI11)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+	target_link_libraries(${TARGET} PRIVATE pthread)
+endif ()
 set_target_properties(${TARGET} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
 set_target_properties(${TARGET} PROPERTIES FOLDER "Tools")
 
