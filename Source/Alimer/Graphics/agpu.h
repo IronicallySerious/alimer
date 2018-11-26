@@ -167,7 +167,7 @@ extern "C"
         AGPU_SHADER_STAGE_GEOMETRY      = 3,
         AGPU_SHADER_STAGE_FRAGMENT      = 4,
         AGPU_SHADER_STAGE_COMPUTE       = 5,
-        AGPU_SHADER_STAGE_COUNT         = 6,
+        AGPU_SHADER_STAGE_COUNT         = (AGPU_SHADER_STAGE_COMPUTE - AGPU_SHADER_STAGE_VERTEX + 1),
     } AgpuShaderStage;
 
     typedef enum AgpuShaderLanguage {
@@ -230,8 +230,8 @@ extern "C"
 
     typedef struct AgpuBufferDescriptor {
         AgpuBufferUsage             usage;
-        uint64_t                    elementCount;
-        uint64_t                    stride;
+        uint64_t                    size;
+        uint32_t                    stride;
         const char*                 name;
     } AgpuBufferDescriptor;
 
@@ -256,15 +256,6 @@ extern "C"
         uint64_t size;
         uint8_t *data;
     } AgpuShaderBlob;
-
-    typedef struct AgpuShaderDescriptor {
-        AgpuShaderStage             stage;
-        uint64_t                    codeSize;
-        const uint8_t*              pCode;
-        const char*                 source;
-        const char*                 entryPoint;
-        AgpuShaderLanguage          language;
-    } AgpuShaderDescriptor;
     
     typedef struct AgpuVertexBufferLayoutDescriptor {
         uint32_t                    stride;
@@ -282,12 +273,20 @@ extern "C"
         AgpuVertexAttributeDescriptor       attributes[AGPU_MAX_VERTEX_ATTRIBUTES];
     } AgpuVertexDescriptor;
 
+    typedef struct AgpuShaderStageDescriptor {
+        AgpuShaderBlob              blob;
+        AgpuShaderStage             stage;
+        const char*                 source;
+        const char*                 entryPoint;
+        AgpuShaderLanguage          language;
+    } AgpuShaderStageDescriptor;
+
+    typedef struct AgpuShaderDescriptor {
+        AgpuShaderStageDescriptor   stages[AGPU_SHADER_STAGE_COUNT];
+    } AgpuShaderDescriptor;
+
     typedef struct AgpuRenderPipelineDescriptor {
-        AgpuShader                  vertex;
-        AgpuShader                  domain;
-        AgpuShader                  hull;
-        AgpuShader                  geometry;
-        AgpuShader                  fragment;
+        AgpuShader                  shader;
         AgpuVertexDescriptor        vertexDescriptor;
         AgpuPrimitiveTopology       primitiveTopology;
     } AgpuRenderPipelineDescriptor;
@@ -345,7 +344,7 @@ extern "C"
     ALIMER_API uint64_t agpuFrame();
 
     /* Buffer */
-    ALIMER_API AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData);
+    ALIMER_API AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor, const void* initialData);
     ALIMER_API AgpuBuffer agpuCreateExternalBuffer(const AgpuBufferDescriptor* descriptor, void* handle);
     ALIMER_API void agpuDestroyBuffer(AgpuBuffer buffer);
 
@@ -360,7 +359,9 @@ extern "C"
 
     /* Shader */
     ALIMER_API AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor);
+    ALIMER_API AgpuShaderBlob agpuCompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint);
     ALIMER_API void agpuDestroyShader(AgpuShader shader);
+    ALIMER_API AgpuShaderStage agpuGetShaderStage(AgpuShader shader);
 
     /* Pipeline */
     ALIMER_API AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor);
@@ -371,7 +372,7 @@ extern "C"
     ALIMER_API void agpuBeginRenderPass(AgpuFramebuffer framebuffer);
     ALIMER_API void agpuEndRenderPass();
     ALIMER_API void agpuSetPipeline(AgpuPipeline pipeline);
-    ALIMER_API void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset);
+    ALIMER_API void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, AgpuVertexInputRate inputRate);
     ALIMER_API void agpuCmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType);
 
     ALIMER_API void agpuCmdSetViewport(AgpuViewport viewport);
@@ -379,7 +380,9 @@ extern "C"
     ALIMER_API void agpuCmdSetScissor(AgpuRect2D scissor);
     ALIMER_API void agpuCmdSetScissors(uint32_t scissorCount, const AgpuRect2D* pScissors);
 
+    ALIMER_API void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology);
     ALIMER_API void agpuCmdDraw(uint32_t vertexCount, uint32_t startVertexLocation);
+    ALIMER_API void agpuCmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset);
 
     /* Helper methods */
     ALIMER_API uint32_t agpuGetTextureWidth(AgpuTexture texture);

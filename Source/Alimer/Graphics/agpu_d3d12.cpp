@@ -27,6 +27,7 @@
 #include "agpu_backend.h"
 #include <wrl/client.h>
 #include <wrl/event.h>
+#include "../Base/HashMap.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Platform.h"
 #include "../Debug/Log.h"
@@ -106,8 +107,39 @@ namespace d3d12
     PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE    D3D12SerializeVersionedRootSignature = nullptr;
 #endif
 
-    static const uint64_t RenderLatency = 2;
-    static const uint64_t NumCmdAllocators = RenderLatency;
+    static constexpr uint64_t RenderLatency = 2;
+    static constexpr uint64_t NumCmdAllocators = RenderLatency;
+
+    /* Upload */
+    struct UploadSubmission
+    {
+        ID3D12CommandAllocator* commandAllocator = nullptr;
+        ID3D12GraphicsCommandList1* commandList = nullptr;
+        uint64_t offset = 0;
+        uint64_t size = 0;
+        uint64_t fenceValue = 0;
+        uint64_t padding = 0;
+
+        void Reset()
+        {
+            offset = 0;
+            size = 0;
+            fenceValue = 0;
+            padding = 0;
+        }
+    };
+
+    struct UploadContext
+    {
+        ID3D12GraphicsCommandList* commandList;
+        void* CPUAddress = nullptr;
+        uint64_t resourceOffset = 0;
+        ID3D12Resource* resource = nullptr;
+        void* submission = nullptr;
+    };
+
+    static constexpr uint64_t UploadBufferSize = 256 * 1024 * 1024;
+    static constexpr uint64_t MaxUploadSubmissions = 16;
 
     DWORD           _dxgiFactoryFlags = 0;
     IDXGIFactory4*  _dxgiFactory = nullptr;
@@ -469,6 +501,33 @@ namespace d3d12
         SRWLOCK Lock = SRWLOCK_INIT;
     };
 
+    class Shader
+    {
+    public:
+        Shader();
+    };
+
+    class GraphicsStateD3D12
+    {
+    public:
+        GraphicsStateD3D12();
+
+        void Reset();
+
+        void SetPrimitiveTopology(AgpuPrimitiveTopology primitiveTopology);
+
+        AgpuPrimitiveTopology GetPrimitiveTopology() const { return _primitiveTopology; }
+
+        bool IsDirty() const { return _dirty; }
+        void ClearDirty() { _dirty = false; }
+        void SetDirty() { _dirty = true; }
+
+    private:
+        AgpuPrimitiveTopology _primitiveTopology;
+
+        bool _dirty = false;
+    };
+
     class CommandBufferD3D12
     {
     public:
@@ -478,13 +537,29 @@ namespace d3d12
         void Begin(ID3D12CommandAllocator* allocator);
         void End();
 
+        void CmdSetPipeline(AgpuPipeline pipeline);
+        void CmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, uint32_t stride, AgpuVertexInputRate inputRate);
         void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType);
+
+        void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology);
+        void CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
 
         ID3D12GraphicsCommandList* GetCommandList() const { return _commandList; }
 
     private:
+        void FlushGraphicsState();
+
         bool _isRecording = false;
         ID3D12GraphicsCommandList* _commandList = nullptr;
+
+        GraphicsStateD3D12 _graphicsState;
+
+        struct VertexBindingState
+        {
+            AgpuBuffer              buffers[AGPU_MAX_VERTEX_BUFFER_BINDINGS];
+            uint64_t                offsets[AGPU_MAX_VERTEX_BUFFER_BINDINGS];
+            AgpuVertexInputRate     inputRates[AGPU_MAX_VERTEX_BUFFER_BINDINGS];
+        };
 
         struct IndexState
         {
@@ -493,7 +568,13 @@ namespace d3d12
             AgpuIndexType indexType;
         };
 
+        VertexBindingState _vbo = {};
+        D3D12_VERTEX_BUFFER_VIEW _d3dVbViews[AGPU_MAX_VERTEX_BUFFER_BINDINGS] = {};
         IndexState _index = {};
+        uint32_t _dirtyVbos = 0;
+
+        ID3D12PipelineState* _currentPipelineState = nullptr;
+        AgpuPipeline _currentPipeline = nullptr;
     };
 
     struct AGpuRendererD3D12 : public AGpuRendererI
@@ -525,7 +606,7 @@ namespace d3d12
         void DestroySwapchain(AgpuSwapchain swapchain);
 
         /* Buffer */
-        AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData, void* externalHandle) override;
+        AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, const void* initialData, void* externalHandle) override;
         void DestroyBuffer(AgpuBuffer buffer) override;
 
         /* Texture */
@@ -538,7 +619,9 @@ namespace d3d12
 
         /* Shader */
         AgpuShader CreateShader(const AgpuShaderDescriptor* descriptor) override;
+        AgpuShaderBlob CompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint) override;
         void DestroyShader(AgpuShader shader) override;
+        AgpuShaderStage GetShaderStage(AgpuShader shader) const override;
 
         /* Pipeline */
         AgpuPipeline CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor) override;
@@ -551,7 +634,7 @@ namespace d3d12
         void CmdBeginRenderPass(AgpuFramebuffer framebuffer) override;
         void CmdEndRenderPass() override;
         void SetPipeline(AgpuPipeline pipeline) override;
-        void CmdSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index) override;
+        void CmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, uint32_t stride, AgpuVertexInputRate inputRate) override;
         void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType) override;
 
         void CmdSetViewport(AgpuViewport viewport) override;
@@ -559,7 +642,10 @@ namespace d3d12
 
         void CmdSetScissor(AgpuRect2D scissor) override;
         void CmdSetScissors(uint32_t count, const AgpuRect2D* pScissors) override;
+
+        void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology) override;
         void CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation) override;
+        void CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) override;
 
         void CreateRootSignature(ID3D12RootSignature** rootSignature, const D3D12_ROOT_SIGNATURE_DESC1& desc);
 
@@ -574,6 +660,19 @@ namespace d3d12
         void SetResourceName(ID3D12Object* object, const char* name);
         void DeferredRelease_(IUnknown* resource, bool forceDeferred = false);
         void ProcessDeferredReleases(uint64_t frameIndex);
+        void InitializeHelpers();
+        void ShutdownHelpers();
+        void EndFrameHelpers();
+
+        void InitializeUpload();
+        void ShutdownUpload();
+        void EndFrameUpload();
+        void FlushUpload();
+        void ClearFinishedUploads(uint64_t flushCount);
+
+        UploadSubmission* AllocUploadSubmission(uint64_t size);
+        UploadContext ResourceUploadBegin(uint64_t size);
+        void ResourceUploadEnd(UploadContext& context);
 
     private:
         IDXGIAdapter1*              _dxgiAdapter = nullptr;
@@ -601,6 +700,22 @@ namespace d3d12
         DescriptorHeap              _DSVDescriptorHeap;
         DescriptorHeap              _UAVDescriptorHeap;
         AgpuFramebuffer             _currentFramebuffer = nullptr;
+
+        /* Uploader */
+        SRWLOCK                     _uploadSubmissionLock = SRWLOCK_INIT;
+        SRWLOCK                     _uploadQueueLock = SRWLOCK_INIT;
+
+        uint64_t                    _uploadBufferStart = 0;
+        uint64_t                    _uploadBufferUsed = 0;
+        UploadSubmission            _uploadSubmissions[MaxUploadSubmissions];
+        uint64_t                    _uploadSubmissionStart = 0;
+        uint64_t                    _uploadSubmissionUsed = 0;
+
+        ID3D12CommandQueue*         _uploadCmdQueue = nullptr;
+        AgpuFence*                  _uploadFence = nullptr;
+        uint64_t                    _uploadFenceValue = 0;
+        ID3D12Resource*             _uploadBuffer = nullptr;
+        uint8_t*                    _uploadBufferCPUAddress = nullptr;
     };
 
     /* DescriptorHeap */
@@ -787,6 +902,33 @@ namespace d3d12
         return _heaps[_heapIndex];
     }
 
+    /* ShaderProgram */
+    Shader::Shader()
+    {
+
+    }
+
+    /* GraphicsStateD3D12 */
+    GraphicsStateD3D12::GraphicsStateD3D12()
+    {
+        Reset();
+    }
+
+    void GraphicsStateD3D12::Reset()
+    {
+        _primitiveTopology = AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        _dirty = false;
+    }
+
+    void GraphicsStateD3D12::SetPrimitiveTopology(AgpuPrimitiveTopology primitiveTopology)
+    {
+        if (_primitiveTopology != primitiveTopology)
+        {
+            _primitiveTopology = primitiveTopology;
+            _dirty = true;
+        }
+    }
+
     /* CommandBufferD3D12 */
     CommandBufferD3D12::CommandBufferD3D12(ID3D12Device* device, ID3D12CommandAllocator* allocator)
     {
@@ -815,7 +957,12 @@ namespace d3d12
         DXCall(_commandList->Reset(allocator, nullptr));
 
         /* Reset cache states. */
+        _graphicsState.Reset();
+        _dirtyVbos = ~0u;
+        _currentPipelineState = nullptr;
+        _currentPipeline = nullptr;
         memset(&_index, 0, sizeof(_index));
+        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
     }
 
     void CommandBufferD3D12::End()
@@ -827,6 +974,37 @@ namespace d3d12
         }
 
         _isRecording = false;
+    }
+
+    void CommandBufferD3D12::CmdSetPipeline(AgpuPipeline pipeline)
+    {
+        if (_currentPipeline == pipeline)
+            return;
+
+        _currentPipeline = pipeline;
+        _currentPipelineState = nullptr;
+        _graphicsState.SetDirty();
+    }
+
+    void CommandBufferD3D12::CmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, uint32_t stride, AgpuVertexInputRate inputRate)
+    {
+        if (_vbo.buffers[binding] != buffer || _vbo.offsets[binding] != offset)
+        {
+            _dirtyVbos |= 1u << binding;
+        }
+
+        if (_vbo.inputRates[binding] != inputRate)
+        {
+            _graphicsState.SetDirty();
+        }
+
+        _vbo.buffers[binding] = buffer;
+        _vbo.offsets[binding] = offset;
+        _vbo.inputRates[binding] = inputRate;
+
+        _d3dVbViews[binding].BufferLocation = buffer->d3d12GPUAddress + offset;
+        _d3dVbViews[binding].SizeInBytes = UINT(buffer->size) - offset;
+        _d3dVbViews[binding].StrideInBytes = stride;
     }
 
     void CommandBufferD3D12::CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType)
@@ -847,6 +1025,70 @@ namespace d3d12
         bufferView.SizeInBytes = buffer->size - offset;
         bufferView.Format = indexType == AGPU_INDEX_TYPE_UINT16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
         _commandList->IASetIndexBuffer(&bufferView);
+    }
+
+    void CommandBufferD3D12::CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology)
+    {
+        _graphicsState.SetPrimitiveTopology(topology);
+    }
+
+    void CommandBufferD3D12::CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+    {
+        FlushGraphicsState();
+
+        _commandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+    }
+
+    void CommandBufferD3D12::FlushGraphicsState()
+    {
+        // ALIMER_ASSERT(_currentProgram);
+
+        uint32_t active_vbos = 1;
+
+        // We've invalidated pipeline state, update the VkPipeline.
+        if (_graphicsState.IsDirty())
+        {
+            ID3D12PipelineState* oldPipelineState = _currentPipelineState;
+            Alimer::Hasher hasher;
+
+            _currentPipelineState = _currentPipeline->d3d12PipelineState;
+            if (oldPipelineState != _currentPipelineState)
+            {
+                if (_currentPipeline->isCompute)
+                {
+                    _commandList->SetComputeRootSignature(_currentPipeline->d3d12RootSignature);
+                }
+                else
+                {
+                    _commandList->SetGraphicsRootSignature(_currentPipeline->d3d12RootSignature);
+                }
+
+                _commandList->SetPipelineState(_currentPipelineState);
+            }
+
+            // Set primitive topology 
+            D3D_PRIMITIVE_TOPOLOGY d3dPrimitiveTopology = agpuD3DConvertPrimitiveTopology(_graphicsState.GetPrimitiveTopology(), 1);
+            _commandList->IASetPrimitiveTopology(d3dPrimitiveTopology);
+
+            // Reset graphics state dirty bit.
+            _graphicsState.ClearDirty();
+        }
+
+
+        uint32_t update_vbo_mask = _dirtyVbos & active_vbos;
+        Alimer::ForEachBitRange(update_vbo_mask, [&](uint32_t binding, uint32_t count)
+        {
+#ifdef ALIMER_DEV
+            for (uint32_t i = binding; i < binding + count; i++)
+            {
+                ALIMER_ASSERT(_vbo.buffers[i] != nullptr);
+            }
+#endif
+
+            _commandList->IASetVertexBuffers(binding, count, _d3dVbViews);
+        });
+
+        _dirtyVbos &= ~update_vbo_mask;
     }
 
     // Per thread command buffer currently being recorded.
@@ -958,11 +1200,9 @@ namespace d3d12
         _fenceValues[_currentFrameIndex]++;
         _currentFrameIndex = 0;
 
-        // Initialize helpers
-        _RTVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false);
-        _SRVDescriptorHeap.Initialize(_d3dDevice, 1024, 1024, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, true);
-        _DSVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, false);
-        _UAVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
+        // Initialize helpers and upload.
+        InitializeHelpers();
+        InitializeUpload();
 
         WaitIdle();
         for (UINT n = 0; n < NumCmdAllocators; n++)
@@ -984,6 +1224,293 @@ namespace d3d12
         return AGPU_OK;
     }
 
+    void AGpuRendererD3D12::InitializeHelpers()
+    {
+        _RTVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false);
+        _SRVDescriptorHeap.Initialize(_d3dDevice, 1024, 1024, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, true);
+        _DSVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, false);
+        _UAVDescriptorHeap.Initialize(_d3dDevice, 256, 0, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
+    }
+
+    void AGpuRendererD3D12::ShutdownHelpers()
+    {
+        _RTVDescriptorHeap.Shutdown();
+        _SRVDescriptorHeap.Shutdown();
+        _DSVDescriptorHeap.Shutdown();
+        _UAVDescriptorHeap.Shutdown();
+    }
+
+    void AGpuRendererD3D12::EndFrameHelpers()
+    {
+        _RTVDescriptorHeap.EndFrame();
+        _SRVDescriptorHeap.EndFrame();
+        _DSVDescriptorHeap.EndFrame();
+        _UAVDescriptorHeap.EndFrame();
+    }
+
+    void AGpuRendererD3D12::InitializeUpload()
+    {
+        for (uint64_t i = 0; i < MaxUploadSubmissions; ++i)
+        {
+            UploadSubmission& submission = _uploadSubmissions[i];
+            DXCall(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&submission.commandAllocator)));
+            DXCall(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, submission.commandAllocator, nullptr, IID_PPV_ARGS(&submission.commandList)));
+            DXCall(submission.commandList->Close());
+
+            wchar_t name[25] = {};
+            swprintf_s(name, L"Upload Command List %u", i);
+            submission.commandList->SetName(name);
+        }
+
+        D3D12_COMMAND_QUEUE_DESC queueDesc = { };
+        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+        DXCall(_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&_uploadCmdQueue)));
+        _uploadCmdQueue->SetName(L"Upload Copy Queue");
+
+        _uploadFence = CreateFence(0);
+
+        D3D12_RESOURCE_DESC resourceDesc = { };
+        resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        resourceDesc.Width = UploadBufferSize;
+        resourceDesc.Height = 1;
+        resourceDesc.DepthOrArraySize = 1;
+        resourceDesc.MipLevels = 1;
+        resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+        resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+        resourceDesc.SampleDesc.Count = 1;
+        resourceDesc.SampleDesc.Quality = 0;
+        resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        resourceDesc.Alignment = 0;
+
+        DXCall(_d3dDevice->CreateCommittedResource(
+            agpuD3D12GetUploadHeapProps(),
+            D3D12_HEAP_FLAG_NONE,
+            &resourceDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr, IID_PPV_ARGS(&_uploadBuffer))
+        );
+
+        D3D12_RANGE readRange = { };
+        DXCall(_uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&_uploadBufferCPUAddress)));
+
+        // TODO: Add Temporary buffer memory that swaps every frame
+        //resourceDesc.Width = uint32(TempBufferSize);
+    }
+
+    void AGpuRendererD3D12::ShutdownUpload()
+    {
+        //for (uint64_t i = 0; i < ArraySize_(TempFrameBuffers); ++i)
+        //    Release(TempFrameBuffers[i]);
+
+        //Release(UploadBuffer);
+        Release(_uploadCmdQueue);
+        DestroyFence(_uploadFence);
+        for (uint64_t i = 0; i < MaxUploadSubmissions; ++i)
+        {
+            Release(_uploadSubmissions[i].commandAllocator);
+            Release(_uploadSubmissions[i].commandList);
+        }
+
+        /*Release(convertCmdAllocator);
+        Release(convertCmdList);
+        Release(convertCmdQueue);
+        Release(convertPSO);
+        Release(convertArrayPSO);
+        Release(convertCubePSO);
+        Release(convertRootSignature);
+        convertFence.Shutdown();
+
+        Release(readbackCmdAllocator);
+        Release(readbackCmdList);
+        readbackFence.Shutdown();*/
+    }
+
+    void AGpuRendererD3D12::EndFrameUpload()
+    {
+        // If we can grab the lock, try to clear out any completed submissions
+        if (TryAcquireSRWLockExclusive(&_uploadSubmissionLock))
+        {
+            ClearFinishedUploads(0);
+
+            ReleaseSRWLockExclusive(&_uploadSubmissionLock);
+        }
+
+        {
+            AcquireSRWLockExclusive(&_uploadQueueLock);
+
+            // Make sure to sync on any pending uploads
+            ClearFinishedUploads(0);
+            _graphicsQueue->Wait(_uploadFence->Fence, _uploadFenceValue);
+
+            ReleaseSRWLockExclusive(&_uploadQueueLock);
+        }
+
+        //TempFrameUsed = 0;
+    }
+
+    void AGpuRendererD3D12::FlushUpload()
+    {
+        AcquireSRWLockExclusive(&_uploadSubmissionLock);
+
+        ClearFinishedUploads(uint64_t(-1));
+
+        ReleaseSRWLockExclusive(&_uploadSubmissionLock);
+    }
+
+    void AGpuRendererD3D12::ClearFinishedUploads(uint64_t flushCount)
+    {
+        const uint64_t start = _uploadSubmissionStart;
+        const uint64_t used = _uploadSubmissionUsed;
+        for (uint64_t i = 0; i < used; ++i)
+        {
+            const uint64_t idx = (start + i) % MaxUploadSubmissions;
+            UploadSubmission& submission = _uploadSubmissions[idx];
+            ALIMER_ASSERT(submission.size > 0);
+            ALIMER_ASSERT(_uploadBufferUsed >= submission.size);
+
+            // If the submission hasn't been sent to the GPU yet we can't wait for it
+            if (submission.fenceValue == uint64_t(-1))
+                return;
+
+            if (i < flushCount)
+            {
+                WaitFence(_uploadFence, submission.fenceValue);
+            }
+
+            if (IsFenceSignaled(_uploadFence, submission.fenceValue))
+            {
+                _uploadSubmissionStart = (_uploadSubmissionStart + 1) % MaxUploadSubmissions;
+                _uploadSubmissionUsed -= 1;
+                _uploadBufferStart = (_uploadBufferStart + submission.padding) % UploadBufferSize;
+                ALIMER_ASSERT(submission.offset == _uploadBufferStart);
+                ALIMER_ASSERT(_uploadBufferStart + submission.size <= UploadBufferSize);
+                _uploadBufferStart = (_uploadBufferStart + submission.size) % UploadBufferSize;
+                _uploadBufferUsed -= (submission.size + submission.padding);
+                submission.Reset();
+
+                if (_uploadBufferUsed == 0)
+                    _uploadBufferStart = 0;
+            }
+        }
+    }
+
+    UploadSubmission* AGpuRendererD3D12::AllocUploadSubmission(uint64_t size)
+    {
+        ALIMER_ASSERT(_uploadSubmissionUsed <= MaxUploadSubmissions);
+        if (_uploadSubmissionUsed == MaxUploadSubmissions)
+            return nullptr;
+
+        const uint64_t submissionIdx = (_uploadSubmissionStart + _uploadSubmissionUsed) % MaxUploadSubmissions;
+        ALIMER_ASSERT(_uploadSubmissions[submissionIdx].size == 0);
+
+        ALIMER_ASSERT(_uploadBufferUsed <= UploadBufferSize);
+        if (size > (UploadBufferSize - _uploadBufferUsed))
+            return nullptr;
+
+        const uint64_t start = _uploadBufferStart;
+        const uint64_t end = _uploadBufferStart + _uploadBufferUsed;
+        uint64_t allocOffset = uint64_t(-1);
+        uint64_t padding = 0;
+        if (end < UploadBufferSize)
+        {
+            const uint64_t endAmt = UploadBufferSize - end;
+            if (endAmt >= size)
+            {
+                allocOffset = end;
+            }
+            else if (start >= size)
+            {
+                // Wrap around to the beginning
+                allocOffset = 0;
+                _uploadBufferUsed += endAmt;
+                padding = endAmt;
+            }
+        }
+        else
+        {
+            const uint64_t wrappedEnd = end % UploadBufferSize;
+            if ((start - wrappedEnd) >= size)
+                allocOffset = wrappedEnd;
+        }
+
+        if (allocOffset == uint64_t(-1))
+            return nullptr;
+
+        _uploadSubmissionUsed += 1;
+        _uploadBufferUsed += size;
+
+        UploadSubmission* submission = &_uploadSubmissions[submissionIdx];
+        submission->offset = allocOffset;
+        submission->size = size;
+        submission->fenceValue = uint64_t(-1);
+        submission->padding = padding;
+
+        return submission;
+    }
+
+    UploadContext AGpuRendererD3D12::ResourceUploadBegin(uint64_t size)
+    {
+        ALIMER_ASSERT(_d3dDevice != nullptr);
+
+        size = Alimer::AlignTo(size, 512);
+        ALIMER_ASSERT(size <= UploadBufferSize);
+        ALIMER_ASSERT(size > 0);
+
+        UploadSubmission* submission = nullptr;
+
+        {
+            AcquireSRWLockExclusive(&_uploadSubmissionLock);
+
+            ClearFinishedUploads(0);
+
+            submission = AllocUploadSubmission(size);
+            while (submission == nullptr)
+            {
+                ClearFinishedUploads(1);
+                submission = AllocUploadSubmission(size);
+            }
+
+            ReleaseSRWLockExclusive(&_uploadSubmissionLock);
+        }
+
+        DXCall(submission->commandAllocator->Reset());
+        DXCall(submission->commandList->Reset(submission->commandAllocator, nullptr));
+
+        UploadContext context;
+        context.commandList = submission->commandList;
+        context.resource = _uploadBuffer;
+        context.CPUAddress = _uploadBufferCPUAddress + submission->offset;
+        context.resourceOffset = submission->offset;
+        context.submission = submission;
+
+        return context;
+    }
+
+    void AGpuRendererD3D12::ResourceUploadEnd(UploadContext& context)
+    {
+        ALIMER_ASSERT(context.commandList != nullptr);
+        ALIMER_ASSERT(context.submission != nullptr);
+        UploadSubmission* submission = reinterpret_cast<UploadSubmission*>(context.submission);
+
+        {
+            AcquireSRWLockExclusive(&_uploadQueueLock);
+
+            // Finish off and execute the command list
+            DXCall(submission->commandList->Close());
+            ID3D12CommandList* cmdLists[1] = { submission->commandList };
+            _uploadCmdQueue->ExecuteCommandLists(1, cmdLists);
+
+            ++_uploadFenceValue;
+            SignalFence(_uploadFence, _uploadCmdQueue, _uploadFenceValue);
+            submission->fenceValue = _uploadFenceValue;
+
+            ReleaseSRWLockExclusive(&_uploadQueueLock);
+        }
+
+        context = UploadContext();
+    }
+
     void AGpuRendererD3D12::Shutdown()
     {
         WaitIdle();
@@ -1002,7 +1529,9 @@ namespace d3d12
         DestroyFence(_frameFence);
 
         for (uint64_t i = 0; i < RenderLatency; ++i)
+        {
             Release(_commandAllocators[i]);
+        }
 
         // Free primary command buffer.
         delete _primaryCommandBuffer;
@@ -1010,11 +1539,8 @@ namespace d3d12
 
         Release(_graphicsQueue);
 
-
-        _RTVDescriptorHeap.Shutdown();
-        _SRVDescriptorHeap.Shutdown();
-        _DSVDescriptorHeap.Shutdown();
-        _UAVDescriptorHeap.Shutdown();
+        ShutdownHelpers();
+        ShutdownUpload();
 
         Release(_dxgiFactory);
         Release(_dxgiAdapter);
@@ -1071,6 +1597,9 @@ namespace d3d12
         _primaryCommandBuffer->End();
         s_pActiveCommandBuffer = nullptr;
 
+        /* End frame for upload */
+        EndFrameUpload();
+
         ID3D12CommandList* ppCommandLists[] = { _primaryCommandBuffer->GetCommandList() };
         _graphicsQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
@@ -1098,10 +1627,7 @@ namespace d3d12
         // Set the fence value for the next frame.
         _fenceValues[_currentFrameIndex] = currentFenceValue + 1;
 
-        _RTVDescriptorHeap.EndFrame();
-        _SRVDescriptorHeap.EndFrame();
-        _DSVDescriptorHeap.EndFrame();
-        _UAVDescriptorHeap.EndFrame();
+        EndFrameHelpers();
 
         // See if we have any deferred releases to process
         ProcessDeferredReleases(_currentFrameIndex);
@@ -1365,13 +1891,13 @@ namespace d3d12
         return texture;
     }
 
-    AgpuBuffer AGpuRendererD3D12::CreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData, void* externalHandle)
+    AgpuBuffer AGpuRendererD3D12::CreateBuffer(const AgpuBufferDescriptor* descriptor, const void* initialData, void* externalHandle)
     {
         AgpuBuffer buffer = new AgpuBuffer_T();
         buffer->frameIndex = _currentCPUFrame;
 
-        uint64_t size = descriptor->stride * descriptor->elementCount;
-        size = Alimer::AlignTo(size, descriptor->stride);
+        uint64_t size = descriptor->size;
+        size = Alimer::AlignTo(size, uint64_t(descriptor->stride));
 
         const bool allowUAV = false;
         D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -1379,9 +1905,9 @@ namespace d3d12
         const bool dynamic = descriptor->usage & AGPU_BUFFER_USAGE_DYNAMIC;
         const bool cpuAccessible = descriptor->usage & AGPU_BUFFER_USAGE_CPU_ACCESSIBLE;
 
+        D3D12_RESOURCE_DESC resourceDesc = { };
         if (externalHandle == nullptr)
         {
-            D3D12_RESOURCE_DESC resourceDesc = { };
             resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
             resourceDesc.Width = dynamic ? size * RenderLatency : size;
             resourceDesc.Height = 1;
@@ -1434,6 +1960,7 @@ namespace d3d12
         else
         {
             buffer->d3d12Resource = static_cast<ID3D12Resource*>(externalHandle);
+            resourceDesc = buffer->d3d12Resource->GetDesc();
         }
 
         if (descriptor->name)
@@ -1460,15 +1987,20 @@ namespace d3d12
         }
         else if (initialData)
         {
-            /*UploadContext uploadContext = ResourceUploadBegin(resourceDesc.Width);
+            UploadContext uploadContext = ResourceUploadBegin(resourceDesc.Width);
 
-            memcpy(uploadContext.CPUAddress, initData, size);
+            memcpy(uploadContext.CPUAddress, initialData, size);
             if (dynamic)
-                memcpy((uint8*)uploadContext.CPUAddress + size, initData, size);
+                memcpy((uint8_t*)uploadContext.CPUAddress + size, initialData, size);
 
-            uploadContext.CmdList->CopyBufferRegion(Resource, 0, uploadContext.Resource, uploadContext.ResourceOffset, size);
+            uploadContext.commandList->CopyBufferRegion(
+                buffer->d3d12Resource,
+                0,
+                uploadContext.resource,
+                uploadContext.resourceOffset,
+                size);
 
-            ResourceUploadEnd(uploadContext);*/
+            ResourceUploadEnd(uploadContext);
         }
 
         return buffer;
@@ -1546,22 +2078,24 @@ namespace d3d12
     AgpuShader AGpuRendererD3D12::CreateShader(const AgpuShaderDescriptor* descriptor)
     {
         AgpuShader shader = new AgpuShader_T();
-        bool needCompile = true;
-        std::string convertedHlslSource;
-        AgpuShaderStage stage = descriptor->stage;
-        if (descriptor->pCode && descriptor->codeSize)
+
+        for (uint32_t i = 0; i < AGPU_SHADER_STAGE_COUNT; i++)
         {
+            AgpuShaderStageDescriptor stage = descriptor->stages[i];
+            if (!stage.blob.size)
+                continue;
+
             // Check if dx bycode.
-            if (descriptor->codeSize > 4
-                && descriptor->pCode[0] == 'D'
-                && descriptor->pCode[1] == 'X'
-                && descriptor->pCode[2] == 'B'
-                && descriptor->pCode[3] == 'C')
+            if (stage.blob.size > 4
+                && stage.blob.data[0] == 'D'
+                && stage.blob.data[1] == 'X'
+                && stage.blob.data[2] == 'B'
+                && stage.blob.data[3] == 'C')
             {
-                shader->d3d12Bytecode.BytecodeLength = descriptor->codeSize;
-                shader->d3d12Bytecode.pShaderBytecode = new uint8_t[descriptor->codeSize];
-                memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, descriptor->pCode, descriptor->codeSize);
-                needCompile = false;
+                shader->d3d12Bytecode[i].BytecodeLength = stage.blob.size;
+                shader->d3d12Bytecode[i].pShaderBytecode = new uint8_t[stage.blob.size];
+                memcpy((void*)shader->d3d12Bytecode[i].pShaderBytecode, stage.blob.data, stage.blob.size);
+                return shader;
             }
             else
             {
@@ -1570,7 +2104,7 @@ namespace d3d12
                 //options_glsl.vertex.flip_vert_y = true;
                 options_glsl.flatten_multidimensional_arrays = true;
 
-                spirv_cross::CompilerHLSL compiler(reinterpret_cast<const uint32_t*>(descriptor->pCode), descriptor->codeSize / 4);
+                spirv_cross::CompilerHLSL compiler(reinterpret_cast<const uint32_t*>(stage.blob.data), stage.blob.size / 4);
                 compiler.set_common_options(options_glsl);
 
                 spirv_cross::CompilerHLSL::Options options_hlsl;
@@ -1586,186 +2120,203 @@ namespace d3d12
 
                 auto resources = compiler.get_shader_resources();
 
+                AgpuShaderStage compileStage = AGPU_SHADER_STAGE_COUNT;
                 switch (compiler.get_execution_model())
                 {
                 case spv::ExecutionModelVertex:
-                    stage = AGPU_SHADER_STAGE_VERTEX;
+                    compileStage = AGPU_SHADER_STAGE_VERTEX;
                     break;
                 case spv::ExecutionModelTessellationControl:
-                    stage = AGPU_SHADER_STAGE_TESS_CONTROL;
+                    compileStage = AGPU_SHADER_STAGE_TESS_CONTROL;
                     break;
                 case spv::ExecutionModelTessellationEvaluation:
-                    stage = AGPU_SHADER_STAGE_TESS_EVAL;
+                    compileStage = AGPU_SHADER_STAGE_TESS_EVAL;
                     break;
                 case spv::ExecutionModelGeometry:
-                    stage = AGPU_SHADER_STAGE_GEOMETRY;
+                    compileStage = AGPU_SHADER_STAGE_GEOMETRY;
                     break;
                 case spv::ExecutionModelFragment:
-                    stage = AGPU_SHADER_STAGE_FRAGMENT;
+                    compileStage = AGPU_SHADER_STAGE_FRAGMENT;
                     break;
                 case spv::ExecutionModelGLCompute:
-                    stage = AGPU_SHADER_STAGE_COMPUTE;
+                    compileStage = AGPU_SHADER_STAGE_COMPUTE;
                     break;
                 default:
                     ALIMER_LOGCRITICAL("Invalid shader execution model");
                 }
 
-                convertedHlslSource = compiler.compile();
+                std::string convertedHlslSource = compiler.compile();
+
+                AgpuShaderBlob blob = CompileShader(compileStage, convertedHlslSource.c_str(), "main");
+                shader->d3d12Bytecode[i].BytecodeLength = blob.size;
+                shader->d3d12Bytecode[i].pShaderBytecode = new uint8_t[blob.size];
+                memcpy((void*)shader->d3d12Bytecode[i].pShaderBytecode, blob.data, blob.size);
             }
         }
 
-        if (needCompile)
+        return shader;
+    }
+
+    AgpuShaderBlob AGpuRendererD3D12::CompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint)
+    {
+        const char* compileTarget = nullptr;
+        switch (stage)
         {
-            const char* compileTarget = nullptr;
-            switch (stage)
-            {
-            case AGPU_SHADER_STAGE_VERTEX:
+        case AGPU_SHADER_STAGE_VERTEX:
 #ifdef AGPU_COMPILER_DXC
-                compileTarget = "vs_6_1";
+            compileTarget = "vs_6_1";
 #else
-                compileTarget = "vs_5_1";
+            compileTarget = "vs_5_1";
 #endif
-                break;
-            case AGPU_SHADER_STAGE_TESS_CONTROL:
+            break;
+        case AGPU_SHADER_STAGE_TESS_CONTROL:
 #ifdef AGPU_COMPILER_DXC
-                compileTarget = "hs_6_1";
+            compileTarget = "hs_6_1";
 #else
-                compileTarget = "hs_5_1";
+            compileTarget = "hs_5_1";
 #endif
-                break;
+            break;
 
-            case AGPU_SHADER_STAGE_TESS_EVAL:
+        case AGPU_SHADER_STAGE_TESS_EVAL:
 #ifdef AGPU_COMPILER_DXC
-                compileTarget = "ds_6_1";
+            compileTarget = "ds_6_1";
 #else
-                compileTarget = "ds_5_1";
+            compileTarget = "ds_5_1";
 #endif
-                break;
+            break;
 
-            case AGPU_SHADER_STAGE_GEOMETRY:
+        case AGPU_SHADER_STAGE_GEOMETRY:
 #ifdef AGPU_COMPILER_DXC
-                compileTarget = "gs_6_1";
+            compileTarget = "gs_6_1";
 #else
-                compileTarget = "gs_5_1";
+            compileTarget = "gs_5_1";
 #endif
-                break;
+            break;
 
-            case AGPU_SHADER_STAGE_FRAGMENT:
+        case AGPU_SHADER_STAGE_FRAGMENT:
 #ifdef AGPU_COMPILER_DXC
-                compileTarget = "ps_6_1";
+            compileTarget = "ps_6_1";
 #else
-                compileTarget = "ps_5_1";
+            compileTarget = "ps_5_1";
 #endif
-                break;
+            break;
 
-            case AGPU_SHADER_STAGE_COMPUTE:
+        case AGPU_SHADER_STAGE_COMPUTE:
 #ifdef AGPU_COMPILER_DXC
-                compileTarget = "cs_6_1";
+            compileTarget = "cs_6_1";
 #else
-                compileTarget = "cs_5_1";
+            compileTarget = "cs_5_1";
 #endif
-                break;
+            break;
 
-            default:
-                break;
+        default:
+            break;
         }
 
 #ifdef AGPU_COMPILER_DXC
 #else
 
-            // TODO: Cache.
-            UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
-            flags |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
-            flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
+        // TODO: Cache.
+        UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
+        flags |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
+        flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
 #ifdef _DEBUG
-            flags |= D3DCOMPILE_DEBUG;
+        flags |= D3DCOMPILE_DEBUG;
 #endif
 
-            const char* entryPoint = descriptor->entryPoint;
-            if (!entryPoint || !strlen(entryPoint))
-            {
-                entryPoint = "main";
-            }
+        if (!entryPoint
+            || !strlen(entryPoint))
+        {
+            entryPoint = "main";
+        }
 
-            std::string compileSource = convertedHlslSource;
-            if (compileSource.empty())
-            {
-                compileSource = descriptor->source;
-            }
+        ComPtr<ID3DBlob> compiledShader;
+        ID3DBlob* errorMessages;
+        HRESULT hr = D3DCompile(
+            source,
+            strlen(source),
+            nullptr,
+            nullptr,
+            nullptr,
+            entryPoint,
+            compileTarget,
+            flags,
+            0,
+            compiledShader.ReleaseAndGetAddressOf(),
+            &errorMessages);
 
-            ID3DBlob* compiledShader = nullptr;
-            ID3DBlob* errorMessages;
-            HRESULT hr = D3DCompile(
-                compileSource.c_str(),
-                compileSource.length(),
-                nullptr,
-                nullptr,
-                nullptr,
-                entryPoint,
-                compileTarget,
-                flags,
-                0,
-                &compiledShader,
-                &errorMessages);
-
-            if (FAILED(hr))
+        if (FAILED(hr))
+        {
+            if (errorMessages)
             {
-                if (errorMessages)
+                wchar_t message[1024] = { 0 };
+                char* blobdata = reinterpret_cast<char*>(errorMessages->GetBufferPointer());
+
+                MultiByteToWideChar(CP_ACP, 0, blobdata, static_cast<int>(errorMessages->GetBufferSize()), message, 1024);
+                std::wstring fullMessage = L"Error compiling shader \"";
+                fullMessage += L"\" - ";
+                fullMessage += message;
+
+                // Pop up a message box allowing user to retry compilation
+                int retVal = MessageBoxW(nullptr, fullMessage.c_str(), L"Shader Compilation Error", MB_RETRYCANCEL);
+                if (retVal != IDRETRY)
                 {
-                    wchar_t message[1024] = { 0 };
-                    char* blobdata = reinterpret_cast<char*>(errorMessages->GetBufferPointer());
-
-                    MultiByteToWideChar(CP_ACP, 0, blobdata, static_cast<int>(errorMessages->GetBufferSize()), message, 1024);
-                    std::wstring fullMessage = L"Error compiling shader \"";
-                    fullMessage += L"\" - ";
-                    fullMessage += message;
-
-                    // Pop up a message box allowing user to retry compilation
-                    int retVal = MessageBoxW(nullptr, fullMessage.c_str(), L"Shader Compilation Error", MB_RETRYCANCEL);
-                    if (retVal != IDRETRY)
-                    {
-                        ALIMER_BREAKPOINT();
-                    }
-
-                    errorMessages->Release();
-                    errorMessages = nullptr;
+                    ALIMER_BREAKPOINT();
                 }
+
+                errorMessages->Release();
+                errorMessages = nullptr;
+            }
+
+            return {};
+        }
+        else
+        {
+            const bool compress = false;
+            if (compress)
+            {
+                ComPtr<ID3DBlob> compressedShader;
+
+                // Compress the shader
+                D3D_SHADER_DATA shaderData;
+                shaderData.pBytecode = compiledShader->GetBufferPointer();
+                shaderData.BytecodeLength = compiledShader->GetBufferSize();
+                DXCall(D3DCompressShaders(1, &shaderData, D3D_COMPRESS_SHADER_KEEP_ALL_PARTS, &compressedShader));
+
+                //shader->d3d12Bytecode.BytecodeLength = compressedShader->GetBufferSize();
+                //shader->d3d12Bytecode.pShaderBytecode = new uint8_t[compressedShader->GetBufferSize()];
+                //memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, compressedShader->GetBufferPointer(), compressedShader->GetBufferSize());
             }
             else
             {
-                const bool compress = false;
-                if (compress)
-                {
-                    ComPtr<ID3DBlob> compressedShader;
-
-                    // Compress the shader
-                    D3D_SHADER_DATA shaderData;
-                    shaderData.pBytecode = compiledShader->GetBufferPointer();
-                    shaderData.BytecodeLength = compiledShader->GetBufferSize();
-                    DXCall(D3DCompressShaders(1, &shaderData, D3D_COMPRESS_SHADER_KEEP_ALL_PARTS, &compressedShader));
-
-                    shader->d3d12Bytecode.BytecodeLength = compressedShader->GetBufferSize();
-                    shader->d3d12Bytecode.pShaderBytecode = new uint8_t[compressedShader->GetBufferSize()];
-                    memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, compressedShader->GetBufferPointer(), compressedShader->GetBufferSize());
-                }
-                else
-                {
-                    shader->d3d12Bytecode.BytecodeLength = compiledShader->GetBufferSize();
-                    shader->d3d12Bytecode.pShaderBytecode = new uint8_t[compiledShader->GetBufferSize()];
-                    memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, compiledShader->GetBufferPointer(), compiledShader->GetBufferSize());
-                }
+                AgpuShaderBlob shaderBlob = {};
+                shaderBlob.size = compiledShader->GetBufferSize();
+                shaderBlob.data = new uint8_t[compiledShader->GetBufferSize()];
+                memcpy(shaderBlob.data, compiledShader->GetBufferPointer(), compiledShader->GetBufferSize());
+                return shaderBlob;
             }
-#endif
+        }
+#endif /* AGPU_COMPILER_DXC */
     }
-
-        return shader;
-}
 
     void AGpuRendererD3D12::DestroyShader(AgpuShader shader)
     {
-        delete[] shader->d3d12Bytecode.pShaderBytecode;
+        for (uint32_t i = 0; i < AGPU_SHADER_STAGE_COUNT; i++)
+        {
+            D3D12_SHADER_BYTECODE byteCode = shader->d3d12Bytecode[i];
+            if (!byteCode.BytecodeLength)
+                continue;
+
+            delete[] byteCode.pShaderBytecode;
+        }
+
         delete shader;
         shader = nullptr;
+    }
+
+    AgpuShaderStage AGpuRendererD3D12::GetShaderStage(AgpuShader shader) const
+    {
+        return shader->stage;
     }
 
     AgpuPipeline AGpuRendererD3D12::CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
@@ -1780,42 +2331,42 @@ namespace d3d12
         rootSignatureDesc.pStaticSamplers = nullptr;
         rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
-        if (descriptor->vertex)
+        if (descriptor->shader->d3d12Bytecode[AGPU_SHADER_STAGE_VERTEX].BytecodeLength > 0)
         {
-            psoDesc.VS = descriptor->vertex->d3d12Bytecode;
+            psoDesc.VS = descriptor->shader->d3d12Bytecode[AGPU_SHADER_STAGE_VERTEX];
             rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
         }
 
-        if (descriptor->domain)
+        /*if (descriptor->domain)
         {
             psoDesc.DS = descriptor->domain->d3d12Bytecode;
         }
-        else
+        else*/
         {
             rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
         }
 
-        if (descriptor->hull)
+        /*if (descriptor->hull)
         {
             psoDesc.HS = descriptor->hull->d3d12Bytecode;
         }
-        else
+        else*/
         {
             rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
         }
 
-        if (descriptor->geometry)
+        /*if (descriptor->geometry)
         {
             psoDesc.GS = descriptor->geometry->d3d12Bytecode;
         }
-        else
+        else*/
         {
             rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
         }
 
-        if (descriptor->fragment)
+        if (descriptor->shader->d3d12Bytecode[AGPU_SHADER_STAGE_FRAGMENT].BytecodeLength > 0)
         {
-            psoDesc.PS = descriptor->fragment->d3d12Bytecode;
+            psoDesc.PS = descriptor->shader->d3d12Bytecode[AGPU_SHADER_STAGE_FRAGMENT];
         }
         else
         {
@@ -1823,9 +2374,6 @@ namespace d3d12
         }
 
         CreateRootSignature(&psoDesc.pRootSignature, rootSignatureDesc);
-
-        if (descriptor->geometry)
-            psoDesc.GS = descriptor->geometry->d3d12Bytecode;
 
         // StreamOutput
         //psoDesc.StreamOutput;
@@ -1862,6 +2410,7 @@ namespace d3d12
 
         // DepthStencilState
         psoDesc.DepthStencilState.DepthEnable = FALSE;
+        psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
         psoDesc.DepthStencilState.StencilEnable = FALSE;
 
         // InputLayout
@@ -2010,7 +2559,7 @@ namespace d3d12
         uint32_t height = framebuffer->height;
         AgpuViewport viewport = {
             0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-        AgpuRect2D scissorRect = { 0, 0, width, height};
+        AgpuRect2D scissorRect = { 0, 0, width, height };
 
         CmdSetViewport(viewport);
         CmdSetScissor(scissorRect);
@@ -2032,26 +2581,12 @@ namespace d3d12
 
     void AGpuRendererD3D12::SetPipeline(AgpuPipeline pipeline)
     {
-        s_pActiveCommandBuffer->GetCommandList()->SetPipelineState(pipeline->d3d12PipelineState);
-        if (pipeline->isCompute)
-        {
-            s_pActiveCommandBuffer->GetCommandList()->SetComputeRootSignature(pipeline->d3d12RootSignature);
-        }
-        else
-        {
-            s_pActiveCommandBuffer->GetCommandList()->SetGraphicsRootSignature(pipeline->d3d12RootSignature);
-        }
-
-        s_pActiveCommandBuffer->GetCommandList()->IASetPrimitiveTopology(pipeline->d3dPrimitiveTopology);
+        s_pActiveCommandBuffer->CmdSetPipeline(pipeline);
     }
 
-    void AGpuRendererD3D12::CmdSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index)
+    void AGpuRendererD3D12::CmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, uint32_t stride, AgpuVertexInputRate inputRate)
     {
-        D3D12_VERTEX_BUFFER_VIEW vbView = {};
-        vbView.BufferLocation = buffer->d3d12GPUAddress + offset;
-        vbView.SizeInBytes = UINT(buffer->size) - offset;
-        vbView.StrideInBytes = UINT(buffer->stride);
-        s_pActiveCommandBuffer->GetCommandList()->IASetVertexBuffers(index, 1, &vbView);
+        s_pActiveCommandBuffer->CmdSetVertexBuffer(binding, buffer, offset, stride, inputRate);
     }
 
     void AGpuRendererD3D12::CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType)
@@ -2091,9 +2626,19 @@ namespace d3d12
     {
     }
 
+    void AGpuRendererD3D12::CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology)
+    {
+        s_pActiveCommandBuffer->CmdSetPrimitiveTopology(topology);
+    }
+
     void AGpuRendererD3D12::CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation)
     {
         s_pActiveCommandBuffer->GetCommandList()->DrawInstanced(vertexCount, 1u, startVertexLocation, 0u);
+    }
+
+    void AGpuRendererD3D12::CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+    {
+        s_pActiveCommandBuffer->CmdDrawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     void AGpuRendererD3D12::CreateRootSignature(

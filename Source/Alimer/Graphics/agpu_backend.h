@@ -115,8 +115,9 @@ typedef struct AgpuBuffer_T {
 } AgpuBuffer_T;
 
 typedef struct AgpuShader_T {
+    AgpuShaderStage                 stage;
 #if defined(ALIMER_D3D12)
-    D3D12_SHADER_BYTECODE           d3d12Bytecode;
+    D3D12_SHADER_BYTECODE           d3d12Bytecode[AGPU_SHADER_STAGE_COUNT];
 #endif
 } AgpuShader_T;
 
@@ -142,7 +143,7 @@ struct AGpuRendererI
     virtual void Shutdown() = 0;
     virtual uint64_t Frame() = 0;
 
-    virtual AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData, void* externalHandle) = 0;
+    virtual AgpuBuffer CreateBuffer(const AgpuBufferDescriptor* descriptor, const void* initialData, void* externalHandle) = 0;
     virtual void DestroyBuffer(AgpuBuffer buffer) = 0;
 
     virtual AgpuTexture CreateTexture(const AgpuTextureDescriptor* descriptor, void* externalHandle) = 0;
@@ -152,7 +153,9 @@ struct AGpuRendererI
     virtual void DestroyFramebuffer(AgpuFramebuffer framebuffer) = 0;
 
     virtual AgpuShader CreateShader(const AgpuShaderDescriptor* descriptor) = 0;
+    virtual AgpuShaderBlob CompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint) = 0;
     virtual void DestroyShader(AgpuShader shader) = 0;
+    virtual AgpuShaderStage GetShaderStage(AgpuShader shader) const = 0;
 
     virtual AgpuPipeline CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor) = 0;
     virtual AgpuPipeline CreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor) = 0;
@@ -164,7 +167,7 @@ struct AGpuRendererI
     virtual void CmdBeginRenderPass(AgpuFramebuffer framebuffer) = 0;
     virtual void CmdEndRenderPass() = 0;
     virtual void SetPipeline(AgpuPipeline pipeline) = 0;
-    virtual void CmdSetVertexBuffer(AgpuBuffer buffer, uint32_t offset, uint32_t index) = 0;
+    virtual void CmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, uint32_t stride, AgpuVertexInputRate inputRate) = 0;
     virtual void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType) = 0;
 
     virtual void CmdSetViewport(AgpuViewport viewport) = 0;
@@ -173,7 +176,9 @@ struct AGpuRendererI
     virtual void CmdSetScissor(AgpuRect2D scissor) = 0;
     virtual void CmdSetScissors(uint32_t count, const AgpuRect2D* pScissors) = 0;
 
+    virtual void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology) = 0;
     virtual void CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation) = 0;
+    virtual void CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) = 0;
 };
 
 inline AGpuRendererI::~AGpuRendererI()

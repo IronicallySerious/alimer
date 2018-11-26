@@ -224,8 +224,8 @@ static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* 
     if (buffer != nullptr)
     {
         // Set properties
-        uint64_t size = descriptor->stride * descriptor->elementCount;
-        size = Alimer::AlignTo(size, descriptor->stride);
+        uint64_t size = descriptor->size;
+        size = Alimer::AlignTo(size, uint64_t(descriptor->stride));
 
         buffer->usage = descriptor->usage;
         buffer->size = size;
@@ -259,7 +259,7 @@ static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* 
     }
 }
 
-AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor, void* initialData)
+AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor, const void* initialData)
 {
     agpuValidateBufferDescriptor(descriptor);
     AgpuBuffer buffer = s_renderer->CreateBuffer(descriptor, initialData, NULL);
@@ -326,17 +326,27 @@ AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor)
     return s_renderer->CreateShader(descriptor);
 }
 
+AgpuShaderBlob agpuCompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint)
+{
+    return s_renderer->CompileShader(stage, source, entryPoint);
+}
+
 void agpuDestroyShader(AgpuShader shader)
 {
     s_renderer->DestroyShader(shader);
+}
+
+AgpuShaderStage agpuGetShaderStage(AgpuShader shader)
+{
+    return s_renderer->GetShaderStage(shader);
 }
 
 AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
 {
 #if defined(ALIMER_DEV)
     ALIMER_ASSERT_MSG(descriptor, "Invalid render pipeline descriptor.");
-    ALIMER_ASSERT_MSG(descriptor->vertex, "Invalid vertex shader.");
-    ALIMER_ASSERT_MSG(descriptor->fragment, "Invalid fragment shader.");
+    ALIMER_ASSERT_MSG(descriptor->shader, "Invalid shader.");
+    //ALIMER_ASSERT_MSG(descriptor->fragment, "Invalid fragment shader.");
 
     for (int i = 0; i < AGPU_MAX_VERTEX_BUFFER_BINDINGS; i++)
     {
@@ -398,7 +408,7 @@ void agpuSetPipeline(AgpuPipeline pipeline)
     s_renderer->SetPipeline(pipeline);
 }
 
-void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset)
+void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, AgpuVertexInputRate inputRate)
 {
     ALIMER_ASSERT_MSG(buffer, "Invalid buffer");
     ALIMER_ASSERT(binding < AGPU_MAX_VERTEX_BUFFER_BINDINGS);
@@ -410,7 +420,7 @@ void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset
     }
 #endif
 
-    s_renderer->CmdSetVertexBuffer(buffer, offset, binding);
+    s_renderer->CmdSetVertexBuffer(binding, buffer, offset, buffer->stride, inputRate);
 }
 
 void agpuCmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType)
@@ -447,9 +457,20 @@ void agpuCmdSetScissors(uint32_t scissorCount, const AgpuRect2D* pScissors)
     s_renderer->CmdSetScissors(scissorCount, pScissors);
 }
 
+void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology)
+{
+    s_renderer->CmdSetPrimitiveTopology(topology);
+}
+
 void agpuCmdDraw(uint32_t vertexCount, uint32_t startVertexLocation)
 {
     s_renderer->CmdDraw(vertexCount, startVertexLocation);
+}
+
+void agpuCmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset)
+{
+    ALIMER_ASSERT(indexCount > 1);
+    s_renderer->CmdDrawIndexed(indexCount, 1, firstIndex, vertexOffset, 0);
 }
 
 typedef enum AgpuPixelFormatType
