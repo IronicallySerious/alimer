@@ -194,31 +194,35 @@ namespace Alimer
 
     bool Shader::Define(ShaderStage stage, const String& shaderSource, const String& entryPoint)
     {
-        Destroy();
-
-        AgpuShaderDescriptor descriptor = {};
-        descriptor.stage = static_cast<AgpuShaderStage>(stage);
-        descriptor.source = shaderSource.CString();
-        descriptor.entryPoint = entryPoint.CString();
-        _handle = agpuCreateShader(&descriptor);
-        return _handle != nullptr;
+        _shaderDescriptor.stages[static_cast<unsigned>(stage)].blob = agpuCompileShader(
+            static_cast<AgpuShaderStage>(stage),
+            shaderSource.CString(),
+            entryPoint.CString()
+        );
+        return _shaderDescriptor.stages[static_cast<unsigned>(stage)].blob.size > 0;
     }
 
-    bool Shader::Define(uint64_t size, const uint8_t* data)
+    bool Shader::Define(const  std::vector<uint8_t>& bytecode)
     {
-        Destroy();
+        ShaderReflection reflection;
+        SPIRVReflectResources(reinterpret_cast<const uint32_t*>(bytecode.data()), bytecode.size(), &reflection);
 
+        _shaderDescriptor.stages[static_cast<unsigned>(reflection.stage)].blob.size = bytecode.size();
+        _shaderDescriptor.stages[static_cast<unsigned>(reflection.stage)].blob.data = new uint8_t[bytecode.size()];
+        memcpy(_shaderDescriptor.stages[static_cast<unsigned>(reflection.stage)].blob.data, bytecode.data(), bytecode.size());
 
-        AgpuShaderDescriptor descriptor = {};
-        descriptor.codeSize = size;
-        descriptor.pCode = data;
-        _handle = agpuCreateShader(&descriptor);
+        return false;
+    }
+
+    bool Shader::Finalize()
+    {
+        _handle = agpuCreateShader(&_shaderDescriptor);
         if (_handle != nullptr)
         {
-            SPIRVReflectResources(reinterpret_cast<const uint32_t*>(data), size, &_reflection);
+            return true;
         }
 
-        return _handle;
+        return false;
     }
 
     class ShaderLoader final : public ResourceLoader
@@ -247,7 +251,7 @@ namespace Alimer
     Object* ShaderLoader::EndLoad()
     {
         Shader* shader = new Shader();
-        shader->Define(_bytecode.size(), _bytecode.data());
+        shader->Define(_bytecode);
         return shader;
     }
 

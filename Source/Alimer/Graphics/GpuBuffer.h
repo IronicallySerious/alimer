@@ -54,7 +54,7 @@ namespace Alimer
         /// Unconditionally destroy the GPU resource.
         void Destroy();
 
-        bool Define(BufferUsage usage, uint64_t elementCount, uint64_t stride, void* initialData = nullptr, const String& name = "");
+        bool Define(BufferUsage usage, uint64_t size, uint32_t stride, const void* initialData = nullptr, const String& name = "");
 
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
@@ -77,7 +77,6 @@ namespace Alimer
 	private:
         AgpuBuffer _handle = nullptr;
         BufferUsage _usage = BufferUsage::None;
-        uint64_t _elementCount = 0;
         uint64_t _stride = 0;
 		uint64_t _size = 0;
 	};

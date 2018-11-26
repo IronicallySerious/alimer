@@ -48,11 +48,7 @@ namespace Alimer
 
     struct RenderPipelineDescriptor
     {
-        SharedPtr<Shader>               vertex;
-        SharedPtr<Shader>               fragment;
-        SharedPtr<Shader>               domain;
-        SharedPtr<Shader>               hull;
-        SharedPtr<Shader>               geometry;
+        SharedPtr<Shader>               shader;
 
         VertexDescriptor                vertexDescriptor;
         PrimitiveTopology               primitiveTopology = PrimitiveTopology::TriangleList;

@@ -55,6 +55,8 @@ namespace Alimer
         UniquePtr<Stream> Open(const String &assetName);
         bool Exists(const String &assetName);
 
+        std::vector<uint8_t> ReadBytes(const String& assetName, size_t count = 0);
+
         SharedPtr<Object> LoadObject(StringHash type, const String& assetName);
 
 		template <class T> SharedPtr<T> Load(const String& assetName)

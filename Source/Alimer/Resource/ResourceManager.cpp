@@ -150,6 +150,12 @@ namespace Alimer
         return false;
     }
 
+    std::vector<uint8_t> ResourceManager::ReadBytes(const String& assetName, size_t count)
+    {
+        auto stream = Open(assetName);
+        return stream->ReadBytes(count);
+    }
+
     SharedPtr<Object> ResourceManager::LoadObject(StringHash type, const String& assetName)
     {
         auto stream = Open(assetName);

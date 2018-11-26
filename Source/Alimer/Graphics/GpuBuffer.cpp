@@ -45,18 +45,17 @@ namespace Alimer
         }
     }
 
-    bool GpuBuffer::Define(BufferUsage usage, uint64_t elementCount, uint64_t stride, void* initialData, const String& name)
+    bool GpuBuffer::Define(BufferUsage usage, uint64_t size, uint32_t stride, const void* initialData, const String& name)
     {
         Destroy();
 
         _usage = usage;
-        _elementCount = elementCount;
         _stride = stride;
-        _size = elementCount * stride;
+        _size = size;
 
         AgpuBufferDescriptor descriptor = {};
         descriptor.usage = static_cast<AgpuBufferUsage>(usage);
-        descriptor.elementCount = elementCount;
+        descriptor.size = size;
         descriptor.stride = stride;
         if (!name.IsEmpty())
         {

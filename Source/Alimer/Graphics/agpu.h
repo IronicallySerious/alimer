@@ -381,7 +381,7 @@ extern "C"
     ALIMER_API void agpuCmdSetScissors(uint32_t scissorCount, const AgpuRect2D* pScissors);
 
     ALIMER_API void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology);
-    ALIMER_API void agpuCmdDraw(uint32_t vertexCount, uint32_t startVertexLocation);
+    ALIMER_API void agpuCmdDraw(uint32_t vertexCount, uint32_t firstVertex);
     ALIMER_API void agpuCmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset);
 
     /* Helper methods */

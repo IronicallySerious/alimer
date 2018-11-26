@@ -462,9 +462,9 @@ void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology)
     s_renderer->CmdSetPrimitiveTopology(topology);
 }
 
-void agpuCmdDraw(uint32_t vertexCount, uint32_t startVertexLocation)
+void agpuCmdDraw(uint32_t vertexCount, uint32_t firstVertex)
 {
-    s_renderer->CmdDraw(vertexCount, startVertexLocation);
+    s_renderer->CmdDraw(vertexCount, 1, firstVertex, 0);
 }
 
 void agpuCmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset)

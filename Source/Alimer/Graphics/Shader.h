@@ -61,23 +61,18 @@ namespace Alimer
 
         bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
 
-        bool Define(uint64_t size, const uint8_t* data);
+        bool Define(const  std::vector<uint8_t>& bytecode);
+
+        bool Finalize();
 
         /// Get the gpu handle.
-        AgpuShader GetHandle() const { return _handle; }
-
-        //uint64_t GetHash() const { return _hash; }
-        ShaderStage GetStage() const { return _reflection.stage; }
-        //const ShaderReflection& GetReflection() const { return _reflection; }
-        //const std::vector<uint8_t>& GetBytecode() const { return _byteCode; }
-
+        inline AgpuShader GetHandle() const { return _handle; }
     private:
         /// Register object factory.
         static void RegisterObject();
 
         //uint64_t _hash;
-        //std::vector<uint8_t> _byteCode;
-        ShaderReflection _reflection;
+        AgpuShaderDescriptor _shaderDescriptor = {};
         AgpuShader _handle = nullptr;
     };
 }

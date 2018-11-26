@@ -542,6 +542,8 @@ namespace d3d12
         void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType);
 
         void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology);
+
+        void CmdDraw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
         void CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
 
         ID3D12GraphicsCommandList* GetCommandList() const { return _commandList; }
@@ -644,7 +646,7 @@ namespace d3d12
         void CmdSetScissors(uint32_t count, const AgpuRect2D* pScissors) override;
 
         void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology) override;
-        void CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation) override;
+        void CmdDraw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
         void CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) override;
 
         void CreateRootSignature(ID3D12RootSignature** rootSignature, const D3D12_ROOT_SIGNATURE_DESC1& desc);
@@ -1030,6 +1032,13 @@ namespace d3d12
     void CommandBufferD3D12::CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology)
     {
         _graphicsState.SetPrimitiveTopology(topology);
+    }
+
+    void CommandBufferD3D12::CmdDraw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+        FlushGraphicsState();
+
+        _commandList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void CommandBufferD3D12::CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
@@ -2631,9 +2640,9 @@ namespace d3d12
         s_pActiveCommandBuffer->CmdSetPrimitiveTopology(topology);
     }
 
-    void AGpuRendererD3D12::CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation)
+    void AGpuRendererD3D12::CmdDraw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
-        s_pActiveCommandBuffer->GetCommandList()->DrawInstanced(vertexCount, 1u, startVertexLocation, 0u);
+        s_pActiveCommandBuffer->CmdDraw(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void AGpuRendererD3D12::CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)

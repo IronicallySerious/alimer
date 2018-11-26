@@ -138,7 +138,10 @@ endif()
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER "3.6")
     if (ALIMER_CSHARP)
+        # WIP C# editor
         set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer.Studio" )
+    elseif (ALIMER_TOOLS)
+        set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "AlimerStudio" )
     else ()
         set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer" )
     endif ()

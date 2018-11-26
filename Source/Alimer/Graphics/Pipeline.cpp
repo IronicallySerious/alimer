@@ -51,23 +51,22 @@ namespace Alimer
     {
         ALIMER_ASSERT(descriptor);
 #ifdef _DEBUG
-        if (descriptor->vertex == nullptr)
+        if (descriptor->shader == nullptr)
         {
             ALIMER_LOGERROR("RenderPipeline: Invalid vertex shader.");
         }
 
-        if (descriptor->fragment == nullptr)
+        /*if (descriptor->fragment == nullptr)
         {
             ALIMER_LOGERROR("RenderPipeline: Invalid fragment shader.");
-        }
+        }*/
 #endif
 
         Destroy();
         _isCompute = false;
 
         AgpuRenderPipelineDescriptor gpuPipelineDesc = {};
-        gpuPipelineDesc.vertex = descriptor->vertex->GetHandle();
-        gpuPipelineDesc.fragment = descriptor->fragment->GetHandle();
+        gpuPipelineDesc.shader = descriptor->shader->GetHandle();
 
         for (uint32_t i = 0u; i < AGPU_MAX_VERTEX_BUFFER_BINDINGS; i++)
         {

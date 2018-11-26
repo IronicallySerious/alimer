@@ -62,8 +62,8 @@ namespace Alimer
             };
 
             _vertexBuffer.Define(
-                BufferUsage::Vertex | BufferUsage::CPUAccessible,
-                3, 
+                BufferUsage::Vertex,
+                sizeof(triangleVertices),
                 sizeof(VertexColor),
                 triangleVertices);
 
@@ -73,29 +73,26 @@ namespace Alimer
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
             _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);*/
 
+            // Define pipeline now.
             RenderPipelineDescriptor renderPipelineDesc = {};
 
             // Shaders
-            renderPipelineDesc.vertex = resources.Load<Shader>("shaders/color.vert.spv");
-            renderPipelineDesc.fragment = resources.Load<Shader>("shaders/color.frag.spv");
+            _shader = new Shader();
+            _shader->Define(resources.ReadBytes("shaders/color.vert.spv"));
+            _shader->Define(resources.ReadBytes("shaders/color.frag.spv"));
+            _shader->Finalize();
 
-            // Define pipeline now.
+            renderPipelineDesc.shader = _shader;
             renderPipelineDesc.vertexDescriptor.layouts[0].stride = sizeof(VertexColor);
             renderPipelineDesc.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
             renderPipelineDesc.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
-            _pipeline = new Pipeline();
-            _pipeline->Define(&renderPipelineDesc);
-
-            //RenderPipelineDescriptor renderPipelineDesc = {};
-            //renderPipelineDesc.shaders[ecast(ShaderStage::Vertex)] = device->RequestShader("shaders/color.vert");
-            //renderPipelineDesc.shaders[ecast(ShaderStage::Fragment)] = device->RequestShader("shaders/color.frag");
-            //_pipeline = device->CreateRenderPipeline(&renderPipelineDesc);
+            _pipeline.Define(&renderPipelineDesc);
         }
 
         void Render(SharedPtr<CommandContext> context)
         {
-            agpuSetPipeline(_pipeline->GetHandle());
-            agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0);
+            agpuSetPipeline(_pipeline.GetHandle());
+            agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
             agpuCmdDraw(3, 0);
             //context->SetPipeline(_pipeline);
             //context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
@@ -106,15 +103,15 @@ namespace Alimer
         GpuBuffer _vertexBuffer;
         GpuBuffer _perCameraUboBuffer;
 
-        SharedPtr<Pipeline> _pipeline;
+        SharedPtr<Shader> _shader;
+        Pipeline _pipeline;
         PerCameraCBuffer _camera{};
     };
 
-#if TODO
     class QuadExample
     {
     public:
-        void Initialize(GraphicsDevice* graphics, ResourceManager& resources)
+        void Initialize(ResourceManager& resources)
         {
             VertexColor triangleVertices[] =
             {
@@ -124,62 +121,72 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4(1.0f, 1.0f, 0.0f, 1.0f) },
             };
 
-            BufferDescriptor vertexBufferDesc = {};
-            vertexBufferDesc.usage = BufferUsage::Vertex;
-            vertexBufferDesc.size = sizeof(triangleVertices);
-            vertexBufferDesc.stride = sizeof(VertexColor);
-            vertexBufferDesc.resourceUsage = ResourceUsage::Immutable;
-            _vertexBuffer = graphics->CreateBuffer(&vertexBufferDesc, triangleVertices);
+            _vertexBuffer.Define(
+                BufferUsage::Vertex,
+                sizeof(triangleVertices),
+                sizeof(VertexColor),
+                triangleVertices);
 
             // Create index buffer.
             const uint16_t indices[] = {
                 0, 1, 2, 0, 2, 3
             };
 
-            BufferDescriptor indexBufferDesc = {};
-            indexBufferDesc.usage = BufferUsage::Index;
-            indexBufferDesc.size = sizeof(indices);
-            indexBufferDesc.stride = sizeof(uint16_t);
-            indexBufferDesc.resourceUsage = ResourceUsage::Immutable;
-            _indexBuffer = graphics->CreateBuffer(&indexBufferDesc, indices);
+            _indexBuffer.Define(
+                BufferUsage::Index,
+                sizeof(indices),
+                sizeof(uint16_t),
+                indices);
 
-            // Create shader program.
-            _shader = resources.Load<Shader>("shaders/color.shader");
-
-            BufferDescriptor uboBufferDesc = {};
+            /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);*/
+
+            // Define pipeline now.
+            RenderPipelineDescriptor renderPipelineDesc = {};
+
+            // Shaders
+            _shader = new Shader();
+            _shader->Define(resources.ReadBytes("shaders/color.vert.spv"));
+            _shader->Define(resources.ReadBytes("shaders/color.frag.spv"));
+            _shader->Finalize();
+
+            renderPipelineDesc.shader = _shader;
+            renderPipelineDesc.vertexDescriptor.layouts[0].stride = sizeof(VertexColor);
+            renderPipelineDesc.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
+            renderPipelineDesc.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
+            _pipeline.Define(&renderPipelineDesc);
         }
 
         void Render(CommandContext* context)
         {
-            context->SetShader(_shader.Get());
-            context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
-            context->SetIndexBuffer(_indexBuffer.Get(), 0);
+            ALIMER_UNUSED(context);
+            agpuSetPipeline(_pipeline.GetHandle());
+            agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
+            agpuCmdSetIndexBuffer(_indexBuffer.GetHandle(), 0, AGPU_INDEX_TYPE_UINT16);
+            agpuCmdDrawIndexed(6, 0, 0);
+
+            //context->SetShader(_shader.Get());
+            //context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
+            //context->SetIndexBuffer(_indexBuffer.Get(), 0);
             //context->SetBuffer(_perCameraUboBuffer.Get(), 0, 0);
 
-            VertexDescriptor vertexDescriptor;
-            vertexDescriptor.buffers[0].stride = sizeof(VertexColor);
-            vertexDescriptor.attributes[0].format = VertexFormat::Float3;
-            vertexDescriptor.attributes[0].semantic = VertexElementSemantic::Position;
-            vertexDescriptor.attributes[1].format = VertexFormat::Float4;
-            vertexDescriptor.attributes[1].semantic = VertexElementSemantic::Color0;
-            context->SetVertexDescriptor(&vertexDescriptor);
-
-            context->DrawIndexed(PrimitiveTopology::Triangles, 6, 0, 0);
+            //context->DrawIndexed(PrimitiveTopology::Triangles, 6, 0, 0);
         }
 
     private:
-        SharedPtr<GpuBuffer> _vertexBuffer;
-        SharedPtr<GpuBuffer> _indexBuffer;
-        SharedPtr<Shader> _shader;
-        SharedPtr<GpuBuffer> _perCameraUboBuffer;
+        GpuBuffer _vertexBuffer;
+        GpuBuffer _indexBuffer;
+        //SharedPtr<GpuBuffer> _perCameraUboBuffer;
+        // PerCameraCBuffer _camera;
 
-        PerCameraCBuffer _camera;
+        SharedPtr<Shader> _shader;
+        Pipeline _pipeline;
     };
 
+#if TODO
     class CubeExample
     {
     public:
@@ -368,7 +375,7 @@ namespace Alimer
 
     private:
         TriangleExample _triangleExample;
-        //QuadExample _quadExample;
+        QuadExample _quadExample;
         //CubeExample _cubeExample;
         //TexturedCubeExample _texturedCubeExample;
     };
@@ -376,13 +383,13 @@ namespace Alimer
     RuntimeApplication::RuntimeApplication()
     {
         _settings.preferredGraphicsBackend = GraphicsBackend::D3D11;
-       // _settings.preferredGraphicsBackend = GraphicsBackend::Vulkan;
+        // _settings.preferredGraphicsBackend = GraphicsBackend::Vulkan;
     }
 
     void RuntimeApplication::Initialize()
     {
         _triangleExample.Initialize(_resources);
-        //_quadExample.Initialize(_graphicsDevice, _resources);
+        //_quadExample.Initialize(_resources);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
 

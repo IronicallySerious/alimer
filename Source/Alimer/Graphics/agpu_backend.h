@@ -177,7 +177,7 @@ struct AGpuRendererI
     virtual void CmdSetScissors(uint32_t count, const AgpuRect2D* pScissors) = 0;
 
     virtual void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology) = 0;
-    virtual void CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation) = 0;
+    virtual void CmdDraw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
     virtual void CmdDrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) = 0;
 };
 

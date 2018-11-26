@@ -56,7 +56,7 @@ elseif ( "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore" )
     set (ALIMER_UWP_VERSION_MIN 10.0.16299.0)
 elseif( ${CMAKE_SYSTEM_NAME} STREQUAL "Durango" )
 	set (ALIMER_XBOX_ONE 1)
-    set (VALIMER_PLATFORM_NAME "XboxOne")
+    set (ALIMER_PLATFORM_NAME "XboxOne")
 elseif( ${CMAKE_SYSTEM_NAME} STREQUAL "Orbis" )
 	set (ALIMER_PS4 1)
 	set (ALIMER_PLATFORM_NAME "PS4")
@@ -119,8 +119,20 @@ elseif( ALIMER_UWP OR ALIMER_XBOX_ONE )
     ucm_set_runtime(DYNAMIC)
 endif()
 
+# TODO: Disable exceptions
+# if( NOT ALIMER_XBOX_ONE )
+# 	add_compile_options(-D_HAS_EXCEPTIONS=0)
+# endif()
+
 # Setup global per-platform compiler/linker options
 if( MSVC )
+    # if ( NOT ALIMER_UWP )
+        # Remove /EHsc from CMAKE_CXX_FLAGS for MSVC to disable exceptions
+    #     if(CMAKE_CXX_FLAGS MATCHES "/EHsc")
+	# 	    string(REPLACE "/EHsc" "/EHs-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+	#     endif()
+    # endif ()
+
 	# Disable specific warnings
 	add_compile_options(/wd4127 /wd4351 /wd4005)
 
