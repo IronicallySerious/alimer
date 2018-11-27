@@ -21,7 +21,7 @@
 //
 
 #include "../Core/Object.h"
-#include <unordered_map>
+#include <map>
 
 namespace Alimer
 {
@@ -31,7 +31,7 @@ namespace Alimer
         {
             void AddSubsystem(Object* subsystem)
             {
-                _subsystems.emplace(std::make_pair(subsystem->GetType(), subsystem));
+                _subsystems[subsystem->GetType()] = subsystem;
             }
 
             void RemoveSubsystem(Object* subsystem)
@@ -52,7 +52,7 @@ namespace Alimer
 
             void AddFactory(ObjectFactory* factory)
             {
-                _factories.emplace(std::make_pair(factory->GetType(), factory));
+                _factories[factory->GetType()].Reset(factory);
             }
 
             void RemoveFactory(StringHash type)
@@ -74,10 +74,10 @@ namespace Alimer
 
         private:
             /// Registered subsystems.
-            std::unordered_map<StringHash, Object*> _subsystems;
+            std::map<StringHash, Object*> _subsystems;
 
             /// Registered object factories.
-            std::unordered_map<StringHash, UniquePtr<ObjectFactory>> _factories;
+            std::map<StringHash, UniquePtr<ObjectFactory>> _factories;
         };
 
         SubSystemContext& Context()

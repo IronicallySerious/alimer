@@ -22,55 +22,26 @@
 
 #pragma once
 
-#include "../IO/Stream.h"
+#include "../Base/String.h"
 
 namespace Alimer
 {
-	enum class FileAccess
-	{
-        ReadOnly,
-		WriteOnly,
-		ReadWrite
-	};
+    struct Hash
+    {
+        uint64_t A;
+        uint64_t B;
 
-	/// OS file stream.
-	class ALIMER_API FileStream : public Stream
-	{
-	public:
-		/// Constructor.
-        FileStream();
+        Hash() : A(0), B(0) {}
+        Hash(uint64_t a, uint64_t b) : A(a), B(b) {}
 
-        /// Construct and open a file.
-        FileStream(const String& fileName, FileAccess mode = FileAccess::ReadOnly);
+        String ToString() const;
 
-        /// Destructor. Close the file if open.
-        ~FileStream() override;
+        bool operator==(const Hash& other)
+        {
+            return A == other.A && B == other.B;
+        }
+    };
 
-        /// Open a file. Return true on success.
-        bool Open(const String& fileName, FileAccess mode = FileAccess::ReadOnly);
-
-        /// Close the file.
-        void Close();
-
-        /// Flush any buffered output to the file.
-        void Flush();
-
-        bool CanRead() const override;
-        bool CanWrite() const override;
-        bool CanSeek() const override;
-
-        uint64_t Read(void* dest, uint64_t size) override;
-        void Write(const void* data, uint64_t size) override;
-
-        /// Return whether is open.
-        bool IsOpen() const;
-
-        /// Return the file handle.
-        void* GetHandle() const { return _handle; }
-
-    private:
-        FileAccess _mode;
-        void* _handle;
-        bool _canSeek;
-	};
+    ALIMER_API Hash GenerateHash(const void* key, int32_t len, uint32_t seed = 0);
+    ALIMER_API Hash CombineHashes(Hash a, Hash b);
 }

@@ -707,12 +707,12 @@ namespace Alimer
         return ret;
     }
 
-    std::vector<String> String::Split(char separator, bool keepEmptyStrings) const
+    Vector<String> String::Split(char separator, bool keepEmptyStrings) const
     {
         return Split(CString(), separator, keepEmptyStrings);
     }
 
-    void String::Join(const std::vector<String>& subStrings, const String& glue)
+    void String::Join(const Vector<String>& subStrings, const String& glue)
     {
         *this = Joined(subStrings, glue);
     }
@@ -870,9 +870,9 @@ namespace Alimer
         return pos != NPOS && pos == Length() - str.Length();
     }
 
-    std::vector<String> String::Split(const char* str, char separator, bool keepEmptyStrings)
+    Vector<String> String::Split(const char* str, char separator, bool keepEmptyStrings)
     {
-        std::vector<String> ret;
+        Vector<String> ret;
         const char* strEnd = str + String::CStringLength(str);
 
         for (const char* splitEnd = str; splitEnd != strEnd; ++splitEnd)
@@ -882,7 +882,7 @@ namespace Alimer
                 const ptrdiff_t splitLen = splitEnd - str;
                 if (splitLen > 0 || keepEmptyStrings)
                 {
-                    ret.push_back(String(str, splitLen));
+                    ret.Push(String(str, splitLen));
                 }
 
                 str = splitEnd + 1;
@@ -891,18 +891,18 @@ namespace Alimer
 
         const ptrdiff_t splitLen = strEnd - str;
         if (splitLen > 0 || keepEmptyStrings)
-            ret.push_back(String(str, splitLen));
+            ret.Push(String(str, splitLen));
 
         return ret;
     }
 
-    String String::Joined(const std::vector<String>& subStrings, const String& glue)
+    String String::Joined(const Vector<String>& subStrings, const String& glue)
     {
-        if (subStrings.empty())
+        if (subStrings.IsEmpty())
             return String();
 
         String joinedString(subStrings[0]);
-        for (unsigned i = 1; i < subStrings.size(); ++i)
+        for (uint32_t i = 1; i < subStrings.Size(); ++i)
         {
             joinedString.Append(glue).Append(subStrings[i]);
         }

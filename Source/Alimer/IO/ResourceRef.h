@@ -22,8 +22,8 @@
 
 #pragma once
 
+#include "../Base/String.h"
 #include "../Base/StringHash.h"
-#include <vector>
 
 namespace Alimer
 {
@@ -121,7 +121,7 @@ namespace Alimer
         /// Resource type.
         StringHash type;
         /// List of resource names.
-        std::vector<String> names;
+        Vector<String> names;
 
         /// Construct.
         ResourceRefList() = default;
@@ -146,7 +146,7 @@ namespace Alimer
         }
 
         /// Construct with type and name list.
-        ResourceRefList(StringHash type_, const std::vector<String>& names_ = std::vector<String>()) 
+        ResourceRefList(StringHash type_, const Vector<String>& names_ = Vector<String>())
             : type(type_)
             , names(names_)
         {

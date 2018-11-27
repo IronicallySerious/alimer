@@ -31,7 +31,6 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#undef CreateDirectory
 #endif
 
 #include <cstdio>
@@ -60,7 +59,7 @@ namespace Alimer
         if (!EnsureDirectoryExistsInner(basedir))
             return false;
 
-        if (!FileSystem::CreateDirectory(path))
+        if (!FileSystem::CreateDir(path))
             return false;
 
         return true;
@@ -167,7 +166,7 @@ namespace Alimer
                 ALIMER_LOGERROR("[Win32] - GetFileSizeEx: failed");
             }
 
-            _size = static_cast<size_t>(size.QuadPart);
+            _size = static_cast<uint64_t>(size.QuadPart);
         }
 #else
         _handle = fopen(fileName.CString(), openModes[static_cast<uint32_t>(mode)]);
@@ -250,7 +249,7 @@ namespace Alimer
         return _canSeek;
     }
 
-    size_t FileStream::Read(void* dest, size_t size)
+    uint64_t FileStream::Read(void* dest, uint64_t size)
     {
         if (!CanRead())
         {
@@ -289,19 +288,19 @@ namespace Alimer
 #endif
     }
 
-    size_t FileStream::Write(const void* data, size_t size)
+    void FileStream::Write(const void* data, size_t size)
     {
         if (!_handle || _mode == FileAccess::ReadOnly)
-            return 0;
+            return;
 
         if (!size)
-            return 0;
+            return;
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         DWORD byteWritten;
         if (!WriteFile(_handle, data, static_cast<DWORD>(size), &byteWritten, nullptr))
         {
-            return 0;
+            return;
         }
 
         _position += byteWritten;
@@ -310,7 +309,7 @@ namespace Alimer
         {
             // If error, return to the position where the write began
             fseek((FILE*)_handle, (long)_position, SEEK_SET);
-            return 0;
+            return;
         }
 
         _position += size;
@@ -320,8 +319,6 @@ namespace Alimer
         {
             _size = _position;
         }
-
-        return _size;
     }
 
     bool FileStream::IsOpen() const

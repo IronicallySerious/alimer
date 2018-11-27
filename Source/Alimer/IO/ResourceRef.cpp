@@ -33,8 +33,8 @@ namespace Alimer
 
     bool ResourceRef::FromString(const char* str)
     {
-        std::vector<String> values = String::Split(str, ';');
-        if (values.size() == 2)
+        Vector<String> values = String::Split(str, ';');
+        if (values.Size() == 2)
         {
             type = values[0];
             name = values[1];
@@ -69,39 +69,39 @@ namespace Alimer
 
     bool ResourceRefList::FromString(const char* str)
     {
-        std::vector<String> values = String::Split(str, ';');
-        if (values.size() >= 1)
+        Vector<String> values = String::Split(str, ';');
+        if (values.Size() >= 1)
         {
             type = values[0];
-            names.clear();
-            for (size_t i = 1; i < values.size(); ++i)
+            names.Clear();
+            for (uint32_t i = 1; i < values.Size(); ++i)
             {
-                names.push_back(values[i]);
+                names.Push(values[i]);
             }
             return true;
         }
-        else
-            return false;
+        
+        return false;
     }
 
     void ResourceRefList::FromBinary(Stream& source)
     {
         type = source.ReadStringHash();
-        size_t num = source.ReadVLE();
-        names.clear();
-        for (size_t i = 0; i < num && !source.IsEof(); ++i)
+        uint32_t count = source.ReadVLE();
+        names.Clear();
+        for (size_t i = 0; i < count && !source.IsEof(); ++i)
         {
-            names.push_back(source.ReadString());
+            names.Push(source.ReadString());
         }
     }
 
     String ResourceRefList::ToString() const
     {
         String ret(Object::GetTypeNameFromType(type));
-        for (auto it = names.begin(); it != names.end(); ++it)
+        for (auto name : names)
         {
             ret += ";";
-            ret += *it;
+            ret += name;
         }
         return ret;
     }
@@ -109,10 +109,10 @@ namespace Alimer
     void ResourceRefList::ToBinary(Stream& dest) const
     {
         dest.WriteStringHash(type);
-        dest.WriteVLE(static_cast<unsigned>(names.size()));
-        for (auto it = names.begin(); it != names.end(); ++it)
+        dest.WriteVLE(names.Size());
+        for (auto name : names)
         {
-            dest.WriteString(*it);
+            dest.WriteString(name);
         }
     }
 }

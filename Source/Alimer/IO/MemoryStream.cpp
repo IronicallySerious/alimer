@@ -72,7 +72,7 @@ namespace Alimer
         return _buffer != nullptr;
     }
 
-    size_t MemoryStream::Read(void* dest, size_t size)
+    uint64_t MemoryStream::Read(void* dest, uint64_t size)
     {
         if (size + _position > _size)
         {
@@ -106,7 +106,7 @@ namespace Alimer
         return size;
     }
 
-    size_t MemoryStream::Write(const void* data, size_t size)
+    void MemoryStream::Write(const void* data, uint64_t size)
     {
         if (size + _position > _size)
         {
@@ -114,7 +114,7 @@ namespace Alimer
         }
 
         if (!size || _readOnly)
-            return 0;
+            return;
 
         uint8_t* srcPtr = (uint8_t*)data;
         uint8_t* destPtr = &_buffer[_position];
@@ -134,9 +134,9 @@ namespace Alimer
             srcPtr += sizeof(unsigned short);
             destPtr += sizeof(unsigned short);
         }
-        if (copySize & 1)
-            *destPtr = *srcPtr;
 
-        return size;
+        if (copySize & 1) {
+            *destPtr = *srcPtr;
+        }
     }
 }

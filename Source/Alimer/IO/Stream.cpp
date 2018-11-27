@@ -31,7 +31,7 @@ namespace Alimer
 	{
 	}
 
-    Stream::Stream(size_t sizeInBytes)
+    Stream::Stream(uint64_t sizeInBytes)
         : _position(0)
         , _size(sizeInBytes)
     {
@@ -157,14 +157,14 @@ namespace Alimer
 		return content;
 	}
 
-	std::vector<uint8_t> Stream::ReadBytes(size_t count)
+	Vector<uint8_t> Stream::ReadBytes(uint64_t count)
 	{
 		if (!count)
 			count = _size;
 
-		std::vector<uint8_t> result(count);
+		Vector<uint8_t> result(count);
 
-		size_t read = Read(result.data(), count);
+        uint64_t read = Read(result.Data(), count);
 		if (read != count)
 		{
 			ALIMER_LOGERRORF("Failed to read complete contents of stream (amount read vs. file size: %u < %u).",

@@ -31,8 +31,7 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#undef CreateDirectory
-#undef GetCurrentDirectory
+
 #endif
 
 namespace Alimer
@@ -322,7 +321,7 @@ namespace Alimer
         return true;
     }
 
-    bool FileSystem::CreateDirectory(const String& path)
+    bool FileSystem::CreateDir(const String& path)
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         WString normalizePath = GetWideNativePath(RemoveTrailingSlash(path));
@@ -332,7 +331,7 @@ namespace Alimer
 #endif
     }
 
-    String FileSystem::GetCurrentDirectory()
+    String FileSystem::GetCurrentDir()
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         wchar_t path[MAX_PATH];

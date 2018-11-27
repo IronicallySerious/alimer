@@ -108,10 +108,10 @@ namespace Alimer
         static bool DirectoryExists(const String& path);
 
         /// Create a directory.
-        static bool CreateDirectory(const String& path);
+        static bool CreateDir(const String& path);
 
         /// Return the absolute current working directory.
-        static String GetCurrentDirectory();
+        static String GetCurrentDir();
 
         /// Return the executable application folder.
         static String GetExecutableFolder();

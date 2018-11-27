@@ -181,5 +181,4 @@ namespace Alimer
 
         ValueType data_[N ? N : 1];
     };
-
 }

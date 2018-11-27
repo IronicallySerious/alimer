@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Base/String.h"
-#include <vector>
+#include "../Base/Vector.h"
 
 namespace Alimer
 {
@@ -43,7 +43,7 @@ namespace Alimer
 		Stream();
 
         /// Constructor.
-        Stream(size_t sizeInBytes);
+        Stream(uint64_t sizeInBytes);
 
     public:
 		/// Destructor.
@@ -65,7 +65,7 @@ namespace Alimer
 		* @param size Number of bytes to read.
 		* @return Number of bytes actually read.
 		*/
-		virtual size_t Read(void* dest, size_t size) = 0;
+		virtual uint64_t Read(void* dest, uint64_t size) = 0;
 
         /// Read an 8-bit integer.
         signed char ReadByte();
@@ -99,16 +99,15 @@ namespace Alimer
 		String ReadAllText();
 
 		/// Read content as vector bytes.
-		std::vector<uint8_t> ReadBytes(size_t count = 0);
+		Vector<uint8_t> ReadBytes(uint64_t count = 0);
         
         /**
         * Write bytes to the stream.
         *
         * @param data The source data to write.
         * @param size Number of bytes to write.
-        * @return Number of bytes actually written.
         */
-        virtual size_t Write(const void* data, size_t size) = 0;
+        virtual void Write(const void* data, uint64_t size) = 0;
 
         /// Write an 8-bit integer.
         void WriteByte(signed char value);
@@ -139,12 +138,12 @@ namespace Alimer
 		/**
 		* Get current position in bytes.
 		*/
-		size_t GetPosition() const { return _position; }
+        uint64_t GetPosition() const { return _position; }
 
 		/**
 		* Get the size in bytes of the stream.
 		*/
-		size_t GetSize() const { return _size; }
+		uint64_t Size() const { return _size; }
 
 		/**
 		* Get whether the end of stream has been reached.
@@ -159,8 +158,8 @@ namespace Alimer
 
 	protected:
         String _name;
-		size_t _position;
-		size_t _size;
+        uint64_t _position;
+        uint64_t _size;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Stream);

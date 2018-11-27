@@ -23,12 +23,11 @@
 #pragma once
 
 #include "../Base/Swap.h"
-#include "../Base/Iterator.h"
+#include "../Base/Vector.h"
 #include <cassert>
 #include <cstdarg>
 #include <cstring>
 #include <cctype>
-#include <vector>
 #include <sstream>
 #include <algorithm>
 
@@ -400,9 +399,9 @@ namespace Alimer
         String ToLower() const;
 
         /// Return substrings split by a separator char. By default don't return empty strings.
-        std::vector<String> Split(char separator, bool keepEmptyStrings = false) const;
+        Vector<String> Split(char separator, bool keepEmptyStrings = false) const;
         /// Join substrings with a 'glue' string.
-        void Join(const std::vector<String>& subStrings, const String& glue);
+        void Join(const Vector<String>& subStrings, const String& glue);
         /// Return index to the first occurrence of a string, or NPOS if not found.
         uint32_t Find(const String& str, uint32_t startPos = 0, bool caseSensitive = true) const;
         /// Return index to the first occurrence of a character, or NPOS if not found.
@@ -423,9 +422,9 @@ namespace Alimer
         bool Contains(char c, bool caseSensitive = true) const { return Find(c, 0, caseSensitive) != NPOS; }
 
         /// Return substrings split by a separator char. By default don't return empty strings.
-        static std::vector<String> Split(const char* str, char separator, bool keepEmptyStrings = false);
+        static Vector<String> Split(const char* str, char separator, bool keepEmptyStrings = false);
         /// Return a string by joining substrings with a 'glue' string.
-        static String Joined(const std::vector<String>& subStrings, const String& glue);
+        static String Joined(const Vector<String>& subStrings, const String& glue);
 
         /// Return a formatted string.
         static String Format(const char* format, ...);

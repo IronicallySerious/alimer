@@ -44,8 +44,8 @@ namespace Alimer
         bool CanWrite() const override;
         bool CanSeek() const override;
 
-		size_t Read(void* dest, size_t size) override;
-        size_t Write(const void* data, size_t size) override;
+        uint64_t Read(void* dest, uint64_t size) override;
+        void Write(const void* data, uint64_t size) override;
 
         /// Return memory area.
         uint8_t* Data() { return _buffer; }
