@@ -228,7 +228,7 @@ namespace Alimer
         {
             for (IndexType i = 0; i < _size; ++i)
             {
-                _data[i] = value;
+                _buffer[i] = value;
             }
         }
 
@@ -1111,7 +1111,7 @@ namespace Alimer
             if (newCapacity < _size)
                 newCapacity = _size;
 
-            if (newCapacity != capac_capacityity_)
+            if (newCapacity != _capacity)
             {
                 uint8_t* newBuffer = nullptr;
                 _capacity = newCapacity;

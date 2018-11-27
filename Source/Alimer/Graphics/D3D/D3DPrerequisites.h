@@ -97,7 +97,7 @@ namespace Alimer
     while(0)
 #else
     // Throws a DXException on failing HRESULT
-    inline void DXCall(HRESULT hr)
+    inline void ThrowIfFailed(HRESULT hr)
     {
         if (FAILED(hr))
         {
