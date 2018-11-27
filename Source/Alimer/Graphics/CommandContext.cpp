@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/CommandContext.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Math/MathUtil.h"
 #include "../Debug/Log.h"
 
@@ -40,7 +40,7 @@ namespace Alimer
 
     void CommandContext::BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor)
     {
-        BeginRenderPass(_graphics->GetSwapchainFramebuffer(), descriptor);
+        //BeginRenderPass(_graphics->GetSwapchainFramebuffer(), descriptor);
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)

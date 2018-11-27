@@ -74,14 +74,17 @@ namespace Alimer
 	public:
 		D3D12DescriptorAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type);
 		~D3D12DescriptorAllocator();
-		void Initialize(D3D12Graphics* graphics);
+
+        void SetGraphics(D3D12Graphics* graphics) {
+            _graphics = graphics;
+        }
 
         D3D12DescriptorHandle Allocate(uint32_t count);
 
 	protected:
 		static constexpr uint32_t NumDescriptorsPerHeap = 256;
 
-		D3D12Graphics* _graphics;
+		D3D12Graphics* _graphics = nullptr;
 		D3D12_DESCRIPTOR_HEAP_TYPE _type;
 		ID3D12DescriptorHeap* _currentHeap;
 		D3D12_CPU_DESCRIPTOR_HANDLE _currentCpuHandle;

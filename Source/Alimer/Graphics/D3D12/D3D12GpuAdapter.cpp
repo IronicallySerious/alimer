@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_D3D12
 #include "D3D12GpuAdapter.h"
 
 namespace Alimer
@@ -65,3 +66,5 @@ namespace Alimer
 
     }
 }
+#endif // TODO_D3D12
+

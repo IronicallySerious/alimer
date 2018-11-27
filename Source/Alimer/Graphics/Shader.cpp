@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/Shader.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../Resource/ResourceManager.h"
 #include "../Resource/ResourceLoader.h"
@@ -31,144 +31,18 @@
 
 namespace Alimer
 {
-    class CustomCompiler : public spirv_cross::CompilerGLSL
+    ShaderModule::ShaderModule()
+        : Resource()
     {
-    public:
-        CustomCompiler(const uint32_t *ir, size_t word_count)
-            : spirv_cross::CompilerGLSL(ir, word_count)
-        {
-        }
-
-        ParamAccess GetAccessFlags(const spirv_cross::SPIRType& type)
-        {
-            auto all_members_flag_mask = spirv_cross::Bitset(~0ULL);
-            for (auto i = 0U; i < type.member_types.size(); ++i)
-                all_members_flag_mask.merge_and(get_member_decoration_bitset(type.self, i));
-
-            auto base_flags = ir.meta[type.self].decoration.decoration_flags;
-            base_flags.merge_or(spirv_cross::Bitset(all_members_flag_mask));
-
-            ParamAccess access = ParamAccess::ReadWrite;
-            if (base_flags.get(spv::DecorationNonReadable))
-                access = ParamAccess::Write;
-            else if (base_flags.get(spv::DecorationNonWritable))
-                access = ParamAccess::Read;
-
-            return access;
-        }
-    };
-
-    static ParamDataType SPIRVConvertBaseType(spirv_cross::SPIRType::BaseType type)
-    {
-        switch (type)
-        {
-        case spirv_cross::SPIRType::BaseType::Void:
-            return ParamDataType::Void;
-        case spirv_cross::SPIRType::BaseType::Boolean:
-            return ParamDataType::Boolean;
-        case spirv_cross::SPIRType::BaseType::Char:
-            return ParamDataType::Char;
-        case spirv_cross::SPIRType::BaseType::Int:
-            return ParamDataType::Int;
-        case spirv_cross::SPIRType::BaseType::UInt:
-            return ParamDataType::UInt;
-        case spirv_cross::SPIRType::BaseType::Int64:
-            return ParamDataType::Int64;
-        case spirv_cross::SPIRType::BaseType::UInt64:
-            return ParamDataType::UInt64;
-        case spirv_cross::SPIRType::BaseType::Half:
-            return ParamDataType::Half;
-        case spirv_cross::SPIRType::BaseType::Float:
-            return ParamDataType::Float;
-        case spirv_cross::SPIRType::BaseType::Double:
-            return ParamDataType::Double;
-        case spirv_cross::SPIRType::BaseType::Struct:
-            return ParamDataType::Struct;
-        default:
-            return ParamDataType::Unknown;
-        }
     }
 
-    void SPIRVReflectResources(const uint32_t* pCode, size_t size, ShaderReflection* reflection)
+    ShaderModule::~ShaderModule()
     {
-        ALIMER_ASSERT(reflection);
+        Destroy();
+    }
 
-        // Parse SPIRV binary.
-        CustomCompiler compiler(pCode, size / sizeof(uint32_t));
-        spirv_cross::CompilerGLSL::Options opts = compiler.get_common_options();
-        opts.enable_420pack_extension = true;
-        compiler.set_common_options(opts);
-
-        // Reflect on all resource bindings.
-        auto resources = compiler.get_shader_resources();
-
-        switch (compiler.get_execution_model())
-        {
-        case spv::ExecutionModelVertex:
-            reflection->stage = ShaderStage::Vertex;
-            break;
-        case spv::ExecutionModelTessellationControl:
-            reflection->stage = ShaderStage::TessControl;
-            break;
-        case spv::ExecutionModelTessellationEvaluation:
-            reflection->stage = ShaderStage::TessEvaluation;
-            break;
-        case spv::ExecutionModelGeometry:
-            reflection->stage = ShaderStage::Geometry;
-            break;
-
-        case spv::ExecutionModelFragment:
-            reflection->stage = ShaderStage::Fragment;
-            break;
-        case spv::ExecutionModelGLCompute:
-            reflection->stage = ShaderStage::Compute;
-            break;
-        default:
-            ALIMER_LOGCRITICAL("Invalid shader execution model");
-        }
-
-        auto ExtractInputOutputs = [](
-            const ShaderStage& stage,
-            const std::vector<spirv_cross::Resource>& resources,
-            const spirv_cross::Compiler& compiler,
-            ResourceParamType resourceType,
-            ParamAccess access,
-            std::vector<PipelineResource>& shaderResources)
-        {
-            uint32_t stageMask = 1u << static_cast<uint32_t>(stage);
-
-            for (const auto& resource : resources)
-            {
-                const auto& spirType = compiler.get_type_from_variable(resource.id);
-
-                PipelineResource pipelineResource = {};
-                pipelineResource.stages = static_cast<ShaderStageUsage>(stageMask);
-                pipelineResource.dataType = SPIRVConvertBaseType(spirType.basetype);
-                pipelineResource.resourceType = resourceType;
-                pipelineResource.access = access;
-                pipelineResource.location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-                pipelineResource.vecSize = spirType.vecsize;
-                pipelineResource.arraySize = (spirType.array.size() == 0) ? 1 : spirType.array[0];
-
-                pipelineResource.name = String(resource.name.c_str());
-                shaderResources.push_back(pipelineResource);
-            }
-        };
-
-        for (auto &attrib : resources.stage_inputs)
-        {
-            auto location = compiler.get_decoration(attrib.id, spv::DecorationLocation);
-            reflection->inputMask |= 1u << location;
-        }
-
-        for (auto &attrib : resources.stage_outputs)
-        {
-            auto location = compiler.get_decoration(attrib.id, spv::DecorationLocation);
-            reflection->outputMask |= 1u << location;
-        }
-
-        ExtractInputOutputs(reflection->stage, resources.stage_inputs, compiler, ResourceParamType::Input, ParamAccess::Read, reflection->resources);
-        ExtractInputOutputs(reflection->stage, resources.stage_outputs, compiler, ResourceParamType::Output, ParamAccess::Write, reflection->resources);
+    void ShaderModule::Destroy()
+    {
     }
 
     Shader::Shader()
@@ -185,38 +59,62 @@ namespace Alimer
 
     void Shader::Destroy()
     {
-        if (_handle != nullptr)
+        for (uint32_t i = 0; i < static_cast<unsigned>(ShaderStage::Count); ++i)
         {
-            agpuDestroyShader(_handle);
-            _handle = nullptr;
+            if (_shaders[i] != nullptr)
+            {
+                agpuDestroyShaderModule(_shaders[i]);
+                _shaders[i] = nullptr;
+            }
         }
     }
 
     bool Shader::Define(ShaderStage stage, const String& shaderSource, const String& entryPoint)
     {
-        _shaderDescriptor.stages[static_cast<unsigned>(stage)].blob = agpuCompileShader(
-            static_cast<AgpuShaderStage>(stage),
-            shaderSource.CString(),
-            entryPoint.CString()
-        );
-        return _shaderDescriptor.stages[static_cast<unsigned>(stage)].blob.size > 0;
+        AgpuShaderModuleDescriptor descriptor = {};
+        descriptor.stage = static_cast<AgpuShaderStageFlagBits>(1u << static_cast<unsigned>(stage));
+        descriptor.source = shaderSource.CString();
+        descriptor.entryPoint = entryPoint.CString();
+
+        _shaders[static_cast<unsigned>(stage)] = agpuCreateShaderModule(&descriptor);
+        return _shaders[static_cast<unsigned>(stage)] != nullptr;
     }
 
-    bool Shader::Define(const  std::vector<uint8_t>& bytecode)
+    bool Shader::Define(ShaderStage stage, const Vector<uint8_t>& bytecode)
     {
-        ShaderReflection reflection;
-        SPIRVReflectResources(reinterpret_cast<const uint32_t*>(bytecode.data()), bytecode.size(), &reflection);
+        AgpuShaderModuleDescriptor descriptor = {};
+        descriptor.codeSize = bytecode.Size();
+        descriptor.pCode = bytecode.Data();
 
-        _shaderDescriptor.stages[static_cast<unsigned>(reflection.stage)].blob.size = bytecode.size();
-        _shaderDescriptor.stages[static_cast<unsigned>(reflection.stage)].blob.data = new uint8_t[bytecode.size()];
-        memcpy(_shaderDescriptor.stages[static_cast<unsigned>(reflection.stage)].blob.data, bytecode.data(), bytecode.size());
+        AgpuShaderModule shaderModule = agpuCreateShaderModule(&descriptor);
 
-        return false;
+        //ShaderReflection reflection;
+        //SPIRVReflectResources(reinterpret_cast<const uint32_t*>(bytecode.data()), bytecode.size(), &reflection);
+
+        _shaders[static_cast<unsigned>(stage)] = shaderModule;
+        return shaderModule != nullptr;
     }
 
     bool Shader::Finalize()
     {
-        _handle = agpuCreateShader(&_shaderDescriptor);
+        AgpuShaderStageDescriptor stages[static_cast<unsigned>(ShaderStage::Count)];
+        uint32_t stageCount = 0;
+
+        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        {
+            if (_shaders[i] != nullptr)
+            {
+                auto &stage = stages[stageCount++];
+                stage.shaderModule = _shaders[i];
+                stage.entryPoint = "main";
+            }
+        }
+
+        AgpuShaderDescriptor descriptor = {};
+        descriptor.stageCount = stageCount;
+        descriptor.stages = stages;
+
+        _handle = agpuCreateShader(&descriptor);
         if (_handle != nullptr)
         {
             return true;
@@ -234,7 +132,7 @@ namespace Alimer
         Object* EndLoad() override;
 
     private:
-        std::vector<uint8_t> _bytecode;
+        Vector<uint8_t> _bytecode;
     };
 
     StringHash ShaderLoader::GetType() const
@@ -251,10 +149,17 @@ namespace Alimer
     Object* ShaderLoader::EndLoad()
     {
         Shader* shader = new Shader();
-        shader->Define(_bytecode);
+        shader->Define(ShaderStage::Vertex, _bytecode);
         return shader;
     }
 
+    void ShaderModule::RegisterObject()
+    {
+        RegisterFactory<ShaderModule>();
+
+        // Register loader.
+        //GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());
+    }
 
     void Shader::RegisterObject()
     {
@@ -262,5 +167,24 @@ namespace Alimer
 
         // Register loader.
         GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());
+    }
+
+
+    const char* EnumToString(ShaderStage stage)
+    {
+#define CASE_STRING(ENUM_VALUE) case ShaderStage::##ENUM_VALUE : return #ENUM_VALUE
+
+        switch (stage)
+        {
+            CASE_STRING(Vertex);
+            CASE_STRING(TessControl);
+            CASE_STRING(TessEvaluation);
+            CASE_STRING(Geometry);
+            CASE_STRING(Fragment);
+            CASE_STRING(Compute);
+        }
+
+#undef CASE_STRING
+        return nullptr;
     }
 }

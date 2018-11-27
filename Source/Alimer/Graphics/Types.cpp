@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/Types.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 
 namespace Alimer
 {
@@ -36,24 +36,6 @@ namespace Alimer
             CASE_STRING(Immutable);
             CASE_STRING(Dynamic);
             CASE_STRING(Staging);
-        }
-
-#undef CASE_STRING
-        return nullptr;
-    }
-
-    const char* EnumToString(ShaderStage stage)
-    {
-#define CASE_STRING(ENUM_VALUE) case ShaderStage::##ENUM_VALUE : return #ENUM_VALUE
-
-        switch (stage)
-        {
-            CASE_STRING(Vertex);
-            CASE_STRING(TessControl);
-            CASE_STRING(TessEvaluation);
-            CASE_STRING(Geometry);
-            CASE_STRING(Fragment);
-            CASE_STRING(Compute);
         }
 
 #undef CASE_STRING

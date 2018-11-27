@@ -22,27 +22,36 @@
 
 #pragma once
 
-#include "../Texture.h"
-#include "Graphics/Texture.h"
-#include "D3D12DescriptorAllocator.h"
+#include "../Graphics.h"
+#include "D3D12Prerequisites.h"
 
 namespace Alimer
 {
+    class D3D12Texture;
 	class D3D12Graphics;
 
-	/// D3D12 Texture implementation.
-	class D3D12Texture final : public Texture, public D3D12Resource
+	/// D3D12 Swapchain.
+	class D3D12Swapchain final : public RefCounted
 	{
 	public:
 		/// Constructor.
-		D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource = nullptr);
+        D3D12Swapchain(D3D12Graphics* graphics, const SwapchainDescriptor* descriptor);
 
 		/// Destructor.
-		~D3D12Texture() override;
+		~D3D12Swapchain() override = default;
 
-		const D3D12_CPU_DESCRIPTOR_HANDLE& GetRTV() const { return _rtvHandle.GetCpuHandle(); }
+        void AfterReset();
+        void Present();
 
 	private:
-        D3D12DescriptorHandle _rtvHandle;
+        static constexpr uint32_t   NumBackBuffers = 2;
+
+        D3D12Graphics*              _graphics;
+        PixelFormat                 _backBufferFormat = PixelFormat::BGRA8UNorm;
+        DXGI_FORMAT                 _dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+
+        ComPtr<IDXGISwapChain3>     _swapChain;
+        uint32_t                    _backBufferIndex = 0;
+        UniquePtr<D3D12Texture>     _backBufferTextures[NumBackBuffers];
 	};
 }

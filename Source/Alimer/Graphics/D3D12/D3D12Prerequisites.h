@@ -22,10 +22,8 @@
 
 #pragma once
 
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 #include "../D3D/D3DPrerequisites.h"
-
-#include "d3dx12.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4467)
@@ -33,10 +31,18 @@
 #pragma warning(pop)
 using namespace Microsoft::WRL;
 
-#include <vector>
-#include "../../Core/Log.h"
 #include "../Types.h"
 #include "../PixelFormat.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
+
+namespace Alimer
+{
+    static inline void D3D12SetObjectName(ID3D12Object* object, _In_z_  LPCWSTR name)
+    {
+#if defined(ALIMER_DEV)
+        object->SetName(name);
+#endif
+    }
+}

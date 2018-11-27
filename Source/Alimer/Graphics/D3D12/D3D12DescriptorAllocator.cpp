@@ -22,13 +22,12 @@
 
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12Graphics.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
     D3D12DescriptorAllocator::D3D12DescriptorAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type)
-        : _graphics(nullptr)
-        , _type(type)
+        : _type(type)
         , _currentHeap(nullptr)
         , _currentCpuHandle{}
         , _currentGpuHandle{}
@@ -39,11 +38,6 @@ namespace Alimer
 
     D3D12DescriptorAllocator::~D3D12DescriptorAllocator()
     {
-    }
-
-    void D3D12DescriptorAllocator::Initialize(D3D12Graphics* graphics)
-    {
-        _graphics = graphics;
     }
 
     D3D12DescriptorHandle D3D12DescriptorAllocator::Allocate(uint32_t count)

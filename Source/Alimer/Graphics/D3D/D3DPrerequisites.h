@@ -62,11 +62,6 @@
 #   include <dxgi1_5.h>
 #endif
 
-#pragma warning(push)
-#pragma warning(disable : 4324)
-#include "d3dx12.h"
-#pragma warning(pop)
-
 #include <algorithm>
 #include <exception>
 #include <memory>
@@ -79,18 +74,37 @@
 #include <dxgidebug.h>
 #endif
 
+#if defined(_DURANGO) || defined(_XBOX_ONE)
+#   define ALIMER_D3D_DYNAMIC_LIB 0
+#elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
+#   define ALIMER_D3D_DYNAMIC_LIB 0
+#elif defined(_WIN64) || defined(_WIN32)
+#   define ALIMER_D3D_DYNAMIC_LIB 1
+#endif
+
 #include "../Types.h"
-#include "../../Core/Log.h"
+#include "../../Core/Platform.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
-    inline void ThrowIfFailed(HRESULT hr)
+#if !defined(NDEBUG)
+#define ThrowIfFailed(hr) \
+    do \
+    { \
+        ALIMER_ASSERT_MSG(SUCCEEDED(hr), Alimer::GetDXErrorString(hr).CString()); \
+    } \
+    while(0)
+#else
+    // Throws a DXException on failing HRESULT
+    inline void DXCall(HRESULT hr)
     {
         if (FAILED(hr))
         {
-            ALIMER_LOGCRITICALF("Failure with HRESULT of %08X", static_cast<unsigned int>(hr));
+            ALIMER_LOGCRITICALF("DirectX Error: %s", Alimer::GetDXErrorString(hr).CString());
         }
     }
+#endif
 
     template <typename T>
     void SafeRelease(T& resource, const char* typeName = nullptr)
@@ -118,20 +132,5 @@ namespace Alimer
             resource = nullptr;
         }
     }
-
-    struct ResourceViewInfo
-    {
-        ResourceViewInfo() = default;
-        ResourceViewInfo(uint32_t mostDetailedMip_, uint32_t mipCount_, uint32_t firstArraySlice_, uint32_t arraySize_) : mostDetailedMip(mostDetailedMip_), mipCount(mipCount_), firstArraySlice(firstArraySlice_), arraySize(arraySize_) {}
-        uint32_t mostDetailedMip = 0;
-        uint32_t mipCount = RemainingMipLevels;
-        uint32_t firstArraySlice = 0;
-        uint32_t arraySize = RemainingArrayLayers;
-
-        bool operator==(const ResourceViewInfo& other) const
-        {
-            return (firstArraySlice == other.firstArraySlice) && (arraySize == other.arraySize) && (mipCount == other.mipCount) && (mostDetailedMip == other.mostDetailedMip);
-        }
-    };
 
 }

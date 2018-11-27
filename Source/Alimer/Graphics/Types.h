@@ -42,19 +42,21 @@ namespace Alimer
     enum class GraphicsBackend : uint32_t
     {
         /// Best device supported for running platform.
-        Default = AGPU_BACKEND_DEFAULT,
+        Default,
         /// Empty/Headless device type.
-        Empty = AGPU_BACKEND_EMPTY,
+        Empty,
         /// Vulkan backend.
-        Vulkan = AGPU_BACKEND_VULKAN,
-        /// DirectX 11 backend.
-        D3D11 = AGPU_BACKEND_D3D11,
-        /// DirectX 12 backend.
-        D3D12 = AGPU_BACKEND_D3D12,
+        Vulkan,
+        /// Direct3D 11 backend.
+        D3D11,
+        /// Direct3D 12 backend.
+        D3D12,
         /// Metal backend.
-        Metal = AGPU_BACKEND_METAL,
+        Metal,
         /// OpenGL backend.
-        OpenGL = AGPU_BACKEND_OPENGL,
+        OpenGL,
+        /// Count
+        Count
     };
 
     /// Enum describing the number of samples.
@@ -166,18 +168,6 @@ namespace Alimer
         Output = 1,
     };
 
-    /// Defines shader stage
-    enum class ShaderStage : uint32_t
-    {
-        Vertex = AGPU_SHADER_STAGE_VERTEX,
-        TessControl = AGPU_SHADER_STAGE_TESS_CONTROL,
-        TessEvaluation = AGPU_SHADER_STAGE_TESS_EVAL,
-        Geometry = AGPU_SHADER_STAGE_GEOMETRY,
-        Fragment = AGPU_SHADER_STAGE_FRAGMENT,
-        Compute = AGPU_SHADER_STAGE_COMPUTE,
-        Count = AGPU_SHADER_STAGE_COUNT
-    };
-
     /// Defines shader stage usage.
     enum class ShaderStageUsage : uint32_t
     {
@@ -209,15 +199,6 @@ namespace Alimer
         uint32_t size;
     };
 
-    struct ShaderReflection
-    {
-        ShaderStage stage;
-        uint32_t inputMask = 0;
-        uint32_t outputMask = 0;
-
-        std::vector<PipelineResource> resources;
-    };
-
     enum class VertexElementSemantic : uint32_t
     {
         Position = 0,
@@ -243,6 +224,5 @@ namespace Alimer
 
     ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
     ALIMER_API const char* EnumToString(ResourceUsage usage);
-    ALIMER_API const char* EnumToString(ShaderStage stage);
     ALIMER_API const char* EnumToString(VertexElementSemantic semantic);
 }

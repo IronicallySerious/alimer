@@ -27,17 +27,6 @@
 #include "../Debug/Log.h"
 #include <vector>
 
-#if defined(_WIN32)
-#include <windows.h>
-
-// Prefer the high-performance GPU on switchable GPU systems
-extern "C"
-{
-    __declspec(dllexport) DWORD NvOptimusEnablement = 1;
-    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-}
-#endif /* defined(_WIN32) */
-
 static AGpuRendererI* s_renderer = nullptr;
 
 #ifdef _MSC_VER
@@ -321,24 +310,29 @@ void agpuDestroyFramebuffer(AgpuFramebuffer framebuffer)
     s_renderer->DestroyFramebuffer(framebuffer);
 }
 
+AgpuShaderModule agpuCreateShaderModule(const AgpuShaderModuleDescriptor* descriptor)
+{
+    return s_renderer->CreateShaderModule(descriptor);
+}
+
+void agpuDestroyShaderModule(AgpuShaderModule shaderModule)
+{
+    s_renderer->DestroyShaderModule(shaderModule);
+}
+
+AgpuShaderStageFlagBits agpuGetShaderModuleState(AgpuShaderModule shaderModule)
+{
+    return shaderModule->stage;
+}
+
 AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor)
 {
     return s_renderer->CreateShader(descriptor);
 }
 
-AgpuShaderBlob agpuCompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint)
-{
-    return s_renderer->CompileShader(stage, source, entryPoint);
-}
-
 void agpuDestroyShader(AgpuShader shader)
 {
     s_renderer->DestroyShader(shader);
-}
-
-AgpuShaderStage agpuGetShaderStage(AgpuShader shader)
-{
-    return s_renderer->GetShaderStage(shader);
 }
 
 AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
@@ -402,10 +396,10 @@ void agpuEndRenderPass()
     s_renderer->CmdEndRenderPass();
 }
 
-void agpuSetPipeline(AgpuPipeline pipeline)
+void agpuCmdSetShader(AgpuShader shader)
 {
-    ALIMER_ASSERT_MSG(pipeline, "Invalid pipeline");
-    s_renderer->SetPipeline(pipeline);
+    ALIMER_ASSERT_MSG(shader, "Invalid shader");
+    s_renderer->CmdSetShader(shader);
 }
 
 void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, AgpuVertexInputRate inputRate)

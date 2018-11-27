@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_D3D12
 #include "D3D12PipelineState.h"
 #include "D3D12Shader.h"
 #include "D3D12Graphics.h"
@@ -103,7 +104,7 @@ namespace Alimer
         psoDesc.NumRenderTargets = 1;
         psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         psoDesc.SampleDesc.Count = 1;
-        psoDesc.NodeMask = 1;
+        psoDesc.NodeMask = 0;
 
         if (FAILED(graphics->GetD3DDevice()->CreateGraphicsPipelineState(
             &psoDesc, IID_PPV_ARGS(&_pipelineState))))
@@ -139,3 +140,5 @@ namespace Alimer
         commandList->SetDescriptorHeaps(_samplerHeap ? 2 : 1, heaps.data());
     }
 }
+
+#endif // TODO_D3D12

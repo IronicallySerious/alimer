@@ -38,7 +38,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Scene/Scene.h"
 #include "../Scene/SceneManager.h"
 #include "../Renderer/RenderContext.h"
@@ -59,7 +59,7 @@ namespace Alimer
         bool validation = false;
 #endif
 
-        RenderingSettings renderingSettings = {};
+        GraphicsSettings graphicsSettings = {};
     };
 
     /// Application for main loop and all modules and OS setup.
@@ -128,7 +128,7 @@ namespace Alimer
         Timer _timer;
         ResourceManager _resources;
         Window* _mainWindow = nullptr;
-        Graphics* _graphics = nullptr;
+        SharedPtr<Graphics> _graphics;
         Input _input;
         Audio* _audio;
 

@@ -73,6 +73,7 @@ namespace Alimer
 
     public:
         Texture();
+        ~Texture() override;
 
         TextureType GetTextureType() const { return _type; }
         TextureUsage GetUsage() const { return _usage; }

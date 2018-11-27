@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_D3D12
 #include "D3D12Shader.h"
 #include "D3D12Graphics.h"
 #include "../../Core/Log.h"
@@ -44,26 +45,26 @@ namespace Alimer
         const char* compileTarget = nullptr;
         switch (stage)
         {
-            case ShaderStage::Vertex:
-                compileTarget = "vs_5_1";
-                break;
-            case ShaderStage::TessControl:
-                compileTarget = "hs_5_1";
-                break;
-            case ShaderStage::TessEvaluation:
-                compileTarget = "ds_5_1";
-                break;
-            case ShaderStage::Geometry:
-                compileTarget = "gs_5_1";
-                break;
-            case ShaderStage::Fragment:
-                compileTarget = "ps_5_1";
-                break;
-            case ShaderStage::Compute:
-                compileTarget = "cs_5_1";
-                break;
-            default:
-                break;
+        case ShaderStage::Vertex:
+            compileTarget = "vs_5_1";
+            break;
+        case ShaderStage::TessControl:
+            compileTarget = "hs_5_1";
+            break;
+        case ShaderStage::TessEvaluation:
+            compileTarget = "ds_5_1";
+            break;
+        case ShaderStage::Geometry:
+            compileTarget = "gs_5_1";
+            break;
+        case ShaderStage::Fragment:
+            compileTarget = "ps_5_1";
+            break;
+        case ShaderStage::Compute:
+            compileTarget = "cs_5_1";
+            break;
+        default:
+            break;
         }
 
         static decltype(D3DCompile)* d3dCompile_;
@@ -108,7 +109,7 @@ namespace Alimer
         std::vector<uint8_t> byteCode(shaderBlob->GetBufferSize());
         memcpy(byteCode.data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
         return byteCode;
-    }
+        }
 
     static std::vector<uint8_t> ConvertAndCompileHLSL(const ShaderStageDescription& desc, ShaderStage stage)
     {
@@ -204,4 +205,6 @@ namespace Alimer
     {
         return std::move(_shaders[static_cast<unsigned>(stage)]);
     }
-}
+    }
+
+#endif // TODO_D3D12

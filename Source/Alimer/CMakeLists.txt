@@ -107,9 +107,11 @@ endif ()
 
 if (ALIMER_WINDOWS OR ALIMER_UWP)
     define_engine_source_files(Audio/XAudio2)
-    # define_engine_source_files(Graphics/D3D)
-    # define_engine_source_files(Graphics/D3D11)
 endif()
+
+if (ALIMER_D3D12)
+    define_engine_source_files(Graphics/D3D12)
+endif (ALIMER_GL)
 
 if (ALIMER_GL)
     define_engine_source_files(Graphics/OpenGL)

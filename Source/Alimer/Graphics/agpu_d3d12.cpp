@@ -28,8 +28,12 @@
 #include <wrl/client.h>
 #include <wrl/event.h>
 #include "../Base/HashMap.h"
+#include "../Base/MurmurHash.h"
+#include "../Base/Vector.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Platform.h"
+#include "../IO/FileStream.h"
+#include "../IO/FileSystem.h"
 #include "../Debug/Log.h"
 #include <spirv-cross/spirv_hlsl.hpp>
 
@@ -60,6 +64,8 @@
 typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY2)(UINT flags, REFIID _riid, void** _factory);
 typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE1)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
 #endif
+
+using namespace Alimer;
 
 namespace d3d12
 {
@@ -396,6 +402,85 @@ namespace d3d12
         return E_INVALIDARG;
     }
 
+    static Hash MakeCompilerHash()
+    {
+#if AGPU_COMPILER_DXC
+        HMODULE module = LoadLibraryW(L"dxcompiler.dll");
+#else
+        HMODULE module = LoadLibraryW(L"d3dcompiler_47.dll");
+#endif
+
+        if (module == nullptr)
+        {
+            ALIMER_LOGCRITICAL("Failed to load D3D shader compiler DLL");
+        }
+
+        wchar_t dllPath[1024] = { };
+        GetModuleFileNameW(module, dllPath, ArraySize_(dllPath));
+
+        FileStream dllFile(String(dllPath), FileAccess::ReadOnly);
+        uint64_t fileSize = dllFile.Size();
+        Vector<uint8_t> fileData(fileSize);
+        dllFile.Read(fileData.Data(), fileSize);
+        return GenerateHash(fileData.Data(), int32_t(fileSize));
+    }
+
+    static Hash CompilerHash = MakeCompilerHash();
+
+    static const String baseCacheDir = "ShaderCache\\";
+
+#if _DEBUG
+    static const String cacheSubDir = "Debug\\";
+#else
+    static const String cacheSubDir = "Release\\";
+#endif
+
+    static const String cacheDir = baseCacheDir + cacheSubDir;
+
+    static const uint64_t CacheVersion = 0;
+
+    static String MakeDefinesString(const D3D_SHADER_MACRO* defines)
+    {
+        String definesString = "";
+        while (defines && defines->Name != nullptr && defines != nullptr)
+        {
+            if (definesString.Length() > 0)
+                definesString += "|";
+            definesString += defines->Name;
+            definesString += "=";
+            definesString += defines->Definition;
+            ++defines;
+        }
+
+        return definesString;
+    }
+
+    static String MakeShaderCacheName(
+        const String& shaderCode,
+        const char* entryPoint,
+        const char* profile,
+        const D3D_SHADER_MACRO* defines)
+    {
+        String hashString = shaderCode;
+        hashString += "\n";
+        if (entryPoint != nullptr)
+        {
+            hashString += entryPoint;
+            hashString += "\n";
+        }
+        hashString += profile;
+        hashString += "\n";
+
+        hashString += MakeDefinesString(defines);
+
+        hashString += String(CacheVersion);
+
+        Hash codeHash = GenerateHash(hashString.CString(), int(hashString.Length()), 0);
+        codeHash = CombineHashes(codeHash, CompilerHash);
+
+        return cacheDir + codeHash.ToString() + ".cache";
+    }
+
     // Heap helpers
     const D3D12_HEAP_PROPERTIES* agpuD3D12GetDefaultHeapProps()
     {
@@ -501,10 +586,21 @@ namespace d3d12
         SRWLOCK Lock = SRWLOCK_INIT;
     };
 
-    class Shader
+    class ShaderModule final
     {
     public:
-        Shader();
+        ShaderModule();
+    };
+
+    class Shader final
+    {
+    public:
+        Shader(const AgpuShaderDescriptor* descriptor);
+        ~Shader();
+
+        bool isCompute = false;
+        AgpuShaderStageFlags stages;
+        Vector<AgpuShaderModule> shaderModules;
     };
 
     class GraphicsStateD3D12
@@ -537,7 +633,7 @@ namespace d3d12
         void Begin(ID3D12CommandAllocator* allocator);
         void End();
 
-        void CmdSetPipeline(AgpuPipeline pipeline);
+        void CmdSetShader(AgpuShader shader);
         void CmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, uint32_t stride, AgpuVertexInputRate inputRate);
         void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType);
 
@@ -576,7 +672,7 @@ namespace d3d12
         uint32_t _dirtyVbos = 0;
 
         ID3D12PipelineState* _currentPipelineState = nullptr;
-        AgpuPipeline _currentPipeline = nullptr;
+        AgpuShader _currentShader = nullptr;
     };
 
     struct AGpuRendererD3D12 : public AGpuRendererI
@@ -619,11 +715,14 @@ namespace d3d12
         AgpuFramebuffer CreateFramebuffer(const AgpuFramebufferDescriptor* descriptor) override;
         void DestroyFramebuffer(AgpuFramebuffer framebuffer) override;
 
+        /* ShaderModule */
+        AgpuShaderModule CreateShaderModule(const AgpuShaderModuleDescriptor* descriptor) override;
+        AgpuShaderModule CompileShaderModule(AgpuShaderStageFlagBits stage, const char* source, const char* entryPoint);
+        void DestroyShaderModule(AgpuShaderModule shaderModule) override;
+
         /* Shader */
         AgpuShader CreateShader(const AgpuShaderDescriptor* descriptor) override;
-        AgpuShaderBlob CompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint) override;
         void DestroyShader(AgpuShader shader) override;
-        AgpuShaderStage GetShaderStage(AgpuShader shader) const override;
 
         /* Pipeline */
         AgpuPipeline CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor) override;
@@ -635,7 +734,7 @@ namespace d3d12
         void EndCommandBuffer() override;
         void CmdBeginRenderPass(AgpuFramebuffer framebuffer) override;
         void CmdEndRenderPass() override;
-        void SetPipeline(AgpuPipeline pipeline) override;
+        void CmdSetShader(AgpuShader shader) override;
         void CmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, uint32_t stride, AgpuVertexInputRate inputRate) override;
         void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType) override;
 
@@ -904,8 +1003,26 @@ namespace d3d12
         return _heaps[_heapIndex];
     }
 
-    /* ShaderProgram */
-    Shader::Shader()
+    /* ShaderModule */
+    ShaderModule::ShaderModule()
+    {
+
+    }
+
+    /* Shader */
+    Shader::Shader(const AgpuShaderDescriptor* descriptor)
+    {
+        isCompute = false;
+        shaderModules.Resize(descriptor->stageCount);
+        for (uint32_t i = 0; i < descriptor->stageCount; i++)
+        {
+            uint32_t stage_mask = 1u << i;
+            stages |= stage_mask;
+            shaderModules[i] = descriptor->stages[i].shaderModule;
+        }
+    }
+
+    Shader::~Shader()
     {
 
     }
@@ -962,7 +1079,7 @@ namespace d3d12
         _graphicsState.Reset();
         _dirtyVbos = ~0u;
         _currentPipelineState = nullptr;
-        _currentPipeline = nullptr;
+        _currentShader = nullptr;
         memset(&_index, 0, sizeof(_index));
         memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
     }
@@ -978,12 +1095,12 @@ namespace d3d12
         _isRecording = false;
     }
 
-    void CommandBufferD3D12::CmdSetPipeline(AgpuPipeline pipeline)
+    void CommandBufferD3D12::CmdSetShader(AgpuShader shader)
     {
-        if (_currentPipeline == pipeline)
+        if (_currentShader == shader)
             return;
 
-        _currentPipeline = pipeline;
+        _currentShader = shader;
         _currentPipelineState = nullptr;
         _graphicsState.SetDirty();
     }
@@ -1057,23 +1174,23 @@ namespace d3d12
         // We've invalidated pipeline state, update the VkPipeline.
         if (_graphicsState.IsDirty())
         {
-            ID3D12PipelineState* oldPipelineState = _currentPipelineState;
-            Alimer::Hasher hasher;
+            /*ID3D12PipelineState* oldPipelineState = _currentPipelineState;
+            Hasher hasher;
 
-            _currentPipelineState = _currentPipeline->d3d12PipelineState;
+            _currentPipelineState = _currentShader->d3d12PipelineState;
             if (oldPipelineState != _currentPipelineState)
             {
-                if (_currentPipeline->isCompute)
+                if (_currentShader->isCompute)
                 {
-                    _commandList->SetComputeRootSignature(_currentPipeline->d3d12RootSignature);
+                    _commandList->SetComputeRootSignature(_currentShader->d3d12RootSignature);
                 }
                 else
                 {
-                    _commandList->SetGraphicsRootSignature(_currentPipeline->d3d12RootSignature);
+                    _commandList->SetGraphicsRootSignature(_currentShader->d3d12RootSignature);
                 }
 
                 _commandList->SetPipelineState(_currentPipelineState);
-            }
+            }*/
 
             // Set primitive topology 
             D3D_PRIMITIVE_TOPOLOGY d3dPrimitiveTopology = agpuD3DConvertPrimitiveTopology(_graphicsState.GetPrimitiveTopology(), 1);
@@ -1085,7 +1202,7 @@ namespace d3d12
 
 
         uint32_t update_vbo_mask = _dirtyVbos & active_vbos;
-        Alimer::ForEachBitRange(update_vbo_mask, [&](uint32_t binding, uint32_t count)
+        ForEachBitRange(update_vbo_mask, [&](uint32_t binding, uint32_t count)
         {
 #ifdef ALIMER_DEV
             for (uint32_t i = binding; i < binding + count; i++)
@@ -1462,7 +1579,7 @@ namespace d3d12
     {
         ALIMER_ASSERT(_d3dDevice != nullptr);
 
-        size = Alimer::AlignTo(size, 512);
+        size = AlignTo(size, 512);
         ALIMER_ASSERT(size <= UploadBufferSize);
         ALIMER_ASSERT(size > 0);
 
@@ -1906,7 +2023,7 @@ namespace d3d12
         buffer->frameIndex = _currentCPUFrame;
 
         uint64_t size = descriptor->size;
-        size = Alimer::AlignTo(size, uint64_t(descriptor->stride));
+        size = AlignTo(size, uint64_t(descriptor->stride));
 
         const bool allowUAV = false;
         D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -2084,101 +2201,107 @@ namespace d3d12
         framebuffer = nullptr;
     }
 
-    AgpuShader AGpuRendererD3D12::CreateShader(const AgpuShaderDescriptor* descriptor)
+    AgpuShaderModule AGpuRendererD3D12::CreateShaderModule(const AgpuShaderModuleDescriptor* descriptor)
     {
-        AgpuShader shader = new AgpuShader_T();
-
-        for (uint32_t i = 0; i < AGPU_SHADER_STAGE_COUNT; i++)
+        if (descriptor->source)
         {
-            AgpuShaderStageDescriptor stage = descriptor->stages[i];
-            if (!stage.blob.size)
-                continue;
-
-            // Check if dx bycode.
-            if (stage.blob.size > 4
-                && stage.blob.data[0] == 'D'
-                && stage.blob.data[1] == 'X'
-                && stage.blob.data[2] == 'B'
-                && stage.blob.data[3] == 'C')
+            // Compiling from GLSL source requires the entry point.
+            if (!descriptor->entryPoint)
             {
-                shader->d3d12Bytecode[i].BytecodeLength = stage.blob.size;
-                shader->d3d12Bytecode[i].pShaderBytecode = new uint8_t[stage.blob.size];
-                memcpy((void*)shader->d3d12Bytecode[i].pShaderBytecode, stage.blob.data, stage.blob.size);
-                return shader;
+                return nullptr;
             }
-            else
-            {
-                spirv_cross::CompilerGLSL::Options options_glsl;
-                //options_glsl.vertex.fixup_clipspace = true;
-                //options_glsl.vertex.flip_vert_y = true;
-                options_glsl.flatten_multidimensional_arrays = true;
 
-                spirv_cross::CompilerHLSL compiler(reinterpret_cast<const uint32_t*>(stage.blob.data), stage.blob.size / 4);
-                compiler.set_common_options(options_glsl);
-
-                spirv_cross::CompilerHLSL::Options options_hlsl;
-                options_hlsl.shader_model = 51;
-                compiler.set_hlsl_options(options_hlsl);
-
-                uint32_t new_builtin = compiler.remap_num_workgroups_builtin();
-                if (new_builtin)
-                {
-                    compiler.set_decoration(new_builtin, spv::DecorationDescriptorSet, 0);
-                    compiler.set_decoration(new_builtin, spv::DecorationBinding, 0);
-                }
-
-                auto resources = compiler.get_shader_resources();
-
-                AgpuShaderStage compileStage = AGPU_SHADER_STAGE_COUNT;
-                switch (compiler.get_execution_model())
-                {
-                case spv::ExecutionModelVertex:
-                    compileStage = AGPU_SHADER_STAGE_VERTEX;
-                    break;
-                case spv::ExecutionModelTessellationControl:
-                    compileStage = AGPU_SHADER_STAGE_TESS_CONTROL;
-                    break;
-                case spv::ExecutionModelTessellationEvaluation:
-                    compileStage = AGPU_SHADER_STAGE_TESS_EVAL;
-                    break;
-                case spv::ExecutionModelGeometry:
-                    compileStage = AGPU_SHADER_STAGE_GEOMETRY;
-                    break;
-                case spv::ExecutionModelFragment:
-                    compileStage = AGPU_SHADER_STAGE_FRAGMENT;
-                    break;
-                case spv::ExecutionModelGLCompute:
-                    compileStage = AGPU_SHADER_STAGE_COMPUTE;
-                    break;
-                default:
-                    ALIMER_LOGCRITICAL("Invalid shader execution model");
-                }
-
-                std::string convertedHlslSource = compiler.compile();
-
-                AgpuShaderBlob blob = CompileShader(compileStage, convertedHlslSource.c_str(), "main");
-                shader->d3d12Bytecode[i].BytecodeLength = blob.size;
-                shader->d3d12Bytecode[i].pShaderBytecode = new uint8_t[blob.size];
-                memcpy((void*)shader->d3d12Bytecode[i].pShaderBytecode, blob.data, blob.size);
-            }
+            return CompileShaderModule(descriptor->stage, descriptor->source, descriptor->entryPoint);
         }
 
-        return shader;
+        // Check if dx bycode.
+        if (descriptor->codeSize > 4
+            && descriptor->pCode[0] == 'D'
+            && descriptor->pCode[1] == 'X'
+            && descriptor->pCode[2] == 'B'
+            && descriptor->pCode[3] == 'C')
+        {
+            /* TODO: Reflect D3D shader */
+            AgpuShaderModule shaderModule = new AgpuShaderModule_T();
+            //shaderModule->stage = stage;
+            shaderModule->d3d12Bytecode.BytecodeLength = descriptor->codeSize;
+            shaderModule->d3d12Bytecode.pShaderBytecode = new uint8_t[descriptor->codeSize];
+            memcpy((void*)shaderModule->d3d12Bytecode.pShaderBytecode, descriptor->pCode, descriptor->codeSize);
+            return shaderModule;
+        }
+        else
+        {
+            spirv_cross::CompilerGLSL::Options options_glsl;
+            //options_glsl.vertex.fixup_clipspace = true;
+            //options_glsl.vertex.flip_vert_y = true;
+            options_glsl.flatten_multidimensional_arrays = true;
+
+            spirv_cross::CompilerHLSL compiler(reinterpret_cast<const uint32_t*>(descriptor->pCode), descriptor->codeSize / 4);
+            compiler.set_common_options(options_glsl);
+
+            spirv_cross::CompilerHLSL::Options options_hlsl;
+            options_hlsl.shader_model = 51;
+            compiler.set_hlsl_options(options_hlsl);
+
+            uint32_t new_builtin = compiler.remap_num_workgroups_builtin();
+            if (new_builtin)
+            {
+                compiler.set_decoration(new_builtin, spv::DecorationDescriptorSet, 0);
+                compiler.set_decoration(new_builtin, spv::DecorationBinding, 0);
+            }
+
+            auto resources = compiler.get_shader_resources();
+
+            AgpuShaderStageFlagBits stage = AGPU_SHADER_STAGE_NONE;
+            switch (compiler.get_execution_model())
+            {
+            case spv::ExecutionModelVertex:
+                stage = AGPU_SHADER_STAGE_VERTEX_BIT;
+                break;
+            case spv::ExecutionModelTessellationControl:
+                stage = AGPU_SHADER_STAGE_TESS_CONTROL_BIT;
+                break;
+            case spv::ExecutionModelTessellationEvaluation:
+                stage = AGPU_SHADER_STAGE_TESS_EVAL_BIT;
+                break;
+            case spv::ExecutionModelGeometry:
+                stage = AGPU_SHADER_STAGE_GEOMETRY_BIT;
+                break;
+            case spv::ExecutionModelFragment:
+                stage = AGPU_SHADER_STAGE_FRAGMENT_BIT;
+                break;
+            case spv::ExecutionModelGLCompute:
+                stage = AGPU_SHADER_STAGE_COMPUTE_BIT;
+                break;
+            default:
+                ALIMER_LOGCRITICAL("Invalid shader execution model");
+            }
+
+            std::string convertedHlslSource = compiler.compile();
+            return CompileShaderModule(stage, convertedHlslSource.c_str(), "main");
+        }
     }
 
-    AgpuShaderBlob AGpuRendererD3D12::CompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint)
+    void AGpuRendererD3D12::DestroyShaderModule(AgpuShaderModule shaderModule)
+    {
+        delete[] shaderModule->d3d12Bytecode.pShaderBytecode;
+        delete shaderModule;
+        shaderModule = nullptr;
+    }
+
+    AgpuShaderModule AGpuRendererD3D12::CompileShaderModule(AgpuShaderStageFlagBits stage, const char* source, const char* entryPoint)
     {
         const char* compileTarget = nullptr;
         switch (stage)
         {
-        case AGPU_SHADER_STAGE_VERTEX:
+        case AGPU_SHADER_STAGE_VERTEX_BIT:
 #ifdef AGPU_COMPILER_DXC
             compileTarget = "vs_6_1";
 #else
             compileTarget = "vs_5_1";
 #endif
             break;
-        case AGPU_SHADER_STAGE_TESS_CONTROL:
+        case AGPU_SHADER_STAGE_TESS_CONTROL_BIT:
 #ifdef AGPU_COMPILER_DXC
             compileTarget = "hs_6_1";
 #else
@@ -2186,7 +2309,7 @@ namespace d3d12
 #endif
             break;
 
-        case AGPU_SHADER_STAGE_TESS_EVAL:
+        case AGPU_SHADER_STAGE_TESS_EVAL_BIT:
 #ifdef AGPU_COMPILER_DXC
             compileTarget = "ds_6_1";
 #else
@@ -2194,7 +2317,7 @@ namespace d3d12
 #endif
             break;
 
-        case AGPU_SHADER_STAGE_GEOMETRY:
+        case AGPU_SHADER_STAGE_GEOMETRY_BIT:
 #ifdef AGPU_COMPILER_DXC
             compileTarget = "gs_6_1";
 #else
@@ -2202,7 +2325,7 @@ namespace d3d12
 #endif
             break;
 
-        case AGPU_SHADER_STAGE_FRAGMENT:
+        case AGPU_SHADER_STAGE_FRAGMENT_BIT:
 #ifdef AGPU_COMPILER_DXC
             compileTarget = "ps_6_1";
 #else
@@ -2210,7 +2333,7 @@ namespace d3d12
 #endif
             break;
 
-        case AGPU_SHADER_STAGE_COMPUTE:
+        case AGPU_SHADER_STAGE_COMPUTE_BIT:
 #ifdef AGPU_COMPILER_DXC
             compileTarget = "cs_6_1";
 #else
@@ -2222,15 +2345,45 @@ namespace d3d12
             break;
         }
 
+        String cacheName = MakeShaderCacheName(source, entryPoint, compileTarget, nullptr);
+        if (FileSystem::FileExists(cacheName))
+        {
+            ALIMER_LOGDEBUGF("Load compiled shader from cache '%s'", cacheName.CString());
+
+            FileStream cacheFile(cacheName, FileAccess::ReadOnly);
+            const uint64_t shaderSize = cacheFile.Size();
+
+#ifdef AGPU_COMPILER_DXC
+
+#else
+            Vector<uint8_t> compressedShader(shaderSize);
+            cacheFile.Read(compressedShader.Data(), shaderSize);
+
+            ID3DBlob* decompressedShader[1] = { nullptr };
+            uint32_t indices[1] = { 0 };
+            DXCall(D3DDecompressShaders(
+                compressedShader.Data(), shaderSize, 1, 0,
+                indices, 0, decompressedShader, nullptr));
+
+            AgpuShaderModule shaderModule = new AgpuShaderModule_T();
+            shaderModule->stage = stage;
+            shaderModule->d3d12Bytecode.BytecodeLength = decompressedShader[0]->GetBufferSize();
+            shaderModule->d3d12Bytecode.pShaderBytecode = new uint8_t[decompressedShader[0]->GetBufferSize()];
+            memcpy((void*)shaderModule->d3d12Bytecode.pShaderBytecode, decompressedShader[0]->GetBufferPointer(), decompressedShader[0]->GetBufferSize());
+            decompressedShader[0]->Release();
+            return shaderModule;
+#endif
+        }
+
 #ifdef AGPU_COMPILER_DXC
 #else
 
         // TODO: Cache.
         UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
-        flags |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
-        flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
+            flags |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
+            flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
 #ifdef _DEBUG
-        flags |= D3DCOMPILE_DEBUG;
+            flags |= D3DCOMPILE_DEBUG;
 #endif
 
         if (!entryPoint
@@ -2281,9 +2434,10 @@ namespace d3d12
         }
         else
         {
-            const bool compress = false;
-            if (compress)
+            const bool saveCache = true;
+            if (saveCache)
             {
+                // Compress shader and save in cache
                 ComPtr<ID3DBlob> compressedShader;
 
                 // Compress the shader
@@ -2292,40 +2446,39 @@ namespace d3d12
                 shaderData.BytecodeLength = compiledShader->GetBufferSize();
                 DXCall(D3DCompressShaders(1, &shaderData, D3D_COMPRESS_SHADER_KEEP_ALL_PARTS, &compressedShader));
 
-                //shader->d3d12Bytecode.BytecodeLength = compressedShader->GetBufferSize();
-                //shader->d3d12Bytecode.pShaderBytecode = new uint8_t[compressedShader->GetBufferSize()];
-                //memcpy((void*)shader->d3d12Bytecode.pShaderBytecode, compressedShader->GetBufferPointer(), compressedShader->GetBufferSize());
+                // Create the cache directory if it doesn't exist
+                if (FileSystem::DirectoryExists(baseCacheDir) == false)
+                    FileSystem::CreateDir(baseCacheDir);
+
+                if (FileSystem::DirectoryExists(cacheDir) == false)
+                    FileSystem::CreateDir(cacheDir);
+
+                FileStream cacheFile(cacheName, FileAccess::WriteOnly);
+
+                // Write the compiled shader to disk
+                uint64_t shaderSize = compressedShader->GetBufferSize();
+                cacheFile.Write(compressedShader->GetBufferPointer(), shaderSize);
             }
-            else
-            {
-                AgpuShaderBlob shaderBlob = {};
-                shaderBlob.size = compiledShader->GetBufferSize();
-                shaderBlob.data = new uint8_t[compiledShader->GetBufferSize()];
-                memcpy(shaderBlob.data, compiledShader->GetBufferPointer(), compiledShader->GetBufferSize());
-                return shaderBlob;
-            }
+
+            AgpuShaderModule shaderModule = new AgpuShaderModule_T();
+            shaderModule->stage = stage;
+            shaderModule->d3d12Bytecode.BytecodeLength = compiledShader->GetBufferSize();
+            shaderModule->d3d12Bytecode.pShaderBytecode = new uint8_t[compiledShader->GetBufferSize()];
+            memcpy((void*)shaderModule->d3d12Bytecode.pShaderBytecode, compiledShader->GetBufferPointer(), compiledShader->GetBufferSize());
+            return shaderModule;
         }
 #endif /* AGPU_COMPILER_DXC */
     }
 
-    void AGpuRendererD3D12::DestroyShader(AgpuShader shader)
+    AgpuShader AGpuRendererD3D12::CreateShader(const AgpuShaderDescriptor* descriptor)
     {
-        for (uint32_t i = 0; i < AGPU_SHADER_STAGE_COUNT; i++)
-        {
-            D3D12_SHADER_BYTECODE byteCode = shader->d3d12Bytecode[i];
-            if (!byteCode.BytecodeLength)
-                continue;
-
-            delete[] byteCode.pShaderBytecode;
-        }
-
-        delete shader;
-        shader = nullptr;
+        return reinterpret_cast<AgpuShader>(new Shader(descriptor));
     }
 
-    AgpuShaderStage AGpuRendererD3D12::GetShaderStage(AgpuShader shader) const
+    void AGpuRendererD3D12::DestroyShader(AgpuShader shader)
     {
-        return shader->stage;
+        delete reinterpret_cast<Shader*>(shader);
+        shader = nullptr;
     }
 
     AgpuPipeline AGpuRendererD3D12::CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
@@ -2340,11 +2493,29 @@ namespace d3d12
         rootSignatureDesc.pStaticSamplers = nullptr;
         rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
-        if (descriptor->shader->d3d12Bytecode[AGPU_SHADER_STAGE_VERTEX].BytecodeLength > 0)
+        /*if ((descriptor->shader->stages & AGPU_SHADER_STAGE_FRAGMENT_BIT) == AGPU_SHADER_STAGE_FRAGMENT_BIT)
         {
-            psoDesc.VS = descriptor->shader->d3d12Bytecode[AGPU_SHADER_STAGE_VERTEX];
-            rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+            rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
         }
+
+        for (uint32_t i = 0; i < descriptor->shader->shaderModulesCount; i++)
+        {
+            AgpuShaderModule shaderModule =  descriptor->shader->shaderModules[i];
+            switch (shaderModule->stage)
+            {
+            case AGPU_SHADER_STAGE_VERTEX_BIT:
+                psoDesc.VS = shaderModule->d3d12Bytecode;
+                rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+                break;
+
+            case AGPU_SHADER_STAGE_FRAGMENT_BIT:
+                psoDesc.PS = shaderModule->d3d12Bytecode;
+                break;
+
+            default:
+                break;
+            }
+        }*/
 
         /*if (descriptor->domain)
         {
@@ -2371,15 +2542,6 @@ namespace d3d12
         else*/
         {
             rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-        }
-
-        if (descriptor->shader->d3d12Bytecode[AGPU_SHADER_STAGE_FRAGMENT].BytecodeLength > 0)
-        {
-            psoDesc.PS = descriptor->shader->d3d12Bytecode[AGPU_SHADER_STAGE_FRAGMENT];
-        }
-        else
-        {
-            rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
         }
 
         CreateRootSignature(&psoDesc.pRootSignature, rootSignatureDesc);
@@ -2588,9 +2750,9 @@ namespace d3d12
         _currentFramebuffer = nullptr;
     }
 
-    void AGpuRendererD3D12::SetPipeline(AgpuPipeline pipeline)
+    void AGpuRendererD3D12::CmdSetShader(AgpuShader shader)
     {
-        s_pActiveCommandBuffer->CmdSetPipeline(pipeline);
+        s_pActiveCommandBuffer->CmdSetShader(shader);
     }
 
     void AGpuRendererD3D12::CmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, uint32_t stride, AgpuVertexInputRate inputRate)

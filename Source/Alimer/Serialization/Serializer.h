@@ -84,7 +84,7 @@ namespace Alimer
 
         /// Vector serialization.
         template<typename T>
-        void Serialize(const char* key, const std::vector<T>& type)
+        void Serialize(const char* key, const Vector<T>& type)
         {
             BeginObject(key, true);
             for (auto& val : type)

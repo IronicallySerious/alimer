@@ -22,11 +22,11 @@
 
 #pragma once
 
+#include "../Base/Vector.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceLoader.h"
 #include <mutex>
 #include <atomic>
-#include <vector>
 #include <map>
 
 namespace Alimer
@@ -55,7 +55,7 @@ namespace Alimer
         UniquePtr<Stream> Open(const String &assetName);
         bool Exists(const String &assetName);
 
-        std::vector<uint8_t> ReadBytes(const String& assetName, size_t count = 0);
+        Vector<uint8_t> ReadBytes(const String& assetName, size_t count = 0);
 
         SharedPtr<Object> LoadObject(StringHash type, const String& assetName);
 

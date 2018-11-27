@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../Base/Cache.h"
 #include "../Core/Object.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
 #include "../Graphics/CommandContext.h"
@@ -40,21 +39,27 @@ namespace Alimer
 {
     struct SwapchainDescriptor
     {
+        /// Native connection, display or instance type.
+        void* display;
+        /// Native window handle.
+        void* windowHandle;
+        /// Preferred color format.
+        PixelFormat preferredColorFormat = PixelFormat::BGRA8UNorm;
+        /// Preferred depth stencil format.
+        PixelFormat preferredDepthStencilFormat = PixelFormat::D24UNormS8;
+
         uint32_t width;
         uint32_t height;
-        /// Preferred color format.
-        PixelFormat colorFormat = PixelFormat::BGRA8UNorm;
-        /// Preferred depth stencil format.
-        PixelFormat depthStencilFormat = PixelFormat::D24UNormS8;
+        uint32_t bufferCount = 2;
+       
         /// Preferred samples.
-        SampleCount samples = SampleCount::Count1;
-        /// Per platform window handle.
-        void* windowHandle = nullptr;
+        SampleCount preferredSamples = SampleCount::Count1;
     };
 
-    struct RenderingSettings
+    struct GraphicsSettings
     {
-        SwapchainDescriptor swapchain;
+        bool                headless = false;
+        SwapchainDescriptor swapchain = {};
     };
 
     /// Low-level 3D graphics module.
@@ -70,8 +75,11 @@ namespace Alimer
         /// Register object.
         static void RegisterObject();
 
+        /// Constructor.
+        static Graphics* Create(GraphicsBackend preferredBackend, bool validation);
+
         /// Destructor.
-        virtual ~Graphics() override;
+        ~Graphics() override;
 
         /// Check if backend is supported
         static bool IsBackendSupported(GraphicsBackend backend);
@@ -79,17 +87,17 @@ namespace Alimer
         /// Get all available backends.
         static std::set<GraphicsBackend> GetAvailableBackends();
 
-        /// Create new graphics device instance.
-        static Graphics* Create(GraphicsBackend prefferedBackend = GraphicsBackend::Default, bool validation = false);
+        /// Get default best supported platform backend.
+        static GraphicsBackend GetDefaultPlatformBackend();
 
         /// Initialize graphics with given settings.
-        virtual bool Initialize(const RenderingSettings& settings);
+        virtual bool Initialize(const GraphicsSettings& settings);
 
         /// Wait for a device to become idle.
         virtual bool WaitIdle() = 0;
 
         /// Finishes the current frame and schedules it for display.
-        uint32_t Present();
+        uint64_t Present();
 
         /// Add a GraphicsResource to keep track of. 
         void AddGraphicsResource(GraphicsResource* resource);
@@ -113,31 +121,29 @@ namespace Alimer
         const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
 
         /// Get the main Swapchain current framebuffer.
-        virtual Framebuffer* GetSwapchainFramebuffer() const = 0;
+        //virtual Framebuffer* GetSwapchainFramebuffer() const = 0;
 
         /// Get the default command context.
         const SharedPtr<CommandContext>& GetContext() const { return _context; }
 
         void NotifyValidationError(const char* message);
 
-    protected:
-        virtual void Shutdown();
-        virtual void PresentImpl() = 0;
-        virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
-        virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
-
+    private:
+        void Shutdown();
+        virtual void Frame() = 0;
+        //virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
+        //virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
 
         GraphicsBackend _backend = GraphicsBackend::Empty;
         bool _validation;
         bool _initialized = false;
-        RenderingSettings _settings = {};
+        GraphicsSettings _settings = {};
         GraphicsDeviceFeatures _features = {};
         std::vector<GraphicsResource*> _gpuResources;
         std::mutex _gpuResourceMutex;
         SharedPtr<CommandContext> _context;
-
-    private:
-        uint32_t _frameIndex = 0;
+    
+        uint64_t _frameIndex = 0;
     };
 
     /// Register Graphics related object factories and attributes.

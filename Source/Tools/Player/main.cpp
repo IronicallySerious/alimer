@@ -54,7 +54,9 @@ namespace Alimer
     public:
         void Initialize(ResourceManager& resources)
         {
-            VertexColor triangleVertices[] =
+            ALIMER_UNUSED(resources);
+
+            /*VertexColor triangleVertices[] =
             {
                 { vec3(0.0f, 0.5f, 0.0f), Color4::Red },
                 { vec3(0.5f, -0.5f, 0.0f), Color4::Lime },
@@ -67,33 +69,27 @@ namespace Alimer
                 sizeof(VertexColor),
                 triangleVertices);
 
-            /*BufferDescriptor uboBufferDesc = {};
+            BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);*/
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
 
             // Define pipeline now.
             RenderPipelineDescriptor renderPipelineDesc = {};
 
             // Shaders
             _shader = new Shader();
-            _shader->Define(resources.ReadBytes("shaders/color.vert.spv"));
-            _shader->Define(resources.ReadBytes("shaders/color.frag.spv"));
-            _shader->Finalize();
-
-            renderPipelineDesc.shader = _shader;
-            renderPipelineDesc.vertexDescriptor.layouts[0].stride = sizeof(VertexColor);
-            renderPipelineDesc.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
-            renderPipelineDesc.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
-            _pipeline.Define(&renderPipelineDesc);
+            _shader->Define(ShaderStage::Vertex, resources.ReadBytes("shaders/color.vert.spv"));
+            _shader->Define(ShaderStage::Fragment, resources.ReadBytes("shaders/color.frag.spv"));
+            _shader->Finalize();*/
         }
 
         void Render(SharedPtr<CommandContext> context)
         {
-            agpuSetPipeline(_pipeline.GetHandle());
-            agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
-            agpuCmdDraw(3, 0);
+            //agpuCmdSetShader(_shader->GetHandle());
+            //agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
+            //agpuCmdDraw(3, 0);
             //context->SetPipeline(_pipeline);
             //context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
             //context->Draw(PrimitiveTopology::Triangles, 3, 0);
@@ -104,7 +100,6 @@ namespace Alimer
         GpuBuffer _perCameraUboBuffer;
 
         SharedPtr<Shader> _shader;
-        Pipeline _pipeline;
         PerCameraCBuffer _camera{};
     };
 
@@ -149,8 +144,8 @@ namespace Alimer
 
             // Shaders
             _shader = new Shader();
-            _shader->Define(resources.ReadBytes("shaders/color.vert.spv"));
-            _shader->Define(resources.ReadBytes("shaders/color.frag.spv"));
+            _shader->Define(ShaderStage::Vertex, resources.ReadBytes("shaders/color.vert.spv"));
+            _shader->Define(ShaderStage::Fragment, resources.ReadBytes("shaders/color.frag.spv"));
             _shader->Finalize();
 
             renderPipelineDesc.shader = _shader;
@@ -160,10 +155,9 @@ namespace Alimer
             _pipeline.Define(&renderPipelineDesc);
         }
 
-        void Render(CommandContext* context)
+        void Render(CommandContext*)
         {
-            ALIMER_UNUSED(context);
-            agpuSetPipeline(_pipeline.GetHandle());
+            agpuCmdSetShader(_shader->GetHandle());
             agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
             agpuCmdSetIndexBuffer(_indexBuffer.GetHandle(), 0, AGPU_INDEX_TYPE_UINT16);
             agpuCmdDrawIndexed(6, 0, 0);
@@ -382,7 +376,7 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
-        _settings.preferredGraphicsBackend = GraphicsBackend::D3D11;
+        //_settings.preferredGraphicsBackend = GraphicsBackend::D3D11;
         // _settings.preferredGraphicsBackend = GraphicsBackend::Vulkan;
     }
 

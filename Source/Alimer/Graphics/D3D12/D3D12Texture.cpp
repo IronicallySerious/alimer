@@ -22,79 +22,78 @@
 
 #include "D3D12Texture.h"
 #include "D3D12Graphics.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
-	D3D12Texture::D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource)
-		: Texture(graphics)
-        , _rtvHandle{}
-	{
-		if (resource)
-		{
-			_resource = resource;
-			D3D12_RESOURCE_DESC desc = resource->GetDesc();
-			switch (desc.Dimension)
-			{
-				case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
-					_description.type = TextureType::Type1D;
-					break;
-				case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-					_description.type = TextureType::Type2D;
-					break;
+    D3D12Texture::D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource)
+        : _rtvHandle{}
+    {
+        if (resource)
+        {
+            _resource = resource;
+            /*D3D12_RESOURCE_DESC desc = resource->GetDesc();
+            switch (desc.Dimension)
+            {
+            case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+                _description.type = TextureType::Type1D;
+                break;
+            case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+                _description.type = TextureType::Type2D;
+                break;
 
-				case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
-					_description.type = TextureType::Type3D;
-					break;
+            case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+                _description.type = TextureType::Type3D;
+                break;
 
-				default:
-					break;
-			}
+            default:
+                break;
+            }
 
-			_description.format = PixelFormat::BGRA8UNorm;
-			_description.width = static_cast<uint32_t>(desc.Width);
-			_description.height = static_cast<uint32_t>(desc.Height);
-			if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
-			{
-				_description.depth = desc.DepthOrArraySize;
-				_description.arrayLayers = 1;
-			}
-			else
-			{
-				_description.depth = 1;
-				_description.arrayLayers = desc.DepthOrArraySize;
-			}
-			_description.mipLevels = desc.MipLevels;
+            _description.format = PixelFormat::BGRA8UNorm;
+            _description.width = static_cast<uint32_t>(desc.Width);
+            _description.height = static_cast<uint32_t>(desc.Height);
+            if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+            {
+                _description.depth = desc.DepthOrArraySize;
+                _description.arrayLayers = 1;
+            }
+            else
+            {
+                _description.depth = 1;
+                _description.arrayLayers = desc.DepthOrArraySize;
+            }
+            _description.mipLevels = desc.MipLevels;
 
-			_description.usage = TextureUsage::Unknown;
-			if (!(desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE))
-			{
-				_description.usage |= TextureUsage::ShaderRead;
-			}
+            _description.usage = TextureUsage::Unknown;
+            if (!(desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE))
+            {
+                _description.usage |= TextureUsage::ShaderRead;
+            }
 
-			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-			{
-				_description.usage |= TextureUsage::ShaderWrite;
-			}
+            if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+            {
+                _description.usage |= TextureUsage::ShaderWrite;
+            }
 
-			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
-				|| desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
-			{
-				_description.usage |= TextureUsage::RenderTarget;
-			}
+            if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+                || desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+            {
+                _description.usage |= TextureUsage::RenderTarget;
+            }
 
-			if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
-			{
+            if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+            {
                 _rtvHandle = graphics->AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-				graphics->GetD3DDevice()->CreateRenderTargetView(
-					resource,
-					nullptr,
-					_rtvHandle.GetCpuHandle());
-			}
-		}
-	}
+                graphics->GetD3DDevice()->CreateRenderTargetView(
+                    resource,
+                    nullptr,
+                    _rtvHandle.GetCpuHandle());
+            }*/
+        }
+    }
 
-	D3D12Texture::~D3D12Texture()
-	{
-	}
+    D3D12Texture::~D3D12Texture()
+    {
+    }
 }

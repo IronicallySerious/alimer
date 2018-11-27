@@ -40,6 +40,7 @@ extern "C"
     AGPU_DEFINE_HANDLE(AgpuTexture);
     AGPU_DEFINE_HANDLE(AgpuFramebuffer);
     AGPU_DEFINE_HANDLE(AgpuBuffer);
+    AGPU_DEFINE_HANDLE(AgpuShaderModule);
     AGPU_DEFINE_HANDLE(AgpuShader);
     AGPU_DEFINE_HANDLE(AgpuPipeline);
     AGPU_DEFINE_HANDLE(AgpuCommandBuffer);
@@ -69,6 +70,7 @@ extern "C"
         AGPU_BACKEND_D3D12      = 4,
         AGPU_BACKEND_METAL      = 5,
         AGPU_BACKEND_OPENGL     = 6,
+        AGPU_BACKEND_COUNT      = (AGPU_BACKEND_OPENGL - AGPU_BACKEND_DEFAULT + 1),
     } AgpuBackend;
 
     typedef enum AgpuSampleCount {
@@ -129,6 +131,8 @@ extern "C"
         AGPU_PIXEL_FORMAT_BC6HU16           = 31,
         AGPU_PIXEL_FORMAT_BC7_UNORM         = 32,
         AGPU_PIXEL_FORMAT_BC7_UNORM_SRGB    = 33,
+
+        AGPU_PIXEL_FORMAT_COUNT             = (AGPU_PIXEL_FORMAT_BC7_UNORM_SRGB - AGPU_PIXEL_FORMAT_UNKNOWN + 1),
     } AgpuPixelFormat;
 
     typedef enum AgpuTextureType {
@@ -160,21 +164,19 @@ extern "C"
         AGPU_BUFFER_USAGE_CPU_ACCESSIBLE    = 64,
     } AgpuBufferUsage;
 
-    typedef enum AgpuShaderStage {
-        AGPU_SHADER_STAGE_VERTEX        = 0,
-        AGPU_SHADER_STAGE_TESS_CONTROL  = 1,
-        AGPU_SHADER_STAGE_TESS_EVAL     = 2,
-        AGPU_SHADER_STAGE_GEOMETRY      = 3,
-        AGPU_SHADER_STAGE_FRAGMENT      = 4,
-        AGPU_SHADER_STAGE_COMPUTE       = 5,
-        AGPU_SHADER_STAGE_COUNT         = (AGPU_SHADER_STAGE_COMPUTE - AGPU_SHADER_STAGE_VERTEX + 1),
-    } AgpuShaderStage;
+    typedef enum AgpuShaderStageFlagBits {
+        AGPU_SHADER_STAGE_NONE              = 0,
+        AGPU_SHADER_STAGE_VERTEX_BIT        = 0x00000001,
+        AGPU_SHADER_STAGE_TESS_CONTROL_BIT  = 0x00000002,
+        AGPU_SHADER_STAGE_TESS_EVAL_BIT     = 0x00000004,
+        AGPU_SHADER_STAGE_GEOMETRY_BIT      = 0x00000008,
+        AGPU_SHADER_STAGE_FRAGMENT_BIT      = 0x00000010,
+        AGPU_SHADER_STAGE_COMPUTE_BIT       = 0x00000020,
+        AGPU_SHADER_STAGE_ALL_GRAPHICS      = 0x0000001F,
+        AGPU_SHADER_STAGE_ALL               = 0x7FFFFFFF,
+    } AgpuShaderStageFlagBits;
 
-    typedef enum AgpuShaderLanguage {
-        AGPU_SHADER_LANGUAGE_DEFAULT    = 0,
-        AGPU_SHADER_LANGUAGE_HLSL       = 1,
-        AGPU_SHADER_LANGUAGE_GLSL       = 2,
-    } AgpuShaderLanguage;
+    typedef AgpuFlags AgpuShaderStageFlags;
 
     typedef enum AgpuVertexFormat {
         AGPU_VERTEX_FORMAT_UNKNOWN      = 0,
@@ -251,12 +253,6 @@ extern "C"
         AgpuFramebufferAttachment   depthStencilAttachment;
     } AgpuFramebufferDescriptor;
 
-    typedef struct AgpuShaderBlob
-    {
-        uint64_t size;
-        uint8_t *data;
-    } AgpuShaderBlob;
-    
     typedef struct AgpuVertexBufferLayoutDescriptor {
         uint32_t                    stride;
         AgpuVertexInputRate         inputRate;
@@ -273,16 +269,23 @@ extern "C"
         AgpuVertexAttributeDescriptor       attributes[AGPU_MAX_VERTEX_ATTRIBUTES];
     } AgpuVertexDescriptor;
 
-    typedef struct AgpuShaderStageDescriptor {
-        AgpuShaderBlob              blob;
-        AgpuShaderStage             stage;
+    typedef struct AgpuShaderModuleDescriptor {
+        AgpuShaderStageFlagBits     stage;
+        size_t                      codeSize;
+        const uint8_t*              pCode;
         const char*                 source;
         const char*                 entryPoint;
-        AgpuShaderLanguage          language;
+    } AgpuShaderModuleDescriptor;
+
+    typedef struct AgpuShaderStageDescriptor {
+        AgpuShaderModule            shaderModule;
+        const char*                 entryPoint;
+        /*const AgpuSpecializationInfo* specializationInfo;*/
     } AgpuShaderStageDescriptor;
 
     typedef struct AgpuShaderDescriptor {
-        AgpuShaderStageDescriptor   stages[AGPU_SHADER_STAGE_COUNT];
+        uint32_t                            stageCount;
+        const AgpuShaderStageDescriptor*    stages;
     } AgpuShaderDescriptor;
 
     typedef struct AgpuRenderPipelineDescriptor {
@@ -357,11 +360,14 @@ extern "C"
     ALIMER_API AgpuFramebuffer agpuCreateFramebuffer(const AgpuFramebufferDescriptor* descriptor);
     ALIMER_API void agpuDestroyFramebuffer(AgpuFramebuffer framebuffer);
 
+    /* ShaderModule */
+    ALIMER_API AgpuShaderModule agpuCreateShaderModule(const AgpuShaderModuleDescriptor* descriptor);
+    ALIMER_API void agpuDestroyShaderModule(AgpuShaderModule shaderModule);
+    ALIMER_API AgpuShaderStageFlagBits agpuGetShaderModuleState(AgpuShaderModule shaderModule);
+
     /* Shader */
     ALIMER_API AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor);
-    ALIMER_API AgpuShaderBlob agpuCompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint);
     ALIMER_API void agpuDestroyShader(AgpuShader shader);
-    ALIMER_API AgpuShaderStage agpuGetShaderStage(AgpuShader shader);
 
     /* Pipeline */
     ALIMER_API AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor);
@@ -371,7 +377,7 @@ extern "C"
     /* Command buffer */
     ALIMER_API void agpuBeginRenderPass(AgpuFramebuffer framebuffer);
     ALIMER_API void agpuEndRenderPass();
-    ALIMER_API void agpuSetPipeline(AgpuPipeline pipeline);
+    ALIMER_API void agpuCmdSetShader(AgpuShader shader);
     ALIMER_API void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, AgpuVertexInputRate inputRate);
     ALIMER_API void agpuCmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType);
 

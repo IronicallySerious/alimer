@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/Texture.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Debug/Log.h"
 
 namespace Alimer
@@ -44,6 +44,10 @@ namespace Alimer
         : Resource()
     {
 
+    }
+
+    Texture::~Texture()
+    {
     }
 
     void Texture::RegisterObject()

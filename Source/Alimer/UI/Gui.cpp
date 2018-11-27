@@ -22,7 +22,7 @@
 
 #include "../UI/Gui.h"
 #include "../Debug/Log.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Graphics/Shader.h"
 #include "shaders_h/imgui.vert.h"
 #include "shaders_h/imgui.frag.h"

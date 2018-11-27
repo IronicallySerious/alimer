@@ -22,25 +22,48 @@
 
 #pragma once
 
-#include "../Base/Cache.h"
 #include "../Graphics/GraphicsResource.h"
 #include "../Resource/Resource.h"
-#include <string>
-#include <vector>
+#include "../Base/Vector.h"
 
 namespace Alimer
 {
-    ALIMER_API void SPIRVReflectResources(const uint32_t* pCode, size_t size, ShaderReflection* reflection);
-
-    struct ShaderBlob
+    /// Defines shader stage
+    enum class ShaderStage : uint32_t
     {
-        uint64_t size;
-        uint8_t *data;
+        Vertex = 0,
+        TessControl = 1,
+        TessEvaluation = 2,
+        Geometry = 3,
+        Fragment = 4,
+        Compute = 5,
+        Count = 6
     };
 
-    struct ShaderDescriptor
+    class ShaderModuleImpl;
+
+    /// Defines a shader module resource.
+    class ALIMER_API ShaderModule final : public Resource
     {
-        ShaderBlob stages[static_cast<unsigned>(ShaderStage::Count)];
+        friend class Graphics;
+        ALIMER_OBJECT(ShaderModule, Resource);
+
+    public:
+        /// Constructor.
+        ShaderModule();
+
+        /// Destructor.
+        ~ShaderModule() override;
+
+        /// Unconditionally destroy the GPU resource.
+        void Destroy();
+
+    private:
+        /// Register object factory.
+        static void RegisterObject();
+
+        ShaderModuleImpl* _impl = nullptr;
+        Vector<PipelineResource> _resources;
     };
 
     /// Defines a shader resource.
@@ -61,18 +84,26 @@ namespace Alimer
 
         bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
 
-        bool Define(const  std::vector<uint8_t>& bytecode);
+        bool Define(ShaderStage stage, const Vector<uint8_t>& bytecode);
 
         bool Finalize();
 
         /// Get the gpu handle.
         inline AgpuShader GetHandle() const { return _handle; }
+
+        inline const AgpuShaderModule GetShader(ShaderStage stage) const
+        {
+            return _shaders[static_cast<unsigned>(stage)];
+        }
+
     private:
         /// Register object factory.
         static void RegisterObject();
 
         //uint64_t _hash;
-        AgpuShaderDescriptor _shaderDescriptor = {};
+        AgpuShaderModule _shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
         AgpuShader _handle = nullptr;
     };
+
+    ALIMER_API const char* EnumToString(ShaderStage stage);
 }

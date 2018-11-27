@@ -114,12 +114,12 @@ typedef struct AgpuBuffer_T {
 
 } AgpuBuffer_T;
 
-typedef struct AgpuShader_T {
-    AgpuShaderStage                 stage;
+typedef struct AgpuShaderModule_T {
+    AgpuShaderStageFlagBits         stage;
 #if defined(ALIMER_D3D12)
-    D3D12_SHADER_BYTECODE           d3d12Bytecode[AGPU_SHADER_STAGE_COUNT];
+    D3D12_SHADER_BYTECODE           d3d12Bytecode;
 #endif
-} AgpuShader_T;
+} AgpuShaderModule_T;
 
 typedef struct AgpuPipeline_T {
     AgpuBool32                      isCompute;
@@ -152,10 +152,11 @@ struct AGpuRendererI
     virtual AgpuFramebuffer CreateFramebuffer(const AgpuFramebufferDescriptor* descriptor) = 0;
     virtual void DestroyFramebuffer(AgpuFramebuffer framebuffer) = 0;
 
+    virtual AgpuShaderModule CreateShaderModule(const AgpuShaderModuleDescriptor* descriptor) = 0;
+    virtual void DestroyShaderModule(AgpuShaderModule shaderModule) = 0;
+
     virtual AgpuShader CreateShader(const AgpuShaderDescriptor* descriptor) = 0;
-    virtual AgpuShaderBlob CompileShader(AgpuShaderStage stage, const char* source, const char* entryPoint) = 0;
     virtual void DestroyShader(AgpuShader shader) = 0;
-    virtual AgpuShaderStage GetShaderStage(AgpuShader shader) const = 0;
 
     virtual AgpuPipeline CreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor) = 0;
     virtual AgpuPipeline CreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor) = 0;
@@ -166,7 +167,7 @@ struct AGpuRendererI
 
     virtual void CmdBeginRenderPass(AgpuFramebuffer framebuffer) = 0;
     virtual void CmdEndRenderPass() = 0;
-    virtual void SetPipeline(AgpuPipeline pipeline) = 0;
+    virtual void CmdSetShader(AgpuShader shader) = 0;
     virtual void CmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, uint32_t stride, AgpuVertexInputRate inputRate) = 0;
     virtual void CmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType) = 0;
 

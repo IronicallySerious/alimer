@@ -59,8 +59,7 @@ namespace Alimer
         _running = false;
 
         SafeDelete(_mainWindow);
-        SafeDelete(_graphics);
-        agpuShutdown();
+        _graphics.Reset();
         Audio::Shutdown();
         PluginManager::Shutdown();
         SafeDelete(_log);
@@ -92,27 +91,14 @@ namespace Alimer
             swapchainDesc.windowHandle = _mainWindow->GetHandle();
 
             // Set settings
-            _settings.renderingSettings.swapchain = swapchainDesc;
+            _settings.graphicsSettings.swapchain = swapchainDesc;
 
-            // Create and init graphics.
-            AgpuDescriptor descriptor = {};
-            descriptor.validation = AGPU_TRUE;
-            descriptor.preferredBackend = AGPU_BACKEND_DEFAULT;
-
-            descriptor.swapchain.width = windowSize.x;
-            descriptor.swapchain.height = windowSize.y;
-#if ALIMER_PLATFORM_WINDOWS
-            descriptor.swapchain.display = (void*)_mainWindow->GetHInstance();
-            descriptor.swapchain.windowHandle = (void*)_mainWindow->GetHandle();
-#endif
-            agpuInitialize(&descriptor);
-
-            /*_graphicsDevice = GraphicsDevice::Create(_settings.prefferedGraphicsBackend, _settings.validation);
-            if (!_graphicsDevice->Initialize(_settings.renderingSettings))
+            _graphics = Graphics::Create(_settings.preferredGraphicsBackend, _settings.validation);
+            if (!_graphics->Initialize(_settings.graphicsSettings))
             {
                 ALIMER_LOGERROR("Failed to initialize Graphics.");
                 return false;
-            }*/
+            }
 
             // Create imgui system.
             _gui = new Gui();
@@ -197,8 +183,7 @@ namespace Alimer
         context->EndRenderPass();*/
 
         // Present rendering frame.
-        agpuFrame();
-        //_graphicsDevice->Present();
+        _graphics->Present();
     }
 
     void Application::OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime)

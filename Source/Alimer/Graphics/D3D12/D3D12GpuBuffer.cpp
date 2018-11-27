@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_D3D12
 #include "D3D12GpuBuffer.h"
 #include "D3D12Graphics.h"
 #include "../../Core/Log.h"
@@ -71,3 +72,5 @@ namespace Alimer
     {
     }
 }
+
+#endif // TODO_D3D12

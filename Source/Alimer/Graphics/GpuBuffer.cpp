@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/GpuBuffer.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Debug/Log.h"
 
 namespace Alimer

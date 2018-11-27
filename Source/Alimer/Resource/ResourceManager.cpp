@@ -150,16 +150,16 @@ namespace Alimer
         return false;
     }
 
-    std::vector<uint8_t> ResourceManager::ReadBytes(const String& assetName, size_t count)
+    Vector<uint8_t> ResourceManager::ReadBytes(const String& assetName, size_t count)
     {
-        auto stream = Open(assetName);
+        UniquePtr<Stream> stream = Open(assetName);
         return stream->ReadBytes(count);
     }
 
     SharedPtr<Object> ResourceManager::LoadObject(StringHash type, const String& assetName)
     {
-        auto stream = Open(assetName);
-        auto loader = GetLoader(type);
+        UniquePtr<Stream> stream = Open(assetName);
+        ResourceLoader* loader = GetLoader(type);
         return loader->Load(*stream);
     }
 
@@ -196,7 +196,7 @@ namespace Alimer
     {
         String cleanName = AddTrailingSlash(name);
         if (!IsAbsolutePath(name))
-            cleanName = Path::Join(FileSystem::GetCurrentDirectory(), name);
+            cleanName = Path::Join(FileSystem::GetCurrentDir(), name);
 
         // Sanitate away /./ construct
         cleanName = cleanName.Replaced("/./", "/").Trimmed();

@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_D3D12
 #include "D3D12CommandBuffer.h"
 #include "D3D12CommandListManager.h"
 #include "D3D12Texture.h"
@@ -367,3 +368,5 @@ namespace Alimer
             _currentPipeline->GetCBVHeap()->GetGPUDescriptorHandleForHeapStart());
     }
 }
+
+#endif // TODO_D3D12

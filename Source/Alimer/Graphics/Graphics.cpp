@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Graphics.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
 #include "../Debug/Log.h"
@@ -33,6 +33,21 @@
 #   include "../Graphics/Vulkan/VulkanGraphicsDevice.h"
 #endif
 
+#if defined(ALIMER_D3D12)
+#include "../Graphics/D3D12/D3D12Graphics.h"
+#endif
+
+#if defined(_WIN32)
+#include <windows.h>
+
+// Prefer the high-performance GPU on switchable GPU systems
+extern "C"
+{
+    __declspec(dllexport) DWORD NvOptimusEnablement = 1;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif /* defined(_WIN32) */
+
 namespace Alimer
 {
     Graphics::Graphics(GraphicsBackend backend, bool validation)
@@ -44,8 +59,43 @@ namespace Alimer
 
     Graphics::~Graphics()
     {
-        agpuShutdown();
+        Shutdown();
         RemoveSubsystem(this);
+    }
+
+    Graphics* Graphics::Create(GraphicsBackend preferredBackend, bool validation)
+    {
+        GraphicsBackend backend = preferredBackend;
+        if (backend == GraphicsBackend::Default)
+        {
+            backend = GetDefaultPlatformBackend();
+        }
+
+        Graphics* graphics = nullptr;
+        switch (backend)
+        {
+        case GraphicsBackend::Empty:
+            break;
+        case GraphicsBackend::Vulkan:
+            break;
+        case GraphicsBackend::D3D11:
+            break;
+        case GraphicsBackend::D3D12:
+#if defined(ALIMER_D3D12)
+            graphics = new D3D12Graphics(validation);
+            ALIMER_LOGINFO("D3D12 backend created with success.");
+#else
+            ALIMER_LOGERROR("D3D12 backend is not supported.");
+#endif
+            break;
+        case GraphicsBackend::Metal:
+            break;
+        case GraphicsBackend::OpenGL:
+            break;
+        default:
+            ALIMER_UNREACHABLE();
+        }
+        return graphics;
     }
 
     void Graphics::Shutdown()
@@ -69,7 +119,44 @@ namespace Alimer
 
     bool Graphics::IsBackendSupported(GraphicsBackend backend)
     {
-        return agpuIsBackendSupported(static_cast<AgpuBackend>(backend));
+        if (backend == GraphicsBackend::Default)
+        {
+            backend = GetDefaultPlatformBackend();
+        }
+
+        switch (backend)
+        {
+        case GraphicsBackend::Empty:
+            return true;
+        case GraphicsBackend::Vulkan:
+#if AGPU_VULKAN
+            return true; // VulkanGraphicsDevice::IsSupported();
+#else
+            return false;
+#endif
+        case GraphicsBackend::D3D11:
+#if defined(ALIMER_D3D11)
+            return true; // agpuIsD3D11Supported();
+#else
+            return false;
+#endif
+
+        case GraphicsBackend::D3D12:
+#if defined(ALIMER_D3D12)
+            return D3D12Graphics::IsSupported();
+#else
+            return false;
+#endif
+
+        case GraphicsBackend::OpenGL:
+#if AGPU_OPENGL
+            return true;
+#else
+            return false;
+#endif
+        default:
+            return false;
+        }
     }
 
     std::set<GraphicsBackend> Graphics::GetAvailableBackends()
@@ -84,8 +171,16 @@ namespace Alimer
             backends.insert(GraphicsBackend::OpenGL);
 #endif
 
-#if ALIMER_COMPILE_D3D11
+#if defined(ALIMER_D3D11)
             backends.insert(GraphicsBackend::D3D11);
+#endif
+
+
+#if defined(ALIMER_D3D12)
+            if (D3D12Graphics::IsSupported())
+            {
+                backends.insert(GraphicsBackend::D3D12);
+            }
 #endif
 
 #if ALIMER_COMPILE_VULKAN
@@ -99,75 +194,30 @@ namespace Alimer
         return backends;
     }
 
-    Graphics* Graphics::Create(GraphicsBackend prefferedBackend, bool validation)
+    GraphicsBackend Graphics::GetDefaultPlatformBackend()
     {
-        if (prefferedBackend == GraphicsBackend::Default)
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP || ALIMER_PLATFORM_XBOX_ONE
+        if (IsBackendSupported(GraphicsBackend::D3D12))
         {
-            auto availableBackends = Graphics::GetAvailableBackends();
-
-            if (availableBackends.find(GraphicsBackend::Vulkan) != availableBackends.end())
-            {
-                prefferedBackend = GraphicsBackend::Vulkan;
-            }
-            else if (availableBackends.find(GraphicsBackend::Metal) != availableBackends.end())
-            {
-                prefferedBackend = GraphicsBackend::Metal;
-            }
-            else if (availableBackends.find(GraphicsBackend::D3D12) != availableBackends.end())
-            {
-                prefferedBackend = GraphicsBackend::D3D12;
-            }
-            else if (availableBackends.find(GraphicsBackend::D3D11) != availableBackends.end())
-            {
-                prefferedBackend = GraphicsBackend::D3D11;
-            }
-            else if (availableBackends.find(GraphicsBackend::OpenGL) != availableBackends.end())
-            {
-                prefferedBackend = GraphicsBackend::OpenGL;
-            }
-            else
-            {
-                prefferedBackend = GraphicsBackend::Empty;
-            }
+            return GraphicsBackend::D3D12;
         }
 
-        Graphics* device = nullptr;
-        switch (prefferedBackend)
-        {
-        case GraphicsBackend::Vulkan:
-#if ALIMER_COMPILE_VULKAN
-            device = new VulkanGraphicsDevice(validation);
+        return GraphicsBackend::D3D11;
+#elif ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_ANDROID
+        return GraphicsBackend::OpenGL;
+#elif ALIMER_PLATFORM_MACOS || ALIMER_PLATFORM_IOS || ALIMER_PLATFORM_TVOS
+        return GraphicsBackend::Metal;
 #else
-            ALIMER_LOGCRITICAL("Vulkan backend is not supported");
+        return GraphicsBackend::OpenGL;
 #endif
-            break;
-
-        case GraphicsBackend::D3D11:
-#if ALIMER_COMPILE_D3D11
-            device = new D3D11GraphicsDevice(validation);
-#else
-            ALIMER_LOGCRITICAL("Direct3D11 backend is not supported");
-#endif
-            break;
-
-        default:
-            break;
-        }
-
-        return device;
     }
 
-    bool Graphics::Initialize(const RenderingSettings& settings)
+    bool Graphics::Initialize(const GraphicsSettings& settings)
     {
         if (_initialized)
         {
             ALIMER_LOGCRITICAL("Cannot Initialize Graphics if already initialized.");
         }
-
-        AgpuDescriptor descriptor;
-        descriptor.validation = AGPU_TRUE;
-        descriptor.preferredBackend = AGPU_BACKEND_DEFAULT;
-        agpuInitialize(&descriptor);
 
         _settings = settings;
         _initialized = true;
@@ -175,10 +225,10 @@ namespace Alimer
         return _initialized;
     }
 
-    uint32_t Graphics::Present()
+    uint64_t Graphics::Present()
     {
-        _context->Flush();
-        PresentImpl();
+        //_context->Flush();
+        Frame();
         return ++_frameIndex;
     }
 
@@ -205,14 +255,15 @@ namespace Alimer
         //    ALIMER_LOGCRITICAL("Texture needs the transfer dest usage when creating with initial data.");
         //}
 
-        return CreateTextureImpl(descriptor, initialData);
+        return nullptr;
+        //return CreateTextureImpl(descriptor, initialData);
     }
 
     Framebuffer* Graphics::CreateFramebuffer(const FramebufferDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
-
-        return CreateFramebufferImpl(descriptor);
+        return nullptr;
+        //return CreateFramebufferImpl(descriptor);
     }
 
     void Graphics::AddGraphicsResource(GraphicsResource* resource)
@@ -244,6 +295,7 @@ namespace Alimer
             return;
         registered = true;
 
+        ShaderModule::RegisterObject();
         Shader::RegisterObject();
         Texture::RegisterObject();
     }

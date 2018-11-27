@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Base/Cache.h"
+#if TODO_SHADER_COMPILER
 #include "../Graphics/Shader.h"
 #include <mutex>
 #include <vector>
@@ -65,3 +65,5 @@ namespace Alimer
         DISALLOW_COPY_MOVE_AND_ASSIGN(ShaderCompiler);
     };
 }
+
+#endif /* TODO_SHADER_COMPILER */
