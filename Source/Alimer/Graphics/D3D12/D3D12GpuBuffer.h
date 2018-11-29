@@ -22,22 +22,21 @@
 
 #pragma once
 
-#include "Graphics/GpuBuffer.h"
-#include "D3D12Helpers.h"
+#include "../GraphicsImpl.h"
+#include "D3D12Prerequisites.h"
 
 namespace Alimer
 {
 	class D3D12Graphics;
 
 	/// D3D12 GpuBuffer implementation.
-	class D3D12GpuBuffer final : public GpuBuffer, public D3D12Resource
+	class D3D12Buffer final : public GpuBufferImpl, public D3D12Resource
 	{
 	public:
 		/// Constructor.
-		D3D12GpuBuffer(D3D12Graphics* graphics, const GpuBufferDescription& description, const void* initialData);
+        D3D12Buffer(D3D12Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData, void* externalHandle);
 
-		/// Destructor.
-		~D3D12GpuBuffer() override;
-	private:
+    private:
+        D3D12Graphics* _graphics;
 	};
 }

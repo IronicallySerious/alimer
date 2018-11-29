@@ -47,6 +47,7 @@ namespace Alimer
 	/// Defines an Image resource.
 	class ALIMER_API Image final : public Resource
 	{
+        friend class ResourceManager;
         ALIMER_OBJECT(Image, Resource);
 
 	public:
@@ -76,6 +77,9 @@ namespace Alimer
         uint8_t* Data() const { return _data.Get(); }
 
     private:
+        /// Register object factory.
+        static void RegisterObject();
+
         bool SaveBmp(Stream* dest) const;
         bool SavePng(Stream* dest) const;
 

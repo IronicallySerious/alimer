@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include "AlimerConfig.h"
-#include <string>
+#include "../Base/String.h"
 
 namespace Alimer
 {
@@ -59,13 +58,13 @@ namespace Alimer
 
         void SetVendorId(uint32_t vendorID);
         void SetDeviceId(uint32_t deviceID);
-        void SetDeviceName(const std::string& deviceName);
+        void SetDeviceName(const String& deviceName);
 
     protected:
         uint32_t _vendorID;
         GpuVendor _vendor;
         uint32_t _deviceID;
-        std::string _deviceName;
+        String _deviceName;
         bool _multithreading;
         uint32_t _maxColorAttachments;
 	};

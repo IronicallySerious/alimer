@@ -49,7 +49,7 @@ namespace Alimer
     PluginManager *PluginManager::GetInstance()
     {
         if (!_instance)
-            _instance = new PluginManager;
+            _instance = new PluginManager();
 
         return _instance;
     }

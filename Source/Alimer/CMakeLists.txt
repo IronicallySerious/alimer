@@ -109,14 +109,18 @@ if (ALIMER_WINDOWS OR ALIMER_UWP)
     define_engine_source_files(Audio/XAudio2)
 endif()
 
+if (ALIMER_D3D11 OR ALIMER_D3D12)
+    define_engine_source_files(Graphics/D3D)
+endif ()
+
 if (ALIMER_D3D12)
     define_engine_source_files(Graphics/D3D12)
-endif (ALIMER_GL)
+endif ()
 
 if (ALIMER_GL)
     define_engine_source_files(Graphics/OpenGL)
     list (APPEND ALIMER_NATIVE_INCLUDE_DIRS ${ALIMER_THIRD_PARTY_DIR}/khronos)
-endif (ALIMER_GL)
+endif ()
 
 if (ALIMER_VULKAN)
     # define_engine_source_files(Graphics/Vulkan)

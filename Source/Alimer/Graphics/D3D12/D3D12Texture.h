@@ -22,27 +22,23 @@
 
 #pragma once
 
-#include "../Texture.h"
-#include "Graphics/Texture.h"
-#include "D3D12DescriptorAllocator.h"
+#include "../GraphicsImpl.h"
+#include "D3D12Prerequisites.h"
 
 namespace Alimer
 {
 	class D3D12Graphics;
 
 	/// D3D12 Texture implementation.
-	class D3D12Texture final : public Texture, public D3D12Resource
+	class D3D12Texture final : public TextureImpl, public D3D12Resource
 	{
 	public:
 		/// Constructor.
-		D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource = nullptr);
+		D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource);
 
 		/// Destructor.
-		~D3D12Texture() override;
-
-		const D3D12_CPU_DESCRIPTOR_HANDLE& GetRTV() const { return _rtvHandle.GetCpuHandle(); }
+		~D3D12Texture();
 
 	private:
-        D3D12DescriptorHandle _rtvHandle;
 	};
 }

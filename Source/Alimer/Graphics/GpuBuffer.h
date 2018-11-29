@@ -24,25 +24,35 @@
 
 #include "../Base/Ptr.h"
 #include "../Base/String.h"
-#include "../Graphics/agpu.h"
+#include "../Graphics/GraphicsResource.h"
 
 namespace Alimer
 {
     enum class BufferUsage : uint32_t
     {
-        None = AGPU_BUFFER_USAGE_NONE,
-        Vertex = AGPU_BUFFER_USAGE_VERTEX,
-        Index = AGPU_BUFFER_USAGE_INDEX,
-        Uniform = AGPU_BUFFER_USAGE_UNIFORM,
-        Storage = AGPU_BUFFER_USAGE_STORAGE,
-        Indirect = AGPU_BUFFER_USAGE_INDIRECT,
-        Dynamic = AGPU_BUFFER_USAGE_DYNAMIC,
-        CPUAccessible = AGPU_BUFFER_USAGE_CPU_ACCESSIBLE,
+        None = 0,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        Uniform = 1 << 2,
+        Storage = 1 << 3,
+        Indirect = 1 << 4,
+        Dynamic = 1 << 5,
+        CPUAccessible = 1 << 6,
     };
     ALIMER_BITMASK(BufferUsage);
 
+    struct BufferDescriptor
+    {
+        BufferUsage usage = BufferUsage::None;
+        uint64_t size = 0;
+        uint32_t stride = 0;
+        String name;
+    };
+
+    class GpuBufferImpl;
+
 	/// Defines a Graphics Buffer class.
-	class ALIMER_API GpuBuffer final : public RefCounted
+	class ALIMER_API GpuBuffer final : public GraphicsResource
 	{
 	public:
         /// Constructor.
@@ -54,16 +64,13 @@ namespace Alimer
         /// Unconditionally destroy the GPU resource.
         void Destroy();
 
-        bool Define(BufferUsage usage, uint64_t size, uint32_t stride, const void* initialData = nullptr, const String& name = "");
+        bool Define(const BufferDescriptor* descriptor, const void* initialData = nullptr);
 
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 
         /// Replace buffer data in synchronous way.
         bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
-
-        /// Get the gpu handle.
-        AgpuBuffer GetHandle() const { return _handle; }
 
         /// Get the buffer usage flags.
         BufferUsage GetUsage() const { return _usage; }
@@ -74,8 +81,13 @@ namespace Alimer
         /// Get single element size in bytes.
 		uint32_t GetStride() const { return _stride; }
 
+        /// Return backend implementation, which holds the actual API-specific resources.
+        GpuBufferImpl* GetImpl() const { return _impl; }
+
 	private:
-        AgpuBuffer _handle = nullptr;
+        bool Create(const BufferDescriptor* descriptor, const void* initialData);
+
+        GpuBufferImpl* _impl;
         BufferUsage _usage = BufferUsage::None;
         uint64_t _stride = 0;
 		uint64_t _size = 0;

@@ -252,4 +252,14 @@ namespace Alimer
         // TODO:
         return false;
     }
+
+    void ResourceManager::RegisterObject()
+    {
+        static bool registered = false;
+        if (registered)
+            return;
+        registered = true;
+
+        Image::RegisterObject();
+    }
 }

@@ -22,16 +22,43 @@
 
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsImpl.h"
 #include "../Debug/Log.h"
 
 namespace Alimer
 {
-    Framebuffer::Framebuffer(Graphics* device, const FramebufferDescriptor* descriptor)
-        : GraphicsResource(device)
+    Framebuffer::Framebuffer()
+        : GraphicsResource(Object::GetSubsystem<Graphics>())
+        , _impl(nullptr)
     {
         _width = UINT32_MAX;
         _height = UINT32_MAX;
         _layers = 1;
+    }
+
+    Framebuffer::Framebuffer(FramebufferImpl* impl)
+        : GraphicsResource(Object::GetSubsystem<Graphics>())
+        , _impl(impl)
+    {
+        _width = UINT32_MAX;
+        _height = UINT32_MAX;
+        _layers = 1;
+    }
+
+    Framebuffer::~Framebuffer()
+    {
+        Destroy();
+    }
+
+    bool Framebuffer::Define(const FramebufferDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+
+        _width = UINT32_MAX;
+        _height = UINT32_MAX;
+        _layers = 1;
+
+        Destroy();
 
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
@@ -43,7 +70,7 @@ namespace Alimer
             Texture* texture = attachment.texture;
             _width = min(_width, texture->GetWidth(mipLevel));
             _height = min(_height, texture->GetHeight(mipLevel));
-            _colorAttachments.push_back(attachment);
+            _colorAttachments.Push(attachment);
         }
 
         if (descriptor->depthStencilAttachment.texture != nullptr)
@@ -54,13 +81,26 @@ namespace Alimer
             _height = min(_height, texture->GetHeight(mipLevel));
             _depthStencilAttachment = descriptor->depthStencilAttachment;
         }
+
+        return Create();
     }
 
-    static bool ValidateAttachment(const Texture* texture,
+    bool Framebuffer::Create()
+    {
+        _impl = _graphics->GetImpl()->CreateFramebuffer(_colorAttachments);
+        return _impl != nullptr;
+    }
+
+    void Framebuffer::Destroy()
+    {
+        SafeDelete(_impl);
+    }
+
+    /*static bool ValidateAttachment(const Texture* texture,
         uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize,
         bool isDepthAttachment)
     {
-#ifndef _DEBUG
+#if !defined(ALIMER_DEV)
         return true;
 #endif
         if (texture == nullptr)
@@ -134,9 +174,9 @@ namespace Alimer
 
     void Framebuffer::AttachColorTarget(const SharedPtr<Texture>& colorTexture, uint32_t index, uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize)
     {
-        if (index >= _colorAttachments.size())
+        if (index >= _colorAttachments.Size())
         {
-            ALIMER_LOGERRORF("Framebuffer attachment error, requested color index %u need to be in rage 0-%u", index, static_cast<uint32_t>(_colorAttachments.size()));
+            ALIMER_LOGERRORF("Framebuffer attachment error, requested color index %u need to be in rage 0-%u", index, _colorAttachments.Size());
             return;
         }
 
@@ -176,13 +216,13 @@ namespace Alimer
             {
             }
         }
-    }
+    }*/
 
     const Texture* Framebuffer::GetColorTexture(uint32_t index) const
     {
-        if (index >= _colorAttachments.size())
+        if (index >= _colorAttachments.Size())
         {
-            ALIMER_LOGERRORF("Framebuffer::GetColorTexture: Index is out of range. Requested %u but only %u color slots are available.", index, (uint32_t)(_colorAttachments.size()));
+            ALIMER_LOGERRORF("Framebuffer::GetColorTexture: Index is out of range. Requested %u but only %u color slots are available.", index, _colorAttachments.Size());
             return nullptr;
         }
 

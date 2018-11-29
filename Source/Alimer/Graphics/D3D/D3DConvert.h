@@ -62,22 +62,21 @@ namespace Alimer
         }
     }
 
+    inline PixelFormat GetPixelFormatDxgiFormat(DXGI_FORMAT format)
+    {
+        switch (format)
+        {
+        case DXGI_FORMAT_R8_UNORM:          return PixelFormat::R8UNorm;
+        case DXGI_FORMAT_R8G8_UNORM:        return PixelFormat::RG8UNorm;
+        case DXGI_FORMAT_R8G8B8A8_UNORM:    return PixelFormat::RGBA8UNorm;
+        case DXGI_FORMAT_B8G8R8A8_UNORM:    return PixelFormat::BGRA8UNorm;
+        default:
+            return PixelFormat::Unknown;
+        }
+    }
 
     namespace d3d
     {
-        static inline PixelFormat Convert(DXGI_FORMAT format)
-        {
-            switch (format)
-            {
-            case DXGI_FORMAT_R8_UNORM:          return PixelFormat::R8UNorm;
-            case DXGI_FORMAT_R8G8_UNORM:        return PixelFormat::RG8UNorm;
-            case DXGI_FORMAT_R8G8B8A8_UNORM:    return PixelFormat::RGBA8UNorm;
-            case DXGI_FORMAT_B8G8R8A8_UNORM:    return PixelFormat::BGRA8UNorm;
-            default:
-                return PixelFormat::Unknown;
-            }
-        }
-
         static inline DXGI_FORMAT Convert(VertexFormat format)
         {
             switch (format)
@@ -115,13 +114,13 @@ namespace Alimer
         {
             switch (topology)
             {
-            case PrimitiveTopology::Points:
+            case PrimitiveTopology::PointList:
                 return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-            case PrimitiveTopology::Lines:
+            case PrimitiveTopology::LineList:
                 return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
             case PrimitiveTopology::LineStrip:
                 return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
-            case PrimitiveTopology::Triangles:
+            case PrimitiveTopology::TriangleList:
                 return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
             case PrimitiveTopology::TriangleStrip:
                 return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;

@@ -40,6 +40,9 @@ namespace Alimer
         ALIMER_OBJECT(ResourceManager, Object);
 
 	public:
+        /// Register object.
+        static void RegisterObject();
+
 		/// Constructor.
 		ResourceManager();
 

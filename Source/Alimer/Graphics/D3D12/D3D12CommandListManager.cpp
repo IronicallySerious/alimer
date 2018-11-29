@@ -41,23 +41,23 @@ namespace Alimer
 
     void D3D12CommandAllocatorPool::Shutdown()
     {
-        for (size_t i = 0; i < _allocatorPool.size(); ++i)
+        for (uint32_t i = 0; i < _allocatorPool.Size(); ++i)
         {
             _allocatorPool[i]->Release();
         }
 
-        _allocatorPool.clear();
+        _allocatorPool.Clear();
     }
 
     ID3D12CommandAllocator* D3D12CommandAllocatorPool::RequestAllocator(uint64_t completedFenceValue)
     {
-        std::lock_guard<std::mutex> LockGuard(_mutex);
+        std::lock_guard<std::mutex> lock(_mutex);
 
         ID3D12CommandAllocator* result = nullptr;
 
         if (!_readyAllocators.empty())
         {
-            std::pair<uint64_t, ID3D12CommandAllocator*>& allocatorPair = _readyAllocators.front();
+            auto& allocatorPair = _readyAllocators.front();
 
             if (allocatorPair.first <= completedFenceValue)
             {
@@ -72,9 +72,9 @@ namespace Alimer
         {
             ThrowIfFailed(_device->CreateCommandAllocator(_type, IID_PPV_ARGS(&result)));
             wchar_t name[32];
-            swprintf(name, 32, L"CommandAllocator %zu", _allocatorPool.size());
+            swprintf(name, 32, L"CommandAllocator %zu", _allocatorPool.Size());
             result->SetName(name);
-            _allocatorPool.push_back(result);
+            _allocatorPool.Push(result);
         }
 
         return result;
@@ -82,7 +82,7 @@ namespace Alimer
 
     void D3D12CommandAllocatorPool::DiscardAllocator(uint64_t fenceValue, ID3D12CommandAllocator* allocator)
     {
-        std::lock_guard<std::mutex> LockGuard(_mutex);
+        std::lock_guard<std::mutex> lock(_mutex);
 
         // That fence value indicates we are free to reset the allocator
         _readyAllocators.push(std::make_pair(fenceValue, allocator));
@@ -155,7 +155,7 @@ namespace Alimer
 
     uint64_t D3D12CommandQueue::ExecuteCommandList(ID3D12GraphicsCommandList* commandList)
     {
-        std::lock_guard<std::mutex> LockGuard(_fenceMutex);
+        std::lock_guard<std::mutex> lock(_fenceMutex);
 
         ThrowIfFailed(commandList->Close());
 
@@ -184,7 +184,7 @@ namespace Alimer
 
     uint64_t D3D12CommandQueue::IncrementFence()
     {
-        std::lock_guard<std::mutex> LockGuard(_fenceMutex);
+        std::lock_guard<std::mutex> lock(_fenceMutex);
         _d3dCommandQueue->Signal(_d3dFence, _nextFenceValue);
         return _nextFenceValue++;
     }
@@ -216,7 +216,7 @@ namespace Alimer
         // the fence can only have one event set on completion, then thread B has to wait for 
         // 100 before it knows 99 is ready.  Maybe insert sequential events?
         {
-            std::lock_guard<std::mutex> LockGuard(_eventMutex);
+            std::lock_guard<std::mutex> lock(_eventMutex);
 
             _d3dFence->SetEventOnCompletion(fenceValue, _fenceEventHandle);
             WaitForSingleObject(_fenceEventHandle, INFINITE);

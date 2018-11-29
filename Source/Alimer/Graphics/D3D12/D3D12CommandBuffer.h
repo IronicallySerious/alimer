@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "../CommandBuffer.h"
-#include "D3D12Helpers.h"
+#include "../CommandContext.h"
+#include "D3D12Prerequisites.h"
 #include <vector>
 #include <queue>
 #include <mutex>
@@ -38,61 +38,51 @@ namespace Alimer
 {
 	class D3D12Graphics;
 	class D3D12Texture;
-    class D3D12PipelineState;
+    class D3D12Framebuffer;
 	class D3D12CommandListManager;
 
-	/// D3D12 CommandBuffer implementation.
-	class D3D12CommandBuffer final : public CommandBuffer
+	/// D3D12 CommandContext implementation.
+	class D3D12CommandContext final : public CommandContext
 	{
 	public:
 		/// Constructor.
-		D3D12CommandBuffer(D3D12Graphics* graphics);
+        D3D12CommandContext(D3D12Graphics* graphics, D3D12_COMMAND_LIST_TYPE type);
 
 		/// Destructor.
-		~D3D12CommandBuffer() override;
+		~D3D12CommandContext() override;
 
+        void Initialize();
 		void Reset();
-
-        /// Commit for execution and optionally wait for completion.
-		uint64_t Commit(bool waitForCompletion);
 
 		void TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
 		void BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
 		void InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate = false);
 		void FlushResourceBarriers();
 
-        RenderPassCommandEncoderPtr BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil) override;
-		void EndRenderPass(RenderPassCommandEncoderPtr encoder) override;
-
-		void SetPipeline(const SharedPtr<PipelineState>& pipeline) override;
-
-		void DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance) override;
-		void DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex) override;
+        D3D12_COMMAND_LIST_TYPE GetCommandListType() const { return _type; }
 
 	private:
-		void FlushGraphicsPipelineState();
-		bool PrepareDraw(PrimitiveTopology topology);
-        void FlushDescriptorSets();
-        void FlushDescriptorSet(uint32_t set);
+        /// Commit for execution and optionally wait for completion.
+        uint32_t Finish(bool waitForCompletion, bool releaseContext) override;
 
-        void SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        void EndRenderPassImpl() override;
 
-	private:
-		ID3D12Device* _d3dDevice;
-		D3D12CommandListManager* _manager;
-		ID3D12GraphicsCommandList* _commandList;
-		ID3D12CommandAllocator* _currentAllocator;
-		D3D12_COMMAND_LIST_TYPE _type;
+        D3D12Graphics*              _graphics;
+		D3D12CommandListManager*    _manager;
+		ID3D12GraphicsCommandList*  _commandList;
+		ID3D12CommandAllocator*     _currentAllocator;
+		D3D12_COMMAND_LIST_TYPE     _type;
 
-		D3D12_RESOURCE_BARRIER _resourceBarrierBuffer[16];
-		uint32_t _numBarriersToFlush;
+        D3D12_RESOURCE_BARRIER      _resourceBarrierBuffer[16] = {};
+		uint32_t                    _numBarriersToFlush = 0;
 
-		uint32_t _boundRTVCount;
-		D3D12Resource* _boundRTVResources[MaxColorAttachments];
-		D3D12_CPU_DESCRIPTOR_HANDLE _boundRTV[MaxColorAttachments];
+		uint32_t                    _boundRTVCount = 0;
+        D3D12Resource*              _boundRTVResources[MaxColorAttachments] = {};
+        D3D12_CPU_DESCRIPTOR_HANDLE _boundRTV[MaxColorAttachments] = {};
 
-        SharedPtr<D3D12PipelineState> _currentPipeline;
-		ID3D12PipelineState* _currentD3DPipeline = nullptr;
-		PrimitiveTopology _currentTopology = PrimitiveTopology::Count;
+        D3D12Framebuffer*           _currentFramebuffer = nullptr;
+		ID3D12PipelineState*        _currentD3DPipeline = nullptr;
+		PrimitiveTopology           _currentTopology = PrimitiveTopology::Count;
 	};
 }

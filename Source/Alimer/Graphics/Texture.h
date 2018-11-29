@@ -24,7 +24,6 @@
 
 #include "../Math/MathUtil.h"
 #include "../Graphics/GraphicsResource.h"
-#include "../Resource/Resource.h"
 #include "../Resource/Image.h"
 #include "../Base/HashMap.h"
 
@@ -61,19 +60,25 @@ namespace Alimer
         SampleCount samples = SampleCount::Count1;
     };
 
+    class TextureImpl;
+
     /// Defines a Texture class.
-    class ALIMER_API Texture : public Resource
+    class ALIMER_API Texture : public GraphicsResource
     {
         friend class Graphics;
-        ALIMER_OBJECT(Texture, Resource);
-
-    protected:
-        /// Constructor.
-        Texture(const TextureDescriptor* descriptor);
+        ALIMER_OBJECT(Texture, GraphicsResource);
 
     public:
+        /// Constructor.
         Texture();
+
+        /// Constructor.
+        Texture(TextureImpl* impl);
+
+        /// Desturctor
         ~Texture() override;
+
+        bool Define(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
 
         TextureType GetTextureType() const { return _type; }
         TextureUsage GetUsage() const { return _usage; }
@@ -109,10 +114,21 @@ namespace Alimer
         */
         SampleCount GetSamples() const { return _samples; }
 
+        /// Return backend implementation, which holds the actual API-specific resources.
+        TextureImpl* GetImpl() const { return _impl; }
+
     private:
+        bool Create(const ImageLevel* initialData);
+        void Destroy();
+
+        bool BeginLoad(Stream& source) override;
+        /// Finish resource loading. Always called from the main thread. Return true if successful.
+        bool EndLoad() override;
+
         /// Register object factory.
         static void RegisterObject();
 
+        TextureImpl* _impl;
         TextureType _type = TextureType::Type1D;
         TextureUsage _usage = TextureUsage::Unknown;
         PixelFormat _format = PixelFormat::Unknown;

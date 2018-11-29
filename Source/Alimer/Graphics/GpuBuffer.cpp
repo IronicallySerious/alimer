@@ -22,11 +22,14 @@
 
 #include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsImpl.h"
 #include "../Debug/Log.h"
 
 namespace Alimer
 {
     GpuBuffer::GpuBuffer()
+        : GraphicsResource(Object::GetSubsystem<Graphics>())
+        , _impl(nullptr)
     {
 
     }
@@ -36,34 +39,23 @@ namespace Alimer
         Destroy();
     }
 
-    void GpuBuffer::Destroy()
+   
+    bool GpuBuffer::Define(const BufferDescriptor* descriptor, const void* initialData)
     {
-        if (_handle != nullptr)
-        {
-            agpuDestroyBuffer(_handle);
-            _handle = nullptr;
-        }
-    }
+        ALIMER_ASSERT(descriptor);
 
-    bool GpuBuffer::Define(BufferUsage usage, uint64_t size, uint32_t stride, const void* initialData, const String& name)
-    {
+        if (descriptor->usage == BufferUsage::None)
+        {
+            ALIMER_LOGCRITICAL("Invalid bufer usage");
+        }
+
         Destroy();
 
-        _usage = usage;
-        _stride = stride;
-        _size = size;
+        _usage = descriptor->usage;
+        _stride = descriptor->stride;
+        _size = descriptor->size;
 
-        AgpuBufferDescriptor descriptor = {};
-        descriptor.usage = static_cast<AgpuBufferUsage>(usage);
-        descriptor.size = size;
-        descriptor.stride = stride;
-        if (!name.IsEmpty())
-        {
-            descriptor.name = name.CString();
-        }
-
-        _handle = agpuCreateBuffer(&descriptor, initialData);
-        return _handle != nullptr;
+        return Create(descriptor, initialData);
     }
 
     bool GpuBuffer::SetSubData(const void* pData)
@@ -81,4 +73,16 @@ namespace Alimer
 
         return false;
     }
+
+    bool GpuBuffer::Create(const BufferDescriptor* descriptor, const void* initialData)
+    {
+        _impl = gGraphics().GetImpl()->CreateBuffer(descriptor, initialData, nullptr);
+        return _impl != nullptr;
+    }
+
+    void GpuBuffer::Destroy()
+    {
+        SafeDelete(_impl);
+    }
+
 }

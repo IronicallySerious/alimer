@@ -56,20 +56,20 @@ namespace Alimer
         {
             ALIMER_UNUSED(resources);
 
-            /*VertexColor triangleVertices[] =
+            VertexColor triangleVertices[] =
             {
                 { vec3(0.0f, 0.5f, 0.0f), Color4::Red },
                 { vec3(0.5f, -0.5f, 0.0f), Color4::Lime },
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            _vertexBuffer.Define(
-                BufferUsage::Vertex,
-                sizeof(triangleVertices),
-                sizeof(VertexColor),
-                triangleVertices);
+            BufferDescriptor vboBufferDesc = {};
+            vboBufferDesc.usage = BufferUsage::Vertex;
+            vboBufferDesc.size = sizeof(triangleVertices);
+            vboBufferDesc.stride = sizeof(VertexColor);
+            _vertexBuffer.Define(&vboBufferDesc, triangleVertices);
 
-            BufferDescriptor uboBufferDesc = {};
+            /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
@@ -87,6 +87,11 @@ namespace Alimer
 
         void Render(SharedPtr<CommandContext> context)
         {
+            CommandContext& gfxContext = CommandContext::Begin("Scene Render");
+            Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+            gfxContext.BeginDefaultRenderPass(clearColor);
+            gfxContext.EndRenderPass();
+            gfxContext.Finish();
             //agpuCmdSetShader(_shader->GetHandle());
             //agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
             //agpuCmdDraw(3, 0);
@@ -108,7 +113,9 @@ namespace Alimer
     public:
         void Initialize(ResourceManager& resources)
         {
-            VertexColor triangleVertices[] =
+            ALIMER_UNUSED(resources);
+
+            /*VertexColor triangleVertices[] =
             {
                 { vec3(-0.5f, 0.5f, 0.0f), Color4(0.0f, 0.0f, 1.0f, 1.0f) },
                 { vec3(0.5f, 0.5f, 0.0f), Color4(1.0f, 0.0f, 0.0f, 1.0f) },
@@ -133,11 +140,11 @@ namespace Alimer
                 sizeof(uint16_t),
                 indices);
 
-            /*BufferDescriptor uboBufferDesc = {};
+            BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
             uboBufferDesc.usage = BufferUsage::Uniform;
             uboBufferDesc.size = sizeof(PerCameraCBuffer);
-            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);*/
+            _perCameraUboBuffer = graphics->CreateBuffer(&uboBufferDesc, &_camera);
 
             // Define pipeline now.
             RenderPipelineDescriptor renderPipelineDesc = {};
@@ -152,15 +159,15 @@ namespace Alimer
             renderPipelineDesc.vertexDescriptor.layouts[0].stride = sizeof(VertexColor);
             renderPipelineDesc.vertexDescriptor.attributes[0].format = VertexFormat::Float3;
             renderPipelineDesc.vertexDescriptor.attributes[1].format = VertexFormat::Float4;
-            _pipeline.Define(&renderPipelineDesc);
+            _pipeline.Define(&renderPipelineDesc);*/
         }
 
         void Render(CommandContext*)
         {
-            agpuCmdSetShader(_shader->GetHandle());
-            agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
-            agpuCmdSetIndexBuffer(_indexBuffer.GetHandle(), 0, AGPU_INDEX_TYPE_UINT16);
-            agpuCmdDrawIndexed(6, 0, 0);
+            //agpuCmdSetShader(_shader->GetHandle());
+            //agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
+            //agpuCmdSetIndexBuffer(_indexBuffer.GetHandle(), 0, AGPU_INDEX_TYPE_UINT16);
+            //agpuCmdDrawIndexed(6, 0, 0);
 
             //context->SetShader(_shader.Get());
             //context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);

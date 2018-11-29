@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Base/Vector.h"
 #include "../Graphics/Texture.h"
 
 namespace Alimer
@@ -39,34 +40,24 @@ namespace Alimer
         FramebufferAttachment depthStencilAttachment;
     };
 
+    class FramebufferImpl;
+
     /// Defines a Framebuffer class.
-    class ALIMER_API Framebuffer : public GraphicsResource
+    class ALIMER_API Framebuffer final : public GraphicsResource
     {
-    protected:
-        /// Constructor.
-        Framebuffer(Graphics* device, const FramebufferDescriptor* descriptor);
-
     public:
-        /**
-        * Attach a color texture.
-        *
-        * @param colorTexture The color texture.
-        * @param index The render-target index to attach the texture to.
-        * @param mipLevel The selected mip-level to attach.
-        * @param firstArraySlice The first array slice to attach.
-        * @param arraySize The number of array sliced to attach or RemainingArrayLayers for range [firstArraySlice, texture->GetArraySize()]
-        */
-        void AttachColorTarget(const SharedPtr<Texture>& colorTexture, uint32_t index, uint32_t mipLevel = 0, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingArrayLayers);
+        /// Constructor.
+        Framebuffer();
 
-        /**
-        * Attach a depth-stencil texture.
-        *
-        * @param depthStencil The depth-stencil texture.
-        * @param mipLevel The selected mip-level to attach.
-        * @param firstArraySlice The first array slice to attach.
-        * @param arraySize The number of array sliced to attach or RemainingArrayLayers for range [firstArraySlice, texture->GetArraySize()]
-        */
-        void AttachDepthStencilTarget(const SharedPtr<Texture>& depthStencil, uint32_t mipLevel = 0, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingArrayLayers);
+        /// Constructor.
+        Framebuffer(FramebufferImpl* impl);
+
+        /// Desturctor
+        ~Framebuffer() override;
+
+        bool Define(const FramebufferDescriptor* descriptor);
+
+        uint32_t GetColorAttachmentsCount() const { return _colorAttachments.Size(); }
 
         /**
         * Get an attached color texture. If no texture is attached will return nullptr.
@@ -93,8 +84,16 @@ namespace Alimer
         */
         uint32_t GetLayers() const { return _layers; }
 
-    protected:
-        std::vector<FramebufferAttachment> _colorAttachments;
+        /// Return backend implementation, which holds the actual API-specific resources.
+        FramebufferImpl* GetImpl() const { return _impl; }
+
+    private:
+        bool Create();
+        void Destroy() override;
+
+        FramebufferImpl* _impl;
+
+        Vector<FramebufferAttachment> _colorAttachments;
         FramebufferAttachment _depthStencilAttachment;
 
         uint32_t _width = 0;

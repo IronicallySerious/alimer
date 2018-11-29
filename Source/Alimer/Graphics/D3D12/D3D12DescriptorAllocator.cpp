@@ -61,18 +61,18 @@ namespace Alimer
             }
         }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE ret = _currentCpuHandle;
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _currentCpuHandle;
         _currentCpuHandle.ptr += count * _descriptorSize;
         _remainingFreeHandles -= count;
 
         if (_type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
             || _type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
         {
-            D3D12_GPU_DESCRIPTOR_HANDLE retGpuHandle = _currentGpuHandle;
+            D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = _currentGpuHandle;
             _currentGpuHandle.ptr += count * _descriptorSize;
-            return D3D12DescriptorHandle(_currentHeap, ret, retGpuHandle);
+            return D3D12DescriptorHandle(_currentHeap, _descriptorSize, cpuHandle, gpuHandle);
         }
 
-        return D3D12DescriptorHandle(_currentHeap, ret);
+        return D3D12DescriptorHandle(_currentHeap, _descriptorSize, cpuHandle);
     }
 }

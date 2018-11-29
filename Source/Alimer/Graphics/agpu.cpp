@@ -42,11 +42,6 @@ std::vector<AgpuBackend> agpuGetSupportedBackends()
     {
         backends.push_back(AGPU_BACKEND_EMPTY);
 
-#if defined(ALIMER_D3D11)
-        if (agpuIsD3D11Supported())
-            backends.push_back(AGPU_BACKEND_D3D11);
-#endif
-
 #if defined(ALIMER_D3D12)
         if (agpuIsD3D12Supported())
             backends.push_back(AGPU_BACKEND_D3D12);
@@ -88,12 +83,6 @@ AgpuBool32 agpuIsBackendSupported(AgpuBackend backend)
     case AGPU_BACKEND_VULKAN:
 #if AGPU_VULKAN
         return AGPU_TRUE; // VulkanGraphicsDevice::IsSupported();
-#else
-        return AGPU_FALSE;
-#endif
-    case AGPU_BACKEND_D3D11:
-#if defined(ALIMER_D3D11)
-        return agpuIsD3D11Supported();
 #else
         return AGPU_FALSE;
 #endif
@@ -145,13 +134,6 @@ AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
     case AGPU_BACKEND_EMPTY:
         break;
     case AGPU_BACKEND_VULKAN:
-        break;
-    case AGPU_BACKEND_D3D11:
-#if defined(ALIMER_D3D11)
-        renderer = agpuCreateD3D11Backend(descriptor->validation);
-#else
-        ALIMER_LOGERROR("D3D11 backend is not supported");
-#endif
         break;
     case AGPU_BACKEND_D3D12:
 #if defined(ALIMER_D3D12)

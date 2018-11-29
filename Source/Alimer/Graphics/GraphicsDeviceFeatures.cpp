@@ -34,7 +34,7 @@ namespace Alimer
         _vendorID = 0;
         _vendor = GpuVendor::Unknown;
         _deviceID = 0;
-        _deviceName.clear();
+        _deviceName = String::EMPTY;
         _multithreading = false;
         _maxColorAttachments = 1;
     }
@@ -68,7 +68,7 @@ namespace Alimer
         _deviceID = deviceID;
     }
 
-    void GraphicsDeviceFeatures::SetDeviceName(const std::string& deviceName)
+    void GraphicsDeviceFeatures::SetDeviceName(const String& deviceName)
     {
         _deviceName = deviceName;
     }

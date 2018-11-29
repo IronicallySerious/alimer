@@ -20,26 +20,37 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "D3DPrerequisites.h"
-#include <d3dcompiler.h>
+#include "D3D12Framebuffer.h"
+#include "D3D12Graphics.h"
+#include "D3D12Texture.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
-    class D3DPlatformFunctions final
+    using namespace Microsoft::WRL;
+
+    D3D12Framebuffer::D3D12Framebuffer(D3D12Graphics* graphics, const Vector<FramebufferAttachment>& colorAttachments)
+        : _graphics(graphics)
     {
-    public:
-        D3DPlatformFunctions();
-        ~D3DPlatformFunctions();
+        if (colorAttachments.Size() > 0)
+        {
+            _rtvHandle = graphics->AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, colorAttachments.Size());
 
-        bool LoadFunctions(bool loadD3D12);
+            for (uint32_t i = 0, count = colorAttachments.Size(); i < count; ++i)
+            {
+                D3D12Texture* d3dTexture = static_cast<D3D12Texture*>(colorAttachments[i].texture->GetImpl());
 
-        // Functions from d3d3compiler.dll
-        pD3DCompile d3dCompile = nullptr;
+                D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = _rtvHandle.GetCpuHandle(i);
+                graphics->GetD3DDevice()->CreateRenderTargetView(
+                    d3dTexture->GetResource(),
+                    nullptr,
+                    rtvHandle);
+            }
+        }
+    }
 
-    private:
-        HMODULE _d3dCompilerLib = nullptr;
-        HMODULE _d3d12Lib = nullptr;
-    };
+    D3D12Framebuffer::~D3D12Framebuffer()
+    {
+        
+    }
 }

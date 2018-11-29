@@ -22,74 +22,74 @@
 
 #include "D3D12Texture.h"
 #include "D3D12Graphics.h"
+#include "../D3D/D3DConvert.h"
 #include "../../Debug/Log.h"
 
 namespace Alimer
 {
     D3D12Texture::D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource)
-        : _rtvHandle{}
+        : TextureImpl()
     {
         if (resource)
         {
             _resource = resource;
-            /*D3D12_RESOURCE_DESC desc = resource->GetDesc();
+            D3D12_RESOURCE_DESC desc = resource->GetDesc();
             switch (desc.Dimension)
             {
             case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
-                _description.type = TextureType::Type1D;
+                type = TextureType::Type1D;
                 break;
             case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-                _description.type = TextureType::Type2D;
+                if (desc.DepthOrArraySize == 6)
+                {
+                    type = TextureType::TypeCube;
+                }
+                else 
+                {
+                    type = TextureType::Type2D;
+                }
                 break;
 
             case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
-                _description.type = TextureType::Type3D;
+                type = TextureType::Type3D;
                 break;
 
             default:
                 break;
             }
 
-            _description.format = PixelFormat::BGRA8UNorm;
-            _description.width = static_cast<uint32_t>(desc.Width);
-            _description.height = static_cast<uint32_t>(desc.Height);
+            format = GetPixelFormatDxgiFormat(desc.Format);
+            width = static_cast<uint32_t>(desc.Width);
+            height = static_cast<uint32_t>(desc.Height);
             if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
             {
-                _description.depth = desc.DepthOrArraySize;
-                _description.arrayLayers = 1;
+                depth = desc.DepthOrArraySize;
+                arrayLayers = 1;
             }
             else
             {
-                _description.depth = 1;
-                _description.arrayLayers = desc.DepthOrArraySize;
+                depth = 1;
+                arrayLayers = desc.DepthOrArraySize;
             }
-            _description.mipLevels = desc.MipLevels;
+            mipLevels = desc.MipLevels;
+            samples = static_cast<SampleCount>(desc.SampleDesc.Count);
 
-            _description.usage = TextureUsage::Unknown;
+            usage = TextureUsage::Unknown;
             if (!(desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE))
             {
-                _description.usage |= TextureUsage::ShaderRead;
+                usage |= TextureUsage::ShaderRead;
             }
 
             if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
             {
-                _description.usage |= TextureUsage::ShaderWrite;
+                usage |= TextureUsage::ShaderWrite;
             }
 
             if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
                 || desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
             {
-                _description.usage |= TextureUsage::RenderTarget;
+                usage |= TextureUsage::RenderTarget;
             }
-
-            if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
-            {
-                _rtvHandle = graphics->AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-                graphics->GetD3DDevice()->CreateRenderTargetView(
-                    resource,
-                    nullptr,
-                    _rtvHandle.GetCpuHandle());
-            }*/
         }
     }
 

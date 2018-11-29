@@ -24,14 +24,17 @@
 
 #include "../Base/Ptr.h"
 #include "../Graphics/Types.h"
+#include "../Resource/Resource.h"
 
 namespace Alimer
 {
 	class Graphics;
 
 	/// Defines a base GraphicsResource.
-	class ALIMER_API GraphicsResource : public RefCounted
+	class ALIMER_API GraphicsResource : public Resource
 	{
+        ALIMER_OBJECT(GraphicsResource, Resource);
+
 	protected:
         /// Constructor.
         GraphicsResource(Graphics* graphics);

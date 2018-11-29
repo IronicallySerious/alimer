@@ -20,57 +20,120 @@
 // THE SOFTWARE.
 //
 
-#if TODO_D3D12
 #include "D3D12GpuBuffer.h"
 #include "D3D12Graphics.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
-    D3D12GpuBuffer::D3D12GpuBuffer(D3D12Graphics* graphics, const GpuBufferDescription& description, const void* initialData)
-        : GpuBuffer(graphics, description)
+    D3D12Buffer::D3D12Buffer(D3D12Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData, void* externalHandle)
+        : _graphics(graphics)
     {
-        // TODO: Property initialize using CommandList.
         _usageState = D3D12_RESOURCE_STATE_GENERIC_READ;
 
-        CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(_size);
 
-        HRESULT hr = graphics->GetD3DDevice()->CreateCommittedResource(
-            &heapProps,
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDesc,
-            _usageState,
-            nullptr,
-            IID_PPV_ARGS(&_resource)
-        );
+        const bool allowUAV = any(descriptor->usage & BufferUsage::Storage);
 
-        if (initialData)
+        const bool dynamic = any(descriptor->usage & BufferUsage::Dynamic);
+        const bool cpuAccessible = any(descriptor->usage & BufferUsage::CPUAccessible);
+
+        uint64_t size = AlignTo(descriptor->size, uint64_t(descriptor->stride));
+        D3D12_RESOURCE_DESC resourceDesc = { };
+        if (externalHandle == nullptr)
         {
-            // Create staging buffer for copy data.
-            //ComPtr<ID3D12Resource> stagingBuffer;
+            resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+            resourceDesc.Width = dynamic ? size * RenderLatency : size;
+            resourceDesc.Height = 1;
+            resourceDesc.DepthOrArraySize = 1;
+            resourceDesc.MipLevels = 1;
+            resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+            resourceDesc.Flags = allowUAV ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
+            resourceDesc.SampleDesc.Count = 1;
+            resourceDesc.SampleDesc.Quality = 0;
+            resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+            resourceDesc.Alignment = 0;
 
-            //ThrowIfFailed(graphics->GetD3DDevice()->CreateCommittedResource(
-            //	&HeapProperties(D3D12_HEAP_TYPE_UPLOAD),
-            //	D3D12_HEAP_FLAG_NONE,
-            //	&BufferResourceDesc(_size),
-            //	D3D12_RESOURCE_STATE_GENERIC_READ,
-            //	nullptr,
-            //	IID_PPV_ARGS(&stagingBuffer)));
+            const D3D12_HEAP_PROPERTIES* heapProps = cpuAccessible
+                ? GetUploadHeapProps() : GetDefaultHeapProps();
+            if (cpuAccessible)
+            {
+                _usageState = D3D12_RESOURCE_STATE_GENERIC_READ;
+            }
+            else if (initialData)
+            {
+                _usageState = D3D12_RESOURCE_STATE_COMMON;
+            }
 
-            UINT8* pDataBegin;
-            D3D12_RANGE readRange = {};
-            hr = _resource->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin));
-            memcpy(pDataBegin, initialData, _size);
-            _resource->Unmap(0, nullptr);
+            ID3D12Heap* heap = nullptr;
+            const uint64_t heapOffset = 0;
+            if (heap)
+            {
+                ThrowIfFailed(_graphics->GetD3DDevice()->CreatePlacedResource(
+                    heap,
+                    heapOffset,
+                    &resourceDesc,
+                    _usageState,
+                    nullptr,
+                    IID_PPV_ARGS(&_resource))
+                );
+            }
+            else
+            {
+                ThrowIfFailed(_graphics->GetD3DDevice()->CreateCommittedResource(
+                    heapProps,
+                    D3D12_HEAP_FLAG_NONE,
+                    &resourceDesc,
+                    _usageState,
+                    nullptr,
+                    IID_PPV_ARGS(&_resource))
+                );
+            }
+        }
+        else 
+        {
+            _resource.Attach(static_cast<ID3D12Resource*>(externalHandle));
+            resourceDesc = _resource->GetDesc();
         }
 
-        _gpuVirtualAddress = _resource->GetGPUVirtualAddress();
-    }
+#if defined(ALIMER_DEV)
+        if (!descriptor->name.IsEmpty())
+        {
+            _resource->SetName(WString(descriptor->name).CString());
+        }
+#endif
 
-    D3D12GpuBuffer::~D3D12GpuBuffer()
-    {
+        _gpuVirtualAddress = _resource->GetGPUVirtualAddress();
+
+        if (cpuAccessible)
+        {
+            D3D12_RANGE readRange = { };
+            ThrowIfFailed(_resource->Map(0, &readRange, reinterpret_cast<void**>(&_cpuAddress)));
+        }
+
+        if (initialData && cpuAccessible)
+        {
+            for (uint64_t i = 0; i < RenderLatency; ++i)
+            {
+                uint8_t* dstMem = _cpuAddress + size * i;
+                memcpy(dstMem, initialData, size);
+            }
+        }
+        else if (initialData)
+        {
+            /*UploadContext uploadContext = ResourceUploadBegin(resourceDesc.Width);
+
+            memcpy(uploadContext.CPUAddress, initialData, size);
+            if (dynamic)
+                memcpy((uint8_t*)uploadContext.CPUAddress + size, initialData, size);
+
+            uploadContext.commandList->CopyBufferRegion(
+                _resource.Get(),
+                0,
+                uploadContext.resource,
+                uploadContext.resourceOffset,
+                size);
+
+            ResourceUploadEnd(uploadContext);*/
+        }
     }
 }
-
-#endif // TODO_D3D12

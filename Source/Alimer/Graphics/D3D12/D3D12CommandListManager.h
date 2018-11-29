@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "D3D12Helpers.h"
-#include <vector>
+#include "D3D12Prerequisites.h"
+#include "../../Base/Vector.h"
 #include <queue>
 #include <mutex>
 
@@ -41,12 +41,12 @@ namespace Alimer
 
 		ID3D12CommandAllocator* RequestAllocator(uint64_t completedFenceValue);
 		void DiscardAllocator(uint64_t fenceValue, ID3D12CommandAllocator* allocator);
-		inline size_t Size() { return _allocatorPool.size(); }
+		inline uint32_t Size() { return _allocatorPool.Size(); }
 
 	private:
 		ID3D12Device * _device;
 		const D3D12_COMMAND_LIST_TYPE _type;
-		std::vector<ID3D12CommandAllocator*> _allocatorPool;
+		Vector<ID3D12CommandAllocator*> _allocatorPool;
 		std::queue<std::pair<uint64_t, ID3D12CommandAllocator*>> _readyAllocators;
 		std::mutex _mutex;
 	};

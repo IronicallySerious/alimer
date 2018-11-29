@@ -22,9 +22,7 @@
 
 #pragma once
 
-#include "D3D12Helpers.h"
-#include <mutex>
-#include <vector>
+#include "D3D12Prerequisites.h"
 
 namespace Alimer
 {
@@ -39,8 +37,9 @@ namespace Alimer
             _gpuHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
         }
 
-        D3D12DescriptorHandle(ID3D12DescriptorHeap* heap, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle)
+        D3D12DescriptorHandle(ID3D12DescriptorHeap* heap, uint32_t sizeIncrement, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle)
             : _heap(heap)
+            , _sizeIncrement(sizeIncrement)
             , _cpuHandle(cpuHandle)
         {
             _gpuHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
@@ -48,9 +47,11 @@ namespace Alimer
 
         D3D12DescriptorHandle(
             ID3D12DescriptorHeap* heap,
+            uint32_t sizeIncrement,
             D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
             D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle)
             : _heap(heap)
+            , _sizeIncrement(sizeIncrement)
             , _cpuHandle(cpuHandle)
             , _gpuHandle(gpuHandle)
         {
@@ -60,11 +61,26 @@ namespace Alimer
         D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const { return _cpuHandle; }
         D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const { return _gpuHandle; }
 
+        D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(uint32_t index) const
+        {
+            D3D12_CPU_DESCRIPTOR_HANDLE handle = _cpuHandle;
+            handle.ptr += _sizeIncrement * index;
+            return handle;
+        }
+
+        D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(uint32_t index) const 
+        {
+            D3D12_GPU_DESCRIPTOR_HANDLE handle = _gpuHandle;
+            handle.ptr += _sizeIncrement * index;
+            return handle;
+        }
+
         bool IsNull() const { return _cpuHandle.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN; }
         bool IsShaderVisible() const { return _gpuHandle.ptr != D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN; }
 
     private:
-        ID3D12DescriptorHeap * _heap;
+        ID3D12DescriptorHeap* _heap;
+        uint32_t _sizeIncrement;
         D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle;
         D3D12_GPU_DESCRIPTOR_HANDLE _gpuHandle;
     };

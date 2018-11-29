@@ -22,45 +22,22 @@
 
 #pragma once
 
-#include <WinSDKVer.h>
-#define _WIN32_WINNT 0x0A00
-#include <SDKDDKVer.h>
+#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+#define STRICT                          // Use strict declarations for Windows types
 
-// Use the C++ standard templated min/max
-#define NOMINMAX
-
-// DirectX apps don't need GDI
-#define NODRAWTEXT
-#define NOGDI
-#define NOBITMAP
-
-// Include <mcx.h> if you need this
-#define NOMCX
-
-// Include <winsvc.h> if you need this
-#define NOSERVICE
-
-// WinHelp is deprecated
-#define NOHELP
-
-#define WIN32_LEAN_AND_MEAN
+// Windows Header Files:
 #include <windows.h>
+#include <commctrl.h>
+#include <psapi.h>
+#include <process.h>
+#include <wrl.h>
 
-#include <wrl/client.h>
-#include <wrl/event.h>
-
-#include <d3d12.h>
+#include <dxgi.h>
+#include <d3dcompiler.h>
 
 #define D3D11_NO_HELPERS
 #include <d3d11_1.h>
-#include <DirectXMath.h>
-#include <DirectXColors.h>
 
-#if defined(NTDDI_WIN10_RS2)
-#   include <dxgi1_6.h>
-#else
-#   include <dxgi1_5.h>
-#endif
 
 #include <algorithm>
 #include <exception>
@@ -74,6 +51,31 @@
 #include <dxgidebug.h>
 #endif
 
+// Un-define min and max from the windows headers
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
+// C RunTime Header Files
+#include <stdlib.h>
+#include <malloc.h>
+#include <memory.h>
+#include <tchar.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
+
+#pragma warning(push)
+#pragma warning(disable : 4005)
+#include <wincodec.h>
+#pragma warning(pop)
+
 #if defined(_DURANGO) || defined(_XBOX_ONE)
 #   define ALIMER_D3D_DYNAMIC_LIB 0
 #elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
@@ -82,7 +84,6 @@
 #   define ALIMER_D3D_DYNAMIC_LIB 1
 #endif
 
-#include "../Types.h"
 #include "../../Core/Platform.h"
 #include "../../Debug/Log.h"
 

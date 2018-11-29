@@ -20,43 +20,30 @@
 // THE SOFTWARE.
 //
 
-#include "../../AlimerConfig.h"
+#pragma once
 
-#if ALIMER_COMPILE_D3D11 || ALIMER_COMPILE_D3D12
-#include "D3DPlatformFunctions.h"
+#include "../GraphicsImpl.h"
+#include "D3D12DescriptorAllocator.h"
 
 namespace Alimer
 {
-    D3DPlatformFunctions::D3DPlatformFunctions()
-    {
+	class D3D12Graphics;
 
-    }
+	/// D3D12 Framebuffer.
+	class D3D12Framebuffer final : public FramebufferImpl
+	{
+	public:
+		/// Constructor.
+        D3D12Framebuffer(D3D12Graphics* graphics, const Vector<FramebufferAttachment>& colorAttachments);
 
-    D3DPlatformFunctions::~D3DPlatformFunctions()
-    {
-        if (_d3d12Lib)
-        {
-            FreeLibrary(_d3d12Lib);
-            _d3d12Lib = nullptr;
-        }
+		/// Destructor.
+		~D3D12Framebuffer();
 
-        if (_d3dCompilerLib)
-        {
-            FreeLibrary(_d3dCompilerLib);
-            _d3dCompilerLib = nullptr;
-        }
-    }
+        const D3D12_CPU_DESCRIPTOR_HANDLE& GetRTV(uint32_t index) const { return _rtvHandle.GetCpuHandle(index); }
 
-    bool D3DPlatformFunctions::LoadFunctions(bool loadD3D12)
-    {
-        _d3dCompilerLib = LoadLibraryW(L"d3dcompiler_47.dll");
-        _d3d12Lib = LoadLibraryW(L"d3d12.dll");
-
-        d3dCompile = reinterpret_cast<pD3DCompile>(GetProcAddress(_d3dCompilerLib, "D3DCompile"));
-        if (d3dCompile == nullptr)
-            return false;
-
-        return true;
-    }
+	private:
+        D3D12Graphics* _graphics;
+        D3D12DescriptorHandle _rtvHandle = {};
+        D3D12DescriptorHandle _dsvHandle = {};
+	};
 }
-#endif /* ALIMER_COMPILE_D3D11 || ALIMER_COMPILE_D3D12 */

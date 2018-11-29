@@ -27,20 +27,55 @@
 
 namespace Alimer
 {
-    CommandContext::CommandContext(Graphics* graphics)
-        : _graphics(graphics)
+    CommandContext::CommandContext()
+        : _graphics(Object::GetSubsystem<Graphics>())
+        , _insideRenderPass(false)
     {
-        BeginContext();
     }
 
-    void CommandContext::Flush(bool waitForCompletion)
+    CommandContext& CommandContext::Begin(const String name)
     {
-        FlushImpl(waitForCompletion);
+        CommandContext* newContext = Graphics::AllocateContext();
+        newContext->SetName(name);
+        if (!name.IsEmpty())
+        {
+            //GpuProfiler::BeginBlock(name, newContext);
+        }
+
+        return *newContext;
+    }
+
+    uint64_t CommandContext::Flush(bool waitForCompletion)
+    {
+        return Finish(waitForCompletion, false);
+    }
+
+    uint64_t CommandContext::Finish(bool waitForCompletion)
+    {
+        return Finish(waitForCompletion, true);
+    }
+
+    void CommandContext::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
+    {
+        RenderPassBeginDescriptor descriptor = {};
+        descriptor.colors[0].loadAction = LoadAction::Clear;
+        descriptor.colors[0].storeAction = StoreAction::Store;
+        descriptor.colors[0].clearColor = clearColor;
+
+        descriptor.depthStencil.depthLoadAction = LoadAction::Clear;
+        descriptor.depthStencil.depthStoreAction = StoreAction::Store;
+        descriptor.depthStencil.stencilLoadAction = LoadAction::DontCare;
+        descriptor.depthStencil.stencilStoreAction = StoreAction::DontCare;
+        descriptor.depthStencil.clearDepth = clearDepth;
+        descriptor.depthStencil.clearStencil = clearStencil;
+
+        BeginRenderPass(_graphics->GetSwapchainFramebuffer(), &descriptor);
     }
 
     void CommandContext::BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor)
     {
-        //BeginRenderPass(_graphics->GetSwapchainFramebuffer(), descriptor);
+        ALIMER_ASSERT_MSG(descriptor, "Invalid descriptor");
+        BeginRenderPass(_graphics->GetSwapchainFramebuffer(), descriptor);
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
@@ -61,7 +96,7 @@ namespace Alimer
     {
         ALIMER_ASSERT(pipeline);
         _currentPipeline = pipeline;
-        SetPipelineImpl(pipeline);
+        //SetPipelineImpl(pipeline);
     }
 
     void CommandContext::SetVertexBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t index)
@@ -70,11 +105,11 @@ namespace Alimer
         ALIMER_ASSERT(index < MaxVertexBufferBindings);
         if (!any(buffer->GetUsage() & BufferUsage::Vertex))
         {
-            _graphics->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+            Graphics::NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
             return;
         }
 
-        SetVertexBufferImpl(buffer, offset);
+        //SetVertexBufferImpl(buffer, offset);
     }
 
     void CommandContext::SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets)
@@ -84,12 +119,12 @@ namespace Alimer
         {
             if (!any(buffers[i]->GetUsage() & BufferUsage::Vertex))
             {
-                _graphics->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+                Graphics::NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
                 return;
             }
         }
 
-        SetVertexBuffersImpl(firstBinding, count, buffers, offsets);
+        //SetVertexBuffersImpl(firstBinding, count, buffers, offsets);
     }
 
     void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset)
@@ -97,11 +132,11 @@ namespace Alimer
         ALIMER_ASSERT(buffer);
         if (!any(buffer->GetUsage() & BufferUsage::Index))
         {
-            _graphics->NotifyValidationError("SetIndexBuffer need buffer with Index usage");
+            Graphics::NotifyValidationError("SetIndexBuffer need buffer with Index usage");
             return;
         }
 
-        SetIndexBufferImpl(buffer, offset, buffer->GetStride());
+        //SetIndexBufferImpl(buffer, offset, buffer->GetStride());
     }
 
     void CommandContext::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
@@ -110,14 +145,14 @@ namespace Alimer
         ALIMER_ASSERT(_insideRenderPass);
         //ALIMER_ASSERT(!_isCompute);
         ALIMER_ASSERT(vertexCount > 0);
-        DrawImpl(topology, vertexCount, startVertexLocation);
+        //DrawImpl(topology, vertexCount, startVertexLocation);
     }
 
     void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
     {
         ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
-        DrawInstancedImpl(topology, vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
+        //DrawInstancedImpl(topology, vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
@@ -125,7 +160,7 @@ namespace Alimer
         ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(indexCount > 1);
-        DrawIndexedImpl(topology, indexCount, startIndexLocation, baseVertexLocation);
+        //DrawIndexedImpl(topology, indexCount, startIndexLocation, baseVertexLocation);
     }
 
     void CommandContext::DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
@@ -133,14 +168,14 @@ namespace Alimer
         ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(indexCount > 1);
-        DrawIndexedInstancedImpl(topology, indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
+        //DrawIndexedInstancedImpl(topology, indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
     }
 
     void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         ALIMER_ASSERT(_currentPipeline && _currentPipeline->IsCompute());
         FlushComputeState();
-        DispatchImpl(groupCountX, groupCountY, groupCountZ);
+        //DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
 
     void CommandContext::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
@@ -162,13 +197,6 @@ namespace Alimer
             DivideByMultiple(threadCountX, groupSizeX),
             DivideByMultiple(threadCountY, groupSizeY),
             DivideByMultiple(threadCountZ, groupSizeZ));
-    }
-
-    void CommandContext::BeginContext()
-    {
-        _dirtySets = ~0u;
-        _dirtyVbos = ~0u;
-        _insideRenderPass = false;
     }
 
     void CommandContext::FlushComputeState()

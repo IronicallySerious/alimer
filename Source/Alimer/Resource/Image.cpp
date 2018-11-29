@@ -135,4 +135,9 @@ namespace Alimer
             _data.Get(),
             0) != 0;
     }
+
+    void Image::RegisterObject()
+    {
+        RegisterFactory<Image>();
+    }
 }

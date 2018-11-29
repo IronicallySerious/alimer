@@ -8,6 +8,7 @@
 import argparse, shutil, multiprocessing, os, platform, subprocess, sys
 VERSION = '0.9.0'
 enableLogVerbose = False
+WIN_SDK_VERSION = "10.0.17763.0"
 
 def logError(message):
 	print("%s\n" % message)
@@ -193,7 +194,7 @@ if __name__ == "__main__":
                 batCmd.AddCommand("cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" -DSC_ARCH_NAME=\"%s\" ../../" % (configuration, arch))
                 batCmd.AddCommand("ninja -j%d" % parallel)
             else:
-                batCmd.AddCommand("cmake -G \"Visual Studio 15\" -T host=x64 -A %s ../../" % arch)
+                batCmd.AddCommand("cmake -G \"Visual Studio 15 2017\" -T host=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" % (WIN_SDK_VERSION, arch))
                 batCmd.AddCommand("MSBuild ALL_BUILD.vcxproj /nologo /m:%d /v:m /p:Configuration=%s,Platform=%s" % (parallel, configuration, arch))
             if batCmd.Execute() != 0:
                 logError("Build failed.")
@@ -204,7 +205,7 @@ if __name__ == "__main__":
             if (buildSys == "ninja"):
                 batCmd.AddCommand("cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" ../../" % (configuration))
             else:
-                batCmd.AddCommand("cmake -G \"Visual Studio 15\" -T host=x64 -A %s ../../" % arch)
+                batCmd.AddCommand("cmake -G \"Visual Studio 15 2017\" -T host=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" % (WIN_SDK_VERSION, arch))
 
             if batCmd.Execute() != 0:
                 logError("Build failed.")

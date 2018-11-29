@@ -23,11 +23,14 @@
 #include "D3D12Swapchain.h"
 #include "D3D12Graphics.h"
 #include "D3D12CommandListManager.h"
+#include "D3D12Framebuffer.h"
 #include "D3D12Texture.h"
 #include "../../Debug/Log.h"
 
 namespace Alimer
 {
+    using namespace Microsoft::WRL;
+
     D3D12Swapchain::D3D12Swapchain(D3D12Graphics* graphics, const SwapchainDescriptor* descriptor)
         : _graphics(graphics)
     {
@@ -121,8 +124,15 @@ namespace Alimer
             resource->SetName(name);
 
             /* Create engine texture. */
-            _backBufferTextures[i].Reset(new D3D12Texture(_graphics, resource));
-            _backBufferTextures[i]->SetUsageState(D3D12_RESOURCE_STATE_PRESENT);
+            D3D12Texture* texture = new D3D12Texture(_graphics, resource);
+            texture->SetUsageState(D3D12_RESOURCE_STATE_PRESENT);
+            _backBufferTextures[i] = new Texture(texture);
+
+            /* Create framebuffer*/
+            FramebufferDescriptor framebufferDescriptor = {};
+            framebufferDescriptor.colorAttachments[0].texture = _backBufferTextures[i].Get();
+            _backBufferFramebuffers[i] = new Framebuffer();
+            _backBufferFramebuffers[i]->Define(&framebufferDescriptor);
         }
 
         _backBufferIndex = _swapChain->GetCurrentBackBufferIndex();

@@ -22,14 +22,58 @@
 
 #include "../Graphics/Texture.h"
 #include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsImpl.h"
+#include "../IO/Stream.h"
 #include "../Debug/Log.h"
 
 namespace Alimer
 {
-    Texture::Texture(const TextureDescriptor* descriptor)
-        : Resource()
-        , _type(descriptor->type)
+    Texture::Texture()
+        : GraphicsResource(Object::GetSubsystem<Graphics>())
+        , _impl(nullptr)
     {
+
+    }
+
+    Texture::Texture(TextureImpl* impl)
+        : GraphicsResource(Object::GetSubsystem<Graphics>())
+        , _impl(impl)
+    {
+        _type = _impl->type;
+        _usage = _impl->usage;
+        _format = _impl->format;
+        _width = _impl->width;
+        _height = _impl->height;
+        _depth = _impl->depth;
+        _mipLevels = _impl->depth;
+        _arrayLayers = _impl->arrayLayers;
+        _samples = _impl->samples;
+    }
+
+    Texture::~Texture()
+    {
+        Destroy();
+    }
+
+    bool Texture::Define(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    {
+        ALIMER_ASSERT(descriptor);
+
+        if (descriptor->usage == TextureUsage::Unknown)
+        {
+            ALIMER_LOGCRITICAL("Invalid texture usage");
+        }
+
+        if (descriptor->width == 0
+            || descriptor->height == 0
+            || descriptor->depth == 0
+            || descriptor->arrayLayers == 0
+            || descriptor->mipLevels == 0)
+        {
+            ALIMER_LOGCRITICAL("Cannot create an empty texture");
+        }
+
+        _type = descriptor->type;
         _usage = descriptor->usage;
         _format = descriptor->format;
         _width = descriptor->width;
@@ -38,20 +82,36 @@ namespace Alimer
         _mipLevels = descriptor->depth;
         _arrayLayers = descriptor->arrayLayers;
         _samples = descriptor->samples;
-    }
 
-    Texture::Texture()
-        : Resource()
-    {
+        Destroy();
 
-    }
-
-    Texture::~Texture()
-    {
+        return true;
     }
 
     void Texture::RegisterObject()
     {
         RegisterFactory<Texture>();
+    }
+
+    bool Texture::BeginLoad(Stream& source)
+    {
+        ALIMER_UNUSED(source);
+        return true;
+    }
+
+    bool Texture::EndLoad()
+    {
+        return true;
+    }
+
+
+    bool Texture::Create(const ImageLevel* initialData)
+    {
+        return true;
+    }
+
+    void Texture::Destroy()
+    {
+        SafeDelete(_impl);
     }
 }

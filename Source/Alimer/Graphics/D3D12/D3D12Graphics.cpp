@@ -23,13 +23,10 @@
 #include "D3D12Graphics.h"
 #include "D3D12CommandListManager.h"
 #include "D3D12Swapchain.h"
-/*#include "D3D12Texture.h"
-//#include "D3D12CommandBuffer.h"
+#include "D3D12CommandBuffer.h"
+#include "D3D12Texture.h"
+#include "D3D12Framebuffer.h"
 #include "D3D12GpuBuffer.h"
-#include "D3D12Shader.h"
-#include "D3D12PipelineState.h"
-#include "D3D12GpuAdapter.h"
-#include "../ShaderCompiler.h"*/
 #include "../../Debug/Log.h"
 
 #if defined(_DEBUG)
@@ -55,8 +52,7 @@ typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE1)(UINT Flags, REFIID riid, 
 namespace Alimer
 {
 #ifdef ALIMER_D3D_DYNAMIC_LIB
-    static
-        HMODULE s_dxgiLib = nullptr;
+    HMODULE s_dxgiLib = nullptr;
     HMODULE s_d3d12Lib = nullptr;
 
     PFN_CREATE_DXGI_FACTORY2                        CreateDXGIFactory2 = nullptr;
@@ -120,8 +116,51 @@ namespace Alimer
     }
 #endif
 
-    _Use_decl_annotations_
-        static void GetD3D12HardwareAdapter(_In_ IDXGIFactory2* factory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
+    using namespace Microsoft::WRL;
+
+    const D3D12_HEAP_PROPERTIES* GetDefaultHeapProps()
+    {
+        static D3D12_HEAP_PROPERTIES heapProps =
+        {
+            D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            D3D12_MEMORY_POOL_UNKNOWN,
+            0,
+            0,
+        };
+
+        return &heapProps;
+    }
+
+    const D3D12_HEAP_PROPERTIES* GetUploadHeapProps()
+    {
+        static D3D12_HEAP_PROPERTIES heapProps =
+        {
+            D3D12_HEAP_TYPE_UPLOAD,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            D3D12_MEMORY_POOL_UNKNOWN,
+            0,
+            0,
+        };
+
+        return &heapProps;
+    }
+
+    const D3D12_HEAP_PROPERTIES* GetReadbackHeapProps()
+    {
+        static D3D12_HEAP_PROPERTIES heapProps =
+        {
+            D3D12_HEAP_TYPE_READBACK,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            D3D12_MEMORY_POOL_UNKNOWN,
+            0,
+            0,
+        };
+
+        return &heapProps;
+    }
+
+    static void GetD3D12HardwareAdapter(_In_ IDXGIFactory2* factory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
     {
         ComPtr<IDXGIAdapter1> adapter;
         *ppAdapter = nullptr;
@@ -215,8 +254,7 @@ namespace Alimer
     }
 
     D3D12Graphics::D3D12Graphics(bool validation)
-        : Graphics(GraphicsBackend::D3D12, validation)
-        , _descriptorAllocator{
+        : _descriptorAllocator{
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
         D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
         D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
@@ -330,11 +368,20 @@ namespace Alimer
         // cleaned up by the destructor.
         WaitIdle();
 
+        // Destroy all command contexts.
+        for (uint32_t i = 0; i < 4; ++i)
+        {
+            _contextPool[i].clear();
+        }
+
         // Delete command list manager.
         SafeDelete(_commandListManager);
 
         // Delete main swap chain if created.
         _mainSwapChain.Reset();
+
+        // Shutdown upload logic.
+        ShutdownUpload();
 
         // Clear DescriptorHeap Pools.
         {
@@ -345,6 +392,15 @@ namespace Alimer
 
     void D3D12Graphics::InitializeFeatures()
     {
+        DXGI_ADAPTER_DESC1 desc = { };
+        _adapter->GetDesc1(&desc);
+
+        features.SetDeviceId(desc.DeviceId);
+        features.SetVendorId(desc.VendorId);
+        features.SetDeviceName(String(desc.Description));
+        features.SetMultithreading(true);
+        features.SetMaxColorAttachments(D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
+
         // https://github.com/Microsoft/DirectX-Graphics-Samples/blob/master/TechniqueDemos/D3D12MemoryManagement/src/Framework.cpp
         D3D12_FEATURE_DATA_D3D12_OPTIONS options;
         HRESULT hr = _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
@@ -413,7 +469,154 @@ namespace Alimer
             _mainSwapChain = new D3D12Swapchain(this, &settings.swapchain);
         }
 
+        InitializeUpload();
+
         return true;
+    }
+
+   
+    void D3D12Graphics::InitializeUpload()
+    {
+        for (uint64_t i = 0; i < MaxUploadSubmissions; ++i)
+        {
+            UploadSubmission& submission = _uploadSubmissions[i];
+            ThrowIfFailed(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&submission.commandAllocator)));
+            ThrowIfFailed(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, submission.commandAllocator, nullptr, IID_PPV_ARGS(&submission.commandList)));
+            ThrowIfFailed(submission.commandList->Close());
+
+            wchar_t name[25] = {};
+            swprintf_s(name, L"Upload Command List %u", i);
+            submission.commandList->SetName(name);
+        }
+
+        D3D12_COMMAND_QUEUE_DESC queueDesc = { };
+        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+        ThrowIfFailed(_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&_uploadCmdQueue)));
+        _uploadCmdQueue->SetName(L"Upload Copy Queue");
+
+        _uploadFence.Initialize(_d3dDevice.Get(), 0);
+
+        D3D12_RESOURCE_DESC resourceDesc = { };
+        resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        resourceDesc.Width = UploadBufferSize;
+        resourceDesc.Height = 1;
+        resourceDesc.DepthOrArraySize = 1;
+        resourceDesc.MipLevels = 1;
+        resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+        resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+        resourceDesc.SampleDesc.Count = 1;
+        resourceDesc.SampleDesc.Quality = 0;
+        resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        resourceDesc.Alignment = 0;
+
+        ThrowIfFailed(_d3dDevice->CreateCommittedResource(
+            GetUploadHeapProps(),
+            D3D12_HEAP_FLAG_NONE,
+            &resourceDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr, IID_PPV_ARGS(&_uploadBuffer))
+        );
+
+        D3D12_RANGE readRange = { };
+        ThrowIfFailed(_uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&_uploadBufferCPUAddress)));
+    }
+
+    void D3D12Graphics::ShutdownUpload()
+    {
+        //for (uint64_t i = 0; i < ArraySize_(TempFrameBuffers); ++i)
+        //    Release(TempFrameBuffers[i]);
+
+        SafeRelease(_uploadBuffer);
+        SafeRelease(_uploadCmdQueue);
+        _uploadFence.Shutdown();
+        for (uint64_t i = 0; i < MaxUploadSubmissions; ++i)
+        {
+            SafeRelease(_uploadSubmissions[i].commandAllocator);
+            SafeRelease(_uploadSubmissions[i].commandList);
+        }
+
+        /*Release(convertCmdAllocator);
+        Release(convertCmdList);
+        Release(convertCmdQueue);
+        Release(convertPSO);
+        Release(convertArrayPSO);
+        Release(convertCubePSO);
+        Release(convertRootSignature);
+        convertFence.Shutdown();
+
+        Release(readbackCmdAllocator);
+        Release(readbackCmdList);
+        readbackFence.Shutdown();*/
+    }
+
+    void D3D12Graphics::EndFrameUpload()
+    {
+        // If we can grab the lock, try to clear out any completed submissions
+        if (TryAcquireSRWLockExclusive(&_uploadSubmissionLock))
+        {
+            ClearFinishedUploads(0);
+
+            ReleaseSRWLockExclusive(&_uploadSubmissionLock);
+        }
+
+        {
+            AcquireSRWLockExclusive(&_uploadQueueLock);
+
+            // Make sure to sync on any pending uploads
+            ClearFinishedUploads(0);
+            //_commandListManager->GetD3DCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT).WaitForFence(_uploadFence->Fence, _uploadFenceValue);
+
+            ReleaseSRWLockExclusive(&_uploadQueueLock);
+        }
+
+        //TempFrameUsed = 0;
+    }
+
+    void D3D12Graphics::FlushUpload()
+    {
+        AcquireSRWLockExclusive(&_uploadSubmissionLock);
+
+        ClearFinishedUploads(uint64_t(-1));
+
+        ReleaseSRWLockExclusive(&_uploadSubmissionLock);
+    }
+
+    void D3D12Graphics::ClearFinishedUploads(uint64_t flushCount)
+    {
+        const uint64_t start = _uploadSubmissionStart;
+        const uint64_t used = _uploadSubmissionUsed;
+        for (uint64_t i = 0; i < used; ++i)
+        {
+            const uint64_t idx = (start + i) % MaxUploadSubmissions;
+            UploadSubmission& submission = _uploadSubmissions[idx];
+            ALIMER_ASSERT(submission.size > 0);
+            ALIMER_ASSERT(_uploadBufferUsed >= submission.size);
+
+            // If the submission hasn't been sent to the GPU yet we can't wait for it
+            if (submission.fenceValue == uint64_t(-1))
+                return;
+
+            if (i < flushCount)
+            {
+                _uploadFence.Wait(submission.fenceValue);
+            }
+
+            if (_uploadFence.Signaled(submission.fenceValue))
+            {
+                _uploadSubmissionStart = (_uploadSubmissionStart + 1) % MaxUploadSubmissions;
+                _uploadSubmissionUsed -= 1;
+                _uploadBufferStart = (_uploadBufferStart + submission.padding) % UploadBufferSize;
+                ALIMER_ASSERT(submission.offset == _uploadBufferStart);
+                ALIMER_ASSERT(_uploadBufferStart + submission.size <= UploadBufferSize);
+                _uploadBufferStart = (_uploadBufferStart + submission.size) % UploadBufferSize;
+                _uploadBufferUsed -= (submission.size + submission.padding);
+                submission.Reset();
+
+                if (_uploadBufferUsed == 0)
+                    _uploadBufferStart = 0;
+            }
+        }
     }
 
     bool D3D12Graphics::WaitIdle()
@@ -421,136 +624,70 @@ namespace Alimer
         _commandListManager->WaitIdle();
         return true;
     }
-
+    
     void D3D12Graphics::Frame()
     {
-        if (_mainSwapChain != nullptr)
-        {
-            //CmdEndRenderPass();
-        }
-
-        // Send the command list off to the GPU for processing.
-        //_primaryCommandBuffer->End();
-        //s_pActiveCommandBuffer = nullptr;
-
         /* End frame for upload */
-        //EndFrameUpload();
-
-        //ID3D12CommandList* ppCommandLists[] = { _primaryCommandBuffer->GetCommandList() };
-        //_graphicsQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+        EndFrameUpload();
 
         // Present the frame.
         if (_mainSwapChain)
         {
             _mainSwapChain->Present();
         }
+
     }
 
-#if TODO
-    CommandBuffer* D3D12Graphics::GetDefaultCommandBuffer() const
+    D3D12CommandContext* D3D12Graphics::AllocateContext(D3D12_COMMAND_LIST_TYPE type)
     {
-        return nullptr;
-    }
+        std::lock_guard<std::mutex> lock(_contextAllocationMutex);
 
-    SharedPtr<RenderPass> D3D12Graphics::BeginFrameCore()
-    {
-        uint32_t index = _swapChain->GetCurrentBackBufferIndex();
-        //return _textures[index];
-        return nullptr;
-    }
+        auto& availableContexts = _availableCommandContexts[type];
 
-    void D3D12Graphics::EndFrameCore()
-    {
-        // Submit frame command buffer.
-        if (_frameCommandBuffer)
+        D3D12CommandContext* context = nullptr;
+        if (availableContexts.empty())
         {
-            _frameCommandBuffer->Commit(true);
-            RecycleCommandBuffer(_frameCommandBuffer);
-        }
-
-        // Present the frame.
-        HRESULT hr = _swapChain->Present(1, 0);
-        if (hr == DXGI_ERROR_DEVICE_REMOVED
-            || hr == DXGI_ERROR_DEVICE_RESET
-            || hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
-        {
-#ifdef _DEBUG
-            char buff[64] = {};
-            sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n", (hr == DXGI_ERROR_DEVICE_REMOVED) ? _d3dDevice->GetDeviceRemovedReason() : hr);
-            OutputDebugStringA(buff);
-#endif
-
-            HandleDeviceLost();
-        }
-    }
-
-    void D3D12Graphics::HandleDeviceLost()
-    {
-        // TODO
-    }
-
-
-
-    /*SharedPtr<CommandBuffer> D3D12Graphics::GetCommandBuffer()
-    {
-        _frameCommandBuffer = RetrieveCommandBuffer();
-        if (_frameCommandBuffer == nullptr)
-        {
-            _frameCommandBuffer = MakeShared<D3D12CommandBuffer>(this);
+            context = new D3D12CommandContext(this, type);
+            _contextPool[type].emplace_back(context);
+            context->Initialize();
         }
         else
         {
-            _frameCommandBuffer->Reset();
+            context = availableContexts.front();
+            availableContexts.pop();
+            context->Reset();
         }
-
-        return _frameCommandBuffer;
-    }*/
-
-    SharedPtr<RenderPass> D3D12Graphics::CreateRenderPass(const RenderPassDescription& description)
-    {
-        return nullptr;
+        ALIMER_ASSERT(context != nullptr);
+        ALIMER_ASSERT(context->GetCommandListType() == type);
+        return context;
     }
 
-    SharedPtr<GpuBuffer> D3D12Graphics::CreateBuffer(const GpuBufferDescription& description, const void* initialData)
+    void D3D12Graphics::FreeContext(D3D12CommandContext* context)
     {
-        return MakeShared<D3D12GpuBuffer>(this, description, initialData);
+        ALIMER_ASSERT(context != nullptr);
+        std::lock_guard<std::mutex> lock(_contextAllocationMutex);
+        _availableCommandContexts[context->GetCommandListType()].push(context);
     }
 
-    SharedPtr<Shader> D3D12Graphics::CreateComputeShader(const ShaderStageDescription& desc)
+    CommandContext* D3D12Graphics::AllocateContext()
     {
-        return MakeShared<D3D12Shader>(this, desc);
+        return AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
     }
 
-    SharedPtr<Shader> D3D12Graphics::CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment)
+    Framebuffer* D3D12Graphics::GetSwapchainFramebuffer() const
     {
-        return MakeShared<D3D12Shader>(this, vertex, fragment);
+        return _mainSwapChain->GetFramebuffer();
     }
 
-    SharedPtr<PipelineState> D3D12Graphics::CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor)
+    FramebufferImpl* D3D12Graphics::CreateFramebuffer(const Vector<FramebufferAttachment>& colorAttachments)
     {
-        return MakeShared<D3D12PipelineState>(this, descriptor);
+        return new D3D12Framebuffer(this, colorAttachments);
     }
 
-    SharedPtr<D3D12CommandBuffer> D3D12Graphics::RetrieveCommandBuffer()
+    GpuBufferImpl* D3D12Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData, void* externalHandle)
     {
-        std::lock_guard<std::mutex> lock(_commandBufferMutex);
-
-        if (_commandBufferObjectId == 0)
-            return nullptr;
-
-        return _recycledCommandBuffers.at(--_commandBufferObjectId);
+        return new D3D12Buffer(this, descriptor, initialData, externalHandle);
     }
-
-    void D3D12Graphics::RecycleCommandBuffer(D3D12CommandBuffer* commandBuffer)
-    {
-        std::lock_guard<std::mutex> lock(_commandBufferMutex);
-
-        if (_commandBufferObjectId < CommandBufferRecycleCount)
-        {
-            _recycledCommandBuffers.at(_commandBufferObjectId++) = commandBuffer;
-        }
-    }
-#endif // TODO
 
     ID3D12DescriptorHeap* D3D12Graphics::RequestNewHeap(
         D3D12_DESCRIPTOR_HEAP_TYPE type,
@@ -577,4 +714,53 @@ namespace Alimer
         _descriptorHeapPool.emplace_back(heap);
         return heap.Get();
     }
+
+    /* D3D12Fence */
+    D3D12Fence::~D3D12Fence()
+    {
+        ALIMER_ASSERT(D3DFence == nullptr);
+        Shutdown();
+    }
+
+    void D3D12Fence::Initialize(ID3D12Device* device, uint64_t initialValue)
+    {
+        ThrowIfFailed(device->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&D3DFence)));
+        FenceEvent = CreateEventEx(nullptr, FALSE, FALSE, EVENT_ALL_ACCESS);
+        //Win32Call(FenceEvent != 0);
+    }
+
+    void D3D12Fence::Shutdown()
+    {
+        SafeRelease(D3DFence);
+        //DeferredRelease(D3DFence);
+    }
+
+    void D3D12Fence::Signal(ID3D12CommandQueue* queue, uint64_t fenceValue)
+    {
+        ALIMER_ASSERT(D3DFence != nullptr);
+        ThrowIfFailed(queue->Signal(D3DFence, fenceValue));
+    }
+
+    void D3D12Fence::Wait(uint64_t fenceValue)
+    {
+        ALIMER_ASSERT(D3DFence != nullptr);
+        if (D3DFence->GetCompletedValue() < fenceValue)
+        {
+            ThrowIfFailed(D3DFence->SetEventOnCompletion(fenceValue, FenceEvent));
+            WaitForSingleObject(FenceEvent, INFINITE);
+        }
+    }
+
+    bool D3D12Fence::Signaled(uint64_t fenceValue)
+    {
+        ALIMER_ASSERT(D3DFence != nullptr);
+        return D3DFence->GetCompletedValue() >= fenceValue;
+    }
+
+    void D3D12Fence::Clear(uint64_t fenceValue)
+    {
+        ALIMER_ASSERT(D3DFence != nullptr);
+        D3DFence->Signal(fenceValue);
+    }
+
 }

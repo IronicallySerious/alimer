@@ -23,24 +23,27 @@
 #pragma once
 
 #include "../Graphics.h"
+#include "../GraphicsImpl.h"
 #include "D3D12DescriptorAllocator.h"
-#include "D3D12Helpers.h"
-#include <array>
+#include <queue>
 #include <mutex>
 
 namespace Alimer
 {
     class D3D12CommandListManager;
     class D3D12Swapchain;
-    class D3D12CommandBuffer;
+    class D3D12CommandContext;
+
+    // Heap helpers
+    const D3D12_HEAP_PROPERTIES* GetDefaultHeapProps();
+    const D3D12_HEAP_PROPERTIES* GetUploadHeapProps();
+    const D3D12_HEAP_PROPERTIES* GetReadbackHeapProps();
 
     /// D3D12 Low-level 3D graphics API class.
-    class D3D12Graphics final : public Graphics
+    class D3D12Graphics final : public GraphicsImpl
     {
-        friend class D3D12DescriptorAllocator;
-        friend class D3D12CommandBuffer;
-
     public:
+        
         /// Is backend supported?
         static bool IsSupported();
 
@@ -48,22 +51,20 @@ namespace Alimer
         D3D12Graphics(bool validation);
 
         /// Destructor.
-        ~D3D12Graphics() override;
+        ~D3D12Graphics();
 
         bool Initialize(const GraphicsSettings& settings) override;
 
         bool WaitIdle() override;
         void Frame() override;
 
-        /*CommandBuffer* GetDefaultCommandBuffer() const override;
+        D3D12CommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE type);
+        void FreeContext(D3D12CommandContext* context);
+        CommandContext* AllocateContext() override;
 
-        SharedPtr<RenderPass> CreateRenderPass(const RenderPassDescription& description) override;
-        SharedPtr<GpuBuffer> CreateBuffer(const GpuBufferDescription& description, const void* initialData) override;
-
-        SharedPtr<Shader> CreateComputeShader(const ShaderStageDescription& desc) override;
-        SharedPtr<Shader> CreateShader(const ShaderStageDescription& vertex, const ShaderStageDescription& fragment) override;
-        SharedPtr<PipelineState> CreateRenderPipelineState(const RenderPipelineDescriptor& descriptor) override;
-        */
+        Framebuffer* GetSwapchainFramebuffer() const override;
+        FramebufferImpl* CreateFramebuffer(const Vector<FramebufferAttachment>& colorAttachments) override;
+        GpuBufferImpl* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData, void* externalHandle) override;
 
         inline IDXGIFactory4* GetFactory() const { return _factory.Get(); }
         inline IDXGIAdapter1* GetAdapter() const { return _adapter.Get(); }
@@ -77,24 +78,19 @@ namespace Alimer
 
         D3D12_FEATURE_DATA_ROOT_SIGNATURE GetFeatureDataRootSignature() const { return _featureDataRootSignature; }
 
+        ID3D12DescriptorHeap* RequestNewHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
+
     private:
         void InitializeFeatures();
+        void InitializeUpload();
+        void ShutdownUpload();
+        void EndFrameUpload();
+        void FlushUpload();
+        void ClearFinishedUploads(uint64_t flushCount);
 
-        /*
-        SharedPtr<RenderPass> BeginFrameCore() override;
-        void EndFrameCore() override;
-        
-        void HandleDeviceLost();
-        
-        SharedPtr<D3D12CommandBuffer> RetrieveCommandBuffer();
-        void RecycleCommandBuffer(D3D12CommandBuffer* commandBuffer);
-        */
-
-        static constexpr uint32_t               RenderLatency = 2u;
-
-        ComPtr<IDXGIFactory4>                   _factory;
-        ComPtr<IDXGIAdapter1>                   _adapter;
-        ComPtr<ID3D12Device>                    _d3dDevice;
+        Microsoft::WRL::ComPtr<IDXGIFactory4>   _factory;
+        Microsoft::WRL::ComPtr<IDXGIAdapter1>   _adapter;
+        Microsoft::WRL::ComPtr<ID3D12Device>    _d3dDevice;
 
         bool                                    _allowTearing = false;
         D3D_FEATURE_LEVEL                       _d3dFeatureLevel = D3D_FEATURE_LEVEL_11_0;
@@ -102,13 +98,50 @@ namespace Alimer
         bool                                    _raytracingSupported = false;
 
         SharedPtr<D3D12Swapchain>               _mainSwapChain;
-
-        ID3D12DescriptorHeap* RequestNewHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
-
-        std::mutex _heapAllocationMutex;
+        
+        std::mutex                              _heapAllocationMutex;
         std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> _descriptorHeapPool;
-        D3D12DescriptorAllocator _descriptorAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+        D3D12DescriptorAllocator                _descriptorAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
-        D3D12CommandListManager* _commandListManager;
+        D3D12CommandListManager*                            _commandListManager;
+        std::vector<std::unique_ptr<D3D12CommandContext> >  _contextPool[4];
+        std::queue<D3D12CommandContext*>                    _availableCommandContexts[4];
+        std::mutex                                          _contextAllocationMutex;
+
+        struct UploadSubmission
+        {
+            ID3D12CommandAllocator* commandAllocator = nullptr;
+            ID3D12GraphicsCommandList1* commandList = nullptr;
+            uint64_t offset = 0;
+            uint64_t size = 0;
+            uint64_t fenceValue = 0;
+            uint64_t padding = 0;
+
+            void Reset()
+            {
+                offset = 0;
+                size = 0;
+                fenceValue = 0;
+                padding = 0;
+            }
+        };
+
+        static constexpr uint64_t UploadBufferSize = 256 * 1024 * 1024;
+        static constexpr uint64_t MaxUploadSubmissions = 16;
+
+        SRWLOCK                     _uploadSubmissionLock = SRWLOCK_INIT;
+        SRWLOCK                     _uploadQueueLock = SRWLOCK_INIT;
+
+        uint64_t                    _uploadBufferStart = 0;
+        uint64_t                    _uploadBufferUsed = 0;
+        UploadSubmission            _uploadSubmissions[MaxUploadSubmissions];
+        uint64_t                    _uploadSubmissionStart = 0;
+        uint64_t                    _uploadSubmissionUsed = 0;
+
+        ID3D12CommandQueue*         _uploadCmdQueue = nullptr;
+        D3D12Fence                  _uploadFence;
+        uint64_t                    _uploadFenceValue = 0;
+        ID3D12Resource*             _uploadBuffer = nullptr;
+        uint8_t*                    _uploadBufferCPUAddress = nullptr;
     };
 }

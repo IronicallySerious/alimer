@@ -45,8 +45,8 @@ namespace Alimer
         _sceneManager = new SceneManager();
 
         // Register modules
-        RegisterGraphicsLibrary();
-        //RegisterResourceLibrary();
+        Graphics::RegisterObject();
+        ResourceManager::RegisterObject();
 
         SceneManager::Register();
 
@@ -93,7 +93,7 @@ namespace Alimer
             // Set settings
             _settings.graphicsSettings.swapchain = swapchainDesc;
 
-            _graphics = Graphics::Create(_settings.preferredGraphicsBackend, _settings.validation);
+            _graphics = new Graphics(_settings.preferredGraphicsBackend, _settings.validation);
             if (!_graphics->Initialize(_settings.graphicsSettings))
             {
                 ALIMER_LOGERROR("Failed to initialize Graphics.");

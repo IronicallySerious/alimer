@@ -20,76 +20,86 @@
 // THE SOFTWARE.
 //
 
-#if TODO_D3D12
 #include "D3D12CommandBuffer.h"
+#include "D3D12Graphics.h"
 #include "D3D12CommandListManager.h"
 #include "D3D12Texture.h"
-#include "D3D12GpuBuffer.h"
-#include "D3D12Graphics.h"
-#include "D3D12PipelineState.h"
+#include "D3D12Framebuffer.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Core/Log.h"
-#include "../../Math/MathUtil.h"
-#include "../../Util/Util.h"
-#include "../../Util/HashMap.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
-    D3D12CommandBuffer::D3D12CommandBuffer(D3D12Graphics* graphics)
-        : CommandBuffer(graphics)
-        , _d3dDevice(graphics->GetD3DDevice())
+    D3D12CommandContext::D3D12CommandContext(D3D12Graphics* graphics, D3D12_COMMAND_LIST_TYPE type)
+        : _graphics(graphics)
         , _manager(graphics->GetCommandListManager())
         , _commandList(nullptr)
         , _currentAllocator(nullptr)
-        , _type(D3D12_COMMAND_LIST_TYPE_DIRECT)
-        , _numBarriersToFlush(0)
-        , _boundRTVCount(0)
-    {
-        _manager->CreateNewCommandList(
-            _type,
-            &_commandList,
-            &_currentAllocator);
-    }
-
-    D3D12CommandBuffer::~D3D12CommandBuffer()
+        , _type(type)
     {
     }
 
-    void D3D12CommandBuffer::Reset()
+    D3D12CommandContext::~D3D12CommandContext()
+    {
+    }
+
+    void D3D12CommandContext::Initialize()
+    {
+        _manager->CreateNewCommandList(_type, &_commandList, &_currentAllocator);
+    }
+
+    void D3D12CommandContext::Reset()
     {
         ALIMER_ASSERT(_commandList != nullptr && _currentAllocator == nullptr);
         _currentAllocator = _manager->GetQueue(_type).RequestAllocator();
         _commandList->Reset(_currentAllocator, nullptr);
 
-        _numBarriersToFlush = 0;
-        _currentPipeline.Reset();
+        _numBarriersToFlush = _boundRTVCount = 0;
+        _currentFramebuffer = nullptr;
         _currentD3DPipeline = nullptr;
         _currentTopology = PrimitiveTopology::Count;
-        // Reset cached state as well.
-        CommandBuffer::ResetState();
     }
 
-    uint64_t D3D12CommandBuffer::Commit(bool waitForCompletion)
+    uint32_t D3D12CommandContext::Finish(bool waitForCompletion, bool releaseContext)
     {
         FlushResourceBarriers();
+
+        if (!_name.IsEmpty())
+        {
+            //GpuProfiler::EndBlock(this);
+        }
 
         ALIMER_ASSERT(_currentAllocator != nullptr);
 
         // Execute the command list.
         auto& queue = _manager->GetQueue(_type);
         uint64_t fenceValue = queue.ExecuteCommandList(_commandList);
-        queue.DiscardAllocator(fenceValue, _currentAllocator);
-        _currentAllocator = nullptr;
+        if (releaseContext)
+        {
+            queue.DiscardAllocator(fenceValue, _currentAllocator);
+            _currentAllocator = nullptr;
+        }
 
         if (waitForCompletion)
         {
             _manager->WaitForFence(fenceValue);
         }
 
+        // Reset the command list and restore previous state
+        if (!releaseContext)
+        {
+            _commandList->Reset(_currentAllocator, nullptr);
+        }
+        else
+        {
+            // Free context.
+            _graphics->FreeContext(this);
+        }
+
         return fenceValue;
     }
 
-    void D3D12CommandBuffer::TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
+    void D3D12CommandContext::TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
     {
         D3D12_RESOURCE_STATES oldState = resource->GetUsageState();
 
@@ -132,7 +142,7 @@ namespace Alimer
             FlushResourceBarriers();
     }
 
-    void D3D12CommandBuffer::BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
+    void D3D12CommandContext::BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
     {
         // If it's already transitioning, finish that transition
         if (resource->GetTransitioningState() != (D3D12_RESOURCE_STATES)-1)
@@ -159,7 +169,7 @@ namespace Alimer
             FlushResourceBarriers();
     }
 
-    void D3D12CommandBuffer::InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate)
+    void D3D12CommandContext::InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate)
     {
         ALIMER_ASSERT(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
         D3D12_RESOURCE_BARRIER& barrierDesc = _resourceBarrierBuffer[_numBarriersToFlush++];
@@ -172,7 +182,7 @@ namespace Alimer
             FlushResourceBarriers();
     }
 
-    void D3D12CommandBuffer::FlushResourceBarriers()
+    void D3D12CommandContext::FlushResourceBarriers()
     {
         if (_numBarriersToFlush > 0)
         {
@@ -181,60 +191,47 @@ namespace Alimer
         }
     }
 
-    RenderPassCommandEncoderPtr D3D12CommandBuffer::BeginRenderPass(RenderPass* renderPass, const Color* clearColors, uint32_t numClearColors, float clearDepth, uint8_t clearStencil)
+    void D3D12CommandContext::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
-        _boundRTVCount = 0;
-        /*for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+        _currentFramebuffer = static_cast<D3D12Framebuffer*>(framebuffer->GetImpl());
+        _boundRTVCount = framebuffer->GetColorAttachmentsCount();
+
+        for (uint32_t i = 0; i < _boundRTVCount; ++i)
         {
-            const RenderPassColorAttachmentDescriptor& colorAttachment = descriptor.colorAttachments[i];
-            Texture* texture = colorAttachment.texture;
-            if (!texture)
-                continue;
+            // Indicate that the resource will be used as a render target.
+            _boundRTVResources[i] = static_cast<D3D12Texture*>(framebuffer->GetColorTexture(i)->GetImpl());
+            TransitionResource(
+                _boundRTVResources[i],
+                D3D12_RESOURCE_STATE_RENDER_TARGET,
+                true);
 
-            D3D12Texture* d3dTexture = static_cast<D3D12Texture*>(texture);
-            _boundRTV[_boundRTVCount] = d3dTexture->GetRTV();
-            _boundRTVResources[_boundRTVCount++] = d3dTexture;
-
-            // Transition to render target state.
-            TransitionResource(d3dTexture, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-
-            switch (colorAttachment.loadAction)
-            {
-            case LoadAction::Clear:
-                _commandList->ClearRenderTargetView(
-                    d3dTexture->GetRTV(),
-                    colorAttachment.clearColor,
-                    0,
-                    nullptr);
-
-                break;
-
-            default:
-                break;
-            }
+            const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+            _commandList->ClearRenderTargetView(_currentFramebuffer->GetRTV(i), clearColor, 0, nullptr);
         }
 
-        D3D12_VIEWPORT viewport;
-        viewport.TopLeftX = 0;
-        viewport.TopLeftY = 0;
-        viewport.Width = 800;
-        viewport.Height = 600;
-        viewport.MinDepth = D3D12_MIN_DEPTH;
-        viewport.MaxDepth = D3D12_MAX_DEPTH;
-        D3D12_RECT scissorRect;
-        scissorRect.left = 0;
-        scissorRect.top = 0;
-        scissorRect.right = 800;
-        scissorRect.bottom = 600;
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _currentFramebuffer->GetRTV(0);
 
-        _commandList->RSSetViewports(1, &viewport);
-        _commandList->RSSetScissorRects(1, &scissorRect);
+        /*if (framebuffer->d3d12DSV.ptr)
+        {
+            _commandList->OMSetRenderTargets(_boundRTVCount, &cpuHandle, FALSE, &framebuffer->d3d12DSV);
+        }
+        else*/
+        {
+            _commandList->OMSetRenderTargets(_boundRTVCount, &cpuHandle, FALSE, nullptr);
+        }
 
-        _commandList->OMSetRenderTargets(_boundRTVCount, _boundRTV, FALSE, nullptr);*/
-        return std::make_unique<RenderPassCommandEncoder>();
+        // Set viewport and scissor to framebuffer size.
+        /*uint32_t width = framebuffer->width;
+        uint32_t height = framebuffer->height;
+        AgpuViewport viewport = {
+            0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+        AgpuRect2D scissorRect = { 0, 0, width, height };
+
+        CmdSetViewport(viewport);
+        CmdSetScissor(scissorRect);*/
     }
 
-    void D3D12CommandBuffer::EndRenderPass(RenderPassCommandEncoderPtr encoder)
+    void D3D12CommandContext::EndRenderPassImpl()
     {
         for (uint32_t i = 0; i < _boundRTVCount; ++i)
         {
@@ -242,12 +239,13 @@ namespace Alimer
         }
     }
 
-    void D3D12CommandBuffer::SetPipeline(const SharedPtr<PipelineState>& pipeline)
+#if TODO_D3D12
+    void D3D12CommandContext::SetPipeline(const SharedPtr<PipelineState>& pipeline)
     {
         _currentPipeline = StaticCast<D3D12PipelineState>(pipeline);
     }
 
-    void D3D12CommandBuffer::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
+    void D3D12CommandContext::DrawCore(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexStart, uint32_t baseInstance)
     {
         if (!PrepareDraw(topology))
             return;
@@ -255,7 +253,7 @@ namespace Alimer
         _commandList->DrawInstanced(vertexCount, instanceCount, vertexStart, baseInstance);
     }
 
-    void D3D12CommandBuffer::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
+    void D3D12CommandContext::DrawIndexedCore(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex)
     {
         if (!PrepareDraw(topology))
             return;
@@ -263,7 +261,7 @@ namespace Alimer
         _commandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, 0, 0);
     }
 
-    void D3D12CommandBuffer::FlushGraphicsPipelineState()
+    void D3D12CommandContext::FlushGraphicsPipelineState()
     {
         Hasher h;
 
@@ -284,7 +282,7 @@ namespace Alimer
         });
     }
 
-    bool D3D12CommandBuffer::PrepareDraw(PrimitiveTopology topology)
+    bool D3D12CommandContext::PrepareDraw(PrimitiveTopology topology)
     {
         // We've invalidated pipeline state, update the VkPipeline.
         if (GetAndClear(
@@ -333,7 +331,7 @@ namespace Alimer
         return true;
     }
 
-    void D3D12CommandBuffer::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void D3D12CommandContext::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         D3D12GpuBuffer* d3d12Buffer = static_cast<D3D12GpuBuffer*>(buffer);
 
@@ -344,7 +342,7 @@ namespace Alimer
         _commandList->IASetIndexBuffer(&bufferView);
     }
 
-    void D3D12CommandBuffer::FlushDescriptorSets()
+    void D3D12CommandContext::FlushDescriptorSets()
     {
         //auto &layout = current_layout->get_resource_layout();
         uint32_t setUpdate = 1; // layout.descriptor_set_mask & _dirtySets;
@@ -352,7 +350,7 @@ namespace Alimer
         _dirtySets &= ~setUpdate;
     }
 
-    void D3D12CommandBuffer::FlushDescriptorSet(uint32_t set)
+    void D3D12CommandContext::FlushDescriptorSet(uint32_t set)
     {
         ResourceBinding binding = _bindings.bindings[set][0];
 
@@ -367,6 +365,6 @@ namespace Alimer
             set,
             _currentPipeline->GetCBVHeap()->GetGPUDescriptorHandleForHeapStart());
     }
-}
-
 #endif // TODO_D3D12
+
+}

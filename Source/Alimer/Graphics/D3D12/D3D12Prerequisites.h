@@ -25,11 +25,13 @@
 #include "../../Debug/Log.h"
 #include "../D3D/D3DPrerequisites.h"
 
-#pragma warning(push)
-#pragma warning(disable : 4467)
-#include <wrl.h>
-#pragma warning(pop)
-using namespace Microsoft::WRL;
+#if defined(NTDDI_WIN10_RS2)
+#include <dxgi1_6.h>
+#else
+#include <dxgi1_5.h>
+#endif
+
+#include <d3d12.h>
 
 #include "../Types.h"
 #include "../PixelFormat.h"
@@ -39,10 +41,46 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    static inline void D3D12SetObjectName(ID3D12Object* object, _In_z_  LPCWSTR name)
+    static constexpr uint32_t RenderLatency = 2u;
+
+    struct D3D12Fence
     {
-#if defined(ALIMER_DEV)
-        object->SetName(name);
-#endif
-    }
+        ID3D12Fence* D3DFence = nullptr;
+        HANDLE FenceEvent = INVALID_HANDLE_VALUE;
+
+        ~D3D12Fence();
+
+        void Initialize(ID3D12Device* device, uint64_t initialValue = 0);
+        void Shutdown();
+
+        void Signal(ID3D12CommandQueue* queue, uint64_t fenceValue);
+        void Wait(uint64_t fenceValue);
+        bool Signaled(uint64_t fenceValue);
+        void Clear(uint64_t fenceValue);
+    };
+
+    class D3D12Resource
+    {
+    public:
+        ID3D12Resource * operator->() { return _resource.Get(); }
+        const ID3D12Resource* operator->() const { return _resource.Get(); }
+
+        ID3D12Resource* GetResource() { return _resource.Get(); }
+        const ID3D12Resource* GetResource() const { return _resource.Get(); }
+
+        D3D12_RESOURCE_STATES GetUsageState() const { return _usageState; }
+        void SetUsageState(D3D12_RESOURCE_STATES state) { _usageState = state; }
+
+        D3D12_RESOURCE_STATES GetTransitioningState() const { return _transitioningState; }
+        void SetTransitioningState(D3D12_RESOURCE_STATES state) { _transitioningState = state; }
+
+        D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress() const { return _gpuVirtualAddress; }
+
+    protected:
+        Microsoft::WRL::ComPtr<ID3D12Resource> _resource;
+        D3D12_RESOURCE_STATES _usageState = D3D12_RESOURCE_STATE_COMMON;
+        D3D12_RESOURCE_STATES _transitioningState = (D3D12_RESOURCE_STATES)-1;
+        D3D12_GPU_VIRTUAL_ADDRESS _gpuVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
+        uint8_t* _cpuAddress = nullptr;
+    };
 }

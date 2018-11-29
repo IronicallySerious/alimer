@@ -23,11 +23,13 @@
 #pragma once
 
 #include "../Graphics.h"
+#include "../Framebuffer.h"
 #include "D3D12Prerequisites.h"
 
 namespace Alimer
 {
     class D3D12Texture;
+    class D3D12Framebuffer;
 	class D3D12Graphics;
 
 	/// D3D12 Swapchain.
@@ -43,6 +45,10 @@ namespace Alimer
         void AfterReset();
         void Present();
 
+        Framebuffer* GetFramebuffer() const {
+            return _backBufferFramebuffers[_backBufferIndex];
+        }
+
 	private:
         static constexpr uint32_t   NumBackBuffers = 2;
 
@@ -50,8 +56,9 @@ namespace Alimer
         PixelFormat                 _backBufferFormat = PixelFormat::BGRA8UNorm;
         DXGI_FORMAT                 _dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
 
-        ComPtr<IDXGISwapChain3>     _swapChain;
+        Microsoft::WRL::ComPtr<IDXGISwapChain3>     _swapChain;
         uint32_t                    _backBufferIndex = 0;
-        UniquePtr<D3D12Texture>     _backBufferTextures[NumBackBuffers];
+        SharedPtr<Texture>          _backBufferTextures[NumBackBuffers];
+        SharedPtr<Framebuffer>      _backBufferFramebuffers[NumBackBuffers];
 	};
 }

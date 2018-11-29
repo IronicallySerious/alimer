@@ -21,6 +21,7 @@
 //
 
 #include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsImpl.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
 #include "../Debug/Log.h"
@@ -50,29 +51,18 @@ extern "C"
 
 namespace Alimer
 {
-    Graphics::Graphics(GraphicsBackend backend, bool validation)
-        : _backend(backend)
-        , _validation(validation)
-    {
-        AddSubsystem(this);
-    }
+    Graphics *Graphics::_instance;
 
-    Graphics::~Graphics()
+    Graphics::Graphics(GraphicsBackend preferredBackend, bool validation)
+        : _validation(validation)
     {
-        Shutdown();
-        RemoveSubsystem(this);
-    }
-
-    Graphics* Graphics::Create(GraphicsBackend preferredBackend, bool validation)
-    {
-        GraphicsBackend backend = preferredBackend;
-        if (backend == GraphicsBackend::Default)
+        _backend = preferredBackend;
+        if (_backend == GraphicsBackend::Default)
         {
-            backend = GetDefaultPlatformBackend();
+            _backend = GetDefaultPlatformBackend();
         }
 
-        Graphics* graphics = nullptr;
-        switch (backend)
+        switch (_backend)
         {
         case GraphicsBackend::Empty:
             break;
@@ -82,7 +72,7 @@ namespace Alimer
             break;
         case GraphicsBackend::D3D12:
 #if defined(ALIMER_D3D12)
-            graphics = new D3D12Graphics(validation);
+            _impl = new D3D12Graphics(validation);
             ALIMER_LOGINFO("D3D12 backend created with success.");
 #else
             ALIMER_LOGERROR("D3D12 backend is not supported.");
@@ -95,26 +85,39 @@ namespace Alimer
         default:
             ALIMER_UNREACHABLE();
         }
-        return graphics;
+
+        AddSubsystem(this);
+        _instance = this;
+    }
+
+    Graphics::~Graphics()
+    {
+        Shutdown();
+        SafeDelete(_impl);
+        RemoveSubsystem(this);
+        _instance = nullptr;
+    }
+
+    Graphics& Graphics::GetInstance()
+    {
+        return *_instance;
     }
 
     void Graphics::Shutdown()
     {
         // Destroy undestroyed resources.
-        if (_gpuResources.size())
+        if (_gpuResources.Size())
         {
             std::lock_guard<std::mutex> lock(_gpuResourceMutex);
-            for (size_t i = 0; i < _gpuResources.size(); ++i)
+            for (auto it = _gpuResources.Begin(); it != _gpuResources.End(); ++it)
             {
-                GraphicsResource* resource = _gpuResources.at(i);
-                ALIMER_ASSERT(resource);
-                resource->Destroy();
+                (*it)->Destroy();
             }
 
-            _gpuResources.clear();
+            _gpuResources.Clear();
         }
 
-        _context.Reset();
+        //_context.Reset();
     }
 
     bool Graphics::IsBackendSupported(GraphicsBackend backend)
@@ -220,72 +223,54 @@ namespace Alimer
         }
 
         _settings = settings;
-        _initialized = true;
+        _initialized = _impl->Initialize(settings);
         _frameIndex = 0;
         return _initialized;
+    }
+
+    bool Graphics::WaitIdle()
+    {
+        return _impl->WaitIdle();
     }
 
     uint64_t Graphics::Present()
     {
         //_context->Flush();
-        Frame();
+        _impl->Frame();
         return ++_frameIndex;
     }
 
-    Texture* Graphics::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    CommandContext* Graphics::AllocateContext()
     {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->usage == TextureUsage::Unknown)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
-
-        if (descriptor->width == 0
-            || descriptor->height == 0
-            || descriptor->depth == 0
-            || descriptor->arrayLayers == 0
-            || descriptor->mipLevels == 0)
-        {
-            ALIMER_LOGCRITICAL("Cannot create an empty texture");
-        }
-
-        //if (initialData && !(descriptor->usage & TextureUsage::TransferDest))
-        //{
-        //    ALIMER_LOGCRITICAL("Texture needs the transfer dest usage when creating with initial data.");
-        //}
-
-        return nullptr;
-        //return CreateTextureImpl(descriptor, initialData);
-    }
-
-    Framebuffer* Graphics::CreateFramebuffer(const FramebufferDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-        return nullptr;
-        //return CreateFramebufferImpl(descriptor);
+        return _instance->_impl->AllocateContext();
     }
 
     void Graphics::AddGraphicsResource(GraphicsResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
-        _gpuResources.push_back(resource);
+        _gpuResources.Push(resource);
     }
 
     void Graphics::RemoveGraphicsResource(GraphicsResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
-        auto it = std::find(_gpuResources.begin(), _gpuResources.end(), resource);
-        if (it != _gpuResources.end())
-        {
-            _gpuResources.erase(it);
-        }
+        _gpuResources.Remove(resource);
     }
 
     void Graphics::NotifyValidationError(const char* message)
     {
         // TODO: Add callback.
         ALIMER_UNUSED(message);
+    }
+
+    const GraphicsDeviceFeatures& Graphics::GetFeatures() const
+    {
+        return _impl->features;
+    }
+
+    Framebuffer* Graphics::GetSwapchainFramebuffer() const
+    {
+        return _impl->GetSwapchainFramebuffer();
     }
 
     void Graphics::RegisterObject()
@@ -300,8 +285,8 @@ namespace Alimer
         Texture::RegisterObject();
     }
 
-    void RegisterGraphicsLibrary()
+    Graphics& gGraphics()
     {
-        Graphics::RegisterObject();
+        return Graphics::GetInstance();
     }
 }

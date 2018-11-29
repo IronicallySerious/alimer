@@ -31,9 +31,8 @@
 #include "../Graphics/Shader.h"
 #include "../Graphics/Pipeline.h"
 #include "../Graphics/ShaderCompiler.h"
-#include <vector>
-#include <mutex>
 #include <set>
+#include <mutex>
 
 namespace Alimer
 {
@@ -62,24 +61,27 @@ namespace Alimer
         SwapchainDescriptor swapchain = {};
     };
 
-    /// Low-level 3D graphics module.
-    class ALIMER_API Graphics : public Object
-    {
-        ALIMER_OBJECT(Graphics, Object);
+    class GraphicsImpl;
 
-    protected:
-        /// Constructor.
-        Graphics(GraphicsBackend backend, bool validation);
+    /// Low-level 3D graphics module.
+    class ALIMER_API Graphics final : public Object
+    {
+        friend class CommandContext;
+
+        ALIMER_OBJECT(Graphics, Object);
 
     public:
         /// Register object.
         static void RegisterObject();
 
         /// Constructor.
-        static Graphics* Create(GraphicsBackend preferredBackend, bool validation);
+        Graphics(GraphicsBackend backend, bool validation);
 
         /// Destructor.
         ~Graphics() override;
+
+        /// Return the single instance of the Graphics.
+        static Graphics& GetInstance();
 
         /// Check if backend is supported
         static bool IsBackendSupported(GraphicsBackend backend);
@@ -91,10 +93,10 @@ namespace Alimer
         static GraphicsBackend GetDefaultPlatformBackend();
 
         /// Initialize graphics with given settings.
-        virtual bool Initialize(const GraphicsSettings& settings);
+        bool Initialize(const GraphicsSettings& settings);
 
         /// Wait for a device to become idle.
-        virtual bool WaitIdle() = 0;
+        bool WaitIdle();
 
         /// Finishes the current frame and schedules it for display.
         uint64_t Present();
@@ -105,12 +107,6 @@ namespace Alimer
         /// Remove a GraphicsResource.
         void RemoveGraphicsResource(GraphicsResource* resource);
 
-        /// Create new buffer with given descriptor and optional initial data.
-        Texture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
-
-        /// Create new framebuffer with given descriptor.
-        Framebuffer* CreateFramebuffer(const FramebufferDescriptor* descriptor);
-
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
 
@@ -118,34 +114,35 @@ namespace Alimer
         GraphicsBackend GetBackend() const { return _backend; }
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
+        const GraphicsDeviceFeatures& GetFeatures() const;
 
         /// Get the main Swapchain current framebuffer.
-        //virtual Framebuffer* GetSwapchainFramebuffer() const = 0;
+        Framebuffer* GetSwapchainFramebuffer() const;
 
-        /// Get the default command context.
-        const SharedPtr<CommandContext>& GetContext() const { return _context; }
+        static void NotifyValidationError(const char* message);
 
-        void NotifyValidationError(const char* message);
+        /// Return graphics implementation, which holds the actual API-specific resources.
+        GraphicsImpl* GetImpl() const { return _impl; }
 
     private:
         void Shutdown();
-        virtual void Frame() = 0;
-        //virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) = 0;
-        //virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
-
+        static CommandContext* AllocateContext();
+        
+        /// Implementation.
+        GraphicsImpl* _impl = nullptr;
+        static Graphics *_instance;
         GraphicsBackend _backend = GraphicsBackend::Empty;
         bool _validation;
         bool _initialized = false;
-        GraphicsSettings _settings = {};
-        GraphicsDeviceFeatures _features = {};
-        std::vector<GraphicsResource*> _gpuResources;
+        PODVector<GraphicsResource*> _gpuResources;
         std::mutex _gpuResourceMutex;
-        SharedPtr<CommandContext> _context;
     
         uint64_t _frameIndex = 0;
+
+    protected:
+        GraphicsSettings _settings = {};
     };
 
-    /// Register Graphics related object factories and attributes.
-    ALIMER_API void RegisterGraphicsLibrary();
+    /// Singleton access for Graphics. 
+    ALIMER_API Graphics& gGraphics();
 }
