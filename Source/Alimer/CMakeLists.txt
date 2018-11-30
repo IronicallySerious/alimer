@@ -60,30 +60,32 @@ macro(group_sources)
 endmacro()
 
 # Compile built-in shaders
-set(SHADERS_SRCS
-    shaders/imgui.vert
-    shaders/imgui.frag
-)
-
-set (SHADER_BINS)
-set (SHADER_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/shaders_h")
-
-foreach (shader_src ${SHADERS_SRCS})
-    get_filename_component(local_name "${shader_src}" NAME)
-    get_filename_component(full_name "${shader_src}" ABSOLUTE)
-    set (output_path "${SHADER_OUTPUT_PATH}/${local_name}.h")
-
-    # For now compile to spv
-    add_custom_command(
-            OUTPUT ${output_path}
-            COMMAND shaderc -i ${full_name} -o ${output_path} -f header
-            MAIN_DEPENDENCY ${shader_src}
-            DEPENDS ${shader_src} shaderc
-            COMMENT "Compiling shader ${shader_src} to ${output_path}"
+if (ALIMER_TOOLS)
+    set(SHADERS_SRCS
+        shaders/imgui.vert
+        shaders/imgui.frag
     )
 
-    list(APPEND SHADER_BINS ${output_path})
-endforeach()
+    set (SHADER_BINS)
+    set (SHADER_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/shaders_h")
+
+    foreach (shader_src ${SHADERS_SRCS})
+        get_filename_component(local_name "${shader_src}" NAME)
+        get_filename_component(full_name "${shader_src}" ABSOLUTE)
+        set (output_path "${SHADER_OUTPUT_PATH}/${local_name}.h")
+
+        # For now compile to spv
+        add_custom_command(
+                OUTPUT ${output_path}
+                COMMAND shaderc -i ${full_name} -o ${output_path} -f header
+                MAIN_DEPENDENCY ${shader_src}
+                DEPENDS ${shader_src} shaderc
+                COMMENT "Compiling shader ${shader_src} to ${output_path}"
+        )
+
+        list(APPEND SHADER_BINS ${output_path})
+    endforeach()
+endif()
 
 set (TARGET_NAME libAlimer)
 set (ALIMER_NATIVE_INCLUDE_DIRS ${SPIRV_TOOLS_INCLUDE_DIR} ${STB_INCLUDE_DIR})

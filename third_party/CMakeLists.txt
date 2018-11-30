@@ -23,34 +23,34 @@
 # SPIRV-Cross
 add_subdirectory(spirv-cross)
 
-# glslang
-option (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
-set (LIB_TYPE STATIC)
-set (ENABLE_GLSLANG_INSTALL OFF)
-
-set (ENABLE_HLSL OFF CACHE BOOL "Enables HLSL input support")
-set (ENABLE_SPVREMAPPER OFF CACHE BOOL "Enables building of SPVRemapper")
-set (ENABLE_AMD_EXTENSIONS ON CACHE BOOL "Enables support of AMD-specific extensions")
-set (ENABLE_NV_EXTENSIONS ON CACHE BOOL "Enables support of Nvidia-specific extensions")
-set (ENABLE_OPT OFF CACHE BOOL "Enables spirv-opt capability if present")
-set (ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Enable glslang binaries")
-set (SKIP_GLSLANG_INSTALL ON CACHE BOOL "Skip glslang installation")
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glslang/glslang)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glslang/OGLCompilersDLL)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glslang/SPIRV)
-
-alimer_external_target("third_party" glslang)
-alimer_external_target("third_party" OGLCompiler)
-alimer_external_target("third_party" OSDependent)
-alimer_external_target("third_party" SPIRV)
-target_compile_options(glslang PUBLIC -DAMD_EXTENSIONS -DNV_EXTENSIONS )
-
 # if (NOT ALIMER_DISABLE_LUA)
     # add_subdirectory(Lua)
 # endif()
 
 # Vulkan libs
 if (ALIMER_VULKAN)
+    # glslang
+    option (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
+    set (LIB_TYPE STATIC)
+    set (ENABLE_GLSLANG_INSTALL OFF)
+
+    set (ENABLE_HLSL OFF CACHE BOOL "Enables HLSL input support")
+    set (ENABLE_SPVREMAPPER OFF CACHE BOOL "Enables building of SPVRemapper")
+    set (ENABLE_AMD_EXTENSIONS ON CACHE BOOL "Enables support of AMD-specific extensions")
+    set (ENABLE_NV_EXTENSIONS ON CACHE BOOL "Enables support of Nvidia-specific extensions")
+    set (ENABLE_OPT OFF CACHE BOOL "Enables spirv-opt capability if present")
+    set (ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Enable glslang binaries")
+    set (SKIP_GLSLANG_INSTALL ON CACHE BOOL "Skip glslang installation")
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glslang/glslang)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glslang/OGLCompilersDLL)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glslang/SPIRV)
+
+    alimer_external_target("third_party" glslang)
+    alimer_external_target("third_party" OGLCompiler)
+    alimer_external_target("third_party" OSDependent)
+    alimer_external_target("third_party" SPIRV)
+    target_compile_options(glslang PUBLIC -DAMD_EXTENSIONS -DNV_EXTENSIONS )
+
     # volk
     set(VOLK_CROSS_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/volk/volk.h

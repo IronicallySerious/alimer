@@ -51,6 +51,8 @@
 #define SDL_DYNAMIC_API 0
 #elif defined(SDL_BUILDING_WINRT) && SDL_BUILDING_WINRT  /* probably not useful on WinRT, given current .dll loading restrictions */
 #define SDL_DYNAMIC_API 0
+#elif defined(_WIN64) || defined(_WIN32) /* Alimer: Disable WINAPI on windows */
+#define SDL_DYNAMIC_API 0
 #elif defined(__PSP__) && __PSP__
 #define SDL_DYNAMIC_API 0
 #elif defined(__clang_analyzer__)
@@ -59,8 +61,7 @@
 
 /* everyone else. This is where we turn on the API if nothing forced it off. */
 #ifndef SDL_DYNAMIC_API
-// Alimer: Disable dynamic api.
-#define SDL_DYNAMIC_API 0
+#define SDL_DYNAMIC_API 1
 #endif
 
 #endif

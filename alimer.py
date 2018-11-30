@@ -9,6 +9,8 @@ import argparse, shutil, multiprocessing, os, platform, subprocess, sys
 VERSION = '0.9.0'
 enableLogVerbose = False
 WIN_SDK_VERSION = "10.0.17763.0"
+emscriptenToolchain = "CMake/Toolchains/Emscripten.cmake"
+emscriptenInstallPrefix = "Alimer-SDK-Web"
 
 def logError(message):
 	print("%s\n" % message)
@@ -132,20 +134,21 @@ if __name__ == "__main__":
             action = 'build'
 
         if args.platform is not None:
-            platform = args.platform
-            if platform == "desktop":
-                if hostPlatform == "win":
-                    buildSys = "vs2017"
-                else:
-			        buildSys = "ninja"
-            elif platform == "android":
-                buildSys = "ninja"
+            _platform = args.platform
         else:
-		    if hostPlatform == "win":
-			    buildSys = "vs2017"
-		    else:
-			    buildSys = "ninja"
-            
+            action = 'desktop'
+
+        _platform = args.platform
+        if _platform == "desktop":
+            if hostPlatform == "win":
+                buildSys = "vs2017"
+            else:
+                buildSys = "ninja"
+        elif _platform == "android":
+            buildSys = "ninja"
+        elif _platform == "web":
+            buildSys = "ninja"
+        
         logVerbose('Default build set: {}'.format(buildSys))
 
         if args.arch is not None:
@@ -163,7 +166,11 @@ if __name__ == "__main__":
 
         multiConfig = (buildSys.find("vs") == 0)
 
-        buildDir = "build/%s-%s" % (buildSys, arch)
+        if _platform == "web":
+            buildDir = "build/web-%s" % (buildSys)
+        else:
+            buildDir = "build/%s-%s" % (buildSys, arch)
+
         if not multiConfig:
                 buildDir += "-%s" % configuration;
         if not os.path.exists(buildDir):
@@ -177,21 +184,27 @@ if __name__ == "__main__":
 
             logInfo('Building {}-{}-{} parallel {}'.format(buildSys, arch, configuration, parallel))
             batCmd = BatchCommand(hostPlatform)
-            if hostPlatform == "win":
-                vs2017Folder = FindVS2017Folder(FindProgramFilesFolder())
-                if "x64" == arch:
-                    vcOption = "amd64"
-                elif "x86" == arch:
-                    vcOption = "x86"
-                else:
-                    logError("Unsupported architecture.\n")
-                batCmd.AddCommand("@call \"%sVCVARSALL.BAT\" %s" % (vs2017Folder, vcOption))
-                batCmd.AddCommand("@cd /d \"%s\"" % buildDir)
-            if (buildSys == "ninja"):
+
+            if (buildSys != "ninja"):
                 if hostPlatform == "win":
-                    batCmd.AddCommand("set CC=cl.exe")
-                    batCmd.AddCommand("set CXX=cl.exe")
-                batCmd.AddCommand("cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" -DSC_ARCH_NAME=\"%s\" ../../" % (configuration, arch))
+                    vs2017Folder = FindVS2017Folder(FindProgramFilesFolder())
+                    if "x64" == arch:
+                        vcOption = "amd64"
+                    elif "x86" == arch:
+                        vcOption = "x86"
+                    else:
+                        logError("Unsupported architecture.\n")
+                    batCmd.AddCommand("@call \"%sVCVARSALL.BAT\" %s" % (vs2017Folder, vcOption))
+                    batCmd.AddCommand("@cd /d \"%s\"" % buildDir)
+
+            if (buildSys == "ninja"):
+                if _platform == "web":
+                    batCmd.AddCommand("cmake -G \"Ninja\" -DCMAKE_TOOLCHAIN_FILE=%s -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" % (emscriptenToolchain, configuration, emscriptenInstallPrefix))
+                else:
+                    if hostPlatform == "win":
+                        batCmd.AddCommand("set CC=cl.exe")
+                        batCmd.AddCommand("set CXX=cl.exe")
+                    batCmd.AddCommand("cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" -DSC_ARCH_NAME=\"%s\" ../../" % (configuration, arch))
                 batCmd.AddCommand("ninja -j%d" % parallel)
             else:
                 batCmd.AddCommand("cmake -G \"Visual Studio 15 2017\" -T host=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" % (WIN_SDK_VERSION, arch))
@@ -202,7 +215,10 @@ if __name__ == "__main__":
             logInfo('Generate {}-{}-{}'.format(buildSys, arch, configuration))
 
             batCmd = BatchCommand(hostPlatform)
-            if (buildSys == "ninja"):
+
+            if _platform == "web":
+                batCmd.AddCommand("cmake -G \"Ninja\" -DCMAKE_TOOLCHAIN_FILE=%s -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" % (emscriptenToolchain, configuration, emscriptenInstallPrefix))
+            elif (buildSys == "ninja"):
                 batCmd.AddCommand("cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" ../../" % (configuration))
             else:
                 batCmd.AddCommand("cmake -G \"Visual Studio 15 2017\" -T host=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" % (WIN_SDK_VERSION, arch))

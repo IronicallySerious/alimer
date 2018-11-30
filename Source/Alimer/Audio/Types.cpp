@@ -26,18 +26,14 @@ namespace Alimer
 {
     const char* EnumToString(AudioBackend backend)
     {
-#define CASE_STRING(ENUM_VALUE) case AudioBackend::##ENUM_VALUE : return #ENUM_VALUE
-
         switch (backend)
         {
-            CASE_STRING(Default);
-            CASE_STRING(Empty);
-            CASE_STRING(XAudio2);
-            CASE_STRING(OpenAL);
-            CASE_STRING(Custom);
+        case AudioBackend::Default: return "Default";
+        case AudioBackend::Empty: return "Empty";
+        case AudioBackend::XAudio2: return "XAudio2";
+        case AudioBackend::OpenAL: return "OpenAL";
+        case AudioBackend::Custom: return "Custom";
+        default: return nullptr;
         }
-
-#undef CASE_STRING
-        return nullptr;
     }
 }

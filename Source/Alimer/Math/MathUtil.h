@@ -28,7 +28,6 @@
 #   pragma warning(push)
 #   pragma warning(disable:4244) // Conversion from 'double' to 'float'
 #   pragma warning(disable:4702) // unreachable code
-#	include <intrin.h>
 #endif
 
 #include <algorithm>

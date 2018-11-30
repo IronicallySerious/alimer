@@ -26,13 +26,36 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/**
-* Compiler defines, see http://sourceforge.net/p/predef/wiki/Compilers/
-*/
+// CPU
+#define ALIMER_CPU_ARM   0
+#define ALIMER_CPU_JIT   0
+#define ALIMER_CPU_MIPS  0
+#define ALIMER_CPU_PPC   0
+#define ALIMER_CPU_RISCV 0
+#define ALIMER_CPU_X86   0
+
+// Architecture
+#define ALIMER_32BITS 0
+#define ALIMER_64BITS 0
+
+// Endianess
+#define ALIMER_BIG_ENDIAN    0
+#define ALIMER_LITTLE_ENDIAN 0
+
+// Compiler
 #define ALIMER_MSVC 0
 #define ALIMER_CLANG 0
 #define ALIMER_GCC 0
 
+// SIMD defines
+#define ALIMER_SIMD 0
+#define ALIMER_SSE2 0
+#define ALIMER_NEON 0
+#define ALIMER_VMX  0
+
+/**
+* Compiler defines, see http://sourceforge.net/p/predef/wiki/Compilers/
+*/
 #ifdef _MSC_VER
 #	undef ALIMER_MSVC
 #	if _MSC_VER >= 1910		// Visual Studio 2017
@@ -109,53 +132,86 @@
 #endif
 
 /**
-* Architecture defines, see http://sourceforge.net/p/predef/wiki/Architectures/
+* Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php?title=Architectures
 */
-#define ALIMER_X64 0
-#define ALIMER_X86 0
-#define ALIMER_A64 0
-#define ALIMER_ARM 0
-#define ALIMER_SPU 0
-#define ALIMER_PPC 0
+#if defined(__arm__)     || \
+	defined(__aarch64__) || \
+	defined(_M_ARM)
+#	undef  ALIMER_CPU_ARM
+#	define ALIMER_CPU_ARM 1
+#	define ALIMER_CACHE_LINE_SIZE 64
+#elif defined(__MIPSEL__)     || \
+	  defined(__mips_isa_rev) || \
+	  defined(__mips64)
+#	undef  ALIMER_CPU_MIPS
+#	define ALIMER_CPU_MIPS 1
+#	define ALIMER_CACHE_LINE_SIZE 64
+#elif defined(_M_PPC)        || \
+	  defined(__powerpc__)   || \
+	  defined(__powerpc64__)
+#	undef  ALIMER_CPU_PPC
+#	define ALIMER_CPU_PPC 1
+#	define ALIMER_CACHE_LINE_SIZE 128
+#elif defined(__riscv)   || \
+	  defined(__riscv__) || \
+	  defined(RISCVEL)
+#	undef  ALIMER_CPU_RISCV
+#	define ALIMER_CPU_RISCV 1
+#	define ALIMER_CACHE_LINE_SIZE 64
+#elif defined(_M_IX86)    || \
+	  defined(_M_X64)     || \
+	  defined(__i386__)   || \
+	  defined(__x86_64__)
+#	undef  ALIMER_CPU_X86
+#	define ALIMER_CPU_X86 1
+#	define ALIMER_CACHE_LINE_SIZE 64
+#else // PNaCl doesn't have CPU defined.
+#	undef  ALIMER_CPU_JIT
+#	define ALIMER_CPU_JIT 1
+#	define ALIMER_CACHE_LINE_SIZE 64
+#endif //
 
-#if defined(__x86_64__) || defined(_M_X64) // ps4 compiler defines _M_X64 without value
-#	undef ALIMER_X64
-#	define ALIMER_X64 1
-#elif defined(__i386__) || defined(_M_IX86)
-#	undef ALIMER_X86
-#	define ALIMER_X86 1
-#elif defined(__arm64__) || defined(__aarch64__)
-#	undef ALIMER_A64
-#	define ALIMER_A64 1
-#elif defined(__arm__) || defined(_M_ARM)
-#	undef ALIMER_ARM
-#	define ALIMER_ARM 1
-#elif defined(__SPU__)
-#	undef ALIMER_SPU
-#	define ALIMER_SPU 1
-#elif defined(__ppc__) || defined(_M_PPC) || defined(__CELLOS_LV2__)
-#	undef ALIMER_PPC
-#	define ALIMER_PPC 1
+#if defined(__x86_64__)    || \
+	defined(_M_X64)        || \
+	defined(__aarch64__)   || \
+	defined(__64BIT__)     || \
+	defined(__mips64)      || \
+	defined(__powerpc64__) || \
+	defined(__ppc64__)     || \
+	defined(__LP64__)
+#	undef  ALIMER_64BITS
+#	define ALIMER_64BITS 1
 #else
-#	error "Unknown architecture"
+#	undef  ALIMER_32BITS
+#	define ALIMER_32BITS 1
 #endif
+
+#if ALIMER_CPU_PPC
+#	undef  ALIMER_BIG_ENDIAN
+#	define ALIMER_BIG_ENDIAN 1
+#else
+#	undef  ALIMER_LITTLE_ENDIAN
+#	define ALIMER_LITTLE_ENDIAN 1
+#endif 
 
 /**
 * SIMD defines
 */
-#define ALIMER_SSE2 0
-#define ALIMER_NEON 0
-#define ALIMER_VMX 0
-
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
+#   undef ALIMER_SIMD
+#   define ALIMER_SIMD 1
 #	undef ALIMER_SSE2
 #	define ALIMER_SSE2 1
 #endif
 #if defined(_M_ARM) || defined(__ARM_NEON__)
+#   undef ALIMER_SIMD
+#   define ALIMER_SIMD 1
 #	undef ALIMER_NEON
 #	define ALIMER_NEON 1
 #endif
 #if defined(_M_PPC) || defined(__CELLOS_LV2__)
+#   undef ALIMER_SIMD
+#   define ALIMER_SIMD 1
 #	undef ALIMER_VMX
 #	define ALIMER_VMX 1
 #endif

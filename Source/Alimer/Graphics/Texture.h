@@ -119,7 +119,7 @@ namespace Alimer
 
     private:
         bool Create(const ImageLevel* initialData);
-        void Destroy();
+        void Destroy() override;
 
         bool BeginLoad(Stream& source) override;
         /// Finish resource loading. Always called from the main thread. Return true if successful.

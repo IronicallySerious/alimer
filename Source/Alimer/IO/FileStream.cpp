@@ -273,9 +273,9 @@ namespace Alimer
         }
 
         _position += byteRead;
-        return static_cast<size_t>(byteRead);
+        return static_cast<uint64_t>(byteRead);
 #else
-        size_t ret = fread(dest, size, 1, (FILE*)_handle);
+        uint64_t ret = fread(dest, size, 1, (FILE*)_handle);
         if (ret != 1)
         {
             // If error, return to the position where the read began
@@ -288,7 +288,7 @@ namespace Alimer
 #endif
     }
 
-    void FileStream::Write(const void* data, size_t size)
+    void FileStream::Write(const void* data, uint64_t size)
     {
         if (!_handle || _mode == FileAccess::ReadOnly)
             return;

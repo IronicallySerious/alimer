@@ -86,8 +86,7 @@ typedef unsigned int uintptr_t;
 #define HAVE_AUDIOCLIENT_H 1
 #define HAVE_ENDPOINTVOLUME_H 1
 
-/* This is disabled by default to avoid C runtime dependencies and manifest requirements */
-#define HAVE_LIBC 1
+#define HAVE_LIBC 1 /* Alimer enable libc */
 #ifdef HAVE_LIBC
 /* Useful headers */
 #define STDC_HEADERS 1

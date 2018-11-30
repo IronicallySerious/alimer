@@ -172,19 +172,15 @@ namespace Alimer
 
     const char* EnumToString(ShaderStage stage)
     {
-#define CASE_STRING(ENUM_VALUE) case ShaderStage::##ENUM_VALUE : return #ENUM_VALUE
-
         switch (stage)
         {
-            CASE_STRING(Vertex);
-            CASE_STRING(TessControl);
-            CASE_STRING(TessEvaluation);
-            CASE_STRING(Geometry);
-            CASE_STRING(Fragment);
-            CASE_STRING(Compute);
+        case ShaderStage::Vertex: return "vertex";
+        case ShaderStage::TessControl: return "tess_control";
+        case ShaderStage::TessEvaluation: return "tess_eval";
+        case ShaderStage::Geometry: return "geometry";
+        case ShaderStage::Fragment: return "fragment";
+        case ShaderStage::Compute: return "compute";
+        default: return nullptr;
         }
-
-#undef CASE_STRING
-        return nullptr;
     }
 }

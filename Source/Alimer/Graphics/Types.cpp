@@ -27,19 +27,14 @@ namespace Alimer
 {
     const char* EnumToString(ResourceUsage usage)
     {
-
-#define CASE_STRING(ENUM_VALUE) case ResourceUsage::##ENUM_VALUE : return #ENUM_VALUE
-
         switch (usage)
         {
-            CASE_STRING(Default);
-            CASE_STRING(Immutable);
-            CASE_STRING(Dynamic);
-            CASE_STRING(Staging);
+        case ResourceUsage::Default: return "default";
+        case ResourceUsage::Immutable: return "immutable";
+        case ResourceUsage::Dynamic: return "dynamic";
+        case ResourceUsage::Staging: return "staging";
+        default: return nullptr;
         }
-
-#undef CASE_STRING
-        return nullptr;
     }
 
     const char* EnumToString(VertexElementSemantic semantic)

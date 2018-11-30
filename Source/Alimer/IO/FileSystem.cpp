@@ -81,7 +81,7 @@ namespace Alimer
                 && !Exists(path))
             {
                 ALIMER_LOGERRORF("Cannot open file '%s' as it doesn't exists", path.CString());
-                return false;
+                return {};
             }
 
             return UniquePtr<Stream>(new FileStream(Path::Join(_rootDirectory, path), mode));

@@ -145,7 +145,7 @@ if( MSVC )
 	# Force specific warnings as errors
     add_compile_options(/we4101)
 elseif (CLANG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_STANDARD} -fstrict-aliasing -Wno-unknown-pragmas -Wno-unused-function")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=${CMAKE_CXX_STANDARD} -fstrict-aliasing -Wno-unknown-pragmas -Wno-unused-function")
     
     if (WIN32)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_MATH_DEFINES=1")
@@ -164,19 +164,23 @@ elseif (CLANG)
     if (NOT CLANG_CL)
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer -ffunction-sections -fdata-sections")
     endif()
+else ()
+    # Use fast floating point model
+    add_compile_options(-ffast-math)
+endif ()
 
-elseif (ALIMER_EMSCRIPTEN)
+if (ALIMER_EMSCRIPTEN)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-warn-absolute-paths -Wno-unknown-warning-option")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-warn-absolute-paths -Wno-unknown-warning-option")
     if (ALIMER_THREADING)
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_PTHREADS=1")
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_PTHREADS=1")
     endif ()
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse -msse2")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse -msse2")
+
     set (CMAKE_C_FLAGS_RELEASE "-Oz -DNDEBUG")
     set (CMAKE_CXX_FLAGS_RELEASE "-Oz -DNDEBUG")
-else ()
-    # Use fast floating point model
-    add_compile_options(-ffast-math)
 endif ()
 
 # Setup SDK install destinations

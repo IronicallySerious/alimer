@@ -36,6 +36,16 @@ file(GLOB HEADER_FILES
     ${SRC_DIR}/audio/disk/*.h
     ${SRC_DIR}/audio/dsp/*.h
     ${SRC_DIR}/audio/dummy/*.h
+    ${SRC_DIR}/cpuinfo/*.h
+    # ${SRC_DIR}/dynapi/*.h
+    ${SRC_DIR}/events/*.h
+    ${SRC_DIR}/haptic/*.h
+    ${SRC_DIR}/joystick/*.h
+    ${SRC_DIR}/libm/*.h
+    ${SRC_DIR}/power/*.h
+    ${SRC_DIR}/thread/*.h
+    ${SRC_DIR}/timer/*.h
+    ${SRC_DIR}/video/*.h
 )
 
 # General source files
@@ -47,6 +57,7 @@ file(GLOB SOURCE_FILES
     ${SRC_DIR}/audio/dsp/*.c
     ${SRC_DIR}/audio/dummy/*.c
     ${SRC_DIR}/cpuinfo/*.c
+    # ${SRC_DIR}/dynapi/*.c
     ${SRC_DIR}/events/*.c
     ${SRC_DIR}/file/*.c
     ${SRC_DIR}/joystick/*.c

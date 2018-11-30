@@ -71,6 +71,7 @@ bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wSer
 
 #elif __EMSCRIPTEN__
 #   include <emscripten/emscripten.h>
+#	include <dlfcn.h>
 #elif defined(__APPLE__) 
 #   include <TargetConditionals.h>
 #   include <sys/time.h>
@@ -228,6 +229,9 @@ void* LoadNativeLibrary(const char* name)
     auto wideName = WString(name);
     HMODULE handle = LoadPackagedLibrary(wideName.CString(), 0);
     return handle;
+#elif ALIMER_PLATFORM_WEB
+    ALIMER_UNUSED(name);
+    return nullptr;
 #else
     return ::dlopen(name, RTLD_LOCAL | RTLD_LAZY);
 #endif
@@ -237,6 +241,8 @@ void UnloadNativeLibrary(void* handle)
 {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
     ::FreeLibrary((HMODULE)handle);
+#elif ALIMER_PLATFORM_WEB
+    ALIMER_UNUSED(handle);
 #else
     ::dlclose(handle);
 #endif
@@ -246,6 +252,10 @@ void* GetSymbol(void* handle, const char* name)
 {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
     return (void*)::GetProcAddress((HMODULE)handle, name);
+#elif ALIMER_PLATFORM_WEB
+    ALIMER_UNUSED(handle);
+    ALIMER_UNUSED(name);
+    return nullptr;
 #else
     return ::dlsym(handle, name);
 #endif
@@ -267,7 +277,6 @@ void SetCurrentThreadName(const char* name)
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
     }
-
 #else
 #  ifdef __APPLE__
     if (pthread_setname_np(name) != 0)

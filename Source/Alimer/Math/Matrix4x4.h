@@ -31,6 +31,22 @@
 #pragma warning(disable : 4201 4203 4244 4702)
 #endif
 
+#if ALIMER_SIMD
+#   ifdef _MSC_VER
+#       pragma warning(push)
+#       pragma warning(disable : 4987)
+#   endif
+#   include <intrin.h>
+#   ifdef _MSC_VER
+#       pragma warning(pop)
+#   endif
+#endif /* ALIMER_SIMD */
+
+#ifdef ALIMER_SSE2
+#   include <xmmintrin.h>
+#   include <emmintrin.h>
+#endif /* ALIMER_SSE2 */
+
 namespace Alimer
 {
     /// A 4x4 column-major floating-point matrix with right-handed cooordinates.
