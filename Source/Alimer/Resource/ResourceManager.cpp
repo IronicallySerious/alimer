@@ -53,16 +53,16 @@ namespace Alimer
         String fixedPath = SanitateResourceDirName(path);
 
         // Check that the same path does not already exist
-        for (size_t i = 0; i < _resourceDirs.size(); ++i)
+        for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
         {
             if (!_resourceDirs[i].Compare(fixedPath))
                 return true;
         }
 
-        if (priority < _resourceDirs.size())
-            _resourceDirs.insert(_resourceDirs.begin() + priority, fixedPath);
+        if (priority < _resourceDirs.Size())
+            _resourceDirs.Insert(priority, fixedPath);
         else
-            _resourceDirs.push_back(fixedPath);
+            _resourceDirs.Push(fixedPath);
 
         // If resource auto-reloading active, create a file watcher for the directory
        /* if (_autoReloadResources)
@@ -156,11 +156,52 @@ namespace Alimer
         return stream->ReadBytes(count);
     }
 
-    SharedPtr<Object> ResourceManager::LoadObject(StringHash type, const String& assetName)
+    SharedPtr<Resource> ResourceManager::LoadResource(StringHash type, const String& assetName)
     {
+        // Check for existing resource
+        auto key = std::make_pair(type, StringHash(assetName));
+        auto it = _resources.find(key);
+        if (it != _resources.end())
+            return it->second;
+
         UniquePtr<Stream> stream = Open(assetName);
-        ResourceLoader* loader = GetLoader(type);
-        return loader->Load(*stream);
+        if (stream.IsNull())
+        {
+            return nullptr;
+        }
+
+        String sanitatedName = SanitateResourceName(assetName);
+        SharedPtr<Resource> newResource = DynamicCast<Resource>(CreateObject(type));
+        bool loaded = false;
+        if (newResource.IsNull())
+        {
+            // Try to use loader
+            ResourceLoader* loader = GetLoader(type);
+            if (!loader)
+            {
+                ALIMER_LOGERRORF("Could not load unknown resource type %s, no loader found.", String(type).CString());
+                return nullptr;
+            }
+
+            ALIMER_LOGDEBUGF("Loading resource '%s' using loader", sanitatedName.CString());
+            newResource = loader->Load(*stream);
+            loaded = newResource.IsNotNull();
+        }
+       
+        if (!loaded)
+        {
+            ALIMER_LOGDEBUGF("Loading resource '%s'", sanitatedName.CString());
+            if (!newResource->Load(*stream))
+            {
+                ALIMER_LOGERRORF("Failed to load resource '%s'", sanitatedName.CString());
+                return nullptr;
+            }
+        }
+
+        newResource->SetName(sanitatedName);
+        // Store to cache
+        _resources[key] = newResource;
+        return newResource;
     }
 
     String ResourceManager::SanitateResourceName(const String& name) const
@@ -170,11 +211,11 @@ namespace Alimer
         sanitatedName.Replace("./", "");
 
         // If the path refers to one of the resource directories, normalize the resource name
-        if (_resourceDirs.size())
+        if (_resourceDirs.Size())
         {
             String namePath = FileSystem::GetPath(sanitatedName);
             String exePath = FileSystem::GetExecutableFolder().Replaced("/./", "/");
-            for (size_t i = 0; i < _resourceDirs.size(); ++i)
+            for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
             {
                 String relativeResourcePath = _resourceDirs[i];
                 if (relativeResourcePath.StartsWith(exePath))
@@ -205,7 +246,7 @@ namespace Alimer
 
     UniquePtr<Stream> ResourceManager::SearchResourceDirs(const String& name)
     {
-        for (size_t i = 0; i < _resourceDirs.size(); ++i)
+        for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
         {
             if (FileSystem::FileExists(_resourceDirs[i] + name))
             {
@@ -231,7 +272,7 @@ namespace Alimer
 
     bool ResourceManager::ExistsInResourceDirs(const String& name)
     {
-        for (size_t i = 0; i < _resourceDirs.size(); ++i)
+        for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
         {
             if (FileSystem::FileExists(_resourceDirs[i] + name))
             {

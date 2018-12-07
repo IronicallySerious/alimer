@@ -23,8 +23,6 @@
 #pragma once
 
 #include "../Resource/Resource.h"
-#include <memory>
-#include <atomic>
 
 namespace Alimer
 {
@@ -42,14 +40,14 @@ namespace Alimer
 		virtual ~ResourceLoader() = default;
 
 		/// Load the resource synchronously from a binary stream. Return instance on success.
-		SharedPtr<Object> Load(Stream& source);
+		SharedPtr<Resource> Load(Stream& source);
 
         /// Get the type being loaded.
         virtual StringHash GetType() const = 0;
 
 	protected:
 		virtual bool BeginLoad(Stream& source) = 0;
-		virtual Object* EndLoad() = 0;
+		virtual Resource* EndLoad() = 0;
 
         /// File being loaded.
         String _fileName;

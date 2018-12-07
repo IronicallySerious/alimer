@@ -26,7 +26,6 @@
 
 namespace Alimer
 {
-    
     template<typename T>
     class ArrayView
     {
@@ -37,79 +36,79 @@ namespace Alimer
         using ConstIterator = const ValueType*;
 
         ArrayView()
-            : begin_(nullptr)
-            , end_(nullptr)
+            : _begin(nullptr)
+            , _end(nullptr)
         {
         }
 
         ArrayView(const ArrayView& other)
-            : begin_(other.begin_)
-            , end_(other.end_)
+            : _begin(other._begin)
+            , _end(other._end)
         {
         }
 
         template<typename U>
         ArrayView(const ArrayView<U>& other)
-            : begin_(other.begin())
-            , end_(other.end())
+            : _begin(other.begin())
+            , _end(other.end())
         {
         }
 
         ArrayView(ValueType& value)
-            : begin_(&value)
-            , end_(begin_ + 1)
+            : _begin(&value)
+            , _end(_begin + 1)
         {
-            ALIMER_ASSERT(begin_ == nullptr && end_ == nullptr || (begin_ != nullptr && end_ != nullptr));
+            ALIMER_ASSERT(_begin == nullptr && _end == nullptr || (_begin != nullptr && _end != nullptr));
         }
 
         ArrayView(ValueType* begin, ValueType* end)
-            : begin_(begin)
-            , end_(end)
+            : _begin(begin)
+            , _end(end)
         {
-            ALIMER_ASSERT(begin_ == nullptr && end_ == nullptr || (begin_ != nullptr && end_ != nullptr));
+            ALIMER_ASSERT(_begin == nullptr && _end == nullptr || (_begin != nullptr && _end != nullptr));
         }
 
         ArrayView(ValueType* data, IndexType size)
-            : begin_(data)
-            , end_(data + size)
+            : _begin(data)
+            , _end(data + size)
         {
         }
 
         template<uint32_t SIZE>
         ArrayView(ValueType(&arr)[SIZE])
-            : begin_(&arr[0])
-            , end_(&arr[0] + SIZE)
+            : _begin(&arr[0])
+            , _end(&arr[0] + SIZE)
 
         {
         }
 
         ~ArrayView() = default;
 
-        Iterator begin() { return begin_; }
-        Iterator end() { return end_; }
-        ConstIterator begin() const { return begin_; }
-        ConstIterator end() const { return end_; }
+        Iterator begin() { return _begin; }
+        Iterator end() { return _end; }
+        ConstIterator begin() const { return _begin; }
+        ConstIterator end() const { return _end; }
 
-        IndexType size() const { return (IndexType)(end_ - begin_); }
-        ValueType* data() const { return begin_; }
+        IndexType size() const { return (IndexType)(_end - _begin); }
+        ValueType* data() const { return _begin; }
 
-        explicit operator bool() const { return !!begin_; }
+        explicit operator bool() const { return !!_begin; }
 
         ValueType& operator[](IndexType index)
         {
             ALIMER_ASSERT_MSG(index >= 0 && index < size(), "Index out of bounds. (%u, size %u)", index, size());
-            return begin_[index];
+            return _begin[index];
         }
 
         const ValueType& operator[](IndexType index) const
         {
             ALIMER_ASSERT_MSG(index >= 0 && index < size(), "Index out of bounds. (%u, size %u)", index, size());
-            return begin_[index];
+            return _begin[index];
         }
 
     private:
-        ValueType* begin_;
-        ValueType* end_;
+        ValueType* _begin;
+        ValueType* _end;
     };
 
     /**
@@ -128,57 +127,58 @@ namespace Alimer
         {
             for (uint32_t index = 0; index < N; ++index)
             {
-                data_[index] = value;
+                _data[index] = value;
             }
         }
 
         inline constexpr T const& operator[](size_t i) const
         {
             ALIMER_ASSERT_MSG(index >= 0 && index < N, "Index out of bounds. (%u, size %u)", index, N);
-            return data_[index];
+            return _data[index];
         }
 
         inline constexpr T& operator[](uint32_t index)
         {
             ALIMER_ASSERT_MSG(index >= 0 && index < N, "Index out of bounds. (index %u, size %u)", index, N);
-            return data_[index];
+            return _data[index];
         }
 
         inline constexpr T const& at(size_t i) const
         {
             ALIMER_ASSERT_MSG(index >= 0 && index < N, "Index out of bounds. (%u, size %u)", index, N);
-            return data_[index];
+            return _data[index];
         }
 
         inline constexpr T& at(uint32_t index)
         {
             ALIMER_ASSERT_MSG(index >= 0 && index < N, "Index out of bounds. (index %u, size %u)", index, N);
-            return data_[index];
+            return _data[index];
         }
 
-        operator ArrayView<T>() { return ArrayView<T>(data_, N); }
-        operator ArrayView<const T>() const { return ArrayView<const T>(data_, N); }
+        operator ArrayView<T>() { return ArrayView<T>(_data, N); }
+        operator ArrayView<const T>() const { return ArrayView<const T>(_data, N); }
 
-        inline constexpr T& front() { return data_[0]; }
-        inline constexpr const T& front() const { return data_[0]; }
-        inline constexpr T& back() { return data_[N - 1]; }
-        inline constexpr const T& back() const { return data_[N - 1]; }
+        inline constexpr T& front() { return _data[0]; }
+        inline constexpr const T& front() const { return _data[0]; }
+        inline constexpr T& back() { return _data[N - 1]; }
+        inline constexpr const T& back() const { return _data[N - 1]; }
 
-        inline constexpr Iterator begin() noexcept { return &data_[0]; }
-        inline constexpr ConstIterator begin() const noexcept { return &data_[0]; }
-        inline constexpr ConstIterator cbegin() const noexcept { return &data_[0]; }
+        inline constexpr Iterator begin() noexcept { return &_data[0]; }
+        inline constexpr ConstIterator begin() const noexcept { return &_data[0]; }
+        inline constexpr ConstIterator cbegin() const noexcept { return &_data[0]; }
 
-        inline constexpr Iterator end() noexcept { return &data_[N]; }
-        inline constexpr ConstIterator end() const noexcept { return &data_[N]; }
-        inline constexpr ConstIterator cend() const noexcept { return &data_[N]; }
+        inline constexpr Iterator end() noexcept { return &_data[N]; }
+        inline constexpr ConstIterator end() const noexcept { return &_data[N]; }
+        inline constexpr ConstIterator cend() const noexcept { return &_data[N]; }
 
         inline constexpr bool empty() const noexcept { return (N == 0); }
         inline constexpr uint32_t size() const noexcept { return N; }
         inline constexpr uint32_t max_size() const noexcept { return N; }
 
-        inline constexpr T* data() noexcept { return &data_[0]; }
-        inline constexpr const T* data() const noexcept { return &data_[0]; }
+        inline constexpr T* data() noexcept { return &_data[0]; }
+        inline constexpr const T* data() const noexcept { return &_data[0]; }
 
-        ValueType data_[N ? N : 1];
+    private:
+        ValueType _data[N ? N : 1];
     };
 }

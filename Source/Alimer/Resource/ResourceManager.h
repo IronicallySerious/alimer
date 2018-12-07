@@ -22,12 +22,14 @@
 
 #pragma once
 
-#include "../Base/Vector.h"
+#include "../Base/String.h"
+#include "../Base/StringHash.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceLoader.h"
 #include <mutex>
 #include <atomic>
 #include <map>
+#include <utility>
 
 namespace Alimer
 {
@@ -60,11 +62,12 @@ namespace Alimer
 
         Vector<uint8_t> ReadBytes(const String& assetName, size_t count = 0);
 
-        SharedPtr<Object> LoadObject(StringHash type, const String& assetName);
+        SharedPtr<Resource> LoadResource(StringHash type, const String& assetName);
 
 		template <class T> SharedPtr<T> Load(const String& assetName)
 		{
-			return StaticCast<T>(LoadObject(T::GetTypeStatic(), assetName));
+            static_assert(std::is_base_of<Resource, T>(), "T is not a resource thus cannot load");
+			return StaticCast<T>(LoadResource(T::GetTypeStatic(), assetName));
 		}
 
         /// Remove unsupported constructs from the resource name to prevent ambiguity, and normalize absolute filename to resource path relative if possible.
@@ -89,10 +92,11 @@ namespace Alimer
         mutable std::mutex _resourceMutex;
 
         /// Resource load directories.
-        std::vector<String> _resourceDirs;
+        Vector<String> _resourceDirs;
 
         std::unordered_map<StringHash, UniquePtr<ResourceLoader>> _loaders;
-		std::map<String, SharedPtr<Resource>> _resources;
+        using ResourceKey = std::pair<StringHash, StringHash>;
+		std::map<ResourceKey, SharedPtr<Resource>> _resources;
 
         /// Search priority flag.
         bool _searchPackagesFirst{ true };

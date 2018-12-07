@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "AlimerConfig.h"
 #include "../Base/String.h"
 #include "../Math/Math.h"
 #include "../Math/MathUtil.h"
@@ -31,7 +32,7 @@
 #pragma warning(disable : 4201 4203 4244 4702)
 #endif
 
-#if ALIMER_SIMD
+#ifdef ALIMER_SIMD
 #   ifdef _MSC_VER
 #       pragma warning(push)
 #       pragma warning(disable : 4987)

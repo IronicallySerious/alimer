@@ -170,7 +170,7 @@ namespace Alimer
         */
 
         // Call OnRenderFrame for custom rendering frame logic.
-        OnRenderFrame(nullptr, frameTime, elapsedTime);
+        OnRenderFrame(frameTime, elapsedTime);
 
         // Render scene to default command buffer.
         /*if (_sceneRenderPipeline)
@@ -186,9 +186,8 @@ namespace Alimer
         _graphics->Present();
     }
 
-    void Application::OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime)
+    void Application::OnRenderFrame(double frameTime, double elapsedTime)
     {
-        ALIMER_UNUSED(context);
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
     }

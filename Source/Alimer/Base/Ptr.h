@@ -46,9 +46,9 @@ namespace Alimer
             weakRefs = -1;
         }
 
-        int refs{ 0 };
+        int refs{};
         /// Weak reference count.
-        int weakRefs{ 0 };
+        int weakRefs{};
     };
 
     /// Base class for intrusively reference counted objects that can be pointed to with SharedPtr and WeakPtr. These are not copy-constructible and not assignable.
@@ -80,7 +80,7 @@ namespace Alimer
 
     private:
         /// Reference count structure, allocated on demand.
-        RefCount * _refCount;
+        RefCount* _refCount;
     };
 
     /// Shared pointer template class with intrusive reference counting.

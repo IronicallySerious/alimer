@@ -116,7 +116,7 @@ namespace Alimer
         void RenderFrame(double frameTime, double elapsedTime);
 
         /// Called during rendering single frame.
-        virtual void OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime);
+        virtual void OnRenderFrame(double frameTime, double elapsedTime);
 
         std::vector<String> _args;
         std::atomic<bool> _running;

@@ -51,9 +51,18 @@
 // Alimer build configuration
 #cmakedefine ALIMER_LOGGING
 #cmakedefine ALIMER_PROFILING
+#cmakedefine ALIMER_EXCEPTIONS
+#cmakedefine ALIMER_SIMD
 #cmakedefine ALIMER_THREADING
+#cmakedefine ALIMER_NETWORK
 
+// Graphics backends.
 #cmakedefine ALIMER_D3D11
 #cmakedefine ALIMER_D3D12
 #cmakedefine ALIMER_VULKAN
 #cmakedefine ALIMER_OPENGL
+
+// Design settings
+#cmakedefine ALIMER_BUNDLE
+#cmakedefine ALIMER_TOOLS
+#cmakedefine ALIMER_HOT_LOADING

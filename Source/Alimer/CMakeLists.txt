@@ -145,6 +145,10 @@ if (ALIMER_CSHARP)
     define_engine_source_files(CSharp)
 endif ()
 
+if (MSVC)
+    list (APPEND SOURCE_FILES ${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis)
+endif ()
+
 # Group source code in VS solution
 group_sources()
 
