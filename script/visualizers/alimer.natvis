@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+    <!-- Alimer::Array<> -->
+    <Type Name="Alimer::Array&lt;*,*&gt;">
+        <DisplayString Condition="$T2 == 0">Empty</DisplayString>
+        <DisplayString Condition="$T2 != 0">size = {$T2}</DisplayString>
+        <Expand>
+            <ArrayItems>
+                <Size>($T2)</Size>
+                <ValuePointer>($T1*)_data</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+    <!-- Alimer::ArrayView<> -->
+    <Type Name="Alimer::ArrayView&lt;*&gt;">
+        <DisplayString Condition="(_end - _begin) == 0">Empty</DisplayString>
+        <DisplayString Condition="(_end - _begin) != 0">size = {_end - _begin}</DisplayString>
+        <Expand>
+            <Item Name="[size]" ExcludeView="simple">(_end - _begin)</Item>
+            <ArrayItems>
+                <Size>(_end - _begin)</Size>
+                <ValuePointer>($T1*)_begin</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+    <!-- Alimer::PODVector<> -->
+    <Type Name="Alimer::PODVector&lt;*&gt;">
+        <DisplayString Condition="_size == 0">Empty</DisplayString>
+        <DisplayString>{{ size={_size} [POD] }}</DisplayString>
+        <Expand>
+            <Item Name="[size]" ExcludeView="simple">_size</Item>
+            <Item Name="[capacity]" ExcludeView="simple">_capacity</Item>
+            <ArrayItems>
+                <Size>_size</Size>
+                <ValuePointer>($T1*)_buffer</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+    <!-- Alimer::Vector<> -->
+    <Type Name="Alimer::Vector&lt;*&gt;">
+        <DisplayString Condition="_size == 0">Empty</DisplayString>
+        <DisplayString>{{ size={_size} }}</DisplayString>
+        <Expand>
+            <Item Name="[size]" ExcludeView="simple">_size</Item>
+            <Item Name="[capacity]" ExcludeView="simple">_capacity</Item>
+            <ArrayItems>
+                <Size>_size</Size>
+                <ValuePointer>($T1*)_buffer</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+    <!-- Alimer::RandomAccessIterator<> -->
+    <!-- Alimer::RandomAccessConstIterator<> -->
+    <Type Name = "Alimer::RandomAccessIterator&lt;*&gt;">
+        <AlternativeType Name="Alimer::RandomAccessConstIterator&lt;*&gt;"/>
+        <SmartPointer Usage="Indexable">ptr_,na</SmartPointer>
+        <Expand>
+            <Item Name="[ptr]">ptr_</Item>
+        </Expand>
+    </Type>
+
+    <!-- Alimer::String -->
+    <Type Name="Alimer::String">
+        <DisplayString Condition="_length == 0">Empty</DisplayString>
+        <DisplayString Condition="_length != 0">{_buffer,nas8}</DisplayString>
+        <Expand>
+            <Item Name="[length]" ExcludeView="simple">_length</Item>
+            <Item Name="[capacity]" ExcludeView="simple">_capacity</Item>
+            <Item Name="[buffer]">_buffer</Item>
+        </Expand>
+    </Type>
+
+    <!-- Alimer::StringHash -->
+    <Type Name="Alimer::StringHash" Priority="Low">
+        <DisplayString>#{_value}</DisplayString>
+    </Type>
+
+    <!-- Alimer::SharedPtr<> -->
+    <Type Name = "Alimer::SharedPtr&lt;*&gt;">
+        <DisplayString>{ptr_}</DisplayString>
+        <Expand>
+            <Synthetic Condition="!ptr_" Name="[empty]"/>
+            <Item Condition="ptr_" Name="[strong]">ptr_->_refCount->refs</Item>
+            <Item Condition="ptr_" Name="[weak]">ptr_->_refCount->weakRefs</Item>
+            <Item Condition="ptr_" Name="[ptr]">ptr_</Item>
+        </Expand>
+    </Type>
+
+    <!-- Alimer::WeakPtr<> -->
+    <Type Name = "Alimer::WeakPtr&lt;*&gt;">
+        <DisplayString Condition="!_refCount">(empty)</DisplayString>
+        <DisplayString Condition="_refCount &amp;&amp; (_refCount->refs &lt; 0)">(expired)</DisplayString>
+        <DisplayString Condition="_refCount &amp;&amp; !(_refCount->refs &lt; 0)">{ptr_}</DisplayString>
+        <Expand>
+            <Synthetic Condition="!_refCount" Name="[empty]"/>
+            <Synthetic Condition="_refCount &amp;&amp; _refCount->refs &lt; 0" Name="[expired]"/>
+            <Item Condition="_refCount" Name="[weak]">_refCount->weakRefs</Item>
+            <Item Condition="_refCount" Name="[strong]">_refCount->refs</Item>
+            <Item Condition="_refCount &amp;&amp; !(_refCount->refs &lt; 0)" Name="[ptr]">ptr_</Item>
+        </Expand>
+    </Type>
+
+    <!-- Alimer::Resource -->
+    <Type Name = "Alimer::Resource">
+        <DisplayString>_name = {_name}</DisplayString>
+    </Type>
+
+</AutoVisualizer>
