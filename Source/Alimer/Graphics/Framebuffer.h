@@ -57,16 +57,16 @@ namespace Alimer
 
         bool Define(const FramebufferDescriptor* descriptor);
 
+        /// Get the number of color attachments.
         uint32_t GetColorAttachmentsCount() const { return _colorAttachments.Size(); }
 
-        /**
-        * Get an attached color texture. If no texture is attached will return nullptr.
-        */
+        /// Get an attached color texture or null if no texture is attached.
         const Texture* GetColorTexture(uint32_t index) const;
 
-        /**
-        * Get the attached depth-stencil texture, or nullptr if no texture is attached.
-        */
+        /// Get is framebuffer has depth stencil attachments
+        bool HasDepthStencilAttachment() const;
+
+        ///* Get the attached depth-stencil texture or null if no texture is attached.
         const Texture* GetDepthStencilTexture() const;
 
         /**

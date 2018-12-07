@@ -52,11 +52,11 @@ namespace Alimer
     class GpuBufferImpl;
 
 	/// Defines a Graphics Buffer class.
-	class ALIMER_API GpuBuffer final : public GraphicsResource
+	class ALIMER_API GpuBuffer : public GraphicsResource
 	{
 	public:
         /// Constructor.
-        GpuBuffer();
+        GpuBuffer(Graphics* graphics);
 
         /// Destructor.
         ~GpuBuffer();
@@ -78,18 +78,17 @@ namespace Alimer
         /// Get size in bytes of the buffer.
         uint64_t GetSize() const { return _size; }
 
-        /// Get single element size in bytes.
-		uint32_t GetStride() const { return _stride; }
-
         /// Return backend implementation, which holds the actual API-specific resources.
         GpuBufferImpl* GetImpl() const { return _impl; }
 
-	private:
+    protected:
         bool Create(const BufferDescriptor* descriptor, const void* initialData);
 
-        GpuBufferImpl* _impl;
         BufferUsage _usage = BufferUsage::None;
-        uint64_t _stride = 0;
+        uint32_t _stride = 0;
 		uint64_t _size = 0;
+
+    private:
+        GpuBufferImpl* _impl;
 	};
 }

@@ -39,11 +39,20 @@ namespace Alimer
     const D3D12_HEAP_PROPERTIES* GetUploadHeapProps();
     const D3D12_HEAP_PROPERTIES* GetReadbackHeapProps();
 
+    struct UploadContext
+    {
+        ID3D12GraphicsCommandList* commandList;
+        void* CPUAddress = nullptr;
+        uint64_t resourceOffset = 0;
+        ID3D12Resource* resource = nullptr;
+        void* submission = nullptr;
+    };
+
+
     /// D3D12 Low-level 3D graphics API class.
     class D3D12Graphics final : public GraphicsImpl
     {
     public:
-        
         /// Is backend supported?
         static bool IsSupported();
 
@@ -61,6 +70,9 @@ namespace Alimer
         D3D12CommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE type);
         void FreeContext(D3D12CommandContext* context);
         CommandContext* AllocateContext() override;
+
+        UploadContext ResourceUploadBegin(uint64_t size);
+        void ResourceUploadEnd(UploadContext& context);
 
         Framebuffer* GetSwapchainFramebuffer() const override;
         FramebufferImpl* CreateFramebuffer(const Vector<FramebufferAttachment>& colorAttachments) override;
@@ -87,6 +99,7 @@ namespace Alimer
         void EndFrameUpload();
         void FlushUpload();
         void ClearFinishedUploads(uint64_t flushCount);
+        
 
         Microsoft::WRL::ComPtr<IDXGIFactory4>   _factory;
         Microsoft::WRL::ComPtr<IDXGIAdapter1>   _adapter;
@@ -125,6 +138,7 @@ namespace Alimer
                 padding = 0;
             }
         };
+        UploadSubmission* AllocUploadSubmission(uint64_t size);
 
         static constexpr uint64_t UploadBufferSize = 256 * 1024 * 1024;
         static constexpr uint64_t MaxUploadSubmissions = 16;

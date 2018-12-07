@@ -69,6 +69,18 @@ namespace Alimer
         }
     }
 
+    bool Shader::BeginLoad(Stream& source)
+    {
+        auto bytecode = source.ReadBytes();
+        ALIMER_UNUSED(bytecode);
+        return false;
+    }
+
+    bool Shader::EndLoad()
+    {
+        return true;
+    }
+
     bool Shader::Define(ShaderStage stage, const String& shaderSource, const String& entryPoint)
     {
         AgpuShaderModuleDescriptor descriptor = {};
@@ -123,36 +135,6 @@ namespace Alimer
         return false;
     }
 
-    class ShaderLoader final : public ResourceLoader
-    {
-    public:
-        StringHash GetType() const override;
-
-        bool BeginLoad(Stream& source) override;
-        Object* EndLoad() override;
-
-    private:
-        Vector<uint8_t> _bytecode;
-    };
-
-    StringHash ShaderLoader::GetType() const
-    {
-        return Shader::GetTypeStatic();
-    }
-
-    bool ShaderLoader::BeginLoad(Stream& source)
-    {
-        _bytecode = source.ReadBytes();
-        return true;
-    }
-
-    Object* ShaderLoader::EndLoad()
-    {
-        Shader* shader = new Shader();
-        shader->Define(ShaderStage::Vertex, _bytecode);
-        return shader;
-    }
-
     void ShaderModule::RegisterObject()
     {
         RegisterFactory<ShaderModule>();
@@ -164,11 +146,7 @@ namespace Alimer
     void Shader::RegisterObject()
     {
         RegisterFactory<Shader>();
-
-        // Register loader.
-        GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());
     }
-
 
     const char* EnumToString(ShaderStage stage)
     {

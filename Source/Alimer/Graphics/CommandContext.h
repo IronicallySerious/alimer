@@ -23,7 +23,8 @@
 #pragma once
 
 #include "../Graphics/Types.h"
-#include "../Graphics/GpuBuffer.h"
+#include "../Graphics/VertexBuffer.h"
+#include "../Graphics/IndexBuffer.h"
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/Pipeline.h"
@@ -83,12 +84,14 @@ namespace Alimer
 
         void SetVertexBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t index);
         void SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets);
-        void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset);
+        void SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex = 0);
         //virtual void SetViewport(const rect& viewport) = 0;
         //virtual void SetScissor(const irect& scissor) = 0;
 
-        void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation);
-        void DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation);
+        void SetPrimitiveTopology(PrimitiveTopology topology);
+
+        void Draw(uint32_t vertexCount, uint32_t firstVertex);
+        void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
         void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation);
         void DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation);
@@ -107,11 +110,13 @@ namespace Alimer
         virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
         virtual void EndRenderPassImpl() = 0;
 
-        /*virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) = 0;
-        virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) = 0;
-        virtual void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) = 0;
+        //virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) = 0;
+        //virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) = 0;
+        virtual void SetIndexBufferImpl(IndexBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
-        virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) = 0;
+        virtual void SetPrimitiveTopologyImpl(PrimitiveTopology topology) = 0;
+        virtual void DrawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
+        /*
         virtual void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) = 0;
         virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) = 0;
         virtual void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;

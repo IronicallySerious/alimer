@@ -63,11 +63,11 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            BufferDescriptor vboBufferDesc = {};
-            vboBufferDesc.usage = BufferUsage::Vertex;
-            vboBufferDesc.size = sizeof(triangleVertices);
-            vboBufferDesc.stride = sizeof(VertexColor);
-            _vertexBuffer.Define(&vboBufferDesc, triangleVertices);
+            PODVector<VertexElement> vertexElement;
+            vertexElement.Push(VertexElement(VertexFormat::Float3, VertexElementSemantic::Position));
+            vertexElement.Push(VertexElement(VertexFormat::Float4, VertexElementSemantic::Color0));
+
+            _vertexBuffer.Define(ResourceUsage::Immutable, 3, vertexElement, false, triangleVertices);
 
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -77,33 +77,32 @@ namespace Alimer
 
             // Define pipeline now.
             RenderPipelineDescriptor renderPipelineDesc = {};
+            */
 
             // Shaders
-            _shader = new Shader();
+            _shader = resources.Load<Shader>("shaders/color");
+            /*_shader = new Shader();
             _shader->Define(ShaderStage::Vertex, resources.ReadBytes("shaders/color.vert.spv"));
             _shader->Define(ShaderStage::Fragment, resources.ReadBytes("shaders/color.frag.spv"));
             _shader->Finalize();*/
         }
 
-        void Render(SharedPtr<CommandContext> context)
+        void Render()
         {
             CommandContext& gfxContext = CommandContext::Begin("Scene Render");
             Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
             gfxContext.BeginDefaultRenderPass(clearColor);
+            gfxContext.Draw(3, 0);
             gfxContext.EndRenderPass();
             gfxContext.Finish();
-            //agpuCmdSetShader(_shader->GetHandle());
-            //agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
-            //agpuCmdDraw(3, 0);
-            //context->SetPipeline(_pipeline);
-            //context->SetVertexBuffer(_vertexBuffer.Get(), 0, 0);
-            //context->Draw(PrimitiveTopology::Triangles, 3, 0);
         }
 
     private:
-        GpuBuffer _vertexBuffer;
-        GpuBuffer _perCameraUboBuffer;
+        VertexBuffer _vertexBuffer;
+        //GpuBuffer _perCameraUboBuffer;
 
+        SharedPtr<ShaderModule> _vertexShader;
+        SharedPtr<ShaderModule> _fragmentShader;
         SharedPtr<Shader> _shader;
         PerCameraCBuffer _camera{};
     };
@@ -162,7 +161,7 @@ namespace Alimer
             _pipeline.Define(&renderPipelineDesc);*/
         }
 
-        void Render(CommandContext*)
+        void Render()
         {
             //agpuCmdSetShader(_shader->GetHandle());
             //agpuCmdSetVertexBuffer(0, _vertexBuffer.GetHandle(), 0, AGPU_VERTEX_INPUT_RATE_VERTEX);
@@ -178,8 +177,8 @@ namespace Alimer
         }
 
     private:
-        GpuBuffer _vertexBuffer;
-        GpuBuffer _indexBuffer;
+        //GpuBuffer _vertexBuffer;
+        //GpuBuffer _indexBuffer;
         //SharedPtr<GpuBuffer> _perCameraUboBuffer;
         // PerCameraCBuffer _camera;
 
@@ -191,7 +190,7 @@ namespace Alimer
     class CubeExample
     {
     public:
-        void Initialize(GraphicsDevice* graphics, float aspectRatio)
+        void Initialize(float aspectRatio)
         {
             _mesh = Mesh::CreateCube(graphics);
 
@@ -217,7 +216,7 @@ namespace Alimer
             _program = graphics->CreateShaderProgram(vertexShader, fragmentShader);
         }
 
-        void Render(CommandBuffer* context, double deltaTime)
+        void Render(double deltaTime)
         {
             float time = static_cast<float>(deltaTime);
             //_perDrawData.worldMatrix = Matrix4x4::CreateRotationX(time) * Matrix4x4::CreateRotationY(time * 2) * Matrix4x4::CreateRotationZ(time * .7f);
@@ -245,7 +244,7 @@ namespace Alimer
     class TexturedCubeExample
     {
     public:
-        void Initialize(Graphics* graphics, float aspectRatio)
+        void Initialize(float aspectRatio)
         {
             // A box has six faces, each one pointing in a different direction.
             const int FaceCount = 6;
@@ -343,7 +342,7 @@ namespace Alimer
             _texture = graphics->CreateTexture(&textureDesc, &initial);
         }
 
-        void Render(CommandContexzt* context)
+        void Render()
         {
             context->SetShader(_shader.Get());
             context->SetVertexBuffer(0, _vertexBuffer.Get());
@@ -372,7 +371,7 @@ namespace Alimer
 
     private:
         void Initialize() override;
-        void OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime) override;
+        void OnRenderFrame(double frameTime, double elapsedTime) override;
 
     private:
         TriangleExample _triangleExample;
@@ -403,12 +402,12 @@ namespace Alimer
         //triangleEntity->AddComponent<RenderableComponent>();
     }
 
-    void RuntimeApplication::OnRenderFrame(SharedPtr<CommandContext> context, double frameTime, double elapsedTime)
+    void RuntimeApplication::OnRenderFrame(double frameTime, double elapsedTime)
     {
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        _triangleExample.Render(context);
+        _triangleExample.Render();
         //_quadExample.Render(context);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);

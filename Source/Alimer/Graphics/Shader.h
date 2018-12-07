@@ -97,6 +97,9 @@ namespace Alimer
         }
 
     private:
+        bool BeginLoad(Stream& source) override;
+        bool EndLoad() override;
+
         /// Register object factory.
         static void RegisterObject();
 

@@ -21,23 +21,33 @@
 //
 
 #pragma once
-#include "UI/UI.hpp"
+
+#include "../Graphics/GpuBuffer.h"
 
 namespace Alimer
 {
-    class Editor final : public Application
-    {
-        ALIMER_OBJECT(Editor, Application);
+	/// Defines a IndexBuffer class.
+	class ALIMER_API IndexBuffer final : public GpuBuffer
+	{
+	public:
+        /// Constructor.
+        IndexBuffer();
 
-    public:
-        explicit Editor();
-        ~Editor() override;
+        bool Define(ResourceUsage usage, uint32_t indexCount, IndexType indexType, const void* data = nullptr);
 
-    private:
-        void Initialize() override;
-        void OnRenderFrame(double frameTime, double elapsedTime) override;
+        /// Return number of indices.
+        uint32_t GetIndexCount() const { return _indexCount; }
 
-    private:
-        SharedPtr<UI> _ui;
-    };
+        /// Return index type.
+        IndexType GetIndexType() const { return _indexType; }
+
+        /// Return index size in bytes.
+        uint32_t GetIndexSize() const { return _stride; }
+
+	private:
+        /// Number of indices.
+        uint32_t _indexCount = 0;
+        /// Index size.
+        IndexType _indexType = IndexType::UInt16;
+	};
 }

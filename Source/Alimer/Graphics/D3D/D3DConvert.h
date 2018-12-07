@@ -99,6 +99,19 @@ namespace Alimer
             }
         }
 
+        static inline DXGI_FORMAT Convert(IndexType indexType)
+        {
+            switch (indexType)
+            {
+            case IndexType::UInt16:		return DXGI_FORMAT_R16_UINT;
+            case IndexType::UInt32:		return DXGI_FORMAT_R32_UINT;
+           
+            default:
+                ALIMER_UNREACHABLE();
+                return DXGI_FORMAT_UNKNOWN;
+            }
+        }
+
         static inline D3D11_INPUT_CLASSIFICATION Convert(VertexInputRate rate)
         {
             switch (rate)
@@ -110,20 +123,39 @@ namespace Alimer
             }
         }
 
-        static inline D3D_PRIMITIVE_TOPOLOGY Convert(PrimitiveTopology topology)
+        static inline D3D_PRIMITIVE_TOPOLOGY Convert(PrimitiveTopology topology, uint32_t patchCount)
         {
             switch (topology)
             {
             case PrimitiveTopology::PointList:
                 return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+
             case PrimitiveTopology::LineList:
                 return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+
             case PrimitiveTopology::LineStrip:
                 return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+
             case PrimitiveTopology::TriangleList:
                 return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
             case PrimitiveTopology::TriangleStrip:
                 return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+
+            case PrimitiveTopology::LineListWithAdjacency:
+                return D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+
+            case PrimitiveTopology::LineStripWithAdjacency:
+                return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
+
+            case PrimitiveTopology::TriangleListWithAdjacency:
+                return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+
+            case PrimitiveTopology::TriangleStripWithAdjacency:
+                return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
+
+            case PrimitiveTopology::PatchList:
+                return (D3D_PRIMITIVE_TOPOLOGY)(uint32_t(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST) + patchCount);
 
             default:
                 return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;

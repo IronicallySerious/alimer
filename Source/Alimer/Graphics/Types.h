@@ -100,19 +100,18 @@ namespace Alimer
     /// Primitive topology.
     enum class PrimitiveTopology : uint32_t
     {
-        PointList = AGPU_PRIMITIVE_TOPOLOGY_POINT_LIST,
-        LineList = AGPU_PRIMITIVE_TOPOLOGY_LINE_LIST,
-        LineStrip = AGPU_PRIMITIVE_TOPOLOGY_LINE_STRIP,
-        TriangleList = AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        TriangleStrip = AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
-        LineListWithAdjacency = AGPU_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY,
-        LineStripWithAdjacency = AGPU_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY,
-        TriangleListWithAdjacency = AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY,
-        TriangleStripWithAdjacency = AGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY,
-        PatchList = AGPU_PRIMITIVE_TOPOLOGY_PATCH_LIST,
-        Count = AGPU_PRIMITIVE_TOPOLOGY_COUNT,
+        PointList = 0,
+        LineList = 1,
+        LineStrip = 2,
+        TriangleList = 3,
+        TriangleStrip = 4,
+        LineListWithAdjacency = 5,
+        LineStripWithAdjacency = 6,
+        TriangleListWithAdjacency = 7,
+        TriangleStripWithAdjacency = 8,
+        PatchList = 9,
+        Count = 10,
     };
-
     
     enum class VertexFormat : uint32_t
     {
@@ -138,6 +137,13 @@ namespace Alimer
         Vertex = AGPU_VERTEX_INPUT_RATE_VERTEX,
         Instance = AGPU_VERTEX_INPUT_RATE_INSTANCE
     };
+
+    enum class IndexType : uint32_t
+    {
+        UInt16 = 0,
+        UInt32 = 1
+    };
+
 
     enum class ParamDataType
     {

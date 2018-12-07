@@ -40,6 +40,7 @@ namespace Alimer
 		~D3D12Framebuffer();
 
         const D3D12_CPU_DESCRIPTOR_HANDLE& GetRTV(uint32_t index) const { return _rtvHandle.GetCpuHandle(index); }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetDSV() const { return _dsvHandle.GetCpuHandle(0); }
 
 	private:
         D3D12Graphics* _graphics;

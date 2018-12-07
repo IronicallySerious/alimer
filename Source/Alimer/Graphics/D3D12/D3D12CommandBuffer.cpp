@@ -25,8 +25,15 @@
 #include "D3D12CommandListManager.h"
 #include "D3D12Texture.h"
 #include "D3D12Framebuffer.h"
+#include "D3D12GpuBuffer.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Debug/Log.h"
+
+#define VALID_COMPUTE_QUEUE_RESOURCE_STATES \
+	( D3D12_RESOURCE_STATE_UNORDERED_ACCESS \
+	| D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE \
+	| D3D12_RESOURCE_STATE_COPY_DEST \
+	| D3D12_RESOURCE_STATE_COPY_SOURCE )
 
 namespace Alimer
 {
@@ -36,6 +43,7 @@ namespace Alimer
         , _commandList(nullptr)
         , _currentAllocator(nullptr)
         , _type(type)
+        , _graphicsState(graphics)
     {
     }
 
@@ -54,10 +62,11 @@ namespace Alimer
         _currentAllocator = _manager->GetQueue(_type).RequestAllocator();
         _commandList->Reset(_currentAllocator, nullptr);
 
+        /* Reset cache states.*/
+        _graphicsState.Reset();
         _numBarriersToFlush = _boundRTVCount = 0;
         _currentFramebuffer = nullptr;
         _currentD3DPipeline = nullptr;
-        _currentTopology = PrimitiveTopology::Count;
     }
 
     uint32_t D3D12CommandContext::Finish(bool waitForCompletion, bool releaseContext)
@@ -139,7 +148,9 @@ namespace Alimer
         }
 
         if (flushImmediate || _numBarriersToFlush == 16)
+        {
             FlushResourceBarriers();
+        }
     }
 
     void D3D12CommandContext::BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
@@ -209,15 +220,16 @@ namespace Alimer
             _commandList->ClearRenderTargetView(_currentFramebuffer->GetRTV(i), clearColor, 0, nullptr);
         }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = _currentFramebuffer->GetRTV(0);
-
-        /*if (framebuffer->d3d12DSV.ptr)
+        // Get first rtv handle.
+        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = _currentFramebuffer->GetRTV(0);
+        if (framebuffer->HasDepthStencilAttachment())
         {
-            _commandList->OMSetRenderTargets(_boundRTVCount, &cpuHandle, FALSE, &framebuffer->d3d12DSV);
+            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = _currentFramebuffer->GetDSV();
+            _commandList->OMSetRenderTargets(_boundRTVCount, &rtvHandle, FALSE, &dsvHandle);
         }
-        else*/
+        else
         {
-            _commandList->OMSetRenderTargets(_boundRTVCount, &cpuHandle, FALSE, nullptr);
+            _commandList->OMSetRenderTargets(_boundRTVCount, &rtvHandle, FALSE, nullptr);
         }
 
         // Set viewport and scissor to framebuffer size.
@@ -237,6 +249,78 @@ namespace Alimer
         {
             TransitionResource(_boundRTVResources[i], D3D12_RESOURCE_STATE_COMMON, true);
         }
+    }
+
+    void D3D12CommandContext::SetIndexBufferImpl(IndexBuffer* buffer, uint32_t offset, IndexType indexType)
+    {
+        D3D12Buffer* d3d12Buffer = static_cast<D3D12Buffer*>(buffer->GetImpl());
+
+        D3D12_INDEX_BUFFER_VIEW bufferView;
+        bufferView.BufferLocation = d3d12Buffer->GetGpuVirtualAddress() + offset;
+        bufferView.SizeInBytes = static_cast<UINT>(buffer->GetSize() - offset);
+        bufferView.Format = d3d::Convert(indexType);
+        _commandList->IASetIndexBuffer(&bufferView);
+    }
+
+    void D3D12CommandContext::SetPrimitiveTopologyImpl(PrimitiveTopology topology)
+    {
+        _graphicsState.SetPrimitiveTopology(topology);
+    }
+
+    void D3D12CommandContext::DrawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+        FlushGraphicsState();
+        _commandList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    void D3D12CommandContext::FlushGraphicsState()
+    {
+        uint32_t active_vbos = 1;
+
+        // We've invalidated pipeline state, update the VkPipeline.
+        if (_graphicsState.IsDirty())
+        {
+            /*ID3D12PipelineState* oldPipelineState = _currentPipelineState;
+            Hasher hasher;
+
+            _currentPipelineState = _currentShader->d3d12PipelineState;
+            if (oldPipelineState != _currentPipelineState)
+            {
+                if (_currentShader->isCompute)
+                {
+                    _commandList->SetComputeRootSignature(_currentShader->d3d12RootSignature);
+                }
+                else
+                {
+                    _commandList->SetGraphicsRootSignature(_currentShader->d3d12RootSignature);
+                }
+
+                _commandList->SetPipelineState(_currentPipelineState);
+            }*/
+
+            // Set primitive topology 
+            D3D_PRIMITIVE_TOPOLOGY d3dPrimitiveTopology = d3d::Convert(_graphicsState.GetPrimitiveTopology(), 1);
+            _commandList->IASetPrimitiveTopology(d3dPrimitiveTopology);
+
+            // Reset graphics state dirty bit.
+            _graphicsState.ClearDirty();
+        }
+
+
+        uint32_t update_vbo_mask = _dirtyVbos & active_vbos;
+        /*ForEachBitRange(update_vbo_mask, [&](uint32_t binding, uint32_t count)
+        {
+#ifdef ALIMER_DEV
+            for (uint32_t i = binding; i < binding + count; i++)
+            {
+                ALIMER_ASSERT(_vbo.buffers[i] != nullptr);
+            }
+#endif
+
+            _commandList->IASetVertexBuffers(binding, count, _d3dVbViews);
+        });*/
+
+        _dirtyVbos &= ~update_vbo_mask;
     }
 
 #if TODO_D3D12
@@ -329,17 +413,6 @@ namespace Alimer
         _dirtyVbos &= ~updateVboMask;
 
         return true;
-    }
-
-    void D3D12CommandContext::SetIndexBufferCore(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
-    {
-        D3D12GpuBuffer* d3d12Buffer = static_cast<D3D12GpuBuffer*>(buffer);
-
-        D3D12_INDEX_BUFFER_VIEW bufferView;
-        bufferView.BufferLocation = d3d12Buffer->GetGpuVirtualAddress() + offset;
-        bufferView.SizeInBytes = d3d12Buffer->GetSize() - offset;
-        bufferView.Format = d3d::Convert(indexType);
-        _commandList->IASetIndexBuffer(&bufferView);
     }
 
     void D3D12CommandContext::FlushDescriptorSets()

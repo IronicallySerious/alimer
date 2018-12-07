@@ -23,16 +23,7 @@
 #pragma once
 
 #include "../CommandContext.h"
-#include "D3D12Prerequisites.h"
-#include <vector>
-#include <queue>
-#include <mutex>
-
-#define VALID_COMPUTE_QUEUE_RESOURCE_STATES \
-	( D3D12_RESOURCE_STATE_UNORDERED_ACCESS \
-	| D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE \
-	| D3D12_RESOURCE_STATE_COPY_DEST \
-	| D3D12_RESOURCE_STATE_COPY_SOURCE )
+#include "D3D12GraphicsState.h"
 
 namespace Alimer
 {
@@ -67,6 +58,11 @@ namespace Alimer
 
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
+        void SetIndexBufferImpl(IndexBuffer* buffer, uint32_t offset, IndexType indexType) override;
+
+        void SetPrimitiveTopologyImpl(PrimitiveTopology topology) override;
+        void DrawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+        void FlushGraphicsState();
 
         D3D12Graphics*              _graphics;
 		D3D12CommandListManager*    _manager;
@@ -83,6 +79,7 @@ namespace Alimer
 
         D3D12Framebuffer*           _currentFramebuffer = nullptr;
 		ID3D12PipelineState*        _currentD3DPipeline = nullptr;
-		PrimitiveTopology           _currentTopology = PrimitiveTopology::Count;
+
+        D3D12GraphicsState          _graphicsState;
 	};
 }

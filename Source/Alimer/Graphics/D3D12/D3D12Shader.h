@@ -23,7 +23,7 @@
 #pragma once
 
 #include "Graphics/Shader.h"
-#include "D3D12Helpers.h"
+#include "D3D12Prerequisites.h"
 
 namespace Alimer
 {

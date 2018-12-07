@@ -22,34 +22,31 @@
 
 #pragma once
 
-#include "../PipelineState.h"
+#include "../Types.h"
 #include "D3D12DescriptorAllocator.h"
 
 namespace Alimer
 {
 	class D3D12Graphics;
-    class D3D12Shader;
 
-	/// D3D12 PipelineState implementation.
-	class D3D12PipelineState final : public PipelineState
+	class D3D12GraphicsState final 
 	{
 	public:
 		/// Constructor.
-		D3D12PipelineState(D3D12Graphics* graphics, const RenderPipelineDescriptor& descriptor);
+        D3D12GraphicsState(D3D12Graphics* graphics);
 
-		/// Destructor.
-		~D3D12PipelineState() override;
+        void Reset();
 
-        void Bind(ID3D12GraphicsCommandList* commandList);
+        void SetPrimitiveTopology(PrimitiveTopology primitiveTopology);
+        PrimitiveTopology GetPrimitiveTopology() const { return _primitiveTopology; }
 
-		ID3D12PipelineState* GetD3DPipelineState() const { return _pipelineState.Get(); }
-        ID3D12DescriptorHeap* GetCBVHeap() const { return _cbvHeap; }
+        bool IsDirty() const { return _dirty; }
+        void ClearDirty() { _dirty = false; }
+        void SetDirty() { _dirty = true; }
+
 	private:
-		ComPtr<ID3D12PipelineState> _pipelineState;
-        SharedPtr<D3D12Shader> _shader;
-
-        D3D12DescriptorHandle _cbvDescriptorHandle;
-        ID3D12DescriptorHeap* _cbvHeap = nullptr;
-        ID3D12DescriptorHeap* _samplerHeap = nullptr;
+        D3D12Graphics* _graphics;
+        PrimitiveTopology _primitiveTopology;
+        bool _dirty;
 	};
 }

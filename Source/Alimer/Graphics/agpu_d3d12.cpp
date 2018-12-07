@@ -116,37 +116,6 @@ namespace d3d12
     static constexpr uint64_t RenderLatency = 2;
     static constexpr uint64_t NumCmdAllocators = RenderLatency;
 
-    /* Upload */
-    struct UploadSubmission
-    {
-        ID3D12CommandAllocator* commandAllocator = nullptr;
-        ID3D12GraphicsCommandList1* commandList = nullptr;
-        uint64_t offset = 0;
-        uint64_t size = 0;
-        uint64_t fenceValue = 0;
-        uint64_t padding = 0;
-
-        void Reset()
-        {
-            offset = 0;
-            size = 0;
-            fenceValue = 0;
-            padding = 0;
-        }
-    };
-
-    struct UploadContext
-    {
-        ID3D12GraphicsCommandList* commandList;
-        void* CPUAddress = nullptr;
-        uint64_t resourceOffset = 0;
-        ID3D12Resource* resource = nullptr;
-        void* submission = nullptr;
-    };
-
-    static constexpr uint64_t UploadBufferSize = 256 * 1024 * 1024;
-    static constexpr uint64_t MaxUploadSubmissions = 16;
-
     DWORD           _dxgiFactoryFlags = 0;
     IDXGIFactory4*  _dxgiFactory = nullptr;
     BOOL            _dxgiAllowTearing = FALSE;
@@ -765,16 +734,6 @@ namespace d3d12
         void ShutdownHelpers();
         void EndFrameHelpers();
 
-        void InitializeUpload();
-        void ShutdownUpload();
-        void EndFrameUpload();
-        void FlushUpload();
-        void ClearFinishedUploads(uint64_t flushCount);
-
-        UploadSubmission* AllocUploadSubmission(uint64_t size);
-        UploadContext ResourceUploadBegin(uint64_t size);
-        void ResourceUploadEnd(UploadContext& context);
-
     private:
         IDXGIAdapter1*              _dxgiAdapter = nullptr;
         ID3D12Device*               _d3dDevice = nullptr;
@@ -801,22 +760,6 @@ namespace d3d12
         DescriptorHeap              _DSVDescriptorHeap;
         DescriptorHeap              _UAVDescriptorHeap;
         AgpuFramebuffer             _currentFramebuffer = nullptr;
-
-        /* Uploader */
-        SRWLOCK                     _uploadSubmissionLock = SRWLOCK_INIT;
-        SRWLOCK                     _uploadQueueLock = SRWLOCK_INIT;
-
-        uint64_t                    _uploadBufferStart = 0;
-        uint64_t                    _uploadBufferUsed = 0;
-        UploadSubmission            _uploadSubmissions[MaxUploadSubmissions];
-        uint64_t                    _uploadSubmissionStart = 0;
-        uint64_t                    _uploadSubmissionUsed = 0;
-
-        ID3D12CommandQueue*         _uploadCmdQueue = nullptr;
-        AgpuFence*                  _uploadFence = nullptr;
-        uint64_t                    _uploadFenceValue = 0;
-        ID3D12Resource*             _uploadBuffer = nullptr;
-        uint8_t*                    _uploadBufferCPUAddress = nullptr;
     };
 
     /* DescriptorHeap */
@@ -1328,7 +1271,6 @@ namespace d3d12
 
         // Initialize helpers and upload.
         InitializeHelpers();
-        InitializeUpload();
 
         WaitIdle();
         for (UINT n = 0; n < NumCmdAllocators; n++)
@@ -1374,269 +1316,6 @@ namespace d3d12
         _UAVDescriptorHeap.EndFrame();
     }
 
-    void AGpuRendererD3D12::InitializeUpload()
-    {
-        for (uint64_t i = 0; i < MaxUploadSubmissions; ++i)
-        {
-            UploadSubmission& submission = _uploadSubmissions[i];
-            DXCall(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&submission.commandAllocator)));
-            DXCall(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, submission.commandAllocator, nullptr, IID_PPV_ARGS(&submission.commandList)));
-            DXCall(submission.commandList->Close());
-
-            wchar_t name[25] = {};
-            swprintf_s(name, L"Upload Command List %u", i);
-            submission.commandList->SetName(name);
-        }
-
-        D3D12_COMMAND_QUEUE_DESC queueDesc = { };
-        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-        DXCall(_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&_uploadCmdQueue)));
-        _uploadCmdQueue->SetName(L"Upload Copy Queue");
-
-        _uploadFence = CreateFence(0);
-
-        D3D12_RESOURCE_DESC resourceDesc = { };
-        resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        resourceDesc.Width = UploadBufferSize;
-        resourceDesc.Height = 1;
-        resourceDesc.DepthOrArraySize = 1;
-        resourceDesc.MipLevels = 1;
-        resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-        resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-        resourceDesc.SampleDesc.Count = 1;
-        resourceDesc.SampleDesc.Quality = 0;
-        resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        resourceDesc.Alignment = 0;
-
-        DXCall(_d3dDevice->CreateCommittedResource(
-            agpuD3D12GetUploadHeapProps(),
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr, IID_PPV_ARGS(&_uploadBuffer))
-        );
-
-        D3D12_RANGE readRange = { };
-        DXCall(_uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&_uploadBufferCPUAddress)));
-
-        // TODO: Add Temporary buffer memory that swaps every frame
-        //resourceDesc.Width = uint32(TempBufferSize);
-    }
-
-    void AGpuRendererD3D12::ShutdownUpload()
-    {
-        //for (uint64_t i = 0; i < ArraySize_(TempFrameBuffers); ++i)
-        //    Release(TempFrameBuffers[i]);
-
-        //Release(UploadBuffer);
-        Release(_uploadCmdQueue);
-        DestroyFence(_uploadFence);
-        for (uint64_t i = 0; i < MaxUploadSubmissions; ++i)
-        {
-            Release(_uploadSubmissions[i].commandAllocator);
-            Release(_uploadSubmissions[i].commandList);
-        }
-
-        /*Release(convertCmdAllocator);
-        Release(convertCmdList);
-        Release(convertCmdQueue);
-        Release(convertPSO);
-        Release(convertArrayPSO);
-        Release(convertCubePSO);
-        Release(convertRootSignature);
-        convertFence.Shutdown();
-
-        Release(readbackCmdAllocator);
-        Release(readbackCmdList);
-        readbackFence.Shutdown();*/
-    }
-
-    void AGpuRendererD3D12::EndFrameUpload()
-    {
-        // If we can grab the lock, try to clear out any completed submissions
-        if (TryAcquireSRWLockExclusive(&_uploadSubmissionLock))
-        {
-            ClearFinishedUploads(0);
-
-            ReleaseSRWLockExclusive(&_uploadSubmissionLock);
-        }
-
-        {
-            AcquireSRWLockExclusive(&_uploadQueueLock);
-
-            // Make sure to sync on any pending uploads
-            ClearFinishedUploads(0);
-            _graphicsQueue->Wait(_uploadFence->Fence, _uploadFenceValue);
-
-            ReleaseSRWLockExclusive(&_uploadQueueLock);
-        }
-
-        //TempFrameUsed = 0;
-    }
-
-    void AGpuRendererD3D12::FlushUpload()
-    {
-        AcquireSRWLockExclusive(&_uploadSubmissionLock);
-
-        ClearFinishedUploads(uint64_t(-1));
-
-        ReleaseSRWLockExclusive(&_uploadSubmissionLock);
-    }
-
-    void AGpuRendererD3D12::ClearFinishedUploads(uint64_t flushCount)
-    {
-        const uint64_t start = _uploadSubmissionStart;
-        const uint64_t used = _uploadSubmissionUsed;
-        for (uint64_t i = 0; i < used; ++i)
-        {
-            const uint64_t idx = (start + i) % MaxUploadSubmissions;
-            UploadSubmission& submission = _uploadSubmissions[idx];
-            ALIMER_ASSERT(submission.size > 0);
-            ALIMER_ASSERT(_uploadBufferUsed >= submission.size);
-
-            // If the submission hasn't been sent to the GPU yet we can't wait for it
-            if (submission.fenceValue == uint64_t(-1))
-                return;
-
-            if (i < flushCount)
-            {
-                WaitFence(_uploadFence, submission.fenceValue);
-            }
-
-            if (IsFenceSignaled(_uploadFence, submission.fenceValue))
-            {
-                _uploadSubmissionStart = (_uploadSubmissionStart + 1) % MaxUploadSubmissions;
-                _uploadSubmissionUsed -= 1;
-                _uploadBufferStart = (_uploadBufferStart + submission.padding) % UploadBufferSize;
-                ALIMER_ASSERT(submission.offset == _uploadBufferStart);
-                ALIMER_ASSERT(_uploadBufferStart + submission.size <= UploadBufferSize);
-                _uploadBufferStart = (_uploadBufferStart + submission.size) % UploadBufferSize;
-                _uploadBufferUsed -= (submission.size + submission.padding);
-                submission.Reset();
-
-                if (_uploadBufferUsed == 0)
-                    _uploadBufferStart = 0;
-            }
-        }
-    }
-
-    UploadSubmission* AGpuRendererD3D12::AllocUploadSubmission(uint64_t size)
-    {
-        ALIMER_ASSERT(_uploadSubmissionUsed <= MaxUploadSubmissions);
-        if (_uploadSubmissionUsed == MaxUploadSubmissions)
-            return nullptr;
-
-        const uint64_t submissionIdx = (_uploadSubmissionStart + _uploadSubmissionUsed) % MaxUploadSubmissions;
-        ALIMER_ASSERT(_uploadSubmissions[submissionIdx].size == 0);
-
-        ALIMER_ASSERT(_uploadBufferUsed <= UploadBufferSize);
-        if (size > (UploadBufferSize - _uploadBufferUsed))
-            return nullptr;
-
-        const uint64_t start = _uploadBufferStart;
-        const uint64_t end = _uploadBufferStart + _uploadBufferUsed;
-        uint64_t allocOffset = uint64_t(-1);
-        uint64_t padding = 0;
-        if (end < UploadBufferSize)
-        {
-            const uint64_t endAmt = UploadBufferSize - end;
-            if (endAmt >= size)
-            {
-                allocOffset = end;
-            }
-            else if (start >= size)
-            {
-                // Wrap around to the beginning
-                allocOffset = 0;
-                _uploadBufferUsed += endAmt;
-                padding = endAmt;
-            }
-        }
-        else
-        {
-            const uint64_t wrappedEnd = end % UploadBufferSize;
-            if ((start - wrappedEnd) >= size)
-                allocOffset = wrappedEnd;
-        }
-
-        if (allocOffset == uint64_t(-1))
-            return nullptr;
-
-        _uploadSubmissionUsed += 1;
-        _uploadBufferUsed += size;
-
-        UploadSubmission* submission = &_uploadSubmissions[submissionIdx];
-        submission->offset = allocOffset;
-        submission->size = size;
-        submission->fenceValue = uint64_t(-1);
-        submission->padding = padding;
-
-        return submission;
-    }
-
-    UploadContext AGpuRendererD3D12::ResourceUploadBegin(uint64_t size)
-    {
-        ALIMER_ASSERT(_d3dDevice != nullptr);
-
-        size = AlignTo(size, 512);
-        ALIMER_ASSERT(size <= UploadBufferSize);
-        ALIMER_ASSERT(size > 0);
-
-        UploadSubmission* submission = nullptr;
-
-        {
-            AcquireSRWLockExclusive(&_uploadSubmissionLock);
-
-            ClearFinishedUploads(0);
-
-            submission = AllocUploadSubmission(size);
-            while (submission == nullptr)
-            {
-                ClearFinishedUploads(1);
-                submission = AllocUploadSubmission(size);
-            }
-
-            ReleaseSRWLockExclusive(&_uploadSubmissionLock);
-        }
-
-        DXCall(submission->commandAllocator->Reset());
-        DXCall(submission->commandList->Reset(submission->commandAllocator, nullptr));
-
-        UploadContext context;
-        context.commandList = submission->commandList;
-        context.resource = _uploadBuffer;
-        context.CPUAddress = _uploadBufferCPUAddress + submission->offset;
-        context.resourceOffset = submission->offset;
-        context.submission = submission;
-
-        return context;
-    }
-
-    void AGpuRendererD3D12::ResourceUploadEnd(UploadContext& context)
-    {
-        ALIMER_ASSERT(context.commandList != nullptr);
-        ALIMER_ASSERT(context.submission != nullptr);
-        UploadSubmission* submission = reinterpret_cast<UploadSubmission*>(context.submission);
-
-        {
-            AcquireSRWLockExclusive(&_uploadQueueLock);
-
-            // Finish off and execute the command list
-            DXCall(submission->commandList->Close());
-            ID3D12CommandList* cmdLists[1] = { submission->commandList };
-            _uploadCmdQueue->ExecuteCommandLists(1, cmdLists);
-
-            ++_uploadFenceValue;
-            SignalFence(_uploadFence, _uploadCmdQueue, _uploadFenceValue);
-            submission->fenceValue = _uploadFenceValue;
-
-            ReleaseSRWLockExclusive(&_uploadQueueLock);
-        }
-
-        context = UploadContext();
-    }
-
     void AGpuRendererD3D12::Shutdown()
     {
         WaitIdle();
@@ -1666,7 +1345,6 @@ namespace d3d12
         Release(_graphicsQueue);
 
         ShutdownHelpers();
-        ShutdownUpload();
 
         Release(_dxgiFactory);
         Release(_dxgiAdapter);
@@ -1724,7 +1402,7 @@ namespace d3d12
         s_pActiveCommandBuffer = nullptr;
 
         /* End frame for upload */
-        EndFrameUpload();
+        //EndFrameUpload();
 
         ID3D12CommandList* ppCommandLists[] = { _primaryCommandBuffer->GetCommandList() };
         _graphicsQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
@@ -2113,7 +1791,7 @@ namespace d3d12
         }
         else if (initialData)
         {
-            UploadContext uploadContext = ResourceUploadBegin(resourceDesc.Width);
+            /*UploadContext uploadContext = ResourceUploadBegin(resourceDesc.Width);
 
             memcpy(uploadContext.CPUAddress, initialData, size);
             if (dynamic)
@@ -2126,7 +1804,7 @@ namespace d3d12
                 uploadContext.resourceOffset,
                 size);
 
-            ResourceUploadEnd(uploadContext);
+            ResourceUploadEnd(uploadContext);*/
         }
 
         return buffer;

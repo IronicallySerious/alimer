@@ -20,69 +20,53 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/GpuBuffer.h"
+#include "../Graphics/IndexBuffer.h"
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Debug/Log.h"
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* graphics)
-        : GraphicsResource(graphics)
-        , _impl(nullptr)
+    IndexBuffer::IndexBuffer()
+        : GpuBuffer(Object::GetSubsystem<Graphics>())
     {
-
     }
 
-    GpuBuffer::~GpuBuffer()
-    {
-        Destroy();
-    }
 
-   
-    bool GpuBuffer::Define(const BufferDescriptor* descriptor, const void* initialData)
+    bool IndexBuffer::Define(ResourceUsage usage, uint32_t indexCount, IndexType indexType, const void* data)
     {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->usage == BufferUsage::None)
+        if (!indexCount)
         {
-            ALIMER_LOGCRITICAL("Invalid bufer usage");
-        }
-
-        Destroy();
-
-        _usage = descriptor->usage;
-        _stride = descriptor->stride;
-        _size = descriptor->size;
-
-        return Create(descriptor, initialData);
-    }
-
-    bool GpuBuffer::SetSubData(const void* pData)
-    {
-        return false;
-    }
-
-    bool GpuBuffer::SetSubData(uint32_t offset, uint32_t size, const void* pData)
-    {
-        if (offset + size > GetSize())
-        {
-            ALIMER_LOGERROR("Buffer subdata out of range");
+            ALIMER_LOGERROR("Can not define index buffer with no indices");
             return false;
         }
 
-        return false;
-    }
+        if (usage == ResourceUsage::Immutable && !data)
+        {
+            ALIMER_LOGERROR("Immutable index buffer must define initial data");
+            return false;
+        }
 
-    bool GpuBuffer::Create(const BufferDescriptor* descriptor, const void* initialData)
-    {
-        _impl = gGraphics().GetImpl()->CreateBuffer(descriptor, initialData, nullptr);
-        return _impl != nullptr;
-    }
+        if (indexType != IndexType::UInt16
+            && indexType != IndexType::UInt32)
+        {
+            ALIMER_LOGERROR("Index buffer invalid index type");
+            return false;
+        }
 
-    void GpuBuffer::Destroy()
-    {
-        SafeDelete(_impl);
-    }
+        Destroy();
 
+        // IndexBuffer attributes
+        _indexCount = indexCount;
+        _indexType = indexType;
+
+        _usage = BufferUsage::Index;;
+        _stride = indexType == IndexType::UInt32 ? 4 : 2;
+        _size = _stride * indexCount;
+
+        BufferDescriptor descriptor;
+        descriptor.usage = _usage;
+        descriptor.size = _size;
+        descriptor.stride = _stride;
+        return Create(&descriptor, data);
+    }
 }

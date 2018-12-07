@@ -31,7 +31,6 @@ namespace Alimer
     {
         _usageState = D3D12_RESOURCE_STATE_GENERIC_READ;
 
-
         const bool allowUAV = any(descriptor->usage & BufferUsage::Storage);
 
         const bool dynamic = any(descriptor->usage & BufferUsage::Dynamic);
@@ -120,7 +119,7 @@ namespace Alimer
         }
         else if (initialData)
         {
-            /*UploadContext uploadContext = ResourceUploadBegin(resourceDesc.Width);
+            UploadContext uploadContext = graphics->ResourceUploadBegin(resourceDesc.Width);
 
             memcpy(uploadContext.CPUAddress, initialData, size);
             if (dynamic)
@@ -133,7 +132,7 @@ namespace Alimer
                 uploadContext.resourceOffset,
                 size);
 
-            ResourceUploadEnd(uploadContext);*/
+            graphics->ResourceUploadEnd(uploadContext);
         }
     }
 }

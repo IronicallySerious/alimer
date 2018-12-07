@@ -20,24 +20,32 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-#include "UI/UI.hpp"
+#include "D3D12GraphicsState.h"
+//#include "D3D12Shader.h"
+#include "D3D12Graphics.h"
+#include "../D3D/D3DConvert.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
-    class Editor final : public Application
+    D3D12GraphicsState::D3D12GraphicsState(D3D12Graphics* graphics)
+        : _graphics(graphics)
     {
-        ALIMER_OBJECT(Editor, Application);
+        Reset();
+    }
 
-    public:
-        explicit Editor();
-        ~Editor() override;
+    void D3D12GraphicsState::Reset()
+    {
+        _primitiveTopology = PrimitiveTopology::TriangleList;
+        _dirty = true;
+    }
 
-    private:
-        void Initialize() override;
-        void OnRenderFrame(double frameTime, double elapsedTime) override;
-
-    private:
-        SharedPtr<UI> _ui;
-    };
+    void D3D12GraphicsState::SetPrimitiveTopology(PrimitiveTopology primitiveTopology)
+    {
+        if (_primitiveTopology != primitiveTopology)
+        {
+            _primitiveTopology = primitiveTopology;
+            _dirty = true;
+        }
+    }
 }

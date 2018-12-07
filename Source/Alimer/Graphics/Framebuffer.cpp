@@ -229,6 +229,11 @@ namespace Alimer
         return _colorAttachments[index].texture;
     }
 
+    bool Framebuffer::HasDepthStencilAttachment() const
+    {
+        return _depthStencilAttachment.texture != nullptr;
+    }
+
     const Texture* Framebuffer::GetDepthStencilTexture() const
     {
         return _depthStencilAttachment.texture;

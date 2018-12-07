@@ -619,6 +619,123 @@ namespace Alimer
         }
     }
 
+    D3D12Graphics::UploadSubmission* D3D12Graphics::AllocUploadSubmission(uint64_t size)
+    {
+        ALIMER_ASSERT(_uploadSubmissionUsed <= MaxUploadSubmissions);
+        if (_uploadSubmissionUsed == MaxUploadSubmissions)
+            return nullptr;
+
+        const uint64_t submissionIdx = (_uploadSubmissionStart + _uploadSubmissionUsed) % MaxUploadSubmissions;
+        ALIMER_ASSERT(_uploadSubmissions[submissionIdx].size == 0);
+
+        ALIMER_ASSERT(_uploadBufferUsed <= UploadBufferSize);
+        if (size > (UploadBufferSize - _uploadBufferUsed))
+            return nullptr;
+
+        const uint64_t start = _uploadBufferStart;
+        const uint64_t end = _uploadBufferStart + _uploadBufferUsed;
+        uint64_t allocOffset = uint64_t(-1);
+        uint64_t padding = 0;
+        if (end < UploadBufferSize)
+        {
+            const uint64_t endAmt = UploadBufferSize - end;
+            if (endAmt >= size)
+            {
+                allocOffset = end;
+            }
+            else if (start >= size)
+            {
+                // Wrap around to the beginning
+                allocOffset = 0;
+                _uploadBufferUsed += endAmt;
+                padding = endAmt;
+            }
+        }
+        else
+        {
+            const uint64_t wrappedEnd = end % UploadBufferSize;
+            if ((start - wrappedEnd) >= size)
+                allocOffset = wrappedEnd;
+        }
+
+        if (allocOffset == uint64_t(-1))
+            return nullptr;
+
+        _uploadSubmissionUsed += 1;
+        _uploadBufferUsed += size;
+
+        UploadSubmission* submission = &_uploadSubmissions[submissionIdx];
+        submission->offset = allocOffset;
+        submission->size = size;
+        submission->fenceValue = uint64_t(-1);
+        submission->padding = padding;
+
+        return submission;
+    }
+
+    UploadContext D3D12Graphics::ResourceUploadBegin(uint64_t size)
+    {
+        ALIMER_ASSERT(_d3dDevice != nullptr);
+
+        size = AlignTo(size, 512);
+        ALIMER_ASSERT(size <= UploadBufferSize);
+        ALIMER_ASSERT(size > 0);
+
+        UploadSubmission* submission = nullptr;
+
+        {
+            AcquireSRWLockExclusive(&_uploadSubmissionLock);
+
+            ClearFinishedUploads(0);
+
+            submission = AllocUploadSubmission(size);
+            while (submission == nullptr)
+            {
+                ClearFinishedUploads(1);
+                submission = AllocUploadSubmission(size);
+            }
+
+            ReleaseSRWLockExclusive(&_uploadSubmissionLock);
+        }
+
+        ThrowIfFailed(submission->commandAllocator->Reset());
+        ThrowIfFailed(submission->commandList->Reset(submission->commandAllocator, nullptr));
+
+        UploadContext context;
+        context.commandList = submission->commandList;
+        context.resource = _uploadBuffer;
+        context.CPUAddress = _uploadBufferCPUAddress + submission->offset;
+        context.resourceOffset = submission->offset;
+        context.submission = submission;
+
+        return context;
+
+    }
+
+    void D3D12Graphics::ResourceUploadEnd(UploadContext& context)
+    {
+        ALIMER_ASSERT(context.commandList != nullptr);
+        ALIMER_ASSERT(context.submission != nullptr);
+        UploadSubmission* submission = reinterpret_cast<UploadSubmission*>(context.submission);
+
+        {
+            AcquireSRWLockExclusive(&_uploadQueueLock);
+
+            // Finish off and execute the command list
+            ThrowIfFailed(submission->commandList->Close());
+            ID3D12CommandList* cmdLists[1] = { submission->commandList };
+            _uploadCmdQueue->ExecuteCommandLists(1, cmdLists);
+
+            ++_uploadFenceValue;
+            _uploadFence.Signal(_uploadCmdQueue, _uploadFenceValue);
+            submission->fenceValue = _uploadFenceValue;
+
+            ReleaseSRWLockExclusive(&_uploadQueueLock);
+        }
+
+        context = UploadContext();
+    }
+
     bool D3D12Graphics::WaitIdle()
     {
         _commandListManager->WaitIdle();

@@ -127,7 +127,7 @@ namespace Alimer
         //SetVertexBuffersImpl(firstBinding, count, buffers, offsets);
     }
 
-    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset)
+    void CommandContext::SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex)
     {
         ALIMER_ASSERT(buffer);
         if (!any(buffer->GetUsage() & BufferUsage::Index))
@@ -136,23 +136,30 @@ namespace Alimer
             return;
         }
 
-        //SetIndexBufferImpl(buffer, offset, buffer->GetStride());
+        uint32_t offset = startIndex * buffer->GetIndexSize();
+        SetIndexBufferImpl(buffer, offset, buffer->GetIndexType());
     }
 
-    void CommandContext::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
+    void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)
     {
-        ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
-        ALIMER_ASSERT(_insideRenderPass);
-        //ALIMER_ASSERT(!_isCompute);
+        SetPrimitiveTopologyImpl(topology);
+    }
+
+    void CommandContext::Draw(uint32_t vertexCount, uint32_t firstVertex)
+    {
+        DrawInstanced(vertexCount, 1, firstVertex, 0);
+    }
+
+    void CommandContext::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+#if defined(ALIMER_DEV)
+        //ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
+        ALIMER_ASSERT_MSG(_insideRenderPass, "Cannot draw outside render pass");
         ALIMER_ASSERT(vertexCount > 0);
-        //DrawImpl(topology, vertexCount, startVertexLocation);
-    }
+        ALIMER_ASSERT(instanceCount >= 1);
+#endif
 
-    void CommandContext::DrawInstanced(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation)
-    {
-        ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
-        ALIMER_ASSERT(_insideRenderPass);
-        //DrawInstancedImpl(topology, vertexCount, instanceCount, startVertexLocation, startInstanceLocation);
+        DrawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
