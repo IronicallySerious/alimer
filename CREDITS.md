@@ -15,6 +15,7 @@ Alimer uses the following open-source and third-party libraries:
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [SDL 2.0.9](https://www.libsdl.org/)
 - [imgui 1.66](https://github.com/ocornut/imgui)
+- [fmt 5.2.1](http://fmtlib.net)
 - [CLI11 1.6](https://github.com/CLIUtils/CLI11)
 
 Additional inspiration, research or code used:

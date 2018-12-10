@@ -20,6 +20,9 @@
 # THE SOFTWARE.
 #
 
+add_subdirectory(fmt)
+# add_subdirectory(spdlog)
+
 # SPIRV-Cross
 add_subdirectory(spirv-cross)
 
@@ -45,10 +48,10 @@ if (ALIMER_VULKAN)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glslang/OGLCompilersDLL)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/glslang/SPIRV)
 
-    alimer_external_target("third_party" glslang)
-    alimer_external_target("third_party" OGLCompiler)
-    alimer_external_target("third_party" OSDependent)
-    alimer_external_target("third_party" SPIRV)
+    alimer_external_target(glslang)
+    alimer_external_target(OGLCompiler)
+    alimer_external_target(OSDependent)
+    alimer_external_target(SPIRV)
     target_compile_options(glslang PUBLIC -DAMD_EXTENSIONS -DNV_EXTENSIONS )
 
     # volk
@@ -57,7 +60,7 @@ if (ALIMER_VULKAN)
         ${CMAKE_CURRENT_SOURCE_DIR}/volk/volk.c
     )
     add_library (volk STATIC ${VOLK_CROSS_SOURCES})
-    alimer_external_target("third_party" volk)
+    alimer_external_target(volk)
 
     if (ALIMER_WINDOWS)
         target_compile_definitions(volk PUBLIC -DVK_USE_PLATFORM_WIN32_KHR)
@@ -74,12 +77,13 @@ set(STB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stb)
 
 if (ALIMER_DESKTOP AND ALIMER_TOOLS)
     add_subdirectory(CLI11)
-
     add_subdirectory(imgui)
-    alimer_external_target("third_party" ImGui)
+    alimer_external_target(ImGui)
 endif ()
 
 if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
     add_subdirectory(SDL2)
-    alimer_external_target("third_party" SDL2)
+    alimer_external_target(SDL2)
 endif ()
+
+vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} third_party)
