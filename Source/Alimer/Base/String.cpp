@@ -544,7 +544,7 @@ namespace Alimer
             }
 
             default:
-                ALIMER_LOGWARNF("Unsupported format specifier: '%c'", format);
+                ALIMER_LOGWARNF("String", "Unsupported format specifier: '%c'", format);
                 break;
             }
         }

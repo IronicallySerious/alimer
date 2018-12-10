@@ -34,6 +34,12 @@ namespace Alimer
     struct ResourceRef;
     struct ResourceRefList;
 
+    enum class SeekOrigin : uint8_t
+    {
+        Begin,
+        Current,
+        End
+    };
 
 	/// Abstract stream for reading and writing.
 	class ALIMER_API Stream
@@ -67,6 +73,22 @@ namespace Alimer
 		*/
 		virtual uint64_t Read(void* dest, uint64_t size) = 0;
 
+        /**
+        * Write bytes to the stream.
+        *
+        * @param data The source data to write.
+        * @param size Number of bytes to write.
+        */
+        virtual void Write(const void* data, uint64_t size) = 0;
+
+        /**
+        * Set position in bytes from the given origin of the stream.
+        * @param offset A byte offset relative to origin parameter.
+        * @param origin A value from where to offset.
+        * @return The position after the seek.
+        */
+        virtual uint64_t Seek(int64_t offset, SeekOrigin origin) = 0;
+
         /// Read an 8-bit integer.
         signed char ReadByte();
 
@@ -91,6 +113,8 @@ namespace Alimer
 
         /// Read a null-terminated string.
         String ReadString();
+        /// Read a text line.
+        String ReadLine();
         /// Read a four-letter file ID.
         String ReadFileID();
         /// Read a 32-bit StringHash.
@@ -100,14 +124,6 @@ namespace Alimer
 
 		/// Read content as vector bytes.
 		Vector<uint8_t> ReadBytes(uint64_t count = 0);
-        
-        /**
-        * Write bytes to the stream.
-        *
-        * @param data The source data to write.
-        * @param size Number of bytes to write.
-        */
-        virtual void Write(const void* data, uint64_t size) = 0;
 
         /// Write an 8-bit integer.
         void WriteByte(signed char value);

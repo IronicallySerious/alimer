@@ -58,12 +58,24 @@ namespace Alimer
         /// Unconditionally destroy the GPU resource.
         void Destroy();
 
+        bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
+        bool Define(ShaderStage stage, const Vector<uint8_t>& bytecode);
+
     private:
+        bool BeginLoad(Stream& source) override;
+        bool EndLoad() override;
+        /// Process include statements in the shader source code recursively. Return true if successful.
+        bool ProcessIncludes(String& code, Stream& source);
+
         /// Register object factory.
         static void RegisterObject();
 
-        ShaderModuleImpl* _impl = nullptr;
+        ShaderModuleImpl* _impl;
         Vector<PipelineResource> _resources;
+        /// Shader stage.
+        ShaderStage _stage = ShaderStage::Count;
+        /// Shader source code.
+        String _sourceCode;
     };
 
     /// Defines a shader resource.
@@ -82,18 +94,11 @@ namespace Alimer
         /// Unconditionally destroy the GPU resource.
         void Destroy();
 
-        bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
+        bool Define(ShaderModule* vertex, ShaderModule* fragment);
 
-        bool Define(ShaderStage stage, const Vector<uint8_t>& bytecode);
-
-        bool Finalize();
-
-        /// Get the gpu handle.
-        inline AgpuShader GetHandle() const { return _handle; }
-
-        inline const AgpuShaderModule GetShader(ShaderStage stage) const
+        inline const ShaderModule* GetShader(ShaderStage stage) const
         {
-            return _shaders[static_cast<unsigned>(stage)];
+            return _shaders[static_cast<unsigned>(stage)].Get();
         }
 
     private:
@@ -103,9 +108,7 @@ namespace Alimer
         /// Register object factory.
         static void RegisterObject();
 
-        //uint64_t _hash;
-        AgpuShaderModule _shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
-        AgpuShader _handle = nullptr;
+        SharedPtr<ShaderModule> _shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
     };
 
     ALIMER_API const char* EnumToString(ShaderStage stage);

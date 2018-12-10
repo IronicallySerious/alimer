@@ -80,11 +80,11 @@ namespace Alimer
             */
 
             // Shaders
-            _shader = resources.Load<Shader>("shaders/color");
-            /*_shader = new Shader();
-            _shader->Define(ShaderStage::Vertex, resources.ReadBytes("shaders/color.vert.spv"));
-            _shader->Define(ShaderStage::Fragment, resources.ReadBytes("shaders/color.frag.spv"));
-            _shader->Finalize();*/
+            //auto texture = resources.Load<Texture>("textures/test.png");
+            auto vertexShader = resources.Load<ShaderModule>("shaders/color.vert");
+            auto fragmentShader = resources.Load<ShaderModule>("shaders/color.frag");
+            _shader = new Shader();
+            _shader->Define(vertexShader.Get(), fragmentShader.Get());
         }
 
         void Render()

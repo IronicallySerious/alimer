@@ -22,6 +22,7 @@
 
 #include "../Graphics/Shader.h"
 #include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsImpl.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../Resource/ResourceManager.h"
 #include "../Resource/ResourceLoader.h"
@@ -33,6 +34,7 @@ namespace Alimer
 {
     ShaderModule::ShaderModule()
         : Resource()
+        , _impl(nullptr)
     {
     }
 
@@ -43,7 +45,70 @@ namespace Alimer
 
     void ShaderModule::Destroy()
     {
+        SafeDelete(_impl);
     }
+
+    bool ShaderModule::BeginLoad(Stream& source)
+    {
+        String extension = FileSystem::GetExtension(source.GetName());
+        if (extension == ".vert")
+            _stage = ShaderStage::Vertex;
+        else if(extension == ".frag")
+            _stage = ShaderStage::Compute;
+        _sourceCode.Clear();
+        return ProcessIncludes(_sourceCode, source);
+    }
+
+    bool ShaderModule::EndLoad()
+    {
+        return true;
+    }
+
+    bool ShaderModule::ProcessIncludes(String& code, Stream& source)
+    {
+        ResourceManager* resources = GetSubsystem<ResourceManager>();
+
+        while (!source.IsEof())
+        {
+            String line = source.ReadLine();
+
+            if (line.StartsWith("#include"))
+            {
+                String includeFileName = Path(source.Name()) + line.Substring(9).Replaced("\"", "").Trimmed();
+                AutoPtr<Stream> includeStream = cache->OpenResource(includeFileName);
+                if (!includeStream)
+                    return false;
+
+                // Add the include file into the current code recursively
+                if (!ProcessIncludes(code, *includeStream))
+                    return false;
+            }
+            else
+            {
+                code += line;
+                code += "\n";
+            }
+        }
+
+        // Finally insert an empty line to mark the space between files
+        code += "\n";
+
+        return true;
+    }
+
+    bool ShaderModule::Define(ShaderStage stage, const String& shaderSource, const String& entryPoint)
+    {
+        _stage = stage;
+        Destroy();
+        return true;
+    }
+
+    bool ShaderModule::Define(ShaderStage stage, const Vector<uint8_t>& bytecode)
+    {
+        _stage = stage;
+        return true;
+    }
+
 
     Shader::Shader()
         : Resource()
@@ -63,7 +128,6 @@ namespace Alimer
         {
             if (_shaders[i] != nullptr)
             {
-                agpuDestroyShaderModule(_shaders[i]);
                 _shaders[i] = nullptr;
             }
         }
@@ -81,58 +145,14 @@ namespace Alimer
         return true;
     }
 
-    bool Shader::Define(ShaderStage stage, const String& shaderSource, const String& entryPoint)
+    bool Shader::Define(ShaderModule* vertex, ShaderModule* fragment)
     {
-        AgpuShaderModuleDescriptor descriptor = {};
-        descriptor.stage = static_cast<AgpuShaderStageFlagBits>(1u << static_cast<unsigned>(stage));
-        descriptor.source = shaderSource.CString();
-        descriptor.entryPoint = entryPoint.CString();
+        ALIMER_ASSERT(vertex);
+        ALIMER_ASSERT(fragment);
 
-        _shaders[static_cast<unsigned>(stage)] = agpuCreateShaderModule(&descriptor);
-        return _shaders[static_cast<unsigned>(stage)] != nullptr;
-    }
-
-    bool Shader::Define(ShaderStage stage, const Vector<uint8_t>& bytecode)
-    {
-        AgpuShaderModuleDescriptor descriptor = {};
-        descriptor.codeSize = bytecode.Size();
-        descriptor.pCode = bytecode.Data();
-
-        AgpuShaderModule shaderModule = agpuCreateShaderModule(&descriptor);
-
-        //ShaderReflection reflection;
-        //SPIRVReflectResources(reinterpret_cast<const uint32_t*>(bytecode.data()), bytecode.size(), &reflection);
-
-        _shaders[static_cast<unsigned>(stage)] = shaderModule;
-        return shaderModule != nullptr;
-    }
-
-    bool Shader::Finalize()
-    {
-        AgpuShaderStageDescriptor stages[static_cast<unsigned>(ShaderStage::Count)];
-        uint32_t stageCount = 0;
-
-        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
-        {
-            if (_shaders[i] != nullptr)
-            {
-                auto &stage = stages[stageCount++];
-                stage.shaderModule = _shaders[i];
-                stage.entryPoint = "main";
-            }
-        }
-
-        AgpuShaderDescriptor descriptor = {};
-        descriptor.stageCount = stageCount;
-        descriptor.stages = stages;
-
-        _handle = agpuCreateShader(&descriptor);
-        if (_handle != nullptr)
-        {
-            return true;
-        }
-
-        return false;
+        _shaders[static_cast<unsigned>(ShaderStage::Vertex)] = vertex;
+        _shaders[static_cast<unsigned>(ShaderStage::Fragment)] = fragment;
+        return true;
     }
 
     void ShaderModule::RegisterObject()

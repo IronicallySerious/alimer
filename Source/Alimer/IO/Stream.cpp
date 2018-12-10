@@ -130,6 +130,35 @@ namespace Alimer
         return ret;
     }
 
+    String Stream::ReadLine()
+    {
+        String result;
+
+        while (!IsEof())
+        {
+            char c = ReadByte();
+            if (c == 10)
+                break;
+            if (c == 13)
+            {
+                // Peek next char to see if it's 10, and skip it too
+                if (!IsEof())
+                {
+                    char next = ReadByte();
+                    if (next != 10)
+                    {
+                        Seek(_position - 1, SeekOrigin::Begin);
+                    }
+                }
+                break;
+            }
+
+            result += c;
+        }
+
+        return result;
+    }
+
     String Stream::ReadFileID()
     {
         String ret;
@@ -167,7 +196,7 @@ namespace Alimer
         uint64_t read = Read(result.Data(), count);
 		if (read != count)
 		{
-			ALIMER_LOGERRORF("Failed to read complete contents of stream (amount read vs. file size: %u < %u).",
+            ALIMER_LOGERRORF("IO", "Failed to read complete contents of stream (amount read vs. file size: %u < %u).",
                 static_cast<uint32_t>(read),
                 static_cast<uint32_t>(count)
             );

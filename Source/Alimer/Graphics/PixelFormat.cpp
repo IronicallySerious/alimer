@@ -119,7 +119,7 @@ namespace Alimer
             //    return 0;
 
         default:
-            ALIMER_LOGERROR("Invalid PixelFormat value");
+            ALIMER_LOGERROR("GetPixelFormatSize", "Invalid PixelFormat value");
             //ALIMER_LOGERRORF("Invalid PixelFormat value %s", EnumToString(format));
             return 0;
         }

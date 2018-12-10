@@ -33,7 +33,7 @@ namespace Alimer
         TextureImpl() {}
 
     public:
-        ~TextureImpl() = default;
+        virtual ~TextureImpl() = default;
 
         TextureType type;
         TextureUsage usage;
@@ -53,7 +53,7 @@ namespace Alimer
         FramebufferImpl() {}
 
     public:
-        ~FramebufferImpl() = default;
+        virtual ~FramebufferImpl() = default;
     };
 
     class GpuBufferImpl
@@ -63,7 +63,17 @@ namespace Alimer
         GpuBufferImpl() {}
 
     public:
-        ~GpuBufferImpl() = default;
+        virtual ~GpuBufferImpl() = default;
+    };
+
+    class ShaderModuleImpl
+    {
+    protected:
+        /// Constructor.
+        ShaderModuleImpl() {}
+
+    public:
+        virtual ~ShaderModuleImpl() = default;
     };
 
     class GraphicsImpl
@@ -73,7 +83,7 @@ namespace Alimer
         GraphicsImpl() {}
 
     public:
-        ~GraphicsImpl() = default;
+        virtual ~GraphicsImpl() = default;
 
         virtual bool Initialize(const GraphicsSettings& settings) = 0;
 

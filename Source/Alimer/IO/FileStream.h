@@ -26,7 +26,7 @@
 
 namespace Alimer
 {
-	enum class FileAccess
+	enum class FileAccess : uint8_t
 	{
         ReadOnly,
 		WriteOnly,
@@ -61,6 +61,7 @@ namespace Alimer
 
         uint64_t Read(void* dest, uint64_t size) override;
         void Write(const void* data, uint64_t size) override;
+        uint64_t Seek(int64_t offset, SeekOrigin origin) override;
 
         /// Return whether is open.
         bool IsOpen() const;

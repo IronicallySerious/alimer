@@ -26,11 +26,14 @@
 #include "../Debug/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-#ifndef NOMINMAX
-#   define NOMINMAX
-#endif
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#   define WIN32_LEAN_AND_MEAN
+#   include <Windows.h>
+#   define INVALID_FILE_HANDLE INVALID_HANDLE_VALUE
+#else
+#   define INVALID_FILE_HANDLE nullptr
 #endif
 
 #include <cstdio>
@@ -74,22 +77,14 @@ namespace Alimer
     FileStream::FileStream()
         : _mode(FileAccess::ReadOnly)
         , _canSeek(true)
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        , _handle(INVALID_HANDLE_VALUE)
-#else
-        , _handle(nullptr)
-#endif
+        , _handle(INVALID_FILE_HANDLE)
     {
     }
 
     FileStream::FileStream(const String& fileName, FileAccess mode)
         : _mode(FileAccess::ReadOnly)
         , _canSeek(true)
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        , _handle(INVALID_HANDLE_VALUE)
-#else
-        , _handle(nullptr)
-#endif
+        , _handle(INVALID_FILE_HANDLE)
     {
         Open(fileName, mode);
     }
@@ -109,7 +104,7 @@ namespace Alimer
         if (mode == FileAccess::ReadOnly
             && !FileSystem::FileExists(fileName))
         {
-            ALIMER_LOGERROR("Cannot open file for read as it doesn't exists");
+            ALIMER_LOGERROR("IO", "Cannot open file for read as it doesn't exists");
             return false;
         }
 
@@ -118,7 +113,7 @@ namespace Alimer
         {
             if (!EnsureDirectoryExists(fileName))
             {
-                ALIMER_LOGERROR("FileStream::Open - failed to create directory.");
+                ALIMER_LOGERROR("IO", "FileStream::Open - failed to create directory.");
                 return false;
             }
         }
@@ -155,7 +150,7 @@ namespace Alimer
 
         if (_handle == INVALID_HANDLE_VALUE)
         {
-            ALIMER_LOGERRORF("Win32 - Failed to open file: '%s'.", fileName.CString());
+            ALIMER_LOGERRORF("Win32", "Failed to open file: '%s'.", fileName.CString());
         }
 
         if (mode != FileAccess::WriteOnly)
@@ -163,7 +158,7 @@ namespace Alimer
             LARGE_INTEGER size;
             if (!GetFileSizeEx(_handle, &size))
             {
-                ALIMER_LOGERROR("[Win32] - GetFileSizeEx: failed");
+                ALIMER_LOGERROR("Win32", "GetFileSizeEx: failed");
             }
 
             _size = static_cast<uint64_t>(size.QuadPart);
@@ -197,39 +192,33 @@ namespace Alimer
 
     void FileStream::Close()
     {
+        if (_handle != INVALID_FILE_HANDLE)
+        {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        if (_handle != INVALID_HANDLE_VALUE)
-        {
             ::CloseHandle(_handle);
-            _handle = INVALID_HANDLE_VALUE;
-        }
 #else
-        if (_handle != nullptr)
-        {
             fclose((FILE*)_handle);
-            _handle = nullptr;
-        }
 #endif
+            _handle = INVALID_FILE_HANDLE;
+        }
+
         _position = 0;
         _size = 0;
     }
 
     void FileStream::Flush()
     {
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        if (_handle != INVALID_HANDLE_VALUE)
+        if (_handle != INVALID_FILE_HANDLE)
         {
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
             if (::FlushFileBuffers(_handle) == S_FALSE)
             {
                 //GetLastWin32Error()
             }
-        }
 #else
-        if (_handle != nullptr)
-        {
             fflush((FILE*)_handle);
-        }
 #endif
+        }
     }
 
     bool FileStream::CanRead() const
@@ -253,7 +242,7 @@ namespace Alimer
     {
         if (!CanRead())
         {
-            ALIMER_LOGERROR("Cannot read for write only stream");
+            ALIMER_LOGERROR("IO", "Cannot read for write only stream");
             return 0;
         }
 
@@ -319,6 +308,57 @@ namespace Alimer
         {
             _size = _position;
         }
+    }
+
+    uint64_t FileStream::Seek(int64_t offset, SeekOrigin origin)
+    {
+        if (_handle == INVALID_FILE_HANDLE)
+            return 0;
+
+#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
+        DWORD windowsOffset = 0;
+        switch (origin)
+        {
+        case SeekOrigin::Begin:
+            windowsOffset = FILE_BEGIN;
+            break;
+        case SeekOrigin::Current:
+            windowsOffset = FILE_CURRENT;
+            break;
+        case SeekOrigin::End:
+            windowsOffset = FILE_END;
+            break;
+        default:
+            break;
+        }
+        LARGE_INTEGER windowsOffset;
+        windowsOffset.QuadPart = offset;
+        if (!SetFilePointerEx(_handle, windowsOffset, &windowsOffset, windowsOffset))
+        {
+            ALIMER_LOGERROR("Win32", "Seek failed");
+            return static_cast<uint64_t>(-1);
+        }
+        _position = windowsOffset.QuadPart;
+#else
+        int seekMethod;
+        switch (origin)
+        {
+        case SeekOrigin::Begin:
+            seekMethod = SEEK_SET;
+            break;
+        case SeekOrigin::Current:
+            seekMethod = SEEK_CUR;
+            break;
+        case SeekOrigin::End:
+            seekMethod = SEEK_END;
+            break;
+        default:
+            break;
+        }
+        fseek((FILE*)_handle, static_cast<long>(position), seekMethod);
+        _position = ftell((FILE*)_handle);
+#endif
+        return _position;
     }
 
     bool FileStream::IsOpen() const

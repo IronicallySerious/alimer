@@ -65,7 +65,7 @@ namespace Alimer
         Destroy();
         _isCompute = false;
 
-        AgpuRenderPipelineDescriptor gpuPipelineDesc = {};
+        /*AgpuRenderPipelineDescriptor gpuPipelineDesc = {};
         gpuPipelineDesc.shader = descriptor->shader->GetHandle();
 
         for (uint32_t i = 0u; i < AGPU_MAX_VERTEX_BUFFER_BINDINGS; i++)
@@ -82,7 +82,7 @@ namespace Alimer
         }
 
         gpuPipelineDesc.primitiveTopology = static_cast<AgpuPrimitiveTopology>(descriptor->primitiveTopology);
-        _handle = agpuCreateRenderPipeline(&gpuPipelineDesc);
+        _handle = agpuCreateRenderPipeline(&gpuPipelineDesc);*/
 
         return true;
     }

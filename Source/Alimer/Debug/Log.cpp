@@ -119,12 +119,12 @@ namespace Alimer
         _logFile = new FileStream();
         if (_logFile->Open(fileName, FileAccess::WriteOnly))
         {
-            Log(LogLevel::Info, String::Format("Opened log file '%s'", fileName.CString()));
+            Log(LogLevel::Info, "Log", String::Format("Opened log file '%s'", fileName.CString()));
         }
         else
         {
             SafeDelete(_logFile);
-            Log(LogLevel::Error, String::Format("Failed to create log file '%s'", fileName.CString()));
+            Log(LogLevel::Error, "Log", String::Format("Failed to create log file '%s'", fileName.CString()));
         }
     }
 
@@ -142,53 +142,53 @@ namespace Alimer
         _level = newLevel;
     }
 
-    void Logger::Log(LogLevel level, const String& message)
+    void Logger::Log(LogLevel level, const String& tag, const String& message)
     {
         if (_level > level)
             return;
 
         // Log to the default output
-        OnLog(level, message);
+        OnLog(level, tag, message);
     }
 
-    void Logger::Trace(const String& message)
+    void Logger::Trace(const String& tag, const String& message)
     {
         if (_level > LogLevel::Trace)
             return;
 
-        OnLog(LogLevel::Trace, message);
+        OnLog(LogLevel::Trace, tag, message);
     }
 
-    void Logger::Debug(const String& message)
+    void Logger::Debug(const String& tag, const String& message)
     {
         if (_level > LogLevel::Debug)
             return;
 
-        OnLog(LogLevel::Debug, message);
+        OnLog(LogLevel::Debug, tag, message);
     }
 
-    void Logger::Info(const String& message)
+    void Logger::Info(const String& tag, const String& message)
     {
         if (_level > LogLevel::Info)
             return;
 
-        OnLog(LogLevel::Info, message);
+        OnLog(LogLevel::Info, tag, message);
     }
 
-    void Logger::Warn(const String& message)
+    void Logger::Warn(const String& tag, const String& message)
     {
         if (_level > LogLevel::Warn)
             return;
 
-        OnLog(LogLevel::Warn, message);
+        OnLog(LogLevel::Warn, tag, message);
     }
 
-    void Logger::Error(const String& message)
+    void Logger::Error(const String& tag, const String& message)
     {
         if (_level > LogLevel::Error)
             return;
 
-        OnLog(LogLevel::Error, message);
+        OnLog(LogLevel::Error, tag, message);
     }
 
     void Logger::AddListener(LogListener* listener)
@@ -213,7 +213,7 @@ namespace Alimer
         }
     }
 
-    void Logger::OnLog(LogLevel level, const String& message)
+    void Logger::OnLog(LogLevel level, const String& tag, const String& message)
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         size_t length = strlen(LogLevelPrefix[static_cast<unsigned>(level)]) + 2 + message.Length() + 1 + 1 + 1;

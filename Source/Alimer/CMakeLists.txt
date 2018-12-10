@@ -99,6 +99,10 @@ define_engine_source_files (NORECURSE . Base Core Debug IO Math Graphics Input A
 define_engine_source_files (Resource Serialization Scene Renderer)
 define_engine_source_files (NORECURSE UI)
 
+if (ALIMER_NETWORK)
+    define_engine_source_files(Network)
+endif ()
+
 if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
     define_engine_source_files(Application/SDL2)
     define_engine_source_files(Input/SDL2)
@@ -170,7 +174,7 @@ target_include_directories(${TARGET_NAME}
     )
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES spirv_cross)
+set (THIRD_PARTY_DEPENDENCIES fmt spirv_cross)
 if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
     list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()

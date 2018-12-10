@@ -323,16 +323,16 @@ namespace Alimer
     Matrix4x4 Matrix4x4::CreatePerspectiveFieldOfView(float fieldOfView, float aspectRatio, float nearPlaneDistance, float farPlaneDistance)
     {
         if (fieldOfView <= 0.0f || fieldOfView >= M_PI)
-            ALIMER_LOGCRITICAL("Invalid fieldOfView");
+            ALIMER_LOGCRITICAL("Matrix4x4", "Invalid fieldOfView");
 
         if (nearPlaneDistance <= 0.0f)
-            ALIMER_LOGCRITICAL("nearPlaneDistance must be greather than 0");
+            ALIMER_LOGCRITICAL("Matrix4x4", "nearPlaneDistance must be greather than 0");
 
         if (farPlaneDistance <= 0.0f)
-            ALIMER_LOGCRITICAL("farPlaneDistance must be greather than 0");
+            ALIMER_LOGCRITICAL("Matrix4x4", "farPlaneDistance must be greather than 0");
 
         if (nearPlaneDistance >= farPlaneDistance)
-            ALIMER_LOGCRITICAL("farPlaneDistance must be greather than nearPlaneDistance");
+            ALIMER_LOGCRITICAL("Matrix4x4", "farPlaneDistance must be greather than nearPlaneDistance");
 
         const float tanHalfFovy = std::tan(fieldOfView / 2.0f);
 

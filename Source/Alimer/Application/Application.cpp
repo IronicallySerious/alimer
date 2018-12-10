@@ -96,7 +96,7 @@ namespace Alimer
             _graphics = new Graphics(_settings.preferredGraphicsBackend, _settings.validation);
             if (!_graphics->Initialize(_settings.graphicsSettings))
             {
-                ALIMER_LOGERROR("Failed to initialize Graphics.");
+                ALIMER_LOGERROR("Application", "Failed to initialize Graphics.");
                 return false;
             }
 

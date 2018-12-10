@@ -225,7 +225,7 @@ if __name__ == "__main__":
 
         if _platform == "desktop" and hostPlatform == "win":
             programFilesFolder = FindProgramFilesFolder()
-            if (buildSystem == "vs2017") or ((buildSystem == "ninja") and (compiler == "vc141")):
+            if (buildSystem == "vs2017") or (buildSystem == "ninja"):
                 vsFolder = FindVS2017Folder(programFilesFolder)
             if architecture == "x64":
                 vcOption = "amd64"

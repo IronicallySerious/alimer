@@ -75,12 +75,12 @@ namespace Alimer
         /// Return logging level.
         LogLevel GetLevel() const { return _level; }
 
-        void Log(LogLevel level, const String& message);
-        void Trace(const String& message);
-        void Debug(const String& message);
-        void Info(const String& message);
-        void Warn(const String& message);
-        void Error(const String& message);
+        void Log(LogLevel level, const String& tag, const String& message);
+        void Trace(const String& tag, const String& message);
+        void Debug(const String& tag, const String& message);
+        void Info(const String& tag, const String& message);
+        void Warn(const String& tag, const String& message);
+        void Error(const String& tag, const String& message);
 
         /// Adds a log listener.
         void AddListener(LogListener* listener);
@@ -92,7 +92,7 @@ namespace Alimer
         const FileStream* GetLogFile() const { return _logFile; }
 
     private:
-        void OnLog(LogLevel level, const String& message);
+        void OnLog(LogLevel level, const String& tag, const String& message);
 
     private:
         LogLevel _level;
@@ -111,24 +111,34 @@ namespace Alimer
     ALIMER_API Logger& gLog();
 }
 
-#define ALIMER_LOGTRACE(message) Alimer::gLog().Log(Alimer::LogLevel::Trace, message)
-#define ALIMER_LOGDEBUG(message) Alimer::gLog().Log(Alimer::LogLevel::Debug, message)
-#define ALIMER_LOGINFO(message) Alimer::gLog().Log(Alimer::LogLevel::Info, message)
-#define ALIMER_LOGWARN(message) Alimer::gLog().Log(Alimer::LogLevel::Warn, message)
-#define ALIMER_LOGERROR(message) Alimer::gLog().Log(Alimer::LogLevel::Error, message)
-#define ALIMER_LOGCRITICAL(message) do { \
-	Alimer::gLog().Log(Alimer::LogLevel::Critical, message); \
+#ifdef ALIMER_LOGGING
+#define ALIMER_LOGTRACE(tag, message) Alimer::gLog().Log(Alimer::LogLevel::Trace, tag, message)
+#define ALIMER_LOGDEBUG(tag, message) Alimer::gLog().Log(Alimer::LogLevel::Debug, tag, message)
+#define ALIMER_LOGINFO(tag, message) Alimer::gLog().Log(Alimer::LogLevel::Info, tag, message)
+#define ALIMER_LOGWARN(tag, message) Alimer::gLog().Log(Alimer::LogLevel::Warn, tag, message)
+#define ALIMER_LOGERROR(tag, message) Alimer::gLog().Log(Alimer::LogLevel::Error, tag, message)
+#define ALIMER_LOGCRITICAL(tag, message) do { \
+	Alimer::gLog().Log(Alimer::LogLevel::Critical, tag, message); \
 	ALIMER_BREAKPOINT(); \
 	ALIMER_UNREACHABLE(); \
 } while (0)
 
-#define ALIMER_LOGTRACEF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Trace, Alimer::String::Format(format, __VA_ARGS__))
-#define ALIMER_LOGDEBUGF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Debug, Alimer::String::Format(format, __VA_ARGS__))
-#define ALIMER_LOGINFOF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Info, Alimer::String::Format(format, __VA_ARGS__))
-#define ALIMER_LOGWARNF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Warn, Alimer::String::Format(format, __VA_ARGS__))
-#define ALIMER_LOGERRORF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Error, Alimer::String::Format(format, __VA_ARGS__))
+#define ALIMER_LOGTRACEF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Trace, "alimer", Alimer::String::Format(format, __VA_ARGS__))
+#define ALIMER_LOGDEBUGF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Debug, "alimer", Alimer::String::Format(format, __VA_ARGS__))
+#define ALIMER_LOGINFOF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Info, "alimer", Alimer::String::Format(format, __VA_ARGS__))
+#define ALIMER_LOGWARNF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Warn, "alimer", Alimer::String::Format(format, __VA_ARGS__))
+#define ALIMER_LOGERRORF(format, ...) Alimer::gLog().Log(Alimer::LogLevel::Error, "alimer", Alimer::String::Format(format, __VA_ARGS__))
 #define ALIMER_LOGCRITICALF(format, ...) do { \
-	Alimer::gLog().Log(Alimer::LogLevel::Critical, Alimer::String::Format(format, __VA_ARGS__)); \
+	Alimer::gLog().Log(Alimer::LogLevel::Critical, "alimer", Alimer::String::Format(format, __VA_ARGS__)); \
 	ALIMER_BREAKPOINT(); \
 	ALIMER_UNREACHABLE(); \
 } while (0)
+
+#else
+#define ALIMER_LOGTRACE(tag, message) do { ALIMER_UNUSED(tag); ALIMER_UNUSED(message); } while(0)
+#define ALIMER_LOGDEBUG(tag, message) do { ALIMER_UNUSED(tag); ALIMER_UNUSED(message); } while(0)
+#define ALIMER_LOGINFO(tag, message) do { ALIMER_UNUSED(tag); ALIMER_UNUSED(message); } while(0)
+#define ALIMER_LOGWARN(tag, message) do { ALIMER_UNUSED(tag); ALIMER_UNUSED(message); } while(0)
+#define ALIMER_LOGERROR(tag, message) do { ALIMER_UNUSED(tag); ALIMER_UNUSED(message); } while(0)
+#define ALIMER_LOGCRITICAL(tag, message) do { ALIMER_UNUSED(tag); ALIMER_UNUSED(message); } while(0)
+#endif
