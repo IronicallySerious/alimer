@@ -188,7 +188,7 @@ endif()
 add_library(${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(${TARGET} PUBLIC ${HEADER_DIR})
-target_compile_definitions(${TARGET} PUBLIC -DSDL_MAIN_HANDLED=1 -DSDL_RENDER_DISABLED=1)
+target_compile_definitions(${TARGET} PUBLIC -DSDL_RENDER_DISABLED=1)
 target_link_libraries(${TARGET} PUBLIC ${EXTRA_LIBS})
 
 if (NOT MSVC)

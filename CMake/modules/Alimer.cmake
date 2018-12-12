@@ -1,10 +1,29 @@
-# This module is shared; use include blocker.
+#
+# Copyright (c) 2018 Amer Koleci and contributors.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+
 if( _ALIMER_GUARD_ )
 	return()
 endif()
 set (_ALIMER_GUARD_ 1)
-
-include(ucm)
 
 # Detect host.
 if (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
@@ -75,7 +94,6 @@ elseif( ANDROID )
     set (ALIMER_ANDROID ON)
     set (ALIMER_PLATFORM_NAME "Android")
 elseif( EMSCRIPTEN )
-    set (ALIMER_EMSCRIPTEN ON)
     set (ALIMER_WEB ON)
 	set (ALIMER_PLATFORM_NAME "Web")
 else()
@@ -91,7 +109,7 @@ if( ((ALIMER_WINDOWS OR ALIMER_UWP OR ALIMER_OSX) AND CMAKE_CL_64) OR (ALIMER_IO
 	set (ALIMER_64BIT 1)
 endif()
 
-if( ALIMER_WINDOWS OR ALIMER_OSX OR ALIMER_LINUX OR ALIMER_XBOX_ONE OR ALIMER_PS4 OR ALIMER_EMSCRIPTEN OR ALIMER_UWP )
+if( ALIMER_WINDOWS OR ALIMER_OSX OR ALIMER_LINUX OR ALIMER_XBOX_ONE OR ALIMER_PS4 OR ALIMER_WEB OR ALIMER_UWP )
 	if (ALIMER_64BIT)
 		set (ALIMER_ARCH_NAME "x64")
 	else()
@@ -107,81 +125,19 @@ else()
 	message(FATAL_ERROR "Unknown platform architecture!")
 endif()
 
-set (ALIMER_FLAGS "")
-set (ALIMER_DEFS "")
-set (ALIMER_INTERNAL_FLAGS "")
-set (ALIMER_INTERNAL_DEFS "")
-set (ALIMER_GENERATED_FLAGS "")
-
-# Select static/dynamic runtime library
-if( ALIMER_WINDOWS )
-    ucm_set_runtime(STATIC)
-elseif( ALIMER_UWP OR ALIMER_XBOX_ONE )
-    ucm_set_runtime(DYNAMIC)
-endif()
-
-# TODO: Disable exceptions
-# if( NOT ALIMER_XBOX_ONE )
-# 	add_compile_options(-D_HAS_EXCEPTIONS=0)
-# endif()
+include (AlimerUtils)
 
 # Setup global per-platform compiler/linker options
 if( MSVC )
-    # if ( NOT ALIMER_UWP )
-        # Remove /EHsc from CMAKE_CXX_FLAGS for MSVC to disable exceptions
-    #     if(CMAKE_CXX_FLAGS MATCHES "/EHsc")
-	# 	    string(REPLACE "/EHsc" "/EHs-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-	#     endif()
-    # endif ()
+    # Select static/dynamic runtime library
+    replace_compile_flags("/MDd" "" debug)
+    replace_compile_flags("/MDd" "" dev release)
 
-	# Disable specific warnings
-	add_compile_options(/wd4127 /wd4351 /wd4005)
-
-	# Disable specific warnings for MSVC14 and above
-	if( (ALIMER_WINDOWS OR ALIMER_UWP) AND (NOT MSVC_VERSION LESS 1900) )
-		add_compile_options(/wd4838 /wd4312 /wd4477 /wd4244 /wd4091 /wd4311 /wd4302 /wd4476 /wd4474)
-        add_compile_options(/wd4309)	# truncation of constant value
-	endif()
-
-	# Force specific warnings as errors
-    add_compile_options(/we4101)
-elseif (CLANG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=${CMAKE_CXX_STANDARD} -fstrict-aliasing -Wno-unknown-pragmas -Wno-unused-function")
-    
-    if (WIN32)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_MATH_DEFINES=1")
+    if( ALIMER_WINDOWS )
+        add_compile_options($<$<CONFIG:DEBUG>:/MTd> $<$<NOT:$<CONFIG:DEBUG>>:/MT>)
+    elseif( ALIMER_XBOX_ONE OR ALIMER_UWP )
+        add_compile_options($<$<CONFIG:DEBUG>:/MDd> $<$<NOT:$<CONFIG:DEBUG>>:/MD>)
     endif()
-
-    if (CLANG_CL)
-        # Since the "secure" replacements that MSVC suggests are not portable, disable
-        # the deprecation warnings. Also disable warnings about use of POSIX functions (i.e. "unlink").
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE")
-    endif()
-
-    # ==================================================================================================
-    # Release compiler flags
-    # ==================================================================================================
-    if (NOT CLANG_CL)
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer -ffunction-sections -fdata-sections")
-    endif()
-else ()
-    # Use fast floating point model
-    add_compile_options(-ffast-math)
-endif ()
-
-if (ALIMER_EMSCRIPTEN)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-warn-absolute-paths -Wno-unknown-warning-option")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-warn-absolute-paths -Wno-unknown-warning-option")
-    if (ALIMER_THREADING)
-        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_PTHREADS=1")
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_PTHREADS=1")
-    endif ()
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse -msse2")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse -msse2")
-
-    set (CMAKE_C_FLAGS_RELEASE "-Oz -DNDEBUG")
-    set (CMAKE_CXX_FLAGS_RELEASE "-Oz -DNDEBUG")
 endif ()
 
 # Setup SDK install destinations
@@ -193,7 +149,13 @@ set (DEST_THIRDPARTY_HEADERS_DIR ${DEST_INCLUDE_DIR}/third_party)
 # Functions and macros
 function(alimer_setup_common_properties target)
     if (MSVC)
-        target_compile_definitions(${target} PRIVATE _SCL_SECURE_NO_WARNINGS _CRT_SECURE_NO_WARNINGS NOMINMAX)
+        target_compile_definitions(${target} PRIVATE _SCL_SECURE_NO_WARNINGS _CRT_SECURE_NO_WARNINGS _CRT_SECURE_NO_DEPRECATE)
+        target_compile_definitions(${target} PRIVATE $<$<CONFIG:DEBUG>:_SECURE_SCL_THROWS=0> $<$<CONFIG:DEBUG>:_SILENCE_DEPRECATION_OF_SECURE_SCL_THROWS>)
+        target_compile_definitions(${target} PRIVATE _HAS_ITERATOR_DEBUGGING=$<CONFIG:DEBUG> _SECURE_SCL=$<CONFIG:DEBUG>)
+        if( NOT ALIMER_XBOX_ONE )
+            target_compile_definitions(${target} PRIVATE _HAS_EXCEPTIONS=0)
+        endif()
+        
         target_compile_definitions(${target} PRIVATE _UNICODE)
 
         # Enable full optimization in Dev/Release
@@ -209,15 +171,19 @@ function(alimer_setup_common_properties target)
         target_compile_options(${target} PRIVATE /Ot)
 
         # Enable fiber-safe optimizations in dev/release
-	    target_compile_options(${target} PRIVATE $<$<NOT:$<CONFIG:DEBUG>>:/GT>)
+        target_compile_options(${target} PRIVATE $<$<NOT:$<CONFIG:DEBUG>>:/GT>)
+
+        if (ALIMER_WINDOWS)
+            target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/MTd> $<$<NOT:$<CONFIG:DEBUG>>:/MT>)
+        elseif (ALIMER_XBOX_ONE OR ALIMER_UWP)
+            target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/MDd> $<$<NOT:$<CONFIG:DEBUG>>:/MD>)
+        endif()
 
 	    # Enable string pooling
 	    target_compile_options(${target} PRIVATE /GF)
 
-        target_compile_options(${target} PRIVATE /EHs /bigobj)
-
 	    # Use security checks only in debug
-	    if ( ALIMER_UWP )
+	    if (ALIMER_UWP)
             target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/sdl> $<$<NOT:$<CONFIG:DEBUG>>:/sdl->)
 	        # Consume Windows Runtime
 		    target_compile_options(${target} PRIVATE /ZW)
@@ -233,11 +199,10 @@ function(alimer_setup_common_properties target)
         # Use fast floating point model
         target_compile_options(${target} PRIVATE /fp:fast)
 
-        # Set warning level 3 in non debug, otherwise level 4 and warning as errors
+        # Set warning level 3 in non debug, otherwise level 4
         target_compile_options(${target} PRIVATE
             $<$<NOT:$<CONFIG:DEBUG>>:/W3>
             $<$<CONFIG:Debug>:/W4>
-            $<$<CONFIG:Debug>:/WX>
         )
 
         # Enable multi-processor compilation
@@ -263,13 +228,6 @@ function(alimer_setup_common_properties target)
         endif ()
     endif()
 
-    # Define 32 versus 64 bit architecture
-    if( ALIMER_64BIT )
-        target_compile_definitions(${target} PRIVATE ALIMER_64BIT)
-    else()
-        target_compile_definitions(${target} PRIVATE ALIMER_32BIT)
-    endif()
-
     if (ALIMER_UWP)
         set_target_properties(${target} PROPERTIES VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION "${ALIMER_UWP_VERSION_MIN}")
     endif()
@@ -293,21 +251,25 @@ function(add_alimer_library target)
 
 endfunction()
 
-function (add_alimer_executable target)
-    if (NOT ALIMER_WIN32_CONSOLE)
-        set (TARGET_TYPE WIN32)
-    endif ()
-
-    if (ALIMER_ANDROID)
-        add_library(${target} SHARED ${ARGN})
+function (add_alimer_executable TARGET)
+    if (ALIMER_WEB)
+        add_executable (${TARGET} ${ARGN})
+        set_target_properties (${TARGET} PROPERTIES SUFFIX .html)
+        # target_link_libraries(${TARGET} PRIVATE "--shell-file ${CMAKE_SOURCE_DIR}/bin/application.html")
+    elseif (ALIMER_ANDROID)
+        add_library(${TARGET} SHARED ${ARGN})
+    elseif (ALIMER_OSX) 
+        add_executable(${TARGET} MACOSX_BUNDLE ${ARGN})
+    elseif (ALIMER_WINDOWS)
+        add_executable(${TARGET} WIN32 ${ARGN})
     else ()
-        add_executable (${target} ${TARGET_TYPE} ${ARGN})
+        add_executable (${TARGET} ${ARGN})
     endif ()
 
-    alimer_setup_common_properties(${target})
+    alimer_setup_common_properties(${TARGET})
 
     # Link to alimer library
-    target_link_libraries (${target} libAlimer)
+    # target_link_libraries (${target} libAlimer)
 endfunction ()
 
 function (add_alimer_plugin target)
@@ -328,11 +290,6 @@ function (add_alimer_plugin target)
      # Link to alimer library
      target_link_libraries (${target} libAlimer)
 endfunction ()
-
-function(alimer_external_target target)
-    set_property(TARGET ${target} APPEND PROPERTY COMPILE_OPTIONS ${ALIMER_FLAGS})
-    set_property(TARGET ${target} APPEND PROPERTY COMPILE_DEFINITIONS ${ALIMER_DEFS})
-endfunction()
 
 function(vs_group_subdirectory_targets DIR FOLDER_NAME)
     get_property(DIRS DIRECTORY ${DIR} PROPERTY SUBDIRECTORIES)
