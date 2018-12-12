@@ -28,12 +28,12 @@
 
 namespace Alimer
 {
-	class D3D11GraphicsDevice;
+	class D3D11Graphics;
 
     class D3D11Shader final : public Shader
     {
     public:
-        D3D11Shader(D3D11GraphicsDevice* device, const ShaderDescriptor* descriptor);
+        D3D11Shader(D3D11Graphics* device, const ShaderDescriptor* descriptor);
         ~D3D11Shader() override;
         void Destroy();
 

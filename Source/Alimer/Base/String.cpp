@@ -882,7 +882,7 @@ namespace Alimer
                 const ptrdiff_t splitLen = splitEnd - str;
                 if (splitLen > 0 || keepEmptyStrings)
                 {
-                    ret.Push(String(str, splitLen));
+                    ret.Push(String(str, static_cast<uint32_t>(splitLen)));
                 }
 
                 str = splitEnd + 1;
@@ -891,7 +891,9 @@ namespace Alimer
 
         const ptrdiff_t splitLen = strEnd - str;
         if (splitLen > 0 || keepEmptyStrings)
-            ret.Push(String(str, splitLen));
+        {
+            ret.Push(String(str, static_cast<uint32_t>(splitLen)));
+        }
 
         return ret;
     }
@@ -1124,7 +1126,7 @@ namespace Alimer
     {
         if (unicodeChar < 0x80)
         {
-            *dest++ = unicodeChar;
+            *dest++ = (char)unicodeChar;
         }
         else if (unicodeChar < 0x800)
         {
@@ -1232,7 +1234,9 @@ namespace Alimer
     void String::EncodeUTF16(wchar_t*& dest, uint32_t unicodeChar)
     {
         if (unicodeChar < 0x10000)
-            *dest++ = unicodeChar;
+        {
+            *dest++ = (wchar_t)unicodeChar;
+        }
         else
         {
             unicodeChar -= 0x10000;
@@ -1286,7 +1290,7 @@ namespace Alimer
         {
             wchar_t* dest = temp;
             String::EncodeUTF16(dest, str.NextUTF8Char(byteOffset));
-            neededSize += dest - temp;
+            neededSize += (uint32_t)(dest - temp);
         }
 
         Resize(neededSize);

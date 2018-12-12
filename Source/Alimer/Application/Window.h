@@ -29,7 +29,6 @@
 #include <string>
 
 #if ALIMER_PLATFORM_WINDOWS
-struct HINSTANCE__;
 struct HWND__;
 #elif ALIMER_PLATFORM_UWP
 struct IUnknown;
@@ -52,7 +51,7 @@ namespace Alimer
     ALIMER_BITMASK(WindowFlags);
 
     /// Window resized event.
-    class ALIMER_API WindowResizeEvent : public Event
+    class ALIMER_API WindowResizeEvent 
     {
     public:
         /// New window size.
@@ -60,7 +59,7 @@ namespace Alimer
     };
 
     /// OS Window class.
-    class ALIMER_API Window final : public Object
+    class ALIMER_API Window : public Object
     {
         ALIMER_OBJECT(Window, Object);
 
@@ -114,13 +113,12 @@ namespace Alimer
 #if ALIMER_PLATFORM_UWP
         IUnknown* GetHandle() const { return _handle; }
 #elif ALIMER_PLATFORM_WINDOWS
-        HINSTANCE__* GetHInstance() const { return _hInstance; }
         HWND__* GetHandle() const { return _handle; }
 #elif ALIMER_PLATFORM_LINUX
 #elif ALIMER_PLATFORM_MACOS
 #endif
         /// Size changed event.
-        WindowResizeEvent resizeEvent;
+        Event<void(const WindowResizeEvent&)> resizeEvent;
 
     private:
         void PlatformConstruct();
@@ -130,7 +128,6 @@ namespace Alimer
         /// Window handle is IUnknown on UWP
         IUnknown* _handle = nullptr;
 #elif ALIMER_PLATFORM_WINDOWS
-        HINSTANCE__* _hInstance = nullptr;
         HWND__* _handle = nullptr;
 #endif
         /// Window title.

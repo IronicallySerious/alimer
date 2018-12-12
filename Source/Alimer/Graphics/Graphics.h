@@ -30,52 +30,31 @@
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/Pipeline.h"
-#include "../Graphics/ShaderCompiler.h"
+#include "../Graphics/RenderWindow.h"
 #include <set>
 #include <mutex>
 
 namespace Alimer
 {
-    struct SwapchainDescriptor
-    {
-        /// Native connection, display or instance type.
-        void* display;
-        /// Native window handle.
-        void* windowHandle;
-        /// Preferred color format.
-        PixelFormat preferredColorFormat = PixelFormat::BGRA8UNorm;
-        /// Preferred depth stencil format.
-        PixelFormat preferredDepthStencilFormat = PixelFormat::D24UNormS8;
-
-        uint32_t width;
-        uint32_t height;
-        uint32_t bufferCount = 2;
-       
-        /// Preferred samples.
-        SampleCount preferredSamples = SampleCount::Count1;
-    };
-
-    struct GraphicsSettings
-    {
-        bool                headless = false;
-        SwapchainDescriptor swapchain = {};
-    };
-
     class GraphicsImpl;
 
     /// Low-level 3D graphics module.
-    class ALIMER_API Graphics final : public Object
+    class ALIMER_API Graphics : public CommandContext
     {
         friend class CommandContext;
 
-        ALIMER_OBJECT(Graphics, Object);
+        ALIMER_OBJECT(Graphics, CommandContext);
+
+    protected:
+        /// Constructor.
+        Graphics(GraphicsBackend backend, bool validation);
 
     public:
         /// Register object.
         static void RegisterObject();
 
-        /// Constructor.
-        Graphics(GraphicsBackend backend, bool validation);
+        /// Create new Graphics.
+        static Graphics* Create(GraphicsBackend preferredBackend, bool validation);
 
         /// Destructor.
         ~Graphics() override;
@@ -93,10 +72,10 @@ namespace Alimer
         static GraphicsBackend GetDefaultPlatformBackend();
 
         /// Initialize graphics with given settings.
-        bool Initialize(const GraphicsSettings& settings);
+        virtual bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor);
 
         /// Wait for a device to become idle.
-        bool WaitIdle();
+        virtual bool WaitIdle();
 
         /// Finishes the current frame and schedules it for display.
         uint64_t Present();
@@ -116,6 +95,8 @@ namespace Alimer
         /// Get the device features.
         const GraphicsDeviceFeatures& GetFeatures() const;
 
+        virtual RenderWindow* GetMainWindow() const = 0;
+
         /// Get the main Swapchain current framebuffer.
         Framebuffer* GetSwapchainFramebuffer() const;
 
@@ -125,22 +106,27 @@ namespace Alimer
         GraphicsImpl* GetImpl() const { return _impl; }
 
     private:
-        void Shutdown();
         static CommandContext* AllocateContext();
-        
+
+        /* CommandContext override */
+        uint64_t FlushImpl(bool waitForCompletion) override;
+
+
         /// Implementation.
         GraphicsImpl* _impl = nullptr;
         static Graphics *_instance;
         GraphicsBackend _backend = GraphicsBackend::Empty;
-        bool _validation;
         bool _initialized = false;
         PODVector<GraphicsResource*> _gpuResources;
         std::mutex _gpuResourceMutex;
     
-        uint64_t _frameIndex = 0;
-
     protected:
-        GraphicsSettings _settings = {};
+        virtual void Shutdown();
+
+        bool _validation;
+        uint64_t _frameIndex = 0;
+        GraphicsDeviceFeatures _features = {};
+        CommandContext* _immediateCommandContext = nullptr;
     };
 
     /// Singleton access for Graphics. 

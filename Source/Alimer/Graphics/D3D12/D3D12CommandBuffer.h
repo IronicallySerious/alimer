@@ -54,7 +54,7 @@ namespace Alimer
 
 	private:
         /// Commit for execution and optionally wait for completion.
-        uint32_t Finish(bool waitForCompletion, bool releaseContext) override;
+        uint64_t Finish(bool waitForCompletion, bool releaseContext) override;
 
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;

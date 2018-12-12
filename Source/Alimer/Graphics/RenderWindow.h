@@ -22,24 +22,43 @@
 
 #pragma once
 
-#include "../Base/Vector.h"
-#include "../Core/Object.h"
+#include "../Application/Window.h"
+#include "../Graphics/PixelFormat.h"
+#include "../Graphics/Types.h"
 
 namespace Alimer
 {
-    class RenderContext;
-    class Camera;
-
-    /// Defines a base class for scene rendering pipeline.
-    class ALIMER_API SceneRenderPipeline : public Object
+    struct ALIMER_API RenderWindowDescriptor
     {
-        ALIMER_OBJECT(SceneRenderPipeline, Object);
+        String title = "Alimer";
+        uvec2 size = { 800, 600 };
+        WindowFlags windowFlags = WindowFlags::Default;
+
+        /// Preferred color format.
+        PixelFormat preferredColorFormat = PixelFormat::BGRA8UNorm;
+        /// Preferred depth stencil format.
+        PixelFormat preferredDepthStencilFormat = PixelFormat::D24UNormS8;
+
+        /// Preferred samples.
+        SampleCount preferredSamples = SampleCount::Count1;
+    };
+
+    /// Defines a RenderWindow class.
+    class ALIMER_API RenderWindow : public Window
+    {
+        friend class Graphics;
+        ALIMER_OBJECT(RenderWindow, Window);
+
+    protected:
+        /// Constructor.
+        RenderWindow(const RenderWindowDescriptor* descriptor);
 
     public:
-        SceneRenderPipeline();
-        virtual ~SceneRenderPipeline() = default;
+        /// Desturctor
+        ~RenderWindow() override;
 
-        virtual void Render(const RenderContext &context, Vector<Camera> cameras) = 0;
+        /// Swaps the frame buffers to display the next frame. 
+        virtual void SwapBuffers();
 
     private:
     };

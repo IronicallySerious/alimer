@@ -69,7 +69,7 @@ namespace Alimer
         _currentD3DPipeline = nullptr;
     }
 
-    uint32_t D3D12CommandContext::Finish(bool waitForCompletion, bool releaseContext)
+    uint64_t D3D12CommandContext::Finish(bool waitForCompletion, bool releaseContext)
     {
         FlushResourceBarriers();
 

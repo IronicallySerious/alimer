@@ -22,25 +22,29 @@
 
 #pragma once
 
-#include "../Base/Vector.h"
-#include "../Core/Object.h"
+#include "../Application/Application.h"
 
 namespace Alimer
 {
-    class RenderContext;
-    class Camera;
-
-    /// Defines a base class for scene rendering pipeline.
-    class ALIMER_API SceneRenderPipeline : public Object
+    /// Alimer studio application.
+    class ALIMER_API StudioApplication final : public Application
     {
-        ALIMER_OBJECT(SceneRenderPipeline, Object);
+        ALIMER_OBJECT(StudioApplication, Application);
 
     public:
-        SceneRenderPipeline();
-        virtual ~SceneRenderPipeline() = default;
+        /// Constructor.
+        StudioApplication(int argc, char** argv);
 
-        virtual void Render(const RenderContext &context, Vector<Camera> cameras) = 0;
+        /// Destructor.
+        virtual ~StudioApplication() override;
+
+        /// Return the single instance of the Application.
+        static StudioApplication* GetInstance();
+
+        /** @copydoc Application::IsEditor */
+        bool IsEditor() const override { return true; }
 
     private:
+        static StudioApplication *_instance;
     };
 }

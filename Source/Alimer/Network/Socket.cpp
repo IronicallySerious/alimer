@@ -55,12 +55,12 @@ namespace Alimer
             int error = WSAStartup(sockVersion, &wsaData);
             if (error != 0)
             {
-                ALIMER_LOGERROR("Win32", "Failed to start WinSock failed");
+                ALIMER_LOGERROR("Win32 - Failed to start WinSock failed");
             }
 
             if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2)
             {
-                ALIMER_LOGERROR("Win32", "Invalid WinSock version");
+                ALIMER_LOGERROR("Win32 - Invalid WinSock version");
             }
         }
 

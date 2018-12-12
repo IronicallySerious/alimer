@@ -26,7 +26,7 @@
 #include "../IO/FileSystem.h"
 #include "../Debug/Log.h"
 
-#if ALIMER_COMPILE_D3D11
+#if defined(ALIMER_D3D11)
 #   include "../Graphics/D3D11/D3D11GraphicsDevice.h"
 #endif
 
@@ -53,26 +53,53 @@ namespace Alimer
 {
     Graphics *Graphics::_instance;
 
-    Graphics::Graphics(GraphicsBackend preferredBackend, bool validation)
-        : _validation(validation)
+    Graphics::Graphics(GraphicsBackend backend, bool validation)
+        : CommandContext(this)
+        , _backend(backend)
+        , _validation(validation)
     {
-        _backend = preferredBackend;
-        if (_backend == GraphicsBackend::Default)
+        AddSubsystem(this);
+        _instance = this;
+    }
+
+    Graphics* Graphics::Create(GraphicsBackend preferredBackend, bool validation)
+    {
+        if (_instance != nullptr)
         {
-            _backend = GetDefaultPlatformBackend();
+            ALIMER_LOGERROR("Cannot create multiple instance of Graphics module");
+            return nullptr;
         }
 
-        switch (_backend)
+        GraphicsBackend backend = preferredBackend;
+        if (backend == GraphicsBackend::Default)
+        {
+            backend = GetDefaultPlatformBackend();
+        }
+
+        if (!IsBackendSupported(backend))
+        {
+            ALIMER_LOGERROR("Backend is not supported");
+            return nullptr;
+        }
+
+        Graphics* device = nullptr;
+        switch (backend)
         {
         case GraphicsBackend::Empty:
             break;
         case GraphicsBackend::Vulkan:
             break;
         case GraphicsBackend::D3D11:
+#if defined(ALIMER_D3D11)
+            device = new D3D11Graphics(validation);
+            ALIMER_LOGINFO("D3D11 backend created with success.");
+#else
+            ALIMER_LOGERROR("D3D11 backend is not supported.");
+#endif
             break;
         case GraphicsBackend::D3D12:
 #if defined(ALIMER_D3D12)
-            _impl = new D3D12Graphics(validation);
+            //device = new D3D12Graphics(validation);
             ALIMER_LOGINFO("D3D12 backend created with success.");
 #else
             ALIMER_LOGERROR("D3D12 backend is not supported.");
@@ -86,8 +113,7 @@ namespace Alimer
             ALIMER_UNREACHABLE();
         }
 
-        AddSubsystem(this);
-        _instance = this;
+        return device;
     }
 
     Graphics::~Graphics()
@@ -117,7 +143,7 @@ namespace Alimer
             _gpuResources.Clear();
         }
 
-        //_context.Reset();
+        SafeDelete(_immediateCommandContext);
     }
 
     bool Graphics::IsBackendSupported(GraphicsBackend backend)
@@ -139,14 +165,15 @@ namespace Alimer
 #endif
         case GraphicsBackend::D3D11:
 #if defined(ALIMER_D3D11)
-            return true; // agpuIsD3D11Supported();
+            return D3D11Graphics::IsSupported();
 #else
             return false;
 #endif
 
         case GraphicsBackend::D3D12:
 #if defined(ALIMER_D3D12)
-            return D3D12Graphics::IsSupported();
+            return false;
+            //return D3D12Graphics::IsSupported();
 #else
             return false;
 #endif
@@ -160,7 +187,7 @@ namespace Alimer
         default:
             return false;
         }
-    }
+        }
 
     std::set<GraphicsBackend> Graphics::GetAvailableBackends()
     {
@@ -175,15 +202,18 @@ namespace Alimer
 #endif
 
 #if defined(ALIMER_D3D11)
-            backends.insert(GraphicsBackend::D3D11);
+            if (D3D11Graphics::IsSupported())
+            {
+                backends.insert(GraphicsBackend::D3D11);
+            }
 #endif
 
 
 #if defined(ALIMER_D3D12)
-            if (D3D12Graphics::IsSupported())
+            /*if (D3D12Graphics::IsSupported())
             {
                 backends.insert(GraphicsBackend::D3D12);
-            }
+            }*/
 #endif
 
 #if ALIMER_COMPILE_VULKAN
@@ -215,28 +245,27 @@ namespace Alimer
 #endif
     }
 
-    bool Graphics::Initialize(const GraphicsSettings& settings)
+    bool Graphics::Initialize(const RenderWindowDescriptor* mainWindowDescriptor)
     {
         if (_initialized)
         {
             ALIMER_LOGCRITICAL("Cannot Initialize Graphics if already initialized.");
         }
 
-        _settings = settings;
-        _initialized = _impl->Initialize(settings);
+        _initialized = true;
         _frameIndex = 0;
         return _initialized;
     }
 
     bool Graphics::WaitIdle()
     {
-        return _impl->WaitIdle();
+        return true;
     }
 
     uint64_t Graphics::Present()
     {
         //_context->Flush();
-        _impl->Frame();
+        //_impl->Frame();
         return ++_frameIndex;
     }
 
@@ -265,12 +294,17 @@ namespace Alimer
 
     const GraphicsDeviceFeatures& Graphics::GetFeatures() const
     {
-        return _impl->features;
+        return _features;
     }
 
     Framebuffer* Graphics::GetSwapchainFramebuffer() const
     {
         return _impl->GetSwapchainFramebuffer();
+    }
+
+    uint64_t Graphics::FlushImpl(bool waitForCompletion)
+    {
+        return _immediateCommandContext->Flush(waitForCompletion);
     }
 
     void Graphics::RegisterObject()

@@ -85,7 +85,7 @@ namespace Alimer
     public:
         virtual ~GraphicsImpl() = default;
 
-        virtual bool Initialize(const GraphicsSettings& settings) = 0;
+        virtual bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) = 0;
 
         virtual bool WaitIdle() = 0;
         virtual void Frame() = 0;
@@ -95,7 +95,5 @@ namespace Alimer
         virtual Framebuffer* GetSwapchainFramebuffer() const = 0;
         virtual FramebufferImpl* CreateFramebuffer(const Vector<FramebufferAttachment>& colorAttachments) = 0;
         virtual GpuBufferImpl* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData, void* externalHandle) = 0;
-
-        GraphicsDeviceFeatures features = {};
     };
 }

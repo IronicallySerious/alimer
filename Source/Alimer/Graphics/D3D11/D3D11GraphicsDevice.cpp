@@ -20,32 +20,81 @@
 // THE SOFTWARE.
 //
 
-#include "../../AlimerConfig.h"
-
-#if ALIMER_COMPILE_D3D11
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Swapchain.h"
-#include "D3D11Framebuffer.h"
-#include "D3D11Texture.h"
 #include "D3D11CommandContext.h"
+/*#include "D3D11Framebuffer.h"
+#include "D3D11Texture.h"
 #include "D3D11GpuBuffer.h"
 #include "D3D11Shader.h"
 #include "D3D11Pipeline.h"
-#include "../D3D/D3DPlatformFunctions.h"
-#include "../ShaderCompiler.h"
+#include "../ShaderCompiler.h"*/
 #include "../../Core/Platform.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 #include <STB/stb_image_write.h>
-
-#if !defined(_XBOX_ONE) || !defined(_TITLE) || !defined(_DURANGO)
-#   pragma comment(lib,"d3d11.lib")
-#   pragma comment(lib,"dxgi.lib")
-#endif
 
 using namespace Microsoft::WRL;
 
+#if ALIMER_D3D_DYNAMIC_LIB
+typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY1)(REFIID riid, _COM_Outptr_ void **ppFactory);
+typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE)(REFIID riid, _COM_Outptr_ void** pDebug);
+#endif
+
 namespace Alimer
 {
+#ifdef ALIMER_D3D_DYNAMIC_LIB
+    static HMODULE s_dxgiLib = nullptr;
+    static HMODULE s_d3d11Lib = nullptr;
+
+    static PFN_CREATE_DXGI_FACTORY1 CreateDXGIFactory1 = nullptr;
+    static PFN_GET_DXGI_DEBUG_INTERFACE DXGIGetDebugInterface = nullptr;
+    static PFN_D3D11_CREATE_DEVICE D3D11CreateDevice = nullptr;
+
+    HRESULT D3D11LoadLibraries()
+    {
+        static bool loaded = false;
+        if (loaded)
+            return S_OK;
+        loaded = true;
+
+        // Load libraries first.
+        s_dxgiLib = LoadLibraryW(L"dxgi.dll");
+        if (!s_dxgiLib)
+        {
+            OutputDebugStringW(L"Failed to load dxgi.dll");
+            return S_FALSE;
+        }
+
+        s_d3d11Lib = LoadLibraryW(L"d3d11.dll");
+        if (!s_d3d11Lib)
+        {
+            OutputDebugStringW(L"Failed to load d3d11.dll");
+            return S_FALSE;
+        }
+
+        /* DXGI entry points */
+        CreateDXGIFactory1 = (PFN_CREATE_DXGI_FACTORY1)GetProcAddress(s_dxgiLib, "CreateDXGIFactory1");
+        DXGIGetDebugInterface = (PFN_GET_DXGI_DEBUG_INTERFACE)GetProcAddress(s_dxgiLib, "DXGIGetDebugInterface");
+        if (CreateDXGIFactory1 == nullptr)
+        {
+            OutputDebugStringW(L"Cannot find CreateDXGIFactory1 entry point.");
+            return S_FALSE;
+        }
+
+        /* D3D11 entry points */
+        D3D11CreateDevice = (PFN_D3D11_CREATE_DEVICE)GetProcAddress(s_d3d11Lib, "D3D11CreateDevice");
+
+        if (!D3D11CreateDevice)
+        {
+            OutputDebugStringW(L"Cannot find D3D11CreateDevice entry point.");
+            return S_FALSE;
+        }
+
+        return S_OK;
+    }
+#endif
+
+
 #if defined(_DEBUG)
     // Check for SDK Layer support.
     inline bool SdkLayersAvailable()
@@ -67,28 +116,87 @@ namespace Alimer
     }
 #endif
 
-    D3D11GraphicsDevice::D3D11GraphicsDevice(bool validation)
-        : GraphicsDevice(GraphicsBackend::D3D11, validation)
-        , _functions(new D3DPlatformFunctions())
+    static void GetD3D11HardwareAdapter(_In_ IDXGIFactory1* factory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
+    {
+        ComPtr<IDXGIAdapter1> adapter;
+        *ppAdapter = nullptr;
+
+        for (UINT adapterIndex = 0;
+            factory->EnumAdapters1(adapterIndex, adapter.ReleaseAndGetAddressOf()) != DXGI_ERROR_NOT_FOUND;
+            ++adapterIndex)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            if (FAILED(adapter->GetDesc1(&desc)))
+            {
+                ALIMER_LOGERROR("DXGI - Failed to get desc");
+            }
+
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+            {
+                // Don't select the Basic Render Driver adapter.
+                continue;
+            }
+
+            break;
+        }
+
+        *ppAdapter = adapter.Detach();
+    }
+
+
+    bool D3D11Graphics::IsSupported()
+    {
+        static bool availableCheck = false;
+        static bool isAvailable = false;
+
+        if (availableCheck)
+            return isAvailable;
+
+        availableCheck = true;
+#if ALIMER_D3D_DYNAMIC_LIB
+        if (FAILED(D3D11LoadLibraries()))
+        {
+            isAvailable = false;
+            return false;
+        }
+#endif
+        // Create temp dxgi factory for check support.
+        ComPtr<IDXGIFactory1> factory;
+        HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&factory));
+        if (FAILED(hr))
+        {
+            isAvailable = false;
+            return false;
+        }
+
+        ComPtr<IDXGIAdapter1> hardwareAdapter;
+        GetD3D11HardwareAdapter(factory.Get(), &hardwareAdapter);
+        isAvailable = hardwareAdapter != nullptr;
+        return isAvailable;
+    }
+
+    D3D11Graphics::D3D11Graphics(bool validation)
+        : Graphics(GraphicsBackend::D3D11, validation)
         , _cache(this)
     {
-        if (!_functions->LoadFunctions(false))
+        if (FAILED(D3D11LoadLibraries()))
         {
             ALIMER_LOGCRITICAL("D3D11 - Failed to load functions");
+            return;
         }
     }
 
-    D3D11GraphicsDevice::~D3D11GraphicsDevice()
+    D3D11Graphics::~D3D11Graphics()
     {
         Shutdown();
     }
 
-    void D3D11GraphicsDevice::Shutdown()
+    void D3D11Graphics::Shutdown()
     {
         SafeDelete(_mainSwapchain);
 
         // Clear pending resources.
-        GraphicsDevice::Shutdown();
+        Graphics::Shutdown();
 
         _cache.Clear();
 
@@ -108,11 +216,16 @@ namespace Alimer
 #endif
 
         _d3dDevice.Reset();
-        SafeDelete(_functions);
     }
 
-    bool D3D11GraphicsDevice::Initialize(const RenderingSettings& settings)
+    bool D3D11Graphics::Initialize(const RenderWindowDescriptor* mainWindowDescriptor)
     {
+        HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&_factory));
+        if (FAILED(hr))
+        {
+            return false;
+        }
+
         UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #if defined(_DEBUG)
@@ -132,112 +245,47 @@ namespace Alimer
         // Determine DirectX hardware feature levels this app will support.
         static const D3D_FEATURE_LEVEL s_featureLevels[] =
         {
-#if ALIMER_PLATFORM_UWP
             D3D_FEATURE_LEVEL_12_1,
             D3D_FEATURE_LEVEL_12_0,
-#endif
             D3D_FEATURE_LEVEL_11_1,
             D3D_FEATURE_LEVEL_11_0,
             D3D_FEATURE_LEVEL_10_1,
             D3D_FEATURE_LEVEL_10_0,
         };
 
-        UINT featLevelCount = 0;
-        for (; featLevelCount < _countof(s_featureLevels); ++featLevelCount)
-        {
-            if (s_featureLevels[featLevelCount] < _d3dMinFeatureLevel)
-                break;
-        }
+        GetD3D11HardwareAdapter(_factory.Get(), _adapter.ReleaseAndGetAddressOf());
+        UINT featLevelCount = _countof(s_featureLevels);
+        hr = D3D11CreateDevice(
+            _adapter.Get(),
+            D3D_DRIVER_TYPE_UNKNOWN,
+            0,
+            creationFlags,
+            s_featureLevels,
+            featLevelCount,
+            D3D11_SDK_VERSION,
+            _d3dDevice.ReleaseAndGetAddressOf(),
+            &_d3dFeatureLevel,
+            _d3dContext.ReleaseAndGetAddressOf()
+        );
 
-        ComPtr<IDXGIAdapter1> adapter;
-        GetHardwareAdapter(adapter.GetAddressOf());
-
-        HRESULT hr = E_FAIL;
-        // Create the Direct3D 11 API device object and a corresponding context.
-        if (adapter)
+        if (hr == E_INVALIDARG && featLevelCount > 1)
         {
+            assert(s_featureLevels[0] == D3D_FEATURE_LEVEL_11_1);
+
+            // DirectX 11.0 platforms will not recognize D3D_FEATURE_LEVEL_11_1 so we need to retry without it
             hr = D3D11CreateDevice(
-                adapter.Get(),
+                _adapter.Get(),
                 D3D_DRIVER_TYPE_UNKNOWN,
-                0,
-                creationFlags,
-                s_featureLevels,
-                featLevelCount,
-                D3D11_SDK_VERSION,
-                _d3dDevice.ReleaseAndGetAddressOf(),
-                &_d3dFeatureLevel,
-                _d3dContext.ReleaseAndGetAddressOf()
-            );
-
-            if (hr == E_INVALIDARG && featLevelCount > 1)
-            {
-                assert(s_featureLevels[0] == D3D_FEATURE_LEVEL_11_1);
-
-                // DirectX 11.0 platforms will not recognize D3D_FEATURE_LEVEL_11_1 so we need to retry without it
-                hr = D3D11CreateDevice(
-                    adapter.Get(),
-                    D3D_DRIVER_TYPE_UNKNOWN,
-                    nullptr,
-                    creationFlags,
-                    &s_featureLevels[1],
-                    featLevelCount - 1,
-                    D3D11_SDK_VERSION,
-                    _d3dDevice.ReleaseAndGetAddressOf(),
-                    &_d3dFeatureLevel,
-                    _d3dContext.ReleaseAndGetAddressOf()
-                );
-            }
-        }
-#if defined(NDEBUG)
-        else
-        {
-            ALIMER_LOGCRITICAL("No Direct3D hardware device found");
-        }
-#else
-        if (FAILED(hr))
-        {
-            // If the initialization fails, fall back to the WARP device.
-            // For more information on WARP, see: 
-            // http://go.microsoft.com/fwlink/?LinkId=286690
-            hr = D3D11CreateDevice(
                 nullptr,
-                D3D_DRIVER_TYPE_WARP, // Create a WARP device instead of a hardware device.
-                0,
                 creationFlags,
-                s_featureLevels,
-                _countof(s_featureLevels),
+                &s_featureLevels[1],
+                featLevelCount - 1,
                 D3D11_SDK_VERSION,
                 _d3dDevice.ReleaseAndGetAddressOf(),
                 &_d3dFeatureLevel,
                 _d3dContext.ReleaseAndGetAddressOf()
             );
-
-            if (hr == E_INVALIDARG && featLevelCount > 1)
-            {
-                assert(s_featureLevels[0] == D3D_FEATURE_LEVEL_11_1);
-
-                // DirectX 11.0 platforms will not recognize D3D_FEATURE_LEVEL_11_1 so we need to retry without it
-                hr = D3D11CreateDevice(
-                    nullptr,
-                    D3D_DRIVER_TYPE_WARP,
-                    nullptr,
-                    creationFlags,
-                    &s_featureLevels[1],
-                    featLevelCount - 1,
-                    D3D11_SDK_VERSION,
-                    _d3dDevice.ReleaseAndGetAddressOf(),
-                    &_d3dFeatureLevel,
-                    _d3dContext.ReleaseAndGetAddressOf()
-                );
-            }
-
-
-            if (SUCCEEDED(hr))
-            {
-                ALIMER_LOGINFO("Direct3D Adapter - WARP");
-            }
         }
-#endif
         ThrowIfFailed(hr);
 
 #ifndef NDEBUG
@@ -283,29 +331,20 @@ namespace Alimer
         InitializeCaps();
 
         // Create Swapchain.
-        _mainSwapchain = new D3D11Swapchain(this, &settings.swapchain);
+        _mainSwapchain = new D3D11Swapchain(this, mainWindowDescriptor);
 
-        // Create default command context.
-        _context = new D3D11CommandContext(this);
+        // Create immediate command context.
+        _immediateCommandContext = new D3D11CommandContext(this);
 
-        return GraphicsDevice::Initialize(settings);
+        return Graphics::Initialize(mainWindowDescriptor);
     }
 
-    void D3D11GraphicsDevice::PresentImpl()
-    {
-        // Present the frame.
-        _mainSwapchain->Present();
-
-        // Flush immediate context.
-        //_d3dContext->Flush();
-    }
-
-    Framebuffer* D3D11GraphicsDevice::GetSwapchainFramebuffer() const
+    /*Framebuffer* D3D11Graphics::GetSwapchainFramebuffer() const
     {
         return _mainSwapchain->GetCurrentFramebuffer();
-    }
+    }*/
 
-    void D3D11GraphicsDevice::GenerateScreenshot(const std::string& fileName)
+    void D3D11Graphics::GenerateScreenshot(const std::string& fileName)
     {
         /*HRESULT hr = S_OK;
 
@@ -386,50 +425,14 @@ namespace Alimer
         texture->Release();*/
     }
 
-    bool D3D11GraphicsDevice::WaitIdle()
+    bool D3D11Graphics::WaitIdle()
     {
         _d3dContext->Flush();
-        return true;
+
+        return Graphics::WaitIdle();
     }
 
-    void D3D11GraphicsDevice::GetHardwareAdapter(IDXGIAdapter1** ppAdapter)
-    {
-        *ppAdapter = nullptr;
-
-        ComPtr<IDXGIFactory1> dxgiFactory;
-
-        if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory))))
-        {
-            ALIMER_LOGCRITICAL("D3D11 - Failed to create DXGI factory");
-        }
-
-        ComPtr<IDXGIAdapter1> adapter;
-        for (UINT adapterIndex = 0;
-            DXGI_ERROR_NOT_FOUND != dxgiFactory->EnumAdapters1(
-                adapterIndex,
-                adapter.ReleaseAndGetAddressOf());
-            adapterIndex++)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            adapter->GetDesc1(&desc);
-
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-            {
-                // Don't select the Basic Render Driver adapter.
-                continue;
-            }
-
-            wchar_t buff[256] = {};
-            swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description);
-            OutputDebugStringW(buff);
-
-            break;
-        }
-
-        *ppAdapter = adapter.Detach();
-    }
-
-    void D3D11GraphicsDevice::InitializeCaps()
+    void D3D11Graphics::InitializeCaps()
     {
         ComPtr<IDXGIDevice1> dxgiDevice;
         ThrowIfFailed(_d3dDevice.As(&dxgiDevice));
@@ -439,9 +442,15 @@ namespace Alimer
 
         DXGI_ADAPTER_DESC desc;
         dxgiAdapter->GetDesc(&desc);
+
+#ifdef _DEBUG
+        wchar_t buff[256] = {};
+        swprintf_s(buff, L"D3D11 device created using Adapter: VID:%04X, PID:%04X - %ls\n", desc.VendorId, desc.DeviceId, desc.Description);
+        OutputDebugStringW(buff);
+#endif
         _features.SetVendorId(desc.VendorId);
         _features.SetDeviceId(desc.DeviceId);
-        //_features.SetDeviceName(desc.Description);
+        _features.SetDeviceName(String(desc.Description));
 
         switch (_d3dFeatureLevel)
         {
@@ -483,19 +492,35 @@ namespace Alimer
         }
 
         _features.SetMaxColorAttachments(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
+
+        IDXGIFactory5* factory5;
+        if (SUCCEEDED(_factory->QueryInterface(&factory5)))
+        {
+            BOOL allowTearing = FALSE;
+            hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
+            if (SUCCEEDED(hr) && allowTearing)
+            {
+                _allowTearing = true;
+            }
+        }
     }
 
-    void D3D11GraphicsDevice::HandleDeviceLost()
+    void D3D11Graphics::HandleDeviceLost()
     {
         // TODO
     }
 
-    D3D11Cache &D3D11GraphicsDevice::GetCache()
+    RenderWindow* D3D11Graphics::GetMainWindow() const
+    {
+        return _mainSwapchain;
+    }
+
+    D3D11Cache &D3D11Graphics::GetCache()
     {
         return _cache;
     }
 
-
+    /*
     GpuBuffer* D3D11GraphicsDevice::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
         return new D3D11Buffer(this, descriptor, initialData);
@@ -519,6 +544,5 @@ namespace Alimer
     Pipeline* D3D11GraphicsDevice::CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor)
     {
         return new D3D11Pipeline(this, descriptor);
-    }
+    }*/
 }
-#endif /* ALIMER_COMPILE_D3D11 */

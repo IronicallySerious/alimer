@@ -22,7 +22,6 @@
 
 #include "../Resource/ResourceManager.h"
 #include "../Application/Application.h"
-#include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
 #include "../Debug/Log.h"
@@ -88,7 +87,7 @@ namespace Alimer
         return it != end(_loaders) ? it->second.Get() : nullptr;
     }
 
-    UniquePtr<Stream> ResourceManager::Open(const String &assetName)
+    UniquePtr<Stream> ResourceManager::OpenResource(const String &assetName)
     {
         std::lock_guard<std::mutex> guard(_resourceMutex);
 
@@ -152,7 +151,7 @@ namespace Alimer
 
     Vector<uint8_t> ResourceManager::ReadBytes(const String& assetName, size_t count)
     {
-        UniquePtr<Stream> stream = Open(assetName);
+        UniquePtr<Stream> stream = OpenResource(assetName);
         return stream->ReadBytes(count);
     }
 
@@ -164,7 +163,7 @@ namespace Alimer
         if (it != _resources.end())
             return it->second;
 
-        UniquePtr<Stream> stream = Open(assetName);
+        UniquePtr<Stream> stream = OpenResource(assetName);
         if (stream.IsNull())
         {
             return nullptr;

@@ -27,8 +27,8 @@
 
 namespace Alimer
 {
-    CommandContext::CommandContext()
-        : _graphics(Object::GetSubsystem<Graphics>())
+    CommandContext::CommandContext(Graphics* graphics)
+        : _graphics(graphics)
         , _insideRenderPass(false)
     {
     }
@@ -47,12 +47,7 @@ namespace Alimer
 
     uint64_t CommandContext::Flush(bool waitForCompletion)
     {
-        return Finish(waitForCompletion, false);
-    }
-
-    uint64_t CommandContext::Finish(bool waitForCompletion)
-    {
-        return Finish(waitForCompletion, true);
+        return FlushImpl(waitForCompletion);
     }
 
     void CommandContext::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
@@ -82,13 +77,13 @@ namespace Alimer
     {
         ALIMER_ASSERT(framebuffer);
 
-        BeginRenderPassImpl(framebuffer, descriptor);
+        //BeginRenderPassImpl(framebuffer, descriptor);
         _insideRenderPass = true;
     }
 
     void CommandContext::EndRenderPass()
     {
-        EndRenderPassImpl();
+        //EndRenderPassImpl();
         _insideRenderPass = false;
     }
 
@@ -136,13 +131,13 @@ namespace Alimer
             return;
         }
 
-        uint32_t offset = startIndex * buffer->GetIndexSize();
-        SetIndexBufferImpl(buffer, offset, buffer->GetIndexType());
+        //uint32_t offset = startIndex * buffer->GetIndexSize();
+        //SetIndexBufferImpl(buffer, offset, buffer->GetIndexType());
     }
 
     void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)
     {
-        SetPrimitiveTopologyImpl(topology);
+        //SetPrimitiveTopologyImpl(topology);
     }
 
     void CommandContext::Draw(uint32_t vertexCount, uint32_t firstVertex)
@@ -159,7 +154,7 @@ namespace Alimer
         ALIMER_ASSERT(instanceCount >= 1);
 #endif
 
-        DrawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
+        //DrawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)

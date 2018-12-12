@@ -27,8 +27,8 @@
 
 namespace Alimer
 {
-    Framebuffer::Framebuffer()
-        : GraphicsResource(Object::GetSubsystem<Graphics>())
+    Framebuffer::Framebuffer(Graphics* graphics)
+        : GraphicsResource(graphics)
         , _impl(nullptr)
     {
         _width = UINT32_MAX;

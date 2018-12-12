@@ -20,27 +20,25 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Base/Vector.h"
-#include "../Core/Object.h"
+#include "../Graphics/RenderWindow.h"
+#include "../Graphics/Graphics.h"
+#include "../Graphics/GraphicsImpl.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {
-    class RenderContext;
-    class Camera;
-
-    /// Defines a base class for scene rendering pipeline.
-    class ALIMER_API SceneRenderPipeline : public Object
+    RenderWindow::RenderWindow(const RenderWindowDescriptor* descriptor)
+        : Window(descriptor->title, descriptor->size, descriptor->windowFlags)
     {
-        ALIMER_OBJECT(SceneRenderPipeline, Object);
 
-    public:
-        SceneRenderPipeline();
-        virtual ~SceneRenderPipeline() = default;
+    }
 
-        virtual void Render(const RenderContext &context, Vector<Camera> cameras) = 0;
+    RenderWindow::~RenderWindow()
+    {
+    }
 
-    private:
-    };
+    void RenderWindow::SwapBuffers()
+    {
+
+    }
 }

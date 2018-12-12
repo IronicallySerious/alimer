@@ -21,11 +21,11 @@
 #
 
 # Player
-add_subdirectory(Player)
+# add_subdirectory(Player)
 
 if (ALIMER_DESKTOP)
     # Standalone shader compiler
     add_subdirectory(shaderc)
 
-    add_subdirectory(Studio)
+    # add_subdirectory(Studio)
 endif ()

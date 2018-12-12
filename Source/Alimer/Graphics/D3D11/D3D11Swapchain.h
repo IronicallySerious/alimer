@@ -22,22 +22,23 @@
 
 #pragma once
 
-#include "../GraphicsDevice.h"
-#include "../../Application/Window.h"
+#include "../Graphics.h"
+#include "../RenderWindow.h"
+#include "../Framebuffer.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
     class D3D11Texture;
     class D3D11Framebuffer;
-    class D3D11GraphicsDevice;
+    class D3D11Graphics;
 
     /// D3D11 Swapchain implementation.
-    class D3D11Swapchain final
+    class D3D11Swapchain final : public RenderWindow
     {
     public:
         /// Constructor.
-        D3D11Swapchain(D3D11GraphicsDevice* device, const SwapchainDescriptor* descriptor, uint32_t backBufferCount = 2);
+        D3D11Swapchain(D3D11Graphics* graphics, const RenderWindowDescriptor* descriptor, uint32_t backBufferCount = 2);
 
         /// Destructor.
         ~D3D11Swapchain();
@@ -45,13 +46,13 @@ namespace Alimer
         void Destroy();
 
         void Resize(uint32_t width, uint32_t height, bool force = false);
-        void Present();
+        void SwapBuffers();
 
         Framebuffer* GetCurrentFramebuffer() const;
         uint32_t     GetBackBufferCount() const { return _backBufferCount; }
 
     private:
-        D3D11GraphicsDevice* _device;
+        D3D11Graphics* _graphics;
         uint32_t _width = 0;
         uint32_t _height = 0;
         uint32_t _backBufferCount = 2u;

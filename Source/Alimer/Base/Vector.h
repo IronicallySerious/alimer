@@ -594,7 +594,7 @@ namespace Alimer
         template <class RandomIteratorT>
         static void ConstructElements(T* dest, RandomIteratorT start, RandomIteratorT end, CopyTag)
         {
-            const uint32_t count = end - start;
+            const uint32_t count = (uint32_t)(end - start);
             for (uint32_t i = 0; i < count; ++i)
             {
                 new(dest + i) T(*(start + i));
@@ -605,7 +605,7 @@ namespace Alimer
         template <class RandomIteratorT>
         static void ConstructElements(T* dest, RandomIteratorT start, RandomIteratorT end, MoveTag)
         {
-            const uint32_t count = end - start;
+            const uint32_t count = (uint32_t)(end - start);
             for (uint32_t i = 0; i < count; ++i)
             {
                 new(dest + i) T(std::move(*(start + i)));
@@ -666,7 +666,7 @@ namespace Alimer
             if (pos > _size)
                 pos = _size;
 
-            const uint32_t numElements = end - start;
+            const uint32_t numElements = (uint32_t)(end - start);
             if (_size + numElements > _capacity)
             {
                 T* src = Buffer();

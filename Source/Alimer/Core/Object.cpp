@@ -176,24 +176,4 @@ namespace Alimer
     {
         return details::Context().GetTypeNameFromType(type);
     }
-
-    void Object::SubscribeToEvent(Event& event, EventHandler* handler)
-    {
-        event.Subscribe(handler);
-    }
-
-    void Object::UnsubscribeFromEvent(Event& event)
-    {
-        event.Unsubscribe(this);
-    }
-
-    void Object::SendEvent(Event& event)
-    {
-        event.Send(this);
-    }
-
-    bool Object::IsSubscribedToEvent(const Event& event) const
-    {
-        return event.HasReceiver(this);
-    }
 }

@@ -104,7 +104,7 @@ namespace Alimer
         if (mode == FileAccess::ReadOnly
             && !FileSystem::FileExists(fileName))
         {
-            ALIMER_LOGERROR("IO", "Cannot open file for read as it doesn't exists");
+            ALIMER_LOGERROR("Cannot open file for read as it doesn't exists");
             return false;
         }
 
@@ -113,7 +113,7 @@ namespace Alimer
         {
             if (!EnsureDirectoryExists(fileName))
             {
-                ALIMER_LOGERROR("IO", "FileStream::Open - failed to create directory.");
+                ALIMER_LOGERROR("FileStream::Open - failed to create directory.");
                 return false;
             }
         }
@@ -150,7 +150,7 @@ namespace Alimer
 
         if (_handle == INVALID_HANDLE_VALUE)
         {
-            ALIMER_LOGERRORF("Win32", "Failed to open file: '%s'.", fileName.CString());
+            ALIMER_LOGERRORF("Win32 - Failed to open file: '%s'.", fileName.CString());
         }
 
         if (mode != FileAccess::WriteOnly)
@@ -158,7 +158,7 @@ namespace Alimer
             LARGE_INTEGER size;
             if (!GetFileSizeEx(_handle, &size))
             {
-                ALIMER_LOGERROR("Win32", "GetFileSizeEx: failed");
+                ALIMER_LOGERROR("Win32 - GetFileSizeEx: failed");
             }
 
             _size = static_cast<uint64_t>(size.QuadPart);
@@ -242,7 +242,7 @@ namespace Alimer
     {
         if (!CanRead())
         {
-            ALIMER_LOGERROR("IO", "Cannot read for write only stream");
+            ALIMER_LOGERROR("Cannot read for write only stream");
             return 0;
         }
 
@@ -316,26 +316,26 @@ namespace Alimer
             return 0;
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        DWORD windowsOffset = 0;
+        DWORD moveMethod = 0;
         switch (origin)
         {
         case SeekOrigin::Begin:
-            windowsOffset = FILE_BEGIN;
+            moveMethod = FILE_BEGIN;
             break;
         case SeekOrigin::Current:
-            windowsOffset = FILE_CURRENT;
+            moveMethod = FILE_CURRENT;
             break;
         case SeekOrigin::End:
-            windowsOffset = FILE_END;
+            moveMethod = FILE_END;
             break;
         default:
             break;
         }
         LARGE_INTEGER windowsOffset;
         windowsOffset.QuadPart = offset;
-        if (!SetFilePointerEx(_handle, windowsOffset, &windowsOffset, windowsOffset))
+        if (!SetFilePointerEx(_handle, windowsOffset, &windowsOffset, moveMethod))
         {
-            ALIMER_LOGERROR("Win32", "Seek failed");
+            ALIMER_LOGERROR("Win32 - Seek failed");
             return static_cast<uint64_t>(-1);
         }
         _position = windowsOffset.QuadPart;

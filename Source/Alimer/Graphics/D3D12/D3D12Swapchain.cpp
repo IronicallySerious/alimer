@@ -31,8 +31,9 @@ namespace Alimer
 {
     using namespace Microsoft::WRL;
 
-    D3D12Swapchain::D3D12Swapchain(D3D12Graphics* graphics, const SwapchainDescriptor* descriptor)
-        : _graphics(graphics)
+    D3D12Swapchain::D3D12Swapchain(D3D12Graphics* graphics, const RenderWindowDescriptor* descriptor)
+        : RenderWindow(descriptor)
+        , _graphics(graphics)
     {
         // Create a descriptor for the swap chain.
         uint32_t backbufferCount = 2;
@@ -52,16 +53,11 @@ namespace Alimer
             }
         }
 
-        if (descriptor->bufferCount != 0)
-        {
-            backbufferCount = descriptor->bufferCount;
-            if (backbufferCount > 3)
-                backbufferCount = 3;
-        }
+        backbufferCount = 2;
 
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-        swapChainDesc.Width = descriptor->width;
-        swapChainDesc.Height = descriptor->height;
+        swapChainDesc.Width = descriptor->size.x;
+        swapChainDesc.Height = descriptor->size.y;
         swapChainDesc.Format = _dxgiBackBufferFormat;
         swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         swapChainDesc.BufferCount = backbufferCount;
@@ -77,7 +73,7 @@ namespace Alimer
         /* TODO: DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT*/
 
 #if !ALIMER_PLATFORM_UWP
-        HWND windowHandle = static_cast<HWND>(descriptor->windowHandle);
+        HWND windowHandle = GetHandle();
         DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
         fsSwapChainDesc.Windowed = TRUE;
 
@@ -138,7 +134,7 @@ namespace Alimer
         _backBufferIndex = _swapChain->GetCurrentBackBufferIndex();
     }
 
-    void D3D12Swapchain::Present()
+    void D3D12Swapchain::SwapBuffers()
     {
         const bool vsync = true;
         uint32_t syncIntervals = vsync ? 1 : 0;

@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Graphics.h"
+#include "../RenderWindow.h"
 #include "../Framebuffer.h"
 #include "D3D12Prerequisites.h"
 
@@ -33,17 +34,17 @@ namespace Alimer
 	class D3D12Graphics;
 
 	/// D3D12 Swapchain.
-	class D3D12Swapchain final : public RefCounted
+	class D3D12Swapchain final : public RenderWindow
 	{
 	public:
 		/// Constructor.
-        D3D12Swapchain(D3D12Graphics* graphics, const SwapchainDescriptor* descriptor);
+        D3D12Swapchain(D3D12Graphics* graphics, const RenderWindowDescriptor* descriptor);
 
 		/// Destructor.
 		~D3D12Swapchain() override = default;
 
         void AfterReset();
-        void Present();
+        void SwapBuffers() override;
 
         Framebuffer* GetFramebuffer() const {
             return _backBufferFramebuffers[_backBufferIndex];

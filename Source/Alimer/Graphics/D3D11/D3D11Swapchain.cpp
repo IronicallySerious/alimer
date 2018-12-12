@@ -25,16 +25,17 @@
 #include "D3D11Texture.h"
 #include "D3D11Framebuffer.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Swapchain::D3D11Swapchain(D3D11GraphicsDevice* device, const SwapchainDescriptor* descriptor, uint32_t backBufferCount)
-        : _device(device)
+    D3D11Swapchain::D3D11Swapchain(D3D11Graphics* graphics, const RenderWindowDescriptor* descriptor, uint32_t backBufferCount)
+        : RenderWindow(descriptor)
+        , _graphics(graphics)
         , _backBufferCount(backBufferCount)
     {
-        switch (descriptor->colorFormat)
+        switch (descriptor->preferredColorFormat)
         {
         case PixelFormat::BGRA8UNorm:
             _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -49,15 +50,15 @@ namespace Alimer
             break;
         }
 
-       _depthStencilFormat = descriptor->depthStencilFormat;
+        _depthStencilFormat = descriptor->preferredDepthStencilFormat;
 
 #if ALIMER_PLATFORM_UWP
-        _window = static_cast<IUnknown*>(descriptor->windowHandle);
+        _window = static_cast<IUnknown*>(GetHandle());
 #else
-        _hwnd = static_cast<HWND>(descriptor->windowHandle);
+        _hwnd = static_cast<HWND>(GetHandle());
 #endif
 
-        Resize(descriptor->width, descriptor->height, true);
+        Resize(descriptor->size.x, descriptor->size.y, true);
     }
 
     D3D11Swapchain::~D3D11Swapchain()
@@ -85,10 +86,10 @@ namespace Alimer
 
         // Clear the previous window size specific context.
         ID3D11RenderTargetView* nullViews[] = { nullptr };
-        _device->GetD3DDeviceContext()->OMSetRenderTargets(1, nullViews, nullptr);
+        _graphics->GetD3DDeviceContext()->OMSetRenderTargets(1, nullViews, nullptr);
         _renderTarget.Reset();
         _depthStencil.Reset();
-        _device->GetD3DDeviceContext()->Flush();
+        _graphics->GetD3DDeviceContext()->Flush();
 
         HRESULT hr = S_OK;
 
@@ -108,40 +109,18 @@ namespace Alimer
         }
         else
         {
-            // This sequence obtains the DXGI factory that was used to create the Direct3D device above.
-            ComPtr<IDXGIDevice1> dxgiDevice;
-            ThrowIfFailed(_device->GetD3DDevice()->QueryInterface(dxgiDevice.ReleaseAndGetAddressOf()));
-
-            ComPtr<IDXGIAdapter> dxgiAdapter;
-            ThrowIfFailed(dxgiDevice->GetAdapter(dxgiAdapter.GetAddressOf()));
-
-            ComPtr<IDXGIFactory1> dxgiFactory;
-            ThrowIfFailed(dxgiAdapter->GetParent(IID_PPV_ARGS(dxgiFactory.GetAddressOf())));
-
             // Check tearing.
-            ComPtr<IDXGIFactory5> factory5;
-            bool allowTearing = false;
-            if (SUCCEEDED(dxgiFactory.As(&factory5)))
+            DXGI_SWAP_EFFECT swapEffect = DXGI_SWAP_EFFECT_DISCARD;
+            if (_graphics->AllowTearing())
             {
-                BOOL bAllowTearing;
-                hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &bAllowTearing, sizeof(BOOL));
-                if (FAILED(hr) || !bAllowTearing)
-                {
-#ifdef _DEBUG
-                    ALIMER_LOGWARN("Variable refresh rate displays not supported.");
-#endif
-                }
-                else
-                {
-                    allowTearing = true;
-                    _syncInterval = 0;
-                    _presentFlags = DXGI_PRESENT_ALLOW_TEARING;
-                    _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-                }
+                _syncInterval = 0;
+                _presentFlags = DXGI_PRESENT_ALLOW_TEARING;
+                _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+                swapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
             }
 
             ComPtr<IDXGIFactory2> dxgiFactory2;
-            if (SUCCEEDED(dxgiFactory.As(&dxgiFactory2)))
+            if (SUCCEEDED(_graphics->GetFactory()->QueryInterface(dxgiFactory2.ReleaseAndGetAddressOf())))
             {
                 // DirectX 11.1 or later.
                 DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
@@ -153,7 +132,7 @@ namespace Alimer
                 swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
                 swapChainDesc.BufferCount = _backBufferCount;
                 swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-                swapChainDesc.SwapEffect = allowTearing ? DXGI_SWAP_EFFECT_FLIP_DISCARD : DXGI_SWAP_EFFECT_DISCARD;
+                swapChainDesc.SwapEffect = swapEffect;
                 swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
                 swapChainDesc.Flags = _swapChainFlags;
 
@@ -163,7 +142,7 @@ namespace Alimer
                     fsSwapChainDesc.Windowed = TRUE;
 
                     hr = dxgiFactory2->CreateSwapChainForHwnd(
-                        _device->GetD3DDevice(),
+                        _graphics->GetD3DDevice(),
                         _hwnd,
                         &swapChainDesc,
                         &fsSwapChainDesc,
@@ -177,7 +156,7 @@ namespace Alimer
                     }
 
                     ThrowIfFailed(_swapChain1.As(&_swapChain));
-                    ThrowIfFailed(dxgiFactory->MakeWindowAssociation(_hwnd, DXGI_MWA_NO_ALT_ENTER));
+                    
                 }
                 else
                 {
@@ -186,7 +165,7 @@ namespace Alimer
                     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
                     ThrowIfFailed(dxgiFactory2->CreateSwapChainForCoreWindow(
-                        _device->GetD3DDevice(),
+                        _graphics->GetD3DDevice(),
                         _window,
                         &swapChainDesc,
                         nullptr,
@@ -196,7 +175,7 @@ namespace Alimer
                     // Ensure that DXGI does not queue more than one frame at a time. This both reduces latency and
                     // ensures that the application will only render after each VSync, minimizing power consumption.
                     ComPtr<IDXGIDevice3> dxgiDevice3;
-                    ThrowIfFailed(_device->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&dxgiDevice3)));
+                    ThrowIfFailed(_graphics->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&dxgiDevice3)));
                     ThrowIfFailed(dxgiDevice3->SetMaximumFrameLatency(1));
 
                     // TODO: Handle rotation.
@@ -218,23 +197,28 @@ namespace Alimer
                 swapChainDesc.Windowed = TRUE;
                 swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
-                ThrowIfFailed(dxgiFactory->CreateSwapChain(
-                    _device->GetD3DDevice(),
+                ThrowIfFailed(_graphics->GetFactory()->CreateSwapChain(
+                    _graphics->GetD3DDevice(),
                     &swapChainDesc,
                     _swapChain.ReleaseAndGetAddressOf()
                 ));
             }
         }
 
+        if (_hwnd)
+        {
+            ThrowIfFailed(_graphics->GetFactory()->MakeWindowAssociation(_hwnd, DXGI_MWA_NO_ALT_ENTER));
+        }
+
         ID3D11Texture2D* renderTarget;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
 
-        D3D11_TEXTURE2D_DESC d3dTextureDesc;
+        /*D3D11_TEXTURE2D_DESC d3dTextureDesc;
         renderTarget->GetDesc(&d3dTextureDesc);
 
         TextureDescriptor textureDesc = {};
         textureDesc.type = TextureType::Type2D;
-        textureDesc.format = d3d::Convert(d3dTextureDesc.Format);
+        textureDesc.format = GetPixelFormatDxgiFormat(d3dTextureDesc.Format);
         textureDesc.width = d3dTextureDesc.Width;
         textureDesc.height = d3dTextureDesc.Height;
         textureDesc.depth = 1;
@@ -265,7 +249,7 @@ namespace Alimer
             textureDesc.usage |= TextureUsage::RenderTarget;
         }
 
-        _renderTarget = new D3D11Texture(_device, &textureDesc, nullptr, renderTarget);
+        _renderTarget = new D3D11Texture(_graphics, &textureDesc, nullptr, renderTarget);
 
         FramebufferDescriptor fboDescriptor = {};
         fboDescriptor.colorAttachments[0].texture = _renderTarget.Get();
@@ -282,14 +266,14 @@ namespace Alimer
         }
 
         _framebuffers.resize(1);
-        _framebuffers[0] = _device->CreateFramebuffer(&fboDescriptor);
+        _framebuffers[0] = _graphics->CreateFramebuffer(&fboDescriptor);*/
 
         // Set new size.
         _width = width;
         _height = height;
     }
 
-    void D3D11Swapchain::Present()
+    void D3D11Swapchain::SwapBuffers()
     {
         HRESULT hr = _swapChain->Present(_syncInterval, _presentFlags);
         //m_d3dContext->DiscardView(m_d3dRenderTargetView.Get());
@@ -301,11 +285,11 @@ namespace Alimer
         {
 #ifdef _DEBUG
             char buff[64] = {};
-            sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n", (hr == DXGI_ERROR_DEVICE_REMOVED) ? _device->GetD3DDevice()->GetDeviceRemovedReason() : hr);
+            sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n", (hr == DXGI_ERROR_DEVICE_REMOVED) ? _graphics->GetD3DDevice()->GetDeviceRemovedReason() : hr);
             OutputDebugStringA(buff);
 #endif
 
-            _device->HandleDeviceLost();
+            _graphics->HandleDeviceLost();
         }
         else
         {

@@ -61,7 +61,7 @@ namespace Alimer
 
     bool ShaderModule::EndLoad()
     {
-        return true;
+        return Define(_stage, _sourceCode, "main");
     }
 
     bool ShaderModule::ProcessIncludes(String& code, Stream& source)
@@ -74,9 +74,9 @@ namespace Alimer
 
             if (line.StartsWith("#include"))
             {
-                String includeFileName = Path(source.Name()) + line.Substring(9).Replaced("\"", "").Trimmed();
-                AutoPtr<Stream> includeStream = cache->OpenResource(includeFileName);
-                if (!includeStream)
+                String includeFileName = FileSystem::GetPath(source.GetName()) + line.Substring(9).Replaced("\"", "").Trimmed();
+                UniquePtr<Stream> includeStream = resources->OpenResource(includeFileName);
+                if (includeStream.IsNull())
                     return false;
 
                 // Add the include file into the current code recursively
@@ -100,6 +100,7 @@ namespace Alimer
     {
         _stage = stage;
         Destroy();
+
         return true;
     }
 

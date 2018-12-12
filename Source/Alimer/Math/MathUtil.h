@@ -35,6 +35,10 @@
 #include <cmath>
 #include <limits>
 
+#ifdef _MSC_VER
+#   include <intrin.h>
+#endif
+
 namespace Alimer
 {
 #ifdef M_PI

@@ -461,12 +461,12 @@ namespace Alimer
 #endif
     }
 
-    bool D3D12Graphics::Initialize(const GraphicsSettings& settings)
+    bool D3D12Graphics::Initialize(const RenderWindowDescriptor* mainWindowDescriptor)
     {
-        if (!settings.headless)
+        if (mainWindowDescriptor)
         {
             // Create Swapchain.
-            _mainSwapChain = new D3D12Swapchain(this, &settings.swapchain);
+            _mainSwapChain = new D3D12Swapchain(this, mainWindowDescriptor);
         }
 
         InitializeUpload();
@@ -485,7 +485,7 @@ namespace Alimer
             ThrowIfFailed(submission.commandList->Close());
 
             wchar_t name[25] = {};
-            swprintf_s(name, L"Upload Command List %u", i);
+            swprintf_s(name, L"Upload Command List %llu", i);
             submission.commandList->SetName(name);
         }
 
@@ -750,7 +750,7 @@ namespace Alimer
         // Present the frame.
         if (_mainSwapChain)
         {
-            _mainSwapChain->Present();
+            _mainSwapChain->SwapBuffers();
         }
 
     }
@@ -789,6 +789,11 @@ namespace Alimer
     CommandContext* D3D12Graphics::AllocateContext()
     {
         return AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    }
+
+    RenderWindow* D3D12Graphics::GetMainWindow() const
+    {
+        return _mainSwapChain;
     }
 
     Framebuffer* D3D12Graphics::GetSwapchainFramebuffer() const

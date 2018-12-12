@@ -20,27 +20,36 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Base/Vector.h"
-#include "../Core/Object.h"
+#include "../Editor/StudioApplication.h"
+#include "../Debug/Log.h"
 
 namespace Alimer
 {
-    class RenderContext;
-    class Camera;
+    StudioApplication *StudioApplication::_instance;
 
-    /// Defines a base class for scene rendering pipeline.
-    class ALIMER_API SceneRenderPipeline : public Object
+    StudioApplication::StudioApplication(int argc, char** argv)
+        : Application(argc, argv)
     {
-        ALIMER_OBJECT(SceneRenderPipeline, Object);
+        _instance = this;
 
-    public:
-        SceneRenderPipeline();
-        virtual ~SceneRenderPipeline() = default;
+        auto handlePointerMove = [&](const WindowResizeEvent& event)
+        {
+            ALIMER_LOGINFO("CIAO");
+        };
 
-        virtual void Render(const RenderContext &context, Vector<Camera> cameras) = 0;
+        Event<void(const WindowResizeEvent&)> resizeEvent;
+        resizeEvent.Connect(handlePointerMove);
+        WindowResizeEvent test;
+        resizeEvent(test);
+    }
 
-    private:
-    };
+    StudioApplication::~StudioApplication()
+    {
+        _instance = nullptr;
+    }
+
+    StudioApplication* StudioApplication::GetInstance()
+    {
+        return _instance;
+    }
 }

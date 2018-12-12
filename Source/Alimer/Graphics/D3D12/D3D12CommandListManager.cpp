@@ -72,7 +72,7 @@ namespace Alimer
         {
             ThrowIfFailed(_device->CreateCommandAllocator(_type, IID_PPV_ARGS(&result)));
             wchar_t name[32];
-            swprintf(name, 32, L"CommandAllocator %zu", _allocatorPool.Size());
+            swprintf(name, 32, L"CommandAllocator %u", _allocatorPool.Size());
             result->SetName(name);
             _allocatorPool.Push(result);
         }

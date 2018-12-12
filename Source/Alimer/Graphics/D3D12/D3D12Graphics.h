@@ -62,7 +62,7 @@ namespace Alimer
         /// Destructor.
         ~D3D12Graphics();
 
-        bool Initialize(const GraphicsSettings& settings) override;
+        bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
 
         bool WaitIdle() override;
         void Frame() override;
@@ -74,6 +74,7 @@ namespace Alimer
         UploadContext ResourceUploadBegin(uint64_t size);
         void ResourceUploadEnd(UploadContext& context);
 
+        //RenderWindow* GetMainWindow() const override;
         Framebuffer* GetSwapchainFramebuffer() const override;
         FramebufferImpl* CreateFramebuffer(const Vector<FramebufferAttachment>& colorAttachments) override;
         GpuBufferImpl* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData, void* externalHandle) override;

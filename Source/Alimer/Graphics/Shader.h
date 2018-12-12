@@ -64,6 +64,7 @@ namespace Alimer
     private:
         bool BeginLoad(Stream& source) override;
         bool EndLoad() override;
+
         /// Process include statements in the shader source code recursively. Return true if successful.
         bool ProcessIncludes(String& code, Stream& source);
 

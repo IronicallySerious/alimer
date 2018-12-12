@@ -179,7 +179,7 @@ namespace Alimer
 		uint64_t length = _size;
 		if (length)
 		{
-			content.Resize(length);
+			content.Resize(static_cast<uint32_t>(length));
 			Read(&content[0], length);
 		}
 
@@ -191,7 +191,7 @@ namespace Alimer
 		if (!count)
 			count = _size;
 
-		Vector<uint8_t> result(count);
+		Vector<uint8_t> result(static_cast<uint32_t>(count));
 
         uint64_t read = Read(result.Data(), count);
 		if (read != count)

@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_D3D11
 #include "D3D11Shader.h"
 #include "D3D11GraphicsDevice.h"
 #include "../D3D/D3DShaderCompiler.h"
@@ -194,3 +195,5 @@ namespace Alimer
         }*/
     }
 }
+
+#endif // TODO_D3D11

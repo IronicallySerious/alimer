@@ -71,23 +71,6 @@ namespace Alimer
     void Application::PlatformConstruct()
     {
 #if ALIMER_PLATFORM_WINDOWS
-        int argc;
-        LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-
-        if (argc)
-        {
-            // Skip first one as its executable path.
-            char temporaryCString[256];
-            for (int i = 1; i < argc; i++)
-            {
-                WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, temporaryCString, sizeof(temporaryCString), nullptr, nullptr);
-
-                _args.push_back(temporaryCString);
-            }
-
-            LocalFree(argv);
-        }
-
         // Enable high DPI as SDL not support it on windows.
         HMODULE user32Library = LoadLibraryA("user32.dll");
         HMODULE shCore = LoadLibraryA("Shcore.dll");
@@ -158,8 +141,8 @@ namespace Alimer
                     const SDL_MouseButtonEvent& mouseEvent = evt.button;
                     MouseButton button = ConvertMouseButton(mouseEvent.button);
                     _input.MouseButtonEvent(button,
-                        static_cast<float>(mouseEvent.x),
-                        static_cast<float>(mouseEvent.y),
+                        static_cast<int32_t>(mouseEvent.x),
+                        static_cast<int32_t>(mouseEvent.y),
                         mouseEvent.type == SDL_MOUSEBUTTONDOWN);
 
                     //OnMouseEvent(button,
@@ -178,8 +161,8 @@ namespace Alimer
                         button = MouseButton::Right;
 
                     _input.MouseMoveEvent(button,
-                        static_cast<float>(motionEvt.x),
-                        static_cast<float>(motionEvt.y));
+                        static_cast<int32_t>(motionEvt.x),
+                        static_cast<int32_t>(motionEvt.y));
                     //OnMouseMove(mx, my);
                 }
                 break;

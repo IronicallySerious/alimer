@@ -24,16 +24,15 @@
 #include "D3D11GraphicsDevice.h"
 #include "../Shader.h"
 #include "../D3D/D3DShaderCompiler.h"
-#include "../D3D/D3DPlatformFunctions.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 #include <spirv-cross/spirv_hlsl.hpp>
 
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Cache::D3D11Cache(D3D11GraphicsDevice* device)
+    D3D11Cache::D3D11Cache(D3D11Graphics* device)
         : _device(device)
     {
     }
@@ -57,6 +56,8 @@ namespace Alimer
 
     ID3D11DeviceChild* D3D11Cache::GetShader(ShaderModule* shader, std::vector<uint8_t>& hlslBytecode)
     {
+        return nullptr;
+#if TODO
         auto hash = shader->GetHash();
         auto it = _shaders.find(hash);
         if (it != end(_shaders))
@@ -166,11 +167,12 @@ namespace Alimer
         }
 
         return _shaders[hash].Get();
+#endif // TODO
     }
 
     ID3D11InputLayout* D3D11Cache::GetInputLayout(ShaderModule* shader, const RenderPipelineDescriptor* descriptor)
     {
-        Hasher hasher;
+        /*Hasher hasher;
         hasher.UInt64(shader->GetHash());
         hasher.Data(reinterpret_cast<const uint32_t*>(descriptor->vertexLayouts), sizeof(descriptor->vertexLayouts));
 
@@ -282,10 +284,10 @@ namespace Alimer
         }
         else
         {
-        }
+        }*/
 
         ID3D11InputLayout* inputLayout = nullptr;
-        auto byteCode = _vsBytecodes[shader->GetHash()];
+        /*auto byteCode = _vsBytecodes[shader->GetHash()];
         if (FAILED(_device->GetD3DDevice()->CreateInputLayout(
             d3dElementDescs.data(),
             static_cast<UINT>(d3dElementDescs.size()),
@@ -296,7 +298,7 @@ namespace Alimer
             ALIMER_LOGERROR("D3D11 - Failed to create input layout");
         }
 
-        _shaders[hash].Attach(inputLayout);
+        _shaders[hash].Attach(inputLayout);*/
         return inputLayout;
     }
 }

@@ -30,14 +30,14 @@
 namespace Alimer
 {
     class ShaderModule;
-    class D3D11GraphicsDevice;
+    class D3D11Graphics;
 
     /// D3D11 cache.
     class D3D11Cache final 
     {
     public:
         /// Constructor.
-        D3D11Cache(D3D11GraphicsDevice* device);
+        D3D11Cache(D3D11Graphics* device);
 
         /// Destructor.
         ~D3D11Cache();
@@ -49,7 +49,7 @@ namespace Alimer
         ID3D11InputLayout* GetInputLayout(ShaderModule* shader, const RenderPipelineDescriptor* descriptor);
 
     private:
-        D3D11GraphicsDevice* _device;
+        D3D11Graphics* _device;
         HashMap<Microsoft::WRL::ComPtr<ID3D11DeviceChild>> _shaders;
         HashMap<std::vector<uint8_t>> _vsBytecodes;
         HashMap<Microsoft::WRL::ComPtr<ID3D11InputLayout>> _inputLayouts;

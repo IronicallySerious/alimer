@@ -24,28 +24,28 @@
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Convert.h"
 #include "../../Math/MathUtil.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Buffer::D3D11Buffer(D3D11GraphicsDevice* device, const BufferDescriptor* descriptor, const void* initialData)
-        : GpuBuffer(device, descriptor)
-        , _deviceContext(device->GetD3DDeviceContext1())
+    D3D11Buffer::D3D11Buffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
+        : GpuBuffer(graphics)
+        , _deviceContext(graphics->GetD3DDeviceContext1())
     {
         D3D11_BUFFER_DESC bufferDesc = {};
         bufferDesc.ByteWidth = static_cast<UINT>(descriptor->size);
         bufferDesc.StructureByteStride = descriptor->stride;
-        bufferDesc.Usage = d3d11::Convert(descriptor->resourceUsage);
+        //bufferDesc.Usage = d3d11::Convert(descriptor->resourceUsage);
         bufferDesc.CPUAccessFlags = 0;
 
-        if (descriptor->resourceUsage == ResourceUsage::Dynamic)
+        /*if (descriptor->resourceUsage == ResourceUsage::Dynamic)
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
         if (descriptor->resourceUsage == ResourceUsage::Staging)
         {
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
-        }
+        }*/
 
         if (any(descriptor->usage & BufferUsage::Uniform))
         {
@@ -81,7 +81,7 @@ namespace Alimer
         initData.pSysMem = initialData;
 
         ThrowIfFailed(
-            device->GetD3DDevice()->CreateBuffer(&bufferDesc, initialData ? &initData : nullptr, &_handle)
+            graphics->GetD3DDevice()->CreateBuffer(&bufferDesc, initialData ? &initData : nullptr, &_handle)
         );
     }
 
@@ -95,7 +95,7 @@ namespace Alimer
         SafeRelease(_handle, "ID3D11Buffer");
     }
 
-    bool D3D11Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
+    /*bool D3D11Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
     {
         if (_resourceUsage == ResourceUsage::Dynamic)
         {
@@ -138,5 +138,5 @@ namespace Alimer
         }
 
         return true;
-    }
+    }*/
 }

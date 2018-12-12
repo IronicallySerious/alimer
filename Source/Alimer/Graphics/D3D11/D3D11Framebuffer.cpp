@@ -24,12 +24,12 @@
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Texture.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 
 namespace Alimer
 {
-    D3D11Framebuffer::D3D11Framebuffer(D3D11GraphicsDevice* device, const FramebufferDescriptor* descriptor)
-        : Framebuffer(device, descriptor)
+    D3D11Framebuffer::D3D11Framebuffer(D3D11Graphics* graphics, const FramebufferDescriptor* descriptor)
+        : Framebuffer(graphics)
     {
         for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
@@ -38,14 +38,14 @@ namespace Alimer
                 continue;
 
             D3D11Texture* texture = static_cast<D3D11Texture*>(attachment.texture);
-            _colorRtvs[_viewsCount++] = texture->GetRTV(attachment.mipLevel, attachment.slice);
+            //_colorRtvs[_viewsCount++] = texture->GetRTV(attachment.mipLevel, attachment.slice);
         }
 
         if (descriptor->depthStencilAttachment.texture != nullptr)
         {
             const FramebufferAttachment& attachment = descriptor->depthStencilAttachment;
             D3D11Texture* texture = static_cast<D3D11Texture*>(attachment.texture);
-            _depthStencilView = texture->GetDSV(attachment.mipLevel, attachment.slice);
+            //_depthStencilView = texture->GetDSV(attachment.mipLevel, attachment.slice);
         }
     }
 

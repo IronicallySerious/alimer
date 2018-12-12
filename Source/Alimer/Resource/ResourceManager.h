@@ -57,7 +57,7 @@ namespace Alimer
         void AddLoader(ResourceLoader* loader);
         ResourceLoader* GetLoader(StringHash type) const;
 
-        UniquePtr<Stream> Open(const String &assetName);
+        UniquePtr<Stream> OpenResource(const String &assetName);
         bool Exists(const String &assetName);
 
         Vector<uint8_t> ReadBytes(const String& assetName, size_t count = 0);

@@ -28,6 +28,10 @@
 
 #include "agpu.h"
 
+#ifndef NOMINMAX
+#   define NOMINMAX // For windows.h
+#endif
+
 #ifdef ALIMER_D3D11
 #   include <d3d11_1.h>
 #   include <dxgi1_2.h>
@@ -100,7 +104,7 @@ typedef struct AgpuFramebuffer_T {
 typedef struct AgpuBuffer_T {
     AgpuBufferUsage                 usage;
     uint64_t                        size;
-    uint64_t                        stride;
+    uint32_t                        stride;
     uint64_t                        frameIndex;
 #if defined(ALIMER_D3D11)
     ID3D11Buffer*                   d3d11Resource;

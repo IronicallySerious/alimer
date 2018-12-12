@@ -28,13 +28,13 @@
 
 namespace Alimer
 {
-    class D3D11GraphicsDevice;
+    class D3D11Graphics;
 
     /// D3D11 Framebuffer implementation.
     class D3D11Framebuffer final : public Framebuffer
     {
     public:
-        D3D11Framebuffer(D3D11GraphicsDevice* device, const FramebufferDescriptor* descriptor);
+        D3D11Framebuffer(D3D11Graphics* graphics, const FramebufferDescriptor* descriptor);
 
         uint32_t Bind(ID3D11DeviceContext* context) const;
         ID3D11RenderTargetView* GetColorRTV(uint32_t index) const

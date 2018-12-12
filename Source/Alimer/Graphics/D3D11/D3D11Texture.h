@@ -65,7 +65,7 @@ namespace Alimer
         };
 
        
-        struct ViewInfoHashFunc
+        /*struct ViewInfoHashFunc
         {
             std::size_t operator()(const ResourceViewInfo& v) const
             {
@@ -79,6 +79,6 @@ namespace Alimer
         mutable std::unordered_map<ResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, ViewInfoHashFunc> _srvs;
         mutable std::unordered_map<ResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>, ViewInfoHashFunc> _uavs;
         mutable std::unordered_map<ResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11RenderTargetView>, ViewInfoHashFunc> _rtvs;
-        mutable std::unordered_map<ResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11DepthStencilView>, ViewInfoHashFunc> _dsvs;
+        mutable std::unordered_map<ResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11DepthStencilView>, ViewInfoHashFunc> _dsvs;*/
     };
 }

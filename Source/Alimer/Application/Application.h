@@ -22,12 +22,6 @@
 
 #pragma once
 
-#include <new>
-#include <memory>
-#include <array>
-#include <vector>
-#include <string>
-#include <atomic>
 #include "../Core/Object.h"
 #include "../Core/Timer.h"
 #include "../Core/PluginManager.h"
@@ -44,6 +38,7 @@
 #include "../Renderer/RenderContext.h"
 #include "../Renderer/RenderPipeline.h"
 #include "../UI/Gui.h"
+#include <atomic>
 
 namespace Alimer
 {
@@ -59,7 +54,7 @@ namespace Alimer
         bool validation = false;
 #endif
 
-        GraphicsSettings graphicsSettings = {};
+        RenderWindowDescriptor mainWindowDescriptor{};
     };
 
     /// Application for main loop and all modules and OS setup.
@@ -67,11 +62,10 @@ namespace Alimer
     {
         ALIMER_OBJECT(Application, Object);
 
-    protected:
-        /// Constructor.
-        Application();
-
     public:
+        /// Constructor.
+        Application(int argc, char** argv);
+
         /// Destructor.
         virtual ~Application();
 
@@ -100,6 +94,9 @@ namespace Alimer
         inline Graphics* GetGraphics() const { return _graphics; }
         inline Input& GetInput() { return _input; }
 
+        /// Returns true if the application is running in an editor, false if standalone.
+        virtual bool IsEditor() const { return false; }
+
     private:
         void PlatformConstruct();
         bool InitializeBeforeRun();
@@ -118,7 +115,7 @@ namespace Alimer
         /// Called during rendering single frame.
         virtual void OnRenderFrame(double frameTime, double elapsedTime);
 
-        std::vector<String> _args;
+        Vector<String> _args;
         std::atomic<bool> _running;
         std::atomic<bool> _paused;
         std::atomic<bool> _headless;
@@ -127,7 +124,7 @@ namespace Alimer
         Logger* _log;
         Timer _timer;
         ResourceManager _resources;
-        Window* _mainWindow = nullptr;
+        RenderWindow* _mainWindow = nullptr;
         SharedPtr<Graphics> _graphics;
         Input _input;
         Audio* _audio;

@@ -65,7 +65,6 @@ namespace Alimer
         _handle.connection = nullptr;
         _handle.handle = wmInfo.info.cocoa.window;;
 #elif ALIMER_PLATFORM_WINDOWS
-        _hInstance = wmInfo.info.win.hinstance;
         _handle = wmInfo.info.win.window;
 #endif
     }

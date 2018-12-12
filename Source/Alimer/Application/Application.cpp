@@ -30,7 +30,7 @@ namespace Alimer
 {
     static Application* __appInstance = nullptr;
 
-    Application::Application()
+    Application::Application(int argc, char** argv)
         : _running(false)
         , _paused(false)
         , _headless(false)
@@ -39,6 +39,11 @@ namespace Alimer
         , _systems(_entities)
         , _scene(_entities)
     {
+        for (int i = 0; i < argc; ++i)
+        {
+            _args.Push(argv[i]);
+        }
+
         PlatformConstruct();
         AddSubsystem(this);
         _log = new Logger();
@@ -58,7 +63,6 @@ namespace Alimer
         _paused = true;
         _running = false;
 
-        SafeDelete(_mainWindow);
         _graphics.Reset();
         Audio::Shutdown();
         PluginManager::Shutdown();
@@ -81,24 +85,14 @@ namespace Alimer
         // Init Window and Gpu.
         if (!_headless)
         {
-            uvec2 windowSize = uvec2(800, 600);
-            _mainWindow = new Window("Alimer", windowSize);
-
-            // Assign as window handle.
-            SwapchainDescriptor swapchainDesc = {};
-            swapchainDesc.width = windowSize.x;
-            swapchainDesc.height = windowSize.y;
-            swapchainDesc.windowHandle = _mainWindow->GetHandle();
-
-            // Set settings
-            _settings.graphicsSettings.swapchain = swapchainDesc;
-
-            _graphics = new Graphics(_settings.preferredGraphicsBackend, _settings.validation);
-            if (!_graphics->Initialize(_settings.graphicsSettings))
+            _graphics = Graphics::Create(_settings.preferredGraphicsBackend, _settings.validation);
+            if (!_graphics->Initialize(&_settings.mainWindowDescriptor))
             {
-                ALIMER_LOGERROR("Application", "Failed to initialize Graphics.");
+                ALIMER_LOGERROR("Failed to initialize Graphics.");
                 return false;
             }
+
+            _mainWindow = _graphics->GetMainWindow();
 
             // Create imgui system.
             _gui = new Gui();
@@ -147,7 +141,8 @@ namespace Alimer
             _systems.Update(deltaTime);
 
             // Render single frame if window is not minimzed.
-            if (!_mainWindow->IsMinimized())
+            if (!_headless 
+                && !_mainWindow->IsMinimized())
             {
                 RenderFrame(frameTime, deltaTime);
             }
@@ -184,6 +179,7 @@ namespace Alimer
 
         // Present rendering frame.
         _graphics->Present();
+        _mainWindow->SwapBuffers();
     }
 
     void Application::OnRenderFrame(double frameTime, double elapsedTime)

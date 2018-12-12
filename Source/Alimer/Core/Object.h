@@ -129,22 +129,6 @@ namespace Alimer
 
         /// Return a type name from hash, or empty if not known. Requires a registered object factory.
         static const String& GetTypeNameFromType(StringHash type);
-
-        /// Subscribe to an event.
-        void SubscribeToEvent(Event& event, EventHandler* handler);
-        /// Unsubscribe from an event.
-        void UnsubscribeFromEvent(Event& event);
-        /// Send an event.
-        void SendEvent(Event& event);
-
-        /// Subscribe to an event, template version.
-        template <class T, class U> void SubscribeToEvent(U& event, void (T::*handlerFunction)(U&))
-        {
-            SubscribeToEvent(event, new EventHandlerImpl<T, U>(this, handlerFunction));
-        }
-
-        /// Return whether is subscribed to an event.
-        bool IsSubscribedToEvent(const Event& event) const;
     };
 
     /// Base class for object factories.

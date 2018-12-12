@@ -22,25 +22,37 @@
 
 #include "D3D11CommandContext.h"
 #include "D3D11GraphicsDevice.h"
-#include "D3D11Texture.h"
+/*#include "D3D11Texture.h"
 #include "D3D11Framebuffer.h"
 #include "D3D11Shader.h"
 #include "D3D11GpuBuffer.h"
-#include "D3D11Pipeline.h"
+#include "D3D11Pipeline.h"*/
 #include "../D3D/D3DConvert.h"
 #include "../../Math/MathUtil.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11CommandContext::D3D11CommandContext(D3D11GraphicsDevice* device)
-        : CommandContext(device)
+    D3D11CommandContext::D3D11CommandContext(D3D11Graphics* graphics)
+        : CommandContext(graphics)
         , _immediate(true)
-        , _d3dContext(device->GetD3DDeviceContext())
-        , _d3dContext1(device->GetD3DDeviceContext1())
+        , _d3dContext(graphics->GetD3DDeviceContext())
+        , _d3dContext1(graphics->GetD3DDeviceContext1())
+        , _fenceValue(0)
     {
-        CheckWorkaround();
+        if (_d3dContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+        {
+            D3D11_FEATURE_DATA_THREADING threadingCaps = { FALSE, FALSE };
+
+            HRESULT hr = graphics->GetD3DDevice()->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingCaps, sizeof(threadingCaps));
+            if (SUCCEEDED(hr) && !threadingCaps.DriverCommandLists)
+            {
+                // The runtime emulates command lists.
+                _needWorkaround = true;
+            }
+        }
+
         Reset();
     }
 
@@ -50,21 +62,6 @@ namespace Alimer
         {
             SafeRelease(_d3dContext);
             SafeRelease(_d3dContext1);
-        }
-    }
-
-    void D3D11CommandContext::CheckWorkaround()
-    {
-        if (_d3dContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
-        {
-            D3D11_FEATURE_DATA_THREADING threadingCaps = { FALSE, FALSE };
-
-            HRESULT hr = static_cast<D3D11GraphicsDevice*>(_device)->GetD3DDevice()->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingCaps, sizeof(threadingCaps));
-            if (SUCCEEDED(hr) && !threadingCaps.DriverCommandLists)
-            {
-                // The runtime emulates command lists.
-                _needWorkaround = true;
-            }
         }
     }
 
@@ -87,15 +84,16 @@ namespace Alimer
         memset(&_bindings, 0, sizeof(_bindings));
         _inputLayoutDirty = false;
         memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
-        CommandContext::BeginContext();
+        //CommandContext::BeginContext();
     }
 
-    void D3D11CommandContext::FlushImpl(bool waitForCompletion)
+    uint64_t D3D11CommandContext::FlushImpl(bool waitForCompletion)
     {
         _d3dContext->Flush();
+        return ++_fenceValue;
     }
 
-    void D3D11CommandContext::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    /*void D3D11CommandContext::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         if (!framebuffer)
         {
@@ -218,7 +216,7 @@ namespace Alimer
         ID3D11Buffer* d3dBuffer = static_cast<D3D11Buffer*>(buffer)->GetHandle();
         DXGI_FORMAT dxgiFormat = stride == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
         _d3dContext->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
-    }
+    }*/
 
     /*void D3D11CommandBuffer::BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {
@@ -441,13 +439,13 @@ namespace Alimer
 #endif // TODO
 
 
-        if (_currentTopology != topology)
+        /*if (_currentTopology != topology)
         {
             _d3dContext->IASetPrimitiveTopology(d3d::Convert(topology));
             _currentTopology = topology;
         }
 
-        /*_currentD3DShader->Bind(_d3dContext);
+        _currentD3DShader->Bind(_d3dContext);
 
         auto rasterizerState = _currentPipeline->GetD3DRasterizerState();
         if (_currentRasterizerState != rasterizerState)
@@ -511,7 +509,7 @@ namespace Alimer
         _dirtySets &= ~updateSet;
     }*/
 
-    void D3D11CommandContext::DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
+    /*void D3D11CommandContext::DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation)
     {
         //FlushRenderState(topology);
         //_d3dContext->Draw(vertexCount, startVertexLocation);
@@ -578,6 +576,6 @@ namespace Alimer
     void D3D11CommandContext::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         _d3dContext->Dispatch(groupCountX, groupCountY, groupCountZ);
-    }
+    }*/
 }
 

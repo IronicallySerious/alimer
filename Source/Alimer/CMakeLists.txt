@@ -87,7 +87,7 @@ if (ALIMER_TOOLS)
     endforeach()
 endif()
 
-set (TARGET_NAME libAlimer)
+set (TARGET_NAME Alimer)
 set (ALIMER_NATIVE_INCLUDE_DIRS ${SPIRV_TOOLS_INCLUDE_DIR} ${STB_INCLUDE_DIR})
 
 # Generate the AlimerConfig.h file
@@ -119,9 +119,14 @@ if (ALIMER_D3D11 OR ALIMER_D3D12)
     define_engine_source_files(Graphics/D3D)
 endif ()
 
-if (ALIMER_D3D12)
-    define_engine_source_files(Graphics/D3D12)
+if (ALIMER_D3D11)
+    define_engine_source_files(Graphics/D3D11)
 endif ()
+
+# Temporary disable d3d12
+#if (ALIMER_D3D12)
+#    define_engine_source_files(Graphics/D3D12)
+#endif ()
 
 if (ALIMER_GL)
     define_engine_source_files(Graphics/OpenGL)
@@ -149,6 +154,10 @@ if (ALIMER_CSHARP)
     define_engine_source_files(CSharp)
 endif ()
 
+if (ALIMER_TOOLS)
+    define_engine_source_files(Editor)
+endif ()
+
 if (MSVC)
     list (APPEND SOURCE_FILES ${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis)
 endif ()
@@ -157,7 +166,7 @@ endif ()
 group_sources()
 
 # Define the library target.
-add_alimer_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${SHADER_BINS})
+add_alimer_executable(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${SHADER_BINS})
 
 target_include_directories(${TARGET_NAME}
     PUBLIC
@@ -169,7 +178,6 @@ target_include_directories(${TARGET_NAME}
 
 target_include_directories(${TARGET_NAME}
     PRIVATE
-    ${ALIMER_THIRD_PARTY_DIR}
     ${ALIMER_NATIVE_INCLUDE_DIRS}
     )
 

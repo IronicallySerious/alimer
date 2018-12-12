@@ -23,6 +23,12 @@
 #pragma once
 
 #include "../D3D/D3DPrerequisites.h"
+#if defined(NTDDI_WIN10_RS2)
+#include <dxgi1_5.h>
+#else
+#include <dxgi1_3.h>
+#endif
+
 #include <map>
 
 namespace Alimer

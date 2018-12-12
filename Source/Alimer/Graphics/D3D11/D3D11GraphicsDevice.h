@@ -22,44 +22,52 @@
 
 #pragma once
 
-#include "../../Graphics/GraphicsDevice.h"
+#include "../../Graphics/Graphics.h"
 #include "D3D11Cache.h"
 #include <array>
 #include <thread>
 
 namespace Alimer
 {
-    class D3DPlatformFunctions;
     class D3D11Texture;
     class D3D11Swapchain;
+    class D3D11CommandContext;
 
-    /// D3D11 graphics device implementation.
-    class D3D11GraphicsDevice final : public GraphicsDevice
+    /// D3D11 graphics implementation.
+    class D3D11Graphics final : public Graphics
     {
     public:
+        /// Is backend supported?
+        static bool IsSupported();
+
         /// Constructor.
-        D3D11GraphicsDevice(bool validation);
+        D3D11Graphics(bool validation);
 
         /// Destructor.
-        ~D3D11GraphicsDevice() override;
+        ~D3D11Graphics() override;
 
-        bool Initialize(const RenderingSettings& settings) override;
+        bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
         void Shutdown() override;
         bool WaitIdle() override;
 
-        void PresentImpl() override;
+        RenderWindow* GetMainWindow() const override;
 
+        /*
         Framebuffer* GetSwapchainFramebuffer() const override;
 
         GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
         Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
         Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
-        Pipeline* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) override;
+        Pipeline* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) override;*/
 
+        
         void HandleDeviceLost();
 
         // Getters
+        inline IDXGIFactory1*   GetFactory() const { return _factory.Get(); }
+        inline IDXGIAdapter1*   GetAdapter() const { return _adapter.Get(); }
+
         ID3D11Device*           GetD3DDevice() const { return _d3dDevice.Get(); }
         ID3D11Device1*          GetD3DDevice1() const { return _d3dDevice1.Get(); }
         ID3D11DeviceContext*    GetD3DDeviceContext() const { return _d3dContext.Get(); }
@@ -68,20 +76,18 @@ namespace Alimer
         
         uint32_t                GetShaderModerMajor() const { return _shaderModelMajor; }
         uint32_t                GetShaderModerMinor() const { return _shaderModelMinor; }
+        bool                    AllowTearing() const { return _allowTearing; }
 
-        const D3DPlatformFunctions* GetFunctions() { return _functions; }
-        D3D11Cache &GetCache();
+        D3D11Cache&             GetCache();
 
     private:
-        void GetHardwareAdapter(IDXGIAdapter1** ppAdapter);
         void InitializeCaps();
-
         void GenerateScreenshot(const std::string& fileName);
 
-        D3DPlatformFunctions*       _functions = nullptr;
-        D3D_FEATURE_LEVEL           _d3dMinFeatureLevel = D3D_FEATURE_LEVEL_10_0;
         D3D_FEATURE_LEVEL           _d3dFeatureLevel;
 
+        Microsoft::WRL::ComPtr<IDXGIFactory4>               _factory;
+        Microsoft::WRL::ComPtr<IDXGIAdapter1>               _adapter;
         Microsoft::WRL::ComPtr<ID3D11Device>                _d3dDevice;
         Microsoft::WRL::ComPtr<ID3D11Device1>               _d3dDevice1;
 
@@ -90,11 +96,12 @@ namespace Alimer
         Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
 
-        D3D11Swapchain* _mainSwapchain = nullptr;
+        D3D11Swapchain*                         _mainSwapchain = nullptr;
 
-        uint32_t _shaderModelMajor = 4;
-        uint32_t _shaderModelMinor = 0;
+        uint32_t                                _shaderModelMajor = 4;
+        uint32_t                                _shaderModelMinor = 0;
+        bool                                    _allowTearing = false;
 
-        D3D11Cache _cache;
+        D3D11Cache                              _cache;
     };
 }

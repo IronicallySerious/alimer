@@ -43,11 +43,11 @@ namespace Alimer
     class FramebufferImpl;
 
     /// Defines a Framebuffer class.
-    class ALIMER_API Framebuffer final : public GraphicsResource
+    class ALIMER_API Framebuffer : public GraphicsResource
     {
     public:
         /// Constructor.
-        Framebuffer();
+        Framebuffer(Graphics* graphics);
 
         /// Constructor.
         Framebuffer(FramebufferImpl* impl);

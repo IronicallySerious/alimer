@@ -22,8 +22,9 @@
 
 #include "D3D11Texture.h"
 #include "D3D11GraphicsDevice.h"
+#if TODO_D3D11
 #include "../D3D/D3DConvert.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
@@ -574,3 +575,5 @@ namespace Alimer
         return FindViewCommon<ID3D11DepthStencilView>(this, mipLevel, 1, firstArraySlice, arraySize, _dsvs, createFunc);
     }
 }
+
+#endif // TODO_D3D11

@@ -29,19 +29,19 @@ namespace Alimer
 {
     class D3D11Pipeline;
     class D3D11Framebuffer;
-    class D3D11GraphicsDevice;
+    class D3D11Graphics;
 
     class D3D11CommandContext final : public CommandContext
     {
     public:
-        D3D11CommandContext(D3D11GraphicsDevice* device);
+        D3D11CommandContext(D3D11Graphics* graphics);
         ~D3D11CommandContext() override;
 
-        void FlushImpl(bool waitForCompletion) override;
-        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
-        void EndRenderPassImpl() override;
+        uint64_t FlushImpl(bool waitForCompletion) override;
+        //void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        //void EndRenderPassImpl() override;
 
-        void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
+        /*void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
         void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
         void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) override;
 
@@ -51,18 +51,16 @@ namespace Alimer
         void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) override;
 
         void SetViewport(const rect& viewport) override;
-        void SetScissor(const irect& scissor) override;
+        void SetScissor(const irect& scissor) override;*/
 
     private:
-        void CheckWorkaround();
-
         void Reset();
         void FlushRenderState(PrimitiveTopology topology);
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
 
-        void SetPipelineImpl(Pipeline* pipeline) override;
-        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+        //void SetPipelineImpl(Pipeline* pipeline) override;
+        //void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
     private:
         ID3D11DeviceContext*         _d3dContext;
@@ -70,6 +68,7 @@ namespace Alimer
 
         bool _immediate;
         bool _needWorkaround = false;
+        uint64_t _fenceValue;
 
         const D3D11Framebuffer* _currentFramebuffer = nullptr;
         uint32_t _currentColorAttachmentsBound;
