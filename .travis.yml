@@ -1,3 +1,4 @@
+dist: trusty  
 language:
   - cpp
 
@@ -10,10 +11,24 @@ matrix:
     - os: linux
       dist: xenial
       compiler: gcc
-      before_install:
-        - sudo apt-get install xorg-dev
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - cmake
+            - g++-6
+            - ninja-build
+            - libxrandr-dev
+            - libxinerama-dev
+            - libxcursor-dev
+            - libxi-dev
+            - libopenal-dev
+            - libasound2-dev
       env:
-        - GENERATOR="Unix Makefiles"
+        - GENERATOR="Ninja"
+        - CC=gcc-6
+        - CXX=g++-6
     - os: windows
       env:
         - GENERATOR="Visual Studio 15 2017 Win64"
