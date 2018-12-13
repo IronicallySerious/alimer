@@ -31,16 +31,6 @@ namespace Alimer
         : Application(argc, argv)
     {
         _instance = this;
-
-        auto handlePointerMove = [&](const WindowResizeEvent& event)
-        {
-            ALIMER_LOGINFO("CIAO");
-        };
-
-        Event<void(const WindowResizeEvent&)> resizeEvent;
-        resizeEvent.Connect(handlePointerMove);
-        WindowResizeEvent test;
-        resizeEvent(test);
     }
 
     StudioApplication::~StudioApplication()

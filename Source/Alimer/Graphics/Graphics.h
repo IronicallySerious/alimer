@@ -36,29 +36,28 @@
 
 namespace Alimer
 {
-    class GraphicsImpl;
-
     /// Low-level 3D graphics module.
-    class ALIMER_API Graphics : public CommandContext
+    class ALIMER_API Graphics : public Object
     {
-        friend class CommandContext;
-
-        ALIMER_OBJECT(Graphics, CommandContext);
+        ALIMER_OBJECT(Graphics, Object);
 
     protected:
         /// Constructor.
         Graphics(GraphicsBackend backend, bool validation);
 
     public:
+        /// Destructor.
+        virtual ~Graphics() override;
+
         /// Register object.
         static void RegisterObject();
 
         /// Create new Graphics.
         static Graphics* Create(GraphicsBackend preferredBackend, bool validation);
 
-        /// Destructor.
-        ~Graphics() override;
-
+        /// Shutdown the Graphics module.
+        static void Shutdown();
+        
         /// Return the single instance of the Graphics.
         static Graphics& GetInstance();
 
@@ -77,8 +76,8 @@ namespace Alimer
         /// Wait for a device to become idle.
         virtual bool WaitIdle();
 
-        /// Finishes the current frame and schedules it for display.
-        uint64_t Present();
+        /// Finishes the current frame and advances to next one.
+        uint64_t Frame();
 
         /// Add a GraphicsResource to keep track of. 
         void AddGraphicsResource(GraphicsResource* resource);
@@ -95,25 +94,29 @@ namespace Alimer
         /// Get the device features.
         const GraphicsDeviceFeatures& GetFeatures() const;
 
+        /// Get the main RenderWindow.
         virtual RenderWindow* GetMainWindow() const = 0;
 
-        /// Get the main Swapchain current framebuffer.
-        Framebuffer* GetSwapchainFramebuffer() const;
+        /// Get the immediate command context.
+        CommandContext& GetImmediateContext() const { return *_immediateCommandContext; }
+
+        /// Create new unitialized Texture instance.
+        virtual Texture* CreateTexture() = 0;
+
+        /// Create new unitialized Framebuffer instance.
+        virtual Framebuffer* CreateFramebuffer() = 0;
+
+        /// Create new unitialized Buffer instance.
+        virtual GpuBuffer* CreateBuffer() = 0;
+
+        /// Create new unitialized ShaderModule instance.
+        virtual ShaderModule* CreateShaderModule() = 0;
 
         static void NotifyValidationError(const char* message);
 
-        /// Return graphics implementation, which holds the actual API-specific resources.
-        GraphicsImpl* GetImpl() const { return _impl; }
-
     private:
-        static CommandContext* AllocateContext();
+        virtual void OnFrame() {};
 
-        /* CommandContext override */
-        uint64_t FlushImpl(bool waitForCompletion) override;
-
-
-        /// Implementation.
-        GraphicsImpl* _impl = nullptr;
         static Graphics *_instance;
         GraphicsBackend _backend = GraphicsBackend::Empty;
         bool _initialized = false;
@@ -121,7 +124,7 @@ namespace Alimer
         std::mutex _gpuResourceMutex;
     
     protected:
-        virtual void Shutdown();
+        virtual void Finalize();
 
         bool _validation;
         uint64_t _frameIndex = 0;

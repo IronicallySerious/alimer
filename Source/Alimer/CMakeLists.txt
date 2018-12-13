@@ -103,7 +103,10 @@ if (ALIMER_NETWORK)
     define_engine_source_files(Network)
 endif ()
 
-if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
+if (ALIMER_GLFW)
+    define_engine_source_files(Application/Glfw)
+    define_engine_source_files(Input/Glfw)
+elseif (ALIMER_SDL2)
     define_engine_source_files(Application/SDL2)
     define_engine_source_files(Input/SDL2)
 elseif (ALIMER_UWP)
@@ -182,8 +185,13 @@ target_include_directories(${TARGET_NAME}
     )
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES fmt spirv_cross)
-if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
+set (THIRD_PARTY_DEPENDENCIES fmt spirv_cross ImGui)
+
+if (ALIMER_GLFW)
+    list (APPEND THIRD_PARTY_DEPENDENCIES glfw)
+endif ()
+
+if (ALIMER_SDL2)
     list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()
 

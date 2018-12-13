@@ -24,6 +24,10 @@
 #include "../Debug/Log.h"
 #include "../Graphics/Graphics.h"
 #include "../Graphics/Shader.h"
+//#include <ImGuizmo/ImGuizmo.h>
+#include <imgui.h>
+#include <imgui_internal.h>
+//#include <imgui_freetype.h>
 #include "shaders_h/imgui.vert.h"
 #include "shaders_h/imgui.frag.h"
 
@@ -31,6 +35,37 @@ namespace Alimer
 {
     Gui::Gui()
     {
+        IMGUI_CHECKVERSION();
+        _imContext = ImGui::CreateContext();
+
+        ImGuiIO& io = ImGui::GetIO();
+        io.IniFilename = nullptr;
+        io.UserData = this;
+        /*io.KeyMap[ImGuiKey_Tab] = SCANCODE_TAB;
+        io.KeyMap[ImGuiKey_LeftArrow] = SCANCODE_LEFT;
+        io.KeyMap[ImGuiKey_RightArrow] = SCANCODE_RIGHT;
+        io.KeyMap[ImGuiKey_UpArrow] = SCANCODE_UP;
+        io.KeyMap[ImGuiKey_DownArrow] = SCANCODE_DOWN;
+        io.KeyMap[ImGuiKey_Home] = SCANCODE_HOME;
+        io.KeyMap[ImGuiKey_End] = SCANCODE_END;
+        io.KeyMap[ImGuiKey_Delete] = SCANCODE_DELETE;
+        io.KeyMap[ImGuiKey_Backspace] = SCANCODE_BACKSPACE;
+        io.KeyMap[ImGuiKey_Enter] = SCANCODE_RETURN;
+        io.KeyMap[ImGuiKey_Escape] = SCANCODE_ESCAPE;
+        io.KeyMap[ImGuiKey_A] = SCANCODE_A;
+        io.KeyMap[ImGuiKey_C] = SCANCODE_C;
+        io.KeyMap[ImGuiKey_V] = SCANCODE_V;
+        io.KeyMap[ImGuiKey_X] = SCANCODE_X;
+        io.KeyMap[ImGuiKey_Y] = SCANCODE_Y;
+        io.KeyMap[ImGuiKey_Z] = SCANCODE_Z;
+        io.KeyMap[ImGuiKey_PageUp] = SCANCODE_PAGEUP;
+        io.KeyMap[ImGuiKey_PageDown] = SCANCODE_DOWN;
+        io.KeyMap[ImGuiKey_Space] = SCANCODE_SPACE;
+        io.SetClipboardTextFn = [](void* userData, const char* text) { SDL_SetClipboardText(text); };
+        io.GetClipboardTextFn = [](void* userData) -> const char* { return SDL_GetClipboardText(); };*/
+
+        ApplyStyleDefault(true, 1.0f);
+
         /*RenderPipelineDescriptor renderPipelineDesc = {};
 
         // Shaders
@@ -51,6 +86,22 @@ namespace Alimer
 
     Gui::~Gui()
     {
+        //ImGui::EndFrame();
+        ImGui::Shutdown(_imContext);
+        ImGui::DestroyContext(_imContext);
         RemoveSubsystem(this);
+    }
+
+    void Gui::ApplyStyleDefault(bool darkStyle, float alpha)
+    {
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.ScrollbarSize = 10.f;
+        if (darkStyle)
+            ImGui::StyleColorsDark(&style);
+        else
+            ImGui::StyleColorsLight(&style);
+        style.Alpha = alpha;
+        style.FrameRounding = 3.0f;
+        //style.ScaleAllSizes(GetFontScale());
     }
 }

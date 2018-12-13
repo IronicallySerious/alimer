@@ -58,10 +58,8 @@ namespace Alimer
     };
 
     /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext : public Object
+    class ALIMER_API CommandContext
     {
-        ALIMER_OBJECT(CommandContext, Object);
-
     protected:
         CommandContext(Graphics* graphics);
 
@@ -107,8 +105,8 @@ namespace Alimer
 
         // Backend methods.
         virtual uint64_t FlushImpl(bool waitForCompletion) = 0;
-        //virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
-        //virtual void EndRenderPassImpl() = 0;
+        virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
+        virtual void EndRenderPassImpl() = 0;
 
         //virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) = 0;
         //virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) = 0;

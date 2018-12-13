@@ -47,21 +47,15 @@ namespace Alimer
         ~D3D11Graphics() override;
 
         bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
-        void Shutdown() override;
+        void Finalize() override;
         bool WaitIdle() override;
 
         RenderWindow* GetMainWindow() const override;
+        Texture* CreateTexture() override;
+        Framebuffer* CreateFramebuffer() override;
+        GpuBuffer* CreateBuffer() override;
+        ShaderModule* CreateShaderModule() override;
 
-        /*
-        Framebuffer* GetSwapchainFramebuffer() const override;
-
-        GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
-        Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
-        Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
-        Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
-        Pipeline* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) override;*/
-
-        
         void HandleDeviceLost();
 
         // Getters

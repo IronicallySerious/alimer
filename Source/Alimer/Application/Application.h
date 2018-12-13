@@ -91,7 +91,6 @@ namespace Alimer
 
         inline ResourceManager& GetResources() { return _resources; }
         inline Window* GetMainWindow() const { return _mainWindow; }
-        inline Graphics* GetGraphics() const { return _graphics; }
         inline Input& GetInput() { return _input; }
 
         /// Returns true if the application is running in an editor, false if standalone.
@@ -101,6 +100,7 @@ namespace Alimer
         void PlatformConstruct();
         bool InitializeBeforeRun();
         void LoadPlugins();
+        void Shutdown();
 
     protected:
         /// Called after setup and engine initialization with all modules initialized.
@@ -125,9 +125,7 @@ namespace Alimer
         Timer _timer;
         ResourceManager _resources;
         RenderWindow* _mainWindow = nullptr;
-        SharedPtr<Graphics> _graphics;
         Input _input;
-        Audio* _audio;
 
         //
         EntityManager _entities;

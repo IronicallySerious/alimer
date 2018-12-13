@@ -22,9 +22,9 @@
 
 #include "D3D11CommandContext.h"
 #include "D3D11GraphicsDevice.h"
-/*#include "D3D11Texture.h"
+#include "D3D11Texture.h"
 #include "D3D11Framebuffer.h"
-#include "D3D11Shader.h"
+/*#include "D3D11Shader.h"
 #include "D3D11GpuBuffer.h"
 #include "D3D11Pipeline.h"*/
 #include "../D3D/D3DConvert.h"
@@ -93,13 +93,8 @@ namespace Alimer
         return ++_fenceValue;
     }
 
-    /*void D3D11CommandContext::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    void D3D11CommandContext::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
-        if (!framebuffer)
-        {
-            framebuffer = _device->GetSwapchainFramebuffer();
-        }
-
         _currentFramebuffer = static_cast<D3D11Framebuffer*>(framebuffer);
         _currentColorAttachmentsBound = _currentFramebuffer->Bind(_d3dContext);
 
@@ -172,7 +167,7 @@ namespace Alimer
         _currentFramebuffer = nullptr;
     }
 
-    void D3D11CommandContext::SetViewport(const rect& viewport)
+    /*void D3D11CommandContext::SetViewport(const rect& viewport)
     {
         D3D11_VIEWPORT d3dViewport = {
             viewport.x, viewport.y,

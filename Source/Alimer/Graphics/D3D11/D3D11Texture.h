@@ -28,14 +28,14 @@
 
 namespace Alimer
 {
-    class D3D11GraphicsDevice;
+    class D3D11Graphics;
 
     /// D3D11 Texture implementation.
     class D3D11Texture final : public Texture
     {
     public:
         /// Constructor.
-        D3D11Texture(D3D11GraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture);
+        D3D11Texture(D3D11Graphics* graphics, ID3D11Texture2D* externalTexture = nullptr, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN);
 
         /// Destructor.
         ~D3D11Texture() override;
@@ -54,6 +54,8 @@ namespace Alimer
         ID3D11DepthStencilView* GetDSV(uint32_t mipLevel, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingMipLevels) const;
 
     private:
+        bool Create(const ImageLevel* initialData) override;
+
         ID3D11Device* _d3dDevice;
         DXGI_FORMAT _dxgiFormat;
 
@@ -65,9 +67,9 @@ namespace Alimer
         };
 
        
-        /*struct ViewInfoHashFunc
+        struct ViewInfoHashFunc
         {
-            std::size_t operator()(const ResourceViewInfo& v) const
+            std::size_t operator()(const D3DResourceViewInfo& v) const
             {
                 return ((std::hash<uint32_t>()(v.firstArraySlice)
                     ^ (std::hash<uint32_t>()(v.arraySize) << 1)) >> 1)
@@ -76,9 +78,9 @@ namespace Alimer
             }
         };
 
-        mutable std::unordered_map<ResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, ViewInfoHashFunc> _srvs;
-        mutable std::unordered_map<ResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>, ViewInfoHashFunc> _uavs;
-        mutable std::unordered_map<ResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11RenderTargetView>, ViewInfoHashFunc> _rtvs;
-        mutable std::unordered_map<ResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11DepthStencilView>, ViewInfoHashFunc> _dsvs;*/
+        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, ViewInfoHashFunc> _srvs;
+        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>, ViewInfoHashFunc> _uavs;
+        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11RenderTargetView>, ViewInfoHashFunc> _rtvs;
+        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11DepthStencilView>, ViewInfoHashFunc> _dsvs;
     };
 }

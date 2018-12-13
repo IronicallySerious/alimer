@@ -64,7 +64,7 @@ namespace Alimer
 
         void SetVertexData(const void* vertexData, uint32_t vertexStart = 0, uint32_t vertexCount = 0);
 
-        void Draw(SharedPtr<CommandContext> context, uint32_t instanceCount = 1);
+        void Draw(CommandContext& context, uint32_t instanceCount = 1);
 
         uint32_t GetIndexCount() { return _indexCount; }
         uint32_t GetVertexCount() { return _vertexCount; }

@@ -34,20 +34,22 @@ namespace Alimer
     class D3D11Framebuffer final : public Framebuffer
     {
     public:
-        D3D11Framebuffer(D3D11Graphics* graphics, const FramebufferDescriptor* descriptor);
+        D3D11Framebuffer(D3D11Graphics* graphics);
+
+        /// Desturctor
+        ~D3D11Framebuffer() override;
+
+        void Destroy() override;
 
         uint32_t Bind(ID3D11DeviceContext* context) const;
-        ID3D11RenderTargetView* GetColorRTV(uint32_t index) const
-        {
-            return _colorRtvs[index];
-        }
 
-        ID3D11DepthStencilView* GetDSV() const
-        {
-            return _depthStencilView;
-        }
+        ID3D11RenderTargetView* GetColorRTV(uint32_t index) const { return _colorRtvs[index]; }
+        ID3D11DepthStencilView* GetDSV() const { return _depthStencilView; }
 
     private:
+        void ApplyColorAttachment(uint32_t index) override;
+        void ApplyDepthStencilAttachment() override;
+
         uint32_t _viewsCount = 0;
         ID3D11RenderTargetView* _colorRtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
         ID3D11DepthStencilView* _depthStencilView = nullptr;

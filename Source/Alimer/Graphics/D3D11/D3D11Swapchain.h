@@ -52,24 +52,24 @@ namespace Alimer
         uint32_t     GetBackBufferCount() const { return _backBufferCount; }
 
     private:
-        D3D11Graphics* _graphics;
-        uint32_t _width = 0;
-        uint32_t _height = 0;
-        uint32_t _backBufferCount = 2u;
-        DXGI_FORMAT _backBufferFormat;
-        PixelFormat _depthStencilFormat = PixelFormat::Unknown;
-        HWND _hwnd = nullptr;
-        IUnknown* _window = nullptr;
+        void OnSizeChanged(const uvec2& newSize) override;
 
-        UINT _swapChainFlags = 0;
-        UINT _syncInterval = 1;
-        UINT _presentFlags = 0;
-        Microsoft::WRL::ComPtr<IDXGISwapChain>      _swapChain;
-        Microsoft::WRL::ComPtr<IDXGISwapChain1>     _swapChain1;
+        D3D11Graphics*                          _graphics;
+        uint32_t                                _width = 0;
+        uint32_t                                _height = 0;
+        uint32_t                                _backBufferCount = 2u;
+        bool                                    _sRGB;
+        DXGI_FORMAT                             _backBufferFormat = DXGI_FORMAT_UNKNOWN;
+        PixelFormat                             _depthStencilFormat = PixelFormat::Unknown;
+        HWND                                    _hwnd = nullptr;
+        IUnknown*                               _window = nullptr;
 
-        SharedPtr<Texture> _renderTarget;
-        SharedPtr<Texture> _depthStencil;
-        std::vector<SharedPtr<Framebuffer>> _framebuffers;
-        uint32_t _currentBackBufferIndex = 0;
+        UINT                                    _swapChainFlags = 0;
+        UINT                                    _syncInterval = 1;
+        UINT                                    _presentFlags = 0;
+        Microsoft::WRL::ComPtr<IDXGISwapChain>  _swapChain;
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain1;
+        SharedPtr<Texture>                      _renderTarget;
+        SharedPtr<Texture>                      _depthStencil;
     };
 }

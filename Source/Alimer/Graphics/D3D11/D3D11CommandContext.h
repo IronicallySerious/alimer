@@ -38,8 +38,8 @@ namespace Alimer
         ~D3D11CommandContext() override;
 
         uint64_t FlushImpl(bool waitForCompletion) override;
-        //void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
-        //void EndRenderPassImpl() override;
+        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        void EndRenderPassImpl() override;
 
         /*void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
         void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;

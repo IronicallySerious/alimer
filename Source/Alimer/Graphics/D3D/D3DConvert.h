@@ -66,10 +66,23 @@ namespace Alimer
     {
         switch (format)
         {
-        case DXGI_FORMAT_R8_UNORM:          return PixelFormat::R8UNorm;
-        case DXGI_FORMAT_R8G8_UNORM:        return PixelFormat::RG8UNorm;
-        case DXGI_FORMAT_R8G8B8A8_UNORM:    return PixelFormat::RGBA8UNorm;
-        case DXGI_FORMAT_B8G8R8A8_UNORM:    return PixelFormat::BGRA8UNorm;
+        case DXGI_FORMAT_R8_UNORM:          
+            return PixelFormat::R8UNorm;
+
+        case DXGI_FORMAT_R8G8_UNORM:        
+            return PixelFormat::RG8UNorm;
+
+        case DXGI_FORMAT_R8G8B8A8_UNORM:    
+            return PixelFormat::RGBA8UNorm;
+
+        case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+            return PixelFormat::RGBA8UNormSrgb;
+
+        case DXGI_FORMAT_B8G8R8A8_UNORM:    
+            return PixelFormat::BGRA8UNorm;
+
+        case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+            return PixelFormat::BGRA8UNormSrgb;
         default:
             return PixelFormat::Unknown;
         }

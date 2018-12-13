@@ -100,9 +100,8 @@ namespace Alimer
         }
     }
 
-    void Mesh::Draw(SharedPtr<CommandContext> context, uint32_t instanceCount)
+    void Mesh::Draw(CommandContext& context, uint32_t instanceCount)
     {
-        ALIMER_ASSERT(context);
         ALIMER_ASSERT(instanceCount >= 1);
 
         /*context->BindVertexBuffer(_vertexBuffer, 0);

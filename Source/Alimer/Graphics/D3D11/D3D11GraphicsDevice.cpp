@@ -23,12 +23,11 @@
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Swapchain.h"
 #include "D3D11CommandContext.h"
-/*#include "D3D11Framebuffer.h"
 #include "D3D11Texture.h"
+#include "D3D11Framebuffer.h"
 #include "D3D11GpuBuffer.h"
 #include "D3D11Shader.h"
-#include "D3D11Pipeline.h"
-#include "../ShaderCompiler.h"*/
+//#include "D3D11Pipeline.h"
 #include "../../Core/Platform.h"
 #include "../../Debug/Log.h"
 #include <STB/stb_image_write.h>
@@ -93,7 +92,6 @@ namespace Alimer
         return S_OK;
     }
 #endif
-
 
 #if defined(_DEBUG)
     // Check for SDK Layer support.
@@ -188,15 +186,15 @@ namespace Alimer
 
     D3D11Graphics::~D3D11Graphics()
     {
-        Shutdown();
+        Finalize();
     }
 
-    void D3D11Graphics::Shutdown()
+    void D3D11Graphics::Finalize()
     {
         SafeDelete(_mainSwapchain);
 
         // Clear pending resources.
-        Graphics::Shutdown();
+        Graphics::Finalize();
 
         _cache.Clear();
 
@@ -520,29 +518,23 @@ namespace Alimer
         return _cache;
     }
 
-    /*
-    GpuBuffer* D3D11GraphicsDevice::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
+    Texture* D3D11Graphics::CreateTexture()
     {
-        return new D3D11Buffer(this, descriptor, initialData);
+        return new D3D11Texture(this);
     }
 
-    Texture* D3D11GraphicsDevice::CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    Framebuffer* D3D11Graphics::CreateFramebuffer()
     {
-        return new D3D11Texture(this, descriptor, initialData, nullptr);
+        return new D3D11Framebuffer(this);
     }
 
-    Framebuffer* D3D11GraphicsDevice::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
+    GpuBuffer* D3D11Graphics::CreateBuffer()
     {
-        return new D3D11Framebuffer(this, descriptor);
+        return new D3D11Buffer(this);
     }
 
-    Shader* D3D11GraphicsDevice::CreateShaderImpl(const ShaderDescriptor* descriptor)
+    ShaderModule* D3D11Graphics::CreateShaderModule()
     {
-        return new D3D11Shader(this, descriptor);
+        return new D3D11ShaderModule(this);
     }
-
-    Pipeline* D3D11GraphicsDevice::CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor)
-    {
-        return new D3D11Pipeline(this, descriptor);
-    }*/
 }

@@ -5,7 +5,7 @@
 ** file 'LICENSE', which is part of this source code package.
 */
 
-#include "Alimer.h"
+/*#include "Alimer.h"
 using namespace Alimer;
 
 const String sPluginName = "TestPlugin";
@@ -44,3 +44,4 @@ extern "C" ALIMER_INTERFACE_EXPORT void AlimerPluginUnload(Alimer::Plugin* plugi
     delete static_cast<TestPlugin*>(plugin);
 }
 #endif
+*/

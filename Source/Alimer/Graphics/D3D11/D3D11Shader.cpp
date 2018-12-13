@@ -20,17 +20,16 @@
 // THE SOFTWARE.
 //
 
-#if TODO_D3D11
 #include "D3D11Shader.h"
 #include "D3D11GraphicsDevice.h"
 #include "../D3D/D3DShaderCompiler.h"
-#include "../D3D/D3DPlatformFunctions.h"
-#include "../../Core/Log.h"
+#include "../../Debug/Log.h"
 #include <spirv-cross/spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
+#if TODO_D3D11
     enum class DescriptorType
     {
         UniformBuffer,
@@ -105,11 +104,13 @@ namespace Alimer
         std::string hlslSource = compiler.compile(std::move(remaps));
         return D3DShaderCompiler::Compile(graphics->GetFunctions()->d3dCompile, hlslSource.c_str(), hlslSource.length(), stage, major, minor);
     }
+#endif // TODO_D3D11
 
-    /*D3D11ShaderModule::D3D11ShaderModule(D3D11GraphicsDevice* device, uint64_t hash, const ShaderBlob& blob)
-        : ShaderModule(device, hash, blob)
+
+    D3D11ShaderModule::D3D11ShaderModule(D3D11Graphics* graphics)
+        : ShaderModule(graphics)
     {
-        _d3dBlob = ConvertAndCompileHLSL(device, blob, GetReflection().stage);
+        //_d3dBlob = ConvertAndCompileHLSL(device, blob, GetReflection().stage);
     }
 
     D3D11ShaderModule::~D3D11ShaderModule()
@@ -120,8 +121,9 @@ namespace Alimer
     void D3D11ShaderModule::Destroy()
     {
 
-    }*/
+    }
 
+#if TODO_D3D11
     D3D11Shader::D3D11Shader(D3D11GraphicsDevice* device, const ShaderDescriptor* descriptor)
         : Shader(device, descriptor)
     {
@@ -194,6 +196,6 @@ namespace Alimer
             context->PSSetShader(_pixelShader, nullptr, 0);
         }*/
     }
-}
-
 #endif // TODO_D3D11
+
+}

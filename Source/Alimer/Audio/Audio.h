@@ -42,7 +42,7 @@ namespace Alimer
         /// Create the audio module.
         static Audio* Create(AudioBackend prefferedBackend = AudioBackend::Default, bool validation = false);
 
-        /// Shutdown the audio manager.
+        /// Shutdown the audio module.
         static void Shutdown();
 
         /// Get the best platform backend.

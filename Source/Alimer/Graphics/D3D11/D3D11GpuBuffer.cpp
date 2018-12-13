@@ -29,60 +29,11 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Buffer::D3D11Buffer(D3D11Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData)
+    D3D11Buffer::D3D11Buffer(D3D11Graphics* graphics)
         : GpuBuffer(graphics)
-        , _deviceContext(graphics->GetD3DDeviceContext1())
+        , _device(graphics->GetD3DDevice())
+        , _deviceContext(graphics->GetD3DDeviceContext())
     {
-        D3D11_BUFFER_DESC bufferDesc = {};
-        bufferDesc.ByteWidth = static_cast<UINT>(descriptor->size);
-        bufferDesc.StructureByteStride = descriptor->stride;
-        //bufferDesc.Usage = d3d11::Convert(descriptor->resourceUsage);
-        bufferDesc.CPUAccessFlags = 0;
-
-        /*if (descriptor->resourceUsage == ResourceUsage::Dynamic)
-            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-        if (descriptor->resourceUsage == ResourceUsage::Staging)
-        {
-            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
-        }*/
-
-        if (any(descriptor->usage & BufferUsage::Uniform))
-        {
-            // D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT
-            bufferDesc.ByteWidth = bufferDesc.ByteWidth; // Align(bufferDesc.ByteWidth, 16u);
-            bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        }
-        else
-        {
-            if (any(descriptor->usage & BufferUsage::Vertex))
-            {
-                bufferDesc.BindFlags |= D3D11_BIND_VERTEX_BUFFER;
-            }
-
-            if (any(descriptor->usage & BufferUsage::Index))
-            {
-                bufferDesc.BindFlags |= D3D11_BIND_INDEX_BUFFER;
-            }
-
-            if (any(descriptor->usage & BufferUsage::Storage))
-            {
-                bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-            }
-
-            if (any(descriptor->usage & BufferUsage::Indirect))
-            {
-                bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
-            }
-        }
-
-        D3D11_SUBRESOURCE_DATA initData;
-        memset(&initData, 0, sizeof(initData));
-        initData.pSysMem = initialData;
-
-        ThrowIfFailed(
-            graphics->GetD3DDevice()->CreateBuffer(&bufferDesc, initialData ? &initData : nullptr, &_handle)
-        );
     }
 
     D3D11Buffer::~D3D11Buffer()
@@ -93,6 +44,57 @@ namespace Alimer
     void D3D11Buffer::Destroy()
     {
         SafeRelease(_handle, "ID3D11Buffer");
+    }
+
+    bool D3D11Buffer::Create(const void* initialData)
+    {
+        D3D11_BUFFER_DESC bufferDesc = {};
+        bufferDesc.ByteWidth = static_cast<UINT>(_size);
+        bufferDesc.StructureByteStride = _stride;
+        bufferDesc.Usage = D3D11_USAGE_DEFAULT; // d3d11::Convert(descriptor->resourceUsage);
+        bufferDesc.CPUAccessFlags = 0;
+
+        /*if (descriptor->resourceUsage == ResourceUsage::Dynamic)
+            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        if (descriptor->resourceUsage == ResourceUsage::Staging)
+        {
+            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
+        }*/
+
+        if (any(_usage & BufferUsage::Uniform))
+        {
+            bufferDesc.ByteWidth = AlignTo(bufferDesc.ByteWidth, D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
+            bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        }
+        else
+        {
+            if (any(_usage & BufferUsage::Vertex))
+            {
+                bufferDesc.BindFlags |= D3D11_BIND_VERTEX_BUFFER;
+            }
+
+            if (any(_usage & BufferUsage::Index))
+            {
+                bufferDesc.BindFlags |= D3D11_BIND_INDEX_BUFFER;
+            }
+
+            if (any(_usage & BufferUsage::Storage))
+            {
+                bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+            }
+
+            if (any(_usage & BufferUsage::Indirect))
+            {
+                bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
+            }
+        }
+
+        D3D11_SUBRESOURCE_DATA initData;
+        memset(&initData, 0, sizeof(initData));
+        initData.pSysMem = initialData;
+        HRESULT hr = _device->CreateBuffer(&bufferDesc, initialData ? &initData : nullptr, &_handle);
+        return SUCCEEDED(hr);
     }
 
     /*bool D3D11Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)

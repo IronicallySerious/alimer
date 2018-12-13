@@ -60,12 +60,7 @@ namespace Alimer
 
     Application::~Application()
     {
-        _paused = true;
-        _running = false;
-
-        _graphics.Reset();
-        Audio::Shutdown();
-        PluginManager::Shutdown();
+        Shutdown();
         SafeDelete(_log);
         __appInstance = nullptr;
     }
@@ -73,6 +68,20 @@ namespace Alimer
     Application* Application::GetInstance()
     {
         return __appInstance;
+    }
+
+    void Application::Shutdown()
+    {
+        if (!_running)
+            return;
+
+        _paused = true;
+        _running = false;
+
+        _gui.Reset();
+        Graphics::Shutdown();
+        Audio::Shutdown();
+        PluginManager::Shutdown();
     }
 
     bool Application::InitializeBeforeRun()
@@ -85,14 +94,14 @@ namespace Alimer
         // Init Window and Gpu.
         if (!_headless)
         {
-            _graphics = Graphics::Create(_settings.preferredGraphicsBackend, _settings.validation);
-            if (!_graphics->Initialize(&_settings.mainWindowDescriptor))
+            Graphics* graphics = Graphics::Create(_settings.preferredGraphicsBackend, _settings.validation);
+            if (!graphics->Initialize(&_settings.mainWindowDescriptor))
             {
                 ALIMER_LOGERROR("Failed to initialize Graphics.");
                 return false;
             }
 
-            _mainWindow = _graphics->GetMainWindow();
+            _mainWindow = graphics->GetMainWindow();
 
             // Create imgui system.
             _gui = new Gui();
@@ -102,7 +111,7 @@ namespace Alimer
         LoadPlugins();
 
         // Create per platform Audio module.
-        auto audio = Audio::Create();
+        Audio* audio = Audio::Create();
         audio->Initialize();
 
         // Initialize this instance and all systems.
@@ -178,14 +187,23 @@ namespace Alimer
         context->EndRenderPass();*/
 
         // Present rendering frame.
-        _graphics->Present();
         _mainWindow->SwapBuffers();
+
+        // Advance to next frame.
+        gGraphics().Frame();
     }
 
     void Application::OnRenderFrame(double frameTime, double elapsedTime)
     {
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
+
+        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        CommandContext& context = gGraphics().GetImmediateContext();
+        context.BeginDefaultRenderPass(clearColor);
+        //context.Draw(3, 0);
+        context.EndRenderPass();
+        context.Flush();
     }
 
     void Application::Exit()

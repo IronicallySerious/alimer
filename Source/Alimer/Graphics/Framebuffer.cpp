@@ -22,32 +22,17 @@
 
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Debug/Log.h"
 
 namespace Alimer
 {
     Framebuffer::Framebuffer(Graphics* graphics)
         : GraphicsResource(graphics)
-        , _impl(nullptr)
     {
+        _colorAttachments.Resize(graphics->GetFeatures().MaxColorAttachments());
         _width = UINT32_MAX;
         _height = UINT32_MAX;
         _layers = 1;
-    }
-
-    Framebuffer::Framebuffer(FramebufferImpl* impl)
-        : GraphicsResource(Object::GetSubsystem<Graphics>())
-        , _impl(impl)
-    {
-        _width = UINT32_MAX;
-        _height = UINT32_MAX;
-        _layers = 1;
-    }
-
-    Framebuffer::~Framebuffer()
-    {
-        Destroy();
     }
 
     bool Framebuffer::Define(const FramebufferDescriptor* descriptor)
@@ -66,7 +51,7 @@ namespace Alimer
             if (attachment.texture == nullptr)
                 continue;
 
-            uint32_t mipLevel = attachment.mipLevel;
+            uint32_t mipLevel = attachment.baseMipLevel;
             Texture* texture = attachment.texture;
             _width = min(_width, texture->GetWidth(mipLevel));
             _height = min(_height, texture->GetHeight(mipLevel));
@@ -75,7 +60,7 @@ namespace Alimer
 
         if (descriptor->depthStencilAttachment.texture != nullptr)
         {
-            uint32_t mipLevel = descriptor->depthStencilAttachment.mipLevel;
+            uint32_t mipLevel = descriptor->depthStencilAttachment.baseMipLevel;
             Texture* texture = descriptor->depthStencilAttachment.texture;
             _width = min(_width, texture->GetWidth(mipLevel));
             _height = min(_height, texture->GetHeight(mipLevel));
@@ -87,16 +72,10 @@ namespace Alimer
 
     bool Framebuffer::Create()
     {
-        _impl = _graphics->GetImpl()->CreateFramebuffer(_colorAttachments);
-        return _impl != nullptr;
+        return false;
     }
 
-    void Framebuffer::Destroy()
-    {
-        SafeDelete(_impl);
-    }
-
-    /*static bool ValidateAttachment(const Texture* texture,
+    static bool ValidateAttachment(const Texture* texture,
         uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize,
         bool isDepthAttachment)
     {
@@ -172,7 +151,7 @@ namespace Alimer
         return true;
     }
 
-    void Framebuffer::AttachColorTarget(const SharedPtr<Texture>& colorTexture, uint32_t index, uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize)
+    void Framebuffer::SetColorAttachment(uint32_t index, Texture* colorTexture, uint32_t baseMipLevel, uint32_t baseArrayLayer, uint32_t layerCount)
     {
         if (index >= _colorAttachments.Size())
         {
@@ -180,43 +159,52 @@ namespace Alimer
             return;
         }
 
-        if (ValidateAttachment(
-            colorTexture.Get(),
-            mipLevel,
-            firstArraySlice,
-            arraySize,
-            false))
+        if (ValidateAttachment(colorTexture, baseMipLevel, baseArrayLayer, layerCount, false))
         {
             if (colorTexture)
             {
-                _width = min(_width, colorTexture->GetWidth(mipLevel));
-                _height = min(_height, colorTexture->GetHeight(mipLevel));
+                _width = min(_width, colorTexture->GetWidth(baseMipLevel));
+                _height = min(_height, colorTexture->GetHeight(baseMipLevel));
+                _colorAttachments[index].texture = colorTexture;
+                _colorAttachments[index].baseMipLevel = baseMipLevel;
+                _colorAttachments[index].baseArrayLayer = baseArrayLayer;
+                _colorAttachments[index].layerCount = layerCount;
             }
             else
             {
+                _colorAttachments[index].texture = nullptr;
+                _colorAttachments[index].baseMipLevel = 0;
+                _colorAttachments[index].baseArrayLayer = 0;
+                _colorAttachments[index].layerCount = RemainingArrayLayers;
             }
+            ApplyColorAttachment(index);
         }
     }
 
-    void Framebuffer::AttachDepthStencilTarget(const SharedPtr<Texture>& depthStencil, uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize)
+    void Framebuffer::SetDepthStencilAttachment(Texture* depthStencilTexture, uint32_t baseMipLevel, uint32_t baseArrayLayer, uint32_t layerCount)
     {
-        if (ValidateAttachment(
-            depthStencil.Get(),
-            mipLevel,
-            firstArraySlice,
-            arraySize,
-            true))
+        if (ValidateAttachment(depthStencilTexture, baseMipLevel, baseArrayLayer, layerCount, true))
         {
-            if (depthStencil)
+            if (depthStencilTexture)
             {
-                _width = min(_width, depthStencil->GetWidth(mipLevel));
-                _height = min(_height, depthStencil->GetHeight(mipLevel));
+                _width = min(_width, depthStencilTexture->GetWidth(baseMipLevel));
+                _height = min(_height, depthStencilTexture->GetHeight(baseMipLevel));
+                _depthStencilAttachment.texture = depthStencilTexture;
+                _depthStencilAttachment.baseMipLevel = baseMipLevel;
+                _depthStencilAttachment.baseArrayLayer = baseArrayLayer;
+                _depthStencilAttachment.layerCount = layerCount;
             }
             else
             {
+                _depthStencilAttachment.texture = nullptr;
+                _depthStencilAttachment.baseMipLevel = 0;
+                _depthStencilAttachment.baseArrayLayer = 0;
+                _depthStencilAttachment.layerCount = RemainingArrayLayers;
             }
+
+            ApplyDepthStencilAttachment();
         }
-    }*/
+    }
 
     const Texture* Framebuffer::GetColorTexture(uint32_t index) const
     {

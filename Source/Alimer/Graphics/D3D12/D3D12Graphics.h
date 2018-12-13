@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Graphics.h"
-#include "../GraphicsImpl.h"
 #include "D3D12DescriptorAllocator.h"
 #include <queue>
 #include <mutex>
@@ -50,7 +49,7 @@ namespace Alimer
 
 
     /// D3D12 Low-level 3D graphics API class.
-    class D3D12Graphics final : public GraphicsImpl
+    class D3D12Graphics final : public Graphics
     {
     public:
         /// Is backend supported?
@@ -65,19 +64,18 @@ namespace Alimer
         bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
 
         bool WaitIdle() override;
-        void Frame() override;
+        //void Frame() override;
 
         D3D12CommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE type);
         void FreeContext(D3D12CommandContext* context);
-        CommandContext* AllocateContext() override;
+        //CommandContext* AllocateContext() override;
 
         UploadContext ResourceUploadBegin(uint64_t size);
         void ResourceUploadEnd(UploadContext& context);
 
-        //RenderWindow* GetMainWindow() const override;
-        Framebuffer* GetSwapchainFramebuffer() const override;
-        FramebufferImpl* CreateFramebuffer(const Vector<FramebufferAttachment>& colorAttachments) override;
-        GpuBufferImpl* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData, void* externalHandle) override;
+        //Framebuffer* GetSwapchainFramebuffer() const override;
+        //FramebufferImpl* CreateFramebuffer(const Vector<FramebufferAttachment>& colorAttachments) override;
+        //GpuBufferImpl* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData, void* externalHandle) override;
 
         inline IDXGIFactory4* GetFactory() const { return _factory.Get(); }
         inline IDXGIAdapter1* GetAdapter() const { return _adapter.Get(); }

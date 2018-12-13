@@ -73,8 +73,7 @@ namespace Alimer
 
     void Audio::Shutdown()
     {
-        delete _instance;
-        _instance = nullptr;
+        SafeDelete(_instance);
     }
 
     AudioBackend Audio::GetPlatformDefaultBackend()

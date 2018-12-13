@@ -79,12 +79,7 @@ namespace Alimer
         /// Get if given mouse button is held.
         bool IsMouseButtonHeld(MouseButton button);
 
-        /// Is cursor visible.
-        bool IsCursorVisible() const;
-
-        /// Set cursor visibility.
-        void SetCursorVisible(bool visible);
-
+        
         // Events
         void MouseButtonEvent(MouseButton button, int32_t x, int32_t y, bool pressed);
         void MouseMoveEvent(MouseButton button, int32_t x, int32_t y);

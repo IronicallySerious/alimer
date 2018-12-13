@@ -34,28 +34,14 @@ namespace Alimer
         : RenderWindow(descriptor)
         , _graphics(graphics)
         , _backBufferCount(backBufferCount)
+        , _sRGB(descriptor->sRGB)
     {
-        switch (descriptor->preferredColorFormat)
-        {
-        case PixelFormat::BGRA8UNorm:
-            _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-            break;
-
-        case PixelFormat::BGRA8UNormSrgb:
-            _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-            break;
-
-        default:
-            _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-            break;
-        }
-
         _depthStencilFormat = descriptor->preferredDepthStencilFormat;
 
 #if ALIMER_PLATFORM_UWP
-        _window = static_cast<IUnknown*>(GetHandle());
+        _window = static_cast<IUnknown*>(GetNativeHandle());
 #else
-        _hwnd = static_cast<HWND>(GetHandle());
+        _hwnd = static_cast<HWND>(GetNativeHandle());
 #endif
 
         Resize(descriptor->size.x, descriptor->size.y, true);
@@ -70,11 +56,17 @@ namespace Alimer
     {
         _swapChain->SetFullscreenState(false, nullptr);
 
-        _framebuffers.clear();
+        RenderWindow::Destroy();
         _renderTarget.Reset();
         _depthStencil.Reset();
         _swapChain.Reset();
         _swapChain1.Reset();
+    }
+
+    void D3D11Swapchain::OnSizeChanged(const uvec2& newSize)
+    {
+        Resize(newSize.x, newSize.y, false);
+        Window::OnSizeChanged(newSize);
     }
 
     void D3D11Swapchain::Resize(uint32_t width, uint32_t height, bool force)
@@ -84,23 +76,16 @@ namespace Alimer
             return;
         }
 
-        // Clear the previous window size specific context.
-        ID3D11RenderTargetView* nullViews[] = { nullptr };
-        _graphics->GetD3DDeviceContext()->OMSetRenderTargets(1, nullViews, nullptr);
-        _renderTarget.Reset();
-        _depthStencil.Reset();
-        _graphics->GetD3DDeviceContext()->Flush();
-
         HRESULT hr = S_OK;
 
         if (_swapChain)
         {
-            hr = _swapChain->ResizeBuffers(
-                _backBufferCount,
-                width,
-                height,
-                _backBufferFormat,
-                _swapChainFlags
+            RenderWindow::Destroy();
+            _renderTarget.Reset();
+            _depthStencil.Reset();
+
+            hr = _swapChain->ResizeBuffers(_backBufferCount, width, height,
+                _backBufferFormat, _swapChainFlags
             );
 
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
@@ -110,18 +95,22 @@ namespace Alimer
         else
         {
             // Check tearing.
-            DXGI_SWAP_EFFECT swapEffect = DXGI_SWAP_EFFECT_DISCARD;
-            if (_graphics->AllowTearing())
-            {
-                _syncInterval = 0;
-                _presentFlags = DXGI_PRESENT_ALLOW_TEARING;
-                _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-                swapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-            }
-
+            _backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
+            
             ComPtr<IDXGIFactory2> dxgiFactory2;
             if (SUCCEEDED(_graphics->GetFactory()->QueryInterface(dxgiFactory2.ReleaseAndGetAddressOf())))
             {
+                DXGI_SWAP_EFFECT swapEffect = DXGI_SWAP_EFFECT_DISCARD;
+                if (_graphics->AllowTearing())
+                {
+                    _syncInterval = 0;
+                    _presentFlags = DXGI_PRESENT_ALLOW_TEARING;
+                    _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+                    // Cannot use srgb format with flip swap effect.
+                    swapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+                    _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+                }
+
                 // DirectX 11.1 or later.
                 DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
                 swapChainDesc.Width = width;
@@ -129,7 +118,7 @@ namespace Alimer
                 swapChainDesc.Format = _backBufferFormat;
                 swapChainDesc.SampleDesc.Count = 1;
                 swapChainDesc.SampleDesc.Quality = 0;
-                swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+                swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
                 swapChainDesc.BufferCount = _backBufferCount;
                 swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
                 swapChainDesc.SwapEffect = swapEffect;
@@ -186,12 +175,12 @@ namespace Alimer
             {
                 // DirectX 11.0
                 DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-                swapChainDesc.BufferDesc.Width = _width;
-                swapChainDesc.BufferDesc.Height = _height;
+                swapChainDesc.BufferDesc.Width = width;
+                swapChainDesc.BufferDesc.Height = height;
                 swapChainDesc.BufferDesc.Format = _backBufferFormat;
                 swapChainDesc.SampleDesc.Count = 1;
                 swapChainDesc.SampleDesc.Quality = 0;
-                swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+                swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
                 swapChainDesc.BufferCount = _backBufferCount;
                 swapChainDesc.OutputWindow = _hwnd;
                 swapChainDesc.Windowed = TRUE;
@@ -213,60 +202,20 @@ namespace Alimer
         ID3D11Texture2D* renderTarget;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
 
-        /*D3D11_TEXTURE2D_DESC d3dTextureDesc;
-        renderTarget->GetDesc(&d3dTextureDesc);
+        DXGI_FORMAT backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
+        _renderTarget = new D3D11Texture(_graphics, renderTarget, backBufferFormat);
 
-        TextureDescriptor textureDesc = {};
-        textureDesc.type = TextureType::Type2D;
-        textureDesc.format = GetPixelFormatDxgiFormat(d3dTextureDesc.Format);
-        textureDesc.width = d3dTextureDesc.Width;
-        textureDesc.height = d3dTextureDesc.Height;
-        textureDesc.depth = 1;
-        if (d3dTextureDesc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
-        {
-            textureDesc.type = TextureType::TypeCube;
-            textureDesc.arrayLayers = d3dTextureDesc.ArraySize / 6;
-        }
-        else
-        {
-            textureDesc.arrayLayers = d3dTextureDesc.ArraySize;
-        }
-        textureDesc.mipLevels = d3dTextureDesc.MipLevels;
-        textureDesc.usage = TextureUsage::Unknown;
-        if (d3dTextureDesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
-        {
-            textureDesc.usage |= TextureUsage::ShaderRead;
-        }
+        _framebuffers.Resize(1);
+        _framebuffers[0] = new D3D11Framebuffer(_graphics);
+        _framebuffers[0]->SetColorAttachment(0, _renderTarget.Get());
 
-        if (d3dTextureDesc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
-        {
-            textureDesc.usage |= TextureUsage::ShaderWrite;
-        }
-
-        if (d3dTextureDesc.BindFlags & D3D11_BIND_RENDER_TARGET
-            || d3dTextureDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
-        {
-            textureDesc.usage |= TextureUsage::RenderTarget;
-        }
-
-        _renderTarget = new D3D11Texture(_graphics, &textureDesc, nullptr, renderTarget);
-
-        FramebufferDescriptor fboDescriptor = {};
-        fboDescriptor.colorAttachments[0].texture = _renderTarget.Get();
         // Create depth stencil if required.
         if (_depthStencilFormat != PixelFormat::Unknown)
         {
-            textureDesc.type = TextureType::Type2D;
-            textureDesc.format = _depthStencilFormat;
-            textureDesc.width = d3dTextureDesc.Width;
-            textureDesc.height = d3dTextureDesc.Height;
-            textureDesc.usage = TextureUsage::RenderTarget;
-            _depthStencil = new D3D11Texture(_device, &textureDesc, nullptr, nullptr);
-            fboDescriptor.depthStencilAttachment.texture = _depthStencil.Get();
+            _depthStencil = new D3D11Texture(_graphics);
+            _depthStencil->Define2D(width, height, _depthStencilFormat, 1, 1, nullptr, TextureUsage::RenderTarget);
+            _framebuffers[0]->SetDepthStencilAttachment(_depthStencil.Get());
         }
-
-        _framebuffers.resize(1);
-        _framebuffers[0] = _graphics->CreateFramebuffer(&fboDescriptor);*/
 
         // Set new size.
         _width = width;

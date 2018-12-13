@@ -22,125 +22,55 @@
 
 #include "D3D11Texture.h"
 #include "D3D11GraphicsDevice.h"
-#if TODO_D3D11
 #include "../D3D/D3DConvert.h"
 #include "../../Debug/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Texture::D3D11Texture(D3D11GraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, ID3D11Texture2D* nativeTexture)
-        : Texture(device, descriptor)
-        , _d3dDevice(device->GetD3DDevice())
+    D3D11Texture::D3D11Texture(D3D11Graphics* graphics, ID3D11Texture2D* externalTexture, DXGI_FORMAT format)
+        : Texture(graphics)
+        , _d3dDevice(graphics->GetD3DDevice())
+        , _texture2D(externalTexture)
+        , _dxgiFormat(format)
     {
-        if (nativeTexture)
+        if (externalTexture)
         {
-            _dxgiFormat = GetDxgiFormat(descriptor->format);
-            _texture2D = nativeTexture;
-            return;
-        }
+            D3D11_TEXTURE2D_DESC textureDesc;
+            externalTexture->GetDesc(&textureDesc);
 
-        // Setup initial data.
-        std::vector<D3D11_SUBRESOURCE_DATA> subResourceData;
-        if (initialData)
-        {
-            subResourceData.resize(descriptor->arrayLayers * descriptor->mipLevels);
-            for (uint32_t i = 0; i < descriptor->arrayLayers * descriptor->mipLevels; ++i)
+            _type = TextureType::Type2D;
+            _format = GetPixelFormatDxgiFormat(_dxgiFormat);
+            _width = textureDesc.Width;
+            _height = textureDesc.Height;
+            _depth = 1;
+            if (textureDesc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
             {
-                uint32_t rowPitch;
-                if (!initialData[i].rowPitch)
-                {
-                    const uint32_t mipWidth = ((descriptor->width >> i) > 0) ? descriptor->width >> i : 1;
-                    const uint32_t mipHeight = ((descriptor->height >> i) > 0) ? descriptor->height >> i : 1;
-
-                    uint32_t rows;
-                    CalculateDataSize(
-                        mipWidth,
-                        mipHeight,
-                        descriptor->format,
-                        &rows,
-                        &rowPitch);
-                }
-                else
-                {
-                    rowPitch = initialData[i].rowPitch;
-                }
-
-                subResourceData[i].pSysMem = initialData[i].data;
-                subResourceData[i].SysMemPitch = rowPitch;
-                subResourceData[i].SysMemSlicePitch = 0;
+                _type = TextureType::TypeCube;
+                _arrayLayers = textureDesc.ArraySize / 6;
             }
-        }
-
-        _dxgiFormat = GetDxgiFormat(descriptor->format);
-
-        // If depth stencil format and shader read or write, switch to typeless.
-        if (IsDepthStencilFormat(descriptor->format)
-            && any(descriptor->usage & (TextureUsage::ShaderRead | TextureUsage::ShaderWrite)))
-        {
-            _dxgiFormat = GetDxgiTypelessDepthFormat(descriptor->format);
-        }
-
-        switch (descriptor->type)
-        {
-        case TextureType::Type1D:
-        {
-            D3D11_TEXTURE1D_DESC d3d11Desc = {};
-        }
-        break;
-
-        case TextureType::Type2D:
-        case TextureType::TypeCube:
-        {
-            D3D11_TEXTURE2D_DESC d3d11Desc = {};
-            d3d11Desc.Width = descriptor->width;
-            d3d11Desc.Height = descriptor->height;
-            d3d11Desc.MipLevels = descriptor->mipLevels;
-            d3d11Desc.ArraySize = descriptor->arrayLayers;
-            d3d11Desc.Format = _dxgiFormat;
-            d3d11Desc.SampleDesc.Count = static_cast<uint32_t>(descriptor->samples);
-            d3d11Desc.Usage = D3D11_USAGE_DEFAULT;
-
-            if (any(descriptor->usage & TextureUsage::ShaderRead))
+            else
             {
-                d3d11Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+                _arrayLayers = textureDesc.ArraySize;
             }
 
-            if (any(descriptor->usage & TextureUsage::ShaderWrite))
+            _mipLevels = textureDesc.MipLevels;
+            _usage = TextureUsage::Unknown;
+            if (textureDesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
             {
-                d3d11Desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+                _usage |= TextureUsage::ShaderRead;
             }
 
-            if (any(descriptor->usage & TextureUsage::RenderTarget))
+            if (textureDesc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
             {
-                if (!IsDepthStencilFormat(descriptor->format))
-                {
-                    d3d11Desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
-                }
-                else
-                {
-                    d3d11Desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
-                }
+                _usage |= TextureUsage::ShaderWrite;
             }
 
-            const bool dynamic = false;
-            d3d11Desc.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
-            d3d11Desc.MiscFlags = 0;
-            if (descriptor->type == TextureType::TypeCube)
+            if (textureDesc.BindFlags & D3D11_BIND_RENDER_TARGET
+                || textureDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
             {
-                d3d11Desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+                _usage |= TextureUsage::RenderTarget;
             }
-
-            _d3dDevice->CreateTexture2D(
-                &d3d11Desc,
-                subResourceData.data(),
-                &_texture2D);
-
-        }
-        break;
-
-        default:
-            break;
         }
     }
 
@@ -161,6 +91,115 @@ namespace Alimer
         _uavs.clear();
         _rtvs.clear();
         _dsvs.clear();
+    }
+
+    bool D3D11Texture::Create(const ImageLevel* initialData)
+    {
+        // Setup initial data.
+        PODVector<D3D11_SUBRESOURCE_DATA> subResourceData;
+        if (initialData)
+        {
+            subResourceData.Resize(_arrayLayers * _mipLevels);
+            for (uint32_t i = 0; i < _arrayLayers * _mipLevels; ++i)
+            {
+                uint32_t rowPitch;
+                if (!initialData[i].rowPitch)
+                {
+                    const uint32_t mipWidth = ((_width >> i) > 0) ? _width >> i : 1;
+                    const uint32_t mipHeight = ((_height >> i) > 0) ? _height >> i : 1;
+
+                    uint32_t rows;
+                    CalculateDataSize(
+                        mipWidth,
+                        mipHeight,
+                        _format,
+                        &rows,
+                        &rowPitch);
+                }
+                else
+                {
+                    rowPitch = initialData[i].rowPitch;
+                }
+
+                subResourceData[i].pSysMem = initialData[i].data;
+                subResourceData[i].SysMemPitch = rowPitch;
+                subResourceData[i].SysMemSlicePitch = 0;
+            }
+        }
+
+        _dxgiFormat = GetDxgiFormat(_format);
+
+        // If depth stencil format and shader read or write, switch to typeless.
+        if (IsDepthStencilFormat(_format)
+            && any(_usage & (TextureUsage::ShaderRead | TextureUsage::ShaderWrite)))
+        {
+            _dxgiFormat = GetDxgiTypelessDepthFormat(_format);
+        }
+
+        HRESULT hr = S_OK;
+        switch (_type)
+        {
+        case TextureType::Type1D:
+        {
+            D3D11_TEXTURE1D_DESC d3d11Desc = {};
+        }
+        break;
+
+        case TextureType::Type2D:
+        case TextureType::TypeCube:
+        {
+            D3D11_TEXTURE2D_DESC d3d11Desc = {};
+            d3d11Desc.Width = _width;
+            d3d11Desc.Height = _height;
+            d3d11Desc.MipLevels = _mipLevels;
+            d3d11Desc.ArraySize = _arrayLayers;
+            d3d11Desc.Format = _dxgiFormat;
+            d3d11Desc.SampleDesc.Count = static_cast<uint32_t>(_samples);
+            d3d11Desc.Usage = D3D11_USAGE_DEFAULT;
+
+            if (any(_usage & TextureUsage::ShaderRead))
+            {
+                d3d11Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+            }
+
+            if (any(_usage & TextureUsage::ShaderWrite))
+            {
+                d3d11Desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+            }
+
+            if (any(_usage & TextureUsage::RenderTarget))
+            {
+                if (!IsDepthStencilFormat(_format))
+                {
+                    d3d11Desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+                }
+                else
+                {
+                    d3d11Desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+                }
+            }
+
+            const bool dynamic = false;
+            d3d11Desc.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
+            d3d11Desc.MiscFlags = 0;
+            if (_type == TextureType::TypeCube)
+            {
+                d3d11Desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+            }
+
+            hr = _d3dDevice->CreateTexture2D(
+                &d3d11Desc,
+                subResourceData.Data(),
+                &_texture2D);
+
+        }
+        break;
+
+        default:
+            break;
+        }
+
+        return SUCCEEDED(hr);
     }
 
     template<typename ViewType>
@@ -207,7 +246,7 @@ namespace Alimer
             arraySize = textureArraySize - firstArraySlice;
         }
 
-        auto viewInfo = ResourceViewInfo(mipLevel, mipLevelCount, firstArraySlice, arraySize);
+        auto viewInfo = D3DResourceViewInfo(mipLevel, mipLevelCount, firstArraySlice, arraySize);
         if (viewMap.find(viewInfo) == viewMap.end())
         {
             viewMap[viewInfo] = createFunc(texture, mipLevel, mipLevelCount, firstArraySlice, arraySize);
@@ -575,5 +614,3 @@ namespace Alimer
         return FindViewCommon<ID3D11DepthStencilView>(this, mipLevel, 1, firstArraySlice, arraySize, _dsvs, createFunc);
     }
 }
-
-#endif // TODO_D3D11

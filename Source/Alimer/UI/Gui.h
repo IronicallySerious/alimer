@@ -26,6 +26,9 @@
 #include "../Math/Math.h"
 #include "../Math/Color.h"
 
+struct ImGuiContext;
+struct ImFont;
+
 namespace Alimer
 {
     class Shader;
@@ -43,7 +46,10 @@ namespace Alimer
 		/// Destructor.
 		virtual ~Gui();
 
+        void ApplyStyleDefault(bool darkStyle, float alpha);
+
 	private:
+        ImGuiContext* _imContext;
         SharedPtr<Pipeline> _pipeline;
 
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Gui);

@@ -28,24 +28,46 @@
 
 namespace Alimer
 {
-    D3D11Framebuffer::D3D11Framebuffer(D3D11Graphics* graphics, const FramebufferDescriptor* descriptor)
+    D3D11Framebuffer::D3D11Framebuffer(D3D11Graphics* graphics)
         : Framebuffer(graphics)
     {
-        for (uint32_t i = 0; i < MaxColorAttachments; i++)
-        {
-            const FramebufferAttachment& attachment = descriptor->colorAttachments[i];
-            if (attachment.texture == nullptr)
-                continue;
+    }
 
-            D3D11Texture* texture = static_cast<D3D11Texture*>(attachment.texture);
-            //_colorRtvs[_viewsCount++] = texture->GetRTV(attachment.mipLevel, attachment.slice);
+    D3D11Framebuffer::~D3D11Framebuffer()
+    {
+        Destroy();
+    }
+
+    void D3D11Framebuffer::Destroy()
+    {
+        
+    }
+
+    void D3D11Framebuffer::ApplyColorAttachment(uint32_t index)
+    {
+        if (_colorAttachments[index].texture)
+        {
+            D3D11Texture* texture = static_cast<D3D11Texture*>(_colorAttachments[index].texture);
+            _colorRtvs[index] = texture->GetRTV(_colorAttachments[index].baseMipLevel, _colorAttachments[index].baseArrayLayer, _colorAttachments[index].layerCount);
+        }
+        else 
+        {
+            _colorRtvs[index] = nullptr;
         }
 
-        if (descriptor->depthStencilAttachment.texture != nullptr)
+        _viewsCount = max(_viewsCount, index + 1);
+    }
+
+    void D3D11Framebuffer::ApplyDepthStencilAttachment()
+    {
+        if (_depthStencilAttachment.texture != nullptr)
         {
-            const FramebufferAttachment& attachment = descriptor->depthStencilAttachment;
-            D3D11Texture* texture = static_cast<D3D11Texture*>(attachment.texture);
-            //_depthStencilView = texture->GetDSV(attachment.mipLevel, attachment.slice);
+            D3D11Texture* texture = static_cast<D3D11Texture*>(_depthStencilAttachment.texture);
+            _depthStencilView = texture->GetDSV(_depthStencilAttachment.baseMipLevel, _depthStencilAttachment.baseArrayLayer, _depthStencilAttachment.layerCount);
+        }
+        else 
+        {
+            _depthStencilView = nullptr;
         }
     }
 

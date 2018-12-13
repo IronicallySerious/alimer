@@ -21,7 +21,6 @@
 //
 
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
 #include "../Debug/Log.h"
@@ -54,12 +53,18 @@ namespace Alimer
     Graphics *Graphics::_instance;
 
     Graphics::Graphics(GraphicsBackend backend, bool validation)
-        : CommandContext(this)
-        , _backend(backend)
+        : _backend(backend)
         , _validation(validation)
     {
         AddSubsystem(this);
         _instance = this;
+    }
+
+    Graphics::~Graphics()
+    {
+        Finalize();
+        RemoveSubsystem(this);
+        _instance = nullptr;
     }
 
     Graphics* Graphics::Create(GraphicsBackend preferredBackend, bool validation)
@@ -116,12 +121,9 @@ namespace Alimer
         return device;
     }
 
-    Graphics::~Graphics()
+    void Graphics::Shutdown()
     {
-        Shutdown();
-        SafeDelete(_impl);
-        RemoveSubsystem(this);
-        _instance = nullptr;
+        SafeDelete(_instance);
     }
 
     Graphics& Graphics::GetInstance()
@@ -129,7 +131,7 @@ namespace Alimer
         return *_instance;
     }
 
-    void Graphics::Shutdown()
+    void Graphics::Finalize()
     {
         // Destroy undestroyed resources.
         if (_gpuResources.Size())
@@ -262,16 +264,10 @@ namespace Alimer
         return true;
     }
 
-    uint64_t Graphics::Present()
+    uint64_t Graphics::Frame()
     {
-        //_context->Flush();
-        //_impl->Frame();
+        OnFrame();
         return ++_frameIndex;
-    }
-
-    CommandContext* Graphics::AllocateContext()
-    {
-        return _instance->_impl->AllocateContext();
     }
 
     void Graphics::AddGraphicsResource(GraphicsResource* resource)
@@ -295,16 +291,6 @@ namespace Alimer
     const GraphicsDeviceFeatures& Graphics::GetFeatures() const
     {
         return _features;
-    }
-
-    Framebuffer* Graphics::GetSwapchainFramebuffer() const
-    {
-        return _impl->GetSwapchainFramebuffer();
-    }
-
-    uint64_t Graphics::FlushImpl(bool waitForCompletion)
-    {
-        return _immediateCommandContext->Flush(waitForCompletion);
     }
 
     void Graphics::RegisterObject()

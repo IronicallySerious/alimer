@@ -23,8 +23,7 @@
 #pragma once
 
 #include "../Application/Window.h"
-#include "../Graphics/PixelFormat.h"
-#include "../Graphics/Types.h"
+#include "../Graphics/Framebuffer.h"
 
 namespace Alimer
 {
@@ -34,8 +33,8 @@ namespace Alimer
         uvec2 size = { 800, 600 };
         WindowFlags windowFlags = WindowFlags::Default;
 
-        /// Preferred color format.
-        PixelFormat preferredColorFormat = PixelFormat::BGRA8UNorm;
+        /// sRGB color space.
+        bool sRGB  = true;
         /// Preferred depth stencil format.
         PixelFormat preferredDepthStencilFormat = PixelFormat::D24UNormS8;
 
@@ -57,9 +56,19 @@ namespace Alimer
         /// Desturctor
         ~RenderWindow() override;
 
+        virtual void Destroy();
+
         /// Swaps the frame buffers to display the next frame. 
         virtual void SwapBuffers();
 
-    private:
+        uint32_t GetCurrentFramebufferIndex() const { }
+        uint32_t GetFramebufferCount() const { return _framebuffers.Size(); }
+
+        /// Get the current framebuffer.
+        Framebuffer* GetCurrentFramebuffer() const;
+
+    protected:
+        Vector<SharedPtr<Framebuffer>> _framebuffers;
+        uint32_t _currentBackBufferIndex = 0;
     };
 }

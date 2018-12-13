@@ -20,49 +20,14 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/GpuBuffer.h"
-#include "../Graphics/Graphics.h"
-#include "../Debug/Log.h"
+#include "../../Input/Input.h"
+#include "../../Debug/Log.h"
+#define GLFW_INCLUDE_NONE 
+#include <GLFW/glfw3.h>
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* graphics)
-        : GraphicsResource(graphics)
+    void Input::PlatformConstruct()
     {
-
-    }
-   
-    bool GpuBuffer::Define(const BufferDescriptor* descriptor, const void* initialData)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->usage == BufferUsage::None)
-        {
-            ALIMER_LOGCRITICAL("Invalid bufer usage");
-        }
-
-        Destroy();
-
-        _usage = descriptor->usage;
-        _stride = descriptor->stride;
-        _size = descriptor->size;
-
-        return Create(initialData);
-    }
-
-    bool GpuBuffer::SetSubData(const void* pData)
-    {
-        return false;
-    }
-
-    bool GpuBuffer::SetSubData(uint32_t offset, uint32_t size, const void* pData)
-    {
-        if (offset + size > GetSize())
-        {
-            ALIMER_LOGERROR("Buffer subdata out of range");
-            return false;
-        }
-
-        return false;
     }
 }

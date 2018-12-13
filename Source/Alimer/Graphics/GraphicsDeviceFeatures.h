@@ -53,7 +53,8 @@ namespace Alimer
         bool GetMultithreading() const { return _multithreading; }
         void SetMultithreading(bool value) { _multithreading = value; }
 
-        uint32_t GetMaxColorAttachments() const { return _maxColorAttachments; }
+        /// Get the max color attachment for Framebuffer.
+        uint32_t MaxColorAttachments() const { return _maxColorAttachments; }
         void SetMaxColorAttachments(uint32_t value) { _maxColorAttachments = value; }
 
         void SetVendorId(uint32_t vendorID);

@@ -85,6 +85,7 @@
 #endif
 
 #include "../../Core/Platform.h"
+#include "../Types.h"
 #include "../../Debug/Log.h"
 
 namespace Alimer
@@ -134,4 +135,18 @@ namespace Alimer
         }
     }
 
+    struct D3DResourceViewInfo
+    {
+        D3DResourceViewInfo() = default;
+        D3DResourceViewInfo(uint32_t mostDetailedMip_, uint32_t mipCount_, uint32_t firstArraySlice_, uint32_t arraySize_) : mostDetailedMip(mostDetailedMip_), mipCount(mipCount_), firstArraySlice(firstArraySlice_), arraySize(arraySize_) {}
+        uint32_t mostDetailedMip = 0;
+        uint32_t mipCount = RemainingMipLevels;
+        uint32_t firstArraySlice = 0;
+        uint32_t arraySize = RemainingArrayLayers;
+
+        bool operator==(const D3DResourceViewInfo& other) const
+        {
+            return (firstArraySlice == other.firstArraySlice) && (arraySize == other.arraySize) && (mipCount == other.mipCount) && (mostDetailedMip == other.mostDetailedMip);
+        }
+    };
 }

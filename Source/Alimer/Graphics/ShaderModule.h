@@ -22,41 +22,59 @@
 
 #pragma once
 
-#include "../Graphics/ShaderModule.h"
+#include "../Graphics/GraphicsResource.h"
+#include "../Base/Vector.h"
 
 namespace Alimer
 {
-    /// Defines a shader resource.
-    class ALIMER_API Shader final : public GraphicsResource
+    /// Defines shader stage
+    enum class ShaderStage : uint32_t
+    {
+        Vertex = 0,
+        TessControl = 1,
+        TessEvaluation = 2,
+        Geometry = 3,
+        Fragment = 4,
+        Compute = 5,
+        Count = 6
+    };
+
+    /// Defines a shader module resource.
+    class ALIMER_API ShaderModule : public GraphicsResource
     {
         friend class Graphics;
-        ALIMER_OBJECT(Shader, GraphicsResource);
+        ALIMER_OBJECT(ShaderModule, GraphicsResource);
 
     protected:
         /// Constructor.
-        Shader(Graphics* graphics);
+        ShaderModule(Graphics* graphics);
 
     public:
         /// Destructor.
-        ~Shader() override;
+        ~ShaderModule() override;
 
         /// Unconditionally destroy the GPU resource.
         void Destroy();
 
-        bool Define(ShaderModule* vertex, ShaderModule* fragment);
-
-        inline const ShaderModule* GetShader(ShaderStage stage) const
-        {
-            return _shaders[static_cast<unsigned>(stage)].Get();
-        }
+        bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
+        bool Define(ShaderStage stage, const Vector<uint8_t>& bytecode);
 
     private:
         bool BeginLoad(Stream& source) override;
         bool EndLoad() override;
 
+        /// Process include statements in the shader source code recursively. Return true if successful.
+        bool ProcessIncludes(String& code, Stream& source);
+
         /// Register object factory.
         static void RegisterObject();
 
-        SharedPtr<ShaderModule> _shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
+        Vector<PipelineResource> _resources;
+        /// Shader stage.
+        ShaderStage _stage = ShaderStage::Count;
+        /// Shader source code.
+        String _sourceCode;
     };
+
+    ALIMER_API const char* EnumToString(ShaderStage stage);
 }

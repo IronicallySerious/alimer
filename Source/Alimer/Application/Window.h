@@ -28,16 +28,6 @@
 #include "../Math/Math.h"
 #include <string>
 
-#if ALIMER_PLATFORM_WINDOWS
-struct HWND__;
-#elif ALIMER_PLATFORM_UWP
-struct IUnknown;
-#endif
-
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
-struct SDL_Window;
-#endif
-
 namespace Alimer
 {
     enum class WindowFlags : uint32_t
@@ -85,6 +75,8 @@ namespace Alimer
         void Restore();
         /// Close the window.
         void Close();
+        /// Resize the window.
+        void Resize(uint32_t width, uint32_t height);
 
         /// Return whether is visible.
         bool IsVisible() const { return _visible; }
@@ -106,30 +98,29 @@ namespace Alimer
         float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
         WindowFlags GetFlags() const { return _flags; }
 
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
-        SDL_Window* _window = nullptr;
-#endif
+        /// Get if window is open and valid.
+        bool IsOpen() const;
 
-#if ALIMER_PLATFORM_UWP
-        IUnknown* GetHandle() const { return _handle; }
-#elif ALIMER_PLATFORM_WINDOWS
-        HWND__* GetHandle() const { return _handle; }
-#elif ALIMER_PLATFORM_LINUX
-#elif ALIMER_PLATFORM_MACOS
-#endif
+        /// Is cursor visible.
+        bool IsCursorVisible() const;
+
+        /// Set cursor visibility.
+        void SetCursorVisible(bool visible);
+
+        /// Get native window handle.
+        void* GetNativeHandle() const;
+
         /// Size changed event.
         Event<void(const WindowResizeEvent&)> resizeEvent;
+
+    protected:
+        virtual void OnSizeChanged(const uvec2& newSize);
 
     private:
         void PlatformConstruct();
         void PlatformDestroy();
+        void PlatformResize(uint32_t width, uint32_t height);
 
-#if ALIMER_PLATFORM_UWP
-        /// Window handle is IUnknown on UWP
-        IUnknown* _handle = nullptr;
-#elif ALIMER_PLATFORM_WINDOWS
-        HWND__* _handle = nullptr;
-#endif
         /// Window title.
         String _title;
         /// Window size.
@@ -140,6 +131,8 @@ namespace Alimer
         bool _visible = true;
         /// Visibility flag.
         bool _focused = false;
+        /// Window implementation
+        void* _window = nullptr;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Window);

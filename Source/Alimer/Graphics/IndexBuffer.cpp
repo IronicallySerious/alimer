@@ -63,10 +63,6 @@ namespace Alimer
         _stride = indexType == IndexType::UInt32 ? 4 : 2;
         _size = _stride * indexCount;
 
-        BufferDescriptor descriptor;
-        descriptor.usage = _usage;
-        descriptor.size = _size;
-        descriptor.stride = _stride;
-        return Create(&descriptor, data);
+        return Create(data);
     }
 }

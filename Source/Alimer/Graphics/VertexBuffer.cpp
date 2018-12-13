@@ -81,10 +81,6 @@ namespace Alimer
 
         _usage = BufferUsage::Vertex;;
         _size = _stride * vertexCount;
-        BufferDescriptor descriptor;
-        descriptor.usage = _usage;
-        descriptor.size = _size;
-        descriptor.stride = _stride;
-        return Create(&descriptor, data);
+        return Create(data);
     }
 }

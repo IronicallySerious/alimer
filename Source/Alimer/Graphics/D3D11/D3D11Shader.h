@@ -30,7 +30,15 @@ namespace Alimer
 {
 	class D3D11Graphics;
 
-    class D3D11Shader final : public Shader
+    class D3D11ShaderModule final : public ShaderModule
+    {
+    public:
+        D3D11ShaderModule(D3D11Graphics* graphics);
+        ~D3D11ShaderModule() override;
+        void Destroy();
+    };
+
+    /*class D3D11Shader final : public Shader
     {
     public:
         D3D11Shader(D3D11Graphics* device, const ShaderDescriptor* descriptor);
@@ -48,5 +56,5 @@ namespace Alimer
         ID3D11ComputeShader* _computeShader = nullptr;
         BindingIndexInfo _indexInfo;
     };
-
+    */
 }

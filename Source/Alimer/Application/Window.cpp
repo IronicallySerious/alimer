@@ -41,4 +41,25 @@ namespace Alimer
     {
         return any(_flags & WindowFlags::Fullscreen);
     }
+
+    void Window::Resize(uint32_t width, uint32_t height)
+    {
+        if (_size.x == width
+            && _size.y == height)
+        {
+            return;
+        }
+
+        _size.x = width;
+        _size.y = height;
+        PlatformResize(width, height);
+        OnSizeChanged(_size);
+    }
+
+    void Window::OnSizeChanged(const uvec2& newSize)
+    {
+        WindowResizeEvent evt;
+        evt.size = _size;
+        resizeEvent(evt);
+    }
 }

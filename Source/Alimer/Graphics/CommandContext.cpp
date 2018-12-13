@@ -35,7 +35,7 @@ namespace Alimer
 
     CommandContext& CommandContext::Begin(const String name)
     {
-        CommandContext* newContext = Graphics::AllocateContext();
+        CommandContext* newContext = nullptr;
         newContext->SetName(name);
         if (!name.IsEmpty())
         {
@@ -64,26 +64,26 @@ namespace Alimer
         descriptor.depthStencil.clearDepth = clearDepth;
         descriptor.depthStencil.clearStencil = clearStencil;
 
-        BeginRenderPass(_graphics->GetSwapchainFramebuffer(), &descriptor);
+        BeginRenderPass(_graphics->GetMainWindow()->GetCurrentFramebuffer(), &descriptor);
     }
 
     void CommandContext::BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor)
     {
         ALIMER_ASSERT_MSG(descriptor, "Invalid descriptor");
-        BeginRenderPass(_graphics->GetSwapchainFramebuffer(), descriptor);
+        BeginRenderPass(_graphics->GetMainWindow()->GetCurrentFramebuffer(), descriptor);
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         ALIMER_ASSERT(framebuffer);
 
-        //BeginRenderPassImpl(framebuffer, descriptor);
+        BeginRenderPassImpl(framebuffer, descriptor);
         _insideRenderPass = true;
     }
 
     void CommandContext::EndRenderPass()
     {
-        //EndRenderPassImpl();
+        EndRenderPassImpl();
         _insideRenderPass = false;
     }
 

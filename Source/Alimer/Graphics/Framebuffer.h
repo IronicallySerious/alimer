@@ -29,9 +29,10 @@ namespace Alimer
 {
     struct FramebufferAttachment
     {
-        Texture* texture = nullptr;
-        uint32_t mipLevel = 0;
-        uint32_t slice = 0;
+        Texture* texture;
+        uint32_t baseMipLevel;
+        uint32_t baseArrayLayer;
+        uint32_t layerCount;
     };
 
     struct FramebufferDescriptor
@@ -40,8 +41,6 @@ namespace Alimer
         FramebufferAttachment depthStencilAttachment;
     };
 
-    class FramebufferImpl;
-
     /// Defines a Framebuffer class.
     class ALIMER_API Framebuffer : public GraphicsResource
     {
@@ -49,11 +48,11 @@ namespace Alimer
         /// Constructor.
         Framebuffer(Graphics* graphics);
 
-        /// Constructor.
-        Framebuffer(FramebufferImpl* impl);
+        /// Set color attachment at index.
+        void SetColorAttachment(uint32_t index, Texture* colorTexture, uint32_t baseMipLevel = 0, uint32_t baseArrayLayer = 0, uint32_t layerCount = RemainingArrayLayers);
 
-        /// Desturctor
-        ~Framebuffer() override;
+        /// Set framebuffer depth stencil attachment.
+        void SetDepthStencilAttachment(Texture* depthStencilTexture, uint32_t baseMipLevel = 0, uint32_t baseArrayLayer = 0, uint32_t layerCount = RemainingArrayLayers);
 
         bool Define(const FramebufferDescriptor* descriptor);
 
@@ -84,16 +83,13 @@ namespace Alimer
         */
         uint32_t GetLayers() const { return _layers; }
 
-        /// Return backend implementation, which holds the actual API-specific resources.
-        FramebufferImpl* GetImpl() const { return _impl; }
-
     private:
+        virtual void ApplyColorAttachment(uint32_t index) = 0;
+        virtual void ApplyDepthStencilAttachment() = 0;
         bool Create();
-        void Destroy() override;
 
-        FramebufferImpl* _impl;
-
-        Vector<FramebufferAttachment> _colorAttachments;
+    protected:
+        PODVector<FramebufferAttachment> _colorAttachments;
         FramebufferAttachment _depthStencilAttachment;
 
         uint32_t _width = 0;

@@ -22,7 +22,6 @@
 
 #include "../Graphics/RenderWindow.h"
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Debug/Log.h"
 
 namespace Alimer
@@ -35,10 +34,21 @@ namespace Alimer
 
     RenderWindow::~RenderWindow()
     {
+        Destroy();
+    }
+
+    void RenderWindow::Destroy()
+    {
+        _framebuffers.Clear();
     }
 
     void RenderWindow::SwapBuffers()
     {
 
+    }
+
+    Framebuffer* RenderWindow::GetCurrentFramebuffer() const
+    {
+        return _framebuffers[_currentBackBufferIndex].Get();
     }
 }

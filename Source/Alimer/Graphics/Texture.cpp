@@ -22,37 +22,15 @@
 
 #include "../Graphics/Texture.h"
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../IO/Stream.h"
 #include "../Debug/Log.h"
 
 namespace Alimer
 {
-    Texture::Texture()
-        : GraphicsResource(Object::GetSubsystem<Graphics>())
-        , _impl(nullptr)
+    Texture::Texture(Graphics* graphics)
+        : GraphicsResource(graphics)
     {
 
-    }
-
-    Texture::Texture(TextureImpl* impl)
-        : GraphicsResource(Object::GetSubsystem<Graphics>())
-        , _impl(impl)
-    {
-        _type = _impl->type;
-        _usage = _impl->usage;
-        _format = _impl->format;
-        _width = _impl->width;
-        _height = _impl->height;
-        _depth = _impl->depth;
-        _mipLevels = _impl->depth;
-        _arrayLayers = _impl->arrayLayers;
-        _samples = _impl->samples;
-    }
-
-    Texture::~Texture()
-    {
-        Destroy();
     }
 
     bool Texture::Define(const TextureDescriptor* descriptor, const ImageLevel* initialData)
@@ -79,18 +57,58 @@ namespace Alimer
         _width = descriptor->width;
         _height = descriptor->height;
         _depth = descriptor->depth;
-        _mipLevels = descriptor->depth;
+        _mipLevels = descriptor->mipLevels;
         _arrayLayers = descriptor->arrayLayers;
         _samples = descriptor->samples;
 
         Destroy();
 
-        return true;
+        return Create(initialData);
+    }
+
+    bool Texture::Define2D(uint32_t width, uint32_t height, PixelFormat format, uint32_t mipLevels, uint32_t arrayLayers,
+        const ImageLevel* initialData, TextureUsage usage, SampleCount samples)
+    {
+#if defined(ALIMER_DEV)
+        if (format == PixelFormat::Unknown)
+        {
+            ALIMER_LOGCRITICAL("Invalid texture usage");
+        }
+
+        if (usage == TextureUsage::Unknown)
+        {
+            ALIMER_LOGCRITICAL("Invalid texture usage");
+        }
+
+        if (width == 0
+            || height == 0
+            || arrayLayers == 0
+            || mipLevels == 0)
+        {
+            ALIMER_LOGCRITICAL("Cannot create an empty texture");
+        }
+#endif // defined(ALIMER_DEV)
+
+        // Destroy old texture.
+        Destroy();
+
+        _type = TextureType::Type2D;
+        _usage = usage;
+        _format = format;
+        _width = width;
+        _height = height;
+        _depth = 1;
+        _mipLevels = mipLevels;
+        _arrayLayers = arrayLayers;
+        _samples = samples;
+
+        // Create new 
+        return Create(initialData);
     }
 
     void Texture::RegisterObject()
     {
-        RegisterFactory<Texture>();
+        //RegisterFactory<Texture>();
     }
 
     bool Texture::BeginLoad(Stream& source)
@@ -102,16 +120,5 @@ namespace Alimer
     bool Texture::EndLoad()
     {
         return true;
-    }
-
-
-    bool Texture::Create(const ImageLevel* initialData)
-    {
-        return true;
-    }
-
-    void Texture::Destroy()
-    {
-        SafeDelete(_impl);
     }
 }
