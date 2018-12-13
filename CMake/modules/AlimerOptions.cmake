@@ -53,12 +53,6 @@ foreach(FEATURE in ${ALIMER_FEATURES})
     set (ALIMER_${FEATURE} ON CACHE BOOL "" FORCE)
 endforeach()
 
-# Graphics backends
-if (ALIMER_WINDOWS OR ALIMER_UWP)
-    set (ALIMER_D3D11_DEFAULT ON)
-    set (ALIMER_D3D12_DEFAULT ON)
-endif ()
-
 if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_ANDROID)
     set (ALIMER_VULKAN_DEFAULT ON)
 endif ()
@@ -110,11 +104,35 @@ endif ()
 option (ALIMER_POSITION_INDEPENDENT "Position independent" ON)
 option (ALIMER_SKIP_INSTALL "Skip installation" ${ALIMER_SKIP_INSTALL})
 option (ALIMER_SHARED "Enable shared library build" OFF)
-option (ALIMER_USE_DEBUG_INFO   "Enable debug information in all configurations." ON)
+set (ALIMER_USE_DEBUG_INFO ON CACHE BOOL "Enable debug information in all configurations.")
 
-alimer_option (ALIMER_D3D11 "Enable Direct3D11 backend")
-alimer_option (ALIMER_D3D12 "Enable Direct3D12 backend")
-alimer_option (ALIMER_VULKAN "Enable Vulkan backend")
-alimer_option (ALIMER_OPENGL "Enable OpenGL backend")
+# Windowing/Input
+if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
+    set (ALIMER_GLFW ON CACHE BOOL "Enable glfw.")
+else ()
+    set (ALIMER_GLFW OFF CACHE INTERNAL "Disable glfw" FORCE)
+endif ()
+
+# Graphics backends
+if (ALIMER_WINDOWS OR ALIMER_UWP OR ALIMER_XBOX_ONE)
+    set (ALIMER_D3D11 ON CACHE BOOL "Enable Direct3D11 backend.")
+    set (ALIMER_D3D12 ON CACHE BOOL "Enable Direct3D12 backend.")
+else ()
+    set (ALIMER_D3D11 OFF CACHE INTERNAL "Direct3D11 not supported" FORCE)
+    set (ALIMER_D3D12 OFF CACHE INTERNAL "Direct3D11 not supported" FORCE)
+endif ()
+
+if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_ANDROID)
+    set (ALIMER_OPENGL ON CACHE BOOL "Enable OpenGL backend.")
+    set (ALIMER_VULKAN ON CACHE BOOL "Enable Vulkan backend.")
+else ()
+    set (ALIMER_OPENGL OFF CACHE INTERNAL "OpenGL not supported" FORCE)
+    set (ALIMER_VULKAN OFF CACHE INTERNAL "Vulkan not supported" FORCE)
+endif ()
+
 alimer_option (ALIMER_CSHARP "Enable C# support")
 alimer_option (ALIMER_CSHARP_MONO "Use mono for C# support")
+
+if (UNIX AND NOT APPLE)
+    option (ALIMER_GLFW_WAYLAND "Use Wayland for window creation" OFF)
+endif()

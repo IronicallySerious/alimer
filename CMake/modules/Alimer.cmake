@@ -127,18 +127,11 @@ endif()
 
 include (AlimerUtils)
 
-# Setup global per-platform compiler/linker options
-if( MSVC )
-    # Select static/dynamic runtime library
-    replace_compile_flags("/MDd" "" debug)
-    replace_compile_flags("/MDd" "" dev release)
-
-    if( ALIMER_WINDOWS )
-        add_compile_options($<$<CONFIG:DEBUG>:/MTd> $<$<NOT:$<CONFIG:DEBUG>>:/MT>)
-    elseif( ALIMER_XBOX_ONE OR ALIMER_UWP )
-        add_compile_options($<$<CONFIG:DEBUG>:/MDd> $<$<NOT:$<CONFIG:DEBUG>>:/MD>)
-    endif()
-endif ()
+# Select static/dynamic runtime library
+if( MSVC AND ALIMER_WINDOWS )
+    replace_compile_flags("/MDd" "/MTd" debug)
+    replace_compile_flags("/MDd" "/MT" dev release)
+endif()
 
 # Setup SDK install destinations
 set (DEST_BASE_INCLUDE_DIR include)
@@ -267,9 +260,6 @@ function (add_alimer_executable TARGET)
     endif ()
 
     alimer_setup_common_properties(${TARGET})
-
-    # Link to alimer library
-    # target_link_libraries (${target} libAlimer)
 endfunction ()
 
 function (add_alimer_plugin target)
@@ -286,9 +276,6 @@ function (add_alimer_plugin target)
     else()
         set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
     endif()
-
-     # Link to alimer library
-     target_link_libraries (${target} libAlimer)
 endfunction ()
 
 function(vs_group_subdirectory_targets DIR FOLDER_NAME)
