@@ -402,7 +402,6 @@ extern "C"
     ALIMER_API AgpuBool32 agpuIsStencilFormat(AgpuPixelFormat format);
     ALIMER_API AgpuBool32 agpuIsDepthStencilFormat(AgpuPixelFormat format);
     ALIMER_API AgpuBool32 agpuIsCompressed(AgpuPixelFormat format);
-    ALIMER_API uint32_t agpuGetVertexFormatSize(AgpuVertexFormat format);
 
 #ifdef __cplusplus
 }

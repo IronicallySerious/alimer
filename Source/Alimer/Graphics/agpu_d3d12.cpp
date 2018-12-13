@@ -1251,7 +1251,7 @@ namespace d3d12
         _graphicsQueue->SetName(L"Main Gfx Queue");
 
         // Create a command allocator for each back buffer that will be rendered to.
-        for (uint64_t n = 0; n < NumCmdAllocators; n++)
+        for (uint32_t n = 0; n < NumCmdAllocators; n++)
         {
             DXCall(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_commandAllocators[n])));
 
@@ -2311,7 +2311,7 @@ namespace d3d12
                 inputElement->InstanceDataStepRate = 1;
             }
 
-            autoOffset[attributeDesc->bufferIndex] += agpuGetVertexFormatSize(attributeDesc->format);
+            //autoOffset[attributeDesc->bufferIndex] += agpuGetVertexFormatSize(attributeDesc->format);
         }
 
         psoDesc.InputLayout.pInputElementDescs = inputElements;

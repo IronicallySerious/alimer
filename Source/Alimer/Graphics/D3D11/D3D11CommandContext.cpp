@@ -24,9 +24,9 @@
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Texture.h"
 #include "D3D11Framebuffer.h"
-/*#include "D3D11Shader.h"
-#include "D3D11GpuBuffer.h"
-#include "D3D11Pipeline.h"*/
+#include "D3D11Buffer.h"
+#include "D3D11Shader.h"
+//#include "D3D11Pipeline.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Math/MathUtil.h"
 #include "../../Debug/Log.h"
@@ -204,14 +204,14 @@ namespace Alimer
         }
 
         _d3dContext->IASetVertexBuffers(firstBinding, count, _currentVertexBuffers, _vboStrides, _vboOffsets);
-    }
+    }*/
 
-    void D3D11CommandContext::SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride)
+    void D3D11CommandContext::SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         ID3D11Buffer* d3dBuffer = static_cast<D3D11Buffer*>(buffer)->GetHandle();
-        DXGI_FORMAT dxgiFormat = stride == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+        DXGI_FORMAT dxgiFormat = indexType == IndexType::UInt32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
         _d3dContext->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
-    }*/
+    }
 
     /*void D3D11CommandBuffer::BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {

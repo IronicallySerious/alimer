@@ -41,11 +41,11 @@ namespace Alimer
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
 
-        /*void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
-        void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
-        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) override;
+        //void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
+        //void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
+        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
 
-        void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) override;
+        /*void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) override;
         void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) override;
         void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) override;
         void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) override;

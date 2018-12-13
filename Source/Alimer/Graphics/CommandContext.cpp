@@ -94,16 +94,17 @@ namespace Alimer
         //SetPipelineImpl(pipeline);
     }
 
-    void CommandContext::SetVertexBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t index)
+    void CommandContext::SetVertexBuffer(uint32_t binding, GpuBuffer* buffer, uint32_t offset)
     {
         ALIMER_ASSERT(buffer);
-        ALIMER_ASSERT(index < MaxVertexBufferBindings);
+        ALIMER_ASSERT(binding < MaxVertexBufferBindings);
+#if defined(ALIMER_DEV)
         if (!any(buffer->GetUsage() & BufferUsage::Vertex))
         {
             Graphics::NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
             return;
         }
-
+#endif
         //SetVertexBufferImpl(buffer, offset);
     }
 
@@ -122,17 +123,18 @@ namespace Alimer
         //SetVertexBuffersImpl(firstBinding, count, buffers, offsets);
     }
 
-    void CommandContext::SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex)
+    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
+#if defined(ALIMER_DEV)
         if (!any(buffer->GetUsage() & BufferUsage::Index))
         {
             Graphics::NotifyValidationError("SetIndexBuffer need buffer with Index usage");
             return;
         }
-
-        //uint32_t offset = startIndex * buffer->GetIndexSize();
-        //SetIndexBufferImpl(buffer, offset, buffer->GetIndexType());
+#endif
+        
+        SetIndexBufferImpl(buffer, offset, indexType);
     }
 
     void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)

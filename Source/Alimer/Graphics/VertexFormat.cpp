@@ -20,49 +20,53 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/IndexBuffer.h"
+#include "../Graphics/VertexFormat.h"
 #include "../Graphics/Graphics.h"
 #include "../Debug/Log.h"
 
 namespace Alimer
 {
-    IndexBuffer::IndexBuffer()
-        : GpuBuffer(Object::GetSubsystem<Graphics>())
+    VertexFormat::VertexFormat(const PODVector<VertexElement>& elements)
     {
+        if (!elements.Size())
+        {
+            ALIMER_LOGERROR("Can not define vertex format with no elements");
+        }
+
+        Initialize(elements.Size(), elements.Data());
     }
 
-
-    bool IndexBuffer::Define(ResourceUsage usage, uint32_t indexCount, IndexType indexType, const void* data)
+    VertexFormat::VertexFormat(uint32_t elementsCount, const VertexElement* elements)
     {
-        if (!indexCount)
+        if (!elementsCount || !elements)
         {
-            ALIMER_LOGERROR("Can not define index buffer with no indices");
-            return false;
+            ALIMER_LOGERROR("Can not define vertex format with no elements");
+            return;
         }
 
-        if (usage == ResourceUsage::Immutable && !data)
+        Initialize(elementsCount, elements);
+    }
+
+    void VertexFormat::Initialize(uint32_t elementsCount, const VertexElement* elements)
+    {
+        bool useAutoOffset = true;
+        for (uint32_t i = 0; i < elementsCount; ++i)
         {
-            ALIMER_LOGERROR("Immutable index buffer must define initial data");
-            return false;
+            if (elements[i].offset != 0)
+            {
+                useAutoOffset = false;
+                break;
+            }
         }
 
-        if (indexType != IndexType::UInt16
-            && indexType != IndexType::UInt32)
+        _stride = 0;
+        _elements.Resize(elementsCount);
+        for (uint32_t i = 0; i < elementsCount; ++i)
         {
-            ALIMER_LOGERROR("Index buffer invalid index type");
-            return false;
+            _elements[i] = elements[i];
+            _elements[i].offset = useAutoOffset ? _stride : elements[i].offset;
+            _stride += GetVertexElementSize(elements[i].format);
+            //elementHash |= ElementHash(i, elements[i].semantic);
         }
-
-        Destroy();
-
-        // IndexBuffer attributes
-        _indexCount = indexCount;
-        _indexType = indexType;
-
-        _usage = BufferUsage::Index;;
-        _stride = indexType == IndexType::UInt32 ? 4 : 2;
-        _size = _stride * indexCount;
-
-        return Create(data);
     }
 }

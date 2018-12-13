@@ -28,10 +28,9 @@ namespace Alimer
 {
     struct VertexAttributeDescriptor
     {
-        VertexFormat                    format = VertexFormat::Unknown;
+        VertexElementFormat             format = VertexElementFormat::Unknown;
         uint32_t                        offset = 0;
         uint32_t                        bufferIndex = 0;
-
     };
 
     struct VertexBufferLayoutDescriptor

@@ -24,8 +24,7 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/Types.h"
-#include "../Graphics/VertexBuffer.h"
-#include "../Graphics/IndexBuffer.h"
+#include "../Graphics/GpuBuffer.h"
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/Pipeline.h"
@@ -80,9 +79,9 @@ namespace Alimer
 
         void SetPipeline(Pipeline* pipeline);
 
-        void SetVertexBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t index);
+        void SetVertexBuffer(uint32_t binding, GpuBuffer* buffer, uint32_t offset = 0);
         void SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets);
-        void SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex = 0);
+        void SetIndexBuffer(GpuBuffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
         //virtual void SetViewport(const rect& viewport) = 0;
         //virtual void SetScissor(const irect& scissor) = 0;
 
@@ -110,7 +109,7 @@ namespace Alimer
 
         //virtual void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) = 0;
         //virtual void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) = 0;
-        //virtual void SetIndexBufferImpl(IndexBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
+        virtual void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
         //virtual void SetPrimitiveTopologyImpl(PrimitiveTopology topology) = 0;
         //virtual void DrawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;

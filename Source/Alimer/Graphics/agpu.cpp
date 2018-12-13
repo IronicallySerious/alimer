@@ -584,32 +584,6 @@ AgpuBool32 agpuIsCompressed(AgpuPixelFormat format)
     return FormatDesc[format].isCompressed;
 }
 
-uint32_t agpuGetVertexFormatSize(AgpuVertexFormat format)
-{
-    switch (format)
-    {
-    case AGPU_VERTEX_FORMAT_FLOAT:
-    case AGPU_VERTEX_FORMAT_BYTE4:
-    case AGPU_VERTEX_FORMAT_BYTE4N:
-    case AGPU_VERTEX_FORMAT_UBYTE4:
-    case AGPU_VERTEX_FORMAT_UBYTE4N:
-    case AGPU_VERTEX_FORMAT_SHORT2:
-    case AGPU_VERTEX_FORMAT_SHORT2N:
-        return 4;
-    case AGPU_VERTEX_FORMAT_FLOAT2:
-    case AGPU_VERTEX_FORMAT_SHORT4:
-    case AGPU_VERTEX_FORMAT_SHORT4N:
-        return 8;
-    case AGPU_VERTEX_FORMAT_FLOAT3:
-        return 12;
-    case AGPU_VERTEX_FORMAT_FLOAT4:
-        return 16;
-
-    default:
-        ALIMER_UNREACHABLE();
-    }
-}
-
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

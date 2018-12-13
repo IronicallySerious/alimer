@@ -113,7 +113,7 @@ namespace Alimer
         Count = 10,
     };
     
-    enum class VertexFormat : uint32_t
+    enum class VertexElementFormat : uint32_t
     {
         Unknown = AGPU_VERTEX_FORMAT_UNKNOWN,
         Float = AGPU_VERTEX_FORMAT_FLOAT,
@@ -228,7 +228,7 @@ namespace Alimer
         Count
     };
 
-    ALIMER_API uint32_t GetVertexFormatSize(VertexFormat format);
+    ALIMER_API uint32_t GetVertexElementSize(VertexElementFormat format);
     ALIMER_API const char* EnumToString(ResourceUsage usage);
     ALIMER_API const char* EnumToString(VertexElementSemantic semantic);
 }

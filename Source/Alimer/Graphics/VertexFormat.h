@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Graphics/GpuBuffer.h"
+#include "../Graphics/Types.h"
 
 namespace Alimer
 {
@@ -30,14 +30,14 @@ namespace Alimer
     {
         /// Default-construct.
         VertexElement() noexcept
-            : format(VertexFormat::Float3)
+            : format(VertexElementFormat::Float3)
             , semantic(VertexElementSemantic::Position)
             , offset(0)
         {
         }
 
         /// Construct with format, semantic and optional offset.
-        VertexElement(VertexFormat format_, VertexElementSemantic semantic_, uint32_t offset_ = 0) noexcept
+        VertexElement(VertexElementFormat format_, VertexElementSemantic semantic_, uint32_t offset_ = 0) noexcept
             : format(format_)
             , semantic(semantic_)
             , offset(offset_)
@@ -51,31 +51,25 @@ namespace Alimer
         bool operator !=(const VertexElement& rhs) const { return !(*this == rhs); }
 
         /// Format of element.
-        VertexFormat format;
+        VertexElementFormat format;
         /// Semantic of element.
         VertexElementSemantic semantic;
         /// Offset of element (packed if all elements offset is 0).
         uint32_t offset;
     };
 
-	/// Defines a VertexBuffer class.
-	class ALIMER_API VertexBuffer final : public GpuBuffer
+	/// Defines a VertexFormat class.
+	class ALIMER_API VertexFormat 
 	{
 	public:
         /// Constructor.
-        VertexBuffer();
+        VertexFormat(const PODVector<VertexElement>& elements);
 
-        /// Define buffer. Immutable buffers must specify initial data here. Return true on success.
-        bool Define(ResourceUsage usage, uint32_t vertexCount, const PODVector<VertexElement>& elements, bool useShadowData, const void* data = nullptr);
+        /// Constructor.
+        VertexFormat(uint32_t elementsCount, const VertexElement* elements);
 
-        /// Define buffer. Immutable buffers must specify initial data here. Return true on success.
-        bool Define(ResourceUsage usage, uint32_t vertexCount, uint32_t elementsCount, const VertexElement* elements, bool useShadowData, const void* data = nullptr);
-
-        /// Return number of vertices.
-        uint32_t GetVertexCount() const { return _vertexCount; }
-
-        /// Return vertex size (stride( in bytes.
-        uint32_t GetVertexSize() const { return _stride; }
+        /// Return stride of the format.
+        uint32_t GetStride() const { return _stride; }
 
         /// Return number of vertex elements.
         uint32_t GetElementsCount() const { return _elements.Size(); }
@@ -84,9 +78,9 @@ namespace Alimer
         const PODVector<VertexElement>& GetElements() const { return _elements; }
 
     private:
-        /// Number of vertices.
-        uint32_t _vertexCount = 0;
-        /// Vertex elements.
+        void Initialize(uint32_t elementsCount, const VertexElement* elements);
+
         PODVector<VertexElement> _elements;
+        uint32_t _stride = 0;
 	};
 }

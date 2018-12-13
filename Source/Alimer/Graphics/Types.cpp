@@ -63,8 +63,31 @@ namespace Alimer
         }
     }
 
-    uint32_t GetVertexFormatSize(VertexFormat format)
+    uint32_t GetVertexElementSize(VertexElementFormat format)
     {
-        return agpuGetVertexFormatSize(static_cast<AgpuVertexFormat>(format));
+        switch (format)
+        {
+        case VertexElementFormat::Float:
+        case VertexElementFormat::Byte4:
+        case VertexElementFormat::Byte4N:
+        case VertexElementFormat::UByte4:
+        case VertexElementFormat::UByte4N:
+        case VertexElementFormat::Short2:
+        case VertexElementFormat::Short2N:
+            return 4;
+
+        case VertexElementFormat::Float2:
+        case VertexElementFormat::Short4:
+        case VertexElementFormat::Short4N:
+            return 8;
+
+        case VertexElementFormat::Float3:
+            return 12;
+        case VertexElementFormat::Float4:
+            return 16;
+
+        default:
+            ALIMER_UNREACHABLE();
+        }
     }
 }
