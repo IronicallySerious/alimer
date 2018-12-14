@@ -125,12 +125,14 @@ else()
 	message(FATAL_ERROR "Unknown platform architecture!")
 endif()
 
+# Include options and settings
+include (AlimerOptions)
 include (AlimerUtils)
 
 # Select static/dynamic runtime library
 if( MSVC AND ALIMER_WINDOWS )
     replace_compile_flags("/MDd" "/MTd" debug)
-    replace_compile_flags("/MDd" "/MT" dev release)
+    replace_compile_flags("/MD" "/MT" dev release)
 endif()
 
 # Setup SDK install destinations
@@ -166,11 +168,11 @@ function(alimer_setup_common_properties target)
         # Enable fiber-safe optimizations in dev/release
         target_compile_options(${target} PRIVATE $<$<NOT:$<CONFIG:DEBUG>>:/GT>)
 
-        if (ALIMER_WINDOWS)
-            target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/MTd> $<$<NOT:$<CONFIG:DEBUG>>:/MT>)
-        elseif (ALIMER_XBOX_ONE OR ALIMER_UWP)
-            target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/MDd> $<$<NOT:$<CONFIG:DEBUG>>:/MD>)
-        endif()
+        #if (ALIMER_WINDOWS)
+            #target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/MTd> $<$<NOT:$<CONFIG:DEBUG>>:/MT>)
+        #elseif (ALIMER_XBOX_ONE OR ALIMER_UWP)
+        #    target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:/MDd> $<$<NOT:$<CONFIG:DEBUG>>:/MD>)
+        #endif()
 
 	    # Enable string pooling
 	    target_compile_options(${target} PRIVATE /GF)
