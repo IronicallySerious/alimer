@@ -21,7 +21,7 @@
 #
 
 add_subdirectory(fmt)
-# add_subdirectory(spdlog)
+add_subdirectory(spdlog)
 
 # SPIRV-Cross
 add_subdirectory(spirv-cross)
