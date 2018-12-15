@@ -22,15 +22,11 @@
 
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
-#define STRICT                          // Use strict declarations for Windows types
+#ifndef NOMINMAX
+#   define NOMINMAX
+#endif
 
-// Windows Header Files:
 #include <windows.h>
-#include <commctrl.h>
-#include <psapi.h>
-#include <process.h>
-#include <wrl.h>
 
 #include <dxgi.h>
 #include <d3dcompiler.h>
@@ -38,42 +34,13 @@
 #define D3D11_NO_HELPERS
 #include <d3d11_1.h>
 
-
-#include <algorithm>
-#include <exception>
-#include <memory>
-#include <stdexcept>
-
-#include <stdio.h>
-#include <pix.h>
-
 #ifdef _DEBUG
-#include <dxgidebug.h>
+#   include <dxgidebug.h>
 #endif
-
-// Un-define min and max from the windows headers
-#ifdef min
-#undef min
-#endif
-
-#ifdef max
-#undef max
-#endif
-
-// C RunTime Header Files
-#include <stdlib.h>
-#include <malloc.h>
-#include <memory.h>
-#include <tchar.h>
-#include <limits.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
 
 #pragma warning(push)
-#pragma warning(disable : 4005)
-#include <wincodec.h>
+#pragma warning(disable : 4467 5038)
+#   include <wrl.h>
 #pragma warning(pop)
 
 #if defined(_DURANGO) || defined(_XBOX_ONE)
@@ -86,7 +53,7 @@
 
 #include "../../Core/Platform.h"
 #include "../Types.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {

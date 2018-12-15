@@ -25,7 +25,7 @@
 #include "../Shader.h"
 #include "../D3D/D3DShaderCompiler.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 #include <spirv-cross/spirv_hlsl.hpp>
 
 using namespace Microsoft::WRL;

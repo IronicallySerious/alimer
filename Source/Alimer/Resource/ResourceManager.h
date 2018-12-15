@@ -62,7 +62,7 @@ namespace Alimer
 
         Vector<uint8_t> ReadBytes(const String& assetName, size_t count = 0);
 
-        SharedPtr<Resource> LoadResource(StringHash type, const String& assetName);
+        Resource* LoadResource(StringHash type, const String& assetName);
 
 		template <class T> SharedPtr<T> Load(const String& assetName)
 		{

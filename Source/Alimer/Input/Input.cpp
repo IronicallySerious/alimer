@@ -21,7 +21,7 @@
 //
 
 #include "../Input/Input.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {

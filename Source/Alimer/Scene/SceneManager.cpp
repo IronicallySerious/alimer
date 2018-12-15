@@ -22,7 +22,7 @@
 
 #include "../Scene/SceneManager.h"
 #include "../Scene/Scene.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -43,6 +43,6 @@ namespace Alimer
             return;
         registered = true;
 
-        RegisterFactory<SceneManager>();
+        //RegisterFactory<SceneManager>();
     }
 }

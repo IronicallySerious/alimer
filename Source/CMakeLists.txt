@@ -26,6 +26,9 @@ add_subdirectory (Alimer)
 # Plugins
 add_subdirectory (Plugins)
 
+# Player
+add_subdirectory(Player)
+
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
     add_subdirectory (Tools)
 endif ()

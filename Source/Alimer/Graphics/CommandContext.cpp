@@ -23,7 +23,7 @@
 #include "../Graphics/CommandContext.h"
 #include "../Graphics/Graphics.h"
 #include "../Math/MathUtil.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {

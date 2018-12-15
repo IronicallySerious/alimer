@@ -21,9 +21,8 @@
 //
 
 #include "../Graphics/Graphics.h"
-#include "../Graphics/ShaderCompiler.h"
-#include "../IO/FileSystem.h"
-#include "../Debug/Log.h"
+#include "../Graphics/GPUDevice.h"
+#include "../Core/Log.h"
 
 #if defined(ALIMER_D3D11)
 #   include "../Graphics/D3D11/D3D11GraphicsDevice.h"
@@ -52,10 +51,58 @@ namespace Alimer
 {
     Graphics *Graphics::_instance;
 
-    Graphics::Graphics(GraphicsBackend backend, bool validation)
-        : _backend(backend)
-        , _validation(validation)
+    Graphics::Graphics(GraphicsBackend preferredBackend, bool validation)
+        : _validation(validation)
     {
+        if (_instance != nullptr)
+        {
+            ALIMER_LOGERROR("Cannot create multiple instance of Graphics module");
+            return;
+        }
+
+        _backend = preferredBackend;
+        if (_backend == GraphicsBackend::Default)
+        {
+            _backend = GetDefaultPlatformBackend();
+        }
+
+        if (!IsBackendSupported(_backend))
+        {
+            ALIMER_LOGERROR("Backend is not supported");
+            return;
+        }
+
+
+        switch (_backend)
+        {
+        case GraphicsBackend::Empty:
+            break;
+        case GraphicsBackend::Vulkan:
+            break;
+        case GraphicsBackend::D3D11:
+#if defined(ALIMER_D3D11)
+            _device = new D3D11Graphics(validation);
+            ALIMER_LOGINFO("D3D11 backend created with success.");
+#else
+            ALIMER_LOGERROR("D3D11 backend is not supported.");
+#endif
+            break;
+        case GraphicsBackend::D3D12:
+#if defined(ALIMER_D3D12)
+            //device = new D3D12Graphics(validation);
+            ALIMER_LOGINFO("D3D12 backend created with success.");
+#else
+            ALIMER_LOGERROR("D3D12 backend is not supported.");
+#endif
+            break;
+        case GraphicsBackend::Metal:
+            break;
+        case GraphicsBackend::OpenGL:
+            break;
+        default:
+            ALIMER_UNREACHABLE();
+        }
+
         AddSubsystem(this);
         _instance = this;
     }
@@ -124,6 +171,11 @@ namespace Alimer
     void Graphics::Shutdown()
     {
         SafeDelete(_instance);
+    }
+
+    Graphics* Graphics::GetInstancePtr()
+    {
+        return _instance;
     }
 
     Graphics& Graphics::GetInstance()
@@ -303,6 +355,7 @@ namespace Alimer
         ShaderModule::RegisterObject();
         Shader::RegisterObject();
         Texture::RegisterObject();
+        Sampler::RegisterObject();
     }
 
     Graphics& gGraphics()

@@ -22,7 +22,7 @@
 
 #include "../Core/PluginManager.h"
 #include "../IO/FileSystem.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #include "../Core/Platform.h"
 
 #if defined(_WIN32)
@@ -63,7 +63,7 @@ namespace Alimer
     void PluginManager::LoadPlugins(const String& pluginPath)
     {
         ALIMER_LOGTRACE("Initializing Plugin System...");
-        ALIMER_LOGDEBUGF("Scanning for plugins in directory '%s'", pluginPath.CString());
+        ALIMER_LOGDEBUG("Scanning for plugins in directory '{}'", pluginPath.CString());
 
         std::vector<String> files;
         ScanDirectory(files, pluginPath, PLUGIN_EXT, ScanDirFlags::Files, false);
@@ -120,7 +120,7 @@ namespace Alimer
 
     void PluginManager::InstallPlugin(Plugin* plugin)
     {
-        ALIMER_LOGINFOF("Installing plugin: %s", plugin->GetName().CString());
+        ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName().CString());
 
         _plugins.push_back(UniquePtr<Plugin>(plugin));
         plugin->Install();

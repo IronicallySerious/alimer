@@ -20,33 +20,32 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Scene.h"
-#include "../Scene/Components/TransformComponent.h"
-#include "../Scene/Components/CameraComponent.h"
-#include "../Core/Log.h"
+#pragma once
+
+#include "Graphics/Sampler.h"
+#include "../GPUDevice.h"
+#include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-    Scene::Scene(EntityManager& entities)
-        : _entities(entities)
-    {
-        _defaultCamera = CreateEntity("Default Camera");
-        _defaultCamera.Assign<TransformComponent>();
-        _defaultCamera.Assign<CameraComponent>();
-        ALIMER_ASSERT(_defaultCamera.HasComponent<TransformComponent>());
-        ALIMER_ASSERT(_defaultCamera.HasComponent<CameraComponent>());
-        //_defaultCamera->AddComponent<AudioListener>();
-        _activeCamera = _defaultCamera;
-    }
+    class D3D11Graphics;
 
-    Scene::~Scene()
+    /// D3D11 Sampler implementation.
+    class D3D11Sampler final : public GPUSampler
     {
-    }
+    public:
+        /// Constructor.
+        D3D11Sampler(D3D11Graphics* device, const SamplerDescriptor* descriptor);
 
-    Entity Scene::CreateEntity(const std::string& name)
-    {
-        Entity entity = _entities.Create();
-        entity.SetName(name);
-        return entity;
-    }
+        /// Destructor.
+        ~D3D11Sampler() override;
+
+        void Destroy();
+
+        ID3D11SamplerState* GetHandle() const { return _handle.Get(); }
+
+    private:
+        D3D11Graphics*  _device;
+        Microsoft::WRL::ComPtr<ID3D11SamplerState> _handle;
+    };
 }

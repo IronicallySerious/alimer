@@ -21,6 +21,7 @@
 //
 
 #include "../Core/Object.h"
+#include "../Core/Log.h"
 #include <map>
 
 namespace Alimer
@@ -50,9 +51,18 @@ namespace Alimer
                 return it != _subsystems.end() ? it->second : nullptr;
             }
 
-            void AddFactory(ObjectFactory* factory)
+            void RegisterFactory(ObjectFactory* factory)
             {
-                _factories[factory->GetType()].Reset(factory);
+                auto it = _factories.find(factory->GetType());
+                if (it == _factories.end())
+                {
+                    _factories[factory->GetType()].Reset(factory);
+                }
+                else
+                {
+                    ALIMER_LOGERROR("Type already registered: {}", factory->GetTypeName().CString());
+                }
+                
             }
 
             void RemoveFactory(StringHash type)
@@ -60,16 +70,21 @@ namespace Alimer
                 _factories.erase(type);
             }
 
-            SharedPtr<Object> CreateObject(StringHash type)
+            Object* CreateObject(StringHash type)
             {
                 auto it = _factories.find(type);
-                return it != end(_factories) ? it->second->CreateObject() : nullptr;
+                if (it != _factories.end())
+                {
+                    return it->second->Create();
+                }
+
+                return nullptr;
             }
 
             const String& GetTypeNameFromType(StringHash type)
             {
                 auto it = _factories.find(type);
-                return it != end(_factories) ? it->second->GetTypeName() : String::EMPTY;
+                return it != _factories.end() ? it->second->GetTypeName() : String::EMPTY;
             }
 
         private:
@@ -156,10 +171,8 @@ namespace Alimer
 
     void Object::RegisterFactory(ObjectFactory* factory)
     {
-        if (!factory)
-            return;
-
-        details::Context().AddFactory(factory);
+        ALIMER_ASSERT(factory);
+        details::Context().RegisterFactory(factory);
     }
 
     void Object::RemoveFactory(StringHash type)
@@ -167,7 +180,7 @@ namespace Alimer
         details::Context().RemoveFactory(type);
     }
 
-    SharedPtr<Object> Object::CreateObject(StringHash type)
+    Object* Object::CreateObject(StringHash type)
     {
         return details::Context().CreateObject(type);
     }

@@ -23,7 +23,7 @@
 // SIMD code adopted from DirectXMath: https://github.com/Microsoft/DirectXMath
 
 #include "../Math/Matrix4x4.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #include <cstdio>
 
 #if defined(__AVX2__)

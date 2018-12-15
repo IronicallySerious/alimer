@@ -21,7 +21,7 @@
 //
 
 #include "../Application.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
 #define GLFW_INCLUDE_NONE 
 #include <GLFW/glfw3.h>
@@ -31,7 +31,7 @@ namespace Alimer
     // GLFW3 Error Callback, runs on GLFW3 error
     static void glfwErrorCallback(int error, const char *description)
     {
-        ALIMER_LOGERRORF("[GLFW3 Error] Code: %i Decription: %s", error, description);
+        ALIMER_LOGERROR("[GLFW3 Error] Code: {} Decription: {}", error, description);
     }
 
     void Application::PlatformConstruct()
@@ -49,7 +49,7 @@ namespace Alimer
 #endif
     }
 
-    int Application::Run()
+    void Application::PlatformRun()
     {
         GraphicsBackend gfxBackend = _settings.preferredGraphicsBackend;
         if (gfxBackend == GraphicsBackend::Default)
@@ -69,7 +69,8 @@ namespace Alimer
 
         if (!InitializeBeforeRun())
         {
-            return EXIT_FAILURE;
+            _exitCode = EXIT_FAILURE;
+            return;
         }
 
         while (_mainWindow->IsOpen())
@@ -91,7 +92,6 @@ namespace Alimer
         Shutdown();
         // quit all subsystems and quit application.
         glfwTerminate();
-        return EXIT_SUCCESS;
     }
 }
 

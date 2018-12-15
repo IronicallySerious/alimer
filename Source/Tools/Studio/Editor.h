@@ -20,33 +20,24 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Scene.h"
-#include "../Scene/Components/TransformComponent.h"
-#include "../Scene/Components/CameraComponent.h"
-#include "../Core/Log.h"
+#pragma once
+
+#include "Alimer.h"
 
 namespace Alimer
 {
-    Scene::Scene(EntityManager& entities)
-        : _entities(entities)
+    class Editor final : public Application
     {
-        _defaultCamera = CreateEntity("Default Camera");
-        _defaultCamera.Assign<TransformComponent>();
-        _defaultCamera.Assign<CameraComponent>();
-        ALIMER_ASSERT(_defaultCamera.HasComponent<TransformComponent>());
-        ALIMER_ASSERT(_defaultCamera.HasComponent<CameraComponent>());
-        //_defaultCamera->AddComponent<AudioListener>();
-        _activeCamera = _defaultCamera;
-    }
+        ALIMER_OBJECT(Editor, Application);
 
-    Scene::~Scene()
-    {
-    }
+    public:
+        explicit Editor();
+        ~Editor() override;
 
-    Entity Scene::CreateEntity(const std::string& name)
-    {
-        Entity entity = _entities.Create();
-        entity.SetName(name);
-        return entity;
-    }
+    private:
+        void Initialize() override;
+        void OnRenderFrame(double frameTime, double elapsedTime) override;
+
+    private:
+    };
 }

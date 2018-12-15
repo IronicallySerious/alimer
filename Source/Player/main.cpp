@@ -25,6 +25,7 @@ using namespace Alimer;
 
 namespace Alimer
 {
+#if TODO
     struct VertexColor
     {
         vec3 position;
@@ -186,7 +187,7 @@ namespace Alimer
         Pipeline _pipeline;
     };
 
-#if TODO
+
     class CubeExample
     {
     public:
@@ -374,8 +375,8 @@ namespace Alimer
         void OnRenderFrame(double frameTime, double elapsedTime) override;
 
     private:
-        TriangleExample _triangleExample;
-        QuadExample _quadExample;
+        //TriangleExample _triangleExample;
+        //QuadExample _quadExample;
         //CubeExample _cubeExample;
         //TexturedCubeExample _texturedCubeExample;
     };
@@ -388,7 +389,7 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_resources);
+        //_triangleExample.Initialize(_resources);
         //_quadExample.Initialize(_resources);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
@@ -407,11 +408,35 @@ namespace Alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        _triangleExample.Render();
+        //_triangleExample.Render();
         //_quadExample.Render(context);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);
     }
 }
 
-ALIMER_APPLICATION(Alimer::RuntimeApplication);
+int main(int argc, char** argv)
+{
+    using namespace Alimer;
+
+    RuntimeApplication app;
+    int returnCode = app.Run(argc, argv);
+    return returnCode;
+}
+
+#if ALIMER_PLATFORM_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
+{
+    ALIMER_UNUSED(hInstance);
+    ALIMER_UNUSED(hPrevInstance);
+    ALIMER_UNUSED(lpCmdLine);
+    ALIMER_UNUSED(nCmdShow);
+    int argc = __argc;
+    char** argv = __argv;
+    return main(argc, argv);
+}
+#endif

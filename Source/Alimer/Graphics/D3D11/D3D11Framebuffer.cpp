@@ -24,7 +24,7 @@
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Texture.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
 namespace Alimer
 {

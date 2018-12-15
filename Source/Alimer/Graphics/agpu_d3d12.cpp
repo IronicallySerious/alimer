@@ -34,7 +34,7 @@
 #include "../Core/Platform.h"
 #include "../IO/FileStream.h"
 #include "../IO/FileSystem.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #include <spirv-cross/spirv_hlsl.hpp>
 
 #if defined(_DEBUG)
@@ -2026,7 +2026,7 @@ namespace d3d12
         String cacheName = MakeShaderCacheName(source, entryPoint, compileTarget, nullptr);
         if (FileSystem::FileExists(cacheName))
         {
-            ALIMER_LOGDEBUGF("Load compiled shader from cache '%s'", cacheName.CString());
+            ALIMER_LOGDEBUG("Load compiled shader from cache '{}'", cacheName.CString());
 
             FileStream cacheFile(cacheName, FileAccess::ReadOnly);
             const uint64_t shaderSize = cacheFile.Size();
@@ -2520,7 +2520,7 @@ namespace d3d12
 
         if (FAILED(hr))
         {
-            ALIMER_LOGERRORF("Failed to create root signature, hr=0x%.8x", hr);
+            ALIMER_LOGERROR("Failed to create root signature, hr={}", hr);
         }
     }
 

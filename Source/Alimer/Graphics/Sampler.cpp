@@ -20,24 +20,39 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-#include "UI/UI.hpp"
+#include "../Graphics/Sampler.h"
+#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
-    class Editor final : public Application
+    Sampler::Sampler()
+        : GraphicsResource(Graphics::GetInstancePtr())
     {
-        ALIMER_OBJECT(Editor, Application);
 
-    public:
-        explicit Editor();
-        ~Editor() override;
+    }
 
-    private:
-        void Initialize() override;
-        void OnRenderFrame(double frameTime, double elapsedTime) override;
+    bool Sampler::Define(const SamplerDescriptor* descriptor)
+    {
+        ALIMER_ASSERT_MSG(descriptor, "Invalid descriptor");
 
-    private:
-        SharedPtr<UI> _ui;
-    };
+        Destroy();
+
+        _sampler = _graphics->GetGPUDevice()->CreateSampler(descriptor);
+        if (_sampler == nullptr)
+        {
+            ALIMER_LOGERROR("Failed to define sampler.");
+            return false;
+        }
+
+        memcpy(&_descriptor, descriptor, sizeof(SamplerDescriptor));
+        ALIMER_LOGDEBUG("Sampler defined with success.");
+        return true;
+    }
+
+    void Sampler::RegisterObject()
+    {
+        RegisterFactory<Sampler>();
+    }
 }

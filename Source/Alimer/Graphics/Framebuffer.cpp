@@ -22,7 +22,7 @@
 
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Graphics.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -155,7 +155,7 @@ namespace Alimer
     {
         if (index >= _colorAttachments.Size())
         {
-            ALIMER_LOGERRORF("Framebuffer attachment error, requested color index %u need to be in rage 0-%u", index, _colorAttachments.Size());
+            ALIMER_LOGERROR("Framebuffer attachment error, requested color index {} need to be in rage 0-{}", index, _colorAttachments.Size());
             return;
         }
 
@@ -210,7 +210,7 @@ namespace Alimer
     {
         if (index >= _colorAttachments.Size())
         {
-            ALIMER_LOGERRORF("Framebuffer::GetColorTexture: Index is out of range. Requested %u but only %u color slots are available.", index, _colorAttachments.Size());
+            ALIMER_LOGERROR("Framebuffer::GetColorTexture: Index is out of range. Requested {} but only {} color slots are available.", index, _colorAttachments.Size());
             return nullptr;
         }
 

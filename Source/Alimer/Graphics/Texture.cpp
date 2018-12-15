@@ -23,7 +23,7 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/Graphics.h"
 #include "../IO/Stream.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -37,7 +37,7 @@ namespace Alimer
     {
         ALIMER_ASSERT(descriptor);
 
-        if (descriptor->usage == TextureUsage::Unknown)
+        if (descriptor->usage == TextureUsage::None)
         {
             ALIMER_LOGCRITICAL("Invalid texture usage");
         }
@@ -75,7 +75,7 @@ namespace Alimer
             ALIMER_LOGCRITICAL("Invalid texture usage");
         }
 
-        if (usage == TextureUsage::Unknown)
+        if (usage == TextureUsage::None)
         {
             ALIMER_LOGCRITICAL("Invalid texture usage");
         }

@@ -23,9 +23,8 @@
 #pragma once
 
 #include "../../Graphics/Graphics.h"
+#include "../GPUDevice.h"
 #include "D3D11Cache.h"
-#include <array>
-#include <thread>
 
 namespace Alimer
 {
@@ -34,7 +33,7 @@ namespace Alimer
     class D3D11CommandContext;
 
     /// D3D11 graphics implementation.
-    class D3D11Graphics final : public Graphics
+    class D3D11Graphics final : public Graphics, public GPUDevice
     {
     public:
         /// Is backend supported?
@@ -52,9 +51,9 @@ namespace Alimer
 
         RenderWindow* GetMainWindow() const override;
         Texture* CreateTexture() override;
+        GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
         Framebuffer* CreateFramebuffer() override;
         GpuBuffer* CreateBuffer() override;
-        ShaderModule* CreateShaderModule() override;
 
         void HandleDeviceLost();
 

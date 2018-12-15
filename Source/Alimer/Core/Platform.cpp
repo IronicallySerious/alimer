@@ -21,7 +21,7 @@
 //
 
 #include "../Core/Platform.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 #if defined(_WIN32)
 #ifndef NOMINMAX

@@ -21,7 +21,7 @@
 //
 
 #include "../Resource/Image.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #include "../IO/Stream.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -81,20 +81,20 @@ namespace Alimer
 
         if (IsCompressed(_format))
         {
-            ALIMER_LOGERRORF("Can not save compressed image '%s'", GetName().CString());
+            ALIMER_LOGERROR("Can not save compressed image '{}'", GetName().CString());
             return false;
         }
 
         if (!_data)
         {
-            ALIMER_LOGERRORF("Can not save zero-sized image '%s'", GetName().CString());
+            ALIMER_LOGERROR("Can not save zero-sized image '{}'", GetName().CString());
             return false;
         }
 
         uint32_t components = GetPixelFormatSize(_format);
         if (components < 1 || components > 4)
         {
-            ALIMER_LOGERRORF("Unsupported pixel format for PNG save on image '%s'", GetName().CString());
+            ALIMER_LOGERROR("Unsupported pixel format for PNG save on image '{}'", GetName().CString());
             return false;
         }
 

@@ -20,18 +20,24 @@
 # THE SOFTWARE.
 #
 
-file (GLOB_RECURSE HEADER_FILES *.h *.hpp)
-file (GLOB_RECURSE SOURCE_FILES *.c *.cpp)
+cmake_minimum_required(VERSION 3.6)
+project (AlimerStudio)
+
+alimer_find_source_files(ALL_SOURCE_FILES)
 
 # Define the target.
-set (TARGET AlimerStudio)
-add_alimer_executable(${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
-target_link_libraries(${TARGET} ImGui)
-# target_include_directories(${TARGET} PRIVATE ${STB_INCLUDE_DIR})
+add_alimer_executable(${PROJECT_NAME} ${ALL_SOURCE_FILES})
+target_link_libraries(${PROJECT_NAME} Alimer)
+
+if (WIN32)
+    target_link_libraries(${PROJECT_NAME} dbghelp)
+endif ()
 
 # Set properties
-set_target_properties(${TARGET} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
-set_target_properties(${TARGET} PROPERTIES FOLDER "Editor")
+set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Editor")
 
 # Install under tools
-install(TARGETS ${TARGET} RUNTIME DESTINATION bin)
+if (NOT ALIMER_SKIP_INSTALL)
+    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+endif ()

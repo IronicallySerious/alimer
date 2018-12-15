@@ -34,3 +34,43 @@ macro(replace_compile_flags search replace)
         endforeach()
 	endif()
 endmacro()
+
+# Set each source file proper source group
+macro(set_source_groups filePaths)
+	foreach(filePath ${filePaths})
+		get_filename_component(dir_name ${filePath} DIRECTORY)
+		if( NOT "${dir_name}" STREQUAL "" )
+			string(REGEX REPLACE "[.][.][/]" "" GroupName "${dir_name}")
+			string(REGEX REPLACE "/" "\\\\" GroupName "${GroupName}")
+			source_group("${GroupName}" FILES ${filePath})
+		else()
+			source_group("" FILES ${filePath})
+		endif()
+	endforeach()
+endmacro()
+
+# Get all source files recursively and add them to pResult
+macro(alimer_find_source_files pResult)
+	set(FileList)
+	set(SearchDir "${ARGN}")
+
+	# Retrive all source files recursively
+	set(FileExtensions)
+	list(APPEND FileExtensions "*.h" "*.hpp" "*.c" "*.cpp" "*.inl")
+	if( PLATFORM_OSX OR PLATFORM_IOS )
+		list(APPEND FileExtensions "*.m" "*.mm")
+    endif()
+
+    if( "${SearchDir}" STREQUAL "" )
+		file (GLOB_RECURSE FileList RELATIVE ${PROJECT_SOURCE_DIR} ${FileExtensions})
+	else()
+		set (UpdatedFileExtensions)
+		foreach (FileExtension ${FileExtensions})
+			list (APPEND UpdatedFileExtensions "${SearchDir}/${FileExtension}")
+		endforeach ()
+		file(GLOB_RECURSE FileList RELATIVE ${PROJECT_SOURCE_DIR} ${UpdatedFileExtensions})
+	endif()
+	list(APPEND ${pResult} ${FileList})
+
+	set_source_groups("${FileList}")
+endmacro ()

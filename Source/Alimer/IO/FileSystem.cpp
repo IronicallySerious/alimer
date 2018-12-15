@@ -23,32 +23,32 @@
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
 #include "../Base/String.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 #include <sys/stat.h>
 #include <cstdio>
 
 #ifdef _WIN32
-#ifndef _MSC_VER
-#define _WIN32_IE 0x501
-#endif
-#include <windows.h>
-#include <shellapi.h>
-#include <direct.h>
-#include <shlobj.h>
-#include <sys/types.h>
-#include <sys/utime.h>
+#   ifndef _MSC_VER
+#       define _WIN32_IE 0x501
+#   endif
+#   include <windows.h>
+#   include <shellapi.h>
+#   include <direct.h>
+#   include <shlobj.h>
+#   include <sys/types.h>
+#   include <sys/utime.h>
 #else
-#include <dirent.h>
-#include <cerrno>
-#include <unistd.h>
-#include <utime.h>
-#include <sys/wait.h>
-#define MAX_PATH 256
+#   include <dirent.h>
+#   include <cerrno>
+#   include <unistd.h>
+#   include <utime.h>
+#   include <sys/wait.h>
+#   define MAX_PATH 256
 #endif
 
 #if defined(__APPLE__)
-#include <mach-o/dyld.h>
+#   include <mach-o/dyld.h>
 #endif
 
 namespace Alimer
@@ -80,7 +80,7 @@ namespace Alimer
             if (mode == FileAccess::ReadOnly
                 && !Exists(path))
             {
-                ALIMER_LOGERRORF("Cannot open file '%s' as it doesn't exists", path.CString());
+                ALIMER_LOGERROR("Cannot open file '{}' as it doesn't exists", path.CString());
                 return {};
             }
 

@@ -230,7 +230,7 @@ function(alimer_setup_common_properties target)
 endfunction()
 
 function(add_alimer_library target)
-    if (ALIMER_SHARED OR ALIMER_CSHARP)
+    if (ALIMER_SHARED)
         add_library(${target} SHARED ${ARGN})
     else()
         add_library(${target} STATIC ${ARGN})

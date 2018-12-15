@@ -24,7 +24,7 @@
 #include "../Graphics/ShaderCompiler.h"
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #if TODO_SHADER_COMPILER
 #include "glslang/Public/ShaderLang.h"
 #include "glslang/StandAlone/ResourceLimits.h"

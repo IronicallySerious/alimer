@@ -24,14 +24,14 @@
 #include "../Scene/Systems/CameraSystem.h"
 #include "../IO/Path.h"
 #include "../Core/Platform.h"
-#include "../Debug/Log.h"
 
 namespace Alimer
 {
-    static Application* __appInstance = nullptr;
+    Application *Application::_instance;
 
-    Application::Application(int argc, char** argv)
-        : _running(false)
+    Application::Application()
+        : _exitCode(EXIT_SUCCESS)
+        , _running(false)
         , _paused(false)
         , _headless(false)
         , _settings{}
@@ -39,14 +39,27 @@ namespace Alimer
         , _systems(_entities)
         , _scene(_entities)
     {
-        for (int i = 0; i < argc; ++i)
-        {
-            _args.Push(argv[i]);
-        }
-
         PlatformConstruct();
         AddSubsystem(this);
-        _log = new Logger();
+
+        // Setup alimer log
+        std::vector<std::shared_ptr<spdlog::sinks::sink>> sinks;
+
+        sinks.emplace_back(std::make_shared<spdlog::sinks::platform_sink_mt>());
+        sinks.emplace_back(std::make_shared<spdlog::sinks::daily_file_sink_mt>("AlimerLog", 23, 59));
+#if ALIMER_PLATFORM_WINDOWS && ALIMER_DEV
+        AllocConsole();
+        sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+#endif
+        _logger = std::make_shared<spdlog::logger>(ALIMER_LOG, sinks.begin(), sinks.end());
+        spdlog::register_logger(_logger);
+
+#ifdef _DEBUG
+        _logger->set_level(spdlog::level::debug);
+#else
+        _logger->set_level(spdlog::level::info);
+#endif
+
         _sceneManager = new SceneManager();
 
         // Register modules
@@ -54,20 +67,18 @@ namespace Alimer
         ResourceManager::RegisterObject();
 
         SceneManager::Register();
-
-        __appInstance = this;
+        _instance = this;
     }
 
     Application::~Application()
     {
         Shutdown();
-        SafeDelete(_log);
-        __appInstance = nullptr;
+        _instance = nullptr;
     }
 
     Application* Application::GetInstance()
     {
-        return __appInstance;
+        return _instance;
     }
 
     void Application::Shutdown()
@@ -87,9 +98,7 @@ namespace Alimer
     bool Application::InitializeBeforeRun()
     {
         SetCurrentThreadName("Main");
-        _log->Open("Alimer.log");
-
-        ALIMER_LOGINFOF("Initializing engine %s...", ALIMER_VERSION_STR);
+        ALIMER_LOGINFO("Initializing engine {}...", ALIMER_VERSION_STR);
 
         // Init Window and Gpu.
         if (!_headless)
@@ -136,6 +145,23 @@ namespace Alimer
     void Application::LoadPlugins()
     {
         PluginManager::GetInstance()->LoadPlugins(FileSystem::GetExecutableFolder());
+    }
+
+    int Application::Run(int argc, char** argv)
+    {
+        for (int i = 0; i < argc; ++i)
+        {
+            _args.Push(argv[i]);
+        }
+
+        Setup();
+        if (_exitCode != EXIT_SUCCESS)
+        {
+            return _exitCode;
+        }
+
+        PlatformRun();
+        return _exitCode;
     }
 
     void Application::RunFrame()

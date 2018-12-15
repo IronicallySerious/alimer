@@ -20,33 +20,47 @@
 // THE SOFTWARE.
 //
 
-#include "../Scene/Scene.h"
-#include "../Scene/Components/TransformComponent.h"
-#include "../Scene/Components/CameraComponent.h"
-#include "../Core/Log.h"
+#pragma once
+
+#include "../Graphics/GraphicsResource.h"
 
 namespace Alimer
 {
-    Scene::Scene(EntityManager& entities)
-        : _entities(entities)
-    {
-        _defaultCamera = CreateEntity("Default Camera");
-        _defaultCamera.Assign<TransformComponent>();
-        _defaultCamera.Assign<CameraComponent>();
-        ALIMER_ASSERT(_defaultCamera.HasComponent<TransformComponent>());
-        ALIMER_ASSERT(_defaultCamera.HasComponent<CameraComponent>());
-        //_defaultCamera->AddComponent<AudioListener>();
-        _activeCamera = _defaultCamera;
-    }
+    class GPUSampler;
 
-    Scene::~Scene()
+    /// Defines a Sampler class.
+    class ALIMER_API Sampler : public GraphicsResource
     {
-    }
+        friend class Graphics;
+        ALIMER_OBJECT(Sampler, GraphicsResource);
 
-    Entity Scene::CreateEntity(const std::string& name)
-    {
-        Entity entity = _entities.Create();
-        entity.SetName(name);
-        return entity;
-    }
+    public:
+        /// Constructor.
+        Sampler();
+
+        bool Define(const SamplerDescriptor* descriptor);
+
+        /// Get the addressing mode for the U texcoord.
+        SamplerAddressMode GetAddressModeU() const { return _descriptor.addressModeU; }
+
+        /// Get the addressing mode for the V texcoord.
+        SamplerAddressMode GetAddressModeV() const { return _descriptor.addressModeV; }
+
+        /// Get the addressing mode for the W texcoord.
+        SamplerAddressMode GetAddressModeW() const { return _descriptor.addressModeW; }
+
+        const SamplerDescriptor &GetDescriptor() const
+        {
+            return _descriptor;
+        }
+
+        GPUSampler* GetGPUSampler() const { return _sampler; }
+
+    private:
+        /// Register object factory.
+        static void RegisterObject();
+
+        SamplerDescriptor   _descriptor{};
+        GPUSampler*         _sampler = nullptr;
+    };
 }

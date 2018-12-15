@@ -25,7 +25,7 @@
 #include "D3D11Texture.h"
 #include "D3D11Framebuffer.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
@@ -141,7 +141,7 @@ namespace Alimer
 
                     if (FAILED(hr))
                     {
-                        ALIMER_LOGCRITICALF("Failed to create DXGI SwapChain, HRESULT %08X", static_cast<unsigned int>(hr));
+                        ALIMER_LOGCRITICAL("Failed to create DXGI SwapChain, HRESULT {}", static_cast<unsigned int>(hr));
                     }
 
                     ThrowIfFailed(_swapChain1.As(&_swapChain));

@@ -26,7 +26,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../Resource/ResourceLoader.h"
 #include "../IO/FileSystem.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #include <spirv-cross/spirv_glsl.hpp>
 
 namespace Alimer

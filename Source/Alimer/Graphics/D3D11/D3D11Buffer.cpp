@@ -24,7 +24,7 @@
 #include "D3D11GraphicsDevice.h"
 #include "D3D11Convert.h"
 #include "../../Math/MathUtil.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer

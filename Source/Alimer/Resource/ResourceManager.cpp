@@ -24,7 +24,7 @@
 #include "../Application/Application.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -44,7 +44,7 @@ namespace Alimer
 
         if (!FileSystem::DirectoryExists(path))
         {
-            ALIMER_LOGERRORF("Directory '%s' does not exists", path.CString());
+            ALIMER_LOGERROR("Directory '{}' does not exists", path.CString());
             return false;
         }
 
@@ -71,7 +71,7 @@ namespace Alimer
             fileWatchers_.Push(watcher);
         }*/
 
-        ALIMER_LOGINFOF("Added resource path '%s'", fixedPath.CString());
+        ALIMER_LOGINFO("Added resource path '{}'", fixedPath.CString());
         return true;
     }
 
@@ -155,13 +155,13 @@ namespace Alimer
         return stream->ReadBytes(count);
     }
 
-    SharedPtr<Resource> ResourceManager::LoadResource(StringHash type, const String& assetName)
+    Resource* ResourceManager::LoadResource(StringHash type, const String& assetName)
     {
         // Check for existing resource
         auto key = std::make_pair(type, StringHash(assetName));
         auto it = _resources.find(key);
         if (it != _resources.end())
-            return it->second;
+            return it->second.Get();
 
         UniquePtr<Stream> stream = OpenResource(assetName);
         if (stream.IsNull())
@@ -170,29 +170,29 @@ namespace Alimer
         }
 
         String sanitatedName = SanitateResourceName(assetName);
-        SharedPtr<Resource> newResource = DynamicCast<Resource>(CreateObject(type));
+        Resource* newResource = dynamic_cast<Resource*>(CreateObject(type));
         bool loaded = false;
-        if (newResource.IsNull())
+        if (newResource == nullptr)
         {
             // Try to use loader
             ResourceLoader* loader = GetLoader(type);
             if (!loader)
             {
-                ALIMER_LOGERRORF("Could not load unknown resource type %s, no loader found.", String(type).CString());
+                ALIMER_LOGERROR("Could not load unknown resource type {}, no loader found.", String(type).CString());
                 return nullptr;
             }
 
-            ALIMER_LOGDEBUGF("Loading resource '%s' using loader", sanitatedName.CString());
+            ALIMER_LOGDEBUG("Loading resource '{}' using loader", sanitatedName.CString());
             newResource = loader->Load(*stream);
-            loaded = newResource.IsNotNull();
+            loaded = newResource != nullptr;
         }
        
         if (!loaded)
         {
-            ALIMER_LOGDEBUGF("Loading resource '%s'", sanitatedName.CString());
+            ALIMER_LOGDEBUG("Loading resource '{}'", sanitatedName.CString());
             if (!newResource->Load(*stream))
             {
-                ALIMER_LOGERRORF("Failed to load resource '%s'", sanitatedName.CString());
+                ALIMER_LOGERROR("Failed to load resource '{}'", sanitatedName.CString());
                 return nullptr;
             }
         }

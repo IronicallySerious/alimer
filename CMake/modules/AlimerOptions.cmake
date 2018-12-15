@@ -69,7 +69,6 @@ macro (alimer_option NAME DESCRIPTION)
 endmacro ()
 
 # Setup options
-option (ALIMER_LOGGING "Enable logging macros" TRUE)
 option (ALIMER_PROFILING "Enable performance profiling" TRUE)
 option (ALIMER_EXCEPTIONS "Enable exceptions support" OFF)
 
@@ -105,7 +104,7 @@ endif ()
 
 option (ALIMER_POSITION_INDEPENDENT "Position independent" ON)
 option (ALIMER_SKIP_INSTALL "Skip installation" ${ALIMER_SKIP_INSTALL})
-option (ALIMER_SHARED "Enable shared library build" OFF)
+set (ALIMER_SHARED OFF CACHE BOOL "Enable shared library build")
 set (ALIMER_USE_DEBUG_INFO ON CACHE BOOL "Enable debug information in all configurations.")
 
 # Windowing/Input
@@ -138,3 +137,7 @@ alimer_option (ALIMER_CSHARP_MONO "Use mono for C# support")
 if (UNIX AND NOT APPLE)
     option (ALIMER_GLFW_WAYLAND "Use Wayland for window creation" OFF)
 endif()
+
+if (ALIMER_CSHARP)
+    set (ALIMER_SHARED ON CACHE INTERNAL "Vulkan not supported" FORCE)
+endif ()

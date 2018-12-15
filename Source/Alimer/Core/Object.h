@@ -29,9 +29,6 @@
 
 namespace Alimer
 {
-    class ObjectFactory;
-    template <class T> class ObjectFactoryImpl;
-
     /// Type info.
     class ALIMER_API TypeInfo final
     {
@@ -65,6 +62,9 @@ namespace Alimer
 
         DISALLOW_COPY_MOVE_AND_ASSIGN(TypeInfo);
     };
+
+    class ObjectFactory;
+    template <class T> class ObjectFactoryImpl;
 
     /// Base class for objects with type identification and possibility to create through a factory.
     class ALIMER_API Object : public RefCounted
@@ -106,26 +106,23 @@ namespace Alimer
         /// Return a subsystem, template version.
         template <class T> static T* GetSubsystem() { return static_cast<T*>(GetSubsystem(T::GetTypeStatic())); }
 
-        /// Register an object factory, template version.
-        template <class T> static inline void RegisterFactory()
-        {
-            RegisterFactory(new ObjectFactoryImpl<T>());
-        }
-
         /// Register an object factory.
         static void RegisterFactory(ObjectFactory* factory);
+
+        /// Register an object factory, template version.
+        template <class T> static void RegisterFactory() { RegisterFactory(new ObjectFactoryImpl<T>()); }
 
         /// Remove object factory.
         static void RemoveFactory(StringHash type);
 
         /// Create an object by type. Return pointer to it or null if no factory found.
-        template <class T> static inline SharedPtr<T> CreateObject()
+        template <class T> static inline T* CreateObject()
         {
-            return StaticCast<T>(CreateObject(T::GetTypeStatic()));
+            return static_cast<T*>(CreateObject(T::GetTypeStatic()));
         }
 
         /// Create and return an object through a factory. The caller is assumed to take ownership of the object. Return null if no factory registered. 
-        static SharedPtr<Object> CreateObject(StringHash type);
+        static Object* CreateObject(StringHash type);
 
         /// Return a type name from hash, or empty if not known. Requires a registered object factory.
         static const String& GetTypeNameFromType(StringHash type);
@@ -139,14 +136,15 @@ namespace Alimer
         virtual ~ObjectFactory() = default;
 
         /// Create and return an object.
-        virtual SharedPtr<Object> CreateObject() = 0;
+        virtual Object* Create() = 0;
 
         /// Return type info of objects created by this factory.
         const TypeInfo* GetTypeInfo() const { return _typeInfo; }
 
-        /// Return type name hash of the objects created by this factory.
+        /// Return type hash of objects created by this factory.
         StringHash GetType() const { return _typeInfo->GetType(); }
-        /// Return type name of the objects created by this factory.
+
+        /// Return type name of objects created by this factory.
         const String& GetTypeName() const { return _typeInfo->GetTypeName(); }
 
     protected:
@@ -165,10 +163,7 @@ namespace Alimer
         }
 
         /// Create and return an object of the specific type.
-        SharedPtr<Object> CreateObject() override
-        {
-            return SharedPtr<Object>(new T());
-        }
+        Object* Create() override { return new T(); }
     };
 
 }

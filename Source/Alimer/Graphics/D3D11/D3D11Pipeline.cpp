@@ -24,7 +24,7 @@
 #include "D3D11Pipeline.h"
 #include "D3D11GraphicsDevice.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer

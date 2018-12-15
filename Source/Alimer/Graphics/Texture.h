@@ -40,7 +40,7 @@ namespace Alimer
 
     enum class TextureUsage : uint32_t
     {
-        Unknown = 0,
+        None = 0,
         ShaderRead = 1 << 0,
         ShaderWrite = 1 << 1,
         RenderTarget = 1 << 2,
@@ -129,7 +129,7 @@ namespace Alimer
 
     protected:
         TextureType _type = TextureType::Type1D;
-        TextureUsage _usage = TextureUsage::Unknown;
+        TextureUsage _usage = TextureUsage::None;
         PixelFormat _format = PixelFormat::Unknown;
         uint32_t _width = 0;
         uint32_t _height = 0;

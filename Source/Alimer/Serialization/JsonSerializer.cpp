@@ -21,7 +21,7 @@
 //
 
 #include "../Serialization/JsonSerializer.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #include <vector>
 #if TODO
 #include <rapidjson/document.h>

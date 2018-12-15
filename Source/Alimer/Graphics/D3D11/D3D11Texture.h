@@ -44,9 +44,9 @@ namespace Alimer
 
         void InvalidateViews();
 
-        ID3D11Device*  GetD3DDevice() const { return _d3dDevice; }
-        ID3D11Resource* GetResource() const { return _resource; }
-        DXGI_FORMAT GetDXGIFormat() const { return _dxgiFormat; }
+        ID3D11Device*       GetD3DDevice() const { return _d3dDevice; }
+        ID3D11Resource*     GetResource() const { return _resource; }
+        DXGI_FORMAT         GetDXGIFormat() const { return _dxgiFormat; }
 
         ID3D11ShaderResourceView* GetSRV(uint32_t mostDetailedMip = 0, uint32_t mipCount = RemainingMipLevels, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingMipLevels) const;
         ID3D11UnorderedAccessView* GetUAV(uint32_t mipLevel, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingMipLevels) const;

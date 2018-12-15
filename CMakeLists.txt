@@ -135,7 +135,11 @@ endif()
 
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER "3.6")
-    set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer" )
+    if (ALIMER_TOOLS)
+        set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT "AlimerStudio")
+    else ()
+        set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT "AlimerPlayer")
+    endif ()
 endif()
 
 # Print current build configuration

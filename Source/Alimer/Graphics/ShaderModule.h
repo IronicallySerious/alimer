@@ -27,17 +27,7 @@
 
 namespace Alimer
 {
-    /// Defines shader stage
-    enum class ShaderStage : uint32_t
-    {
-        Vertex = 0,
-        TessControl = 1,
-        TessEvaluation = 2,
-        Geometry = 3,
-        Fragment = 4,
-        Compute = 5,
-        Count = 6
-    };
+    class GPUShaderModule;
 
     /// Defines a shader module resource.
     class ALIMER_API ShaderModule : public GraphicsResource
@@ -45,11 +35,10 @@ namespace Alimer
         friend class Graphics;
         ALIMER_OBJECT(ShaderModule, GraphicsResource);
 
-    protected:
-        /// Constructor.
-        ShaderModule(Graphics* graphics);
-
     public:
+        /// Constructor.
+        ShaderModule();
+
         /// Destructor.
         ~ShaderModule() override;
 
@@ -58,6 +47,8 @@ namespace Alimer
 
         bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
         bool Define(ShaderStage stage, const Vector<uint8_t>& bytecode);
+
+        GPUShaderModule* GetGPUShaderModule() const { return _module; }
 
     private:
         bool BeginLoad(Stream& source) override;
@@ -68,6 +59,8 @@ namespace Alimer
 
         /// Register object factory.
         static void RegisterObject();
+
+        GPUShaderModule* _module = nullptr;
 
         Vector<PipelineResource> _resources;
         /// Shader stage.

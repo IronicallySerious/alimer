@@ -23,7 +23,7 @@
 #include "D3D11Texture.h"
 #include "D3D11GraphicsDevice.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
@@ -55,7 +55,7 @@ namespace Alimer
             }
 
             _mipLevels = textureDesc.MipLevels;
-            _usage = TextureUsage::Unknown;
+            _usage = TextureUsage::None;
             if (textureDesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
             {
                 _usage |= TextureUsage::ShaderRead;

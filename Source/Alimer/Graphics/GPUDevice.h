@@ -21,23 +21,41 @@
 //
 
 #pragma once
-#include "Alimer.h"
-#include <imgui.h>
+
+#include "../Graphics/Types.h"
 
 namespace Alimer
 {
-    class UI final : public Object
+    class GPUShaderModule
     {
-        ALIMER_OBJECT(UI, Object);
+    protected:
+        /// Constructor.
+        GPUShaderModule() {}
 
     public:
-        explicit UI(const uvec2& size);
-        ~UI() override;
+        virtual ~GPUShaderModule() = default;
+    };
 
-    private:
-        void UpdateFontTexture();
+    class GPUSampler
+    {
+    protected:
+        /// Constructor.
+        GPUSampler() {}
 
-        ImGuiContext* _imContext;
-        SharedPtr<Texture> _fontTexture;
+    public:
+        virtual ~GPUSampler() = default;
+    };
+
+    class GPUDevice
+    {
+    protected:
+        /// Constructor.
+        GPUDevice() {}
+
+    public:
+        virtual ~GPUDevice() = default;
+
+        //virtual GPUShaderModule* CreateShaderModule(ShaderStage stage, const Vector<uint8_t>& bytecode) = 0;
+        virtual GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) = 0;
     };
 }

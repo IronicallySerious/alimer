@@ -157,10 +157,6 @@ if (ALIMER_CSHARP)
     define_engine_source_files(CSharp)
 endif ()
 
-if (ALIMER_TOOLS)
-    define_engine_source_files(Editor)
-endif ()
-
 if (MSVC)
     list (APPEND SOURCE_FILES ${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis)
 endif ()
@@ -169,7 +165,7 @@ endif ()
 group_sources()
 
 # Define the library target.
-add_alimer_executable(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${SHADER_BINS})
+add_alimer_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${SHADER_BINS})
 
 target_include_directories(${TARGET_NAME}
     PUBLIC
@@ -185,7 +181,7 @@ target_include_directories(${TARGET_NAME}
     )
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES fmt spirv_cross ImGui)
+set (THIRD_PARTY_DEPENDENCIES fmt spdlog spirv_cross ImGui)
 
 if (ALIMER_GLFW)
     list (APPEND THIRD_PARTY_DEPENDENCIES glfw)

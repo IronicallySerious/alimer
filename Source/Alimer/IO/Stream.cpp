@@ -21,7 +21,7 @@
 //
 
 #include "../IO/Stream.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -196,7 +196,7 @@ namespace Alimer
         uint64_t read = Read(result.Data(), count);
 		if (read != count)
 		{
-            ALIMER_LOGERRORF("IO", "Failed to read complete contents of stream (amount read vs. file size: %u < %u).",
+            ALIMER_LOGERROR("IO", "Failed to read complete contents of stream (amount read vs. file size: {} < {}).",
                 static_cast<uint32_t>(read),
                 static_cast<uint32_t>(count)
             );

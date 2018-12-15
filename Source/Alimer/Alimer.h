@@ -30,7 +30,7 @@
 
 // Debug
 #include "Debug/Debug.h"
-#include "Debug/Log.h"
+#include "Core/Log.h"
 
 // Core
 #include "Core/Platform.h"
@@ -49,8 +49,7 @@
 
 // Graphics
 #include "Graphics/PixelFormat.h"
-#include "Graphics/VertexBuffer.h"
-#include "Graphics/IndexBuffer.h"
+#include "Graphics/GpuBuffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
 #include "Graphics/Graphics.h"
@@ -77,5 +76,4 @@
 // Application
 #include "Application/Application.h"
 #include "Application/Window.h"
-#include "Application/Main.h"
 

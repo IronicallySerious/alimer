@@ -23,7 +23,7 @@
 #include "D3D11Shader.h"
 #include "D3D11GraphicsDevice.h"
 #include "../D3D/D3DShaderCompiler.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 #include <spirv-cross/spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
 
@@ -108,7 +108,6 @@ namespace Alimer
 
 
     D3D11ShaderModule::D3D11ShaderModule(D3D11Graphics* graphics)
-        : ShaderModule(graphics)
     {
         //_d3dBlob = ConvertAndCompileHLSL(device, blob, GetReflection().stage);
     }

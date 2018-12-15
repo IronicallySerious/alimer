@@ -25,21 +25,29 @@
 
 namespace Alimer
 {
-    StudioApplication *StudioApplication::_instance;
-
-    StudioApplication::StudioApplication(int argc, char** argv)
-        : Application(argc, argv)
+    StudioApplication::StudioApplication()
+        : Application()
     {
-        _instance = this;
     }
 
     StudioApplication::~StudioApplication()
     {
-        _instance = nullptr;
     }
 
     StudioApplication* StudioApplication::GetInstance()
     {
-        return _instance;
+        return static_cast<StudioApplication*>(Application::GetInstance());
+    }
+
+    void StudioApplication::Initialize()
+    {
+        SharedPtr<ShaderModule> vertexShader(gGraphics().CreateShaderModule());
+        vertexShader->Define(ShaderStage::Vertex, R"(
+        #version 450
+        layout (location = 0) in vec3 inPosition;
+        void main() {
+            gl_Position = vec4(inPosition.xyz, 1.0);
+        })"
+            );
     }
 }

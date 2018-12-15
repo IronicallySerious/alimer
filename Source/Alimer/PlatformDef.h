@@ -43,9 +43,9 @@
 #define ALIMER_LITTLE_ENDIAN 0
 
 // Compiler
-#define ALIMER_MSVC 0
-#define ALIMER_CLANG 0
-#define ALIMER_GCC 0
+#define ALIMER_COMPILER_MSVC 0
+#define ALIMER_COMPILER_CLANG 0
+#define ALIMER_COMPILER_GCC 0
 
 // SIMD defines
 #define ALIMER_SSE2 0
@@ -56,24 +56,24 @@
 * Compiler defines, see http://sourceforge.net/p/predef/wiki/Compilers/
 */
 #ifdef _MSC_VER
-#	undef ALIMER_MSVC
+#	undef ALIMER_COMPILER_MSVC
 #	if _MSC_VER >= 1910		// Visual Studio 2017
-#		define ALIMER_MSVC 15
+#		define ALIMER_COMPILER_MSVC 15
 #	elif _MSC_VER >= 1900	// Visual Studio 2015
-#		define ALIMER_MSVC 14
+#		define ALIMER_COMPILER_MSVC 14
 #	elif _MSC_VER >= 1800	// Visual Studio 2013
-#		define ALIMER_MSVC 12
+#		define ALIMER_COMPILER_MSVC 12
 #   elif _MSC_VER >= 1700	// Visual Studio 2012
-#       define ALIMER_MSVC 11
+#       define ALIMER_COMPILER_MSVC 11
 #else
 #	error "Unknown VC version"
 #	endif
 #elif defined(__clang__)
-#	undef ALIMER_CLANG
-#	define ALIMER_CLANG 1
+#	undef ALIMER_COMPILER_CLANG
+#	define ALIMER_COMPILER_CLANG 1
 #elif defined(__GNUC__) // note: __clang__ imply __GNUC__
-#	undef ALIMER_GCC
-#	define ALIMER_GCC 1
+#	undef ALIMER_COMPILER_GCC
+#	define ALIMER_COMPILER_GCC 1
 #else
 #	error "Unknown compiler"
 #endif
@@ -214,7 +214,7 @@
 */
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
 #	define ALIMER_NOINLINE __declspec(noinline)
-#elif ALIMER_CLANG || ALIMER_GCC
+#elif ALIMER_COMPILER_CLANG || ALIMER_COMPILER_GCC
 #	define ALIMER_NOINLINE __attribute__((noinline))
 #else
 #	define ALIMER_NOINLINE

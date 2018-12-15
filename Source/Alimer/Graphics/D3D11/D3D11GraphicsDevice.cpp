@@ -24,12 +24,13 @@
 #include "D3D11Swapchain.h"
 #include "D3D11CommandContext.h"
 #include "D3D11Texture.h"
+#include "D3D11Sampler.h"
 #include "D3D11Framebuffer.h"
 #include "D3D11Buffer.h"
 #include "D3D11Shader.h"
 //#include "D3D11Pipeline.h"
 #include "../../Core/Platform.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 #include <STB/stb_image_write.h>
 
 using namespace Microsoft::WRL;
@@ -523,6 +524,11 @@ namespace Alimer
         return new D3D11Texture(this);
     }
 
+    GPUSampler* D3D11Graphics::CreateSampler(const SamplerDescriptor* descriptor)
+    {
+        return new D3D11Sampler(this, descriptor);
+    }
+
     Framebuffer* D3D11Graphics::CreateFramebuffer()
     {
         return new D3D11Framebuffer(this);
@@ -531,10 +537,5 @@ namespace Alimer
     GpuBuffer* D3D11Graphics::CreateBuffer()
     {
         return new D3D11Buffer(this);
-    }
-
-    ShaderModule* D3D11Graphics::CreateShaderModule()
-    {
-        return new D3D11ShaderModule(this);
     }
 }

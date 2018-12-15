@@ -34,7 +34,8 @@ namespace Alimer
         WindowFlags windowFlags = WindowFlags::Default;
 
         /// sRGB color space.
-        bool sRGB  = true;
+        bool sRGB  = false;
+
         /// Preferred depth stencil format.
         PixelFormat preferredDepthStencilFormat = PixelFormat::D24UNormS8;
 

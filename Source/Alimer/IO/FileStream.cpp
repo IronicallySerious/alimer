@@ -23,7 +23,7 @@
 #include "../IO/FileStream.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
 #   ifndef NOMINMAX
@@ -150,7 +150,7 @@ namespace Alimer
 
         if (_handle == INVALID_HANDLE_VALUE)
         {
-            ALIMER_LOGERRORF("Win32 - Failed to open file: '%s'.", fileName.CString());
+            ALIMER_LOGERROR("Win32 - Failed to open file: '{}'.", fileName.CString());
         }
 
         if (mode != FileAccess::WriteOnly)
@@ -355,7 +355,7 @@ namespace Alimer
         default:
             break;
         }
-        fseek((FILE*)_handle, static_cast<long>(position), seekMethod);
+        fseek((FILE*)_handle, static_cast<long>(offset), seekMethod);
         _position = ftell((FILE*)_handle);
 #endif
         return _position;

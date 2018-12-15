@@ -22,7 +22,7 @@
 
 #include "../Graphics/GraphicsResource.h"
 #include "../Graphics/Graphics.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {

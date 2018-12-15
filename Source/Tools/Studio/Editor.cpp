@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "Editor.hpp"
+#include "Editor.h"
 
 namespace Alimer
 {
@@ -38,7 +38,6 @@ namespace Alimer
     void Editor::Initialize()
     {
         _mainWindow->SetTitle("Alimer Studio 2018");
-        _ui = new UI(_mainWindow->GetSize());
     }
 
     void Editor::OnRenderFrame(double frameTime, double elapsedTime)
@@ -53,4 +52,78 @@ namespace Alimer
     }
 }
 
-ALIMER_APPLICATION(Alimer::Editor);
+int main(int argc, char** argv)
+{
+    using namespace Alimer;
+
+    Editor app;
+    int returnCode = app.Run(argc, argv);
+    return returnCode;
+}
+
+#if ALIMER_PLATFORM_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <dbghelp.h>
+#include <shellapi.h>
+#include <shlobj.h>
+#include <strsafe.h>
+
+int GenerateDump(EXCEPTION_POINTERS* pExceptionPointers)
+{
+    BOOL bMiniDumpSuccessful;
+    char* szPath = "crash_dumps";
+    WCHAR szFileName[MAX_PATH];
+    HANDLE hDumpFile;
+    SYSTEMTIME stLocalTime;
+    MINIDUMP_EXCEPTION_INFORMATION ExpParam;
+
+    GetLocalTime(&stLocalTime);
+    StringCchPrintfW(szFileName, MAX_PATH, L"%s", szPath);
+    CreateDirectoryW(szFileName, NULL);
+
+    StringCchPrintfW(szFileName, MAX_PATH,
+        L"%s\\%04d%02d%02d-%02d%02d%02d-%ld-%ld.dmp", szPath,
+        stLocalTime.wYear, stLocalTime.wMonth, stLocalTime.wDay,
+        stLocalTime.wHour, stLocalTime.wMinute, stLocalTime.wSecond,
+        GetCurrentProcessId(), GetCurrentThreadId());
+    hDumpFile =
+        CreateFileW(szFileName, GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
+
+    ExpParam.ThreadId = GetCurrentThreadId();
+    ExpParam.ExceptionPointers = pExceptionPointers;
+    ExpParam.ClientPointers = TRUE;
+
+    bMiniDumpSuccessful =
+        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hDumpFile,
+            MiniDumpWithDataSegs, &ExpParam, NULL, NULL);
+
+    //vorticeErrorDialog("Error", "Vortice crashed. A minidump has been generated in 'app/crash_dumps'...");
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
+{
+    ALIMER_UNUSED(hInstance);
+    ALIMER_UNUSED(hPrevInstance);
+    ALIMER_UNUSED(lpCmdLine);
+    ALIMER_UNUSED(nCmdShow);
+    int returnCode = 0;
+    __try
+    {
+        int argc = __argc;
+        char** argv = __argv;
+        returnCode = main(argc, argv);
+    }
+    __except (GenerateDump(GetExceptionInformation()))
+    {
+        
+    }
+
+    return returnCode;
+}
+#endif
+

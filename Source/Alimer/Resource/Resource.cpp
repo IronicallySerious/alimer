@@ -21,7 +21,7 @@
 //
 
 #include "../Resource/Resource.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -56,7 +56,7 @@ namespace Alimer
 
     bool Resource::Save(Stream& dest)
     {
-        ALIMER_LOGERRORF("Save not supported for '%s'", GetTypeName().CString());
+        ALIMER_LOGERROR("Save not supported for '{}'", GetTypeName().CString());
         return false;
     }
 

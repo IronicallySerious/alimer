@@ -33,7 +33,7 @@ namespace Alimer
 
     public:
         /// Constructor.
-        StudioApplication(int argc, char** argv);
+        StudioApplication();
 
         /// Destructor.
         virtual ~StudioApplication() override;
@@ -41,10 +41,11 @@ namespace Alimer
         /// Return the single instance of the Application.
         static StudioApplication* GetInstance();
 
+        void Initialize() override;
+
         /** @copydoc Application::IsEditor */
         bool IsEditor() const override { return true; }
 
     private:
-        static StudioApplication *_instance;
     };
 }

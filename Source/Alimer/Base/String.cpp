@@ -23,7 +23,7 @@
 
 #include "../Base/String.h"
 #include "../Base/StringHash.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
@@ -544,7 +544,7 @@ namespace Alimer
             }
 
             default:
-                ALIMER_LOGWARNF("String", "Unsupported format specifier: '%c'", format);
+                //ALIMER_LOGWARNF("Unsupported format specifier: '%c'", format);
                 break;
             }
         }

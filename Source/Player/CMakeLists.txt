@@ -20,11 +20,18 @@
 # THE SOFTWARE.
 #
 
+cmake_minimum_required(VERSION 3.6)
+project (AlimerPlayer)
+
 file (GLOB HEADER_FILES *.h *.hpp)
 file (GLOB SOURCE_FILES *.cpp)
 
 # Define the target.
-add_alimer_executable(Alimer ${SOURCE_FILES} ${HEADER_FILES})
-set_target_properties(Alimer PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+add_alimer_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+target_link_libraries(${PROJECT_NAME} Alimer)
 
-install(TARGETS Alimer RUNTIME DESTINATION bin)
+set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+
+if (NOT ALIMER_SKIP_INSTALL)
+    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+endif ()

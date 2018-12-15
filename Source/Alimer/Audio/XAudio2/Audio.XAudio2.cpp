@@ -21,7 +21,7 @@
 //
 
 #include "Audio.XAudio2.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
 #if !ALIMER_PLATFORM_UWP
 static const wchar_t* XAUDIO2_DLL_29 = L"xaudio2_9.dll";
@@ -336,7 +336,7 @@ namespace Alimer
             (void**)&_deviceEnumerator);
         if (FAILED(hr))
         {
-            ALIMER_LOGERRORF("[XAudio2] - CoCreateInstance(MMDeviceEnumerator) failed, %08lx", hr);
+            ALIMER_LOGERROR("[XAudio2] - CoCreateInstance(MMDeviceEnumerator) failed, {}", hr);
         }
 
         _notificationClient = new AudioNotificationClient();
@@ -441,7 +441,7 @@ namespace Alimer
             ALIMER_LOGCRITICAL("Failed to initialize XAudio2");
         }
 #endif
-        ALIMER_LOGINFOF("XAudio %d.%d backend created.", _apiMajorVersion, _apiMinorVersion);
+        ALIMER_LOGINFO("XAudio {}.{} backend created.", _apiMajorVersion, _apiMinorVersion);
 
         if (validation
             && _apiMinorVersion > 7)
@@ -454,7 +454,7 @@ namespace Alimer
             debugConfiguration.LogFunctionName = FALSE;
             debugConfiguration.LogTiming = FALSE;
             _xaudio2->SetDebugConfiguration(&debugConfiguration);
-            ALIMER_LOGDEBUGF("XAudio %d.%d debugging enabled.", _apiMajorVersion, _apiMinorVersion);
+            ALIMER_LOGDEBUG("XAudio {}.{} debugging enabled.", _apiMajorVersion, _apiMinorVersion);
         }
     }
 
@@ -615,7 +615,7 @@ namespace Alimer
             _masterRate = details.InputSampleRate;
         }
 
-        ALIMER_LOGDEBUGF("[XAudio2] - Mastering voice has %u channels, %u sample rate, %08X channel mask", _masterChannels, _masterRate, _masterChannelMask);
+        ALIMER_LOGDEBUG("[XAudio2] - Mastering voice has {} channels, {} sample rate, {} channel mask", _masterChannels, _masterRate, _masterChannelMask);
 
         // Setup 3D audio
         const float SPEEDOFSOUND = X3DAUDIO_SPEED_OF_SOUND;
@@ -665,7 +665,7 @@ namespace Alimer
             HRESULT hr = _masteringVoice->SetVolume(volume);
             if (FAILED(hr))
             {
-                ALIMER_LOGDEBUGF("[XAudio2] - Failed to set master voice volume, COM error: %08X", hr);
+                ALIMER_LOGDEBUG("[XAudio2] - Failed to set master voice volume, COM error: {}", hr);
             }
         }
     }
@@ -689,8 +689,8 @@ namespace Alimer
 
             if (FAILED(hr))
             {
-                ALIMER_LOGERRORF(
-                    "XAudio2 resume: Failure with HRESULT of %08X",
+                ALIMER_LOGERROR(
+                    "XAudio2 resume: Failure with HRESULT of {}",
                     static_cast<unsigned int>(hr)
                 );
             }

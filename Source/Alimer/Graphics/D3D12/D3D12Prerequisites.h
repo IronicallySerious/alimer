@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../../Debug/Log.h"
 #include "../D3D/D3DPrerequisites.h"
 
 #if defined(NTDDI_WIN10_RS2)

@@ -24,6 +24,7 @@
 
 #include "../Core/Object.h"
 #include "../Core/Timer.h"
+#include "../Core/Log.h"
 #include "../Core/PluginManager.h"
 #include "../Application/Window.h"
 #include "../Application/GameSystem.h"
@@ -42,8 +43,6 @@
 
 namespace Alimer
 {
-    class Logger;
-
     struct ApplicationSettings
     {
         GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Default;
@@ -64,7 +63,7 @@ namespace Alimer
 
     public:
         /// Constructor.
-        Application(int argc, char** argv);
+        Application();
 
         /// Destructor.
         virtual ~Application();
@@ -73,7 +72,7 @@ namespace Alimer
         static Application* GetInstance();
 
         /// Runs main loop.
-        int Run();
+        int Run(int argc, char** argv);
 
         /// Run one frame.
         void RunFrame();
@@ -98,11 +97,15 @@ namespace Alimer
 
     private:
         void PlatformConstruct();
+        void PlatformRun();
         bool InitializeBeforeRun();
         void LoadPlugins();
         void Shutdown();
 
     protected:
+        /// Setup before engine initialization. This is a chance to eg. modify the engine parameters. Call ErrorExit() to terminate without initializing the engine. Called by Application.
+        virtual void Setup() { }
+
         /// Called after setup and engine initialization with all modules initialized.
         virtual void Initialize() { }
 
@@ -116,12 +119,14 @@ namespace Alimer
         virtual void OnRenderFrame(double frameTime, double elapsedTime);
 
         Vector<String> _args;
+        /// Application exit code.
+        int _exitCode;
         std::atomic<bool> _running;
         std::atomic<bool> _paused;
         std::atomic<bool> _headless;
         ApplicationSettings _settings;
 
-        Logger* _log;
+        std::shared_ptr<spdlog::logger> _logger;
         Timer _timer;
         ResourceManager _resources;
         RenderWindow* _mainWindow = nullptr;
@@ -137,6 +142,9 @@ namespace Alimer
 
         // Gui
         SharedPtr<Gui> _gui;
+
+    private:
+        static Application *_instance;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Application);

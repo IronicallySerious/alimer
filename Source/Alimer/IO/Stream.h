@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Base/String.h"
+#include "../Base/StringHash.h"
 #include "../Base/Vector.h"
 
 namespace Alimer

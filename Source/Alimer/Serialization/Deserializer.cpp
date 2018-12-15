@@ -21,7 +21,7 @@
 //
 
 #include "../Serialization/Deserializer.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {

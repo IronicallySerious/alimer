@@ -76,7 +76,8 @@ namespace Alimer
         BC6HS16,
         BC6HU16,
         BC7UNorm,
-        BC7UNormSrgb
+        BC7UNormSrgb,
+        Count
     };
 
     /**

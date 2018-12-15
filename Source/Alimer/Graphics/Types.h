@@ -144,6 +144,63 @@ namespace Alimer
         UInt32 = 1
     };
 
+    enum class CompareFunction : uint32_t 
+    {
+        Never = 0,
+        Less = 1,
+        Equal = 2,
+        LessEqual = 3,
+        Greater = 4,
+        NotEqual = 5,
+        GreaterEqual = 6,
+        Always = 7
+    };
+
+    /// Defines shader stage
+    enum class ShaderStage : uint32_t
+    {
+        Vertex = 0,
+        TessControl = 1,
+        TessEvaluation = 2,
+        Geometry = 3,
+        Fragment = 4,
+        Compute = 5,
+        Count = 6
+    };
+
+    /* Sampler */
+    enum class SamplerAddressMode : uint32_t
+    {
+        /// Texture coordinates wrap to the other side of the texture, effectively keeping only the fractional part of the texture coordinate.
+        Repeat,
+        /// Between -1.0 and 1.0, the texture coordinates are mirrored across the axis. Outside -1.0 and 1.0, the image is repeated.
+        MirrorRepeat,
+        /// Texture coordinates are clamped between 0.0 and 1.0, inclusive.
+        ClampToEdge,
+        /// Out-of-range texture coordinates return the value specified by the sampler's border color.
+        ClampToBorder,
+        /// Between -1.0 and 1.0, the texture coordinates are mirrored across the axis. Outside -1.0 and 1.0, the texture coordinates are clamped.
+        MirrorClampToEdge
+    };
+
+    enum class SamplerMinMagFilter
+    {
+        Nearest,
+        Linear,
+    };
+
+    enum class SamplerMipFilter
+    {
+        Nearest,
+        Linear,
+    };
+
+    enum class SamplerBorderColor
+    {
+        TransparentBlack,
+        OpaqueBlack,
+        OpaqueWhite
+    };
 
     enum class ParamDataType
     {
@@ -226,6 +283,21 @@ namespace Alimer
         Texcoord6,
         Texcoord7,
         Count
+    };
+
+    struct SamplerDescriptor
+    {
+        SamplerAddressMode addressModeU = SamplerAddressMode::Repeat;
+        SamplerAddressMode addressModeV = SamplerAddressMode::Repeat;
+        SamplerAddressMode addressModeW = SamplerAddressMode::Repeat;
+        SamplerMinMagFilter magFilter = SamplerMinMagFilter::Nearest;
+        SamplerMinMagFilter minFilter = SamplerMinMagFilter::Nearest;
+        SamplerMipFilter mipmapFilter = SamplerMipFilter::Nearest;
+        float lodMinClamp = 0;
+        float lodMaxClamp = 3.402823466e+38F; // FLT_MAX
+        uint32_t maxAnisotropy = 1;
+        CompareFunction compareFunction = CompareFunction::Never;
+        SamplerBorderColor borderColor = SamplerBorderColor::TransparentBlack;
     };
 
     ALIMER_API uint32_t GetVertexElementSize(VertexElementFormat format);

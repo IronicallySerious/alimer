@@ -21,7 +21,7 @@
 //
 
 #include "../UI/Gui.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #include "../Graphics/Graphics.h"
 #include "../Graphics/Shader.h"
 //#include <ImGuizmo/ImGuizmo.h>

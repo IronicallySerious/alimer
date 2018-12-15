@@ -29,6 +29,7 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
+#include "../Graphics/Sampler.h"
 #include "../Graphics/Pipeline.h"
 #include "../Graphics/RenderWindow.h"
 #include <set>
@@ -36,6 +37,8 @@
 
 namespace Alimer
 {
+    class GPUDevice;
+
     /// Low-level 3D graphics module.
     class ALIMER_API Graphics : public Object
     {
@@ -43,7 +46,7 @@ namespace Alimer
 
     protected:
         /// Constructor.
-        Graphics(GraphicsBackend backend, bool validation);
+        Graphics(GraphicsBackend preferredBackend, bool validation);
 
     public:
         /// Destructor.
@@ -57,6 +60,9 @@ namespace Alimer
 
         /// Shutdown the Graphics module.
         static void Shutdown();
+
+        /// Return the single instance of the Graphics.
+        static Graphics* GetInstancePtr();
         
         /// Return the single instance of the Graphics.
         static Graphics& GetInstance();
@@ -88,6 +94,8 @@ namespace Alimer
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
 
+        GPUDevice* GetGPUDevice() const { return _device; }
+
         /// Get the backend.
         GraphicsBackend GetBackend() const { return _backend; }
 
@@ -109,9 +117,6 @@ namespace Alimer
         /// Create new unitialized Buffer instance.
         virtual GpuBuffer* CreateBuffer() = 0;
 
-        /// Create new unitialized ShaderModule instance.
-        virtual ShaderModule* CreateShaderModule() = 0;
-
         static void NotifyValidationError(const char* message);
 
     private:
@@ -119,6 +124,7 @@ namespace Alimer
 
         static Graphics *_instance;
         GraphicsBackend _backend = GraphicsBackend::Empty;
+        GPUDevice* _device = nullptr;
         bool _initialized = false;
         PODVector<GraphicsResource*> _gpuResources;
         std::mutex _gpuResourceMutex;

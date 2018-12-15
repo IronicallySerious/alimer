@@ -24,7 +24,7 @@
 
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
-#include "../Debug/Log.h"
+#include "../Core/Log.h"
 #include <vector>
 
 static AGpuRendererI* s_renderer = nullptr;
@@ -196,7 +196,7 @@ static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* 
     {
         // Set properties
         uint64_t size = descriptor->size;
-        size = Alimer::AlignTo(size, uint64_t(descriptor->stride));
+        //size = Alimer::AlignTo(size, uint64_t(descriptor->stride));
 
         buffer->usage = descriptor->usage;
         buffer->size = size;
@@ -217,7 +217,7 @@ static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* 
             usageStr = "uniform";
         }
 
-        ALIMER_LOGDEBUGF("Created %s buffer [size: %llu, stride: %u]",
+        ALIMER_LOGDEBUG("Created {} buffer [size: {}, stride: {}]",
             usageStr,
             buffer->size,
             buffer->stride
