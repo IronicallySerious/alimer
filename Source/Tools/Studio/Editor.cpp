@@ -73,12 +73,14 @@ int main(int argc, char** argv)
 
 int GenerateDump(EXCEPTION_POINTERS* pExceptionPointers)
 {
-    BOOL bMiniDumpSuccessful;
-    char* szPath = "crash_dumps";
+    WCHAR* szPath = L"crash_dumps";
     WCHAR szFileName[MAX_PATH];
-    HANDLE hDumpFile;
     SYSTEMTIME stLocalTime;
-    MINIDUMP_EXCEPTION_INFORMATION ExpParam;
+    
+    MINIDUMP_EXCEPTION_INFORMATION info;
+    info.ThreadId = GetCurrentThreadId();
+    info.ExceptionPointers = pExceptionPointers;
+    info.ClientPointers = TRUE;
 
     GetLocalTime(&stLocalTime);
     StringCchPrintfW(szFileName, MAX_PATH, L"%s", szPath);
@@ -89,18 +91,25 @@ int GenerateDump(EXCEPTION_POINTERS* pExceptionPointers)
         stLocalTime.wYear, stLocalTime.wMonth, stLocalTime.wDay,
         stLocalTime.wHour, stLocalTime.wMinute, stLocalTime.wSecond,
         GetCurrentProcessId(), GetCurrentThreadId());
-    hDumpFile =
-        CreateFileW(szFileName, GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
 
-    ExpParam.ThreadId = GetCurrentThreadId();
-    ExpParam.ExceptionPointers = pExceptionPointers;
-    ExpParam.ClientPointers = TRUE;
+    HANDLE file = CreateFileW(
+        szFileName, 
+        GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 
+        nullptr, CREATE_ALWAYS,  0, nullptr);
 
-    bMiniDumpSuccessful =
-        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hDumpFile,
-            MiniDumpWithDataSegs, &ExpParam, NULL, NULL);
+    BOOL success = MiniDumpWriteDump(
+        GetCurrentProcess(), 
+        GetCurrentProcessId(), 
+        file,
+        MiniDumpWithDataSegs, 
+        &info, 
+        nullptr, nullptr);
+    CloseHandle(file);
 
+    if (success)
+    {
+
+    }
     //vorticeErrorDialog("Error", "Vortice crashed. A minidump has been generated in 'app/crash_dumps'...");
     return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -111,19 +120,16 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     ALIMER_UNUSED(hPrevInstance);
     ALIMER_UNUSED(lpCmdLine);
     ALIMER_UNUSED(nCmdShow);
-    int returnCode = 0;
+    int argc = __argc;
+    char** argv = __argv;
     __try
     {
-        int argc = __argc;
-        char** argv = __argv;
-        returnCode = main(argc, argv);
+        return main(argc, argv);
     }
     __except (GenerateDump(GetExceptionInformation()))
     {
-        
+        return -1;
     }
-
-    return returnCode;
 }
 #endif
 

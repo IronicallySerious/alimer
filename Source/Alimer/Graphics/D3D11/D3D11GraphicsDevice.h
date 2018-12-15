@@ -33,7 +33,7 @@ namespace Alimer
     class D3D11CommandContext;
 
     /// D3D11 graphics implementation.
-    class D3D11Graphics final : public Graphics, public GPUDevice
+    class D3D11Graphics final : public GPUDevice
     {
     public:
         /// Is backend supported?
@@ -46,14 +46,18 @@ namespace Alimer
         ~D3D11Graphics() override;
 
         bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
-        void Finalize() override;
         bool WaitIdle() override;
 
         RenderWindow* GetMainWindow() const override;
-        Texture* CreateTexture() override;
+        CommandContext* GetImmediateContext() const override
+        {
+            return _immediateCommandContext;
+        }
+
+        GPUTexture* CreateTexture(const TextureDescriptor* descriptor, const TextureData* initialData) override;
         GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
-        Framebuffer* CreateFramebuffer() override;
-        GpuBuffer* CreateBuffer() override;
+        //Framebuffer* CreateFramebuffer() override;
+        //GpuBuffer* CreateBuffer() override;
 
         void HandleDeviceLost();
 
@@ -77,7 +81,8 @@ namespace Alimer
         void InitializeCaps();
         void GenerateScreenshot(const std::string& fileName);
 
-        D3D_FEATURE_LEVEL           _d3dFeatureLevel;
+        bool                                                _validation;
+        D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
 
         Microsoft::WRL::ComPtr<IDXGIFactory4>               _factory;
         Microsoft::WRL::ComPtr<IDXGIAdapter1>               _adapter;
@@ -88,8 +93,8 @@ namespace Alimer
         Microsoft::WRL::ComPtr<ID3D11DeviceContext1>        _d3dContext1;
         Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
-
         D3D11Swapchain*                         _mainSwapchain = nullptr;
+        CommandContext*                         _immediateCommandContext = nullptr;
 
         uint32_t                                _shaderModelMajor = 4;
         uint32_t                                _shaderModelMinor = 0;

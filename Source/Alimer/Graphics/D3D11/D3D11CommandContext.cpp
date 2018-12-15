@@ -35,7 +35,7 @@ using namespace Microsoft::WRL;
 namespace Alimer
 {
     D3D11CommandContext::D3D11CommandContext(D3D11Graphics* graphics)
-        : CommandContext(graphics)
+        : CommandContext()
         , _immediate(true)
         , _d3dContext(graphics->GetD3DDeviceContext())
         , _d3dContext1(graphics->GetD3DDeviceContext1())

@@ -23,9 +23,19 @@
 #pragma once
 
 #include "../Graphics/Types.h"
+#include "../Graphics/GraphicsDeviceFeatures.h"
 
 namespace Alimer
 {
+    struct TextureData
+    {
+        /// Pointer to pixel data.
+        const void* data;
+
+        /// Single row pitch.
+        uint32_t rowPitch = 0;
+    };
+
     class GPUShaderModule
     {
     protected:
@@ -34,6 +44,24 @@ namespace Alimer
 
     public:
         virtual ~GPUShaderModule() = default;
+    };
+
+    class GPUTexture
+    {
+    protected:
+        /// Constructor.
+        GPUTexture(const TextureDescriptor* descriptor)
+        {
+            memcpy(&_descriptor, descriptor, sizeof(TextureDescriptor));
+        }
+
+    public:
+        virtual ~GPUTexture() = default;
+
+        const TextureDescriptor& GetDescriptor() const { return _descriptor; }
+
+    protected:
+        TextureDescriptor   _descriptor{};
     };
 
     class GPUSampler
@@ -46,6 +74,10 @@ namespace Alimer
         virtual ~GPUSampler() = default;
     };
 
+    struct RenderWindowDescriptor;
+    class RenderWindow;
+    class CommandContext;
+
     class GPUDevice
     {
     protected:
@@ -55,7 +87,22 @@ namespace Alimer
     public:
         virtual ~GPUDevice() = default;
 
+        virtual bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) = 0;
+        virtual bool WaitIdle() = 0;
+
+        virtual RenderWindow* GetMainWindow() const = 0;
+        virtual CommandContext* GetImmediateContext() const = 0;
+
         //virtual GPUShaderModule* CreateShaderModule(ShaderStage stage, const Vector<uint8_t>& bytecode) = 0;
+        virtual GPUTexture* CreateTexture(const TextureDescriptor* descriptor, const TextureData* initialData) = 0;
         virtual GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) = 0;
+
+        const GraphicsDeviceFeatures& GetFeatures() const
+        {
+            return _features;
+        }
+
+    protected:
+        GraphicsDeviceFeatures _features = {};
     };
 }

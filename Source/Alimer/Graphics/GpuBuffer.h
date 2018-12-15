@@ -54,7 +54,7 @@ namespace Alimer
 	{
 	public:
         /// Constructor.
-        GpuBuffer(Graphics* graphics);
+        GpuBuffer();
 
         bool Define(const BufferDescriptor* descriptor, const void* initialData = nullptr);
 

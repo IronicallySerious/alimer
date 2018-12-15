@@ -29,37 +29,6 @@
 
 namespace Alimer
 {
-    /// Texture types.
-    enum class TextureType : uint32_t
-    {
-        Type1D = 0,
-        Type2D,
-        Type3D,
-        TypeCube,
-    };
-
-    enum class TextureUsage : uint32_t
-    {
-        None = 0,
-        ShaderRead = 1 << 0,
-        ShaderWrite = 1 << 1,
-        RenderTarget = 1 << 2,
-    };
-    ALIMER_BITMASK(TextureUsage);
-
-    struct TextureDescriptor
-    {
-        TextureType type = TextureType::Type2D;
-        TextureUsage usage = TextureUsage::ShaderRead;
-        PixelFormat format = PixelFormat::RGBA8UNorm;
-        uint32_t width = 1;
-        uint32_t height = 1;
-        uint32_t depth = 1;
-        uint32_t mipLevels = 1;
-        uint32_t arrayLayers = 1;
-        SampleCount samples = SampleCount::Count1;
-    };
-
     /// Defines a Texture class.
     class ALIMER_API Texture : public GraphicsResource
     {
@@ -68,7 +37,7 @@ namespace Alimer
 
     protected:
         /// Constructor.
-        Texture(Graphics* graphics);
+        Texture();
 
     public:
         bool Define(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);

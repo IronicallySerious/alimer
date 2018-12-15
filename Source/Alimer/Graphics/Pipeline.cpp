@@ -29,7 +29,6 @@ namespace Alimer
     Pipeline::Pipeline()
         : GraphicsResource(Object::GetSubsystem<Graphics>())
         , _isCompute(true)
-        , _handle(nullptr)
     {
     }
 
@@ -40,11 +39,6 @@ namespace Alimer
 
     void Pipeline::Destroy()
     {
-        if (_handle != nullptr)
-        {
-            agpuDestroyPipeline(_handle);
-            _handle = nullptr;
-        }
     }
 
     bool Pipeline::Define(const RenderPipelineDescriptor* descriptor)

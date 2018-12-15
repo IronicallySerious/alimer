@@ -27,8 +27,8 @@
 
 namespace Alimer
 {
-    CommandContext::CommandContext(Graphics* graphics)
-        : _graphics(graphics)
+    CommandContext::CommandContext()
+        : _graphics(Graphics::GetInstancePtr())
         , _insideRenderPass(false)
     {
     }

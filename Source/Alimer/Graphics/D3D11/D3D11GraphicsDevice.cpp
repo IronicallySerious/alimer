@@ -175,7 +175,7 @@ namespace Alimer
     }
 
     D3D11Graphics::D3D11Graphics(bool validation)
-        : Graphics(GraphicsBackend::D3D11, validation)
+        : _validation(validation)
         , _cache(this)
     {
         if (FAILED(D3D11LoadLibraries()))
@@ -187,15 +187,7 @@ namespace Alimer
 
     D3D11Graphics::~D3D11Graphics()
     {
-        Finalize();
-    }
-
-    void D3D11Graphics::Finalize()
-    {
         SafeDelete(_mainSwapchain);
-
-        // Clear pending resources.
-        Graphics::Finalize();
 
         _cache.Clear();
 
@@ -213,7 +205,6 @@ namespace Alimer
             }
         }
 #endif
-
         _d3dDevice.Reset();
     }
 
@@ -335,7 +326,7 @@ namespace Alimer
         // Create immediate command context.
         _immediateCommandContext = new D3D11CommandContext(this);
 
-        return Graphics::Initialize(mainWindowDescriptor);
+        return true;
     }
 
     /*Framebuffer* D3D11Graphics::GetSwapchainFramebuffer() const
@@ -427,8 +418,7 @@ namespace Alimer
     bool D3D11Graphics::WaitIdle()
     {
         _d3dContext->Flush();
-
-        return Graphics::WaitIdle();
+        return true;
     }
 
     void D3D11Graphics::InitializeCaps()
@@ -519,9 +509,9 @@ namespace Alimer
         return _cache;
     }
 
-    Texture* D3D11Graphics::CreateTexture()
+    GPUTexture* D3D11Graphics::CreateTexture(const TextureDescriptor* descriptor, const TextureData* initialData)
     {
-        return new D3D11Texture(this);
+        return new D3D11Texture(this, descriptor, initialData);
     }
 
     GPUSampler* D3D11Graphics::CreateSampler(const SamplerDescriptor* descriptor)
@@ -529,13 +519,13 @@ namespace Alimer
         return new D3D11Sampler(this, descriptor);
     }
 
-    Framebuffer* D3D11Graphics::CreateFramebuffer()
-    {
-        return new D3D11Framebuffer(this);
-    }
+    //Framebuffer* D3D11Graphics::CreateFramebuffer()
+    //{
+    //    return new D3D11Framebuffer(this);
+    //}
 
-    GpuBuffer* D3D11Graphics::CreateBuffer()
-    {
-        return new D3D11Buffer(this);
-    }
+    //GpuBuffer* D3D11Graphics::CreateBuffer()
+    //{
+    //    return new D3D11Buffer(this);
+    //}
 }

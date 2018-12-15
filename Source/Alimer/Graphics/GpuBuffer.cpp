@@ -26,8 +26,8 @@
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(Graphics* graphics)
-        : GraphicsResource(graphics)
+    GpuBuffer::GpuBuffer()
+        : GraphicsResource(Graphics::GetInstancePtr())
     {
 
     }

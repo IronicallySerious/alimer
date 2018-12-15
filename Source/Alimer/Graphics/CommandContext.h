@@ -60,7 +60,7 @@ namespace Alimer
     class ALIMER_API CommandContext
     {
     protected:
-        CommandContext(Graphics* graphics);
+        CommandContext();
 
     public:
         /// Destructor.

@@ -41,8 +41,8 @@ namespace Alimer
 
     struct VertexDescriptor
     {
-        VertexBufferLayoutDescriptor    layouts[AGPU_MAX_VERTEX_BUFFER_BINDINGS];
-        VertexAttributeDescriptor       attributes[AGPU_MAX_VERTEX_ATTRIBUTES];
+        VertexBufferLayoutDescriptor    layouts[MaxVertexBufferBindings];
+        VertexAttributeDescriptor       attributes[MaxVertexAttributes];
     };
 
     struct RenderPipelineDescriptor
@@ -65,13 +65,10 @@ namespace Alimer
 
         bool Define(const RenderPipelineDescriptor* descriptor);
 
-        AgpuPipeline GetHandle() const { return _handle; }
-
         /// Get whether pipeline is compute.
         bool IsCompute() const { return _isCompute; }
 
     private:
         bool _isCompute;
-        AgpuPipeline _handle;
     };
 }

@@ -25,7 +25,7 @@
 #include "../Base/String.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
-#include "../Graphics/agpu.h"
+#include "../Graphics/PixelFormat.h"
 
 namespace Alimer
 {
@@ -63,17 +63,17 @@ namespace Alimer
     enum class SampleCount : uint32_t
     {
         /// 1 sample (no multi-sampling).
-        Count1 = AGPU_SAMPLE_COUNT1,
+        Count1 = 1,
         /// 2 Samples.
-        Count2 = AGPU_SAMPLE_COUNT2,
+        Count2 = 2,
         /// 4 Samples.
-        Count4 = AGPU_SAMPLE_COUNT4,
+        Count4 = 4,
         /// 8 Samples.
-        Count8 = AGPU_SAMPLE_COUNT8,
+        Count8 = 8,
         /// 16 Samples.
-        Count16 = AGPU_SAMPLE_COUNT16,
+        Count16 = 16,
         /// 32 Samples.
-        Count32 = AGPU_SAMPLE_COUNT32,
+        Count32 = 32,
     };
 
     enum class ResourceUsage : unsigned
@@ -115,27 +115,27 @@ namespace Alimer
     
     enum class VertexElementFormat : uint32_t
     {
-        Unknown = AGPU_VERTEX_FORMAT_UNKNOWN,
-        Float = AGPU_VERTEX_FORMAT_FLOAT,
-        Float2 = AGPU_VERTEX_FORMAT_FLOAT2,
-        Float3 = AGPU_VERTEX_FORMAT_FLOAT3,
-        Float4 = AGPU_VERTEX_FORMAT_FLOAT4,
-        Byte4 = AGPU_VERTEX_FORMAT_BYTE4,
-        Byte4N = AGPU_VERTEX_FORMAT_BYTE4N,
-        UByte4 = AGPU_VERTEX_FORMAT_UBYTE4,
-        UByte4N = AGPU_VERTEX_FORMAT_UBYTE4N,
-        Short2 = AGPU_VERTEX_FORMAT_SHORT2,
-        Short2N = AGPU_VERTEX_FORMAT_SHORT2N,
-        Short4 = AGPU_VERTEX_FORMAT_SHORT4,
-        Short4N = AGPU_VERTEX_FORMAT_SHORT4N,
-        Count = AGPU_VERTEX_FORMAT_COUNT
+        Unknown = 0,
+        Float = 1,
+        Float2 = 2,
+        Float3 = 3,
+        Float4 = 4,
+        Byte4 = 5,
+        Byte4N = 6,
+        UByte4 = 7,
+        UByte4N = 8,
+        Short2 = 9,
+        Short2N = 10,
+        Short4 = 11,
+        Short4N = 12,
+        Count = 13
     };
     
     /// VertexInputRate
     enum class VertexInputRate : uint32_t
     {
-        Vertex = AGPU_VERTEX_INPUT_RATE_VERTEX,
-        Instance = AGPU_VERTEX_INPUT_RATE_INSTANCE
+        Vertex = 0,
+        Instance = 1
     };
 
     enum class IndexType : uint32_t
@@ -167,6 +167,24 @@ namespace Alimer
         Compute = 5,
         Count = 6
     };
+
+    /// Texture types.
+    enum class TextureType : uint32_t
+    {
+        Type1D = 0,
+        Type2D,
+        Type3D,
+        TypeCube,
+    };
+
+    enum class TextureUsage : uint32_t
+    {
+        None = 0,
+        ShaderRead = 1 << 0,
+        ShaderWrite = 1 << 1,
+        RenderTarget = 1 << 2,
+    };
+    ALIMER_BITMASK(TextureUsage);
 
     /* Sampler */
     enum class SamplerAddressMode : uint32_t
@@ -283,6 +301,19 @@ namespace Alimer
         Texcoord6,
         Texcoord7,
         Count
+    };
+
+    struct TextureDescriptor
+    {
+        TextureType type = TextureType::Type2D;
+        TextureUsage usage = TextureUsage::ShaderRead;
+        PixelFormat format = PixelFormat::RGBA8UNorm;
+        uint32_t width = 1;
+        uint32_t height = 1;
+        uint32_t depth = 1;
+        uint32_t mipLevels = 1;
+        uint32_t arrayLayers = 1;
+        SampleCount samples = SampleCount::Count1;
     };
 
     struct SamplerDescriptor

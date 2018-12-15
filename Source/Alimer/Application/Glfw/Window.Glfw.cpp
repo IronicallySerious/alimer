@@ -55,7 +55,7 @@ namespace Alimer
 
     static void Glfw_KeyCallback(GLFWwindow* glfwWindow, int key, int scanCode, int action, int modifiers)
     {
-        Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+        //Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
         if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
         {
             glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
@@ -64,12 +64,12 @@ namespace Alimer
 
     static void Glfw_MouseButtonCallback(GLFWwindow* glfwWindow, int button, int action, int)
     {
-        Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+        //Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
     }
 
     static void Glfw_MouseMoveCallback(GLFWwindow* glfwWindow, double mouseX, double mouseY)
     {
-        Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+        //Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
     }
 
     void Glfw_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)

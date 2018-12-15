@@ -72,7 +72,6 @@ namespace Alimer
             return;
         }
 
-
         switch (_backend)
         {
         case GraphicsBackend::Empty:
@@ -110,62 +109,9 @@ namespace Alimer
     Graphics::~Graphics()
     {
         Finalize();
+        SafeDelete(_device);
         RemoveSubsystem(this);
         _instance = nullptr;
-    }
-
-    Graphics* Graphics::Create(GraphicsBackend preferredBackend, bool validation)
-    {
-        if (_instance != nullptr)
-        {
-            ALIMER_LOGERROR("Cannot create multiple instance of Graphics module");
-            return nullptr;
-        }
-
-        GraphicsBackend backend = preferredBackend;
-        if (backend == GraphicsBackend::Default)
-        {
-            backend = GetDefaultPlatformBackend();
-        }
-
-        if (!IsBackendSupported(backend))
-        {
-            ALIMER_LOGERROR("Backend is not supported");
-            return nullptr;
-        }
-
-        Graphics* device = nullptr;
-        switch (backend)
-        {
-        case GraphicsBackend::Empty:
-            break;
-        case GraphicsBackend::Vulkan:
-            break;
-        case GraphicsBackend::D3D11:
-#if defined(ALIMER_D3D11)
-            device = new D3D11Graphics(validation);
-            ALIMER_LOGINFO("D3D11 backend created with success.");
-#else
-            ALIMER_LOGERROR("D3D11 backend is not supported.");
-#endif
-            break;
-        case GraphicsBackend::D3D12:
-#if defined(ALIMER_D3D12)
-            //device = new D3D12Graphics(validation);
-            ALIMER_LOGINFO("D3D12 backend created with success.");
-#else
-            ALIMER_LOGERROR("D3D12 backend is not supported.");
-#endif
-            break;
-        case GraphicsBackend::Metal:
-            break;
-        case GraphicsBackend::OpenGL:
-            break;
-        default:
-            ALIMER_UNREACHABLE();
-        }
-
-        return device;
     }
 
     void Graphics::Shutdown()
@@ -306,14 +252,14 @@ namespace Alimer
             ALIMER_LOGCRITICAL("Cannot Initialize Graphics if already initialized.");
         }
 
-        _initialized = true;
+        _initialized = _device->Initialize(mainWindowDescriptor);
         _frameIndex = 0;
         return _initialized;
     }
 
     bool Graphics::WaitIdle()
     {
-        return true;
+        return _device->WaitIdle();
     }
 
     uint64_t Graphics::Frame()
@@ -342,7 +288,12 @@ namespace Alimer
 
     const GraphicsDeviceFeatures& Graphics::GetFeatures() const
     {
-        return _features;
+        return _device->GetFeatures();
+    }
+
+    RenderWindow* Graphics::GetMainWindow() const
+    {
+        return _device->GetMainWindow();
     }
 
     void Graphics::RegisterObject()

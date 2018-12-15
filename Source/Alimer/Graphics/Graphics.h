@@ -40,23 +40,19 @@ namespace Alimer
     class GPUDevice;
 
     /// Low-level 3D graphics module.
-    class ALIMER_API Graphics : public Object
+    class ALIMER_API Graphics final: public Object
     {
         ALIMER_OBJECT(Graphics, Object);
 
-    protected:
+    public:
         /// Constructor.
         Graphics(GraphicsBackend preferredBackend, bool validation);
 
-    public:
         /// Destructor.
-        virtual ~Graphics() override;
+        ~Graphics() override;
 
         /// Register object.
         static void RegisterObject();
-
-        /// Create new Graphics.
-        static Graphics* Create(GraphicsBackend preferredBackend, bool validation);
 
         /// Shutdown the Graphics module.
         static void Shutdown();
@@ -77,10 +73,10 @@ namespace Alimer
         static GraphicsBackend GetDefaultPlatformBackend();
 
         /// Initialize graphics with given settings.
-        virtual bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor);
+        bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor);
 
         /// Wait for a device to become idle.
-        virtual bool WaitIdle();
+        bool WaitIdle();
 
         /// Finishes the current frame and advances to next one.
         uint64_t Frame();
@@ -94,6 +90,7 @@ namespace Alimer
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { return _initialized; }
 
+        /// Get the gpu device.
         GPUDevice* GetGPUDevice() const { return _device; }
 
         /// Get the backend.
@@ -103,19 +100,10 @@ namespace Alimer
         const GraphicsDeviceFeatures& GetFeatures() const;
 
         /// Get the main RenderWindow.
-        virtual RenderWindow* GetMainWindow() const = 0;
+        RenderWindow* GetMainWindow() const;
 
         /// Get the immediate command context.
         CommandContext& GetImmediateContext() const { return *_immediateCommandContext; }
-
-        /// Create new unitialized Texture instance.
-        virtual Texture* CreateTexture() = 0;
-
-        /// Create new unitialized Framebuffer instance.
-        virtual Framebuffer* CreateFramebuffer() = 0;
-
-        /// Create new unitialized Buffer instance.
-        virtual GpuBuffer* CreateBuffer() = 0;
 
         static void NotifyValidationError(const char* message);
 
@@ -134,7 +122,6 @@ namespace Alimer
 
         bool _validation;
         uint64_t _frameIndex = 0;
-        GraphicsDeviceFeatures _features = {};
         CommandContext* _immediateCommandContext = nullptr;
     };
 

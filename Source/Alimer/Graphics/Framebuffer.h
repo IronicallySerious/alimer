@@ -46,7 +46,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        Framebuffer(Graphics* graphics);
+        Framebuffer();
 
         /// Set color attachment at index.
         void SetColorAttachment(uint32_t index, Texture* colorTexture, uint32_t baseMipLevel = 0, uint32_t baseArrayLayer = 0, uint32_t layerCount = RemainingArrayLayers);

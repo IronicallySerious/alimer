@@ -29,7 +29,7 @@
 namespace Alimer
 {
     D3D11Framebuffer::D3D11Framebuffer(D3D11Graphics* graphics)
-        : Framebuffer(graphics)
+        : Framebuffer()
     {
     }
 
@@ -47,8 +47,8 @@ namespace Alimer
     {
         if (_colorAttachments[index].texture)
         {
-            D3D11Texture* texture = static_cast<D3D11Texture*>(_colorAttachments[index].texture);
-            _colorRtvs[index] = texture->GetRTV(_colorAttachments[index].baseMipLevel, _colorAttachments[index].baseArrayLayer, _colorAttachments[index].layerCount);
+            //D3D11Texture* texture = static_cast<D3D11Texture*>(_colorAttachments[index].texture);
+            //_colorRtvs[index] = texture->GetRTV(_colorAttachments[index].baseMipLevel, _colorAttachments[index].baseArrayLayer, _colorAttachments[index].layerCount);
         }
         else 
         {
@@ -62,8 +62,8 @@ namespace Alimer
     {
         if (_depthStencilAttachment.texture != nullptr)
         {
-            D3D11Texture* texture = static_cast<D3D11Texture*>(_depthStencilAttachment.texture);
-            _depthStencilView = texture->GetDSV(_depthStencilAttachment.baseMipLevel, _depthStencilAttachment.baseArrayLayer, _depthStencilAttachment.layerCount);
+            //D3D11Texture* texture = static_cast<D3D11Texture*>(_depthStencilAttachment.texture);
+            //_depthStencilView = texture->GetDSV(_depthStencilAttachment.baseMipLevel, _depthStencilAttachment.baseArrayLayer, _depthStencilAttachment.layerCount);
         }
         else 
         {

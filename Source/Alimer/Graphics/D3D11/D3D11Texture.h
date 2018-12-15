@@ -23,6 +23,7 @@
 #pragma once
 
 #include "Graphics/Texture.h"
+#include "../GPUDevice.h"
 #include "D3D11Prerequisites.h"
 #include <unordered_map>
 
@@ -31,16 +32,18 @@ namespace Alimer
     class D3D11Graphics;
 
     /// D3D11 Texture implementation.
-    class D3D11Texture final : public Texture
+    class D3D11Texture final : public GPUTexture
     {
     public:
         /// Constructor.
-        D3D11Texture(D3D11Graphics* graphics, ID3D11Texture2D* externalTexture = nullptr, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN);
+        D3D11Texture(D3D11Graphics* graphics, 
+            const TextureDescriptor* descriptor, const TextureData* initialData,
+            ID3D11Texture2D* externalTexture = nullptr, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN);
 
         /// Destructor.
         ~D3D11Texture() override;
 
-        void Destroy() override;
+        void Destroy();
 
         void InvalidateViews();
 
@@ -54,8 +57,7 @@ namespace Alimer
         ID3D11DepthStencilView* GetDSV(uint32_t mipLevel, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingMipLevels) const;
 
     private:
-        bool Create(const ImageLevel* initialData) override;
-
+        D3D11Graphics* _graphics;
         ID3D11Device* _d3dDevice;
         DXGI_FORMAT _dxgiFormat;
 
@@ -65,7 +67,6 @@ namespace Alimer
             ID3D11Texture2D* _texture2D;
             ID3D11Texture3D* _texture3D;
         };
-
        
         struct ViewInfoHashFunc
         {

@@ -28,15 +28,20 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Texture::D3D11Texture(D3D11Graphics* graphics, ID3D11Texture2D* externalTexture, DXGI_FORMAT format)
-        : Texture(graphics)
+    D3D11Texture::D3D11Texture(D3D11Graphics* graphics,
+        const TextureDescriptor* descriptor, 
+        const TextureData* initialData, 
+        ID3D11Texture2D* externalTexture, 
+        DXGI_FORMAT format)
+        : GPUTexture(descriptor)
+        , _graphics(graphics)
         , _d3dDevice(graphics->GetD3DDevice())
         , _texture2D(externalTexture)
         , _dxgiFormat(format)
     {
         if (externalTexture)
         {
-            D3D11_TEXTURE2D_DESC textureDesc;
+            /*D3D11_TEXTURE2D_DESC textureDesc;
             externalTexture->GetDesc(&textureDesc);
 
             _type = TextureType::Type2D;
@@ -70,6 +75,112 @@ namespace Alimer
                 || textureDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
             {
                 _usage |= TextureUsage::RenderTarget;
+            }*/
+        }
+        else
+        {
+            // Setup initial data.
+            PODVector<D3D11_SUBRESOURCE_DATA> subResourceData;
+            if (initialData)
+            {
+                subResourceData.Resize(descriptor->arrayLayers * descriptor->mipLevels);
+                for (uint32_t i = 0; i < descriptor->arrayLayers * descriptor->mipLevels; ++i)
+                {
+                    uint32_t rowPitch;
+                    if (!initialData[i].rowPitch)
+                    {
+                        const uint32_t mipWidth = ((descriptor->width >> i) > 0) ? descriptor->width >> i : 1;
+                        const uint32_t mipHeight = ((descriptor->height >> i) > 0) ? descriptor->height >> i : 1;
+
+                        uint32_t rows;
+                        CalculateDataSize(
+                            mipWidth,
+                            mipHeight,
+                            descriptor->format,
+                            &rows,
+                            &rowPitch);
+                    }
+                    else
+                    {
+                        rowPitch = initialData[i].rowPitch;
+                    }
+
+                    subResourceData[i].pSysMem = initialData[i].data;
+                    subResourceData[i].SysMemPitch = rowPitch;
+                    subResourceData[i].SysMemSlicePitch = 0;
+                }
+            }
+
+            _dxgiFormat = GetDxgiFormat(descriptor->format);
+
+            // If depth stencil format and shader read or write, switch to typeless.
+            if (IsDepthStencilFormat(descriptor->format)
+                && any(descriptor->usage & (TextureUsage::ShaderRead | TextureUsage::ShaderWrite)))
+            {
+                _dxgiFormat = GetDxgiTypelessDepthFormat(descriptor->format);
+            }
+
+            HRESULT hr = S_OK;
+            switch (descriptor->type)
+            {
+            case TextureType::Type1D:
+            {
+                D3D11_TEXTURE1D_DESC d3d11Desc = {};
+            }
+            break;
+
+            case TextureType::Type2D:
+            case TextureType::TypeCube:
+            {
+                D3D11_TEXTURE2D_DESC d3d11Desc = {};
+                d3d11Desc.Width = descriptor->width;
+                d3d11Desc.Height = descriptor->height;
+                d3d11Desc.MipLevels = descriptor->mipLevels;
+                d3d11Desc.ArraySize = descriptor->arrayLayers;
+                d3d11Desc.Format = _dxgiFormat;
+                d3d11Desc.SampleDesc.Count = static_cast<uint32_t>(descriptor->samples);
+                d3d11Desc.Usage = D3D11_USAGE_DEFAULT;
+
+                if (any(descriptor->usage & TextureUsage::ShaderRead))
+                {
+                    d3d11Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+                }
+
+                if (any(descriptor->usage & TextureUsage::ShaderWrite))
+                {
+                    d3d11Desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+                }
+
+                if (any(descriptor->usage & TextureUsage::RenderTarget))
+                {
+                    if (!IsDepthStencilFormat(descriptor->format))
+                    {
+                        d3d11Desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+                    }
+                    else
+                    {
+                        d3d11Desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+                    }
+                }
+
+                const bool dynamic = false;
+                d3d11Desc.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
+                d3d11Desc.MiscFlags = 0;
+                if (descriptor->type == TextureType::TypeCube)
+                {
+                    d3d11Desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+                }
+
+                hr = _d3dDevice->CreateTexture2D(
+                    &d3d11Desc,
+                    subResourceData.Data(),
+                    &_texture2D);
+
+            }
+            break;
+
+            default:
+                break;
             }
         }
     }
@@ -93,115 +204,6 @@ namespace Alimer
         _dsvs.clear();
     }
 
-    bool D3D11Texture::Create(const ImageLevel* initialData)
-    {
-        // Setup initial data.
-        PODVector<D3D11_SUBRESOURCE_DATA> subResourceData;
-        if (initialData)
-        {
-            subResourceData.Resize(_arrayLayers * _mipLevels);
-            for (uint32_t i = 0; i < _arrayLayers * _mipLevels; ++i)
-            {
-                uint32_t rowPitch;
-                if (!initialData[i].rowPitch)
-                {
-                    const uint32_t mipWidth = ((_width >> i) > 0) ? _width >> i : 1;
-                    const uint32_t mipHeight = ((_height >> i) > 0) ? _height >> i : 1;
-
-                    uint32_t rows;
-                    CalculateDataSize(
-                        mipWidth,
-                        mipHeight,
-                        _format,
-                        &rows,
-                        &rowPitch);
-                }
-                else
-                {
-                    rowPitch = initialData[i].rowPitch;
-                }
-
-                subResourceData[i].pSysMem = initialData[i].data;
-                subResourceData[i].SysMemPitch = rowPitch;
-                subResourceData[i].SysMemSlicePitch = 0;
-            }
-        }
-
-        _dxgiFormat = GetDxgiFormat(_format);
-
-        // If depth stencil format and shader read or write, switch to typeless.
-        if (IsDepthStencilFormat(_format)
-            && any(_usage & (TextureUsage::ShaderRead | TextureUsage::ShaderWrite)))
-        {
-            _dxgiFormat = GetDxgiTypelessDepthFormat(_format);
-        }
-
-        HRESULT hr = S_OK;
-        switch (_type)
-        {
-        case TextureType::Type1D:
-        {
-            D3D11_TEXTURE1D_DESC d3d11Desc = {};
-        }
-        break;
-
-        case TextureType::Type2D:
-        case TextureType::TypeCube:
-        {
-            D3D11_TEXTURE2D_DESC d3d11Desc = {};
-            d3d11Desc.Width = _width;
-            d3d11Desc.Height = _height;
-            d3d11Desc.MipLevels = _mipLevels;
-            d3d11Desc.ArraySize = _arrayLayers;
-            d3d11Desc.Format = _dxgiFormat;
-            d3d11Desc.SampleDesc.Count = static_cast<uint32_t>(_samples);
-            d3d11Desc.Usage = D3D11_USAGE_DEFAULT;
-
-            if (any(_usage & TextureUsage::ShaderRead))
-            {
-                d3d11Desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
-            }
-
-            if (any(_usage & TextureUsage::ShaderWrite))
-            {
-                d3d11Desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-            }
-
-            if (any(_usage & TextureUsage::RenderTarget))
-            {
-                if (!IsDepthStencilFormat(_format))
-                {
-                    d3d11Desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
-                }
-                else
-                {
-                    d3d11Desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
-                }
-            }
-
-            const bool dynamic = false;
-            d3d11Desc.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
-            d3d11Desc.MiscFlags = 0;
-            if (_type == TextureType::TypeCube)
-            {
-                d3d11Desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
-            }
-
-            hr = _d3dDevice->CreateTexture2D(
-                &d3d11Desc,
-                subResourceData.Data(),
-                &_texture2D);
-
-        }
-        break;
-
-        default:
-            break;
-        }
-
-        return SUCCEEDED(hr);
-    }
-
     template<typename ViewType>
     using CreateViewFunc = std::function<typename ComPtr<ViewType>(const D3D11Texture* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)>;
 
@@ -215,8 +217,8 @@ namespace Alimer
         ViewMapType& viewMap,
         CreateViewFunc<ViewType> createFunc)
     {
-        uint32_t textureArraySize = texture->GetArrayLayers();
-        uint32_t textureMipLevels = texture->GetMipLevels();
+        uint32_t textureArraySize = texture->GetDescriptor().arrayLayers;
+        uint32_t textureMipLevels = texture->GetDescriptor().mipLevels;
 
         if (firstArraySlice >= textureArraySize)
         {
@@ -259,13 +261,14 @@ namespace Alimer
     {
         auto createFunc = [](const D3D11Texture* texture, uint32_t mostDetailMip, uint32_t mipLevels, uint32_t firstArraySlice, uint32_t arraySize)
         {
-            uint32_t arrayMultiplier = (texture->GetTextureType() == TextureType::TypeCube) ? 6 : 1;
-            const uint32_t arrayLayers = texture->GetArrayLayers();
-            const bool isTextureMs = static_cast<uint32_t>(texture->GetSamples()) > 1;
+            auto textureDesc = texture->GetDescriptor();
+            uint32_t arrayMultiplier = (textureDesc.type == TextureType::TypeCube) ? 6 : 1;
+            const uint32_t arrayLayers = textureDesc.arrayLayers;
+            const bool isTextureMs = static_cast<uint32_t>(textureDesc.samples) > 1;
 
             D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
             desc.Format = texture->GetDXGIFormat();
-            switch (texture->GetTextureType())
+            switch (textureDesc.type)
             {
             case TextureType::Type1D:
                 if (arrayLayers > 1)
@@ -367,12 +370,14 @@ namespace Alimer
     {
         auto createFunc = [](const D3D11Texture* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)
         {
+            auto textureDesc = texture->GetDescriptor();
+
             D3D11_UNORDERED_ACCESS_VIEW_DESC  desc = {};
             desc.Format = texture->GetDXGIFormat();
-            switch (texture->GetTextureType())
+            switch (textureDesc.type)
             {
             case TextureType::Type1D:
-                if (texture->GetArrayLayers() > 1)
+                if (textureDesc.arrayLayers > 1)
                 {
                     desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE1DARRAY;
                     desc.Texture1DArray.MipSlice = mipLevel;
@@ -386,7 +391,7 @@ namespace Alimer
                 }
                 break;
             case TextureType::Type2D:
-                if (texture->GetArrayLayers() > 1)
+                if (textureDesc.arrayLayers > 1)
                 {
                     desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
                     desc.Texture2DArray.MipSlice = mipLevel;
@@ -402,15 +407,15 @@ namespace Alimer
                 break;
 
             case TextureType::Type3D:
-                assert(texture->GetArrayLayers() == 1);
+                assert(textureDesc.arrayLayers == 1);
                 desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
                 desc.Texture3D.MipSlice = mipLevel;
                 desc.Texture3D.FirstWSlice = firstArraySlice;
-                desc.Texture3D.WSize = texture->GetDepth();
+                desc.Texture3D.WSize = textureDesc.depth;
                 break;
 
             case TextureType::TypeCube:
-                assert(texture->GetArrayLayers() == 1);
+                assert(textureDesc.arrayLayers == 1);
                 desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
                 desc.Texture2DArray.MipSlice = mipLevel;
                 desc.Texture2DArray.FirstArraySlice = firstArraySlice;
@@ -443,15 +448,17 @@ namespace Alimer
     {
         auto createFunc = [](const D3D11Texture* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)
         {
-            uint32_t arrayMultiplier = (texture->GetTextureType() == TextureType::TypeCube) ? 6 : 1;
-            const bool isTextureMs = static_cast<uint32_t>(texture->GetSamples()) > 1;
+            auto textureDesc = texture->GetDescriptor();
+
+            uint32_t arrayMultiplier = (textureDesc.type == TextureType::TypeCube) ? 6 : 1;
+            const bool isTextureMs = static_cast<uint32_t>(textureDesc.samples) > 1;
 
             D3D11_RENDER_TARGET_VIEW_DESC desc = {};
             desc.Format = texture->GetDXGIFormat();
-            switch (texture->GetTextureType())
+            switch (textureDesc.type)
             {
             case TextureType::Type1D:
-                if (texture->GetArrayLayers() > 1)
+                if (textureDesc.arrayLayers > 1)
                 {
                     desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1DARRAY;
                     desc.Texture1DArray.MipSlice = mipLevel;
@@ -466,7 +473,7 @@ namespace Alimer
                 break;
             case TextureType::Type2D:
             case TextureType::TypeCube:
-                if (texture->GetArrayLayers() * arrayMultiplier > 1)
+                if (textureDesc.arrayLayers * arrayMultiplier > 1)
                 {
                     if (isTextureMs)
                     {
@@ -498,11 +505,11 @@ namespace Alimer
                 break;
 
             case TextureType::Type3D:
-                assert(texture->GetArrayLayers() == 1);
+                assert(textureDesc.arrayLayers == 1);
                 desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
                 desc.Texture3D.MipSlice = mipLevel;
                 desc.Texture3D.FirstWSlice = firstArraySlice;
-                desc.Texture3D.WSize = texture->GetDepth();
+                desc.Texture3D.WSize = textureDesc.depth;
                 break;
 
             default:
@@ -531,15 +538,17 @@ namespace Alimer
     {
         auto createFunc = [](const D3D11Texture* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)
         {
-            uint32_t arrayMultiplier = (texture->GetTextureType() == TextureType::TypeCube) ? 6 : 1;
-            const bool isTextureMs = static_cast<uint32_t>(texture->GetSamples()) > 1;
+            auto textureDesc = texture->GetDescriptor();
+
+            uint32_t arrayMultiplier = (textureDesc.type == TextureType::TypeCube) ? 6 : 1;
+            const bool isTextureMs = static_cast<uint32_t>(textureDesc.samples) > 1;
 
             D3D11_DEPTH_STENCIL_VIEW_DESC desc = {};
             desc.Format = texture->GetDXGIFormat();
-            switch (texture->GetTextureType())
+            switch (textureDesc.type)
             {
             case TextureType::Type1D:
-                if (texture->GetArrayLayers() > 1)
+                if (textureDesc.arrayLayers > 1)
                 {
                     desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE1DARRAY;
                     desc.Texture1DArray.MipSlice = mipLevel;
@@ -554,7 +563,7 @@ namespace Alimer
                 break;
             case TextureType::Type2D:
             case TextureType::TypeCube:
-                if (texture->GetArrayLayers() * arrayMultiplier > 1)
+                if (textureDesc.arrayLayers * arrayMultiplier > 1)
                 {
                     if (isTextureMs)
                     {
@@ -589,7 +598,7 @@ namespace Alimer
                 desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
                 desc.Texture2DArray.MipSlice = mipLevel;
                 desc.Texture2DArray.FirstArraySlice = firstArraySlice;
-                desc.Texture2DArray.ArraySize = texture->GetDepth();
+                desc.Texture2DArray.ArraySize = textureDesc.depth;
                 break;
 
             default:

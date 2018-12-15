@@ -103,7 +103,7 @@ namespace Alimer
         // Init Window and Gpu.
         if (!_headless)
         {
-            Graphics* graphics = Graphics::Create(_settings.preferredGraphicsBackend, _settings.validation);
+            Graphics* graphics = new Graphics(_settings.preferredGraphicsBackend, _settings.validation);
             if (!graphics->Initialize(&_settings.mainWindowDescriptor))
             {
                 ALIMER_LOGERROR("Failed to initialize Graphics.");

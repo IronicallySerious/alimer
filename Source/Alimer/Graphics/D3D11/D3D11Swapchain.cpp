@@ -202,7 +202,7 @@ namespace Alimer
         ID3D11Texture2D* renderTarget;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
 
-        DXGI_FORMAT backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
+        /*DXGI_FORMAT backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
         _renderTarget = new D3D11Texture(_graphics, renderTarget, backBufferFormat);
 
         _framebuffers.Resize(1);
@@ -215,7 +215,7 @@ namespace Alimer
             _depthStencil = new D3D11Texture(_graphics);
             _depthStencil->Define2D(width, height, _depthStencilFormat, 1, 1, nullptr, TextureUsage::RenderTarget);
             _framebuffers[0]->SetDepthStencilAttachment(_depthStencil.Get());
-        }
+        }*/
 
         // Set new size.
         _width = width;

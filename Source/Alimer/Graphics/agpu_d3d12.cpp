@@ -92,7 +92,7 @@ namespace d3d12
     {
         if (FAILED(hr))
         {
-            ALIMER_LOGCRITICALF("DirectX Error: %s", Alimer::GetDXErrorString(hr).CString());
+            ALIMER_LOGCRITICAL("DirectX Error: %s", Alimer::GetDXErrorString(hr).CString());
         }
     }
 

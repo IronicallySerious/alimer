@@ -27,8 +27,8 @@
 
 namespace Alimer
 {
-    Texture::Texture(Graphics* graphics)
-        : GraphicsResource(graphics)
+    Texture::Texture()
+        : GraphicsResource(Graphics::GetInstancePtr())
     {
 
     }

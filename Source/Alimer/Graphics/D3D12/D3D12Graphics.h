@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Graphics.h"
+#include "../GPUDevice.h"
 #include "D3D12DescriptorAllocator.h"
 #include <queue>
 #include <mutex>
@@ -49,7 +50,7 @@ namespace Alimer
 
 
     /// D3D12 Low-level 3D graphics API class.
-    class D3D12Graphics final : public Graphics
+    class D3D12Graphics final : public GPUDevice
     {
     public:
         /// Is backend supported?
@@ -61,9 +62,9 @@ namespace Alimer
         /// Destructor.
         ~D3D12Graphics();
 
-        bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
+        //bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
 
-        bool WaitIdle() override;
+        //bool WaitIdle() override;
         //void Frame() override;
 
         D3D12CommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE type);
