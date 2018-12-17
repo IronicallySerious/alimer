@@ -46,7 +46,7 @@ namespace Alimer
     /// Defines a RenderWindow class.
     class ALIMER_API RenderWindow : public Window
     {
-        friend class Graphics;
+        friend class GPUDevice;
         ALIMER_OBJECT(RenderWindow, Window);
 
     protected:

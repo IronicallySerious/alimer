@@ -32,16 +32,14 @@ namespace Alimer
     /// Defines a Texture class.
     class ALIMER_API Texture : public GraphicsResource
     {
-        friend class Graphics;
+        friend class GPUDevice;
         ALIMER_OBJECT(Texture, GraphicsResource);
 
     protected:
         /// Constructor.
-        Texture();
+        Texture(GPUDevice* device, const TextureDescriptor* descriptor);
 
     public:
-        bool Define(const TextureDescriptor* descriptor, const ImageLevel* initialData = nullptr);
-
         /// Define texture as 2D.
         bool Define2D(
             uint32_t width, uint32_t height, 
@@ -52,43 +50,53 @@ namespace Alimer
             TextureUsage usage = TextureUsage::ShaderRead,
             SampleCount samples = SampleCount::Count1);
 
-        TextureType GetTextureType() const { return _type; }
-        TextureUsage GetUsage() const { return _usage; }
-        PixelFormat GetFormat() const { return _format; }
+        TextureType GetTextureType() const { return _descriptor.type; }
+        TextureUsage GetUsage() const { return _descriptor.usage; }
+        PixelFormat GetFormat() const { return _descriptor.format; }
 
         /**
         * Get a mipLevel width.
         */
-        uint32_t GetWidth(uint32_t mipLevel = 0) const { return (mipLevel < _mipLevels) ? Max(1u, _width >> mipLevel) : 0; }
+        uint32_t GetWidth(uint32_t mipLevel = 0) const 
+        {
+            return Max(1u, _descriptor.width >> mipLevel);
+        }
 
         /**
         * Get a mipLevel height.
         */
-        uint32_t GetHeight(uint32_t mipLevel = 0) const { return (mipLevel < _mipLevels) ? Max(1u, _height >> mipLevel) : 0; }
+        uint32_t GetHeight(uint32_t mipLevel = 0) const 
+        {
+            return Max(1u, _descriptor.height >> mipLevel);
+        }
 
         /**
         * Get a mipLevel height.
         */
-        uint32_t GetDepth(uint32_t mipLevel = 0) const { return (mipLevel < _mipLevels) ? Max(1u, _depth >> mipLevel) : 0; }
+        uint32_t GetDepth(uint32_t mipLevel = 0) const
+        {
+            return Max(1u, _descriptor.depth >> mipLevel);
+        }
 
         /**
         * Get the number of mip-levels.
         */
-        uint32_t GetMipLevels() const { return _mipLevels; }
+        uint32_t GetMipLevels() const { return _descriptor.mipLevels; }
 
         /**
         * Get the array layers.
         */
-        uint32_t GetArrayLayers() const { return _arrayLayers; }
+        uint32_t GetArrayLayers() const { return _descriptor.arrayLayers; }
 
         /**
         * Get the sample count
         */
-        SampleCount GetSamples() const { return _samples; }
+        SampleCount GetSamples() const { return _descriptor.samples; }
+
+        /// Get the texture description.
+        const TextureDescriptor &GetDescriptor() const { return _descriptor; }
 
     private:
-        virtual bool Create(const ImageLevel* initialData) = 0;
-
         bool BeginLoad(Stream& source) override;
         /// Finish resource loading. Always called from the main thread. Return true if successful.
         bool EndLoad() override;
@@ -96,15 +104,6 @@ namespace Alimer
         /// Register object factory.
         static void RegisterObject();
 
-    protected:
-        TextureType _type = TextureType::Type1D;
-        TextureUsage _usage = TextureUsage::None;
-        PixelFormat _format = PixelFormat::Unknown;
-        uint32_t _width = 0;
-        uint32_t _height = 0;
-        uint32_t _depth = 0;
-        uint32_t _mipLevels = 1;
-        uint32_t _arrayLayers = 1;
-        SampleCount _samples = SampleCount::Count1;
+        TextureDescriptor   _descriptor{};
     };
 }

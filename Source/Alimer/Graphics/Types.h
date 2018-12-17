@@ -332,6 +332,8 @@ namespace Alimer
     };
 
     ALIMER_API uint32_t GetVertexElementSize(VertexElementFormat format);
+
+    ALIMER_API const char* EnumToString(GraphicsBackend backend);
     ALIMER_API const char* EnumToString(ResourceUsage usage);
     ALIMER_API const char* EnumToString(VertexElementSemantic semantic);
 }

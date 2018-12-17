@@ -32,7 +32,7 @@
 #pragma warning(disable : 4201 4203 4244 4702)
 #endif
 
-#ifdef ALIMER_SIMD
+#ifdef _MSC_VER
 #   ifdef _MSC_VER
 #       pragma warning(push)
 #       pragma warning(disable : 4987)

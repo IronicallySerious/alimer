@@ -48,9 +48,6 @@ namespace Alimer
         void Resize(uint32_t width, uint32_t height, bool force = false);
         void SwapBuffers();
 
-        Framebuffer* GetCurrentFramebuffer() const;
-        uint32_t     GetBackBufferCount() const { return _backBufferCount; }
-
     private:
         void OnSizeChanged(const uvec2& newSize) override;
 

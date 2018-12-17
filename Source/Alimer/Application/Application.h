@@ -129,7 +129,8 @@ namespace Alimer
         std::shared_ptr<spdlog::logger> _logger;
         Timer _timer;
         ResourceManager _resources;
-        RenderWindow* _mainWindow = nullptr;
+        SharedPtr<GPUDevice>    _gpuDevice;
+        RenderWindow*           _mainWindow = nullptr;
         Input _input;
 
         //

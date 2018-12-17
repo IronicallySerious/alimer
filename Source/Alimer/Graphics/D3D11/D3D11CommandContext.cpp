@@ -34,18 +34,18 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11CommandContext::D3D11CommandContext(D3D11Graphics* graphics)
-        : CommandContext()
+    D3D11CommandContext::D3D11CommandContext(D3D11Graphics* device)
+        : CommandContext(device)
         , _immediate(true)
-        , _d3dContext(graphics->GetD3DDeviceContext())
-        , _d3dContext1(graphics->GetD3DDeviceContext1())
+        , _d3dContext(device->GetD3DDeviceContext())
+        , _d3dContext1(device->GetD3DDeviceContext1())
         , _fenceValue(0)
     {
         if (_d3dContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
         {
             D3D11_FEATURE_DATA_THREADING threadingCaps = { FALSE, FALSE };
 
-            HRESULT hr = graphics->GetD3DDevice()->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingCaps, sizeof(threadingCaps));
+            HRESULT hr = device->GetD3DDevice()->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingCaps, sizeof(threadingCaps));
             if (SUCCEEDED(hr) && !threadingCaps.DriverCommandLists)
             {
                 // The runtime emulates command lists.

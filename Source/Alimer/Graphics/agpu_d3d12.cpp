@@ -389,8 +389,8 @@ namespace d3d12
 
         FileStream dllFile(String(dllPath), FileAccess::ReadOnly);
         uint64_t fileSize = dllFile.Size();
-        Vector<uint8_t> fileData(fileSize);
-        dllFile.Read(fileData.Data(), fileSize);
+        Vector<uint8_t> fileData(static_cast<uint32_t>(fileSize));
+        dllFile.Read(fileData.Data(), uint32_t(fileSize));
         return GenerateHash(fileData.Data(), int32_t(fileSize));
     }
 
@@ -1065,7 +1065,7 @@ namespace d3d12
         _vbo.inputRates[binding] = inputRate;
 
         _d3dVbViews[binding].BufferLocation = buffer->d3d12GPUAddress + offset;
-        _d3dVbViews[binding].SizeInBytes = UINT(buffer->size) - offset;
+        _d3dVbViews[binding].SizeInBytes = static_cast<UINT>(buffer->size - offset);
         _d3dVbViews[binding].StrideInBytes = stride;
     }
 
@@ -1084,7 +1084,7 @@ namespace d3d12
 
         D3D12_INDEX_BUFFER_VIEW bufferView = { };
         bufferView.BufferLocation = buffer->d3d12GPUAddress + offset;
-        bufferView.SizeInBytes = buffer->size - offset;
+        bufferView.SizeInBytes = static_cast<UINT>(buffer->size - offset);
         bufferView.Format = indexType == AGPU_INDEX_TYPE_UINT16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
         _commandList->IASetIndexBuffer(&bufferView);
     }
@@ -2034,7 +2034,7 @@ namespace d3d12
 #ifdef AGPU_COMPILER_DXC
 
 #else
-            Vector<uint8_t> compressedShader(shaderSize);
+            Vector<uint8_t> compressedShader(static_cast<uint32_t>(shaderSize));
             cacheFile.Read(compressedShader.Data(), shaderSize);
 
             ID3DBlob* decompressedShader[1] = { nullptr };

@@ -24,7 +24,7 @@
 #include "D3D11Swapchain.h"
 #include "D3D11CommandContext.h"
 #include "D3D11Texture.h"
-#include "D3D11Sampler.h"
+#include "SamplerD3D11.h"
 #include "D3D11Framebuffer.h"
 #include "D3D11Buffer.h"
 #include "D3D11Shader.h"
@@ -175,7 +175,7 @@ namespace Alimer
     }
 
     D3D11Graphics::D3D11Graphics(bool validation)
-        : _validation(validation)
+        : GPUDevice(GraphicsBackend::D3D11, validation)
         , _cache(this)
     {
         if (FAILED(D3D11LoadLibraries()))
@@ -187,7 +187,7 @@ namespace Alimer
 
     D3D11Graphics::~D3D11Graphics()
     {
-        SafeDelete(_mainSwapchain);
+        SafeDelete(_mainWindow);
 
         _cache.Clear();
 
@@ -321,18 +321,13 @@ namespace Alimer
         InitializeCaps();
 
         // Create Swapchain.
-        _mainSwapchain = new D3D11Swapchain(this, mainWindowDescriptor);
+        _mainWindow = new D3D11Swapchain(this, mainWindowDescriptor);
 
         // Create immediate command context.
         _immediateCommandContext = new D3D11CommandContext(this);
 
         return true;
     }
-
-    /*Framebuffer* D3D11Graphics::GetSwapchainFramebuffer() const
-    {
-        return _mainSwapchain->GetCurrentFramebuffer();
-    }*/
 
     void D3D11Graphics::GenerateScreenshot(const std::string& fileName)
     {
@@ -499,25 +494,20 @@ namespace Alimer
         // TODO
     }
 
-    RenderWindow* D3D11Graphics::GetMainWindow() const
-    {
-        return _mainSwapchain;
-    }
-
     D3D11Cache &D3D11Graphics::GetCache()
     {
         return _cache;
     }
 
-    GPUTexture* D3D11Graphics::CreateTexture(const TextureDescriptor* descriptor, const TextureData* initialData)
-    {
-        return new D3D11Texture(this, descriptor, initialData);
-    }
+    //GPUTexture* D3D11Graphics::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
+    //{
+    //    return new D3D11Texture(this, descriptor, initialData);
+    //}
 
-    GPUSampler* D3D11Graphics::CreateSampler(const SamplerDescriptor* descriptor)
-    {
-        return new D3D11Sampler(this, descriptor);
-    }
+    //GPUSampler* D3D11Graphics::CreateSampler(const SamplerDescriptor* descriptor)
+    //{
+    //    return new D3D11Sampler(this, descriptor);
+    //}
 
     //Framebuffer* D3D11Graphics::CreateFramebuffer()
     //{

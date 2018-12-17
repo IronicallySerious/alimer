@@ -51,13 +51,13 @@ namespace Alimer
 
     void Application::PlatformRun()
     {
-        GraphicsBackend gfxBackend = _settings.preferredGraphicsBackend;
-        if (gfxBackend == GraphicsBackend::Default)
+        GraphicsBackend gpuBackend = _settings.preferredGraphicsBackend;
+        if (gpuBackend == GraphicsBackend::Default)
         {
-            gfxBackend = Graphics::GetDefaultPlatformBackend();
+            gpuBackend = GPUDevice::GetDefaultPlatformBackend();
         }
 
-        if (gfxBackend != GraphicsBackend::OpenGL)
+        if (gpuBackend != GraphicsBackend::OpenGL)
         {
             // By default on non opengl context creation.
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);

@@ -31,8 +31,8 @@
 
 namespace Alimer
 {
-    Shader::Shader(Graphics* graphics)
-        : GraphicsResource(graphics)
+    Shader::Shader(GPUDevice* device)
+        : GraphicsResource(device)
     {
         // Reflection all shader resouces.
         //SPIRVReflectResources(reinterpret_cast<const uint32_t*>(blob.data), blob.size, &_reflection);

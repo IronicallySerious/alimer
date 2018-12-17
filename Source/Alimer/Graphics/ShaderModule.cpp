@@ -22,7 +22,6 @@
 
 #include "../Graphics/ShaderModule.h"
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GPUDevice.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceManager.h"
@@ -30,8 +29,8 @@
 
 namespace Alimer
 {
-    ShaderModule::ShaderModule()
-        : GraphicsResource(Graphics::GetInstancePtr())
+    ShaderModule::ShaderModule(GPUDevice* device)
+        : GraphicsResource(device)
     {
     }
 
@@ -108,7 +107,7 @@ namespace Alimer
 
     void ShaderModule::RegisterObject()
     {
-        RegisterFactory<ShaderModule>();
+        //RegisterFactory<ShaderModule>();
 
         // Register loader.
         //GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());

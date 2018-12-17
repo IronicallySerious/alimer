@@ -27,8 +27,8 @@
 
 namespace Alimer
 {
-    CommandContext::CommandContext()
-        : _graphics(Graphics::GetInstancePtr())
+    CommandContext::CommandContext(GPUDevice* device)
+        : _device(device)
         , _insideRenderPass(false)
     {
     }
@@ -64,13 +64,13 @@ namespace Alimer
         descriptor.depthStencil.clearDepth = clearDepth;
         descriptor.depthStencil.clearStencil = clearStencil;
 
-        BeginRenderPass(_graphics->GetMainWindow()->GetCurrentFramebuffer(), &descriptor);
+        BeginRenderPass(_device->GetMainWindow()->GetCurrentFramebuffer(), &descriptor);
     }
 
     void CommandContext::BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor)
     {
         ALIMER_ASSERT_MSG(descriptor, "Invalid descriptor");
-        BeginRenderPass(_graphics->GetMainWindow()->GetCurrentFramebuffer(), descriptor);
+        BeginRenderPass(_device->GetMainWindow()->GetCurrentFramebuffer(), descriptor);
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
@@ -101,7 +101,7 @@ namespace Alimer
 #if defined(ALIMER_DEV)
         if (!any(buffer->GetUsage() & BufferUsage::Vertex))
         {
-            Graphics::NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+            _device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
             return;
         }
 #endif
@@ -115,7 +115,7 @@ namespace Alimer
         {
             if (!any(buffers[i]->GetUsage() & BufferUsage::Vertex))
             {
-                Graphics::NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+                _device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
                 return;
             }
         }
@@ -129,7 +129,7 @@ namespace Alimer
 #if defined(ALIMER_DEV)
         if (!any(buffer->GetUsage() & BufferUsage::Index))
         {
-            Graphics::NotifyValidationError("SetIndexBuffer need buffer with Index usage");
+            _device->NotifyValidationError("SetIndexBuffer need buffer with Index usage");
             return;
         }
 #endif

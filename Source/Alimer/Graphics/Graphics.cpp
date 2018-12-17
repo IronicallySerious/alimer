@@ -21,7 +21,6 @@
 //
 
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GPUDevice.h"
 #include "../Core/Log.h"
 
 #if defined(ALIMER_D3D11)
@@ -49,30 +48,35 @@ extern "C"
 
 namespace Alimer
 {
-    Graphics *Graphics::_instance;
-
-    Graphics::Graphics(GraphicsBackend preferredBackend, bool validation)
-        : _validation(validation)
+    GPUDevice::GPUDevice(GraphicsBackend backend, bool validation)
+        : _backend(backend)
+        , _validation(validation)
     {
-        if (_instance != nullptr)
+        AddSubsystem(this);
+    }
+
+    GPUDevice::~GPUDevice()
+    {
+        Finalize();
+        RemoveSubsystem(this);
+    }
+
+    GPUDevice* GPUDevice::Create(GraphicsBackend preferredBackend, bool validation)
+    {
+        GraphicsBackend backend = preferredBackend;
+        if (backend == GraphicsBackend::Default)
         {
-            ALIMER_LOGERROR("Cannot create multiple instance of Graphics module");
-            return;
+            backend = GetDefaultPlatformBackend();
         }
 
-        _backend = preferredBackend;
-        if (_backend == GraphicsBackend::Default)
+        if (!IsBackendSupported(backend))
         {
-            _backend = GetDefaultPlatformBackend();
+            ALIMER_LOGERROR("Backend {} is not supported", EnumToString(backend));
+            return nullptr;
         }
 
-        if (!IsBackendSupported(_backend))
-        {
-            ALIMER_LOGERROR("Backend is not supported");
-            return;
-        }
-
-        switch (_backend)
+        GPUDevice* device = nullptr;
+        switch (backend)
         {
         case GraphicsBackend::Empty:
             break;
@@ -80,7 +84,7 @@ namespace Alimer
             break;
         case GraphicsBackend::D3D11:
 #if defined(ALIMER_D3D11)
-            _device = new D3D11Graphics(validation);
+            device = new D3D11Graphics(validation);
             ALIMER_LOGINFO("D3D11 backend created with success.");
 #else
             ALIMER_LOGERROR("D3D11 backend is not supported.");
@@ -102,34 +106,15 @@ namespace Alimer
             ALIMER_UNREACHABLE();
         }
 
-        AddSubsystem(this);
-        _instance = this;
+        return device;
     }
 
-    Graphics::~Graphics()
+
+    void GPUDevice::Shutdown()
     {
-        Finalize();
-        SafeDelete(_device);
-        RemoveSubsystem(this);
-        _instance = nullptr;
     }
 
-    void Graphics::Shutdown()
-    {
-        SafeDelete(_instance);
-    }
-
-    Graphics* Graphics::GetInstancePtr()
-    {
-        return _instance;
-    }
-
-    Graphics& Graphics::GetInstance()
-    {
-        return *_instance;
-    }
-
-    void Graphics::Finalize()
+    void GPUDevice::Finalize()
     {
         // Destroy undestroyed resources.
         if (_gpuResources.Size())
@@ -146,7 +131,7 @@ namespace Alimer
         SafeDelete(_immediateCommandContext);
     }
 
-    bool Graphics::IsBackendSupported(GraphicsBackend backend)
+    bool GPUDevice::IsBackendSupported(GraphicsBackend backend)
     {
         if (backend == GraphicsBackend::Default)
         {
@@ -189,7 +174,7 @@ namespace Alimer
         }
         }
 
-    std::set<GraphicsBackend> Graphics::GetAvailableBackends()
+    std::set<GraphicsBackend> GPUDevice::GetAvailableBackends()
     {
         static std::set<GraphicsBackend> backends;
 
@@ -227,7 +212,7 @@ namespace Alimer
         return backends;
     }
 
-    GraphicsBackend Graphics::GetDefaultPlatformBackend()
+    GraphicsBackend GPUDevice::GetDefaultPlatformBackend()
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP || ALIMER_PLATFORM_XBOX_ONE
         if (IsBackendSupported(GraphicsBackend::D3D12))
@@ -245,72 +230,52 @@ namespace Alimer
 #endif
     }
 
-    bool Graphics::Initialize(const RenderWindowDescriptor* mainWindowDescriptor)
+    bool GPUDevice::Initialize(const RenderWindowDescriptor* mainWindowDescriptor)
     {
         if (_initialized)
         {
             ALIMER_LOGCRITICAL("Cannot Initialize Graphics if already initialized.");
         }
 
-        _initialized = _device->Initialize(mainWindowDescriptor);
+        _initialized = true;
         _frameIndex = 0;
         return _initialized;
     }
 
-    bool Graphics::WaitIdle()
-    {
-        return _device->WaitIdle();
-    }
-
-    uint64_t Graphics::Frame()
+    uint64_t GPUDevice::Frame()
     {
         OnFrame();
         return ++_frameIndex;
     }
 
-    void Graphics::AddGraphicsResource(GraphicsResource* resource)
+    void GPUDevice::AddGraphicsResource(GraphicsResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.Push(resource);
     }
 
-    void Graphics::RemoveGraphicsResource(GraphicsResource* resource)
+    void GPUDevice::RemoveGraphicsResource(GraphicsResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.Remove(resource);
     }
 
-    void Graphics::NotifyValidationError(const char* message)
+    void GPUDevice::NotifyValidationError(const char* message)
     {
         // TODO: Add callback.
         ALIMER_UNUSED(message);
     }
 
-    const GraphicsDeviceFeatures& Graphics::GetFeatures() const
-    {
-        return _device->GetFeatures();
-    }
-
-    RenderWindow* Graphics::GetMainWindow() const
-    {
-        return _device->GetMainWindow();
-    }
-
-    void Graphics::RegisterObject()
+    void GPUDevice::RegisterObject()
     {
         static bool registered = false;
         if (registered)
             return;
         registered = true;
 
-        ShaderModule::RegisterObject();
-        Shader::RegisterObject();
-        Texture::RegisterObject();
-        Sampler::RegisterObject();
-    }
-
-    Graphics& gGraphics()
-    {
-        return Graphics::GetInstance();
+        //ShaderModule::RegisterObject();
+        //Shader::RegisterObject();
+        //Texture::RegisterObject();
+        //Sampler::RegisterObject();
     }
 }

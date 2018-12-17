@@ -26,10 +26,10 @@
 
 namespace Alimer
 {
-    Framebuffer::Framebuffer()
-        : GraphicsResource(Graphics::GetInstancePtr())
+    Framebuffer::Framebuffer(GPUDevice* device)
+        : GraphicsResource(device)
     {
-        _colorAttachments.Resize(_graphics->GetFeatures().MaxColorAttachments());
+        _colorAttachments.Resize(device->GetFeatures().MaxColorAttachments());
         _width = UINT32_MAX;
         _height = UINT32_MAX;
         _layers = 1;

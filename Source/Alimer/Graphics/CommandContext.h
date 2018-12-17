@@ -33,7 +33,7 @@
 
 namespace Alimer
 {
-    class Graphics;
+    class GPUDevice;
 
     struct ColorAttachmentAction {
         LoadAction  loadAction = LoadAction::Clear;
@@ -60,7 +60,7 @@ namespace Alimer
     class ALIMER_API CommandContext
     {
     protected:
-        CommandContext();
+        CommandContext(GPUDevice* device);
 
     public:
         /// Destructor.
@@ -124,8 +124,8 @@ namespace Alimer
         //virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
     protected:
-        /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
+        /// GPUDevice.
+        WeakPtr<GPUDevice> _device;
 
         bool _insideRenderPass;
         Pipeline* _currentPipeline = nullptr;

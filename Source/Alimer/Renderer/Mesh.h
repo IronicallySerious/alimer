@@ -30,7 +30,7 @@ namespace Alimer
 {
     class GpuBuffer;
     class CommandContext;
-    class Graphics;
+    class GPUDevice;
 
     enum class MeshAttribute : unsigned
     {
@@ -77,7 +77,7 @@ namespace Alimer
 
     private:
         /// Graphics subsystem.
-        WeakPtr<Graphics> _device;
+        WeakPtr<GPUDevice> _device;
 
         MeshAttributeLayout _attributes[ecast(MeshAttribute::Count)];
 

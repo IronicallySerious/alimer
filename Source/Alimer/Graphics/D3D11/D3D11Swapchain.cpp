@@ -202,10 +202,48 @@ namespace Alimer
         ID3D11Texture2D* renderTarget;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
 
-        /*DXGI_FORMAT backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
-        _renderTarget = new D3D11Texture(_graphics, renderTarget, backBufferFormat);
+        DXGI_FORMAT backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
 
-        _framebuffers.Resize(1);
+        D3D11_TEXTURE2D_DESC textureDesc;
+        renderTarget->GetDesc(&textureDesc);
+
+        TextureDescriptor textureDescriptor = {};
+        textureDescriptor.type = TextureType::Type2D;
+        textureDescriptor.format = GetPixelFormatDxgiFormat(textureDesc.Format);
+        textureDescriptor.width = textureDesc.Width;
+        textureDescriptor.height = textureDesc.Height;
+        textureDescriptor.depth = 1;
+        if (textureDesc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
+        {
+            textureDescriptor.type = TextureType::TypeCube;
+            textureDescriptor.arrayLayers = textureDesc.ArraySize / 6;
+        }
+        else
+        {
+            textureDescriptor.arrayLayers = textureDesc.ArraySize;
+        }
+
+        textureDescriptor.mipLevels = textureDesc.MipLevels;
+        textureDescriptor.usage = TextureUsage::None;
+        if (textureDesc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
+        {
+            textureDescriptor.usage |= TextureUsage::ShaderRead;
+        }
+
+        if (textureDesc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+        {
+            textureDescriptor.usage |= TextureUsage::ShaderWrite;
+        }
+
+        if (textureDesc.BindFlags & D3D11_BIND_RENDER_TARGET
+            || textureDesc.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+        {
+            textureDescriptor.usage |= TextureUsage::RenderTarget;
+        }
+
+        _renderTarget = new D3D11Texture(_graphics, &textureDescriptor, nullptr, renderTarget, backBufferFormat);
+
+        /*_framebuffers.Resize(1);
         _framebuffers[0] = new D3D11Framebuffer(_graphics);
         _framebuffers[0]->SetColorAttachment(0, _renderTarget.Get());
 
@@ -244,10 +282,5 @@ namespace Alimer
         {
             ThrowIfFailed(hr);
         }
-    }
-
-    Framebuffer* D3D11Swapchain::GetCurrentFramebuffer() const
-    {
-        return _framebuffers[_currentBackBufferIndex];
     }
 }

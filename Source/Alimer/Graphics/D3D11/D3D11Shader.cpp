@@ -107,7 +107,8 @@ namespace Alimer
 #endif // TODO_D3D11
 
 
-    D3D11ShaderModule::D3D11ShaderModule(D3D11Graphics* graphics)
+    D3D11ShaderModule::D3D11ShaderModule(D3D11Graphics* device)
+        : ShaderModule(device)
     {
         //_d3dBlob = ConvertAndCompileHLSL(device, blob, GetReflection().stage);
     }

@@ -22,37 +22,18 @@
 
 #include "../Graphics/Sampler.h"
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GPUDevice.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    Sampler::Sampler()
-        : GraphicsResource(Graphics::GetInstancePtr())
+    Sampler::Sampler(GPUDevice* device, const SamplerDescriptor* descriptor)
+        : GraphicsResource(device)
     {
-
-    }
-
-    bool Sampler::Define(const SamplerDescriptor* descriptor)
-    {
-        ALIMER_ASSERT_MSG(descriptor, "Invalid descriptor");
-
-        Destroy();
-
-        _sampler = _graphics->GetGPUDevice()->CreateSampler(descriptor);
-        if (_sampler == nullptr)
-        {
-            ALIMER_LOGERROR("Failed to define sampler.");
-            return false;
-        }
-
         memcpy(&_descriptor, descriptor, sizeof(SamplerDescriptor));
-        ALIMER_LOGDEBUG("Sampler defined with success.");
-        return true;
     }
 
     void Sampler::RegisterObject()
     {
-        RegisterFactory<Sampler>();
+        //RegisterFactory<Sampler>();
     }
 }

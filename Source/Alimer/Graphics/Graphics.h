@@ -37,31 +37,26 @@
 
 namespace Alimer
 {
-    class GPUDevice;
-
     /// Low-level 3D graphics module.
-    class ALIMER_API Graphics final: public Object
+    class ALIMER_API GPUDevice : public Object
     {
-        ALIMER_OBJECT(Graphics, Object);
+        ALIMER_OBJECT(GPUDevice, Object);
+
+    protected:
+        /// Constructor.
+        GPUDevice(GraphicsBackend backend, bool validation);
 
     public:
-        /// Constructor.
-        Graphics(GraphicsBackend preferredBackend, bool validation);
-
         /// Destructor.
-        ~Graphics() override;
+        ~GPUDevice() override;
+
+        static GPUDevice* Create(GraphicsBackend preferredBackend, bool validation);
 
         /// Register object.
         static void RegisterObject();
 
         /// Shutdown the Graphics module.
         static void Shutdown();
-
-        /// Return the single instance of the Graphics.
-        static Graphics* GetInstancePtr();
-        
-        /// Return the single instance of the Graphics.
-        static Graphics& GetInstance();
 
         /// Check if backend is supported
         static bool IsBackendSupported(GraphicsBackend backend);
@@ -73,10 +68,10 @@ namespace Alimer
         static GraphicsBackend GetDefaultPlatformBackend();
 
         /// Initialize graphics with given settings.
-        bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor);
+        virtual bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor);
 
         /// Wait for a device to become idle.
-        bool WaitIdle();
+        virtual bool WaitIdle() = 0;
 
         /// Finishes the current frame and advances to next one.
         uint64_t Frame();
@@ -88,31 +83,36 @@ namespace Alimer
         void RemoveGraphicsResource(GraphicsResource* resource);
 
         /// Get whether grapics has been initialized.
-        bool IsInitialized() const { return _initialized; }
-
-        /// Get the gpu device.
-        GPUDevice* GetGPUDevice() const { return _device; }
+        bool IsInitialized() const { 
+            return _initialized; 
+        }
 
         /// Get the backend.
-        GraphicsBackend GetBackend() const { return _backend; }
+        GraphicsBackend GetBackend() const {
+            return _backend; 
+        }
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const;
+        const GraphicsDeviceFeatures& GetFeatures() const {
+            return _features;
+        }
 
         /// Get the main RenderWindow.
-        RenderWindow* GetMainWindow() const;
+        RenderWindow* GetMainWindow() const {
+            return _mainWindow;
+        }
 
         /// Get the immediate command context.
-        CommandContext& GetImmediateContext() const { return *_immediateCommandContext; }
+        CommandContext& GetImmediateContext() const {
+            return *_immediateCommandContext;
+        }
 
-        static void NotifyValidationError(const char* message);
+        void NotifyValidationError(const char* message);
 
     private:
         virtual void OnFrame() {};
 
-        static Graphics *_instance;
         GraphicsBackend _backend = GraphicsBackend::Empty;
-        GPUDevice* _device = nullptr;
         bool _initialized = false;
         PODVector<GraphicsResource*> _gpuResources;
         std::mutex _gpuResourceMutex;
@@ -120,11 +120,10 @@ namespace Alimer
     protected:
         virtual void Finalize();
 
-        bool _validation;
-        uint64_t _frameIndex = 0;
-        CommandContext* _immediateCommandContext = nullptr;
+        bool                    _validation;
+        uint64_t                _frameIndex = 0;
+        GraphicsDeviceFeatures  _features = {};
+        RenderWindow*           _mainWindow = nullptr;
+        CommandContext*         _immediateCommandContext = nullptr;
     };
-
-    /// Singleton access for Graphics. 
-    ALIMER_API Graphics& gGraphics();
 }

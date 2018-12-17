@@ -28,8 +28,8 @@
 
 namespace Alimer
 {
-    D3D11Framebuffer::D3D11Framebuffer(D3D11Graphics* graphics)
-        : Framebuffer()
+    D3D11Framebuffer::D3D11Framebuffer(D3D11Graphics* device)
+        : Framebuffer(device)
     {
     }
 

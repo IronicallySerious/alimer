@@ -29,12 +29,12 @@ namespace Alimer
     /// Defines a shader resource.
     class ALIMER_API Shader final : public GraphicsResource
     {
-        friend class Graphics;
+        friend class GPUDevice;
         ALIMER_OBJECT(Shader, GraphicsResource);
 
     protected:
         /// Constructor.
-        Shader(Graphics* graphics);
+        Shader(GPUDevice* device);
 
     public:
         /// Destructor.

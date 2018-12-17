@@ -27,17 +27,15 @@
 
 namespace Alimer
 {
-    class GPUShaderModule;
-
     /// Defines a shader module resource.
     class ALIMER_API ShaderModule : public GraphicsResource
     {
-        friend class Graphics;
+        friend class GPUDevice;
         ALIMER_OBJECT(ShaderModule, GraphicsResource);
 
     public:
         /// Constructor.
-        ShaderModule();
+        ShaderModule(GPUDevice* device);
 
         /// Destructor.
         ~ShaderModule() override;
@@ -48,8 +46,6 @@ namespace Alimer
         bool Define(ShaderStage stage, const String& shaderSource, const String& entryPoint = "main");
         bool Define(ShaderStage stage, const Vector<uint8_t>& bytecode);
 
-        GPUShaderModule* GetGPUShaderModule() const { return _module; }
-
     private:
         bool BeginLoad(Stream& source) override;
         bool EndLoad() override;
@@ -59,8 +55,6 @@ namespace Alimer
 
         /// Register object factory.
         static void RegisterObject();
-
-        GPUShaderModule* _module = nullptr;
 
         Vector<PipelineResource> _resources;
         /// Shader stage.

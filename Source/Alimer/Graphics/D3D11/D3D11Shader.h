@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Shader.h"
-#include "../GPUDevice.h"
 #include "D3D11Prerequisites.h"
 #include <array>
 
@@ -31,10 +30,10 @@ namespace Alimer
 {
 	class D3D11Graphics;
 
-    class D3D11ShaderModule final : public GPUShaderModule
+    class D3D11ShaderModule final : public ShaderModule
     {
     public:
-        D3D11ShaderModule(D3D11Graphics* graphics);
+        D3D11ShaderModule(D3D11Graphics* device);
         ~D3D11ShaderModule() override;
         void Destroy();
     };

@@ -58,7 +58,7 @@ namespace Alimer
     {
     public:
         /// Constructor.
-        Pipeline();
+        Pipeline(GPUDevice* device);
 
         ~Pipeline() override;
         void Destroy() override;

@@ -27,7 +27,7 @@
 
 namespace Alimer
 {
-    class Graphics;
+    class GPUDevice;
 
     /// Defines a rendering context.
     class ALIMER_API RenderContext final 
@@ -37,7 +37,7 @@ namespace Alimer
         ~RenderContext();
 
     private:
-        /// Graphics subsystem.
-        WeakPtr<Graphics> _graphics;
+        /// GPUDevice subsystem.
+        WeakPtr<GPUDevice> _device;
     };
 }

@@ -63,7 +63,7 @@ namespace Alimer
         _sceneManager = new SceneManager();
 
         // Register modules
-        Graphics::RegisterObject();
+        GPUDevice::RegisterObject();
         ResourceManager::RegisterObject();
 
         SceneManager::Register();
@@ -90,7 +90,7 @@ namespace Alimer
         _running = false;
 
         _gui.Reset();
-        Graphics::Shutdown();
+        _gpuDevice.Reset();
         Audio::Shutdown();
         PluginManager::Shutdown();
     }
@@ -103,14 +103,14 @@ namespace Alimer
         // Init Window and Gpu.
         if (!_headless)
         {
-            Graphics* graphics = new Graphics(_settings.preferredGraphicsBackend, _settings.validation);
-            if (!graphics->Initialize(&_settings.mainWindowDescriptor))
+            _gpuDevice = GPUDevice::Create(_settings.preferredGraphicsBackend, _settings.validation);
+            if (!_gpuDevice->Initialize(&_settings.mainWindowDescriptor))
             {
                 ALIMER_LOGERROR("Failed to initialize Graphics.");
                 return false;
             }
 
-            _mainWindow = graphics->GetMainWindow();
+            _mainWindow = _gpuDevice->GetMainWindow();
 
             // Create imgui system.
             _gui = new Gui();
@@ -216,7 +216,7 @@ namespace Alimer
         _mainWindow->SwapBuffers();
 
         // Advance to next frame.
-        gGraphics().Frame();
+        _gpuDevice->Frame();
     }
 
     void Application::OnRenderFrame(double frameTime, double elapsedTime)
@@ -225,7 +225,7 @@ namespace Alimer
         ALIMER_UNUSED(elapsedTime);
 
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-        CommandContext& context = gGraphics().GetImmediateContext();
+        CommandContext& context = _gpuDevice->GetImmediateContext();
         context.BeginDefaultRenderPass(clearColor);
         //context.Draw(3, 0);
         context.EndRenderPass();

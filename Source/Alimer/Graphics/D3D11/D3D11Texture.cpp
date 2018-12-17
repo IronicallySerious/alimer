@@ -28,14 +28,13 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Texture::D3D11Texture(D3D11Graphics* graphics,
+    D3D11Texture::D3D11Texture(D3D11Graphics* device,
         const TextureDescriptor* descriptor, 
-        const TextureData* initialData, 
+        const ImageLevel* initialData,
         ID3D11Texture2D* externalTexture, 
         DXGI_FORMAT format)
-        : GPUTexture(descriptor)
-        , _graphics(graphics)
-        , _d3dDevice(graphics->GetD3DDevice())
+        : Texture(device, descriptor)
+        , _d3dDevice(device->GetD3DDevice())
         , _texture2D(externalTexture)
         , _dxgiFormat(format)
     {

@@ -70,7 +70,7 @@ namespace Alimer
     {
         if (FAILED(hr))
         {
-            ALIMER_LOGCRITICALF("DirectX Error: %s", Alimer::GetDXErrorString(hr).CString());
+            ALIMER_LOGCRITICAL("DirectX Error: {}", Alimer::GetDXErrorString(hr).CString());
         }
     }
 #endif

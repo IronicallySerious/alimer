@@ -27,43 +27,10 @@
 
 namespace Alimer
 {
-    Texture::Texture()
-        : GraphicsResource(Graphics::GetInstancePtr())
+    Texture::Texture(GPUDevice* device, const TextureDescriptor* descriptor)
+        : GraphicsResource(device)
     {
-
-    }
-
-    bool Texture::Define(const TextureDescriptor* descriptor, const ImageLevel* initialData)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->usage == TextureUsage::None)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
-
-        if (descriptor->width == 0
-            || descriptor->height == 0
-            || descriptor->depth == 0
-            || descriptor->arrayLayers == 0
-            || descriptor->mipLevels == 0)
-        {
-            ALIMER_LOGCRITICAL("Cannot create an empty texture");
-        }
-
-        _type = descriptor->type;
-        _usage = descriptor->usage;
-        _format = descriptor->format;
-        _width = descriptor->width;
-        _height = descriptor->height;
-        _depth = descriptor->depth;
-        _mipLevels = descriptor->mipLevels;
-        _arrayLayers = descriptor->arrayLayers;
-        _samples = descriptor->samples;
-
-        Destroy();
-
-        return Create(initialData);
+        memcpy(&_descriptor, descriptor, sizeof(TextureDescriptor));
     }
 
     bool Texture::Define2D(uint32_t width, uint32_t height, PixelFormat format, uint32_t mipLevels, uint32_t arrayLayers,
@@ -92,18 +59,26 @@ namespace Alimer
         // Destroy old texture.
         Destroy();
 
-        _type = TextureType::Type2D;
-        _usage = usage;
-        _format = format;
-        _width = width;
-        _height = height;
-        _depth = 1;
-        _mipLevels = mipLevels;
-        _arrayLayers = arrayLayers;
-        _samples = samples;
+        // Create new instance.
+        _descriptor.type = TextureType::Type2D;
+        _descriptor.usage = usage;
+        _descriptor.format = format;
+        _descriptor.width = width;
+        _descriptor.height = height;
+        _descriptor.depth = 1;
+        _descriptor.mipLevels = mipLevels;
+        _descriptor.arrayLayers = arrayLayers;
+        _descriptor.samples = samples;
 
-        // Create new 
-        return Create(initialData);
+        //_texture = _device->GetGPUDevice()->CreateTexture(&_descriptor, initialData);
+        //if (_texture == nullptr)
+        //{
+            ALIMER_LOGERROR("Failed to define sampler.");
+        //    return false;
+        //}
+
+        //ALIMER_LOGDEBUG("Texture defined with success.");
+        //return true;
     }
 
     void Texture::RegisterObject()

@@ -26,8 +26,8 @@
 
 namespace Alimer
 {
-    Pipeline::Pipeline()
-        : GraphicsResource(Object::GetSubsystem<Graphics>())
+    Pipeline::Pipeline(GPUDevice* device)
+        : GraphicsResource(device)
         , _isCompute(true)
     {
     }

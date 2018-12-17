@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../../Graphics/Graphics.h"
-#include "../GPUDevice.h"
 #include "D3D11Cache.h"
 
 namespace Alimer
@@ -48,14 +47,8 @@ namespace Alimer
         bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
         bool WaitIdle() override;
 
-        RenderWindow* GetMainWindow() const override;
-        CommandContext* GetImmediateContext() const override
-        {
-            return _immediateCommandContext;
-        }
-
-        GPUTexture* CreateTexture(const TextureDescriptor* descriptor, const TextureData* initialData) override;
-        GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
+        //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
+        //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
         //Framebuffer* CreateFramebuffer() override;
         //GpuBuffer* CreateBuffer() override;
 
@@ -81,7 +74,6 @@ namespace Alimer
         void InitializeCaps();
         void GenerateScreenshot(const std::string& fileName);
 
-        bool                                                _validation;
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
 
         Microsoft::WRL::ComPtr<IDXGIFactory4>               _factory;
@@ -93,13 +85,10 @@ namespace Alimer
         Microsoft::WRL::ComPtr<ID3D11DeviceContext1>        _d3dContext1;
         Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
-        D3D11Swapchain*                         _mainSwapchain = nullptr;
-        CommandContext*                         _immediateCommandContext = nullptr;
+        uint32_t                                            _shaderModelMajor = 4;
+        uint32_t                                            _shaderModelMinor = 0;
+        bool                                                _allowTearing = false;
 
-        uint32_t                                _shaderModelMajor = 4;
-        uint32_t                                _shaderModelMinor = 0;
-        bool                                    _allowTearing = false;
-
-        D3D11Cache                              _cache;
+        D3D11Cache                                          _cache;
     };
 }

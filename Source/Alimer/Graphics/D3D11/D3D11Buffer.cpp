@@ -29,10 +29,10 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Buffer::D3D11Buffer(D3D11Graphics* graphics)
-        : GpuBuffer()
-        , _device(graphics->GetD3DDevice())
-        , _deviceContext(graphics->GetD3DDeviceContext())
+    D3D11Buffer::D3D11Buffer(D3D11Graphics* device)
+        : GpuBuffer(device)
+        , _device(device->GetD3DDevice())
+        , _deviceContext(device->GetD3DDeviceContext())
     {
     }
 

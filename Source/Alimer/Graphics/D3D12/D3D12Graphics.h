@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Graphics.h"
-#include "../GPUDevice.h"
 #include "D3D12DescriptorAllocator.h"
 #include <queue>
 #include <mutex>
