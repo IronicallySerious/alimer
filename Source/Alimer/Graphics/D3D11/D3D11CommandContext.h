@@ -28,22 +28,21 @@
 namespace Alimer
 {
     class D3D11Pipeline;
-    class D3D11Framebuffer;
-    class D3D11Graphics;
+    class FramebufferD3D11;
+    class DeviceD3D11;
 
     class D3D11CommandContext final : public CommandContext
     {
     public:
-        D3D11CommandContext(D3D11Graphics* graphics);
+        D3D11CommandContext(DeviceD3D11* device);
         ~D3D11CommandContext() override;
 
         uint64_t FlushImpl(bool waitForCompletion) override;
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
 
-        //void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
-        //void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
-        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
+        void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) override;
 
         /*void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) override;
         void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) override;
@@ -54,7 +53,7 @@ namespace Alimer
         void SetScissor(const irect& scissor) override;*/
 
     private:
-        void Reset();
+        void BeginContext();
         void FlushRenderState(PrimitiveTopology topology);
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
@@ -70,7 +69,7 @@ namespace Alimer
         bool _needWorkaround = false;
         uint64_t _fenceValue;
 
-        const D3D11Framebuffer* _currentFramebuffer = nullptr;
+        const FramebufferD3D11* _currentFramebuffer = nullptr;
         uint32_t _currentColorAttachmentsBound;
         PrimitiveTopology _currentTopology;
         const D3D11Pipeline* _renderPipeline = nullptr;
@@ -84,8 +83,16 @@ namespace Alimer
         ID3D11ComputeShader* _computeShader = nullptr;
         ID3D11InputLayout* _inputLayout = nullptr;
 
+        struct VertexBindingState
+        {
+            ID3D11Buffer*   buffers[MaxVertexBufferBindings];
+            UINT            offsets[MaxVertexBufferBindings];
+            UINT            strides[MaxVertexBufferBindings];
+            VertexInputRate inputRates[MaxVertexBufferBindings];
+        };
+
         struct BufferBindingInfo {
-            GpuBuffer*  buffer;
+            Buffer*  buffer;
             uint32_t    offset;
             uint32_t    range;
         };
@@ -103,13 +110,11 @@ namespace Alimer
             uint8_t push_constant_data[MaxDescriptorSets];
         };
 
-        ID3D11Buffer* _currentVertexBuffers[MaxVertexBufferBindings];
-        UINT _vboStrides[MaxVertexBufferBindings];
-        UINT _vboOffsets[MaxVertexBufferBindings];
+        VertexBindingState _vbo = {};
 
-        bool _inputLayoutDirty;
+        bool            _inputLayoutDirty;
         ResourceBindings _bindings;
-        uint32_t _dirtySets = 0;
-        uint32_t _dirtyVbos = 0;
+        uint32_t        _dirtySets = 0;
+        uint32_t        _dirtyVbos = 0;
     };
 }

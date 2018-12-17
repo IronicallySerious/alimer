@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/VertexFormat.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 #include "../Core/Log.h"
 
 namespace Alimer

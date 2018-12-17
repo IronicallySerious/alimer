@@ -27,14 +27,14 @@
 
 namespace Alimer
 {
-    class D3D11Graphics;
+    class DeviceD3D11;
 
     /// D3D11 Sampler implementation.
     class SamplerD3D11 final : public Sampler
     {
     public:
         /// Constructor.
-        SamplerD3D11(D3D11Graphics* device, const SamplerDescriptor* descriptor);
+        SamplerD3D11(DeviceD3D11* device, const SamplerDescriptor* descriptor);
 
         /// Destructor.
         ~SamplerD3D11() override;
@@ -44,7 +44,6 @@ namespace Alimer
         ID3D11SamplerState* GetHandle() const { return _handle.Get(); }
 
     private:
-        D3D11Graphics* _device;
         Microsoft::WRL::ComPtr<ID3D11SamplerState> _handle;
     };
 }

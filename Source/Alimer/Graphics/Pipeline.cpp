@@ -21,13 +21,13 @@
 //
 
 #include "../Graphics/Pipeline.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
     Pipeline::Pipeline(GPUDevice* device)
-        : GraphicsResource(device)
+        : GPUResource(device, Type::Pipeline)
         , _isCompute(true)
     {
     }

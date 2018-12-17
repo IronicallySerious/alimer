@@ -25,7 +25,7 @@ using namespace Alimer;
 
 namespace Alimer
 {
-#if TODO
+
     struct VertexColor
     {
         vec3 position;
@@ -53,7 +53,7 @@ namespace Alimer
     class TriangleExample
     {
     public:
-        void Initialize(ResourceManager& resources)
+        void Initialize(GPUDevice* device, ResourceManager& resources)
         {
             ALIMER_UNUSED(resources);
 
@@ -64,11 +64,11 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            PODVector<VertexElement> vertexElement;
-            vertexElement.Push(VertexElement(VertexFormat::Float3, VertexElementSemantic::Position));
-            vertexElement.Push(VertexElement(VertexFormat::Float4, VertexElementSemantic::Color0));
+            //PODVector<VertexElement> vertexElement;
+            //vertexElement.Push(VertexElement(VertexFormat::Float3, VertexElementSemantic::Position));
+            //vertexElement.Push(VertexElement(VertexFormat::Float4, VertexElementSemantic::Color0));
 
-            _vertexBuffer.Define(ResourceUsage::Immutable, 3, vertexElement, false, triangleVertices);
+            _vertexBuffer = device->CreateBuffer(BufferUsage::Vertex, 3, sizeof(VertexColor), triangleVertices);
 
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -82,32 +82,33 @@ namespace Alimer
 
             // Shaders
             //auto texture = resources.Load<Texture>("textures/test.png");
-            auto vertexShader = resources.Load<ShaderModule>("shaders/color.vert");
-            auto fragmentShader = resources.Load<ShaderModule>("shaders/color.frag");
-            _shader = new Shader();
-            _shader->Define(vertexShader.Get(), fragmentShader.Get());
+            //auto vertexShader = resources.Load<ShaderModule>("shaders/color.vert");
+            //auto fragmentShader = resources.Load<ShaderModule>("shaders/color.frag");
+            //_shader = new Shader();
+            //_shader->Define(vertexShader.Get(), fragmentShader.Get());
         }
 
-        void Render()
+        void Render(GPUDevice* device)
         {
-            CommandContext& gfxContext = CommandContext::Begin("Scene Render");
+            CommandContext& context = device->GetImmediateContext();
             Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-            gfxContext.BeginDefaultRenderPass(clearColor);
-            gfxContext.Draw(3, 0);
-            gfxContext.EndRenderPass();
-            gfxContext.Finish();
+            context.BeginDefaultRenderPass(clearColor);
+            //context.Draw(3, 0);
+            context.EndRenderPass();
+            context.Flush();
         }
 
     private:
-        VertexBuffer _vertexBuffer;
+        SharedPtr<Buffer> _vertexBuffer;
         //GpuBuffer _perCameraUboBuffer;
 
         SharedPtr<ShaderModule> _vertexShader;
         SharedPtr<ShaderModule> _fragmentShader;
-        SharedPtr<Shader> _shader;
+        //SharedPtr<Shader> _shader;
         PerCameraCBuffer _camera{};
     };
 
+#if TODO
     class QuadExample
     {
     public:
@@ -375,7 +376,7 @@ namespace Alimer
         void OnRenderFrame(double frameTime, double elapsedTime) override;
 
     private:
-        //TriangleExample _triangleExample;
+        TriangleExample _triangleExample;
         //QuadExample _quadExample;
         //CubeExample _cubeExample;
         //TexturedCubeExample _texturedCubeExample;
@@ -383,13 +384,11 @@ namespace Alimer
 
     RuntimeApplication::RuntimeApplication()
     {
-        //_settings.preferredGraphicsBackend = GraphicsBackend::D3D11;
-        // _settings.preferredGraphicsBackend = GraphicsBackend::Vulkan;
     }
 
     void RuntimeApplication::Initialize()
     {
-        //_triangleExample.Initialize(_resources);
+        _triangleExample.Initialize(_gpuDevice.Get(), _resources);
         //_quadExample.Initialize(_resources);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
@@ -408,7 +407,7 @@ namespace Alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        //_triangleExample.Render();
+        _triangleExample.Render(_gpuDevice.Get());
         //_quadExample.Render(context);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);

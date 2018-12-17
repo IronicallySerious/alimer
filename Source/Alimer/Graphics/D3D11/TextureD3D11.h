@@ -28,19 +28,21 @@
 
 namespace Alimer
 {
-    class D3D11Graphics;
+    class DeviceD3D11;
 
     /// D3D11 Texture implementation.
-    class D3D11Texture final : public Texture
+    class TextureD3D11 final : public Texture
     {
     public:
         /// Constructor.
-        D3D11Texture(D3D11Graphics* device, 
-            const TextureDescriptor* descriptor, const ImageLevel* initialData,
-            ID3D11Texture2D* externalTexture = nullptr, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN);
+        TextureD3D11(DeviceD3D11* device,
+            TextureType type, uint32_t width, uint32_t height,
+            uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers,
+            PixelFormat format, TextureUsage usage, SampleCount samples, 
+            const void* initialData, ID3D11Texture2D* externalTexture, DXGI_FORMAT dxgiFormat);
 
         /// Destructor.
-        ~D3D11Texture() override;
+        ~TextureD3D11() override;
 
         void Destroy();
 

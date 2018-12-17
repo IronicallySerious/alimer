@@ -21,9 +21,9 @@
 //
 
 #include "D3D11CommandContext.h"
-#include "D3D11GraphicsDevice.h"
-#include "D3D11Texture.h"
-#include "D3D11Framebuffer.h"
+#include "DeviceD3D11.h"
+#include "TextureD3D11.h"
+#include "FramebufferD3D11.h"
 #include "D3D11Buffer.h"
 #include "D3D11Shader.h"
 //#include "D3D11Pipeline.h"
@@ -34,7 +34,7 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11CommandContext::D3D11CommandContext(D3D11Graphics* device)
+    D3D11CommandContext::D3D11CommandContext(DeviceD3D11* device)
         : CommandContext(device)
         , _immediate(true)
         , _d3dContext(device->GetD3DDeviceContext())
@@ -53,7 +53,7 @@ namespace Alimer
             }
         }
 
-        Reset();
+        BeginContext();
     }
 
     D3D11CommandContext::~D3D11CommandContext()
@@ -65,7 +65,7 @@ namespace Alimer
         }
     }
 
-    void D3D11CommandContext::Reset()
+    void D3D11CommandContext::BeginContext()
     {
         _currentFramebuffer = nullptr;
         _currentColorAttachmentsBound = 0;
@@ -81,10 +81,12 @@ namespace Alimer
         _computeShader = nullptr;
         _inputLayout = nullptr;
 
-        memset(&_bindings, 0, sizeof(_bindings));
+        //_dirty = ~0u;
+        _dirtySets = ~0u;
+        _dirtyVbos = ~0u;
         _inputLayoutDirty = false;
-        memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
-        //CommandContext::BeginContext();
+        memset(&_bindings, 0, sizeof(_bindings));
+        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
     }
 
     uint64_t D3D11CommandContext::FlushImpl(bool waitForCompletion)
@@ -95,7 +97,7 @@ namespace Alimer
 
     void D3D11CommandContext::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
-        _currentFramebuffer = static_cast<D3D11Framebuffer*>(framebuffer);
+        _currentFramebuffer = static_cast<FramebufferD3D11*>(framebuffer);
         _currentColorAttachmentsBound = _currentFramebuffer->Bind(_d3dContext);
 
         for (uint32_t i = 0; i < _currentColorAttachmentsBound; ++i)
@@ -103,10 +105,7 @@ namespace Alimer
             switch (descriptor[i].colors->loadAction)
             {
             case LoadAction::Clear:
-                _d3dContext->ClearRenderTargetView(
-                    _currentFramebuffer->GetColorRTV(i),
-                    &descriptor[i].colors->clearColor[i]
-                );
+                _d3dContext->ClearRenderTargetView(_currentFramebuffer->GetColorRTV(i), &descriptor[i].colors->clearColor[i]);
                 break;
 
             default:
@@ -185,30 +184,32 @@ namespace Alimer
         scissorD3D.right = scissor.x + scissor.width;
         scissorD3D.bottom = scissor.y + scissor.height;
         _d3dContext->RSSetScissorRects(1, &scissorD3D);
-    }
-
-    void D3D11CommandContext::SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset)
-    {
-        auto d3dBuffer = static_cast<D3D11Buffer*>(buffer)->GetHandle();
-        UINT stride = buffer->GetStride();
-        _d3dContext->IASetVertexBuffers(0, 1, &d3dBuffer, &stride, &offset);
-    }
-
-    void D3D11CommandContext::SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets)
-    {
-        for (uint32_t i = firstBinding; i < count; i++)
-        {
-            _currentVertexBuffers[i] = static_cast<const D3D11Buffer*>(buffers[i])->GetHandle();
-            _vboStrides[i] = buffers[i]->GetStride();
-            _vboOffsets[i] = offsets[i];
-        }
-
-        _d3dContext->IASetVertexBuffers(firstBinding, count, _currentVertexBuffers, _vboStrides, _vboOffsets);
     }*/
 
-    void D3D11CommandContext::SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void D3D11CommandContext::SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<D3D11Buffer*>(buffer)->GetHandle();
+        auto d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
+        if (_vbo.buffers[binding] != d3dBuffer
+            || _vbo.offsets[binding] != offset)
+        {
+            _dirtyVbos |= 1u << binding;
+        }
+
+        if (_vbo.strides[binding] != stride
+            || _vbo.inputRates[binding] != inputRate)
+        {
+            _inputLayoutDirty = true;
+        }
+
+        _vbo.buffers[binding] = d3dBuffer;
+        _vbo.offsets[binding] = offset;
+        _vbo.strides[binding] = stride;
+        _vbo.inputRates[binding] = inputRate;
+    }
+
+    void D3D11CommandContext::SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType)
+    {
+        ID3D11Buffer* d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
         DXGI_FORMAT dxgiFormat = indexType == IndexType::UInt32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
         _d3dContext->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
     }
@@ -229,7 +230,7 @@ namespace Alimer
 
     void D3D11CommandBuffer::BindTextureImpl(Texture* texture, uint32_t set, uint32_t binding)
     {
-        auto d3d11Texture = static_cast<D3D11Texture*>(texture);
+        auto d3d11Texture = static_cast<TextureD3D11*>(texture);
         ID3D11ShaderResourceView* shaderResourceView = d3d11Texture->GetShaderResourceView();
         ID3D11SamplerState* samplerState = d3d11Texture->GetSamplerState();
 

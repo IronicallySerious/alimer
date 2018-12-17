@@ -22,28 +22,26 @@
 
 #pragma once
 
-#include "../Graphics.h"
+#include "../GPUDevice.h"
 #include "../RenderWindow.h"
 #include "../Framebuffer.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-    class D3D11Texture;
-    class D3D11Framebuffer;
-    class D3D11Graphics;
+    class DeviceD3D11;
 
-    /// D3D11 Swapchain implementation.
-    class D3D11Swapchain final : public RenderWindow
+    /// D3D11 RenderWindow implementation.
+    class RenderWindowD3D11 final : public RenderWindow
     {
     public:
         /// Constructor.
-        D3D11Swapchain(D3D11Graphics* graphics, const RenderWindowDescriptor* descriptor, uint32_t backBufferCount = 2);
+        RenderWindowD3D11(DeviceD3D11* device, const RenderWindowDescriptor* descriptor, uint32_t backBufferCount = 2);
 
         /// Destructor.
-        ~D3D11Swapchain();
+        ~RenderWindowD3D11();
 
-        void Destroy();
+        void Destroy() override;
 
         void Resize(uint32_t width, uint32_t height, bool force = false);
         void SwapBuffers();
@@ -51,7 +49,7 @@ namespace Alimer
     private:
         void OnSizeChanged(const uvec2& newSize) override;
 
-        D3D11Graphics*                          _graphics;
+        DeviceD3D11*                            _device;
         uint32_t                                _width = 0;
         uint32_t                                _height = 0;
         uint32_t                                _backBufferCount = 2u;

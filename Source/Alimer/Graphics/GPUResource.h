@@ -22,37 +22,47 @@
 
 #pragma once
 
-#include "../Framebuffer.h"
-#include "D3D11Prerequisites.h"
-#include <map>
+#include "../Base/Ptr.h"
+#include "../Graphics/Types.h"
 
 namespace Alimer
 {
-    class D3D11Graphics;
+	class GPUDevice;
 
-    /// D3D11 Framebuffer implementation.
-    class D3D11Framebuffer final : public Framebuffer
-    {
-    public:
-        D3D11Framebuffer(D3D11Graphics* graphics);
+	/// Defines a GPUResource created from GPUDevice.
+	class ALIMER_API GPUResource
+	{
+	public:
+        enum class Type
+        {
+            Buffer,
+            Texture,
+            Sampler,
+            Framebuffer,
+            ShaderModule, 
+            Pipeline,
+        };
 
-        /// Desturctor
-        ~D3D11Framebuffer() override;
+		/// Destructor.
+		virtual ~GPUResource();
 
-        void Destroy() override;
+        /// Unconditionally destroy the GPU resource.
+        virtual void Destroy() {}
 
-        uint32_t Bind(ID3D11DeviceContext* context) const;
+        /// Return the gpu device used for creation.
+        GPUDevice* GetDevice() const;
 
-        ID3D11RenderTargetView* GetColorRTV(uint32_t index) const { return _colorRtvs[index]; }
-        ID3D11DepthStencilView* GetDSV() const { return _depthStencilView; }
+        /// Get the resource type.
+        Type GetType() const { return _type; }
 
-    private:
-        void ApplyColorAttachment(uint32_t index) override;
-        void ApplyDepthStencilAttachment() override;
+    protected:
+        /// Constructor.
+        GPUResource(GPUDevice* device, Type type);
 
-        uint32_t _viewsCount = 0;
-        ID3D11RenderTargetView* _colorRtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
-        ID3D11DepthStencilView* _depthStencilView = nullptr;
-    };
+        WeakPtr<GPUDevice> _device;
+        Type _type;
 
+	private:
+		DISALLOW_COPY_MOVE_AND_ASSIGN(GPUResource);
+	};
 }

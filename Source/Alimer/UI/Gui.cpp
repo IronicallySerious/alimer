@@ -22,7 +22,7 @@
 
 #include "../UI/Gui.h"
 #include "../Core/Log.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 #include "../Graphics/Shader.h"
 //#include <ImGuizmo/ImGuizmo.h>
 #include <imgui.h>

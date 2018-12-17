@@ -25,7 +25,7 @@
 #include "D3D11Prerequisites.h"
 #include "../Types.h"
 #include "../PixelFormat.h"
-#include "../GpuBuffer.h"
+#include "../Buffer.h"
 #include "../Texture.h"
 #include "../Sampler.h"
 

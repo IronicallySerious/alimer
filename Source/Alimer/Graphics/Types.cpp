@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/Types.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 
 namespace Alimer
 {

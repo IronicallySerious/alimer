@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/Shader.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../Resource/ResourceManager.h"
 #include "../Resource/ResourceLoader.h"
@@ -32,7 +32,7 @@
 namespace Alimer
 {
     Shader::Shader(GPUDevice* device)
-        : GraphicsResource(device)
+        : GPUResource(device, Type::ShaderModule)
     {
         // Reflection all shader resouces.
         //SPIRVReflectResources(reinterpret_cast<const uint32_t*>(blob.data), blob.size, &_reflection);
@@ -52,18 +52,6 @@ namespace Alimer
                 _shaders[i] = nullptr;
             }
         }
-    }
-
-    bool Shader::BeginLoad(Stream& source)
-    {
-        auto bytecode = source.ReadBytes();
-        ALIMER_UNUSED(bytecode);
-        return false;
-    }
-
-    bool Shader::EndLoad()
-    {
-        return true;
     }
 
     bool Shader::Define(ShaderModule* vertex, ShaderModule* fragment)

@@ -21,64 +21,27 @@
 //
 
 #include "../Graphics/Texture.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 #include "../IO/Stream.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    Texture::Texture(GPUDevice* device, const TextureDescriptor* descriptor)
-        : GraphicsResource(device)
+    Texture::Texture(GPUDevice* device,
+        TextureType type, uint32_t width, uint32_t height,
+        uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers,
+        PixelFormat format, TextureUsage usage, SampleCount samples)
+        : GPUResource(device, Type::Texture)
+        , _type(type)
+        , _width(width)
+        , _height(height)
+        , _depth(depth)
+        , _mipLevels(mipLevels)
+        , _arrayLayers(arrayLayers)
+        , _format(format)
+        , _usage(usage)
+        , _samples(samples)
     {
-        memcpy(&_descriptor, descriptor, sizeof(TextureDescriptor));
-    }
-
-    bool Texture::Define2D(uint32_t width, uint32_t height, PixelFormat format, uint32_t mipLevels, uint32_t arrayLayers,
-        const ImageLevel* initialData, TextureUsage usage, SampleCount samples)
-    {
-#if defined(ALIMER_DEV)
-        if (format == PixelFormat::Unknown)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
-
-        if (usage == TextureUsage::None)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
-
-        if (width == 0
-            || height == 0
-            || arrayLayers == 0
-            || mipLevels == 0)
-        {
-            ALIMER_LOGCRITICAL("Cannot create an empty texture");
-        }
-#endif // defined(ALIMER_DEV)
-
-        // Destroy old texture.
-        Destroy();
-
-        // Create new instance.
-        _descriptor.type = TextureType::Type2D;
-        _descriptor.usage = usage;
-        _descriptor.format = format;
-        _descriptor.width = width;
-        _descriptor.height = height;
-        _descriptor.depth = 1;
-        _descriptor.mipLevels = mipLevels;
-        _descriptor.arrayLayers = arrayLayers;
-        _descriptor.samples = samples;
-
-        //_texture = _device->GetGPUDevice()->CreateTexture(&_descriptor, initialData);
-        //if (_texture == nullptr)
-        //{
-            ALIMER_LOGERROR("Failed to define sampler.");
-        //    return false;
-        //}
-
-        //ALIMER_LOGDEBUG("Texture defined with success.");
-        //return true;
     }
 
     void Texture::RegisterObject()

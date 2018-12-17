@@ -22,16 +22,17 @@
 
 #pragma once
 
-#include "../Graphics/GraphicsResource.h"
+#include "../Graphics/GPUResource.h"
 #include "../Base/Vector.h"
 
 namespace Alimer
 {
+    class Stream;
+
     /// Defines a shader module resource.
-    class ALIMER_API ShaderModule : public GraphicsResource
+    class ALIMER_API ShaderModule : public GPUResource, public RefCounted
     {
         friend class GPUDevice;
-        ALIMER_OBJECT(ShaderModule, GraphicsResource);
 
     public:
         /// Constructor.
@@ -47,9 +48,6 @@ namespace Alimer
         bool Define(ShaderStage stage, const Vector<uint8_t>& bytecode);
 
     private:
-        bool BeginLoad(Stream& source) override;
-        bool EndLoad() override;
-
         /// Process include statements in the shader source code recursively. Return true if successful.
         bool ProcessIncludes(String& code, Stream& source);
 

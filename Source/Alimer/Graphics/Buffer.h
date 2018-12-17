@@ -24,40 +24,18 @@
 
 #include "../Base/Ptr.h"
 #include "../Base/String.h"
-#include "../Graphics/GraphicsResource.h"
+#include "../Graphics/GPUResource.h"
 
 namespace Alimer
 {
-    enum class BufferUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        Index = 1 << 1,
-        Uniform = 1 << 2,
-        Storage = 1 << 3,
-        Indirect = 1 << 4,
-        Dynamic = 1 << 5,
-        CPUAccessible = 1 << 6,
-    };
-    ALIMER_BITMASK(BufferUsage);
-
-    struct BufferDescriptor
-    {
-        BufferUsage usage = BufferUsage::None;
-        uint64_t size = 0;
-        uint32_t stride = 0;
-        String name;
-    };
-
-	/// Defines a Graphics Buffer class.
-	class ALIMER_API GpuBuffer : public GraphicsResource
+	/// Defines a GPU Buffer class.
+	class ALIMER_API Buffer : public GPUResource, public RefCounted
 	{
-	public:
+	protected:
         /// Constructor.
-        GpuBuffer(GPUDevice* device);
+        Buffer(GPUDevice* device, BufferUsage usage, uint32_t elementCount, uint32_t elementSize);
 
-        bool Define(const BufferDescriptor* descriptor, const void* initialData = nullptr);
-
+    public:
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 
@@ -67,14 +45,19 @@ namespace Alimer
         /// Get the buffer usage flags.
         BufferUsage GetUsage() const { return _usage; }
 
+        /// Get number of elements in buffer.
+        uint32_t GetElementCount() const { return _elementCount; }
+
+        /// Get single element size.
+        uint32_t GetElementSize() const { return _elementSize; }
+
         /// Get size in bytes of the buffer.
         uint64_t GetSize() const { return _size; }
 
-    protected:
-        virtual bool Create(const void* initialData) = 0;
-
+    private:
         BufferUsage _usage = BufferUsage::None;
-        uint32_t _stride = 0;
-		uint64_t _size = 0;
+        uint32_t _elementCount;
+        uint32_t _elementSize;
+		uint64_t _size;
 	};
 }

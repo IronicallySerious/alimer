@@ -21,7 +21,7 @@
 //
 
 #include "../Renderer/Mesh.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 
 namespace Alimer
 {
@@ -32,15 +32,13 @@ namespace Alimer
 
     Mesh::~Mesh()
     {
-        SafeDelete(_vertexBuffer);
-        SafeDelete(_indexBuffer);
     }
 
     bool Mesh::Define(const PODVector<vec3>& positions, const PODVector<Color4>& colors, const PODVector<uint16_t>& indices)
     {
         //auto graphics = Object::GetSubsystem<Graphics>();
-        SafeDelete(_vertexBuffer);
-        SafeDelete(_indexBuffer);
+        _vertexBuffer.Reset();
+        _indexBuffer.Reset();
 
         _vertexCount = positions.Size();
         _indexCount = indices.Size();

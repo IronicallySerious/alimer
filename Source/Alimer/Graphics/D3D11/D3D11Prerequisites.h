@@ -29,8 +29,29 @@
 #include <dxgi1_3.h>
 #endif
 
-#include <map>
+#if defined(ALIMER_DEV) && (!defined(_XBOX_ONE) || !defined(_TITLE))
+#   pragma comment(lib,"dxguid.lib")
+#endif
 
 namespace Alimer
 {
+    // Helper sets a D3D resource name string (used by PIX and debug layer leak reporting).
+    inline void SetDebugObjectName(_In_ ID3D11DeviceChild* resource, _In_z_ const char* name, size_t length)
+    {
+#if defined(ALIMER_DEV)
+#   if defined(_XBOX_ONE) && defined(_TITLE)
+        wchar_t wname[MAX_PATH];
+        int result = MultiByteToWideChar(CP_UTF8, 0, name, static_cast<int>(length), wname, MAX_PATH);
+        if (result > 0)
+        {
+            resource->SetName(wname);
+        }
+#   else
+        resource->SetPrivateData(WKPDID_D3DDebugObjectName, static_cast<UINT>(length - 1), name);
+#   endif
+#else
+        UNREFERENCED_PARAMETER(resource);
+        UNREFERENCED_PARAMETER(name);
+#endif
+    }
 }

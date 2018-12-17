@@ -20,40 +20,35 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Base/Ptr.h"
-#include "../Graphics/Types.h"
-#include "../Resource/Resource.h"
+#include "../Graphics/Buffer.h"
+#include "../Graphics/GPUDevice.h"
+#include "../Core/Log.h"
 
 namespace Alimer
 {
-	class GPUDevice;
+    Buffer::Buffer(GPUDevice* device, BufferUsage usage, uint32_t elementCount, uint32_t elementSize)
+        : GPUResource(device, Type::Buffer)
+        , _usage(usage)
+        , _elementCount(elementCount)
+        , _elementSize(elementSize)
+        , _size(elementCount * elementSize)
+    {
 
-	/// Defines a base GraphicsResource.
-	class ALIMER_API GraphicsResource : public Resource
-	{
-        ALIMER_OBJECT(GraphicsResource, Resource);
+    }
 
-	protected:
-        /// Constructor.
-        GraphicsResource(GPUDevice* device);
+    bool Buffer::SetSubData(const void* pData)
+    {
+        return false;
+    }
 
-	public:
-		/// Destructor.
-		virtual ~GraphicsResource() override;
+    bool Buffer::SetSubData(uint32_t offset, uint32_t size, const void* pData)
+    {
+        if (offset + size > GetSize())
+        {
+            ALIMER_LOGERROR("Buffer subdata out of range");
+            return false;
+        }
 
-        /// Unconditionally destroy the GPU resource.
-        virtual void Destroy() {}
-
-        /// Return the gpu device used for creation.
-        GPUDevice* GetDevice() const;
-
-    protected:
-        /// GPUDevice.
-        WeakPtr<GPUDevice> _device;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GraphicsResource);
-	};
+        return false;
+    }
 }

@@ -23,12 +23,12 @@
 #pragma once
 
 #include "../Resource/Resource.h"
-#include "../Graphics/GpuBuffer.h"
+#include "../Graphics/Buffer.h"
 #include "../Graphics/Types.h"
 
 namespace Alimer
 {
-    class GpuBuffer;
+    class Buffer;
     class CommandContext;
     class GPUDevice;
 
@@ -69,8 +69,8 @@ namespace Alimer
         uint32_t GetIndexCount() { return _indexCount; }
         uint32_t GetVertexCount() { return _vertexCount; }
 
-        GpuBuffer* GetVertexBuffer() const { return _vertexBuffer; }
-        GpuBuffer* GetIndexBuffer() const { return _indexBuffer; }
+        Buffer* GetVertexBuffer() const { return _vertexBuffer.Get(); }
+        Buffer* GetIndexBuffer() const { return _indexBuffer.Get(); }
 
         static Mesh* CreateCube(float size = 1.0f);
         static Mesh* CreateBox(const vec3& size = vec3(1.0f));
@@ -81,8 +81,8 @@ namespace Alimer
 
         MeshAttributeLayout _attributes[ecast(MeshAttribute::Count)];
 
-        GpuBuffer* _vertexBuffer = nullptr;
-        GpuBuffer* _indexBuffer = nullptr;
+        SharedPtr<Buffer> _vertexBuffer;
+        SharedPtr<Buffer> _indexBuffer;
 
         uint32_t _vertexCount = 0;
         uint32_t _vertexStride = 0;

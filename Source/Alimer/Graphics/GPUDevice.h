@@ -25,7 +25,7 @@
 #include "../Core/Object.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
 #include "../Graphics/CommandContext.h"
-#include "../Graphics/GpuBuffer.h"
+#include "../Graphics/Buffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
@@ -76,11 +76,11 @@ namespace Alimer
         /// Finishes the current frame and advances to next one.
         uint64_t Frame();
 
-        /// Add a GraphicsResource to keep track of. 
-        void AddGraphicsResource(GraphicsResource* resource);
+        /// Add a GPUResource to keep track of. 
+        void TrackResource(GPUResource* resource);
 
-        /// Remove a GraphicsResource.
-        void RemoveGraphicsResource(GraphicsResource* resource);
+        /// Remove a GPUResource.
+        void UntrackResource(GPUResource* resource);
 
         /// Get whether grapics has been initialized.
         bool IsInitialized() const { 
@@ -109,20 +109,36 @@ namespace Alimer
 
         void NotifyValidationError(const char* message);
 
+        Buffer* CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr, const std::string& name = "");
+
+        Texture* CreateTexture1D(uint32_t width, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, TextureUsage usage, const void* initialData = nullptr);
+        Texture* CreateTexture2D(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, TextureUsage usage, SampleCount samples = SampleCount::Count1, const void* initialData = nullptr);
+        Texture* CreateTextureCube(uint32_t size, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, TextureUsage usage, const void* initialData = nullptr);
+        Texture* CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevels, PixelFormat format, TextureUsage usage, const void* initialData = nullptr);
+
+        Sampler* CreateSampler(const SamplerDescriptor* descriptor);
+        Framebuffer* CreateFramebuffer(const PODVector<FramebufferAttachment>& colorAttachments, const FramebufferAttachment* depthStencilAttachment = nullptr);
+        Framebuffer* CreateFramebuffer(uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment = nullptr);
+
     private:
         virtual void OnFrame() {};
+        virtual Buffer* CreateBufferCore(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData, const std::string& name) = 0;
+        virtual Texture* CreateTextureCore(TextureType type, uint32_t width, uint32_t height,
+            uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, 
+            TextureUsage usage, SampleCount samples, const void* initialData) = 0;
+        virtual Sampler* CreateSamplerCore(const SamplerDescriptor* descriptor) = 0;
+        virtual Framebuffer* CreateFramebufferCore(uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment) = 0;
 
-        GraphicsBackend _backend = GraphicsBackend::Empty;
-        bool _initialized = false;
-        PODVector<GraphicsResource*> _gpuResources;
-        std::mutex _gpuResourceMutex;
-    
     protected:
         virtual void Finalize();
 
+        GraphicsBackend         _backend;
         bool                    _validation;
-        uint64_t                _frameIndex = 0;
-        GraphicsDeviceFeatures  _features = {};
+        bool                    _initialized;
+        uint64_t                _frameIndex;
+        GraphicsDeviceFeatures  _features;
+        PODVector<GPUResource*> _gpuResources;
+        std::mutex              _gpuResourceMutex;
         RenderWindow*           _mainWindow = nullptr;
         CommandContext*         _immediateCommandContext = nullptr;
     };

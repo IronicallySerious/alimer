@@ -54,7 +54,7 @@ namespace Alimer
     };
 
     /// Defines a Pipeline class.
-    class ALIMER_API Pipeline final : public GraphicsResource
+    class ALIMER_API Pipeline final : public GPUResource, public RefCounted
     {
     public:
         /// Constructor.

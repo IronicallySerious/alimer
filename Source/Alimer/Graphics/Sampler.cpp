@@ -21,13 +21,13 @@
 //
 
 #include "../Graphics/Sampler.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
     Sampler::Sampler(GPUDevice* device, const SamplerDescriptor* descriptor)
-        : GraphicsResource(device)
+        : GPUResource(device, Type::Sampler)
     {
         memcpy(&_descriptor, descriptor, sizeof(SamplerDescriptor));
     }

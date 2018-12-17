@@ -33,7 +33,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 #include "../Scene/Scene.h"
 #include "../Scene/SceneManager.h"
 #include "../Renderer/RenderContext.h"

@@ -22,34 +22,32 @@
 
 #pragma once
 
-#include "Graphics/GpuBuffer.h"
+#include "Graphics/Buffer.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-	class D3D11Graphics;
+	class DeviceD3D11;
 
 	/// D3D11 GpuBuffer implementation.
-	class D3D11Buffer final : public GpuBuffer
+	class BufferD3D11 final : public Buffer
 	{
 	public:
 		/// Constructor.
-        D3D11Buffer(D3D11Graphics* graphics);
+        BufferD3D11(DeviceD3D11* device, BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData, const std::string& name);
 
 		/// Destructor.
-		~D3D11Buffer() override;
+		~BufferD3D11() override;
 
         void Destroy() override;
 
         //bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
 
-        ID3D11Buffer* GetHandle() const { return _handle; }
+        ID3D11Buffer* GetHandle() const { return _handle.Get(); }
 
 	private:
-        bool Create(const void* initialData) override;
-
         ID3D11Device*           _device;
         ID3D11DeviceContext*    _deviceContext;
-        ID3D11Buffer*           _handle;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>  _handle;
 	};
 }

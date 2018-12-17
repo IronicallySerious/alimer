@@ -23,78 +23,56 @@
 #pragma once
 
 #include "../Math/MathUtil.h"
-#include "../Graphics/GraphicsResource.h"
+#include "../Graphics/GPUResource.h"
 #include "../Resource/Image.h"
 #include "../Base/HashMap.h"
 
 namespace Alimer
 {
     /// Defines a Texture class.
-    class ALIMER_API Texture : public GraphicsResource
+    class ALIMER_API Texture : public GPUResource, public Resource
     {
         friend class GPUDevice;
-        ALIMER_OBJECT(Texture, GraphicsResource);
+        ALIMER_OBJECT(Texture, Resource);
 
     protected:
         /// Constructor.
-        Texture(GPUDevice* device, const TextureDescriptor* descriptor);
+        Texture(GPUDevice* device, 
+            TextureType type, uint32_t width, uint32_t height, 
+            uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers,
+            PixelFormat format, TextureUsage usage, SampleCount samples);
 
     public:
-        /// Define texture as 2D.
-        bool Define2D(
-            uint32_t width, uint32_t height, 
-            PixelFormat format = PixelFormat::RGBA8UNorm,
-            uint32_t mipLevels = 1,
-            uint32_t arrayLayers = 1,
-            const ImageLevel* initialData = nullptr,
-            TextureUsage usage = TextureUsage::ShaderRead,
-            SampleCount samples = SampleCount::Count1);
+        TextureType GetTextureType() const { return _type; }
+        TextureUsage GetUsage() const { return _usage; }
+        PixelFormat GetFormat() const { return _format; }
 
-        TextureType GetTextureType() const { return _descriptor.type; }
-        TextureUsage GetUsage() const { return _descriptor.usage; }
-        PixelFormat GetFormat() const { return _descriptor.format; }
-
-        /**
-        * Get a mipLevel width.
-        */
+        /// Get a mipLevel width.
         uint32_t GetWidth(uint32_t mipLevel = 0) const 
         {
-            return Max(1u, _descriptor.width >> mipLevel);
+            return Max(1u, _width >> mipLevel);
         }
 
-        /**
-        * Get a mipLevel height.
-        */
+        /// Get a mipLevel height.
         uint32_t GetHeight(uint32_t mipLevel = 0) const 
         {
-            return Max(1u, _descriptor.height >> mipLevel);
+            return Max(1u, _height >> mipLevel);
         }
 
-        /**
-        * Get a mipLevel height.
-        */
+        /// Get a mipLevel height.
         uint32_t GetDepth(uint32_t mipLevel = 0) const
         {
-            return Max(1u, _descriptor.depth >> mipLevel);
+            return Max(1u, _depth >> mipLevel);
         }
 
-        /**
-        * Get the number of mip-levels.
-        */
-        uint32_t GetMipLevels() const { return _descriptor.mipLevels; }
+        /// Get the number of mip-levels.
+        uint32_t GetMipLevels() const { return _mipLevels; }
 
-        /**
-        * Get the array layers.
-        */
-        uint32_t GetArrayLayers() const { return _descriptor.arrayLayers; }
+        /// Get the array layers.
+        uint32_t GetArrayLayers() const { return _arrayLayers; }
 
-        /**
-        * Get the sample count
-        */
-        SampleCount GetSamples() const { return _descriptor.samples; }
-
-        /// Get the texture description.
-        const TextureDescriptor &GetDescriptor() const { return _descriptor; }
+        /// Get the sample count
+        SampleCount GetSamples() const { return _samples; }
 
     private:
         bool BeginLoad(Stream& source) override;
@@ -104,6 +82,14 @@ namespace Alimer
         /// Register object factory.
         static void RegisterObject();
 
-        TextureDescriptor   _descriptor{};
+        TextureType _type = TextureType::Type2D;
+        uint32_t _width = 1;
+        uint32_t _height = 1;
+        uint32_t _depth = 1;
+        uint32_t _mipLevels = 1;
+        uint32_t _arrayLayers = 1;
+        PixelFormat _format = PixelFormat::RGBA8UNorm;
+        TextureUsage _usage = TextureUsage::ShaderRead;
+        SampleCount _samples = SampleCount::Count1;
     };
 }

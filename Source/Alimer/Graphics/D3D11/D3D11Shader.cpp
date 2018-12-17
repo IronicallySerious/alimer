@@ -21,7 +21,7 @@
 //
 
 #include "D3D11Shader.h"
-#include "D3D11GraphicsDevice.h"
+#include "DeviceD3D11.h"
 #include "../D3D/D3DShaderCompiler.h"
 #include "../../Core/Log.h"
 #include <spirv-cross/spirv_hlsl.hpp>
@@ -107,7 +107,7 @@ namespace Alimer
 #endif // TODO_D3D11
 
 
-    D3D11ShaderModule::D3D11ShaderModule(D3D11Graphics* device)
+    D3D11ShaderModule::D3D11ShaderModule(DeviceD3D11* device)
         : ShaderModule(device)
     {
         //_d3dBlob = ConvertAndCompileHLSL(device, blob, GetReflection().stage);

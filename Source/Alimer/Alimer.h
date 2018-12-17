@@ -49,10 +49,10 @@
 
 // Graphics
 #include "Graphics/PixelFormat.h"
-#include "Graphics/GpuBuffer.h"
+#include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
-#include "Graphics/Graphics.h"
+#include "Graphics/GPUDevice.h"
 
 // Resource
 #include "Resource/Resource.h"

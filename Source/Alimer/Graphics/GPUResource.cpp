@@ -20,49 +20,33 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/GpuBuffer.h"
-#include "../Graphics/Graphics.h"
-#include "../Core/Log.h"
+#include "../Graphics/GPUResource.h"
+#include "../Graphics/GPUDevice.h"
 
 namespace Alimer
 {
-    GpuBuffer::GpuBuffer(GPUDevice* device)
-        : GraphicsResource(device)
+    GPUResource::GPUResource(GPUDevice* device, Type type)
+        : _device(device)
+        , _type(type)
     {
-
-    }
-   
-    bool GpuBuffer::Define(const BufferDescriptor* descriptor, const void* initialData)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->usage == BufferUsage::None)
+        if (device)
         {
-            ALIMER_LOGCRITICAL("Invalid bufer usage");
+            device->TrackResource(this);
+        }
+    }
+
+    GPUResource::~GPUResource()
+    {
+        if (_device)
+        {
+            _device->UntrackResource(this);
         }
 
         Destroy();
-
-        _usage = descriptor->usage;
-        _stride = descriptor->stride;
-        _size = descriptor->size;
-
-        return Create(initialData);
     }
 
-    bool GpuBuffer::SetSubData(const void* pData)
+    GPUDevice* GPUResource::GetDevice() const
     {
-        return false;
-    }
-
-    bool GpuBuffer::SetSubData(uint32_t offset, uint32_t size, const void* pData)
-    {
-        if (offset + size > GetSize())
-        {
-            ALIMER_LOGERROR("Buffer subdata out of range");
-            return false;
-        }
-
-        return false;
+        return _device.Get();
     }
 }

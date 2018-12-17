@@ -21,7 +21,7 @@
 //
 
 #include "D3D11Cache.h"
-#include "D3D11GraphicsDevice.h"
+#include "DeviceD3D11.h"
 #include "../Shader.h"
 #include "../D3D/D3DShaderCompiler.h"
 #include "../D3D/D3DConvert.h"
@@ -32,7 +32,7 @@ using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    D3D11Cache::D3D11Cache(D3D11Graphics* device)
+    D3D11Cache::D3D11Cache(DeviceD3D11* device)
         : _device(device)
     {
     }

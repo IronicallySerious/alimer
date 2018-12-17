@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/CommandContext.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 
@@ -94,10 +94,11 @@ namespace Alimer
         //SetPipelineImpl(pipeline);
     }
 
-    void CommandContext::SetVertexBuffer(uint32_t binding, GpuBuffer* buffer, uint32_t offset)
+    void CommandContext::SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
+
 #if defined(ALIMER_DEV)
         if (!any(buffer->GetUsage() & BufferUsage::Vertex))
         {
@@ -105,27 +106,13 @@ namespace Alimer
             return;
         }
 #endif
-        //SetVertexBufferImpl(buffer, offset);
+        SetVertexBufferCore(binding, buffer, offset, buffer->GetElementSize(), inputRate);
     }
 
-    void CommandContext::SetVertexBuffers(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets)
-    {
-        ALIMER_ASSERT(firstBinding + count < MaxVertexBufferBindings);
-        for (uint32_t i = firstBinding; i < count; i++)
-        {
-            if (!any(buffers[i]->GetUsage() & BufferUsage::Vertex))
-            {
-                _device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
-                return;
-            }
-        }
-
-        //SetVertexBuffersImpl(firstBinding, count, buffers, offsets);
-    }
-
-    void CommandContext::SetIndexBuffer(GpuBuffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandContext::SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
+
 #if defined(ALIMER_DEV)
         if (!any(buffer->GetUsage() & BufferUsage::Index))
         {
@@ -134,7 +121,7 @@ namespace Alimer
         }
 #endif
         
-        SetIndexBufferImpl(buffer, offset, indexType);
+        SetIndexBufferCore(buffer, offset, indexType);
     }
 
     void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)
@@ -212,14 +199,14 @@ namespace Alimer
 #if TODO
 
 
-    void CommandBuffer::BindBuffer(GpuBuffer* buffer, uint32_t set, uint32_t binding)
+    void CommandBuffer::BindBuffer(GPUBuffer* buffer, uint32_t set, uint32_t binding)
     {
         ALIMER_ASSERT(buffer);
 
         BindBuffer(buffer, 0, buffer->GetSize(), set, binding);
     }
 
-    void CommandBuffer::BindBuffer(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
+    void CommandBuffer::BindBuffer(GPUBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(any(buffer->GetUsage() & BufferUsage::Uniform) || any(buffer->GetUsage() & BufferUsage::Storage));

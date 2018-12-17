@@ -29,33 +29,21 @@ namespace Alimer
 {
     struct FramebufferAttachment
     {
-        Texture* texture;
-        uint32_t baseMipLevel;
-        uint32_t baseArrayLayer;
-        uint32_t layerCount;
-    };
-
-    struct FramebufferDescriptor
-    {
-        FramebufferAttachment colorAttachments[MaxColorAttachments];
-        FramebufferAttachment depthStencilAttachment;
+        Texture* texture = nullptr;
+        uint32_t baseMipLevel = 0;
+        uint32_t baseArrayLayer = 0;
+        uint32_t layerCount = RemainingArrayLayers;
     };
 
     /// Defines a Framebuffer class.
-    class ALIMER_API Framebuffer : public GraphicsResource
+    class ALIMER_API Framebuffer : public GPUResource, public RefCounted
     {
-    public:
+    protected:
         /// Constructor.
-        Framebuffer(GPUDevice* device);
+        Framebuffer(GPUDevice* device, uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment);
 
-        /// Set color attachment at index.
-        void SetColorAttachment(uint32_t index, Texture* colorTexture, uint32_t baseMipLevel = 0, uint32_t baseArrayLayer = 0, uint32_t layerCount = RemainingArrayLayers);
 
-        /// Set framebuffer depth stencil attachment.
-        void SetDepthStencilAttachment(Texture* depthStencilTexture, uint32_t baseMipLevel = 0, uint32_t baseArrayLayer = 0, uint32_t layerCount = RemainingArrayLayers);
-
-        bool Define(const FramebufferDescriptor* descriptor);
-
+    public:
         /// Get the number of color attachments.
         uint32_t GetColorAttachmentsCount() const { return _colorAttachments.Size(); }
 
@@ -68,32 +56,21 @@ namespace Alimer
         ///* Get the attached depth-stencil texture or null if no texture is attached.
         const Texture* GetDepthStencilTexture() const;
 
-        /**
-        * Get the width of the framebuffer.
-        */
+        /// Get the width of the framebuffer.
         uint32_t GetWidth() const { return _width; }
 
-        /**
-        * Get the height of the framebuffer.
-        */
+        /// Get the height of the framebuffer.
         uint32_t GetHeight() const { return _height; }
 
-        /**
-        * Get the layers of the framebuffer.
-        */
+        ///Get the layers of the framebuffer.
         uint32_t GetLayers() const { return _layers; }
 
     private:
-        virtual void ApplyColorAttachment(uint32_t index) = 0;
-        virtual void ApplyDepthStencilAttachment() = 0;
-        bool Create();
-
-    protected:
         PODVector<FramebufferAttachment> _colorAttachments;
         FramebufferAttachment _depthStencilAttachment;
 
-        uint32_t _width = 0;
-        uint32_t _height = 0;
-        uint32_t _layers = 1;
+        uint32_t _width;
+        uint32_t _height;
+        uint32_t _layers;
     };
 }

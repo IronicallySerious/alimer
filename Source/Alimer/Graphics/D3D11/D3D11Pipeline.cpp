@@ -22,7 +22,7 @@
 
 #if TODO_D3D11
 #include "D3D11Pipeline.h"
-#include "D3D11GraphicsDevice.h"
+#include "DeviceD3D11.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;

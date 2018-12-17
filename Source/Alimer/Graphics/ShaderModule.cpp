@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/ShaderModule.h"
-#include "../Graphics/Graphics.h"
+#include "../Graphics/GPUDevice.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceManager.h"
@@ -30,7 +30,7 @@
 namespace Alimer
 {
     ShaderModule::ShaderModule(GPUDevice* device)
-        : GraphicsResource(device)
+        : GPUResource(device, Type::ShaderModule)
     {
     }
 
@@ -43,7 +43,7 @@ namespace Alimer
     {
     }
 
-    bool ShaderModule::BeginLoad(Stream& source)
+    /*bool ShaderModule::BeginLoad(Stream& source)
     {
         String extension = FileSystem::GetExtension(source.GetName());
         if (extension == ".vert")
@@ -57,11 +57,11 @@ namespace Alimer
     bool ShaderModule::EndLoad()
     {
         return Define(_stage, _sourceCode, "main");
-    }
+    }*/
 
     bool ShaderModule::ProcessIncludes(String& code, Stream& source)
     {
-        ResourceManager* resources = GetSubsystem<ResourceManager>();
+        ResourceManager* resources = Object::GetSubsystem<ResourceManager>();
 
         while (!source.IsEof())
         {

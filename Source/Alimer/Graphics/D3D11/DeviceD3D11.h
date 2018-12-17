@@ -22,35 +22,35 @@
 
 #pragma once
 
-#include "../../Graphics/Graphics.h"
+#include "../../Graphics/GPUDevice.h"
 #include "D3D11Cache.h"
 
 namespace Alimer
 {
-    class D3D11Texture;
-    class D3D11Swapchain;
     class D3D11CommandContext;
 
     /// D3D11 graphics implementation.
-    class D3D11Graphics final : public GPUDevice
+    class DeviceD3D11 final : public GPUDevice
     {
     public:
         /// Is backend supported?
         static bool IsSupported();
 
         /// Constructor.
-        D3D11Graphics(bool validation);
+        DeviceD3D11(bool validation);
 
         /// Destructor.
-        ~D3D11Graphics() override;
+        ~DeviceD3D11() override;
 
         bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
         bool WaitIdle() override;
 
-        //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
-        //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
-        //Framebuffer* CreateFramebuffer() override;
-        //GpuBuffer* CreateBuffer() override;
+        Buffer* CreateBufferCore(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData, const std::string& name) override;
+        Texture* CreateTextureCore(TextureType type, uint32_t width, uint32_t height,
+            uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format,
+            TextureUsage usage, SampleCount samples, const void* initialData)  override;
+        Sampler* CreateSamplerCore(const SamplerDescriptor* descriptor) override;
+        Framebuffer* CreateFramebufferCore(uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment) override;
 
         void HandleDeviceLost();
 

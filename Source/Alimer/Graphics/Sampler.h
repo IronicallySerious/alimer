@@ -22,15 +22,14 @@
 
 #pragma once
 
-#include "../Graphics/GraphicsResource.h"
+#include "../Graphics/GPUResource.h"
 
 namespace Alimer
 {
     /// Defines a Sampler class.
-    class ALIMER_API Sampler : public GraphicsResource
+    class ALIMER_API Sampler : public GPUResource
     {
         friend class GPUDevice;
-        ALIMER_OBJECT(Sampler, GraphicsResource);
 
     protected:
         /// Constructor.

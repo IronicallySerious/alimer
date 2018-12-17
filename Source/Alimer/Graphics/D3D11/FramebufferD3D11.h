@@ -22,30 +22,31 @@
 
 #pragma once
 
-#if TODO_D3D11
-#include "Graphics/VertexFormat.h"
+#include "../Framebuffer.h"
 #include "D3D11Prerequisites.h"
+#include <map>
 
 namespace Alimer
 {
-    class D3D11Graphics;
+    class DeviceD3D11;
 
-    /// D3D11 VertexInputFormat implementation.
-    class D3D11VertexInputFormat final : public VertexInputFormat
+    /// D3D11 Framebuffer implementation.
+    class FramebufferD3D11 final : public Framebuffer
     {
     public:
-        /// Constructor.
-        D3D11VertexInputFormat(D3D11Graphics* graphics, const VertexInputFormatDescriptor* descriptor);
+        FramebufferD3D11(DeviceD3D11* device, uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment);
+        ~FramebufferD3D11() override;
 
-        /// Destructor.
-        ~D3D11VertexInputFormat() override;
+        void Destroy() override;
 
-        const std::vector<D3D11_INPUT_ELEMENT_DESC>& GetInputElements() const { return _inputElements; }
+        uint32_t Bind(ID3D11DeviceContext* context) const;
+
+        ID3D11RenderTargetView* GetColorRTV(uint32_t index) const { return _colorRtvs[index]; }
+        ID3D11DepthStencilView* GetDSV() const { return _depthStencilView; }
 
     private:
-        D3D11Graphics* _graphics;
-        std::vector<D3D11_INPUT_ELEMENT_DESC> _inputElements;
+        ID3D11RenderTargetView* _colorRtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+        ID3D11DepthStencilView* _depthStencilView = nullptr;
     };
-}
 
-#endif // TODO_D3D11
+}

@@ -20,12 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "D3D11GraphicsDevice.h"
-#include "D3D11Swapchain.h"
+#include "DeviceD3D11.h"
+#include "RenderWindowD3D11.h"
 #include "D3D11CommandContext.h"
-#include "D3D11Texture.h"
+#include "TextureD3D11.h"
 #include "SamplerD3D11.h"
-#include "D3D11Framebuffer.h"
+#include "FramebufferD3D11.h"
 #include "D3D11Buffer.h"
 #include "D3D11Shader.h"
 //#include "D3D11Pipeline.h"
@@ -143,7 +143,7 @@ namespace Alimer
     }
 
 
-    bool D3D11Graphics::IsSupported()
+    bool DeviceD3D11::IsSupported()
     {
         static bool availableCheck = false;
         static bool isAvailable = false;
@@ -174,7 +174,7 @@ namespace Alimer
         return isAvailable;
     }
 
-    D3D11Graphics::D3D11Graphics(bool validation)
+    DeviceD3D11::DeviceD3D11(bool validation)
         : GPUDevice(GraphicsBackend::D3D11, validation)
         , _cache(this)
     {
@@ -185,7 +185,7 @@ namespace Alimer
         }
     }
 
-    D3D11Graphics::~D3D11Graphics()
+    DeviceD3D11::~DeviceD3D11()
     {
         SafeDelete(_mainWindow);
 
@@ -208,7 +208,7 @@ namespace Alimer
         _d3dDevice.Reset();
     }
 
-    bool D3D11Graphics::Initialize(const RenderWindowDescriptor* mainWindowDescriptor)
+    bool DeviceD3D11::Initialize(const RenderWindowDescriptor* mainWindowDescriptor)
     {
         HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&_factory));
         if (FAILED(hr))
@@ -321,7 +321,7 @@ namespace Alimer
         InitializeCaps();
 
         // Create Swapchain.
-        _mainWindow = new D3D11Swapchain(this, mainWindowDescriptor);
+        _mainWindow = new RenderWindowD3D11(this, mainWindowDescriptor);
 
         // Create immediate command context.
         _immediateCommandContext = new D3D11CommandContext(this);
@@ -329,11 +329,11 @@ namespace Alimer
         return true;
     }
 
-    void D3D11Graphics::GenerateScreenshot(const std::string& fileName)
+    void DeviceD3D11::GenerateScreenshot(const std::string& fileName)
     {
         /*HRESULT hr = S_OK;
 
-        D3D11Texture* backBufferTexture = _swapChain->GetBackbufferTexture();
+        TextureD3D11* backBufferTexture = _swapChain->GetBackbufferTexture();
         const DXGI_FORMAT format = backBufferTexture->GetDXGIFormat();
 
         D3D11_TEXTURE2D_DESC textureDesc;
@@ -410,13 +410,13 @@ namespace Alimer
         texture->Release();*/
     }
 
-    bool D3D11Graphics::WaitIdle()
+    bool DeviceD3D11::WaitIdle()
     {
         _d3dContext->Flush();
         return true;
     }
 
-    void D3D11Graphics::InitializeCaps()
+    void DeviceD3D11::InitializeCaps()
     {
         ComPtr<IDXGIDevice1> dxgiDevice;
         ThrowIfFailed(_d3dDevice.As(&dxgiDevice));
@@ -489,33 +489,39 @@ namespace Alimer
         }
     }
 
-    void D3D11Graphics::HandleDeviceLost()
+    void DeviceD3D11::HandleDeviceLost()
     {
         // TODO
     }
 
-    D3D11Cache &D3D11Graphics::GetCache()
+    D3D11Cache &DeviceD3D11::GetCache()
     {
         return _cache;
     }
 
-    //GPUTexture* D3D11Graphics::CreateTexture(const TextureDescriptor* descriptor, const ImageLevel* initialData)
-    //{
-    //    return new D3D11Texture(this, descriptor, initialData);
-    //}
+    Buffer* DeviceD3D11::CreateBufferCore(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData, const std::string& name)
+    {
+        return new BufferD3D11(this, usage, elementCount, elementSize, initialData, name);
+    }
 
-    //GPUSampler* D3D11Graphics::CreateSampler(const SamplerDescriptor* descriptor)
-    //{
-    //    return new D3D11Sampler(this, descriptor);
-    //}
+    Texture* DeviceD3D11::CreateTextureCore(TextureType type, uint32_t width, uint32_t height,
+        uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format,
+        TextureUsage usage, SampleCount samples, const void* initialData)
+    {
+        return new TextureD3D11(
+            this, type, width, height, depth, 
+            mipLevels, arrayLayers, format, 
+            usage, samples, initialData, 
+            nullptr, DXGI_FORMAT_UNKNOWN);
+    }
 
-    //Framebuffer* D3D11Graphics::CreateFramebuffer()
-    //{
-    //    return new D3D11Framebuffer(this);
-    //}
+    Sampler* DeviceD3D11::CreateSamplerCore(const SamplerDescriptor* descriptor)
+    {
+        return new SamplerD3D11(this, descriptor);
+    }
 
-    //GpuBuffer* D3D11Graphics::CreateBuffer()
-    //{
-    //    return new D3D11Buffer(this);
-    //}
+    Framebuffer* DeviceD3D11::CreateFramebufferCore(uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment)
+    {
+        return new FramebufferD3D11(this, colorAttachmentsCount, colorAttachments, depthStencilAttachment);
+    }
 }

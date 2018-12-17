@@ -27,10 +27,9 @@
 namespace Alimer
 {
     /// Defines a shader resource.
-    class ALIMER_API Shader final : public GraphicsResource
+    class ALIMER_API Shader final : public GPUResource
     {
         friend class GPUDevice;
-        ALIMER_OBJECT(Shader, GraphicsResource);
 
     protected:
         /// Constructor.
@@ -51,9 +50,6 @@ namespace Alimer
         }
 
     private:
-        bool BeginLoad(Stream& source) override;
-        bool EndLoad() override;
-
         /// Register object factory.
         static void RegisterObject();
 
