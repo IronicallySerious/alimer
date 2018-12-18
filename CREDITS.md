@@ -12,7 +12,7 @@ Alimer uses the following open-source and third-party libraries:
 - [glslang](https://github.com/KhronosGroup/glslang)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [volk Metaloader for Vulkan](https://github.com/zeux/volk)
-- [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+- [Vulkan Memory Allocator 2.2.0](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [glfw](https://www.glfw.org)
 - [glad](https://glad.dav1d.de/)
 - [imgui 1.66](https://github.com/ocornut/imgui)
