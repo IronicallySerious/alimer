@@ -263,6 +263,18 @@ namespace Alimer
         _gpuResources.Remove(resource);
     }
 
+    CommandContext& GPUDevice::Begin(const String& name)
+    {
+        CommandContext* newContext = nullptr; // AllocateContext();
+        newContext->SetName(name);
+        if (!name.IsEmpty())
+        {
+            //GpuProfiler::BeginBlock(name, newContext);
+        }
+
+        return *newContext;
+    }
+
     void GPUDevice::NotifyValidationError(const char* message)
     {
         // TODO: Add callback.
@@ -276,7 +288,7 @@ namespace Alimer
             return;
         registered = true;
 
-        //ShaderModule::RegisterObject();
+        ShaderModule::RegisterObject();
         //Shader::RegisterObject();
         //Texture::RegisterObject();
         //Sampler::RegisterObject();
@@ -413,13 +425,13 @@ namespace Alimer
             return false;
         }
 
-        if (attachment.baseMipLevel >= attachment.texture->GetMipLevels())
+        if (attachment.level >= attachment.texture->GetMipLevels())
         {
             ALIMER_LOGERROR("Framebuffer attachment error : mipLevel out of bound.");
             return false;
         }
 
-        if (attachment.layerCount != RemainingArrayLayers)
+        /*if (attachment.layerCount != RemainingArrayLayers)
         {
             if (attachment.layerCount == 0)
             {
@@ -443,7 +455,7 @@ namespace Alimer
                     return false;
                 }
             }
-        }
+        }*/
 
         if (isDepthAttachment)
         {
@@ -453,9 +465,9 @@ namespace Alimer
                 return false;
             }
 
-            if (!any(attachment.texture->GetUsage() & TextureUsage::RenderTarget))
+            if (!any(attachment.texture->GetUsage() & TextureUsage::OutputAttachment))
             {
-                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to depth-stencil target, the texture has no RenderTarget usage flag.");
+                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to depth-stencil target, the texture has no OutputAttachment usage flag.");
                 return false;
             }
         }
@@ -467,9 +479,9 @@ namespace Alimer
                 return false;
             }
 
-            if (!any(attachment.texture->GetUsage() & TextureUsage::RenderTarget))
+            if (!any(attachment.texture->GetUsage() & TextureUsage::OutputAttachment))
             {
-                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to color target, the texture has no RenderTarget usage flag.");
+                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to color target, the texture has no OutputAttachment usage flag.");
                 return false;
             }
         }

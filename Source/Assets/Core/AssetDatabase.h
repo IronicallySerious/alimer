@@ -20,31 +20,21 @@
 // THE SOFTWARE.
 //
 
-#include "../Resource/Resource.h"
-#include "../Core/Log.h"
+#pragma once
+
+#include "Alimer.h"
 
 namespace Alimer
 {
-	Resource::Resource()
-		: _asyncLoadState(AsyncLoadState::Done)
+	class AssetDatabase final : public Object
 	{
-	}
+		ALIMER_OBJECT(AssetDatabase, Object);
+	public:
+		AssetDatabase();
+		~AssetDatabase();
 
-    bool Resource::Save(Stream& dest)
-    {
-        ALIMER_LOGERROR("Save not supported for '{}'", GetTypeName().CString());
-        return false;
-    }
-
-
-	void Resource::SetName(const String& name)
-	{
-		_name = name;
-		_nameHash = name;
-	}
-
-    void Resource::SetAsyncLoadState(AsyncLoadState newState)
-    {
-        _asyncLoadState = newState;
-    }
+	private:
+		String _inputPath;
+        String _outputPath;
+	};
 }

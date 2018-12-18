@@ -54,8 +54,9 @@ namespace Alimer
     };
 
     /// Defines a Pipeline class.
-    class ALIMER_API Pipeline final : public GPUResource, public RefCounted
+    class ALIMER_API Pipeline final : public GPUResource
     {
+        ALIMER_OBJECT(Pipeline, GPUResource);
     public:
         /// Constructor.
         Pipeline(GPUDevice* device);

@@ -30,9 +30,10 @@ namespace Alimer
     class Stream;
 
     /// Defines a shader module resource.
-    class ALIMER_API ShaderModule : public GPUResource, public RefCounted
+    class ALIMER_API ShaderModule : public GPUResource
     {
         friend class GPUDevice;
+        ALIMER_OBJECT(ShaderModule, GPUResource);
 
     public:
         /// Constructor.
@@ -48,9 +49,7 @@ namespace Alimer
         bool Define(ShaderStage stage, const Vector<uint8_t>& bytecode);
 
     private:
-        /// Process include statements in the shader source code recursively. Return true if successful.
-        bool ProcessIncludes(String& code, Stream& source);
-
+        
         /// Register object factory.
         static void RegisterObject();
 

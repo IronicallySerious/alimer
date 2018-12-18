@@ -33,18 +33,6 @@ namespace Alimer
     {
     }
 
-    CommandContext& CommandContext::Begin(const String name)
-    {
-        CommandContext* newContext = nullptr;
-        newContext->SetName(name);
-        if (!name.IsEmpty())
-        {
-            //GpuProfiler::BeginBlock(name, newContext);
-        }
-
-        return *newContext;
-    }
-
     uint64_t CommandContext::Flush(bool waitForCompletion)
     {
         return FlushImpl(waitForCompletion);
@@ -106,6 +94,7 @@ namespace Alimer
             return;
         }
 #endif
+
         SetVertexBufferCore(binding, buffer, offset, buffer->GetElementSize(), inputRate);
     }
 
@@ -126,7 +115,7 @@ namespace Alimer
 
     void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)
     {
-        //SetPrimitiveTopologyImpl(topology);
+        SetPrimitiveTopologyCore(topology);
     }
 
     void CommandContext::Draw(uint32_t vertexCount, uint32_t firstVertex)
@@ -143,7 +132,7 @@ namespace Alimer
         ALIMER_ASSERT(instanceCount >= 1);
 #endif
 
-        //DrawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
+        DrawInstancedCore(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
@@ -165,8 +154,7 @@ namespace Alimer
     void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         ALIMER_ASSERT(_currentPipeline && _currentPipeline->IsCompute());
-        FlushComputeState();
-        //DispatchImpl(groupCountX, groupCountY, groupCountZ);
+        DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
     void CommandContext::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
@@ -188,11 +176,6 @@ namespace Alimer
             DivideByMultiple(threadCountX, groupSizeX),
             DivideByMultiple(threadCountY, groupSizeY),
             DivideByMultiple(threadCountZ, groupSizeZ));
-    }
-
-    void CommandContext::FlushComputeState()
-    {
-
     }
 
 

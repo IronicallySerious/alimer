@@ -20,31 +20,32 @@
 // THE SOFTWARE.
 //
 
-#include "../Resource/Resource.h"
-#include "../Core/Log.h"
+#pragma once
+
+#include "Graphics/ShaderModule.h"
+#include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
-	Resource::Resource()
-		: _asyncLoadState(AsyncLoadState::Done)
-	{
-	}
+    class DeviceD3D11;
 
-    bool Resource::Save(Stream& dest)
+    /// D3D11 ShaderModule implementation.
+    class ShaderModuleD3D11 final : public ShaderModule
     {
-        ALIMER_LOGERROR("Save not supported for '{}'", GetTypeName().CString());
-        return false;
-    }
+    public:
+        /// Constructor.
+        ShaderModuleD3D11(DeviceD3D11* device);
 
+        /// Destructor.
+        ~ShaderModuleD3D11() override;
 
-	void Resource::SetName(const String& name)
-	{
-		_name = name;
-		_nameHash = name;
-	}
+        void Destroy() override;
 
-    void Resource::SetAsyncLoadState(AsyncLoadState newState)
-    {
-        _asyncLoadState = newState;
-    }
+    private:
+        union {
+            ID3D11DeviceChild*  _child;
+            ID3D11VertexShader* _vertex;
+            ID3D11PixelShader*  _pixel;
+        };
+    };
 }

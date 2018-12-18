@@ -20,20 +20,8 @@
 # THE SOFTWARE.
 #
 
-# Engine
-add_subdirectory (Alimer)
+# Add Core.
+add_subdirectory (Core)
 
-# Plugins
-add_subdirectory (Plugins)
-
-# Player
-add_subdirectory(Player)
-
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
-    add_subdirectory (Assets)
-    add_subdirectory (Tools)
-endif ()
-
-if (ALIMER_CSHARP)
-    add_subdirectory (Managed)
-endif ()
+# Add Compiler executable.
+add_subdirectory (Compiler)

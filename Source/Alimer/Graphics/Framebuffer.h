@@ -29,19 +29,21 @@ namespace Alimer
 {
     struct FramebufferAttachment
     {
+        /// The texture attachment.
         Texture* texture = nullptr;
-        uint32_t baseMipLevel = 0;
-        uint32_t baseArrayLayer = 0;
-        uint32_t layerCount = RemainingArrayLayers;
+        /// The mipmap level of the texture used for rendering to the attachment.
+        uint32_t level = 0;
+        /// The slice of the texture used for rendering to the attachment.
+        uint32_t slice = 0;
     };
 
     /// Defines a Framebuffer class.
-    class ALIMER_API Framebuffer : public GPUResource, public RefCounted
+    class ALIMER_API Framebuffer : public GPUResource
     {
+        ALIMER_OBJECT(Framebuffer, GPUResource);
     protected:
         /// Constructor.
         Framebuffer(GPUDevice* device, uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment);
-
 
     public:
         /// Get the number of color attachments.

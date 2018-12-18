@@ -82,7 +82,7 @@ namespace Alimer
 
             // Shaders
             //auto texture = resources.Load<Texture>("textures/test.png");
-            //auto vertexShader = resources.Load<ShaderModule>("shaders/color.vert");
+            auto vertexShader = resources.Load<ShaderModule>("shaders/color.vert");
             //auto fragmentShader = resources.Load<ShaderModule>("shaders/color.frag");
             //_shader = new Shader();
             //_shader->Define(vertexShader.Get(), fragmentShader.Get());
@@ -93,7 +93,8 @@ namespace Alimer
             CommandContext& context = device->GetImmediateContext();
             Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
             context.BeginDefaultRenderPass(clearColor);
-            //context.Draw(3, 0);
+            context.SetVertexBuffer(0, _vertexBuffer);
+            context.Draw(3, 0);
             context.EndRenderPass();
             context.Flush();
         }

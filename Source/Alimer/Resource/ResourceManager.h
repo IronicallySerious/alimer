@@ -60,14 +60,12 @@ namespace Alimer
         UniquePtr<Stream> OpenResource(const String &assetName);
         bool Exists(const String &assetName);
 
-        Vector<uint8_t> ReadBytes(const String& assetName, size_t count = 0);
-
-        Resource* LoadResource(StringHash type, const String& assetName);
+        SharedPtr<Object> LoadObject(StringHash type, const String& assetName);
 
 		template <class T> SharedPtr<T> Load(const String& assetName)
 		{
-            static_assert(std::is_base_of<Resource, T>(), "T is not a resource thus cannot load");
-			return StaticCast<T>(LoadResource(T::GetTypeStatic(), assetName));
+            static_assert(std::is_base_of<Object, T>(), "T is not a resource thus cannot load");
+			return StaticCast<T>(LoadObject(T::GetTypeStatic(), assetName));
 		}
 
         /// Remove unsupported constructs from the resource name to prevent ambiguity, and normalize absolute filename to resource path relative if possible.
@@ -96,7 +94,7 @@ namespace Alimer
 
         std::unordered_map<StringHash, UniquePtr<ResourceLoader>> _loaders;
         using ResourceKey = std::pair<StringHash, StringHash>;
-		std::map<ResourceKey, SharedPtr<Resource>> _resources;
+		std::map<ResourceKey, SharedPtr<Object>> _resources;
 
         /// Search priority flag.
         bool _searchPackagesFirst{ true };

@@ -30,13 +30,6 @@ namespace Alimer
 {
 	class DeviceD3D11;
 
-    class D3D11ShaderModule final : public ShaderModule
-    {
-    public:
-        D3D11ShaderModule(DeviceD3D11* device);
-        ~D3D11ShaderModule() override;
-        void Destroy();
-    };
 
     /*class D3D11Shader final : public Shader
     {

@@ -20,20 +20,27 @@
 # THE SOFTWARE.
 #
 
-# Engine
-add_subdirectory (Alimer)
+cmake_minimum_required(VERSION 3.6)
+project (AlimerAssets)
 
-# Plugins
-add_subdirectory (Plugins)
+alimer_find_source_files(ALL_SOURCE_FILES)
 
-# Player
-add_subdirectory(Player)
+# Define the target.
+add_alimer_library(${PROJECT_NAME} ${ALL_SOURCE_FILES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
-    add_subdirectory (Assets)
-    add_subdirectory (Tools)
-endif ()
+target_link_libraries (${PROJECT_NAME} 
+    PUBLIC Alimer
+    PRIVATE glslang
+    PRIVATE OGLCompiler
+    PRIVATE OSDependent
+    PRIVATE SPIRV
+    # PRIVATE SPVRemapper
+)
 
-if (ALIMER_CSHARP)
-    add_subdirectory (Managed)
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Assets")
+
+# Install under tools
+if (NOT ALIMER_SKIP_INSTALL)
+    # install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
 endif ()

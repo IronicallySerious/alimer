@@ -37,16 +37,15 @@ namespace Alimer
         for (uint32_t i = 0; i < colorAttachmentsCount; i++)
         {
             const FramebufferAttachment& attachment = colorAttachments[i];
-            uint32_t mipLevel = attachment.baseMipLevel;
             Texture* texture = attachment.texture;
-            _width = min(_width, texture->GetWidth(mipLevel));
-            _height = min(_height, texture->GetHeight(mipLevel));
+            _width = min(_width, texture->GetWidth(attachment.level));
+            _height = min(_height, texture->GetHeight(attachment.level));
             _colorAttachments.Push(attachment);
         }
 
         if (depthStencilAttachment != nullptr)
         {
-            uint32_t mipLevel = depthStencilAttachment->baseMipLevel;
+            uint32_t mipLevel = depthStencilAttachment->level;
             _width = min(_width, depthStencilAttachment->texture->GetWidth(mipLevel));
             _height = min(_height, depthStencilAttachment->texture->GetHeight(mipLevel));
             memcpy(&_depthStencilAttachment, depthStencilAttachment, sizeof(FramebufferAttachment));

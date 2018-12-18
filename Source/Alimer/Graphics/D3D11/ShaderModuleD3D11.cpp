@@ -20,31 +20,25 @@
 // THE SOFTWARE.
 //
 
-#include "../Resource/Resource.h"
-#include "../Core/Log.h"
+#include "ShaderModuleD3D11.h"
+#include "DeviceD3D11.h"
+#include "../../Core/Log.h"
+using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-	Resource::Resource()
-		: _asyncLoadState(AsyncLoadState::Done)
-	{
-	}
-
-    bool Resource::Save(Stream& dest)
+    ShaderModuleD3D11::ShaderModuleD3D11(DeviceD3D11* device)
+        : ShaderModule(device)
     {
-        ALIMER_LOGERROR("Save not supported for '{}'", GetTypeName().CString());
-        return false;
     }
 
-
-	void Resource::SetName(const String& name)
-	{
-		_name = name;
-		_nameHash = name;
-	}
-
-    void Resource::SetAsyncLoadState(AsyncLoadState newState)
+    ShaderModuleD3D11::~ShaderModuleD3D11()
     {
-        _asyncLoadState = newState;
+        Destroy();
+    }
+
+    void ShaderModuleD3D11::Destroy()
+    {
+        SafeRelease(_child);
     }
 }

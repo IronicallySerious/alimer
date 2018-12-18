@@ -22,11 +22,11 @@
 
 #include "DeviceD3D11.h"
 #include "RenderWindowD3D11.h"
-#include "D3D11CommandContext.h"
+#include "CommandContextD3D11.h"
 #include "TextureD3D11.h"
 #include "SamplerD3D11.h"
 #include "FramebufferD3D11.h"
-#include "D3D11Buffer.h"
+#include "BufferD3D11.h"
 #include "D3D11Shader.h"
 //#include "D3D11Pipeline.h"
 #include "../../Core/Platform.h"
@@ -324,7 +324,7 @@ namespace Alimer
         _mainWindow = new RenderWindowD3D11(this, mainWindowDescriptor);
 
         // Create immediate command context.
-        _immediateCommandContext = new D3D11CommandContext(this);
+        _immediateCommandContext = new CommandContextD3D11(this);
 
         return true;
     }

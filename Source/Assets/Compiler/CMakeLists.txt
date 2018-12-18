@@ -20,20 +20,22 @@
 # THE SOFTWARE.
 #
 
-# Engine
-add_subdirectory (Alimer)
+cmake_minimum_required(VERSION 3.6)
+project (AssetCompiler)
 
-# Plugins
-add_subdirectory (Plugins)
+# Define the target.
+add_executable (${PROJECT_NAME} main.cpp)
+alimer_setup_common_properties(${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} 
+    PUBLIC Alimer AlimerAssets
+    PRIVATE CLI11
+)
 
-# Player
-add_subdirectory(Player)
+# Set properties
+set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Assets")
 
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
-    add_subdirectory (Assets)
-    add_subdirectory (Tools)
-endif ()
-
-if (ALIMER_CSHARP)
-    add_subdirectory (Managed)
+# Install under tools
+if (NOT ALIMER_SKIP_INSTALL)
+    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
 endif ()

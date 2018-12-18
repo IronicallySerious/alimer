@@ -107,6 +107,9 @@ namespace Alimer
             return *_immediateCommandContext;
         }
 
+        /// Create new CommandContext
+        CommandContext& Begin(const String& name = "");
+
         void NotifyValidationError(const char* message);
 
         Buffer* CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr, const std::string& name = "");

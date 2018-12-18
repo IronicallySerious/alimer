@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "D3D11Buffer.h"
+#include "BufferD3D11.h"
 #include "DeviceD3D11.h"
 #include "D3D11Convert.h"
 #include "../../Math/MathUtil.h"

@@ -177,12 +177,15 @@ namespace Alimer
         TypeCube,
     };
 
+    /// Defines texture usage enum.
     enum class TextureUsage : uint32_t
     {
         None = 0,
-        ShaderRead = 1 << 0,
-        ShaderWrite = 1 << 1,
-        RenderTarget = 1 << 2,
+        TransferSrc = 0x00000001,
+        TransferDest = 0x00000002,
+        Sampled = 0x00000004,
+        Storage = 0x00000008,
+        OutputAttachment = 0x00000010,
     };
     ALIMER_BITMASK(TextureUsage);
 
@@ -315,19 +318,6 @@ namespace Alimer
         CPUAccessible = 1 << 6,
     };
     ALIMER_BITMASK(BufferUsage);
-
-    struct TextureDescriptor
-    {
-        TextureType type = TextureType::Type2D;
-        TextureUsage usage = TextureUsage::ShaderRead;
-        PixelFormat format = PixelFormat::RGBA8UNorm;
-        uint32_t width = 1;
-        uint32_t height = 1;
-        uint32_t depth = 1;
-        uint32_t mipLevels = 1;
-        uint32_t arrayLayers = 1;
-        SampleCount samples = SampleCount::Count1;
-    };
 
     struct SamplerDescriptor
     {

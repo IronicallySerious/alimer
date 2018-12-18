@@ -78,7 +78,7 @@ namespace Alimer
     void ResourceManager::AddLoader(ResourceLoader* loader)
     {
         ALIMER_ASSERT(loader);
-        _loaders[loader->GetType()].Reset(loader);
+        _loaders[loader->GetLoadingType()].Reset(loader);
     }
 
     ResourceLoader* ResourceManager::GetLoader(StringHash type) const
@@ -149,19 +149,15 @@ namespace Alimer
         return false;
     }
 
-    Vector<uint8_t> ResourceManager::ReadBytes(const String& assetName, size_t count)
-    {
-        UniquePtr<Stream> stream = OpenResource(assetName);
-        return stream->ReadBytes(count);
-    }
-
-    Resource* ResourceManager::LoadResource(StringHash type, const String& assetName)
+    SharedPtr<Object> ResourceManager::LoadObject(StringHash type, const String& assetName)
     {
         // Check for existing resource
         auto key = std::make_pair(type, StringHash(assetName));
         auto it = _resources.find(key);
         if (it != _resources.end())
-            return it->second.Get();
+        {
+            return it->second;
+        }
 
         UniquePtr<Stream> stream = OpenResource(assetName);
         if (stream.IsNull())
@@ -170,37 +166,27 @@ namespace Alimer
         }
 
         String sanitatedName = SanitateResourceName(assetName);
-        Resource* newResource = dynamic_cast<Resource*>(CreateObject(type));
-        bool loaded = false;
-        if (newResource == nullptr)
+        // Resolve loader first.
+        ResourceLoader* loader = GetLoader(type);
+        if (!loader)
         {
-            // Try to use loader
-            ResourceLoader* loader = GetLoader(type);
-            if (!loader)
-            {
-                ALIMER_LOGERROR("Could not load unknown resource type {}, no loader found.", String(type).CString());
-                return nullptr;
-            }
-
-            ALIMER_LOGDEBUG("Loading resource '{}' using loader", sanitatedName.CString());
-            newResource = loader->Load(*stream);
-            loaded = newResource != nullptr;
-        }
-       
-        if (!loaded)
-        {
-            ALIMER_LOGDEBUG("Loading resource '{}'", sanitatedName.CString());
-            if (!newResource->Load(*stream))
-            {
-                ALIMER_LOGERROR("Failed to load resource '{}'", sanitatedName.CString());
-                return nullptr;
-            }
+            ALIMER_LOGERROR("Could not load unknown resource type {}, no loader found.", String(type).CString());
+            return nullptr;
         }
 
-        newResource->SetName(sanitatedName);
+        ALIMER_LOGDEBUG("Loading resource '{}'", sanitatedName.CString());
+        SharedPtr<Object> object = loader->Load(*stream);
+
+        if (object.IsNull())
+        {
+            ALIMER_LOGERROR("Failed to load resource '{}'", sanitatedName.CString());
+            return nullptr;
+        }
+
+        //newResource->SetName(sanitatedName);
         // Store to cache
-        _resources[key] = newResource;
-        return newResource;
+        _resources[key] = object;
+        return object;
     }
 
     String ResourceManager::SanitateResourceName(const String& name) const

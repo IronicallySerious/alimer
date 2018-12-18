@@ -31,11 +31,11 @@ namespace Alimer
     class FramebufferD3D11;
     class DeviceD3D11;
 
-    class D3D11CommandContext final : public CommandContext
+    class CommandContextD3D11 final : public CommandContext
     {
     public:
-        D3D11CommandContext(DeviceD3D11* device);
-        ~D3D11CommandContext() override;
+        CommandContextD3D11(DeviceD3D11* device);
+        ~CommandContextD3D11() override;
 
         uint64_t FlushImpl(bool waitForCompletion) override;
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
@@ -44,8 +44,7 @@ namespace Alimer
         void SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
         void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) override;
 
-        /*void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) override;
-        void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) override;
+        /*
         void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) override;
         void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) override;
 
@@ -54,12 +53,13 @@ namespace Alimer
 
     private:
         void BeginContext();
-        void FlushRenderState(PrimitiveTopology topology);
+        void FlushRenderState();
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
 
-        //void SetPipelineImpl(Pipeline* pipeline) override;
-        //void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+        void SetPrimitiveTopologyCore(PrimitiveTopology topology) override;
+        void DrawInstancedCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+        void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
     private:
         ID3D11DeviceContext*         _d3dContext;

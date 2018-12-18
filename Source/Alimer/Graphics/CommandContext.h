@@ -66,9 +66,6 @@ namespace Alimer
         /// Destructor.
         virtual ~CommandContext() = default;
 
-        /// Begin new command context recording.
-        static CommandContext& Begin(const String name = String::EMPTY);
-
         // Flush existing commands to the GPU and optionally wait for execution.
         uint64_t Flush(bool waitForCompletion = false);
 
@@ -98,9 +95,13 @@ namespace Alimer
         void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
-    protected:
-        void FlushComputeState();
+        /// Set name.
+        void SetName(const String& name) { _name = name; }
 
+        /// Return name.
+        const String& GetName() const { return _name; }
+
+    private:
         // Backend methods.
         virtual uint64_t FlushImpl(bool waitForCompletion) = 0;
         virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
@@ -109,17 +110,14 @@ namespace Alimer
         virtual void SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
         virtual void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
-        //virtual void SetPrimitiveTopologyImpl(PrimitiveTopology topology) = 0;
-        //virtual void DrawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
-        //virtual void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) = 0;
         //virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) = 0;
         //virtual void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;
 
-        void SetName(const String& name) { _name = name; }
-
     private:
         //virtual void SetPipelineImpl(Pipeline* pipeline) = 0;
-        //virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+        virtual void SetPrimitiveTopologyCore(PrimitiveTopology topology) = 0;
+        virtual void DrawInstancedCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
+        virtual void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
     protected:
         /// GPUDevice.
@@ -128,9 +126,7 @@ namespace Alimer
         bool _insideRenderPass;
         Pipeline* _currentPipeline = nullptr;
 
-        uint32_t _dirtySets = 0;
-        uint32_t _dirtyVbos = 0;
-
+        /// Resource name
         String _name;
     };
 }

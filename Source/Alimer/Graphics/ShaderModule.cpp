@@ -29,6 +29,72 @@
 
 namespace Alimer
 {
+    class ShaderModuleLoader final : public ResourceLoader
+    {
+        ALIMER_OBJECT(ShaderModuleLoader, ResourceLoader);
+
+    public:
+        StringHash GetLoadingType() const override {
+            return ShaderModule::GetTypeStatic();
+        }
+
+        bool BeginLoad(Stream& source) override
+        {
+            String extension = FileSystem::GetExtension(source.GetName());
+            if (extension == ".vert")
+                _stage = ShaderStage::Vertex;
+            else if (extension == ".frag")
+                _stage = ShaderStage::Compute;
+            _sourceCode.Clear();
+            return ProcessIncludes(_sourceCode, source);
+        }
+
+        Object* EndLoad() override
+        {
+            return nullptr;
+            //return GetSubsystem< GPUDevice>()->CreateShaderModule();
+        }
+
+        /// Process include statements in the shader source code recursively. Return true if successful.
+        bool ProcessIncludes(String& code, Stream& source)
+        {
+            ResourceManager* resources = Object::GetSubsystem<ResourceManager>();
+
+            while (!source.IsEof())
+            {
+                String line = source.ReadLine();
+
+                if (line.StartsWith("#include"))
+                {
+                    String includeFileName = FileSystem::GetPath(source.GetName()) + line.Substring(9).Replaced("\"", "").Trimmed();
+                    UniquePtr<Stream> includeStream = resources->OpenResource(includeFileName);
+                    if (includeStream.IsNull())
+                        return false;
+
+                    // Add the include file into the current code recursively
+                    if (!ProcessIncludes(code, *includeStream))
+                        return false;
+                }
+                else
+                {
+                    code += line;
+                    code += "\n";
+                }
+            }
+
+            // Finally insert an empty line to mark the space between files
+            code += "\n";
+
+            return true;
+        }
+
+    private:
+        /// Shader stage.
+        ShaderStage _stage = ShaderStage::Count;
+        /// Shader source code.
+        String _sourceCode;
+    };
+
     ShaderModule::ShaderModule(GPUDevice* device)
         : GPUResource(device, Type::ShaderModule)
     {
@@ -41,54 +107,6 @@ namespace Alimer
 
     void ShaderModule::Destroy()
     {
-    }
-
-    /*bool ShaderModule::BeginLoad(Stream& source)
-    {
-        String extension = FileSystem::GetExtension(source.GetName());
-        if (extension == ".vert")
-            _stage = ShaderStage::Vertex;
-        else if(extension == ".frag")
-            _stage = ShaderStage::Compute;
-        _sourceCode.Clear();
-        return ProcessIncludes(_sourceCode, source);
-    }
-
-    bool ShaderModule::EndLoad()
-    {
-        return Define(_stage, _sourceCode, "main");
-    }*/
-
-    bool ShaderModule::ProcessIncludes(String& code, Stream& source)
-    {
-        ResourceManager* resources = Object::GetSubsystem<ResourceManager>();
-
-        while (!source.IsEof())
-        {
-            String line = source.ReadLine();
-
-            if (line.StartsWith("#include"))
-            {
-                String includeFileName = FileSystem::GetPath(source.GetName()) + line.Substring(9).Replaced("\"", "").Trimmed();
-                UniquePtr<Stream> includeStream = resources->OpenResource(includeFileName);
-                if (includeStream.IsNull())
-                    return false;
-
-                // Add the include file into the current code recursively
-                if (!ProcessIncludes(code, *includeStream))
-                    return false;
-            }
-            else
-            {
-                code += line;
-                code += "\n";
-            }
-        }
-
-        // Finally insert an empty line to mark the space between files
-        code += "\n";
-
-        return true;
     }
 
     bool ShaderModule::Define(ShaderStage stage, const String& shaderSource, const String& entryPoint)
@@ -110,7 +128,7 @@ namespace Alimer
         //RegisterFactory<ShaderModule>();
 
         // Register loader.
-        //GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());
+        GetSubsystem<ResourceManager>()->AddLoader(new ShaderModuleLoader());
     }
 
     const char* EnumToString(ShaderStage stage)

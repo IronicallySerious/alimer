@@ -363,7 +363,6 @@ extern "C"
     /* ShaderModule */
     ALIMER_API AgpuShaderModule agpuCreateShaderModule(const AgpuShaderModuleDescriptor* descriptor);
     ALIMER_API void agpuDestroyShaderModule(AgpuShaderModule shaderModule);
-    ALIMER_API AgpuShaderStageFlagBits agpuGetShaderModuleState(AgpuShaderModule shaderModule);
 
     /* Shader */
     ALIMER_API AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor);

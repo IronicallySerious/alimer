@@ -88,7 +88,6 @@ if (ALIMER_TOOLS)
 endif()
 
 set (TARGET_NAME Alimer)
-set (ALIMER_NATIVE_INCLUDE_DIRS ${SPIRV_TOOLS_INCLUDE_DIR} ${STB_INCLUDE_DIR})
 
 # Generate the AlimerConfig.h file
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h)
@@ -133,7 +132,7 @@ endif ()
 
 if (ALIMER_GL)
     define_engine_source_files(Graphics/OpenGL)
-    list (APPEND ALIMER_NATIVE_INCLUDE_DIRS ${ALIMER_THIRD_PARTY_DIR}/khronos)
+    #list (APPEND ALIMER_NATIVE_INCLUDE_DIRS ${ALIMER_THIRD_PARTY_DIR}/khronos)
 endif ()
 
 if (ALIMER_VULKAN)
@@ -174,11 +173,6 @@ target_include_directories(${TARGET_NAME}
 	PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
-
-target_include_directories(${TARGET_NAME}
-    PRIVATE
-    ${ALIMER_NATIVE_INCLUDE_DIRS}
-    )
 
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES fmt spdlog spirv_cross ImGui)
@@ -237,6 +231,16 @@ elseif (ALIMER_ANDROID)
     target_link_libraries (${TARGET_NAME} ${OPENGL_LIB} android EGL log m)
 else ()
 	target_link_libraries (${TARGET_NAME} pthread)
+endif ()
+
+
+if (ALIMER_TOOLS)
+    #target_link_libraries (${TARGET_NAME} 
+    #    PRIVATE glslang
+    #    PRIVATE OGLCompiler
+    #    PRIVATE OSDependent
+    #    PRIVATE SPIRV
+    #)
 endif ()
 
 # Suppress some MSVC warnings

@@ -59,9 +59,6 @@ namespace Alimer
 		/// Destructor.
 		virtual ~Resource() = default;
 
-        /// Load resource synchronously. Call both BeginLoad() & EndLoad() and return true if both succeeded.
-        bool Load(Stream& source);
-
         /// Save the resource to a stream. Return true on success.
         virtual bool Save(Stream& dest);
 
@@ -78,12 +75,6 @@ namespace Alimer
 		AsyncLoadState GetAsyncLoadState() const { return _asyncLoadState; }
 
 	protected:
-        /// Load resource from stream. May be called from a worker thread. Return true if successful.
-        virtual bool BeginLoad(Stream& source);
-        /// Finish resource loading. Always called from the main thread. Return true if successful.
-        virtual bool EndLoad();
-
-        /// Resource name
         String _name;
         /// Resource name hash.
         StringHash _nameHash;

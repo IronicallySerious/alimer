@@ -29,8 +29,9 @@
 namespace Alimer
 {
 	/// Defines a GPU Buffer class.
-	class ALIMER_API Buffer : public GPUResource, public RefCounted
+	class ALIMER_API Buffer : public GPUResource
 	{
+        ALIMER_OBJECT(Buffer, GPUResource);
 	protected:
         /// Constructor.
         Buffer(GPUDevice* device, BufferUsage usage, uint32_t elementCount, uint32_t elementSize);

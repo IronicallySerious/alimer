@@ -30,10 +30,10 @@
 namespace Alimer
 {
     /// Defines a Texture class.
-    class ALIMER_API Texture : public GPUResource, public Resource
+    class ALIMER_API Texture : public GPUResource
     {
         friend class GPUDevice;
-        ALIMER_OBJECT(Texture, Resource);
+        ALIMER_OBJECT(Texture, GPUResource);
 
     protected:
         /// Constructor.
@@ -75,10 +75,6 @@ namespace Alimer
         SampleCount GetSamples() const { return _samples; }
 
     private:
-        bool BeginLoad(Stream& source) override;
-        /// Finish resource loading. Always called from the main thread. Return true if successful.
-        bool EndLoad() override;
-
         /// Register object factory.
         static void RegisterObject();
 
@@ -89,7 +85,7 @@ namespace Alimer
         uint32_t _mipLevels = 1;
         uint32_t _arrayLayers = 1;
         PixelFormat _format = PixelFormat::RGBA8UNorm;
-        TextureUsage _usage = TextureUsage::ShaderRead;
+        TextureUsage _usage = TextureUsage::Sampled;
         SampleCount _samples = SampleCount::Count1;
     };
 }

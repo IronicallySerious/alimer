@@ -27,8 +27,6 @@
 
 namespace Alimer
 {
-    class D3D11CommandContext;
-
     /// D3D11 graphics implementation.
     class DeviceD3D11 final : public GPUDevice
     {

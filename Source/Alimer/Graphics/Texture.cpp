@@ -48,15 +48,4 @@ namespace Alimer
     {
         //RegisterFactory<Texture>();
     }
-
-    bool Texture::BeginLoad(Stream& source)
-    {
-        ALIMER_UNUSED(source);
-        return true;
-    }
-
-    bool Texture::EndLoad()
-    {
-        return true;
-    }
 }

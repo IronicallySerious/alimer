@@ -25,9 +25,9 @@
 
 namespace Alimer
 {
-    GPUResource::GPUResource(GPUDevice* device, Type type)
+    GPUResource::GPUResource(GPUDevice* device, Type resourceType)
         : _device(device)
-        , _type(type)
+        , _resourceType(resourceType)
     {
         if (device)
         {

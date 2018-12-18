@@ -212,7 +212,7 @@ namespace Alimer
             textureDesc.Height,
             1, 1, 1,
             GetPixelFormatDxgiFormat(textureDesc.Format),
-            TextureUsage::RenderTarget,
+            TextureUsage::OutputAttachment,
             static_cast<SampleCount>(textureDesc.SampleDesc.Count),
             nullptr, 
             renderTarget, 
@@ -226,7 +226,7 @@ namespace Alimer
         const bool hasDepthStencil = _depthStencilFormat != PixelFormat::Unknown;
         if (hasDepthStencil)
         {
-            _depthStencil = _device->CreateTexture2D(width, height, 1, 1, _depthStencilFormat, TextureUsage::RenderTarget);
+            _depthStencil = _device->CreateTexture2D(width, height, 1, 1, _depthStencilFormat, TextureUsage::OutputAttachment);
             depthStencilAttachment.texture = _depthStencil.Get();
         }
 

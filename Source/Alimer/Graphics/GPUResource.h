@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Base/Ptr.h"
+#include "../Core/Object.h"
 #include "../Graphics/Types.h"
 
 namespace Alimer
@@ -30,8 +30,10 @@ namespace Alimer
 	class GPUDevice;
 
 	/// Defines a GPUResource created from GPUDevice.
-	class ALIMER_API GPUResource
+	class ALIMER_API GPUResource : public Object
 	{
+        ALIMER_OBJECT(GPUResource, Object);
+
 	public:
         enum class Type
         {
@@ -53,14 +55,14 @@ namespace Alimer
         GPUDevice* GetDevice() const;
 
         /// Get the resource type.
-        Type GetType() const { return _type; }
+        Type GetResourceType() const { return _resourceType; }
 
     protected:
         /// Constructor.
-        GPUResource(GPUDevice* device, Type type);
+        GPUResource(GPUDevice* device, Type resourceType);
 
         WeakPtr<GPUDevice> _device;
-        Type _type;
+        Type _resourceType;
 
 	private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(GPUResource);

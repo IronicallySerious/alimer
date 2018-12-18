@@ -30,6 +30,7 @@ namespace Alimer
     class ALIMER_API Shader final : public GPUResource
     {
         friend class GPUDevice;
+        ALIMER_OBJECT(Shader, GPUResource);
 
     protected:
         /// Constructor.

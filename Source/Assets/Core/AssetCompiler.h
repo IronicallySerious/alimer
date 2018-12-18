@@ -20,31 +20,33 @@
 // THE SOFTWARE.
 //
 
-#include "../Resource/Resource.h"
-#include "../Core/Log.h"
+#pragma once
+
+#include "Alimer.h"
 
 namespace Alimer
 {
-	Resource::Resource()
-		: _asyncLoadState(AsyncLoadState::Done)
+	class AssetCompiler final 
 	{
-	}
+	public:
+        AssetCompiler();
+		~AssetCompiler();
+        AssetCompiler(const AssetCompiler&) = delete;
+        AssetCompiler& operator=(const AssetCompiler&) = delete;
+        AssetCompiler(const AssetCompiler&&) = delete;
+        AssetCompiler& operator=(const AssetCompiler&&) = delete;
 
-    bool Resource::Save(Stream& dest)
-    {
-        ALIMER_LOGERROR("Save not supported for '{}'", GetTypeName().CString());
-        return false;
-    }
+    public:
+        class Options
+        {
+        public:
+            std::string assetsDirectory;
+            std::string buildDirectory;
+            PlatformType targetPlatform;
+        };
 
+        bool Run(const Options& options);
 
-	void Resource::SetName(const String& name)
-	{
-		_name = name;
-		_nameHash = name;
-	}
-
-    void Resource::SetAsyncLoadState(AsyncLoadState newState)
-    {
-        _asyncLoadState = newState;
-    }
+	private:
+	};
 }

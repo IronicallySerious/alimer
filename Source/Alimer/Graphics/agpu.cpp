@@ -302,11 +302,6 @@ void agpuDestroyShaderModule(AgpuShaderModule shaderModule)
     s_renderer->DestroyShaderModule(shaderModule);
 }
 
-AgpuShaderStageFlagBits agpuGetShaderModuleState(AgpuShaderModule shaderModule)
-{
-    return shaderModule->stage;
-}
-
 AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor)
 {
     return s_renderer->CreateShader(descriptor);

@@ -30,10 +30,10 @@ namespace Alimer
 	{
 	}
 
-    SharedPtr<Resource> ResourceLoader::Load(Stream& source)
+    SharedPtr<Object> ResourceLoader::Load(Stream& source)
 	{
         _fileName = source.GetName();
-        SharedPtr<Resource> result = nullptr;
+        SharedPtr<Object> result = nullptr;
 		bool success = BeginLoad(source);
         if (success) {
             result = EndLoad();
