@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "Graphics/Sampler.h"
+#include "../GPUDeviceImpl.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
@@ -30,16 +30,16 @@ namespace Alimer
     class DeviceD3D11;
 
     /// D3D11 Sampler implementation.
-    class SamplerD3D11 final : public Sampler
+    class SamplerD3D11 final : public GPUSampler
     {
     public:
         /// Constructor.
-        SamplerD3D11(DeviceD3D11* device, const SamplerDescriptor* descriptor);
+        SamplerD3D11(DeviceD3D11* device, const SamplerDescriptor& descriptor);
 
         /// Destructor.
         ~SamplerD3D11() override;
 
-        void Destroy() override;
+        void Destroy();
 
         ID3D11SamplerState* GetHandle() const { return _handle.Get(); }
 

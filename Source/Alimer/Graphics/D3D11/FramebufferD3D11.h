@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Framebuffer.h"
+#include "../GPUDeviceImpl.h"
 #include "D3D11Prerequisites.h"
 #include <map>
 
@@ -31,20 +31,35 @@ namespace Alimer
     class DeviceD3D11;
 
     /// D3D11 Framebuffer implementation.
-    class FramebufferD3D11 final : public Framebuffer
+    class FramebufferD3D11 final : public GPUFramebuffer
     {
     public:
-        FramebufferD3D11(DeviceD3D11* device, uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment);
+        FramebufferD3D11(DeviceD3D11* device);
         ~FramebufferD3D11() override;
 
-        void Destroy() override;
+        void Destroy();
+
+        uint32_t GetWidth() const override { return _width; }
+        uint32_t GetHeight() const override { return _height; }
+        uint32_t GetLayers() const override { return _layers; }
+
+        void SetColorAttachment(uint32_t index, GPUTexture* colorTexture, uint32_t level, uint32_t slice) override;
+        void SetDepthStencilAttachment(GPUTexture* depthStencilTexture, uint32_t level, uint32_t slice) override;
 
         uint32_t Bind(ID3D11DeviceContext* context) const;
 
         ID3D11RenderTargetView* GetColorRTV(uint32_t index) const { return _colorRtvs[index]; }
         ID3D11DepthStencilView* GetDSV() const { return _depthStencilView; }
+        GPUTexture* GetDepthStencilTexture() const { return _depthStencilTexture; }
 
     private:
+        DeviceD3D11* _device;
+        uint32_t _width = UINT32_MAX;
+        uint32_t _height = UINT32_MAX;
+        uint32_t _layers = 0;
+        GPUTexture* _depthStencilTexture;
+
+        uint32_t _colorAttachmentsCount = 0;
         ID3D11RenderTargetView* _colorRtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
         ID3D11DepthStencilView* _depthStencilView = nullptr;
     };

@@ -104,13 +104,13 @@ namespace Alimer
         if (!_headless)
         {
             _gpuDevice = GPUDevice::Create(_settings.preferredGraphicsBackend, _settings.validation);
-            if (!_gpuDevice->Initialize(&_settings.mainWindowDescriptor))
+            if (_gpuDevice == nullptr)
             {
-                ALIMER_LOGERROR("Failed to initialize Graphics.");
+                ALIMER_LOGERROR("Failed to create GPUDevice instance.");
                 return false;
             }
 
-            _mainWindow = _gpuDevice->GetMainWindow();
+            _mainWindow = new RenderWindow(&_settings.mainWindowDescriptor);
 
             // Create imgui system.
             _gui = new Gui();
@@ -226,7 +226,7 @@ namespace Alimer
 
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         CommandContext& context = _gpuDevice->GetImmediateContext();
-        context.BeginDefaultRenderPass(clearColor);
+        context.BeginRenderPass(_mainWindow->GetCurrentFramebuffer(), clearColor);
         //context.Draw(3, 0);
         context.EndRenderPass();
         context.Flush();

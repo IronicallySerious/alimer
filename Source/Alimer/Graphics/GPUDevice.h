@@ -31,20 +31,21 @@
 #include "../Graphics/Shader.h"
 #include "../Graphics/Sampler.h"
 #include "../Graphics/Pipeline.h"
-#include "../Graphics/RenderWindow.h"
 #include <set>
 #include <mutex>
 
 namespace Alimer
 {
+    struct GPUDeviceImpl;
+
     /// Low-level 3D graphics module.
     class ALIMER_API GPUDevice : public Object
     {
         ALIMER_OBJECT(GPUDevice, Object);
 
-    protected:
+    private:
         /// Constructor.
-        GPUDevice(GraphicsBackend backend, bool validation);
+        GPUDevice(GPUDeviceImpl* impl, bool validation);
 
     public:
         /// Destructor.
@@ -67,11 +68,8 @@ namespace Alimer
         /// Get default best supported platform backend.
         static GraphicsBackend GetDefaultPlatformBackend();
 
-        /// Initialize graphics with given settings.
-        virtual bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor);
-
         /// Wait for a device to become idle.
-        virtual bool WaitIdle() = 0;
+        bool WaitIdle();
 
         /// Finishes the current frame and advances to next one.
         uint64_t Frame();
@@ -82,67 +80,43 @@ namespace Alimer
         /// Remove a GPUResource.
         void UntrackResource(GPUResource* resource);
 
-        /// Get whether grapics has been initialized.
-        bool IsInitialized() const { 
-            return _initialized; 
-        }
-
         /// Get the backend.
-        GraphicsBackend GetBackend() const {
-            return _backend; 
-        }
+        GraphicsBackend GetBackend() const { return _backend; }
+
+        /// Get the device limits.
+        const GPULimits& GetLimits() const;
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const {
-            return _features;
-        }
+        const GraphicsDeviceFeatures& GetFeatures() const;
 
-        /// Get the main RenderWindow.
-        RenderWindow* GetMainWindow() const {
-            return _mainWindow;
-        }
+        /// Return graphics implementation, which holds the actual API-specific resources.
+        GPUDeviceImpl* GetImpl() const { return _impl; }
 
         /// Get the immediate command context.
-        CommandContext& GetImmediateContext() const {
-            return *_immediateCommandContext;
-        }
+        CommandContext& GetImmediateContext() const { return *_immediateCommandContext; }
 
         /// Create new CommandContext
         CommandContext& Begin(const String& name = "");
 
         void NotifyValidationError(const char* message);
 
-        Buffer* CreateBuffer(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData = nullptr, const std::string& name = "");
-
         Texture* CreateTexture1D(uint32_t width, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, TextureUsage usage, const void* initialData = nullptr);
-        Texture* CreateTexture2D(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, TextureUsage usage, SampleCount samples = SampleCount::Count1, const void* initialData = nullptr);
         Texture* CreateTextureCube(uint32_t size, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, TextureUsage usage, const void* initialData = nullptr);
         Texture* CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevels, PixelFormat format, TextureUsage usage, const void* initialData = nullptr);
 
-        Sampler* CreateSampler(const SamplerDescriptor* descriptor);
-        Framebuffer* CreateFramebuffer(const PODVector<FramebufferAttachment>& colorAttachments, const FramebufferAttachment* depthStencilAttachment = nullptr);
-        Framebuffer* CreateFramebuffer(uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment = nullptr);
-
     private:
         virtual void OnFrame() {};
-        virtual Buffer* CreateBufferCore(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData, const std::string& name) = 0;
-        virtual Texture* CreateTextureCore(TextureType type, uint32_t width, uint32_t height,
-            uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, 
-            TextureUsage usage, SampleCount samples, const void* initialData) = 0;
-        virtual Sampler* CreateSamplerCore(const SamplerDescriptor* descriptor) = 0;
-        virtual Framebuffer* CreateFramebufferCore(uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment) = 0;
+
+        GPUDeviceImpl* _impl;
 
     protected:
         virtual void Finalize();
 
         GraphicsBackend         _backend;
         bool                    _validation;
-        bool                    _initialized;
         uint64_t                _frameIndex;
-        GraphicsDeviceFeatures  _features;
         PODVector<GPUResource*> _gpuResources;
         std::mutex              _gpuResourceMutex;
-        RenderWindow*           _mainWindow = nullptr;
         CommandContext*         _immediateCommandContext = nullptr;
     };
 }

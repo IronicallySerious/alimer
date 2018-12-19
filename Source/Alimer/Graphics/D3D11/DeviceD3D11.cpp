@@ -21,13 +21,13 @@
 //
 
 #include "DeviceD3D11.h"
-#include "RenderWindowD3D11.h"
+#include "SwapChainD3D11.h"
 #include "CommandContextD3D11.h"
 #include "TextureD3D11.h"
 #include "SamplerD3D11.h"
 #include "FramebufferD3D11.h"
 #include "BufferD3D11.h"
-#include "D3D11Shader.h"
+#include "ShaderD3D11.h"
 //#include "D3D11Pipeline.h"
 #include "../../Core/Platform.h"
 #include "../../Core/Log.h"
@@ -175,51 +175,25 @@ namespace Alimer
     }
 
     DeviceD3D11::DeviceD3D11(bool validation)
-        : GPUDevice(GraphicsBackend::D3D11, validation)
-        , _cache(this)
+        : _cache(this)
     {
         if (FAILED(D3D11LoadLibraries()))
         {
             ALIMER_LOGCRITICAL("D3D11 - Failed to load functions");
             return;
         }
-    }
 
-    DeviceD3D11::~DeviceD3D11()
-    {
-        SafeDelete(_mainWindow);
-
-        _cache.Clear();
-
-        _d3dContext.Reset();
-        _d3dContext1.Reset();
-        _d3dAnnotation.Reset();
-        _d3dDevice1.Reset();
-
-#ifdef _DEBUG
-        {
-            ComPtr<ID3D11Debug> d3dDebug;
-            if (SUCCEEDED(_d3dDevice.As(&d3dDebug)))
-            {
-                d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY);
-            }
-        }
-#endif
-        _d3dDevice.Reset();
-    }
-
-    bool DeviceD3D11::Initialize(const RenderWindowDescriptor* mainWindowDescriptor)
-    {
         HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&_factory));
         if (FAILED(hr))
         {
-            return false;
+            ALIMER_LOGCRITICAL("D3D11 - Failed to create DXGIFactory1");
+            return;
         }
 
         UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #if defined(_DEBUG)
-        if (_validation)
+        if (validation)
         {
             if (SdkLayersAvailable())
             {
@@ -320,13 +294,29 @@ namespace Alimer
 
         InitializeCaps();
 
-        // Create Swapchain.
-        _mainWindow = new RenderWindowD3D11(this, mainWindowDescriptor);
+        // Create immediate command buffer.
+        _immediateCommandBuffer = new CommandContextD3D11(this);
+    }
 
-        // Create immediate command context.
-        _immediateCommandContext = new CommandContextD3D11(this);
+    DeviceD3D11::~DeviceD3D11()
+    {
+        _cache.Clear();
 
-        return true;
+        _d3dContext.Reset();
+        _d3dContext1.Reset();
+        _d3dAnnotation.Reset();
+        _d3dDevice1.Reset();
+
+#ifdef _DEBUG
+        {
+            ComPtr<ID3D11Debug> d3dDebug;
+            if (SUCCEEDED(_d3dDevice.As(&d3dDebug)))
+            {
+                d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY);
+            }
+        }
+#endif
+        _d3dDevice.Reset();
     }
 
     void DeviceD3D11::GenerateScreenshot(const std::string& fileName)
@@ -475,7 +465,8 @@ namespace Alimer
             _features.SetMultithreading(true);
         }
 
-        _features.SetMaxColorAttachments(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
+        _limits.maxColorAttachments = D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;
+        _limits.maxBindGroups = MaxDescriptorSets;
 
         IDXGIFactory5* factory5;
         if (SUCCEEDED(_factory->QueryInterface(&factory5)))
@@ -499,29 +490,28 @@ namespace Alimer
         return _cache;
     }
 
-    Buffer* DeviceD3D11::CreateBufferCore(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData, const std::string& name)
+    GPUSwapChain* DeviceD3D11::CreateSwapChain(void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb)
     {
-        return new BufferD3D11(this, usage, elementCount, elementSize, initialData, name);
+        return new SwapChainD3D11(this, window, width, height, depthStencilFormat, srgb, 2);
     }
 
-    Texture* DeviceD3D11::CreateTextureCore(TextureType type, uint32_t width, uint32_t height,
-        uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format,
-        TextureUsage usage, SampleCount samples, const void* initialData)
+    GPUTexture* DeviceD3D11::CreateTexture(const TextureDescriptor& descriptor, const void* initialData)
     {
-        return new TextureD3D11(
-            this, type, width, height, depth, 
-            mipLevels, arrayLayers, format, 
-            usage, samples, initialData, 
-            nullptr, DXGI_FORMAT_UNKNOWN);
+        return new TextureD3D11(this, descriptor, initialData, nullptr, DXGI_FORMAT_UNKNOWN);
     }
 
-    Sampler* DeviceD3D11::CreateSamplerCore(const SamplerDescriptor* descriptor)
+    GPUFramebuffer* DeviceD3D11::CreateFramebuffer()
+    {
+        return new FramebufferD3D11(this);
+    }
+
+    GPUBuffer* DeviceD3D11::CreateBuffer(const BufferDescriptor& descriptor, const void* initialData)
+    {
+        return new BufferD3D11(this, descriptor, initialData);
+    }
+
+    GPUSampler* DeviceD3D11::CreateSampler(const SamplerDescriptor& descriptor)
     {
         return new SamplerD3D11(this, descriptor);
-    }
-
-    Framebuffer* DeviceD3D11::CreateFramebufferCore(uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment)
-    {
-        return new FramebufferD3D11(this, colorAttachmentsCount, colorAttachments, depthStencilAttachment);
     }
 }

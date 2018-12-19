@@ -20,56 +20,47 @@
 // THE SOFTWARE.
 //
 
-#include "RenderWindowD3D11.h"
+#include "SwapChainD3D11.h"
 #include "DeviceD3D11.h"
 #include "TextureD3D11.h"
 #include "FramebufferD3D11.h"
-#include "../D3D/D3DConvert.h"
+#include "D3D11Convert.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
-    RenderWindowD3D11::RenderWindowD3D11(DeviceD3D11* device, const RenderWindowDescriptor* descriptor, uint32_t backBufferCount)
-        : RenderWindow(descriptor)
-        , _device(device)
+    SwapChainD3D11::SwapChainD3D11(DeviceD3D11* device, void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb, uint32_t backBufferCount)
+        : _device(device)
+        , _sRGB(srgb)
         , _backBufferCount(backBufferCount)
-        , _sRGB(descriptor->sRGB)
     {
-        _depthStencilFormat = descriptor->preferredDepthStencilFormat;
+        _depthStencilFormat = depthStencilFormat;
 
 #if ALIMER_PLATFORM_UWP
-        _window = static_cast<IUnknown*>(GetNativeHandle());
+        _window = static_cast<IUnknown*>(window);
 #else
-        _hwnd = static_cast<HWND>(GetNativeHandle());
+        _hwnd = static_cast<HWND>(window);
 #endif
 
-        Resize(descriptor->size.x, descriptor->size.y, true);
+        Resize(width, height, true);
     }
 
-    RenderWindowD3D11::~RenderWindowD3D11()
+    SwapChainD3D11::~SwapChainD3D11()
     {
         Destroy();
     }
 
-    void RenderWindowD3D11::Destroy()
+    void SwapChainD3D11::Destroy()
     {
         _swapChain->SetFullscreenState(false, nullptr);
-
-        RenderWindow::Destroy();
         _renderTarget.Reset();
-        _depthStencil.Reset();
         _swapChain.Reset();
         _swapChain1.Reset();
     }
 
-    void RenderWindowD3D11::OnSizeChanged(const uvec2& newSize)
-    {
-        Resize(newSize.x, newSize.y, false);
-        Window::OnSizeChanged(newSize);
-    }
 
-    void RenderWindowD3D11::Resize(uint32_t width, uint32_t height, bool force)
+    void SwapChainD3D11::Resize(uint32_t width, uint32_t height, bool force)
     {
         if (_width == width && _height == height && !force)
         {
@@ -80,9 +71,8 @@ namespace Alimer
 
         if (_swapChain)
         {
-            RenderWindow::Destroy();
+            //RenderWindow::Destroy();
             _renderTarget.Reset();
-            _depthStencil.Reset();
 
             hr = _swapChain->ResizeBuffers(_backBufferCount, width, height,
                 _backBufferFormat, _swapChainFlags
@@ -96,7 +86,7 @@ namespace Alimer
         {
             // Check tearing.
             _backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
-            
+
             ComPtr<IDXGIFactory2> dxgiFactory2;
             if (SUCCEEDED(_device->GetFactory()->QueryInterface(dxgiFactory2.ReleaseAndGetAddressOf())))
             {
@@ -145,7 +135,7 @@ namespace Alimer
                     }
 
                     ThrowIfFailed(_swapChain1.As(&_swapChain));
-                    
+
                 }
                 else
                 {
@@ -202,43 +192,31 @@ namespace Alimer
         ID3D11Texture2D* renderTarget;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
 
-        DXGI_FORMAT backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
-
+        // Get D3D Texture desc and convert to engine.
         D3D11_TEXTURE2D_DESC textureDesc;
         renderTarget->GetDesc(&textureDesc);
-        _renderTarget = new TextureD3D11(_device, 
-            TextureType::Type2D, 
-            textureDesc.Width, 
-            textureDesc.Height,
-            1, 1, 1,
-            GetPixelFormatDxgiFormat(textureDesc.Format),
-            TextureUsage::OutputAttachment,
-            static_cast<SampleCount>(textureDesc.SampleDesc.Count),
-            nullptr, 
-            renderTarget, 
-            backBufferFormat);
+        TextureDescriptor descriptor = d3d11::Convert(textureDesc);
 
-        // Create depth stencil if required.
-        FramebufferAttachment colorAttachment = {};
-        colorAttachment.texture = _renderTarget.Get();
-
-        FramebufferAttachment depthStencilAttachment = {};
-        const bool hasDepthStencil = _depthStencilFormat != PixelFormat::Unknown;
-        if (hasDepthStencil)
+        DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+        if (_sRGB)
         {
-            _depthStencil = _device->CreateTexture2D(width, height, 1, 1, _depthStencilFormat, TextureUsage::OutputAttachment);
-            depthStencilAttachment.texture = _depthStencil.Get();
+            backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+            descriptor.format = PixelFormat::BGRA8UNormSrgb;
         }
 
-        _framebuffers.Resize(1);
-        _framebuffers[0] = new FramebufferD3D11(_device, 1, &colorAttachment, hasDepthStencil ? &depthStencilAttachment : nullptr);
+        _renderTarget = new TextureD3D11(_device, descriptor, nullptr, renderTarget, backBufferFormat);
 
         // Set new size.
         _width = width;
         _height = height;
     }
 
-    void RenderWindowD3D11::SwapBuffers()
+    void SwapChainD3D11::Configure(uint32_t width, uint32_t height)
+    {
+        Resize(width, height, true);
+    }
+
+    void SwapChainD3D11::Present()
     {
         HRESULT hr = _swapChain->Present(_syncInterval, _presentFlags);
         //m_d3dContext->DiscardView(m_d3dRenderTargetView.Get());

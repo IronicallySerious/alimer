@@ -53,7 +53,7 @@ namespace Alimer
     class TriangleExample
     {
     public:
-        void Initialize(GPUDevice* device, ResourceManager& resources)
+        void Initialize(ResourceManager& resources)
         {
             ALIMER_UNUSED(resources);
 
@@ -64,11 +64,13 @@ namespace Alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            //PODVector<VertexElement> vertexElement;
-            //vertexElement.Push(VertexElement(VertexFormat::Float3, VertexElementSemantic::Position));
-            //vertexElement.Push(VertexElement(VertexFormat::Float4, VertexElementSemantic::Color0));
+            PODVector<VertexElement> vertexElements;
+            vertexElements.Push(VertexElement(VertexElementFormat::Float3, VertexElementSemantic::Position));
+            vertexElements.Push(VertexElement(VertexElementFormat::Float4, VertexElementSemantic::Color0));
 
-            _vertexBuffer = device->CreateBuffer(BufferUsage::Vertex, 3, sizeof(VertexColor), triangleVertices);
+
+            _vertexBuffer = new VertexBuffer();
+            _vertexBuffer->Define(3, vertexElements, false, triangleVertices);
 
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -88,19 +90,14 @@ namespace Alimer
             //_shader->Define(vertexShader.Get(), fragmentShader.Get());
         }
 
-        void Render(GPUDevice* device)
+        void Render(CommandContext& context)
         {
-            CommandContext& context = device->GetImmediateContext();
-            Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-            context.BeginDefaultRenderPass(clearColor);
             context.SetVertexBuffer(0, _vertexBuffer);
-            context.Draw(3, 0);
-            context.EndRenderPass();
-            context.Flush();
+            //context.Draw(3, 0);
         }
 
     private:
-        SharedPtr<Buffer> _vertexBuffer;
+        SharedPtr<VertexBuffer> _vertexBuffer;
         //GpuBuffer _perCameraUboBuffer;
 
         SharedPtr<ShaderModule> _vertexShader;
@@ -389,7 +386,7 @@ namespace Alimer
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_gpuDevice.Get(), _resources);
+        _triangleExample.Initialize(_resources);
         //_quadExample.Initialize(_resources);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
@@ -408,10 +405,15 @@ namespace Alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        _triangleExample.Render(_gpuDevice.Get());
+        CommandContext& context = _gpuDevice->GetImmediateContext();
+        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        context.BeginRenderPass(_mainWindow->GetCurrentFramebuffer(), clearColor);
+        _triangleExample.Render(context);
         //_quadExample.Render(context);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);
+        context.EndRenderPass();
+        context.Flush();
     }
 }
 

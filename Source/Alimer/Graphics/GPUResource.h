@@ -41,7 +41,7 @@ namespace Alimer
             Texture,
             Sampler,
             Framebuffer,
-            ShaderModule, 
+            Shader, 
             Pipeline,
         };
 

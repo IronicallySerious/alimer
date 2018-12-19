@@ -43,33 +43,35 @@ namespace Alimer
         SampleCount preferredSamples = SampleCount::Count1;
     };
 
+    struct GPUSwapChain;
+
     /// Defines a RenderWindow class.
-    class ALIMER_API RenderWindow : public Window
+    class ALIMER_API RenderWindow final : public Window
     {
         friend class GPUDevice;
         ALIMER_OBJECT(RenderWindow, Window);
 
-    protected:
+    public:
         /// Constructor.
         RenderWindow(const RenderWindowDescriptor* descriptor);
 
-    public:
         /// Desturctor
         ~RenderWindow() override;
 
-        virtual void Destroy();
+        void Destroy();
 
         /// Swaps the frame buffers to display the next frame. 
-        virtual void SwapBuffers();
-
-        uint32_t GetCurrentFramebufferIndex() const { }
-        uint32_t GetFramebufferCount() const { return _framebuffers.Size(); }
+        void SwapBuffers();
 
         /// Get the current framebuffer.
         Framebuffer* GetCurrentFramebuffer() const;
 
-    protected:
+    private:
+        void OnSizeChanged(const uvec2& newSize) override;
+
+        Vector<SharedPtr<Texture2D>> _backbufferTextures;
+        SharedPtr<Texture2D> _depthStencilTexture;
         Vector<SharedPtr<Framebuffer>> _framebuffers;
-        uint32_t _currentBackBufferIndex = 0;
+        GPUSwapChain* _swapChain;
     };
 }

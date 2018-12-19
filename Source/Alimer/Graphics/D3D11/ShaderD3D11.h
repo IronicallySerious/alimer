@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Shader.h"
+#include "../GPUDeviceImpl.h"
 #include "D3D11Prerequisites.h"
 #include <array>
 
@@ -30,12 +30,11 @@ namespace Alimer
 {
 	class DeviceD3D11;
 
-
-    /*class D3D11Shader final : public Shader
+    class ShaderD3D11 final : public GPUShader
     {
     public:
-        D3D11Shader(DeviceD3D11* device, const ShaderDescriptor* descriptor);
-        ~D3D11Shader() override;
+        ShaderD3D11(DeviceD3D11* device);
+        ~ShaderD3D11() override;
         void Destroy();
 
         void Bind(ID3D11DeviceContext* context);
@@ -44,10 +43,10 @@ namespace Alimer
         const BindingIndexInfo& GetBindingIndexInfo() const { return _indexInfo; }
 
     private:
-        ID3D11VertexShader* _vertexShader = nullptr;
-        ID3D11PixelShader* _pixelShader = nullptr;
-        ID3D11ComputeShader* _computeShader = nullptr;
+        DeviceD3D11* _device;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> _vertexShader = nullptr;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> _pixelShader = nullptr;
+        Microsoft::WRL::ComPtr<ID3D11ComputeShader> _computeShader = nullptr;
         BindingIndexInfo _indexInfo;
     };
-    */
 }

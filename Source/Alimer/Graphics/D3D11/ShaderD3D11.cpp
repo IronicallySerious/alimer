@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "D3D11Shader.h"
+#include "ShaderD3D11.h"
 #include "DeviceD3D11.h"
 #include "../D3D/D3DShaderCompiler.h"
 #include "../../Core/Log.h"
@@ -104,9 +104,10 @@ namespace Alimer
         std::string hlslSource = compiler.compile(std::move(remaps));
         return D3DShaderCompiler::Compile(graphics->GetFunctions()->d3dCompile, hlslSource.c_str(), hlslSource.length(), stage, major, minor);
     }
+#endif
 
-    D3D11Shader::D3D11Shader(D3D11GraphicsDevice* device, const ShaderDescriptor* descriptor)
-        : Shader(device, descriptor)
+    ShaderD3D11::ShaderD3D11(DeviceD3D11* device)
+        : _device(device)
     {
         /*for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
         {
@@ -146,12 +147,12 @@ namespace Alimer
         }*/
     }
 
-    D3D11Shader::~D3D11Shader()
+    ShaderD3D11::~ShaderD3D11()
     {
         Destroy();
     }
 
-    void D3D11Shader::Destroy()
+    void ShaderD3D11::Destroy()
     {
         /*if (_computeShader != nullptr)
         {
@@ -165,7 +166,7 @@ namespace Alimer
         }*/
     }
 
-    void D3D11Shader::Bind(ID3D11DeviceContext* context)
+    void ShaderD3D11::Bind(ID3D11DeviceContext* context)
     {
         /*if (_computeShader != nullptr)
         {
@@ -177,6 +178,4 @@ namespace Alimer
             context->PSSetShader(_pixelShader, nullptr, 0);
         }*/
     }
-#endif // TODO_D3D11
-
 }

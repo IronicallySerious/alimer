@@ -26,22 +26,23 @@
 
 namespace Alimer
 {
+    struct GPUShader;
+
     /// Defines a shader resource.
     class ALIMER_API Shader final : public GPUResource
     {
         friend class GPUDevice;
         ALIMER_OBJECT(Shader, GPUResource);
 
-    protected:
-        /// Constructor.
-        Shader(GPUDevice* device);
-
     public:
-        /// Destructor.
+        /// Constructor.
+        Shader();
+
+        /// Desturctor
         ~Shader() override;
 
-        /// Unconditionally destroy the GPU resource.
-        void Destroy();
+        /// Destroy
+        void Destroy() override;
 
         bool Define(ShaderModule* vertex, ShaderModule* fragment);
 
@@ -50,10 +51,14 @@ namespace Alimer
             return _shaders[static_cast<unsigned>(stage)].Get();
         }
 
+        /// Get the GPUShader.
+        GPUShader* GetGPUShader() const { return _shader; }
+
     private:
         /// Register object factory.
         static void RegisterObject();
 
+        GPUShader* _shader = nullptr;
         SharedPtr<ShaderModule> _shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
     };
 }

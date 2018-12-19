@@ -96,7 +96,7 @@ namespace Alimer
     };
 
     ShaderModule::ShaderModule(GPUDevice* device)
-        : GPUResource(device, Type::ShaderModule)
+        : GPUResource(device, Type::Shader)
     {
     }
 

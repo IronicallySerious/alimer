@@ -22,20 +22,18 @@
 
 #include "TextureD3D11.h"
 #include "DeviceD3D11.h"
-#include "../D3D/D3DConvert.h"
+#include "D3D11Convert.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace Alimer
 {
     TextureD3D11::TextureD3D11(DeviceD3D11* device,
-        TextureType type, uint32_t width, uint32_t height,
-        uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers,
-        PixelFormat format, TextureUsage usage, SampleCount samples,
-        const void* initialData, ID3D11Texture2D* externalTexture, DXGI_FORMAT dxgiFormat)
-        : Texture(device, type, width, height, depth, mipLevels, arrayLayers, format, usage, samples)
-        , _d3dDevice(device->GetD3DDevice())
+        const TextureDescriptor& descriptor, const void* initialData, 
+        ID3D11Texture2D* externalTexture,  DXGI_FORMAT dxgiFormat)
+        : _d3dDevice(device->GetD3DDevice())
         , _resource(nullptr)
+        , _descriptor(descriptor)
     {
         if (externalTexture == nullptr)
         {
@@ -43,35 +41,37 @@ namespace Alimer
             PODVector<D3D11_SUBRESOURCE_DATA> subResourceData;
             if (initialData)
             {
-                subResourceData.Resize(arrayLayers * mipLevels);
-                for (uint32_t i = 0; i < arrayLayers * mipLevels; ++i)
+                subResourceData.Resize(_descriptor.arraySize * _descriptor.mipLevels);
+                for (uint32_t mipLevel = 0; mipLevel < _descriptor.arraySize * _descriptor.mipLevels; ++mipLevel)
                 {
                     uint32_t rowPitch;
-                    const uint32_t mipWidth = ((width >> i) > 0) ? width >> i : 1;
-                    const uint32_t mipHeight = ((height >> i) > 0) ? height >> i : 1;
+                    const uint32_t mipWidth = Max(1u, _descriptor.width >> mipLevel);
+                    const uint32_t mipHeight = Max(1u, _descriptor.height >> mipLevel);
 
                     uint32_t rows;
                     CalculateDataSize(
                         mipWidth,
                         mipHeight,
-                        format,
+                        _descriptor.format,
                         &rows,
                         &rowPitch);
 
-
-                    subResourceData[i].pSysMem = initialData;
-                    subResourceData[i].SysMemPitch = rowPitch;
-                    subResourceData[i].SysMemSlicePitch = 0;
+                    subResourceData[mipLevel].pSysMem = initialData;
+                    subResourceData[mipLevel].SysMemPitch = rowPitch;
+                    subResourceData[mipLevel].SysMemSlicePitch = 0;
                 }
             }
 
-            _dxgiFormat = GetDxgiFormat(format);
 
             // If depth stencil format and shader read or write, switch to typeless.
-            if (IsDepthStencilFormat(format)
-                && any(usage & (TextureUsage::Sampled | TextureUsage::Storage)))
+            if (IsDepthStencilFormat(_descriptor.format)
+                && any(_descriptor.usage & (TextureUsage::Sampled | TextureUsage::Storage)))
             {
-                _dxgiFormat = GetDxgiTypelessDepthFormat(format);
+                _dxgiFormat = GetDxgiTypelessDepthFormat(_descriptor.format);
+            }
+            else
+            {
+                _dxgiFormat = GetDxgiFormat(_descriptor.format);
             }
 
             HRESULT hr = S_OK;
@@ -80,22 +80,22 @@ namespace Alimer
             const bool dynamic = false;
             UINT d3dCPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
             UINT d3dMiscFlags = 0;
-            if (any(usage & TextureUsage::Sampled))
+            if (any(_descriptor.usage & TextureUsage::Sampled))
             {
                 d3dBindFlags |= D3D11_BIND_SHADER_RESOURCE;
             }
 
-            if (any(usage & TextureUsage::Storage))
+            if (any(_descriptor.usage & TextureUsage::Storage))
             {
                 d3dBindFlags |= D3D11_BIND_UNORDERED_ACCESS;
             }
 
-            if (any(usage & TextureUsage::OutputAttachment))
+            if (any(_descriptor.usage & TextureUsage::OutputAttachment))
             {
-                if (!IsDepthStencilFormat(format))
+                if (!IsDepthStencilFormat(_descriptor.format))
                 {
                     d3dBindFlags |= D3D11_BIND_RENDER_TARGET;
-                    if (mipLevels == 0 || mipLevels > 1)
+                    if (_descriptor.mipLevels == 0 || _descriptor.mipLevels > 1)
                     {
                         d3dMiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
                     }
@@ -106,20 +106,20 @@ namespace Alimer
                 }
             }
 
-            if (type == TextureType::TypeCube)
+            if (_descriptor.type == TextureType::TypeCube)
             {
                 d3dMiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
             }
 
-            switch (type)
+            switch (_descriptor.type)
             {
             case TextureType::Type1D:
             {
                 D3D11_TEXTURE1D_DESC d3d11Desc;
                 {
-                    d3d11Desc.Width = width;
-                    d3d11Desc.MipLevels = mipLevels;
-                    d3d11Desc.ArraySize = arrayLayers;
+                    d3d11Desc.Width = _descriptor.width;
+                    d3d11Desc.MipLevels = _descriptor.mipLevels;
+                    d3d11Desc.ArraySize = _descriptor.arraySize;
                     d3d11Desc.Format = _dxgiFormat;
                     d3d11Desc.Usage = d3dUsage;
                     d3d11Desc.BindFlags = d3dBindFlags;
@@ -134,14 +134,14 @@ namespace Alimer
             case TextureType::Type2D:
             case TextureType::TypeCube:
             {
-                const uint32_t arrayMultiplier = (type == TextureType::TypeCube) ? 6 : 1;
+                const uint32_t arrayMultiplier = (_descriptor.type == TextureType::TypeCube) ? 6 : 1;
                 D3D11_TEXTURE2D_DESC d3d11Desc = {};
-                d3d11Desc.Width = width;
-                d3d11Desc.Height = height;
-                d3d11Desc.MipLevels = mipLevels;
-                d3d11Desc.ArraySize = arrayLayers * arrayMultiplier;
+                d3d11Desc.Width = _descriptor.width;
+                d3d11Desc.Height = _descriptor.height;
+                d3d11Desc.MipLevels = _descriptor.mipLevels;
+                d3d11Desc.ArraySize = _descriptor.arraySize * arrayMultiplier;
                 d3d11Desc.Format = _dxgiFormat;
-                d3d11Desc.SampleDesc.Count = Max(1u, static_cast<uint32_t>(samples));
+                d3d11Desc.SampleDesc.Count = Max(1u, static_cast<uint32_t>(_descriptor.samples));
                 d3d11Desc.Usage = d3dUsage;
                 d3d11Desc.BindFlags = d3dBindFlags;
                 d3d11Desc.CPUAccessFlags = d3dCPUAccessFlags;
@@ -234,7 +234,8 @@ namespace Alimer
 
     ID3D11ShaderResourceView* TextureD3D11::GetSRV(uint32_t mostDetailedMip, uint32_t mipCount, uint32_t firstArraySlice, uint32_t arraySize) const
     {
-        auto createFunc = [](const TextureD3D11* texture, uint32_t mostDetailMip, uint32_t mipLevels, uint32_t firstArraySlice, uint32_t arraySize)
+        return nullptr;
+        /*auto createFunc = [](const TextureD3D11* texture, uint32_t mostDetailMip, uint32_t mipLevels, uint32_t firstArraySlice, uint32_t arraySize)
         {
             uint32_t arrayMultiplier = (texture->GetTextureType() == TextureType::TypeCube) ? 6 : 1;
             const uint32_t arrayLayers = texture->GetArrayLayers();
@@ -337,12 +338,13 @@ namespace Alimer
             return view;
         };
 
-        return FindViewCommon<ID3D11ShaderResourceView>(this, mostDetailedMip, mipCount, firstArraySlice, arraySize, _srvs, createFunc);
+        return FindViewCommon<ID3D11ShaderResourceView>(this, mostDetailedMip, mipCount, firstArraySlice, arraySize, _srvs, createFunc);*/
     }
 
     ID3D11UnorderedAccessView* TextureD3D11::GetUAV(uint32_t mipLevel, uint32_t firstArraySlice, uint32_t arraySize) const
     {
-        auto createFunc = [](const TextureD3D11* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)
+        return nullptr;
+        /*auto createFunc = [](const TextureD3D11* texture, uint32_t mipLevel, uint32_t mipLevelCount, uint32_t firstArraySlice, uint32_t arraySize)
         {
             D3D11_UNORDERED_ACCESS_VIEW_DESC  desc = {};
             desc.Format = texture->GetDXGIFormat();
@@ -413,6 +415,6 @@ namespace Alimer
             return view;
         };
 
-        return FindViewCommon<ID3D11UnorderedAccessView>(this, mipLevel, 1, firstArraySlice, arraySize, _uavs, createFunc);
+        return FindViewCommon<ID3D11UnorderedAccessView>(this, mipLevel, 1, firstArraySlice, arraySize, _uavs, createFunc);*/
     }
 }

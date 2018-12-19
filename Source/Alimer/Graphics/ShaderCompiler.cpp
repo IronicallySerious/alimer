@@ -25,7 +25,6 @@
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
-#if TODO_SHADER_COMPILER
 #include "glslang/Public/ShaderLang.h"
 #include "glslang/StandAlone/ResourceLimits.h"
 #include "SPIRV/GlslangToSpv.h"
@@ -66,7 +65,7 @@ namespace Alimer
             }
             else
             {
-                ALIMER_LOGCRITICALF("Cannot open include file '%s'", fullPath.CString());
+                ALIMER_LOGCRITICAL("Cannot open include file '{}'", fullPath.CString());
                 return nullptr;
             }
 
@@ -167,6 +166,7 @@ namespace Alimer
         }
     }
 
+#if TODO_SHADER_COMPILER
     ShaderBlob ShaderCompiler::Compile(
         const char* filePath,
         const char* entryPoint,
@@ -357,6 +357,5 @@ namespace Alimer
 
         return blob;
     }
-}
-
 #endif // TODO_SHADER_COMPILER
+}

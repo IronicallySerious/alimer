@@ -22,56 +22,57 @@
 
 #include "../Graphics/CommandContext.h"
 #include "../Graphics/GPUDevice.h"
+#include "../Graphics/GPUDeviceImpl.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    CommandContext::CommandContext(GPUDevice* device)
+    CommandContext::CommandContext(GPUDevice* device, GPUCommandBuffer* commandBuffer)
         : _device(device)
+        , _commandBuffer(commandBuffer)
         , _insideRenderPass(false)
     {
     }
 
     uint64_t CommandContext::Flush(bool waitForCompletion)
     {
-        return FlushImpl(waitForCompletion);
+        return _commandBuffer->Flush(waitForCompletion);
     }
 
-    void CommandContext::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
+    void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
+        ALIMER_ASSERT(framebuffer);
+
         RenderPassBeginDescriptor descriptor = {};
         descriptor.colors[0].loadAction = LoadAction::Clear;
         descriptor.colors[0].storeAction = StoreAction::Store;
         descriptor.colors[0].clearColor = clearColor;
 
-        descriptor.depthStencil.depthLoadAction = LoadAction::Clear;
-        descriptor.depthStencil.depthStoreAction = StoreAction::Store;
-        descriptor.depthStencil.stencilLoadAction = LoadAction::DontCare;
-        descriptor.depthStencil.stencilStoreAction = StoreAction::DontCare;
-        descriptor.depthStencil.clearDepth = clearDepth;
-        descriptor.depthStencil.clearStencil = clearStencil;
+        if (framebuffer->HasDepthStencilAttachment())
+        {
+            descriptor.depthStencil.depthLoadAction = LoadAction::Clear;
+            descriptor.depthStencil.depthStoreAction = StoreAction::Store;
+            descriptor.depthStencil.stencilLoadAction = LoadAction::DontCare;
+            descriptor.depthStencil.stencilStoreAction = StoreAction::DontCare;
+            descriptor.depthStencil.clearDepth = clearDepth;
+            descriptor.depthStencil.clearStencil = clearStencil;
+        }
 
-        BeginRenderPass(_device->GetMainWindow()->GetCurrentFramebuffer(), &descriptor);
-    }
-
-    void CommandContext::BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor)
-    {
-        ALIMER_ASSERT_MSG(descriptor, "Invalid descriptor");
-        BeginRenderPass(_device->GetMainWindow()->GetCurrentFramebuffer(), descriptor);
+        BeginRenderPass(framebuffer, &descriptor);
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         ALIMER_ASSERT(framebuffer);
 
-        BeginRenderPassImpl(framebuffer, descriptor);
+        _commandBuffer->BeginRenderPass(framebuffer->GetGPUFramebuffer(), descriptor);
         _insideRenderPass = true;
     }
 
     void CommandContext::EndRenderPass()
     {
-        EndRenderPassImpl();
+        _commandBuffer->EndRenderPass();
         _insideRenderPass = false;
     }
 
@@ -82,7 +83,7 @@ namespace Alimer
         //SetPipelineImpl(pipeline);
     }
 
-    void CommandContext::SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset, VertexInputRate inputRate)
+    void CommandContext::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
@@ -95,7 +96,7 @@ namespace Alimer
         }
 #endif
 
-        SetVertexBufferCore(binding, buffer, offset, buffer->GetElementSize(), inputRate);
+        //SetVertexBufferCore(binding, buffer, offset, buffer->GetElementSize(), inputRate);
     }
 
     void CommandContext::SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType)
@@ -110,12 +111,12 @@ namespace Alimer
         }
 #endif
         
-        SetIndexBufferCore(buffer, offset, indexType);
+        //SetIndexBufferCore(buffer, offset, indexType);
     }
 
     void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)
     {
-        SetPrimitiveTopologyCore(topology);
+        //SetPrimitiveTopologyCore(topology);
     }
 
     void CommandContext::Draw(uint32_t vertexCount, uint32_t firstVertex)
@@ -132,7 +133,7 @@ namespace Alimer
         ALIMER_ASSERT(instanceCount >= 1);
 #endif
 
-        DrawInstancedCore(vertexCount, instanceCount, firstVertex, firstInstance);
+        //DrawInstancedCore(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
@@ -154,7 +155,7 @@ namespace Alimer
     void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         ALIMER_ASSERT(_currentPipeline && _currentPipeline->IsCompute());
-        DispatchCore(groupCountX, groupCountY, groupCountZ);
+        //DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
     void CommandContext::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)

@@ -29,6 +29,8 @@
 
 namespace Alimer
 {
+    struct GPUTexture;
+
     /// Defines a Texture class.
     class ALIMER_API Texture : public GPUResource
     {
@@ -37,55 +39,78 @@ namespace Alimer
 
     protected:
         /// Constructor.
-        Texture(GPUDevice* device, 
-            TextureType type, uint32_t width, uint32_t height, 
-            uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers,
-            PixelFormat format, TextureUsage usage, SampleCount samples);
+        Texture();
+
+        /// Constructor.
+        Texture(GPUTexture* texture);
 
     public:
-        TextureType GetTextureType() const { return _type; }
-        TextureUsage GetUsage() const { return _usage; }
-        PixelFormat GetFormat() const { return _format; }
+        /// Desturctor
+        ~Texture() override;
+
+        void Destroy() override;
+
+        /// Get the type of the texture.
+        TextureType GetTextureType() const { return _descriptor.type; }
+
+        /// Get the texture usage.
+        TextureUsage GetUsage() const { return _descriptor.usage; }
+
+        /// Get the pixel format.
+        PixelFormat GetFormat() const { return _descriptor.format; }
 
         /// Get a mipLevel width.
         uint32_t GetWidth(uint32_t mipLevel = 0) const 
         {
-            return Max(1u, _width >> mipLevel);
+            return Max(1u, _descriptor.width >> mipLevel);
         }
 
         /// Get a mipLevel height.
         uint32_t GetHeight(uint32_t mipLevel = 0) const 
         {
-            return Max(1u, _height >> mipLevel);
+            return Max(1u, _descriptor.height >> mipLevel);
         }
 
         /// Get a mipLevel height.
         uint32_t GetDepth(uint32_t mipLevel = 0) const
         {
-            return Max(1u, _depth >> mipLevel);
+            return Max(1u, _descriptor.depth >> mipLevel);
         }
 
         /// Get the number of mip-levels.
-        uint32_t GetMipLevels() const { return _mipLevels; }
+        uint32_t GetMipLevels() const { return _descriptor.mipLevels; }
 
-        /// Get the array layers.
-        uint32_t GetArrayLayers() const { return _arrayLayers; }
+        /// Get the array size.
+        uint32_t GetArraySize() const { return _descriptor.arraySize; }
 
-        /// Get the sample count
-        SampleCount GetSamples() const { return _samples; }
+        /// Get the sample count.
+        SampleCount GetSamples() const { return _descriptor.samples; }
 
-    private:
+        /// Get the texture description.
+        const TextureDescriptor& GetDescriptor() const { return _descriptor; }
+
+        /// Get the GPUTexture.
+        GPUTexture* GetGPUTexture() const { return _texture; }
+
+    protected:
         /// Register object factory.
         static void RegisterObject();
 
-        TextureType _type = TextureType::Type2D;
-        uint32_t _width = 1;
-        uint32_t _height = 1;
-        uint32_t _depth = 1;
-        uint32_t _mipLevels = 1;
-        uint32_t _arrayLayers = 1;
-        PixelFormat _format = PixelFormat::RGBA8UNorm;
-        TextureUsage _usage = TextureUsage::Sampled;
-        SampleCount _samples = SampleCount::Count1;
+        bool CreateGPUTexture(const void* initialData);
+
+        GPUTexture* _texture = nullptr;
+        TextureDescriptor _descriptor{};
+    };
+
+    class Texture2D final : public Texture
+    {
+    public:
+        /// Constructor.
+        Texture2D();
+
+        /// Constructor with external texture.
+        Texture2D(GPUTexture* texture);
+
+        bool Define(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, SampleCount samples = SampleCount::Count1, const void* initialData = nullptr);
     };
 }

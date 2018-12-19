@@ -23,6 +23,7 @@
 #pragma once
 
 #include "D3D11Prerequisites.h"
+#include "../D3D/D3DConvert.h"
 #include "../Types.h"
 #include "../PixelFormat.h"
 #include "../Buffer.h"
@@ -149,6 +150,43 @@ namespace Alimer
             }
 
             return filter;
+        }
+
+        static inline TextureUsage GetTextureUsage(UINT bindFlags)
+        {
+            TextureUsage usage = TextureUsage::None;
+            if (bindFlags & D3D11_BIND_SHADER_RESOURCE)
+            {
+                usage |= TextureUsage::Sampled;
+            }
+
+            if (bindFlags & D3D11_BIND_UNORDERED_ACCESS)
+            {
+                usage |= TextureUsage::Storage;
+            }
+
+            if (bindFlags & D3D11_BIND_RENDER_TARGET
+                || bindFlags & D3D11_BIND_DEPTH_STENCIL)
+            {
+                usage |= TextureUsage::OutputAttachment;
+            }
+
+            return usage;
+        }
+
+        static inline TextureDescriptor Convert(const D3D11_TEXTURE2D_DESC& desc)
+        {
+            TextureDescriptor descriptor;
+            descriptor.width = desc.Width;;
+            descriptor.height = desc.Height;
+            descriptor.depth = 1;
+            descriptor.arraySize = desc.ArraySize;
+            descriptor.mipLevels = desc.MipLevels;
+            descriptor.samples = static_cast<SampleCount>(desc.SampleDesc.Count);
+            descriptor.type = TextureType::Type2D;
+            descriptor.format = GetPixelFormatDxgiFormat(desc.Format);
+            descriptor.usage = GetTextureUsage(desc.BindFlags);
+            return descriptor;
         }
     }
 }

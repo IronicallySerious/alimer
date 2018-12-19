@@ -22,6 +22,7 @@
 
 #include "../Graphics/Shader.h"
 #include "../Graphics/GPUDevice.h"
+#include "../Graphics/GPUDeviceImpl.h"
 #include "../Graphics/ShaderCompiler.h"
 #include "../Resource/ResourceManager.h"
 #include "../Resource/ResourceLoader.h"
@@ -31,8 +32,8 @@
 
 namespace Alimer
 {
-    Shader::Shader(GPUDevice* device)
-        : GPUResource(device, Type::ShaderModule)
+    Shader::Shader()
+        : GPUResource(GetSubsystem<GPUDevice>(), Type::Shader)
     {
         // Reflection all shader resouces.
         //SPIRVReflectResources(reinterpret_cast<const uint32_t*>(blob.data), blob.size, &_reflection);
@@ -45,13 +46,7 @@ namespace Alimer
 
     void Shader::Destroy()
     {
-        for (uint32_t i = 0; i < static_cast<unsigned>(ShaderStage::Count); ++i)
-        {
-            if (_shaders[i] != nullptr)
-            {
-                _shaders[i] = nullptr;
-            }
-        }
+        SafeDelete(_shader);
     }
 
     bool Shader::Define(ShaderModule* vertex, ShaderModule* fragment)
@@ -66,6 +61,6 @@ namespace Alimer
 
     void Shader::RegisterObject()
     {
-        //RegisterFactory<Shader>();
+        RegisterFactory<Shader>();
     }
 }

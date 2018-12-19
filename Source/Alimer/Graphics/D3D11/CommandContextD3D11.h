@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../CommandContext.h"
+#include "../GPUDeviceImpl.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
@@ -31,18 +31,18 @@ namespace Alimer
     class FramebufferD3D11;
     class DeviceD3D11;
 
-    class CommandContextD3D11 final : public CommandContext
+    class CommandContextD3D11 final : public GPUCommandBuffer
     {
     public:
         CommandContextD3D11(DeviceD3D11* device);
         ~CommandContextD3D11() override;
 
-        uint64_t FlushImpl(bool waitForCompletion) override;
-        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
-        void EndRenderPassImpl() override;
+        uint64_t Flush(bool waitForCompletion) override;
+        void BeginRenderPass(GPUFramebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        void EndRenderPass() override;
 
-        void SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
-        void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) override;
+        //void SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
+        //void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) override;
 
         /*
         void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) override;
@@ -57,9 +57,9 @@ namespace Alimer
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
 
-        void SetPrimitiveTopologyCore(PrimitiveTopology topology) override;
-        void DrawInstancedCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
-        void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+        //void SetPrimitiveTopologyCore(PrimitiveTopology topology) override;
+        //void DrawInstancedCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+        //void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
     private:
         ID3D11DeviceContext*         _d3dContext;
@@ -91,7 +91,7 @@ namespace Alimer
             VertexInputRate inputRates[MaxVertexBufferBindings];
         };
 
-        struct BufferBindingInfo {
+        /*struct BufferBindingInfo {
             Buffer*  buffer;
             uint32_t    offset;
             uint32_t    range;
@@ -108,12 +108,12 @@ namespace Alimer
         {
             ResourceBinding bindings[MaxDescriptorSets][MaxBindingsPerSet];
             uint8_t push_constant_data[MaxDescriptorSets];
-        };
+        };*/
 
         VertexBindingState _vbo = {};
 
         bool            _inputLayoutDirty;
-        ResourceBindings _bindings;
+        //ResourceBindings _bindings;
         uint32_t        _dirtySets = 0;
         uint32_t        _dirtyVbos = 0;
     };

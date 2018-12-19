@@ -28,7 +28,7 @@ using namespace Microsoft::WRL;
 namespace Alimer
 {
     ShaderModuleD3D11::ShaderModuleD3D11(DeviceD3D11* device)
-        : ShaderModule(device)
+        : ShaderModule(nullptr)
     {
     }
 

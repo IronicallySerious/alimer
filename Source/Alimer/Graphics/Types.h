@@ -29,6 +29,7 @@
 
 namespace Alimer
 {
+    /* Constants */
     static constexpr uint32_t RemainingMipLevels  = ~0U;
     static constexpr uint32_t RemainingArrayLayers = ~0U;
     static constexpr uint32_t MaxViewportsAndScissors = 16u;
@@ -37,6 +38,8 @@ namespace Alimer
     static constexpr uint32_t MaxVertexAttributes = 16u;
     static constexpr uint32_t MaxVertexBufferBindings = 4u;
     static constexpr uint32_t MaxColorAttachments = 8u;
+
+    /* Enums */
 
     /// Enum describing the Graphics backend.
     enum class GraphicsBackend : uint32_t
@@ -319,6 +322,33 @@ namespace Alimer
     };
     ALIMER_BITMASK(BufferUsage);
 
+    /* Structs */
+    struct GPULimits
+    {
+        uint32_t maxColorAttachments;
+        uint32_t maxBindGroups;
+    };
+
+    struct TextureDescriptor
+    {
+        uint32_t width;
+        uint32_t height;
+        uint32_t depth;
+        uint32_t arraySize;
+        uint32_t mipLevels;
+        SampleCount samples;
+        TextureType type;
+        PixelFormat format;
+        TextureUsage usage;
+    };
+
+    struct BufferDescriptor
+    {
+        uint64_t size;
+        BufferUsage usage;
+        uint32_t stride;
+    };
+
     struct SamplerDescriptor
     {
         SamplerAddressMode addressModeU = SamplerAddressMode::Repeat;
@@ -332,6 +362,63 @@ namespace Alimer
         uint32_t maxAnisotropy = 1;
         CompareFunction compareFunction = CompareFunction::Never;
         SamplerBorderColor borderColor = SamplerBorderColor::TransparentBlack;
+    };
+
+    struct ColorAttachmentAction 
+    {
+        LoadAction  loadAction = LoadAction::Clear;
+        StoreAction storeAction = StoreAction::Store;
+        Color4      clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
+    };
+
+    struct DepthStencilAttachmentAction
+    {
+        LoadAction  depthLoadAction = LoadAction::Clear;
+        StoreAction depthStoreAction = StoreAction::DontCare;
+        LoadAction  stencilLoadAction = LoadAction::DontCare;
+        StoreAction stencilStoreAction = StoreAction::DontCare;
+        float       clearDepth = 1.0f;
+        uint8_t     clearStencil = 0;
+    };
+
+    struct RenderPassBeginDescriptor
+    {
+        ColorAttachmentAction           colors[MaxColorAttachments];
+        DepthStencilAttachmentAction    depthStencil;
+        uint32_t                        renderTargetWidth;
+        uint32_t                        renderTargetHeight;
+    };
+
+    struct VertexElement
+    {
+        /// Default-construct.
+        VertexElement() noexcept
+            : format(VertexElementFormat::Float3)
+            , semantic(VertexElementSemantic::Position)
+            , offset(0)
+        {
+        }
+
+        /// Construct with format, semantic and optional offset.
+        VertexElement(VertexElementFormat format_, VertexElementSemantic semantic_, uint32_t offset_ = 0) noexcept
+            : format(format_)
+            , semantic(semantic_)
+            , offset(offset_)
+        {
+        }
+
+        /// Test for equality with another vertex element. 
+        bool operator ==(const VertexElement& rhs) const { return format == rhs.format && semantic == rhs.semantic && offset == rhs.offset; }
+
+        /// Test for inequality with another vertex element.
+        bool operator !=(const VertexElement& rhs) const { return !(*this == rhs); }
+
+        /// Format of element.
+        VertexElementFormat format;
+        /// Semantic of element.
+        VertexElementSemantic semantic;
+        /// Offset of element (packed if all elements offset is 0).
+        uint32_t offset;
     };
 
     ALIMER_API uint32_t GetVertexElementSize(VertexElementFormat format);

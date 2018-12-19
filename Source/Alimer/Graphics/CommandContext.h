@@ -34,33 +34,15 @@
 namespace Alimer
 {
     class GPUDevice;
-
-    struct ColorAttachmentAction {
-        LoadAction  loadAction = LoadAction::Clear;
-        StoreAction storeAction = StoreAction::Store;
-        Color4      clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
-    };
-
-    struct DepthStencilAttachmentAction {
-        LoadAction  depthLoadAction = LoadAction::Clear;
-        StoreAction depthStoreAction = StoreAction::DontCare;
-        LoadAction  stencilLoadAction = LoadAction::DontCare;
-        StoreAction stencilStoreAction = StoreAction::DontCare;
-        float       clearDepth = 1.0f;
-        uint8_t     clearStencil = 0;
-    };
-
-    struct RenderPassBeginDescriptor
-    {
-        ColorAttachmentAction           colors[MaxColorAttachments];
-        DepthStencilAttachmentAction    depthStencil;
-    };
+    struct GPUCommandBuffer;
 
     /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext
+    class ALIMER_API CommandContext final
     {
-    protected:
-        CommandContext(GPUDevice* device);
+        friend class GPUDevice;
+
+    private:
+        CommandContext(GPUDevice* device, GPUCommandBuffer* commandBuffer);
 
     public:
         /// Destructor.
@@ -69,14 +51,13 @@ namespace Alimer
         // Flush existing commands to the GPU and optionally wait for execution.
         uint64_t Flush(bool waitForCompletion = false);
 
-        void BeginDefaultRenderPass(const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
-        void BeginDefaultRenderPass(const RenderPassBeginDescriptor* descriptor);
+        void BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
         void BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
         void EndRenderPass();
 
         void SetPipeline(Pipeline* pipeline);
 
-        void SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+        void SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(Buffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
         //virtual void SetViewport(const rect& viewport) = 0;
         //virtual void SetScissor(const irect& scissor) = 0;
@@ -103,21 +84,16 @@ namespace Alimer
 
     private:
         // Backend methods.
-        virtual uint64_t FlushImpl(bool waitForCompletion) = 0;
-        virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
-        virtual void EndRenderPassImpl() = 0;
-
-        virtual void SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
-        virtual void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) = 0;
+        //virtual void SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
+        //virtual void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
         //virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) = 0;
         //virtual void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;
 
-    private:
         //virtual void SetPipelineImpl(Pipeline* pipeline) = 0;
-        virtual void SetPrimitiveTopologyCore(PrimitiveTopology topology) = 0;
-        virtual void DrawInstancedCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
-        virtual void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+        //virtual void SetPrimitiveTopologyCore(PrimitiveTopology topology) = 0;
+        //virtual void DrawInstancedCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
+        //virtual void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
     protected:
         /// GPUDevice.
@@ -128,5 +104,8 @@ namespace Alimer
 
         /// Resource name
         String _name;
+
+    private:
+        GPUCommandBuffer* _commandBuffer;
     };
 }

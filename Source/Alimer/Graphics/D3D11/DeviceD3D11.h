@@ -22,13 +22,13 @@
 
 #pragma once
 
-#include "../../Graphics/GPUDevice.h"
+#include "../../Graphics/GPUDeviceImpl.h"
 #include "D3D11Cache.h"
 
 namespace Alimer
 {
     /// D3D11 graphics implementation.
-    class DeviceD3D11 final : public GPUDevice
+    class DeviceD3D11 final : public GPUDeviceImpl
     {
     public:
         /// Is backend supported?
@@ -40,15 +40,19 @@ namespace Alimer
         /// Destructor.
         ~DeviceD3D11() override;
 
-        bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
+        /* GPUDeviceImpl implementation */
+        GraphicsBackend GetBackend() const override { return GraphicsBackend::D3D11; }
+        const GPULimits& GetLimits() const override { return _limits; }
+        const GraphicsDeviceFeatures& GetFeatures() const override { return _features; }
+        GPUCommandBuffer* GetDefaultCommandBuffer() const { return _immediateCommandBuffer; }
         bool WaitIdle() override;
 
-        Buffer* CreateBufferCore(BufferUsage usage, uint32_t elementCount, uint32_t elementSize, const void* initialData, const std::string& name) override;
-        Texture* CreateTextureCore(TextureType type, uint32_t width, uint32_t height,
-            uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format,
-            TextureUsage usage, SampleCount samples, const void* initialData)  override;
-        Sampler* CreateSamplerCore(const SamplerDescriptor* descriptor) override;
-        Framebuffer* CreateFramebufferCore(uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment) override;
+        GPUSwapChain* CreateSwapChain(void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb) override;
+        GPUTexture* CreateTexture(const TextureDescriptor& descriptor, const void* initialData) override;
+        GPUFramebuffer* CreateFramebuffer() override;
+        GPUBuffer* CreateBuffer(const BufferDescriptor& descriptor, const void* initialData) override;
+        GPUSampler* CreateSampler(const SamplerDescriptor& descriptor) override;
+
 
         void HandleDeviceLost();
 
@@ -87,6 +91,9 @@ namespace Alimer
         uint32_t                                            _shaderModelMinor = 0;
         bool                                                _allowTearing = false;
 
-        D3D11Cache                                          _cache;
+        GPULimits _limits{};
+        GraphicsDeviceFeatures  _features{};
+        GPUCommandBuffer* _immediateCommandBuffer = nullptr;
+        D3D11Cache _cache;
     };
 }

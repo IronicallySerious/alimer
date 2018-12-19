@@ -37,15 +37,27 @@ namespace Alimer
         uint32_t slice = 0;
     };
 
+    struct GPUFramebuffer;
+
     /// Defines a Framebuffer class.
-    class ALIMER_API Framebuffer : public GPUResource
+    class ALIMER_API Framebuffer final : public GPUResource
     {
         ALIMER_OBJECT(Framebuffer, GPUResource);
+
     protected:
         /// Constructor.
         Framebuffer(GPUDevice* device, uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment);
 
     public:
+        /// Constructor.
+        Framebuffer();
+
+        /// Set color attachment at index.
+        void SetColorAttachment(uint32_t index, Texture* colorTexture, uint32_t level = 0, uint32_t slice = 0);
+
+        /// Set framebuffer depth stencil attachment.
+        void SetDepthStencilAttachment(Texture* depthStencilTexture, uint32_t level = 0, uint32_t slice = 0);
+
         /// Get the number of color attachments.
         uint32_t GetColorAttachmentsCount() const { return _colorAttachments.Size(); }
 
@@ -55,7 +67,7 @@ namespace Alimer
         /// Get is framebuffer has depth stencil attachments
         bool HasDepthStencilAttachment() const;
 
-        ///* Get the attached depth-stencil texture or null if no texture is attached.
+        /// Get the attached depth-stencil texture or null if no texture is attached.
         const Texture* GetDepthStencilTexture() const;
 
         /// Get the width of the framebuffer.
@@ -67,6 +79,9 @@ namespace Alimer
         ///Get the layers of the framebuffer.
         uint32_t GetLayers() const { return _layers; }
 
+        /// Get the GPUFramebuffer.
+        GPUFramebuffer* GetGPUFramebuffer() const { return _framebuffer; }
+
     private:
         PODVector<FramebufferAttachment> _colorAttachments;
         FramebufferAttachment _depthStencilAttachment;
@@ -74,5 +89,7 @@ namespace Alimer
         uint32_t _width;
         uint32_t _height;
         uint32_t _layers;
+
+        GPUFramebuffer* _framebuffer = nullptr;
     };
 }

@@ -22,6 +22,7 @@
 
 #include "../Graphics/RenderWindow.h"
 #include "../Graphics/GPUDevice.h"
+#include "../Graphics/GPUDeviceImpl.h"
 #include "../Core/Log.h"
 
 namespace Alimer
@@ -29,7 +30,35 @@ namespace Alimer
     RenderWindow::RenderWindow(const RenderWindowDescriptor* descriptor)
         : Window(descriptor->title, descriptor->size, descriptor->windowFlags)
     {
+        _swapChain = GetSubsystem<GPUDevice>()->GetImpl()->CreateSwapChain(
+            GetNativeHandle(),
+            descriptor->size.x,
+            descriptor->size.y,
+            descriptor->preferredDepthStencilFormat,
+            descriptor->sRGB);
 
+        const uint32_t backBufferCount = _swapChain->GetBackBufferCount();
+        _backbufferTextures.Resize(backBufferCount);
+        _framebuffers.Resize(backBufferCount);
+
+        const bool hasDepthStencil = descriptor->preferredDepthStencilFormat != PixelFormat::Unknown;
+        if (hasDepthStencil)
+        {
+            _depthStencilTexture = new Texture2D();
+            _depthStencilTexture->Define(descriptor->size.x, descriptor->size.y, 1, 1, descriptor->preferredDepthStencilFormat, TextureUsage::OutputAttachment);
+        }
+
+        for (uint32_t i = 0; i < backBufferCount; ++i)
+        {
+            GPUTexture* gpuTexture = _swapChain->GetBackBufferTexture(i);
+            _backbufferTextures[i] = new Texture2D(gpuTexture);
+            _framebuffers[i] = new Framebuffer();
+            _framebuffers[i]->SetColorAttachment(0, _backbufferTextures[i].Get(), 0, 0);
+            if (hasDepthStencil)
+            {
+                _framebuffers[i]->SetDepthStencilAttachment(_depthStencilTexture.Get(), 0, 0);
+            }
+        }
     }
 
     RenderWindow::~RenderWindow()
@@ -39,16 +68,26 @@ namespace Alimer
 
     void RenderWindow::Destroy()
     {
+        _depthStencilTexture.Reset();
+        _backbufferTextures.Clear();
         _framebuffers.Clear();
+        SafeDelete(_swapChain);
     }
 
     void RenderWindow::SwapBuffers()
     {
+        _swapChain->Present();
+    }
 
+    void RenderWindow::OnSizeChanged(const uvec2& newSize)
+    {
+        _swapChain->Configure(newSize.x, newSize.y);
+        Window::OnSizeChanged(newSize);
     }
 
     Framebuffer* RenderWindow::GetCurrentFramebuffer() const
     {
-        return _framebuffers[_currentBackBufferIndex].Get();
+        uint32_t currentBackBufferIndex = _swapChain->GetCurrentBackBuffer();
+        return _framebuffers[currentBackBufferIndex].Get();
     }
 }

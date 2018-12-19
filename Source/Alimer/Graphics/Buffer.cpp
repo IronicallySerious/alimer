@@ -22,18 +22,44 @@
 
 #include "../Graphics/Buffer.h"
 #include "../Graphics/GPUDevice.h"
+#include "../Graphics/GPUDeviceImpl.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    Buffer::Buffer(GPUDevice* device, BufferUsage usage, uint32_t elementCount, uint32_t elementSize)
-        : GPUResource(device, Type::Buffer)
-        , _usage(usage)
-        , _elementCount(elementCount)
-        , _elementSize(elementSize)
-        , _size(elementCount * elementSize)
+    Buffer::Buffer()
+        : GPUResource(GetSubsystem<GPUDevice>(), Type::Buffer)
     {
 
+    }
+
+    Buffer::~Buffer()
+    {
+        Destroy();
+    }
+
+    void Buffer::Destroy()
+    {
+        SafeDelete(_buffer);
+    }
+
+    bool Buffer::CreateGPUBuffer(bool useShadowData, const void* data)
+    {
+        // Destroy old instance first.
+        Destroy();
+
+        // If buffer is reinitialized with the same shadow data, no need to reallocate
+        if (useShadowData && (!data || data != _shadowData.Get()))
+        {
+            _shadowData = new uint8_t[_descriptor.size];
+            if (data)
+            {
+                memcpy(_shadowData.Get(), data, _descriptor.size);
+            }
+        }
+
+        _buffer = _device->GetImpl()->CreateBuffer(_descriptor, data);
+        return _buffer != nullptr;
     }
 
     bool Buffer::SetSubData(const void* pData)
@@ -50,5 +76,56 @@ namespace Alimer
         }
 
         return false;
+    }
+
+    /* VertexBuffer */
+    VertexBuffer::VertexBuffer()
+    {
+
+    }
+
+    bool VertexBuffer::Define(uint32_t vertexCount, const PODVector<VertexElement>& elements, bool useShadowData, const void* data)
+    {
+        if (!vertexCount || !elements.Size())
+        {
+            ALIMER_LOGERROR("Can not define vertex buffer with no vertices or no elements");
+            return false;
+        }
+
+        return Define(vertexCount, elements.Size(), elements.Data(), useShadowData, data);
+    }
+
+    bool VertexBuffer::Define(uint32_t vertexCount, uint32_t elementsCount, const VertexElement* elements, bool useShadowData, const void* data)
+    {
+        if (!vertexCount || !elementsCount || !elements)
+        {
+            ALIMER_LOGERROR("Can not define vertex buffer with no vertices or no elements");
+            return false;
+        }
+
+        bool useAutoOffset = true;
+        for (uint32_t i = 0; i < elementsCount; ++i)
+        {
+            if (elements[i].offset != 0)
+            {
+                useAutoOffset = false;
+                break;
+            }
+        }
+
+        uint32_t stride = 0;
+        _elements.Resize(elementsCount);
+        for (uint32_t i = 0; i < elementsCount; ++i)
+        {
+            _elements[i] = elements[i];
+            _elements[i].offset = useAutoOffset ? stride : elements[i].offset;
+            stride += GetVertexElementSize(elements[i].format);
+            //elementHash |= ElementHash(i, elements[i].semantic);
+        }
+
+        _descriptor.size = vertexCount * stride;
+        _descriptor.usage = BufferUsage::Vertex;
+        _descriptor.stride = stride;
+        return CreateGPUBuffer(useShadowData, data);
     }
 }

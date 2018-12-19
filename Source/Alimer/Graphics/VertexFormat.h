@@ -26,38 +26,6 @@
 
 namespace Alimer
 {
-    struct ALIMER_API VertexElement
-    {
-        /// Default-construct.
-        VertexElement() noexcept
-            : format(VertexElementFormat::Float3)
-            , semantic(VertexElementSemantic::Position)
-            , offset(0)
-        {
-        }
-
-        /// Construct with format, semantic and optional offset.
-        VertexElement(VertexElementFormat format_, VertexElementSemantic semantic_, uint32_t offset_ = 0) noexcept
-            : format(format_)
-            , semantic(semantic_)
-            , offset(offset_)
-        {
-        }
-
-        /// Test for equality with another vertex element. 
-        bool operator ==(const VertexElement& rhs) const { return format == rhs.format && semantic == rhs.semantic && offset == rhs.offset; }
-
-        /// Test for inequality with another vertex element.
-        bool operator !=(const VertexElement& rhs) const { return !(*this == rhs); }
-
-        /// Format of element.
-        VertexElementFormat format;
-        /// Semantic of element.
-        VertexElementSemantic semantic;
-        /// Offset of element (packed if all elements offset is 0).
-        uint32_t offset;
-    };
-
 	/// Defines a VertexFormat class.
 	class ALIMER_API VertexFormat 
 	{

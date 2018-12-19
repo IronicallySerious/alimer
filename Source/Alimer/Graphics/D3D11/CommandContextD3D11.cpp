@@ -25,7 +25,7 @@
 #include "TextureD3D11.h"
 #include "FramebufferD3D11.h"
 #include "BufferD3D11.h"
-#include "D3D11Shader.h"
+#include "ShaderD3D11.h"
 //#include "D3D11Pipeline.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Math/MathUtil.h"
@@ -35,8 +35,7 @@ using namespace Microsoft::WRL;
 namespace Alimer
 {
     CommandContextD3D11::CommandContextD3D11(DeviceD3D11* device)
-        : CommandContext(device)
-        , _immediate(true)
+        : _immediate(true)
         , _d3dContext(device->GetD3DDeviceContext())
         , _d3dContext1(device->GetD3DDeviceContext1())
         , _fenceValue(0)
@@ -85,17 +84,18 @@ namespace Alimer
         _dirtySets = ~0u;
         _dirtyVbos = ~0u;
         _inputLayoutDirty = false;
-        memset(&_bindings, 0, sizeof(_bindings));
+        //memset(&_bindings, 0, sizeof(_bindings));
         memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
     }
 
-    uint64_t CommandContextD3D11::FlushImpl(bool waitForCompletion)
+    uint64_t CommandContextD3D11::Flush(bool waitForCompletion)
     {
         _d3dContext->Flush();
         return ++_fenceValue;
     }
 
-    void CommandContextD3D11::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+
+    void CommandContextD3D11::BeginRenderPass(GPUFramebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         _currentFramebuffer = static_cast<FramebufferD3D11*>(framebuffer);
         _currentColorAttachmentsBound = _currentFramebuffer->Bind(_d3dContext);
@@ -114,18 +114,17 @@ namespace Alimer
         }
 
         // Depth/stencil now.
-        auto depthStencilTexture = framebuffer->GetDepthStencilTexture();
-        if (depthStencilTexture)
+        ID3D11DepthStencilView* depthStencilView = _currentFramebuffer->GetDSV();
+        if (depthStencilView != nullptr)
         {
             UINT clearFlags = 0;
-            if (IsDepthFormat(depthStencilTexture->GetFormat())
-                && (descriptor->depthStencil.depthLoadAction == LoadAction::Clear))
+            if (descriptor->depthStencil.depthLoadAction == LoadAction::Clear)
             {
                 clearFlags |= D3D11_CLEAR_DEPTH;
             }
 
-            if (IsStencilFormat(depthStencilTexture->GetFormat()) &&
-                (descriptor->depthStencil.stencilLoadAction == LoadAction::Clear))
+            if ((descriptor->depthStencil.stencilLoadAction == LoadAction::Clear)
+                && IsStencilFormat(_currentFramebuffer->GetDepthStencilTexture()->GetDescriptor().format))
             {
                 clearFlags |= D3D11_CLEAR_STENCIL;
             }
@@ -133,32 +132,50 @@ namespace Alimer
             if (clearFlags != 0)
             {
                 _d3dContext->ClearDepthStencilView(
-                    _currentFramebuffer->GetDSV(),
+                    depthStencilView,
                     clearFlags,
                     descriptor->depthStencil.clearDepth,
                     descriptor->depthStencil.clearStencil);
             }
         }
 
+        uint32_t width, height;
+        if (!descriptor->renderTargetWidth)
+        {
+            width = framebuffer->GetWidth();
+        }
+        else
+        {
+            width = Min(framebuffer->GetWidth(), descriptor->renderTargetWidth);
+        }
+
+        if (!descriptor->renderTargetHeight)
+        {
+            height = framebuffer->GetHeight();
+        }
+        else
+        {
+            height = Min(framebuffer->GetHeight(), descriptor->renderTargetHeight);
+        }
 
         // Set viewport and scissor from fbo.
         D3D11_VIEWPORT viewport = {
             0.0f, 0.0f,
-            static_cast<float>(_currentFramebuffer->GetWidth()),
-            static_cast<float>(_currentFramebuffer->GetHeight()),
+            static_cast<float>(width),
+            static_cast<float>(height),
             0.0f, 1.0f
         };
 
         D3D11_RECT scissor = { 0, 0,
-            static_cast<LONG>(_currentFramebuffer->GetWidth()),
-            static_cast<LONG>(_currentFramebuffer->GetHeight())
+            static_cast<LONG>(width),
+            static_cast<LONG>(height)
         };
 
         _d3dContext->RSSetViewports(1, &viewport);
         _d3dContext->RSSetScissorRects(1, &scissor);
     }
 
-    void CommandContextD3D11::EndRenderPassImpl()
+    void CommandContextD3D11::EndRenderPass()
     {
         static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 
@@ -166,6 +183,7 @@ namespace Alimer
         _currentFramebuffer = nullptr;
     }
 
+#if TODO_D3D11
     /*void CommandContextD3D11::SetViewport(const rect& viewport)
     {
         D3D11_VIEWPORT d3dViewport = {
@@ -241,6 +259,8 @@ namespace Alimer
     {
         _d3dContext->Dispatch(groupCountX, groupCountY, groupCountZ);
     }
+
+#endif // TODO_D3D11
 
     /*void CommandContextD3D11::BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {

@@ -28,15 +28,23 @@
 
 namespace Alimer
 {
+    struct GPUBuffer;
+
 	/// Defines a GPU Buffer class.
 	class ALIMER_API Buffer : public GPUResource
 	{
         ALIMER_OBJECT(Buffer, GPUResource);
+
 	protected:
         /// Constructor.
-        Buffer(GPUDevice* device, BufferUsage usage, uint32_t elementCount, uint32_t elementSize);
+        Buffer();
 
     public:
+        /// Desturctor
+        ~Buffer() override;
+
+        void Destroy() override;
+
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 
@@ -44,21 +52,46 @@ namespace Alimer
         bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
 
         /// Get the buffer usage flags.
-        BufferUsage GetUsage() const { return _usage; }
-
-        /// Get number of elements in buffer.
-        uint32_t GetElementCount() const { return _elementCount; }
+        BufferUsage GetUsage() const { return _descriptor.usage; }
 
         /// Get single element size.
-        uint32_t GetElementSize() const { return _elementSize; }
+        uint32_t GetElementSize() const { return _descriptor.stride; }
 
         /// Get size in bytes of the buffer.
-        uint64_t GetSize() const { return _size; }
+        uint64_t GetSize() const { return _descriptor.size; }
+
+        /// Get the texture description.
+        const BufferDescriptor& GetDescriptor() const { return _descriptor; }
+
+        /// Get the GPUBuffer.
+        GPUBuffer* GetGPUBuffer() const { return _buffer; }
+
+    protected:
+        bool CreateGPUBuffer(bool useShadowData, const void* data);
+
+        GPUBuffer* _buffer = nullptr;
+        BufferDescriptor _descriptor{};
+        /// CPU-side shadow data.
+        AutoArrayPtr<uint8_t> _shadowData;
+	};
+
+
+    class VertexBuffer final : public Buffer
+    {
+    public:
+        /// Constructor.
+        VertexBuffer();
+
+        bool Define(uint32_t vertexCount, const PODVector<VertexElement>& elements, bool useShadowData, const void* data = nullptr);
+        bool Define(uint32_t vertexCount, uint32_t elementsCount, const VertexElement* elements, bool useShadowData, const void* data = nullptr);
+
+        /// Return number of vertex elements.
+        uint32_t GetElementsCount() const { return _elements.Size(); }
+
+        /// Return vertex elements.
+        const PODVector<VertexElement>& GetElements() const { return _elements; }
 
     private:
-        BufferUsage _usage = BufferUsage::None;
-        uint32_t _elementCount;
-        uint32_t _elementSize;
-		uint64_t _size;
-	};
+        PODVector<VertexElement> _elements;
+    };
 }

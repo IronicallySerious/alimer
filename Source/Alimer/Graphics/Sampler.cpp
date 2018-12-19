@@ -22,18 +22,36 @@
 
 #include "../Graphics/Sampler.h"
 #include "../Graphics/GPUDevice.h"
+#include "../Graphics/GPUDeviceImpl.h"
 #include "../Core/Log.h"
 
 namespace Alimer
 {
-    Sampler::Sampler(GPUDevice* device, const SamplerDescriptor* descriptor)
-        : GPUResource(device, Type::Sampler)
+    Sampler::Sampler()
+        : GPUResource(GetSubsystem<GPUDevice>(), Type::Sampler)
     {
-        memcpy(&_descriptor, descriptor, sizeof(SamplerDescriptor));
+    }
+
+    Sampler::~Sampler()
+    {
+        Destroy();
+    }
+
+    void Sampler::Destroy()
+    {
+        SafeDelete(_sampler);
+    }
+
+    bool Sampler::Define(const SamplerDescriptor& descriptor)
+    {
+        Destroy();
+        _descriptor = descriptor;
+        _sampler = _device->GetImpl()->CreateSampler(descriptor);
+        return _sampler != nullptr;
     }
 
     void Sampler::RegisterObject()
     {
-        //RegisterFactory<Sampler>();
+        RegisterFactory<Sampler>();
     }
 }

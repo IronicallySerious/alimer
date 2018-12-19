@@ -35,7 +35,7 @@ macro (define_engine_source_files)
 
         # Remove unsupported files for install.
         list (REMOVE_ITEM _files
-            Graphics/GraphicsImpl.h
+            Graphics/GPUDeviceImpl.h
         )
 
 		# Install them
@@ -235,12 +235,9 @@ endif ()
 
 
 if (ALIMER_TOOLS)
-    #target_link_libraries (${TARGET_NAME} 
-    #    PRIVATE glslang
-    #    PRIVATE OGLCompiler
-    #    PRIVATE OSDependent
-    #    PRIVATE SPIRV
-    #)
+    target_link_libraries (${TARGET_NAME} 
+        glslang OGLCompiler OSDependent SPIRV
+    )
 endif ()
 
 # Suppress some MSVC warnings

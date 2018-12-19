@@ -28,6 +28,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <cctype>
+#include <string>
 #include <sstream>
 #include <algorithm>
 
@@ -100,6 +101,24 @@ namespace Alimer
             CopyChars(_buffer, str, length);
         }
 
+        /// Construct from std::string.
+        String(const std::string& str) 
+            : _length(0)
+            , _capacity(0)
+            , _buffer(&END_ZERO)
+        {
+            *this = str.c_str();
+        }
+
+        /// Construct from std::wstring.
+        String(const std::wstring& str) 
+            : _length(0)
+            , _capacity(0)
+            , _buffer(&END_ZERO)
+        {
+            SetUTF8FromWChar(str.c_str());
+        }
+
         /// Construct from a null-terminated wide character array.
         explicit String(const wchar_t* str)
             : _length(0)
@@ -160,8 +179,9 @@ namespace Alimer
         /// Destruct.
         ~String()
         {
-            if (_capacity)
+            if (_capacity) {
                 delete[] _buffer;
+            }
         }
 
         /// Assign a string.
@@ -221,6 +241,17 @@ namespace Alimer
             uint32_t oldLength = _length;
             Resize(_length + 1);
             _buffer[oldLength] = rhs;
+
+            return *this;
+        }
+
+        /// Add-assign a std::string.
+        String& operator +=(const std::string& rhs)
+        {
+            uint32_t oldLength = _length;
+            uint32_t rhsLength = static_cast<uint32_t>(rhs.length());
+            Resize(_length + rhsLength);
+            CopyChars(_buffer + oldLength, rhs.data(), rhsLength);
 
             return *this;
         }

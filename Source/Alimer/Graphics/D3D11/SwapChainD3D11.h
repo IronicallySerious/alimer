@@ -22,32 +22,37 @@
 
 #pragma once
 
-#include "../GPUDevice.h"
-#include "../RenderWindow.h"
-#include "../Framebuffer.h"
+#include "../../Base/Ptr.h"
+#include "../GPUDeviceImpl.h"
 #include "D3D11Prerequisites.h"
 
 namespace Alimer
 {
     class DeviceD3D11;
 
-    /// D3D11 RenderWindow implementation.
-    class RenderWindowD3D11 final : public RenderWindow
+    /// D3D11 SwapChain implementation.
+    class SwapChainD3D11 final : public GPUSwapChain
     {
     public:
         /// Constructor.
-        RenderWindowD3D11(DeviceD3D11* device, const RenderWindowDescriptor* descriptor, uint32_t backBufferCount = 2);
+        SwapChainD3D11(DeviceD3D11* device, void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb, uint32_t backBufferCount = 2);
 
         /// Destructor.
-        ~RenderWindowD3D11();
+        ~SwapChainD3D11();
 
-        void Destroy() override;
-
-        void Resize(uint32_t width, uint32_t height, bool force = false);
-        void SwapBuffers();
-
+        void Destroy();
     private:
-        void OnSizeChanged(const uvec2& newSize) override;
+        uint32_t GetBackBufferCount() const override { return 1; }
+        uint32_t GetCurrentBackBuffer() const override { return 0; }
+        GPUTexture* GetBackBufferTexture(uint32_t index) const
+        {
+            ALIMER_ASSERT(index == 0);
+            return _renderTarget.Get();
+        }
+
+        void Configure(uint32_t width, uint32_t height) override;
+        void Present() override;
+        void Resize(uint32_t width, uint32_t height, bool force = false);
 
         DeviceD3D11*                            _device;
         uint32_t                                _width = 0;
@@ -64,7 +69,6 @@ namespace Alimer
         UINT                                    _presentFlags = 0;
         Microsoft::WRL::ComPtr<IDXGISwapChain>  _swapChain;
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain1;
-        SharedPtr<Texture>                      _renderTarget;
-        SharedPtr<Texture>                      _depthStencil;
+        UniquePtr<GPUTexture>                   _renderTarget;
     };
 }
