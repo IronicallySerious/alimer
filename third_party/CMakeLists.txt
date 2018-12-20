@@ -65,11 +65,6 @@ endif ()
 # STB
 set(STB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stb)
 
-if (ALIMER_DESKTOP AND ALIMER_TOOLS)
-    add_subdirectory(CLI11)
-    add_subdirectory(imgui)
-endif ()
-
 if (ALIMER_GLFW)
     set (GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
     set (GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -84,5 +79,9 @@ if (ALIMER_OPENGL)
     add_subdirectory(glad)
     set_property(TARGET "glad" PROPERTY FOLDER "third_party")
 endif ()
+
+# ImGui
+add_subdirectory(cxxopts)
+add_subdirectory(imgui)
 
 vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} third_party)

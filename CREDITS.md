@@ -18,7 +18,7 @@ Alimer uses the following open-source and third-party libraries:
 - [imgui 1.66](https://github.com/ocornut/imgui)
 - [fmt 5.2.1](http://fmtlib.net)
 - [spdlog 1.2.1](https://github.com/gabime/spdlog)
-- [CLI11 1.6](https://github.com/CLIUtils/CLI11)
+- [cxxopts](https://github.com/jarro2783/cxxopts)
 
 Additional inspiration, research or code used:
 

@@ -19,10 +19,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
+cmake_minimum_required(VERSION 3.1)
+project(cxxopts)
 
-add_library(CLI11 INTERFACE)
-target_include_directories(CLI11
-    INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+add_library(cxxopts INTERFACE)
+target_include_directories(cxxopts INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
-# install (DIRECTORY include/ DESTINATION ${DEST_THIRDPARTY_HEADERS_DIR}/ FILES_MATCHING PATTERN *.hpp)
+# install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/cxxopts.hpp DESTINATION ${DEST_THIRDPARTY_HEADERS_DIR})
