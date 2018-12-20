@@ -21,25 +21,26 @@
 //
 
 #pragma once
-#include <stdint.h>
+
+#include <functional>
 #include <string>
 #include <vector>
-#include <unordered_map>
 
 #define COMPILER_VERSION_MAJOR 0
 #define COMPILER_VERSION_MINOR 9
 #define COMPILER_VERSION_PATCH 0
 
-namespace Alimer
+namespace ShaderCompiler
 {
-    enum class CompilerShaderLang : uint32_t
+    enum class ShaderStage : uint32_t
     {
-        DEFAULT,
-        GLSL,
-        GLES,
-        HLSL,
-        METAL,
-        SPIRV
+        Vertex = 0,
+        Hull = 1,
+        Domain = 2,
+        Geometry = 3,
+        Pixel = 4,
+        Compute = 5,
+        Count
     };
 
     enum class CompilerShaderFormat : uint32_t
@@ -49,29 +50,29 @@ namespace Alimer
         C_HEADER
     };
 
-    enum class CompilerShaderStage : uint32_t
+    enum class ShadingLanguage : uint32_t
     {
-        Vertex = 0,
-        TessControl = 1,
-        TessEvaluation = 2,
-        Geometry = 3,
-        Fragment = 4,
-        Compute = 5,
-        Count
+        Dxil = 0,
+        SpirV,
+
+        Hlsl,
+        Glsl,
+        Essl,
+        Msl,
+
+        Count,
     };
 
-    class CompilerOptions
+    struct MacroDefine
     {
-    public:
-        std::string inputFile;
-        std::string entryPoint = "main";
-        bool invertY = false;
-        bool preprocess = false;
-        std::unordered_map<std::string, std::string> defines;
-        std::vector<std::string> includeDirs;
-        std::string outputFile;
-        CompilerShaderLang language = CompilerShaderLang::DEFAULT;
-        CompilerShaderFormat format = CompilerShaderFormat::DEFAULT;
+        std::string name;
+        std::string value;
+    };
+
+    struct Shader
+    {
+        ShaderStage stage;
+        std::string entry;
     };
 
     /**
@@ -80,21 +81,25 @@ namespace Alimer
     class Compiler final
     {
     public:
-        Compiler();
-        ~Compiler();
-        Compiler(const Compiler&) = delete;
-        Compiler& operator=(const Compiler&) = delete;
-        Compiler(const Compiler&&) = delete;
-        Compiler& operator=(const Compiler&&) = delete;
-
-        bool Compile(const CompilerOptions& options);
-
-        const std::string& GetErrorMessage() const
+        struct Options
         {
-            return _errorMessage;
-        }
+            std::string source;
+            std::string fileName;
+            std::vector<Shader> shaders;
+            std::vector<MacroDefine> defines;
+            std::function<std::string(const std::string& includeName)> loadIncludeCallback;
+            ShadingLanguage targetLanguage;
+        };
 
-    private:
-        std::string _errorMessage;
+        struct CompileResult
+        {
+            std::vector<uint8_t> bytecode;
+            bool isText;
+
+            std::string errorWarningMsg;
+            bool hasError;
+        };
+
+        static CompileResult Compile(Options options);
     };
 }

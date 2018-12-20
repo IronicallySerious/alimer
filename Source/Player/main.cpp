@@ -25,7 +25,6 @@ using namespace Alimer;
 
 namespace Alimer
 {
-
     struct VertexColor
     {
         vec3 position;
