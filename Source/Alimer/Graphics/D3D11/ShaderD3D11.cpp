@@ -106,9 +106,13 @@ namespace Alimer
     }
 #endif
 
-    ShaderD3D11::ShaderD3D11(DeviceD3D11* device)
+    ShaderD3D11::ShaderD3D11(DeviceD3D11* device, const char* source)
         : _device(device)
     {
+
+        auto vertex = D3DShaderCompiler::Compile(source, ShaderStage::Vertex, "VSMain");
+        auto fragment = D3DShaderCompiler::Compile(source, ShaderStage::Fragment, "PSMain");
+
         /*for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
         {
             auto shaderBlob = descriptor->stages[i];

@@ -99,6 +99,7 @@ namespace Alimer
         virtual GPUFramebuffer* CreateFramebuffer() = 0;
         virtual GPUBuffer* CreateBuffer(const BufferDescriptor& descriptor, const void* initialData) = 0;
         virtual GPUSampler* CreateSampler(const SamplerDescriptor& descriptor) = 0;
+        virtual GPUShader* CreateShader(const char* source) = 0;
     };
 
     inline GPUTexture::~GPUTexture()

@@ -31,16 +31,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries (${PROJECT_NAME} 
     PUBLIC Alimer
-    PRIVATE glslang
-    PRIVATE OGLCompiler
-    PRIVATE OSDependent
-    PRIVATE SPIRV
-    # PRIVATE SPVRemapper
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Assets")
-
-# Install under tools
-if (NOT ALIMER_SKIP_INSTALL)
-    # install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
-endif ()

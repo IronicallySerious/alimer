@@ -9,7 +9,6 @@ Alimer uses the following open-source and third-party libraries:
   - [stb_textedit.h 1.12](https://github.com/nothings/stb/blob/master/stb_textedit.h)
   - [stb_truetype.h 1.19](https://github.com/nothings/stb/blob/master/stb_truetype.h)
 - [Vulkan SDK](https://lunarg.com/vulkan-sdk/)
-- [glslang](https://github.com/KhronosGroup/glslang)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [volk Metaloader for Vulkan](https://github.com/zeux/volk)
 - [Vulkan Memory Allocator 2.2.0](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)

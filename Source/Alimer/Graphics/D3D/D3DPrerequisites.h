@@ -61,7 +61,7 @@ namespace Alimer
 #define ThrowIfFailed(hr) \
     do \
     { \
-        ALIMER_ASSERT_MSG(SUCCEEDED(hr), Alimer::GetDXErrorString(hr).CString()); \
+        ALIMER_ASSERT_MSG(SUCCEEDED(hr), Alimer::GetDXErrorStringAnsi(hr).c_str()); \
     } \
     while(0)
 #else
@@ -70,7 +70,7 @@ namespace Alimer
     {
         if (FAILED(hr))
         {
-            ALIMER_LOGCRITICAL("DirectX Error: {}", Alimer::GetDXErrorString(hr).CString());
+            ALIMER_LOGCRITICAL("DirectX Error: {}", Alimer::GetDXErrorStringAnsi(hr).c_str());
         }
     }
 #endif

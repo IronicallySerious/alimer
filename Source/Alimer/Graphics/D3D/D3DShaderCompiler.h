@@ -25,12 +25,11 @@
 #include "D3DPrerequisites.h"
 #include "../Shader.h"
 #include <vector>
-#include <d3dcompiler.h>
 
 namespace Alimer
 {
     namespace D3DShaderCompiler
     {
-        ALIMER_API ID3DBlob* Compile(pD3DCompile d3dCompile, const char* source, size_t sourceLength, ShaderStage stage, uint32_t major = 4, uint32_t minor = 0);
+        ALIMER_API PODVector<uint8_t> Compile(const String& source, ShaderStage stage, const String& entryPoint, uint32_t major = 4, uint32_t minor = 0);
     }
 }

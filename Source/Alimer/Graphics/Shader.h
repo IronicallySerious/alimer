@@ -44,6 +44,8 @@ namespace Alimer
         /// Destroy
         void Destroy() override;
 
+        bool Define(const String& shaderSource);
+
         bool Define(ShaderModule* vertex, ShaderModule* fragment);
 
         inline const ShaderModule* GetShader(ShaderStage stage) const

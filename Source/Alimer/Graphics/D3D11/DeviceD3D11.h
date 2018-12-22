@@ -52,7 +52,7 @@ namespace Alimer
         GPUFramebuffer* CreateFramebuffer() override;
         GPUBuffer* CreateBuffer(const BufferDescriptor& descriptor, const void* initialData) override;
         GPUSampler* CreateSampler(const SamplerDescriptor& descriptor) override;
-
+        GPUShader* CreateShader(const char* source) override;
 
         void HandleDeviceLost();
 

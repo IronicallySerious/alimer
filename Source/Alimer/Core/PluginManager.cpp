@@ -92,7 +92,7 @@ namespace Alimer
             return false;
         }
 
-        PluginLoadFunc loadFunc = (PluginLoadFunc)GetSymbol(libHandle, "AlimerPluginLoad");
+        PluginLoadFunc loadFunc = (PluginLoadFunc)GetLibrarySymbol(libHandle, "AlimerPluginLoad");
         if (!loadFunc)
         {
             UnloadNativeLibrary(libHandle);

@@ -83,8 +83,7 @@ namespace Alimer
 
             // Shaders
             //auto texture = resources.Load<Texture>("textures/test.png");
-            auto vertexShader = resources.Load<ShaderModule>("shaders/color.vert");
-            //auto fragmentShader = resources.Load<ShaderModule>("shaders/color.frag");
+            auto vertexShader = resources.Load<Shader>("shaders/color.hlsl");
             //_shader = new Shader();
             //_shader->Define(vertexShader.Get(), fragmentShader.Get());
         }

@@ -28,8 +28,6 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 //#include <imgui_freetype.h>
-#include "shaders_h/imgui.vert.h"
-#include "shaders_h/imgui.frag.h"
 
 namespace Alimer
 {

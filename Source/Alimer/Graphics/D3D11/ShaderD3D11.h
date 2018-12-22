@@ -33,7 +33,7 @@ namespace Alimer
     class ShaderD3D11 final : public GPUShader
     {
     public:
-        ShaderD3D11(DeviceD3D11* device);
+        ShaderD3D11(DeviceD3D11* device, const char* source);
         ~ShaderD3D11() override;
         void Destroy();
 

@@ -49,6 +49,13 @@ namespace Alimer
         SafeDelete(_shader);
     }
 
+    bool Shader::Define(const String& shaderSource)
+    {
+        Destroy();
+        _shader = _device->GetImpl()->CreateShader(shaderSource.CString());
+        return _shader != nullptr;
+    }
+
     bool Shader::Define(ShaderModule* vertex, ShaderModule* fragment)
     {
         ALIMER_ASSERT(vertex);

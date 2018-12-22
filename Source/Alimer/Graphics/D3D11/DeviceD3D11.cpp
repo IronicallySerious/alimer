@@ -514,4 +514,9 @@ namespace Alimer
     {
         return new SamplerD3D11(this, descriptor);
     }
+
+    GPUShader* DeviceD3D11::CreateShader(const char* source)
+    {
+        return new ShaderD3D11(this, source);
+    }
 }

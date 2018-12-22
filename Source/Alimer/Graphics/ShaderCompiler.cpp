@@ -25,6 +25,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../IO/Path.h"
 #include "../Core/Log.h"
+#if TODO_SHADER_COMPILER
 #include "glslang/Public/ShaderLang.h"
 #include "glslang/StandAlone/ResourceLimits.h"
 #include "SPIRV/GlslangToSpv.h"
@@ -166,7 +167,6 @@ namespace Alimer
         }
     }
 
-#if TODO_SHADER_COMPILER
     ShaderBlob ShaderCompiler::Compile(
         const char* filePath,
         const char* entryPoint,
@@ -357,5 +357,5 @@ namespace Alimer
 
         return blob;
     }
-#endif // TODO_SHADER_COMPILER
 }
+#endif // TODO_SHADER_COMPILER

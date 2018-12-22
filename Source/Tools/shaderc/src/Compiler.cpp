@@ -128,14 +128,14 @@ namespace
         }
 
         int cUTF16 = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, pUTF8,
-            cbUTF8, nullptr, 0);
+            static_cast<int>(cbUTF8), nullptr, 0);
         if (cUTF16 == 0)
             return false;
 
         pUTF16->resize(cUTF16);
 
-        cUTF16 = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, pUTF8, cbUTF8,
-            &(*pUTF16)[0], pUTF16->size());
+        cUTF16 = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, pUTF8, static_cast<int>(cbUTF8),
+            &(*pUTF16)[0], static_cast<int>(pUTF16->size()));
         DXASSERT(cUTF16 > 0, "otherwise contents changed");
         DXASSERT((*pUTF16)[pUTF16->size()] == L'\0',
             "otherwise wstring didn't null-terminate after resize() call");
@@ -162,13 +162,15 @@ namespace
             return true;
         }
 
-        int cbUTF8 = ::WideCharToMultiByte(cp, flags, text, cUTF16, nullptr, 0, nullptr, pUsedDefaultChar);
+        int cbUTF8 = ::WideCharToMultiByte(cp, flags, text, 
+            static_cast<int>(cUTF16), nullptr, 0, nullptr, pUsedDefaultChar);
         if (cbUTF8 == 0)
             return false;
 
         pValue->resize(cbUTF8);
 
-        cbUTF8 = ::WideCharToMultiByte(cp, flags, text, cUTF16, &(*pValue)[0], pValue->size(), nullptr, pUsedDefaultChar);
+        cbUTF8 = ::WideCharToMultiByte(cp, flags, text, static_cast<int>(cUTF16), 
+            &(*pValue)[0], static_cast<int>(pValue->size()), nullptr, pUsedDefaultChar);
         DXASSERT(cbUTF8 > 0, "otherwise contents have changed");
         DXASSERT((*pValue)[pValue->size()] == '\0', "otherwise string didn't null-terminate after resize() call");
 
@@ -391,13 +393,13 @@ namespace ShaderCompiler
 {
     Compiler::CompileResult CompileToBinary(const Compiler::Options& options)
     {
-        assert((options.targetLanguage == ShadingLanguage::Dxil)
-            || (options.targetLanguage == ShadingLanguage::Hlsl)
-            || (options.targetLanguage == ShadingLanguage::SpirV)
+        assert((options.targetLanguage == ShadingLanguage::DXIL)
+            || (options.targetLanguage == ShadingLanguage::HLSL)
+            || (options.targetLanguage == ShadingLanguage::SPIRV)
         );
 
-        const bool isDXIL = (options.targetLanguage == ShadingLanguage::Dxil)
-            || (options.targetLanguage == ShadingLanguage::SpirV);
+        const bool isDXIL = (options.targetLanguage == ShadingLanguage::DXIL)
+            || (options.targetLanguage == ShadingLanguage::SPIRV);
 
         if (isDXIL)
         {
@@ -461,7 +463,7 @@ namespace ShaderCompiler
                     break;
 
                 default:
-                    ALIMER_UNREACHABLE("Invalid shader stage.");
+                    ALIMER_UNREACHABLE();
                 }
                 shaderProfile += L"_6_0";
 
@@ -478,19 +480,19 @@ namespace ShaderCompiler
 
                 switch (options.targetLanguage)
                 {
-                case ShadingLanguage::Dxil:
+                case ShadingLanguage::DXIL:
                     break;
 
-                case ShadingLanguage::SpirV:
-                case ShadingLanguage::Hlsl:
-                case ShadingLanguage::Glsl:
-                case ShadingLanguage::Essl:
-                case ShadingLanguage::Msl:
+                case ShadingLanguage::SPIRV:
+                case ShadingLanguage::HLSL:
+                case ShadingLanguage::GLSL:
+                case ShadingLanguage::ESSL:
+                case ShadingLanguage::MSL:
                     dxcArgStrings.push_back(L"-spirv");
                     break;
 
                 default:
-                    ALIMER_UNREACHABLE("Invalid shading language.");
+                    ALIMER_UNREACHABLE();
                     break;
                 }
 
@@ -555,7 +557,7 @@ namespace ShaderCompiler
             options.loadIncludeCallback = DefaultLoadCallback;
         }
 
-        const auto binaryLanguage = options.targetLanguage == ShadingLanguage::Dxil ? ShadingLanguage::Dxil : ShadingLanguage::SpirV;
+        const auto binaryLanguage = options.targetLanguage == ShadingLanguage::DXIL ? ShadingLanguage::DXIL : ShadingLanguage::SPIRV;
         Compiler::CompileResult result = CompileToBinary(options);
 
         if (!result.hasError && (options.targetLanguage != binaryLanguage))

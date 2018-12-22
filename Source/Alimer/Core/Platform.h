@@ -22,91 +22,89 @@
 
 #pragma once
 
-#include "../Base/String.h"
+#include "AlimerConfig.h"
+#include <string>
 
-#ifdef __cplusplus
-extern "C"
+namespace Alimer
 {
-#endif // __cplusplus
-
     /**
     * Identifiers the running platform type.
     */
-    enum PlatformType
+    enum class PlatformType : uint32_t
     {
         /**
         * Unknown platform.
         */
-        PLATFORM_TYPE_UNKNOWN = 0,
+        Unknown = 0,
         /**
         * Windows platform.
         */
-        PLATFORM_TYPE_WINDOWS = 1,
+        Windows = 1,
         /**
         * Windows universal platform.
         */
-        PLATFORM_TYPE_UWP = 2,
+        UWP = 2,
         /**
         * Xbox One platform.
         */
-        PLATFORM_TYPE_XBOX_ONE = 3,
+        XboxOne = 3,
         /**
         * Linux platform.
         */
-        PLATFORM_TYPE_LINUX = 4,
+        Linux = 4,
         /**
         * Apple OSX platform.
         */
-        PLATFORM_TYPE_MACOS = 5,
+        MacOS = 5,
         /**
         * Android platform.
         */
-        PLATFORM_TYPE_ANDROID = 6,
+        Android = 6,
         /**
         * Apple iOS platform.
         */
-        PLATFORM_TYPE_IOS = 7,
+        iOS = 7,
         /**
         * Apple TV platform.
         */
-        PLATFORM_TYPE_APPLE_TV = 8,
+        AppleTV = 8,
         /**
         * Web (Emscripten/WASM) platform.
         */
-        PLATFORM_TYPE_WEB = 9,
+        Web = 9,
     };
 
     /**
     * Identifiers the running platform family.
     */
-    enum PlatformFamily
+    enum class PlatformFamily : uint32_t
     {
         /**
         * Unknown platform family.
         */
-        PLATFORM_FAMILY_UNKNOWN = 0,
+        Unknown = 0,
         /**
         * Desktop family.
         */
-        PLATFORM_FAMILY_DESKTOP = 1,
+        Desktop = 1,
         /**
         * Mobile family.
         */
-        PLATFORM_FAMILY_MOBILE = 2,
+        Mobile = 2,
         /**
         * Console family.
         */
-        PLATFORM_FAMILY_CONSOLE = 3
+        Console = 3
     };
 
     /// Get the running platform type.
-    ALIMER_API PlatformType alimerGetPlatformType();
+    ALIMER_API PlatformType GetPlatformType();
 
     /// Get the running platform family.
-    ALIMER_API PlatformFamily alimerGetPlatformFamily();
+    ALIMER_API PlatformFamily GetPlatformFamily();
 
     /// Get the running platform name.
-    ALIMER_API const char* alimerGetPlatformName();
+    ALIMER_API const char* GetPlatformName();
 
     /// Get the operating system description.
     ALIMER_API const char* GetOSDescription();
@@ -118,22 +116,17 @@ extern "C"
     ALIMER_API void UnloadNativeLibrary(void* handle);
 
     /// Get native library symbol
-    ALIMER_API void* GetSymbol(void* handle, const char* name);
+    ALIMER_API void* GetLibrarySymbol(void* handle, const char* name);
 
     /// Try to set the current thread name.
     ALIMER_API void SetCurrentThreadName(const char* name);
 
     /// Suspends execution for given milliseconds.
-    ALIMER_API void alimerSleep(uint32_t milliseconds);
+    ALIMER_API void Sleep(uint32_t milliseconds);
 
-#ifdef __cplusplus
-}
-#endif // __cplusplus
-
-namespace Alimer
-{
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-    ALIMER_API String GetWin32ErrorString(unsigned long errorCode);
-    ALIMER_API String GetDXErrorString(long hr);
+    ALIMER_API std::wstring GetWin32ErrorString(unsigned long errorCode);
+    ALIMER_API std::wstring GetDXErrorString(long hr);
+    ALIMER_API std::string GetDXErrorStringAnsi(long hr);
 #endif
 }

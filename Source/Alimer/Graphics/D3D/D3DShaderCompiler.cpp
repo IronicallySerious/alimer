@@ -21,16 +21,36 @@
 //
 
 #include "AlimerConfig.h"
-
-#if ALIMER_COMPILE_D3D11 || ALIMER_COMPILE_D3D12
 #include "D3DShaderCompiler.h"
 #include "../../Base/String.h"
 #include "../../Core/Log.h"
+#include <d3dcompiler.h>
 
 namespace Alimer
 {
-    ID3DBlob* D3DShaderCompiler::Compile(pD3DCompile d3dCompile, const char* source, size_t sourceLength, ShaderStage stage, uint32_t major, uint32_t minor)
+    PODVector<uint8_t> D3DShaderCompiler::Compile(const String& source, ShaderStage stage, const String& entryPoint, uint32_t major, uint32_t minor)
     {
+#if ALIMER_D3D_DYNAMIC_LIB
+        static pD3DCompile D3DCompile = nullptr;
+        if (!D3DCompile)
+        {
+            // TODO(tfoley): maybe want to search for one of a few versions of the DLL
+            HMODULE compilerModule = LoadLibraryA("d3dcompiler_47.dll");
+            if (!compilerModule)
+            {
+                ALIMER_LOGERROR("Failed load 'd3dcompiler_47.dll'");
+                return {};
+            }
+
+            D3DCompile = (pD3DCompile)GetProcAddress(compilerModule, "D3DCompile");
+            if (!D3DCompile)
+            {
+                ALIMER_LOGERROR("Failed load symbol 'D3DCompile' symbol");
+                return {};
+            }
+        }
+#endif /* ALIMER_D3D_DYNAMIC_LIB */
+
         UINT compileFlags = 0;
 #if defined(_DEBUG)
         // Enable better shader debugging with the graphics debugging tools.
@@ -69,9 +89,9 @@ namespace Alimer
 
         ID3DBlob* shaderBlob;
         ID3DBlob* errorsBlob;
-        if (FAILED(d3dCompile(
-            source,
-            sourceLength,
+        if (FAILED(D3DCompile(
+            source.CString(),
+            source.Length(),
             nullptr,
             nullptr,
             nullptr,
@@ -82,13 +102,14 @@ namespace Alimer
             &errorsBlob)))
         {
             String errorMessage = String((const char*)errorsBlob->GetBufferPointer(), (uint32_t)errorsBlob->GetBufferSize() - 1);
-            ALIMER_LOGERRORF("D3DCompile failed with error: %s", errorMessage.CString());
+            ALIMER_LOGERROR("D3DCompile failed with error: {}", errorMessage.CString());
             return {};
         }
 
         SafeRelease(errorsBlob);
 
-        return shaderBlob;
+        PODVector<uint8_t> blob(shaderBlob->GetBufferSize());
+        memcpy(blob.Data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
+        return blob;
     }
 }
-#endif /* ALIMER_COMPILE_D3D11 || ALIMER_COMPILE_D3D12 */

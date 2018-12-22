@@ -26,28 +26,12 @@ set(TARGET libshaderc)
 file (GLOB_RECURSE HEADER_FILES src/*.h)
 file (GLOB_RECURSE SOURCE_FILES src/*.cpp)
 
-set(GLSLANG_HEADER_FILES
-	${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
-	${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.h
-	${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/Worklist.h
-)
-
-set(GLSLANG_SOURCE_FILES
-	${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.cpp
-)
-
-list (APPEND HEADER_FILES ${GLSLANG_HEADER_FILES})
-list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
 
 add_library(${TARGET} STATIC ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(${TARGET} 
     PUBLIC src
     PRIVATE ${ALIMER_THIRD_PARTY_DIR}
 )
-target_link_libraries(${TARGET} glslang SPIRV)
-
-# this must match options enabled in glslang's CMakeLists.txt
-target_compile_options(${TARGET} PRIVATE -DAMD_EXTENSIONS -DNV_EXTENSIONS )
 
 # Set folder
 set_target_properties(${TARGET} PROPERTIES FOLDER "Tools")
@@ -55,7 +39,7 @@ set_target_properties(${TARGET} PROPERTIES FOLDER "Tools")
 # ==================================================================================================
 # Binary
 # ==================================================================================================
-set(TARGET shaderc)
+set(TARGET AlimerShaderCompiler)
 
 set(SOURCE_FILES main.cpp)
 

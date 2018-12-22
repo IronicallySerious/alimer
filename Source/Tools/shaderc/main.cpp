@@ -87,13 +87,13 @@ int main(int argc, char* argv[])
         options.shaders.push_back({ ShaderStage::Compute, comp });
     }
 
-    options.targetLanguage = ShadingLanguage::Dxil;
+    options.targetLanguage = ShadingLanguage::DXC;
 
     std::string outputName;
     if (opts.count("output") == 0)
     {
-        static const std::string extMap[] = { "dxil", "spv", "cso", "glsl", "essl", "msl" };
-        static_assert(sizeof(extMap) / sizeof(extMap[0]) == static_cast<uint32_t>(ShadingLanguage::Count),
+        static const std::string extMap[] = { "dxil", "spv", "cso", "hlsl", "glsl", "essl", "msl" };
+        static_assert(sizeof(extMap) / sizeof(extMap[0]) == static_cast<uint32_t>(ShadingLanguage::COUNT),
             "extMap doesn't match with the number of shading languages.");
         outputName = options.fileName + "." + extMap[static_cast<uint32_t>(options.targetLanguage)];
     }

@@ -20,13 +20,16 @@
 // THE SOFTWARE.
 //
 
+#include "AssetCompiler.h"
+
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable : 4458) 
+#pragma warning(disable : 4819)
 #endif
-
-#include "CLI11.hpp"
-#include "AssetCompiler.h"
+#include <cxxopts.hpp>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #define ALIMER_SHADERC_VERSION_MAJOR 0
 #define ALIMER_SHADERC_VERSION_MINOR 9
@@ -36,31 +39,49 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    CLI::App app{ "shaderc, Alimer shader compiler tool, version 0.9.", "shaderc" };
+    cxxopts::Options cmd_options("AlimerAssetCompiler", "A tool for asset processing.");
+
+    // clang-format off
+    cmd_options.add_options()
+        ("I,input", "Source assets directory.", cxxopts::value<std::string>())
+        ("O,output", "Output Compiled assets output directory", cxxopts::value<std::string>())
+        ("T,target", "Target platform..", cxxopts::value<std::string>()->default_value(""))
+        ;
+    // clang-format on
+    auto opts = cmd_options.parse(argc, argv);
+
+    if ((opts.count("input") == 0))
+    {
+        std::cerr << "COULDN'T find <input> in command line parameters." << std::endl;
+        std::cerr << cmd_options.help() << std::endl;
+        return 1;
+    }
 
     AssetCompiler::Options options;
-    std::string targetPlatform;
-    app.add_option("-i,--input", options.assetsDirectory, "Source assets directory")->check(CLI::ExistingDirectory);
-    app.add_option("-o,--output", options.buildDirectory, "Compiled assets output directory")->required(false);
-    app.add_option("-t,--target", targetPlatform, "Target platform")->required(false);
+    options.assetsDirectory = opts["input"].as<std::string>();
+    
+    const auto target = opts["target"].as<std::string>();
 
-    try {
-        app.parse(argc, argv);
-    }
-    catch (const CLI::ParseError &e) {
-        return app.exit(e);
-    }
-
-    if (!targetPlatform.empty())
+    if (!target.empty())
     {
-        if (targetPlatform == "windows")
+        if (target == "windows")
         {
             options.targetPlatform = PLATFORM_TYPE_WINDOWS;
         }
-        else if (targetPlatform == "linux")
+        else if (target == "linux")
         {
             options.targetPlatform = PLATFORM_TYPE_LINUX;
         }
+    }
+
+    if (opts.count("output") == 0)
+    {
+        String output = Path::Join(options.assetsDirectory, "windows");
+        options.buildDirectory = output.CString();
+    }
+    else
+    {
+        options.buildDirectory = opts["output"].as<std::string>();
     }
 
     AssetCompiler compiler;
@@ -73,7 +94,3 @@ int main(int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
-
-#ifdef _MSC_VER
-#   pragma warning(pop)
-#endif

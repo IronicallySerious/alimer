@@ -59,34 +59,6 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
-# Compile built-in shaders
-if (ALIMER_TOOLS)
-    set(SHADERS_SRCS
-        shaders/imgui.vert
-        shaders/imgui.frag
-    )
-
-    set (SHADER_BINS)
-    set (SHADER_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/shaders_h")
-
-    foreach (shader_src ${SHADERS_SRCS})
-        get_filename_component(local_name "${shader_src}" NAME)
-        get_filename_component(full_name "${shader_src}" ABSOLUTE)
-        set (output_path "${SHADER_OUTPUT_PATH}/${local_name}.h")
-
-        # For now compile to spv
-        add_custom_command(
-                OUTPUT ${output_path}
-                COMMAND shaderc -i ${full_name} -o ${output_path} -f header
-                MAIN_DEPENDENCY ${shader_src}
-                DEPENDS ${shader_src} shaderc
-                COMMENT "Compiling shader ${shader_src} to ${output_path}"
-        )
-
-        list(APPEND SHADER_BINS ${output_path})
-    endforeach()
-endif()
-
 set (TARGET_NAME Alimer)
 
 # Generate the AlimerConfig.h file
@@ -164,7 +136,7 @@ endif ()
 group_sources()
 
 # Define the library target.
-add_alimer_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${SHADER_BINS})
+add_alimer_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(${TARGET_NAME}
     PUBLIC
@@ -231,13 +203,6 @@ elseif (ALIMER_ANDROID)
     target_link_libraries (${TARGET_NAME} ${OPENGL_LIB} android EGL log m)
 else ()
 	target_link_libraries (${TARGET_NAME} pthread)
-endif ()
-
-
-if (ALIMER_TOOLS)
-    target_link_libraries (${TARGET_NAME} 
-        glslang OGLCompiler OSDependent SPIRV
-    )
 endif ()
 
 # Suppress some MSVC warnings

@@ -52,15 +52,16 @@ namespace ShaderCompiler
 
     enum class ShadingLanguage : uint32_t
     {
-        Dxil = 0,
-        SpirV,
+        DXIL = 0,
+        SPIRV,
+        DXC,
 
-        Hlsl,
-        Glsl,
-        Essl,
-        Msl,
+        HLSL,
+        GLSL,
+        ESSL,
+        MSL,
 
-        Count,
+        COUNT,
     };
 
     struct MacroDefine
