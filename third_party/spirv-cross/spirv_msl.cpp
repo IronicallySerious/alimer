@@ -943,6 +943,12 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 					if (has_member_decoration(type_id, mbr_idx, DecorationLocation))
 					{
 						uint32_t locn = get_member_decoration(type_id, mbr_idx, DecorationLocation);
+						if (storage == StorageClassInput && get_entry_point().model == ExecutionModelVertex)
+						{
+							mbr_type_id = ensure_correct_attribute_type(mbr_type_id, locn);
+							type.member_types[mbr_idx] = mbr_type_id;
+							ib_type.member_types[ib_mbr_idx] = mbr_type_id;
+						}
 						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationLocation, locn);
 						mark_location_as_used_by_shader(locn, storage);
 					}
@@ -951,6 +957,12 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 						// The block itself might have a location and in this case, all members of the block
 						// receive incrementing locations.
 						uint32_t locn = get_decoration(p_var->self, DecorationLocation) + mbr_idx;
+						if (storage == StorageClassInput && get_entry_point().model == ExecutionModelVertex)
+						{
+							mbr_type_id = ensure_correct_attribute_type(mbr_type_id, locn);
+							type.member_types[mbr_idx] = mbr_type_id;
+							ib_type.member_types[ib_mbr_idx] = mbr_type_id;
+						}
 						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationLocation, locn);
 						mark_location_as_used_by_shader(locn, storage);
 					}
@@ -1039,6 +1051,12 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 						if (get_decoration_bitset(p_var->self).get(DecorationLocation))
 						{
 							uint32_t locn = get_decoration(p_var->self, DecorationLocation) + i;
+							if (storage == StorageClassInput && get_entry_point().model == ExecutionModelVertex)
+							{
+								p_var->basetype = ensure_correct_attribute_type(p_var->basetype, locn);
+								uint32_t mbr_type_id = ensure_correct_attribute_type(usable_type->self, locn);
+								ib_type.member_types[ib_mbr_idx] = mbr_type_id;
+							}
 							set_member_decoration(ib_type_id, ib_mbr_idx, DecorationLocation, locn);
 							mark_location_as_used_by_shader(locn, storage);
 						}
@@ -1098,6 +1116,12 @@ uint32_t CompilerMSL::add_interface_block(StorageClass storage)
 					if (get_decoration_bitset(p_var->self).get(DecorationLocation))
 					{
 						uint32_t locn = get_decoration(p_var->self, DecorationLocation);
+						if (storage == StorageClassInput && get_entry_point().model == ExecutionModelVertex)
+						{
+							type_id = ensure_correct_attribute_type(type_id, locn);
+							p_var->basetype = type_id;
+							ib_type.member_types[ib_mbr_idx] = type_id;
+						}
 						set_member_decoration(ib_type_id, ib_mbr_idx, DecorationLocation, locn);
 						mark_location_as_used_by_shader(locn, storage);
 					}
@@ -1169,6 +1193,87 @@ uint32_t CompilerMSL::ensure_correct_builtin_type(uint32_t type_id, BuiltIn buil
 		ptr_type.storage = type.storage;
 		ptr_type.parent_type = base_type_id;
 		return ptr_type_id;
+	}
+
+	return type_id;
+}
+
+// Ensure that the type is compatible with the vertex attribute.
+// If it is, simply return the given type ID.
+// Otherwise, create a new type, and return its ID.
+uint32_t CompilerMSL::ensure_correct_attribute_type(uint32_t type_id, uint32_t location)
+{
+	auto &type = get<SPIRType>(type_id);
+
+	MSLVertexAttr *p_va = vtx_attrs_by_location[location];
+	if (!p_va)
+		return type_id;
+
+	switch (p_va->format)
+	{
+	case MSL_VERTEX_FORMAT_UINT8:
+	{
+		switch (type.basetype)
+		{
+		case SPIRType::UByte:
+		case SPIRType::UShort:
+		case SPIRType::UInt:
+			return type_id;
+		case SPIRType::Short:
+		case SPIRType::Int:
+			break;
+		default:
+			SPIRV_CROSS_THROW("Vertex attribute type mismatch between host and shader");
+		}
+		uint32_t next_id = ir.increase_bound_by(type.pointer ? 2 : 1);
+		uint32_t base_type_id = next_id++;
+		auto &base_type = set<SPIRType>(base_type_id);
+		base_type = type;
+		base_type.basetype = type.basetype == SPIRType::Short ? SPIRType::UShort : SPIRType::UInt;
+
+		if (!type.pointer)
+			return base_type_id;
+
+		uint32_t ptr_type_id = next_id++;
+		auto &ptr_type = set<SPIRType>(ptr_type_id);
+		ptr_type = base_type;
+		ptr_type.pointer = true;
+		ptr_type.storage = type.storage;
+		ptr_type.parent_type = base_type_id;
+		return ptr_type_id;
+	}
+	case MSL_VERTEX_FORMAT_UINT16:
+	{
+		switch (type.basetype)
+		{
+		case SPIRType::UShort:
+		case SPIRType::UInt:
+			return type_id;
+		case SPIRType::Int:
+			break;
+		default:
+			SPIRV_CROSS_THROW("Vertex attribute type mismatch between host and shader");
+		}
+		uint32_t next_id = ir.increase_bound_by(type.pointer ? 2 : 1);
+		uint32_t base_type_id = next_id++;
+		auto &base_type = set<SPIRType>(base_type_id);
+		base_type = type;
+		base_type.basetype = SPIRType::UInt;
+
+		if (!type.pointer)
+			return base_type_id;
+
+		uint32_t ptr_type_id = next_id++;
+		auto &ptr_type = set<SPIRType>(ptr_type_id);
+		ptr_type = base_type;
+		ptr_type.pointer = true;
+		ptr_type.storage = type.storage;
+		ptr_type.parent_type = base_type_id;
+		return ptr_type_id;
+	}
+
+	case MSL_VERTEX_FORMAT_OTHER:
+		break;
 	}
 
 	return type_id;
@@ -2566,7 +2671,7 @@ void CompilerMSL::emit_barrier(uint32_t id_exe_scope, uint32_t id_mem_scope, uin
 	else
 		bar_stmt += "mem_none";
 
-	if (msl_options.is_ios() && msl_options.supports_msl_version(2))
+	if (msl_options.is_ios() && (msl_options.supports_msl_version(2) && !msl_options.supports_msl_version(2, 1)))
 	{
 		bar_stmt += ", ";
 
@@ -4023,21 +4128,33 @@ string CompilerMSL::entry_point_args(bool append_comma)
 			// point, we get that by calling get_sample_position() on the sample ID.
 			if (var.storage == StorageClassInput && is_builtin_variable(var))
 			{
-				if (bi_type != BuiltInSamplePosition)
-				{
-					if (!ep_args.empty())
-						ep_args += ", ";
-
-					ep_args += builtin_type_decl(bi_type) + " " + to_expression(var_id);
-					ep_args += " [[" + builtin_qualifier(bi_type) + "]]";
-				}
-				else
+				if (bi_type == BuiltInSamplePosition)
 				{
 					auto &entry_func = get<SPIRFunction>(ir.default_entry_point);
 					entry_func.fixup_hooks_in.push_back([=]() {
 						statement(builtin_type_decl(bi_type), " ", to_expression(var_id), " = get_sample_position(",
 						          to_expression(builtin_sample_id_id), ");");
 					});
+				}
+				else if (bi_type == BuiltInHelperInvocation)
+				{
+					if (msl_options.is_ios())
+						SPIRV_CROSS_THROW("simd_is_helper_thread() is only supported on macOS.");
+					else if (msl_options.is_macos() && !msl_options.supports_msl_version(2, 1))
+						SPIRV_CROSS_THROW("simd_is_helper_thread() requires version 2.1 on macOS.");
+
+					auto &entry_func = get<SPIRFunction>(ir.default_entry_point);
+					entry_func.fixup_hooks_in.push_back([=]() {
+						statement(builtin_type_decl(bi_type), " ", to_expression(var_id), " = simd_is_helper_thread();");
+					});
+				}
+				else
+				{
+					if (!ep_args.empty())
+						ep_args += ", ";
+
+					ep_args += builtin_type_decl(bi_type) + " " + to_expression(var_id);
+					ep_args += " [[" + builtin_qualifier(bi_type) + "]]";
 				}
 			}
 		}
@@ -4793,6 +4910,9 @@ string CompilerMSL::builtin_type_decl(BuiltIn builtin)
 		return "uint3";
 	case BuiltInLocalInvocationIndex:
 		return "uint";
+
+	case BuiltInHelperInvocation:
+		return "bool";
 
 	default:
 		return "unsupported-built-in-type";
