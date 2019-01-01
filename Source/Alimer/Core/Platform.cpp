@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -86,7 +86,7 @@ bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wSer
 #   include <pthread.h>
 #endif
 
-namespace Alimer
+namespace alimer
 {
     PlatformType GetPlatformType()
     {
@@ -202,7 +202,7 @@ namespace Alimer
                     osvi.dwMajorVersion,
                     osvi.dwMinorVersion,
                     osvi.dwBuildNumber,
-                    Alimer::String(osvi.szCSDVersion).CString()
+                    alimer::String(osvi.szCSDVersion).CString()
                 );
             }
             else
@@ -225,7 +225,7 @@ namespace Alimer
     void* LoadNativeLibrary(const char* name)
     {
 #if ALIMER_PLATFORM_WINDOWS
-        auto wideName = Alimer::WString(name);
+        alimer::WString wideName = alimer::WString(name);
         HMODULE handle = LoadLibraryW(wideName.CString());
         return handle;
 #elif ALIMER_PLATFORM_UWP

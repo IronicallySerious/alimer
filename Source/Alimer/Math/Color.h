@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 #pragma warning(disable : 4201 4203 4244 4702) 
 #endif
 
-namespace Alimer
+namespace alimer
 {
     /// Represents a 32-bit color (4 bytes) in BGRA order.
     struct ColorBGRA

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ typedef unsigned __int64 socket_id;
 typedef int socket_id;
 #endif
 
-namespace Alimer
+namespace alimer
 {
     /**
     * Network Socket.

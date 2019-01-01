@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -49,7 +49,7 @@
 #include  "../Serialization/Serializable.h"
 #include  "../Base/IntrusivePtr.h"
 
-namespace Alimer
+namespace alimer
 {
     struct ComponentIDMapping
     {
@@ -461,7 +461,7 @@ namespace Alimer
                 {
                 }
 
-                void unpack(Alimer::Entity &entity) const
+                void unpack(alimer::Entity &entity) const
                 {
                     unpack_<0, Components...>(entity);
                 }
@@ -469,12 +469,12 @@ namespace Alimer
 
             private:
                 template <int N, typename C>
-                void unpack_(Alimer::Entity &entity) const {
+                void unpack_(alimer::Entity &entity) const {
                     std::get<N>(handles) = entity.component<C>();
                 }
 
                 template <int N, typename C0, typename C1, typename ... Cn>
-                void unpack_(Alimer::Entity &entity) const {
+                void unpack_(alimer::Entity &entity) const {
                     std::get<N>(handles) = entity.component<C0>();
                     unpack_<N + 1, C1, Cn...>(entity);
                 }
@@ -706,16 +706,16 @@ namespace Alimer
 
 namespace std
 {
-    template <> struct hash<Alimer::Entity>
+    template <> struct hash<alimer::Entity>
     {
-        std::size_t operator () (const Alimer::Entity &entity) const {
+        std::size_t operator () (const alimer::Entity &entity) const {
             return static_cast<std::size_t>(entity.GetId().index() ^ entity.GetId().version());
         }
     };
 
-    template <> struct hash<const Alimer::Entity>
+    template <> struct hash<const alimer::Entity>
     {
-        std::size_t operator () (const Alimer::Entity &entity) const {
+        std::size_t operator () (const alimer::Entity &entity) const {
             return static_cast<std::size_t>(entity.GetId().index() ^ entity.GetId().version());
         }
     };

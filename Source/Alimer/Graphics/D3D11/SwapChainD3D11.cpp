@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
-namespace Alimer
+namespace alimer
 {
     SwapChainD3D11::SwapChainD3D11(DeviceD3D11* device, void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb, uint32_t backBufferCount)
         : _device(device)

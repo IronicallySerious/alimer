@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,7 @@ typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY1)(REFIID riid, _COM_Outptr_ void
 typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE)(REFIID riid, _COM_Outptr_ void** pDebug);
 #endif
 
-namespace Alimer
+namespace alimer
 {
 #ifdef ALIMER_D3D_DYNAMIC_LIB
     static HMODULE s_dxgiLib = nullptr;

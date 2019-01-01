@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 #include "../Math/Math.h"
 #include <cmath>
 
-namespace Alimer
+namespace alimer
 {
     mat4 mat4::perspective(float fovy, float aspect, float zNear, float zFar)
     {

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -65,7 +65,7 @@ typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY2)(UINT flags, REFIID _riid, void
 typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE1)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
 #endif
 
-using namespace Alimer;
+using namespace alimer;
 
 namespace d3d12
 {
@@ -83,7 +83,7 @@ namespace d3d12
 #define DXCall(hr) \
     do \
     { \
-        ALIMER_ASSERT_MSG(SUCCEEDED(hr), Alimer::GetDXErrorStringAnsi(hr).c_str()); \
+        ALIMER_ASSERT_MSG(SUCCEEDED(hr), alimer::GetDXErrorStringAnsi(hr).c_str()); \
     } \
     while(0)
 #else
@@ -92,7 +92,7 @@ namespace d3d12
     {
         if (FAILED(hr))
         {
-            ALIMER_LOGCRITICAL("DirectX Error: %s", Alimer::GetDXErrorString(hr).CString());
+            ALIMER_LOGCRITICAL("DirectX Error: %s", alimer::GetDXErrorString(hr).c_str());
         }
     }
 

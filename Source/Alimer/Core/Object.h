@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@
 #include "../Base/StringHash.h"
 #include "../Core/Event.h"
 
-namespace Alimer
+namespace alimer
 {
     /// Type info.
     class ALIMER_API TypeInfo final
@@ -172,9 +172,9 @@ namespace Alimer
 	public: \
 		using ClassName = typeName; \
 		using Parent = baseTypeName; \
-		virtual Alimer::StringHash GetType() const override { return GetTypeInfoStatic()->GetType(); } \
-		virtual const Alimer::String& GetTypeName() const override { return GetTypeInfoStatic()->GetTypeName(); } \
-		virtual const Alimer::TypeInfo* GetTypeInfo() const override { return GetTypeInfoStatic(); } \
-		static Alimer::StringHash GetTypeStatic() { return GetTypeInfoStatic()->GetType(); } \
-		static const Alimer::String& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
-		static const Alimer::TypeInfo* GetTypeInfoStatic() { static const Alimer::TypeInfo typeInfoStatic(#typeName, Parent::GetTypeInfoStatic()); return &typeInfoStatic; }
+		virtual alimer::StringHash GetType() const override { return GetTypeInfoStatic()->GetType(); } \
+		virtual const alimer::String& GetTypeName() const override { return GetTypeInfoStatic()->GetTypeName(); } \
+		virtual const alimer::TypeInfo* GetTypeInfo() const override { return GetTypeInfoStatic(); } \
+		static alimer::StringHash GetTypeStatic() { return GetTypeInfoStatic()->GetType(); } \
+		static const alimer::String& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
+		static const alimer::TypeInfo* GetTypeInfoStatic() { static const alimer::TypeInfo typeInfoStatic(#typeName, Parent::GetTypeInfoStatic()); return &typeInfoStatic; }

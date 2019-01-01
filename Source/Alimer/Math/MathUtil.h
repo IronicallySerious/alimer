@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,7 @@
 #   include <intrin.h>
 #endif
 
-namespace Alimer
+namespace alimer
 {
 #ifdef M_PI
 #   undef M_PI
@@ -246,9 +246,9 @@ namespace Alimer
         }
     }
 
-#define leading_zeroes(x) ::Alimer::Internal::clz(x)
-#define trailing_zeroes(x) ::Alimer::Internal::ctz(x)
-#define trailing_ones(x) ::Alimer::Internal::ctz(~(x))
+#define leading_zeroes(x) ::alimer::Internal::clz(x)
+#define trailing_zeroes(x) ::alimer::Internal::ctz(x)
+#define trailing_ones(x) ::alimer::Internal::ctz(~(x))
 #endif
 
     template<typename T>

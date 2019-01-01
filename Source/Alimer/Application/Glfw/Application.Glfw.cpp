@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 #define GLFW_INCLUDE_NONE 
 #include <GLFW/glfw3.h>
 
-namespace Alimer
+namespace alimer
 {
     // GLFW3 Error Callback, runs on GLFW3 error
     static void glfwErrorCallback(int error, const char *description)

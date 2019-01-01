@@ -1,6 +1,5 @@
 //
-// Alimer is based on the Turso3D codebase.
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +24,7 @@
 #include "../Base/StringHash.h"
 #include "../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
     char String::END_ZERO = 0;
     const String String::EMPTY;
@@ -293,9 +292,9 @@ namespace Alimer
 
     void String::Swap(String& str)
     {
-        Alimer::Swap(_length, str._length);
-        Alimer::Swap(_capacity, str._capacity);
-        Alimer::Swap(_buffer, str._buffer);
+        alimer::Swap(_length, str._length);
+        alimer::Swap(_capacity, str._capacity);
+        alimer::Swap(_buffer, str._buffer);
     }
 
     int String::Compare(const String& str, bool caseSensitive) const

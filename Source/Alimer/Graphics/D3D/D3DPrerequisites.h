@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -55,13 +55,13 @@
 #include "../Types.h"
 #include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
 #if !defined(NDEBUG)
 #define ThrowIfFailed(hr) \
     do \
     { \
-        ALIMER_ASSERT_MSG(SUCCEEDED(hr), Alimer::GetDXErrorStringAnsi(hr).c_str()); \
+        ALIMER_ASSERT_MSG(SUCCEEDED(hr), alimer::GetDXErrorStringAnsi(hr).c_str()); \
     } \
     while(0)
 #else
@@ -70,7 +70,7 @@ namespace Alimer
     {
         if (FAILED(hr))
         {
-            ALIMER_LOGCRITICAL("DirectX Error: {}", Alimer::GetDXErrorStringAnsi(hr).c_str());
+            ALIMER_LOGCRITICAL("DirectX Error: {}", alimer::GetDXErrorStringAnsi(hr).c_str());
         }
     }
 #endif

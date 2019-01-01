@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 #define CAMERA_DIRTY_PROJ 2
 #define CAMERA_DIRTY_FLAGS_ALL (CAMERA_DIRTY_VIEW | CAMERA_DIRTY_PROJ)
 
-namespace Alimer
+namespace alimer
 {
     Camera::Camera()
         : _dirtyFlags(CAMERA_DIRTY_FLAGS_ALL)
@@ -46,21 +46,3 @@ namespace Alimer
         _dirtyFlags = CAMERA_DIRTY_FLAGS_ALL;
     }
 }
-
-/*
-#include <rttr/registration>
-using namespace rttr;
-
-RTTR_REGISTRATION
-{
-    registration::enumeration<Alimer::ProjectionMode>("ProjectionMode")(
-        rttr::value("Perspective", Alimer::ProjectionMode::Perspective),
-        rttr::value("Orthographic", Alimer::ProjectionMode::Orthographic)
-        );
-
-    registration::class_<Alimer::Camera>("Camera")
-        //.constructor<>()(rttr::policy::ctor::as_raw_ptr)
-        .property("projection_mode", &Alimer::Camera::GetProjectionMode, &Alimer::Camera::SetProjectionMode)
-       ;
-};
-*/

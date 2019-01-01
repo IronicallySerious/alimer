@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@
 #include <sstream>
 #include <algorithm>
 
-namespace Alimer
+namespace alimer
 {
     class String;
     class WString;
@@ -681,9 +681,9 @@ namespace Alimer
 
 namespace std
 {
-    template <> struct hash<Alimer::String>
+    template <> struct hash<alimer::String>
     {
-        size_t operator()(const Alimer::String& str) const
+        size_t operator()(const alimer::String& str) const
         {
             return str.ToHash();
         }

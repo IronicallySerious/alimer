@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 
 #include "AlimerConfig.h"
 
-namespace Alimer
+namespace alimer
 {
     namespace Assert
     {
@@ -75,8 +75,8 @@ namespace Alimer
 		{ \
 			if (!(cond)) \
 			{ \
-				if (Alimer::Assert::ReportFailure(#cond, __FILE__, __LINE__, 0) == \
-					Alimer::Assert::Halt) \
+				if (alimer::Assert::ReportFailure(#cond, __FILE__, __LINE__, 0) == \
+					alimer::Assert::Halt) \
 					ALIMER_BREAKPOINT(); \
 			} \
 		} while(0)
@@ -86,8 +86,8 @@ namespace Alimer
 		{ \
 			if (!(cond)) \
 			{ \
-				if (Alimer::Assert::ReportFailure(#cond, __FILE__, __LINE__, (msg), __VA_ARGS__) == \
-					Alimer::Assert::Halt) \
+				if (alimer::Assert::ReportFailure(#cond, __FILE__, __LINE__, (msg), __VA_ARGS__) == \
+					alimer::Assert::Halt) \
 					ALIMER_BREAKPOINT(); \
 			} \
 		} while(0)
@@ -95,8 +95,8 @@ namespace Alimer
     #define ALIMER_ASSERT_FAIL(msg, ...) \
 		do \
 		{ \
-			if (Alimer::Assert::ReportFailure(0, __FILE__, __LINE__, (msg), __VA_ARGS__) == \
-				Alimer::Assert::Halt) \
+			if (alimer::Assert::ReportFailure(0, __FILE__, __LINE__, (msg), __VA_ARGS__) == \
+				alimer::Assert::Halt) \
 			    ALIMER_BREAKPOINT(); \
 		} while(0)
 

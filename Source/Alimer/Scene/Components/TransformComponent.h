@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@
 #include "../../Math/Transform.h"
 #include <vector>
 
-namespace Alimer
+namespace alimer
 {
 	/// Defines a Transform Component.
     class ALIMER_API TransformComponent final : public Component<TransformComponent>

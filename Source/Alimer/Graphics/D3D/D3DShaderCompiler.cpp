@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 #include "../../Core/Log.h"
 #include <d3dcompiler.h>
 
-namespace Alimer
+namespace alimer
 {
     PODVector<uint8_t> D3DShaderCompiler::Compile(const String& source, ShaderStage stage, const String& entryPoint, uint32_t major, uint32_t minor)
     {

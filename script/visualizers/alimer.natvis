@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-    <!-- Alimer::Array<> -->
-    <Type Name="Alimer::Array&lt;*,*&gt;">
+    <!-- alimer::Array<> -->
+    <Type Name="alimer::Array&lt;*,*&gt;">
         <DisplayString Condition="$T2 == 0">Empty</DisplayString>
         <DisplayString Condition="$T2 != 0">size = {$T2}</DisplayString>
         <Expand>
@@ -13,8 +13,8 @@
         </Expand>
     </Type>
 
-    <!-- Alimer::ArrayView<> -->
-    <Type Name="Alimer::ArrayView&lt;*&gt;">
+    <!-- alimer::ArrayView<> -->
+    <Type Name="alimer::ArrayView&lt;*&gt;">
         <DisplayString Condition="(_end - _begin) == 0">Empty</DisplayString>
         <DisplayString Condition="(_end - _begin) != 0">size = {_end - _begin}</DisplayString>
         <Expand>
@@ -26,8 +26,8 @@
         </Expand>
     </Type>
 
-    <!-- Alimer::PODVector<> -->
-    <Type Name="Alimer::PODVector&lt;*&gt;">
+    <!-- alimer::PODVector<> -->
+    <Type Name="alimer::PODVector&lt;*&gt;">
         <DisplayString Condition="_size == 0">Empty</DisplayString>
         <DisplayString>{{ size={_size} [POD] }}</DisplayString>
         <Expand>
@@ -40,8 +40,8 @@
         </Expand>
     </Type>
 
-    <!-- Alimer::Vector<> -->
-    <Type Name="Alimer::Vector&lt;*&gt;">
+    <!-- alimer::Vector<> -->
+    <Type Name="alimer::Vector&lt;*&gt;">
         <DisplayString Condition="_size == 0">Empty</DisplayString>
         <DisplayString>{{ size={_size} }}</DisplayString>
         <Expand>
@@ -54,18 +54,18 @@
         </Expand>
     </Type>
 
-    <!-- Alimer::RandomAccessIterator<> -->
-    <!-- Alimer::RandomAccessConstIterator<> -->
-    <Type Name = "Alimer::RandomAccessIterator&lt;*&gt;">
-        <AlternativeType Name="Alimer::RandomAccessConstIterator&lt;*&gt;"/>
+    <!-- alimer::RandomAccessIterator<> -->
+    <!-- alimer::RandomAccessConstIterator<> -->
+    <Type Name = "alimer::RandomAccessIterator&lt;*&gt;">
+        <AlternativeType Name="alimer::RandomAccessConstIterator&lt;*&gt;"/>
         <SmartPointer Usage="Indexable">ptr_,na</SmartPointer>
         <Expand>
             <Item Name="[ptr]">ptr_</Item>
         </Expand>
     </Type>
 
-    <!-- Alimer::String -->
-    <Type Name="Alimer::String">
+    <!-- alimer::String -->
+    <Type Name="alimer::String">
         <DisplayString Condition="_length == 0">Empty</DisplayString>
         <DisplayString Condition="_length != 0">{_buffer,nas8}</DisplayString>
         <Expand>
@@ -75,13 +75,13 @@
         </Expand>
     </Type>
 
-    <!-- Alimer::StringHash -->
-    <Type Name="Alimer::StringHash" Priority="Low">
+    <!-- alimer::StringHash -->
+    <Type Name="alimer::StringHash" Priority="Low">
         <DisplayString>#{_value}</DisplayString>
     </Type>
 
-    <!-- Alimer::SharedPtr<> -->
-    <Type Name = "Alimer::SharedPtr&lt;*&gt;">
+    <!-- alimer::SharedPtr<> -->
+    <Type Name = "alimer::SharedPtr&lt;*&gt;">
         <DisplayString>{ptr_}</DisplayString>
         <Expand>
             <Synthetic Condition="!ptr_" Name="[empty]"/>
@@ -91,8 +91,8 @@
         </Expand>
     </Type>
 
-    <!-- Alimer::WeakPtr<> -->
-    <Type Name = "Alimer::WeakPtr&lt;*&gt;">
+    <!-- alimer::WeakPtr<> -->
+    <Type Name = "alimer::WeakPtr&lt;*&gt;">
         <DisplayString Condition="!_refCount">(empty)</DisplayString>
         <DisplayString Condition="_refCount &amp;&amp; (_refCount->refs &lt; 0)">(expired)</DisplayString>
         <DisplayString Condition="_refCount &amp;&amp; !(_refCount->refs &lt; 0)">{ptr_}</DisplayString>
@@ -105,8 +105,8 @@
         </Expand>
     </Type>
 
-    <!-- Alimer::Resource -->
-    <Type Name = "Alimer::Resource">
+    <!-- alimer::Resource -->
+    <Type Name = "alimer::Resource">
         <DisplayString>_name = {_name}</DisplayString>
     </Type>
 

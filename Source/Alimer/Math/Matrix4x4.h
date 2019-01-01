@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,7 @@
 #   include <emmintrin.h>
 #endif /* ALIMER_SSE2 */
 
-namespace Alimer
+namespace alimer
 {
     /// A 4x4 column-major floating-point matrix with right-handed cooordinates.
     class ALIMER_API Matrix4x4

@@ -1,16 +1,16 @@
 /*
-** Alimer - Copyright (C) 2016-2018 Amer Koleci.
+** Alimer - Copyright (C) 2017-2019 Amer Koleci.
 **
 ** This file is subject to the terms and conditions defined in
 ** file 'LICENSE', which is part of this source code package.
 */
 
 /*#include "Alimer.h"
-using namespace Alimer;
+using namespace alimer;
 
 const String sPluginName = "TestPlugin";
 
-class TestPlugin final : public Alimer::Plugin
+class TestPlugin final : public alimer::Plugin
 {
 public:
     const String& GetName() const { return sPluginName; }

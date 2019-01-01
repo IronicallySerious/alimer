@@ -1,6 +1,5 @@
 //
-// Alimer is based on the Turso3D codebase.
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +37,7 @@
 #pragma warning(disable:6293)
 #endif
 
-namespace Alimer
+namespace alimer
 {
     /// Vector base class.
     /** Note that to prevent extra memory use due to vtable pointer, %VectorBase intentionally does not declare a virtual destructor
@@ -53,9 +52,9 @@ namespace Alimer
         /// Swap with another vector.
         void Swap(VectorBase& rhs)
         {
-            Alimer::Swap(_size, rhs._size);
-            Alimer::Swap(_capacity, rhs._capacity);
-            Alimer::Swap(_buffer, rhs._buffer);
+            alimer::Swap(_size, rhs._size);
+            alimer::Swap(_capacity, rhs._capacity);
+            alimer::Swap(_buffer, rhs._buffer);
         }
 
         /// Return number of elements in the vector.
@@ -1212,21 +1211,21 @@ namespace Alimer
         }
     };
 
-    template <class T> typename Alimer::Vector<T>::ConstIterator begin(const Alimer::Vector<T>& v) { return v.Begin(); }
+    template <class T> typename alimer::Vector<T>::ConstIterator begin(const alimer::Vector<T>& v) { return v.Begin(); }
 
-    template <class T> typename Alimer::Vector<T>::ConstIterator end(const Alimer::Vector<T>& v) { return v.End(); }
+    template <class T> typename alimer::Vector<T>::ConstIterator end(const alimer::Vector<T>& v) { return v.End(); }
 
-    template <class T> typename Alimer::Vector<T>::Iterator begin(Alimer::Vector<T>& v) { return v.Begin(); }
+    template <class T> typename alimer::Vector<T>::Iterator begin(alimer::Vector<T>& v) { return v.Begin(); }
 
-    template <class T> typename Alimer::Vector<T>::Iterator end(Alimer::Vector<T>& v) { return v.End(); }
+    template <class T> typename alimer::Vector<T>::Iterator end(alimer::Vector<T>& v) { return v.End(); }
 
-    template <class T> typename Alimer::PODVector<T>::ConstIterator begin(const Alimer::PODVector<T>& v) { return v.Begin(); }
+    template <class T> typename alimer::PODVector<T>::ConstIterator begin(const alimer::PODVector<T>& v) { return v.Begin(); }
 
-    template <class T> typename Alimer::PODVector<T>::ConstIterator end(const Alimer::PODVector<T>& v) { return v.End(); }
+    template <class T> typename alimer::PODVector<T>::ConstIterator end(const alimer::PODVector<T>& v) { return v.End(); }
 
-    template <class T> typename Alimer::PODVector<T>::Iterator begin(Alimer::PODVector<T>& v) { return v.Begin(); }
+    template <class T> typename alimer::PODVector<T>::Iterator begin(alimer::PODVector<T>& v) { return v.Begin(); }
 
-    template <class T> typename Alimer::PODVector<T>::Iterator end(Alimer::PODVector<T>& v) { return v.End(); }
+    template <class T> typename alimer::PODVector<T>::Iterator end(alimer::PODVector<T>& v) { return v.End(); }
 }
 
 #ifdef _MSC_VER

@@ -1,6 +1,5 @@
 //
-// Alimer is based on the Turso3D codebase.
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +25,7 @@
 #include "../Base/String.h"
 #include "../Math/MathUtil.h"
 
-namespace Alimer
+namespace alimer
 {
 	/// 32-bit case-insensitive hash value for a string.
 	class ALIMER_API StringHash
@@ -103,9 +102,9 @@ namespace Alimer
 
 namespace std {
 	template<>
-	class hash<Alimer::StringHash> {
+	class hash<alimer::StringHash> {
 	public:
-		size_t operator()(const Alimer::StringHash &s) const
+		size_t operator()(const alimer::StringHash &s) const
 		{
 			return s.ToHash();
 		}

@@ -1,6 +1,5 @@
 //
-// Alimer is based on the Turso3D codebase.
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -377,7 +376,7 @@ constexpr typename std::underlying_type<T>::type ecast(T x)
     return static_cast<typename std::underlying_type<T>::type>(x);
 }
 
-namespace Alimer
+namespace alimer
 {
     template <typename T>
     void SafeDelete(T *&resource)

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ extern "C"
 }
 #endif /* defined(_WIN32) */
 
-namespace Alimer
+namespace alimer
 {
     GPUDevice::GPUDevice(GPUDeviceImpl* impl, bool validation)
         : _impl(impl)

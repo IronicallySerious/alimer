@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -196,7 +196,7 @@ static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* 
     {
         // Set properties
         uint64_t size = descriptor->size;
-        //size = Alimer::AlignTo(size, uint64_t(descriptor->stride));
+        //size = alimer::AlignTo(size, uint64_t(descriptor->stride));
 
         buffer->usage = descriptor->usage;
         buffer->size = size;

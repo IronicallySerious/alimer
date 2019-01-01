@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 #include "../../Graphics/GPUDeviceImpl.h"
 #include "D3D11Cache.h"
 
-namespace Alimer
+namespace alimer
 {
     /// D3D11 graphics implementation.
     class DeviceD3D11 final : public GPUDeviceImpl

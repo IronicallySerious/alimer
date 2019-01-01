@@ -26,7 +26,7 @@
 #include <memory>
 #include <unordered_map>
 
-namespace Alimer
+namespace alimer
 {
     struct HashMapHasher
     {
@@ -98,7 +98,7 @@ namespace Alimer
             }
         }
 
-        inline void String(const Alimer::String &str)
+        inline void String(const alimer::String &str)
         {
             UInt32(0xff);
             for (auto &c : str)

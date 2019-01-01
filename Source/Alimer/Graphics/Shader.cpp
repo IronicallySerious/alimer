@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 #include "../Core/Log.h"
 #include <spirv-cross/spirv_glsl.hpp>
 
-namespace Alimer
+namespace alimer
 {
     Shader::Shader()
         : GPUResource(GetSubsystem<GPUDevice>(), Type::Shader)

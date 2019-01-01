@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ enum RefCountedCallbackType
     RefCounted_Delete,
 };
 
-typedef void(*RefCountedCallback)(RefCountedCallbackType, Alimer::RefCounted*);
+typedef void(*RefCountedCallback)(RefCountedCallbackType, alimer::RefCounted*);
 RefCountedCallback _refCountedNativeCallback;
 
 extern "C" CSHARP_EXPORT void AlimerRegisterRefCountedCallback(RefCountedCallback callback)
@@ -43,7 +43,7 @@ extern "C" CSHARP_EXPORT void AlimerRegisterRefCountedCallback(RefCountedCallbac
     _refCountedNativeCallback = callback;
 }
 
-void InvokeRefCountedCallback(RefCountedCallbackType type, Alimer::RefCounted* instance)
+void InvokeRefCountedCallback(RefCountedCallbackType type, alimer::RefCounted* instance)
 {
     if (_refCountedNativeCallback)
         _refCountedNativeCallback(type, instance);
@@ -51,7 +51,7 @@ void InvokeRefCountedCallback(RefCountedCallbackType type, Alimer::RefCounted* i
 
 #endif
 
-namespace Alimer
+namespace alimer
 {
     RefCounted::RefCounted()
         : _refCount(new RefCount())

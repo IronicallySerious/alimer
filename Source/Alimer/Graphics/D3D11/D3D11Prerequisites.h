@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@
 #   pragma comment(lib,"dxguid.lib")
 #endif
 
-namespace Alimer
+namespace alimer
 {
     // Helper sets a D3D resource name string (used by PIX and debug layer leak reporting).
     inline void SetDebugObjectName(_In_ ID3D11DeviceChild* resource, _In_z_ const char* name, size_t length)

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@
 #endif
 
 #if ALIMER_SSE2
-namespace Alimer
+namespace alimer
 {
     __declspec(align(16)) struct SimdFloat32
     {
@@ -85,7 +85,7 @@ namespace Alimer
 }
 #endif
 
-namespace Alimer
+namespace alimer
 {
     static const float MATRIX_IDENTITY[16] =
     {
