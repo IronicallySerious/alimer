@@ -15,7 +15,7 @@ Alimer uses the following open-source and third-party libraries:
 - [glfw](https://www.glfw.org)
 - [glad](https://glad.dav1d.de/)
 - [imgui 1.66](https://github.com/ocornut/imgui)
-- [fmt 5.2.1](http://fmtlib.net)
+- [fmt 5.3.0](http://fmtlib.net)
 - [spdlog 1.2.1](https://github.com/gabime/spdlog)
 - [cxxopts](https://github.com/jarro2783/cxxopts)
 

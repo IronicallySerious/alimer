@@ -66,11 +66,11 @@ int main(int argc, char* argv[])
     {
         if (target == "windows")
         {
-            options.targetPlatform = PLATFORM_TYPE_WINDOWS;
+            options.targetPlatform = PlatformType::Windows;
         }
         else if (target == "linux")
         {
-            options.targetPlatform = PLATFORM_TYPE_LINUX;
+            options.targetPlatform = PlatformType::Linux;
         }
     }
 

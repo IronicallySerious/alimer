@@ -27,7 +27,7 @@
 #include <queue>
 #include <mutex>
 
-namespace Alimer
+namespace alimer
 {
     class D3D12CommandListManager;
     class D3D12Swapchain;
