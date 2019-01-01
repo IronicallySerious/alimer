@@ -23,7 +23,7 @@
 #include "../Graphics/GPUResource.h"
 #include "../Graphics/GPUDevice.h"
 
-namespace Alimer
+namespace alimer
 {
     GPUResource::GPUResource(GPUDevice* device, Type resourceType)
         : _device(device)

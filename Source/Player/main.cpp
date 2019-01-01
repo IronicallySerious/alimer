@@ -21,9 +21,9 @@
 //
 
 #include "Alimer.h"
-using namespace Alimer;
+using namespace alimer;
 
-namespace Alimer
+namespace alimer
 {
     struct VertexColor
     {
@@ -417,7 +417,7 @@ namespace Alimer
 
 int main(int argc, char** argv)
 {
-    using namespace Alimer;
+    using namespace alimer;
 
     RuntimeApplication app;
     int returnCode = app.Run(argc, argv);

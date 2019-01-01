@@ -34,7 +34,7 @@
 #define ALIMER_SHADERC_VERSION_MAJOR 0
 #define ALIMER_SHADERC_VERSION_MINOR 9
 
-using namespace Alimer;
+using namespace alimer;
 using namespace std;
 
 int main(int argc, char* argv[])

@@ -22,7 +22,7 @@
 
 #include "Editor.h"
 
-namespace Alimer
+namespace alimer
 {
     Editor::Editor()
     {
@@ -54,7 +54,7 @@ namespace Alimer
 
 int main(int argc, char** argv)
 {
-    using namespace Alimer;
+    using namespace alimer;
 
     Editor app;
     int returnCode = app.Run(argc, argv);

@@ -22,7 +22,7 @@
 
 #include "AssetCompiler.h"
 
-namespace Alimer
+namespace alimer
 {
     AssetCompiler::AssetCompiler()
 	{

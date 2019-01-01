@@ -24,7 +24,7 @@
 #include "../Graphics/GPUDevice.h"
 #include "../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
     Pipeline::Pipeline(GPUDevice* device)
         : GPUResource(device, Type::Pipeline)

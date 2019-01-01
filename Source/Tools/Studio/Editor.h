@@ -24,7 +24,7 @@
 
 #include "Alimer.h"
 
-namespace Alimer
+namespace alimer
 {
     class Editor final : public Application
     {

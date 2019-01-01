@@ -22,7 +22,7 @@
 
 #include "AssetDatabase.h"
 
-namespace Alimer
+namespace alimer
 {
 	AssetDatabase::AssetDatabase()
 	{
