@@ -468,32 +468,6 @@ namespace alimer
         static inline quat identity() { return quat(0.0f, 0.0f, 0.0f, 1.0f); }
     };
 
-    template <typename T>
-    struct trect
-    {
-        T x;
-        T y;
-        T width;
-        T height;
-
-        trect() = default;
-
-        constexpr trect(T width_, T height_) : x(T(0)), y(T(0)), width(width_), height(height_) {}
-        constexpr trect(T x_, T y_, T width_, T height_) : x(x_), y(y_), width(width_), height(height_) {}
-
-        trect(const trect&) = default;
-        trect& operator=(const trect&) = default;
-
-        trect(trect&&) = default;
-        trect& operator=(trect&&) = default;
-
-        // Comparison operators
-        bool operator == (const trect& r) const { return (x == r.x) && (y == r.y) && (width == r.width) && (height == r.height); }
-        bool operator != (const trect& r) const { return (x != r.x) || (y != r.y) || (width != r.width) || (height != r.height); }
-
-        static constexpr trect empty() { return trect(T(0), T(0), T(0), T(0)); }
-    };
-
     using uint = uint32_t;
     using vec2 = tvec2<float>;
     using vec3 = tvec3<float>;
@@ -523,10 +497,6 @@ namespace alimer
     using bvec2 = tvec2<bool>;
     using bvec3 = tvec3<bool>;
     using bvec4 = tvec4<bool>;
-
-    using rect = trect<float>;
-    using irect = trect<int32_t>;
-    using urect = trect<uint32_t>;
 
     // dot
     inline float dot(const vec2 &a, const vec2 &b) { return a.x * b.x + a.y * b.y; }
