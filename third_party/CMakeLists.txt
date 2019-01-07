@@ -63,8 +63,9 @@ if (ALIMER_OPENGL)
     set_property(TARGET "glad" PROPERTY FOLDER "third_party")
 endif ()
 
+# CLI11
+add_subdirectory(CLI11)
 # ImGui
-add_subdirectory(cxxopts)
 add_subdirectory(imgui)
 
 vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} third_party)
