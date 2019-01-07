@@ -117,7 +117,7 @@ add_compile_options("$<$<CONFIG:Release>:${RELEASE_COMPILE_OPTIONS}>")
 add_subdirectory(third_party)
 
 # Source
-add_subdirectory(Source)
+add_subdirectory(src)
 
 if (NOT ALIMER_SKIP_INSTALL)
     # Install CMake modules and toolchains provided by and for Alimer
