@@ -75,7 +75,7 @@ namespace alimer
         AutoArrayPtr<uint8_t> _shadowData;
 	};
 
-
+    /// Defines a vertex buffer.
     class VertexBuffer final : public Buffer
     {
     public:
@@ -93,5 +93,26 @@ namespace alimer
 
     private:
         PODVector<VertexElement> _elements;
+    };
+
+    /// Defines a index buffer.
+    class IndexBuffer final : public Buffer
+    {
+    public:
+        /// Constructor.
+        IndexBuffer();
+
+        bool Define(uint32_t indexCount, IndexType indexType, bool useShadowData, const void* data = nullptr);
+
+        /// Return number of indices.
+        uint32_t GetIndexCount() const { return _indexCount; }
+        /// Return the type of index.
+        IndexType GetIndexType() const { return _indexType; }
+
+    private:
+        /// Number of indices.
+        uint32_t _indexCount = 0;
+        /// Type of index.
+        IndexType _indexType = IndexType::UInt16;
     };
 }

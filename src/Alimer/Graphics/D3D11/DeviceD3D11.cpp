@@ -202,7 +202,7 @@ namespace alimer
             }
             else
             {
-                ALIMER_LOGWARN("Direct3D Debug Device is not available");
+                ALIMER_LOGDEBUG("Direct3D Debug Device is not available");
             }
         }
 #endif
@@ -288,14 +288,12 @@ namespace alimer
         // Obtain Direct3D 11.1 interfaces (if available)
         if (SUCCEEDED(_d3dDevice.As(&_d3dDevice1)))
         {
-            (void)_d3dContext.As(&_d3dContext1);
-            (void)_d3dContext.As(&_d3dAnnotation);
         }
 
         InitializeCaps();
 
         // Create immediate command buffer.
-        _immediateCommandBuffer = new CommandContextD3D11(this);
+        _immediateCommandBuffer = new CommandBufferD3D11(this);
     }
 
     DeviceD3D11::~DeviceD3D11()
@@ -303,8 +301,6 @@ namespace alimer
         _cache.Clear();
 
         _d3dContext.Reset();
-        _d3dContext1.Reset();
-        _d3dAnnotation.Reset();
         _d3dDevice1.Reset();
 
 #ifdef _DEBUG

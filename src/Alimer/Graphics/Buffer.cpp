@@ -126,6 +126,42 @@ namespace alimer
         _descriptor.size = vertexCount * stride;
         _descriptor.usage = BufferUsage::Vertex;
         _descriptor.stride = stride;
-        return CreateGPUBuffer(useShadowData, data);
+        if (!CreateGPUBuffer(useShadowData, data))
+        {
+            ALIMER_LOGERROR("Failed to define vertex buffer.");
+            return false;
+        }
+
+        ALIMER_LOGDEBUG("Defined vertex buffer [vertexCount {}, stride {}]", vertexCount, stride);
+        return true;
+    }
+
+    /* IndexBuffer */
+    IndexBuffer::IndexBuffer()
+    {
+
+    }
+
+    bool IndexBuffer::Define(uint32_t indexCount, IndexType indexType, bool useShadowData, const void* data)
+    {
+        if (!indexCount)
+        {
+            ALIMER_LOGERROR("Can not define vertex buffer with no indices.");
+            return false;
+        }
+
+        _indexCount = indexCount;
+        _indexType = indexType;
+        _descriptor.stride = indexType == IndexType::UInt32 ? 4 : 2;
+        _descriptor.size = indexCount * _descriptor.stride;
+        _descriptor.usage = BufferUsage::Vertex;
+        if (!CreateGPUBuffer(useShadowData, data))
+        {
+            ALIMER_LOGERROR("Failed to define index buffer.");
+            return false;
+        }
+
+        ALIMER_LOGDEBUG("Defined index buffer [indexCount {}, indexType {}]", indexCount, indexType);
+        return true;
     }
 }

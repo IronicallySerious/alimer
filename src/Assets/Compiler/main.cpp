@@ -21,67 +21,68 @@
 //
 
 #include "AssetCompiler.h"
+#include <CLI/CLI.hpp>
+#include <fmt/printf.h>
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4819)
-#endif
-#include <cxxopts.hpp>
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-#define ALIMER_SHADERC_VERSION_MAJOR 0
-#define ALIMER_SHADERC_VERSION_MINOR 9
+#define ALIMER_ASSET_COMPILER_VERSION std::string("0.9.0")
 
 using namespace alimer;
 using namespace std;
+bool verboseOutput = false;
 
 int main(int argc, char* argv[])
 {
-    cxxopts::Options cmd_options("AlimerAssetCompiler", "A tool for asset processing.");
+    CLI::App app{fmt::sprintf("AlimerAssetCompiler %s: A tool for asset processing.", ALIMER_ASSET_COMPILER_VERSION), "AlimerAssetCompiler"};
 
-    // clang-format off
-    cmd_options.add_options()
-        ("I,input", "Source assets directory.", cxxopts::value<std::string>())
-        ("O,output", "Output Compiled assets output directory", cxxopts::value<std::string>())
-        ("T,target", "Target platform..", cxxopts::value<std::string>()->default_value(""))
-        ;
-    // clang-format on
-    auto opts = cmd_options.parse(argc, argv);
+    app.add_flag("-v,--verbose", verboseOutput, "Enable verbose mode.");
 
-    if ((opts.count("input") == 0))
+    app.add_flag_function("-V,--version", [&](size_t count) {
+        ALIMER_UNUSED(count);
+        fmt::printf(
+            "AlimerAssetCompiler version %s\n2017-2019 Amer Koleci and contributors.\n",
+            ALIMER_ASSET_COMPILER_VERSION);
+        exit(0);
+    });
+
+    std::string inputPath;
+    std::string outputPath;
+    std::string targetPlatform;
+
+    app.add_option("-i,--input", inputPath, "Source assets directory.")->check(CLI::ExistingDirectory);
+    app.add_option("-o,--output", outputPath, "Output compiled assets output directory.");
+    app.add_option("-t,--target", targetPlatform, "Target platform.");
+
+    try {
+        app.parse(argc, argv);
+    }
+    catch (const CLI::ParseError &e) 
     {
-        std::cerr << "COULDN'T find <input> in command line parameters." << std::endl;
-        std::cerr << cmd_options.help() << std::endl;
-        return 1;
+        return app.exit(e);
     }
 
     AssetCompiler::Options options;
-    options.assetsDirectory = opts["input"].as<std::string>();
+    options.assetsDirectory = inputPath;
     
-    const auto target = opts["target"].as<std::string>();
-
-    if (!target.empty())
+    if (!targetPlatform.empty())
     {
-        if (target == "windows")
+        if (targetPlatform == "windows")
         {
             options.targetPlatform = PlatformType::Windows;
         }
-        else if (target == "linux")
+        else if (targetPlatform == "linux")
         {
             options.targetPlatform = PlatformType::Linux;
         }
     }
 
-    if (opts.count("output") == 0)
+    if (outputPath.empty())
     {
         String output = Path::Join(options.assetsDirectory, "windows");
         options.buildDirectory = output.CString();
     }
     else
     {
-        options.buildDirectory = opts["output"].as<std::string>();
+        options.buildDirectory = outputPath;
     }
 
     AssetCompiler compiler;

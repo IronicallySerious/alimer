@@ -36,36 +36,35 @@ namespace alimer
     /// Sets to priority so that a package or file is pushed to the end of the vector.
     static constexpr uint32_t PRIORITY_LAST = 0xffffffff;
 
+#if ALIMER_TOOLS
+    class AssetImporter;
+#endif
+
 	/// Resource cache subsystem. Loads resources on demand and stores them for later access.
 	class ALIMER_API ResourceManager final : public Object
 	{
         ALIMER_OBJECT(ResourceManager, Object);
 
 	public:
-        /// Register object.
-        static void RegisterObject();
-
 		/// Constructor.
 		ResourceManager();
 
 		/// Destructor.
 		~ResourceManager();
 
-        /// Add a resource load directory. Optional priority parameter which will control search order.
         bool AddResourceDir(const String& assetName, uint32_t priority = PRIORITY_LAST);
 
         void AddLoader(ResourceLoader* loader);
         ResourceLoader* GetLoader(StringHash type) const;
 
-        UniquePtr<Stream> OpenResource(const String &assetName);
-        bool Exists(const String &assetName);
+        UniquePtr<Stream> OpenStream(const String& assetName);
 
-        SharedPtr<Object> LoadObject(StringHash type, const String& assetName);
+        SharedPtr<Object> Load(StringHash type, const String& assetName);
 
 		template <class T> SharedPtr<T> Load(const String& assetName)
 		{
             static_assert(std::is_base_of<Object, T>(), "T is not a resource thus cannot load");
-			return StaticCast<T>(LoadObject(T::GetTypeStatic(), assetName));
+			return StaticCast<T>(Load(T::GetTypeStatic(), assetName));
 		}
 
         /// Remove unsupported constructs from the resource name to prevent ambiguity, and normalize absolute filename to resource path relative if possible.
@@ -74,7 +73,14 @@ namespace alimer
         /// Remove unnecessary constructs from a resource directory name and ensure it to be an absolute path.
         String SanitateResourceDirName(const String& name) const;
 
+#if ALIMER_TOOLS
+        void RegisterImporter(AssetImporter* importer);
+#endif 
+
 	private:
+        /// Register object.
+        static void Register();
+
         /// Search FileSystem for file.
         UniquePtr<Stream> SearchResourceDirs(const String& name);
         /// Search resource packages for file.
@@ -93,11 +99,14 @@ namespace alimer
         Vector<String> _resourceDirs;
 
         std::unordered_map<StringHash, UniquePtr<ResourceLoader>> _loaders;
-        using ResourceKey = std::pair<StringHash, StringHash>;
-		std::map<ResourceKey, SharedPtr<Object>> _resources;
+		std::map<String, SharedPtr<Object>> _resources;
 
         /// Search priority flag.
         bool _searchPackagesFirst{ true };
+
+#if ALIMER_TOOLS
+        Vector<SharedPtr<AssetImporter>> _assetImporters;
+#endif
 
     private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceManager);

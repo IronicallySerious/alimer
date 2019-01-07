@@ -66,8 +66,38 @@ namespace alimer
         return true;
     }
 
+    class ShaderLoader final : public ResourceLoader
+    {
+        ALIMER_OBJECT(ShaderLoader, ResourceLoader);
+
+    public:
+        bool CanLoad(const String& extension) const 
+        {
+            return extension == ".shader";
+        }
+
+        StringHash GetLoadingType() const override 
+        {
+            return Shader::GetTypeStatic();
+        }
+
+        bool BeginLoad(Stream& source) override
+        {
+            return true;
+        }
+
+        Object* EndLoad() override
+        {
+            return nullptr;
+            //return GetSubsystem< GPUDevice>()->CreateShaderModule();
+        }
+    };
+
     void Shader::RegisterObject()
     {
         RegisterFactory<Shader>();
+
+        // Register loader.
+        GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());
     }
 }

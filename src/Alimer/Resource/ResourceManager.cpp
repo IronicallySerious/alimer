@@ -24,17 +24,25 @@
 #include "../Application/Application.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
+#if ALIMER_TOOLS
+#include "../assets/AssetImporter.h"
+#endif 
 #include "../Core/Log.h"
 
 namespace alimer
 {
     ResourceManager::ResourceManager()
     {
+        Register();
         AddSubsystem(this);
     }
 
     ResourceManager::~ResourceManager()
     {
+#if ALIMER_TOOLS
+        _assetImporters.Clear();
+#endif
+
         RemoveSubsystem(this);
     }
 
@@ -87,7 +95,7 @@ namespace alimer
         return it != end(_loaders) ? it->second.Get() : nullptr;
     }
 
-    UniquePtr<Stream> ResourceManager::OpenResource(const String &assetName)
+    UniquePtr<Stream> ResourceManager::OpenStream(const String& assetName)
     {
         std::lock_guard<std::mutex> guard(_resourceMutex);
 
@@ -121,56 +129,63 @@ namespace alimer
         return {};
     }
 
-    bool ResourceManager::Exists(const String &assetName)
+    SharedPtr<Object> ResourceManager::Load(StringHash type, const String& assetName)
     {
-        std::lock_guard<std::mutex> guard(_resourceMutex);
-
-        String sanitatedName = SanitateResourceName(assetName);
-
-        if (sanitatedName.Length())
+        if (assetName.IsEmpty())
         {
-            bool exists = false;
-            if (_searchPackagesFirst)
-            {
-                exists = ExistsInPackages(sanitatedName);
-                if (!exists)
-                    exists = ExistsInResourceDirs(sanitatedName);
-            }
-            else
-            {
-                exists = ExistsInResourceDirs(sanitatedName);
-                if (!exists)
-                    exists = ExistsInPackages(sanitatedName);
-            }
-
-            return exists;
+            ALIMER_LOGCRITICAL("Cannot load with empty asset name");
         }
 
-        return false;
-    }
-
-    SharedPtr<Object> ResourceManager::LoadObject(StringHash type, const String& assetName)
-    {
         // Check for existing resource
-        auto key = std::make_pair(type, StringHash(assetName));
-        auto it = _resources.find(key);
+        auto it = _resources.find(assetName);
         if (it != _resources.end())
         {
             return it->second;
         }
 
-        UniquePtr<Stream> stream = OpenResource(assetName);
-        if (stream.IsNull())
-        {
-            return nullptr;
-        }
-
-        String sanitatedName = SanitateResourceName(assetName);
         // Resolve loader first.
         ResourceLoader* loader = GetLoader(type);
         if (!loader)
         {
             ALIMER_LOGERROR("Could not load unknown resource type {}, no loader found.", String(type).CString());
+            return nullptr;
+        }
+
+        String path;
+        String fileName;
+        String extension;
+        SplitPath(assetName, path, fileName, extension, true);
+        String assetPath;
+        if (!loader->CanLoad(extension))
+        {
+            // Find asset importer and process it.
+            String assetFullPath = path + fileName + ".alb";
+            UniquePtr<Stream> stream = OpenStream(assetFullPath);
+            if (stream.IsNull())
+            {
+                // Asset conversion is needed.
+                return nullptr;
+            }
+
+#ifdef ALIMER_TOOLS
+            for (auto& assertImporter : _assetImporters)
+            {
+                if (assertImporter->IsExtensionSupported(extension))
+                {
+                   // return *iter;
+                }
+            }
+#endif
+        }
+        else
+        {
+            assetPath = assetName;
+        }
+
+        String sanitatedName = SanitateResourceName(assetPath);
+        UniquePtr<Stream> stream = OpenStream(sanitatedName);
+        if (stream.IsNull())
+        {
             return nullptr;
         }
 
@@ -185,7 +200,7 @@ namespace alimer
 
         //newResource->SetName(sanitatedName);
         // Store to cache
-        _resources[key] = object;
+        _resources.insert(std::make_pair(assetName, object));
         return object;
     }
 
@@ -279,7 +294,7 @@ namespace alimer
         return false;
     }
 
-    void ResourceManager::RegisterObject()
+    void ResourceManager::Register()
     {
         static bool registered = false;
         if (registered)
@@ -288,4 +303,17 @@ namespace alimer
 
         Image::RegisterObject();
     }
+
+#if ALIMER_TOOLS
+    void ResourceManager::RegisterImporter(AssetImporter* importer)
+    {
+        if (!importer)
+        {
+            ALIMER_LOGWARN("Cannot register null AssetImporter.");
+            return;
+        }
+
+        _assetImporters.Push(SharedPtr<AssetImporter>(importer));
+    }
+#endif
 }

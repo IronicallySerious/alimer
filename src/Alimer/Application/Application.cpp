@@ -33,40 +33,17 @@ namespace alimer
         : _exitCode(EXIT_SUCCESS)
         , _running(false)
         , _paused(false)
-        , _headless(false)
         , _settings{}
         , _entities{}
         , _systems(_entities)
         , _scene(_entities)
     {
         PlatformConstruct();
-        AddSubsystem(this);
 
-        // Setup alimer log
-        std::vector<std::shared_ptr<spdlog::sinks::sink>> sinks;
+        // Create the Engine, but do not initialize it yet. Subsystems except Graphics & Renderer are registered at this point
+        _engine = new Engine();
 
-        sinks.emplace_back(std::make_shared<spdlog::sinks::platform_sink_mt>());
-        sinks.emplace_back(std::make_shared<spdlog::sinks::daily_file_sink_mt>("AlimerLog", 23, 59));
-#if ALIMER_PLATFORM_WINDOWS && ALIMER_DEV
-        AllocConsole();
-        sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-#endif
-        _logger = std::make_shared<spdlog::logger>(ALIMER_LOG, sinks.begin(), sinks.end());
-        spdlog::register_logger(_logger);
-
-#ifdef _DEBUG
-        _logger->set_level(spdlog::level::debug);
-#else
-        _logger->set_level(spdlog::level::info);
-#endif
-
-        _sceneManager = new SceneManager();
-
-        // Register modules
-        GPUDevice::RegisterObject();
-        ResourceManager::RegisterObject();
-
-        SceneManager::Register();
+        // Set current instance.
         _instance = this;
     }
 
@@ -88,8 +65,6 @@ namespace alimer
 
         _paused = true;
         _running = false;
-
-        _gui.Reset();
         _gpuDevice.Reset();
         Audio::Shutdown();
         PluginManager::Shutdown();
@@ -98,10 +73,15 @@ namespace alimer
     bool Application::InitializeBeforeRun()
     {
         SetCurrentThreadName("Main");
-        ALIMER_LOGINFO("Initializing engine {}...", ALIMER_VERSION_STR);
+        
+        // Initialize engine.
+        if (_engine->Initialize(_args) != EXIT_SUCCESS)
+        {
+            return false;
+        }
 
         // Init Window and Gpu.
-        if (!_headless)
+        if (!_engine->IsHeadless())
         {
             _gpuDevice = GPUDevice::Create(_settings.preferredGraphicsBackend, _settings.validation);
             if (_gpuDevice == nullptr)
@@ -111,9 +91,6 @@ namespace alimer
             }
 
             _mainWindow = new RenderWindow(&_settings.mainWindowDescriptor);
-
-            // Create imgui system.
-            _gui = new Gui();
         }
 
         // Load plugins
@@ -149,7 +126,7 @@ namespace alimer
 
     int Application::Run(int argc, char** argv)
     {
-        for (int i = 0; i < argc; ++i)
+        for (int i = 1; i < argc; ++i)
         {
             _args.Push(argv[i]);
         }
@@ -176,7 +153,7 @@ namespace alimer
             _systems.Update(deltaTime);
 
             // Render single frame if window is not minimzed.
-            if (!_headless 
+            if (!_engine->IsHeadless()
                 && !_mainWindow->IsMinimized())
             {
                 RenderFrame(frameTime, deltaTime);
@@ -189,7 +166,7 @@ namespace alimer
 
     void Application::RenderFrame(double frameTime, double elapsedTime)
     {
-        if (_headless)
+        if (_engine->IsHeadless())
             return;
 
         /*auto context = _graphicsDevice->GetContext();

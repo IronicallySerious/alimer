@@ -24,6 +24,7 @@
 
 #include "../Graphics/Types.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
+#include "../Math/Rectangle.h"
 
 namespace alimer
 {
@@ -81,6 +82,15 @@ namespace alimer
         
         virtual void BeginRenderPass(GPUFramebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
         virtual void EndRenderPass() = 0;
+
+        virtual void SetViewport(const RectangleF& viewport) = 0;
+        virtual void SetViewport(uint32_t viewportCount, const RectangleF* viewports) = 0;
+        virtual void SetScissor(const Rectangle& scissor) = 0;
+        virtual void SetScissor(uint32_t scissorCount, const Rectangle* scissors) = 0;
+        virtual void SetBlendConstants(const float blendConstants[4]) = 0;
+
+        virtual void SetVertexBuffer(uint32_t binding, GPUBuffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
+        virtual void SetIndexBuffer(GPUBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
     };
 
     struct GPUDeviceImpl

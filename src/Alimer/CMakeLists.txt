@@ -128,6 +128,10 @@ if (ALIMER_CSHARP)
     define_engine_source_files(CSharp)
 endif ()
 
+if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
+    define_engine_source_files(assets)
+endif ()
+
 if (MSVC)
     list (APPEND SOURCE_FILES ${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis)
 endif ()
@@ -147,7 +151,7 @@ target_include_directories(${TARGET_NAME}
 )
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES fmt spdlog spirv_cross ImGui)
+set (THIRD_PARTY_DEPENDENCIES fmt spdlog spirv_cross CLI11 ImGui)
 
 if (ALIMER_GLFW)
     list (APPEND THIRD_PARTY_DEPENDENCIES glfw)
@@ -181,6 +185,10 @@ endif ()
 
 if (ALIMER_CSHARP)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_CSHARP)
+endif ()
+
+if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
+    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_TOOLS)
 endif ()
 
 # Add OS-specific library dependencies

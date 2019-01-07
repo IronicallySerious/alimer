@@ -76,6 +76,16 @@ namespace alimer
         _insideRenderPass = false;
     }
 
+    void CommandContext::SetViewport(const RectangleF& viewport)
+    {
+        _commandBuffer->SetViewport(viewport);
+    }
+
+    void CommandContext::SetScissor(const Rectangle& scissor)
+    {
+        _commandBuffer->SetScissor(scissor);
+    }
+
     void CommandContext::SetPipeline(Pipeline* pipeline)
     {
         ALIMER_ASSERT(pipeline);
@@ -95,11 +105,15 @@ namespace alimer
             return;
         }
 #endif
-
-        //SetVertexBufferCore(binding, buffer, offset, buffer->GetElementSize(), inputRate);
+        _commandBuffer->SetVertexBuffer(
+            binding, 
+            buffer->GetGPUBuffer(), 
+            vertexOffset * buffer->GetElementSize(), 
+            buffer->GetElementSize(), 
+            inputRate);
     }
 
-    void CommandContext::SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandContext::SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex)
     {
         ALIMER_ASSERT(buffer);
 
@@ -110,8 +124,9 @@ namespace alimer
             return;
         }
 #endif
-        
-        //SetIndexBufferCore(buffer, offset, indexType);
+
+        uint32_t offset = startIndex * buffer->GetElementSize();
+        _commandBuffer->SetIndexBuffer(buffer->GetGPUBuffer(), offset, buffer->GetIndexType());
     }
 
     void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)

@@ -63,7 +63,6 @@ namespace alimer
         ID3D11Device*           GetD3DDevice() const { return _d3dDevice.Get(); }
         ID3D11Device1*          GetD3DDevice1() const { return _d3dDevice1.Get(); }
         ID3D11DeviceContext*    GetD3DDeviceContext() const { return _d3dContext.Get(); }
-        ID3D11DeviceContext1*   GetD3DDeviceContext1() const { return _d3dContext1.Get(); }
         D3D_FEATURE_LEVEL       GetDeviceFeatureLevel() const { return _d3dFeatureLevel; }
         
         uint32_t                GetShaderModerMajor() const { return _shaderModelMajor; }
@@ -84,8 +83,6 @@ namespace alimer
         Microsoft::WRL::ComPtr<ID3D11Device1>               _d3dDevice1;
 
         Microsoft::WRL::ComPtr<ID3D11DeviceContext>         _d3dContext;
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext1>        _d3dContext1;
-        Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
         uint32_t                                            _shaderModelMajor = 4;
         uint32_t                                            _shaderModelMinor = 0;

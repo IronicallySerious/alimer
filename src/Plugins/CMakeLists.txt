@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 Amer Koleci and contributors.
+# Copyright (c) 2017-2019 Amer Koleci and contributors.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,5 +20,12 @@
 # THE SOFTWARE.
 #
 
+if (ALIMER_TOOLS)
+    # ShaderImporter
+    add_subdirectory(ShaderImporter)
+endif ()
+
 # TestPlugin
 add_subdirectory(TestPlugin)
+
+vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} plugins)

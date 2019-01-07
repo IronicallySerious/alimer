@@ -45,12 +45,12 @@ namespace spdlog
 }
 #endif
 #elif ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
-#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/sinks/ansicolor_sink.h"
 namespace spdlog
 {
     namespace sinks
     {
-        using platform_sink_mt = stdout_sink_mt;
+        using platform_sink_mt = ansicolor_stdout_sink_mt;
     }
 }
 #elif ALIMER_PLATFORM_ANDROID
@@ -63,7 +63,7 @@ namespace spdlog
     }
 }
 #else
-#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/sinks/ansicolor_sink.h"
 namespace spdlog
 {
     namespace sinks

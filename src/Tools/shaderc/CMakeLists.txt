@@ -26,7 +26,6 @@ set(TARGET libshaderc)
 file (GLOB_RECURSE HEADER_FILES src/*.h)
 file (GLOB_RECURSE SOURCE_FILES src/*.cpp)
 
-
 add_library(${TARGET} STATIC ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(${TARGET} 
     PUBLIC src
@@ -46,7 +45,11 @@ set(SOURCE_FILES main.cpp)
 # Define the target.
 add_executable (${TARGET} ${SOURCE_FILES} ${HEADER_FILES})
 alimer_setup_common_properties(${TARGET})
-target_link_libraries(${TARGET} libshaderc cxxopts)
+target_link_libraries(${TARGET} 
+    PUBLIC libshaderc
+    PRIVATE fmt CLI11
+    )
+
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	target_link_libraries(${TARGET} PRIVATE pthread)
 endif ()

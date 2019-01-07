@@ -26,6 +26,7 @@
 #include "../Math/Math.h"
 #include "../Math/Color.h"
 #include "../Graphics/PixelFormat.h"
+#include "fmt/format.h"
 
 namespace alimer
 {
@@ -427,3 +428,15 @@ namespace alimer
     ALIMER_API const char* EnumToString(ResourceUsage usage);
     ALIMER_API const char* EnumToString(VertexElementSemantic semantic);
 }
+
+template <>
+struct fmt::formatter<alimer::IndexType> : formatter<string_view> {
+    template <typename FormatContext>
+    auto format(alimer::IndexType type, FormatContext &ctx) {
+        string_view name = "UInt16";
+        switch (type) {
+        case alimer::IndexType::UInt32: name = "UInt32"; break;
+        }
+        return formatter<string_view>::format(name, ctx);
+    }
+};

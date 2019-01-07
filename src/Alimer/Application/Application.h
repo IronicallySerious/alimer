@@ -22,9 +22,8 @@
 
 #pragma once
 
-#include "../Core/Object.h"
+#include "../Core/Engine.h"
 #include "../Core/Timer.h"
-#include "../Core/Log.h"
 #include "../Core/PluginManager.h"
 #include "../Application/Window.h"
 #include "../Application/GameSystem.h"
@@ -36,10 +35,8 @@
 #include "../Graphics/GPUDevice.h"
 #include "../Graphics/RenderWindow.h"
 #include "../Scene/Scene.h"
-#include "../Scene/SceneManager.h"
 #include "../Renderer/RenderContext.h"
 #include "../Renderer/RenderPipeline.h"
-#include "../UI/Gui.h"
 #include <atomic>
 
 namespace alimer
@@ -89,7 +86,7 @@ namespace alimer
 
         Timer &GetFrameTimer() { return _timer; }
 
-        inline ResourceManager& GetResources() { return _resources; }
+        
         inline Window* GetMainWindow() const { return _mainWindow; }
         inline Input& GetInput() { return _input; }
 
@@ -119,17 +116,20 @@ namespace alimer
         /// Called during rendering single frame.
         virtual void OnRenderFrame(double frameTime, double elapsedTime);
 
+        /// Alimer engine.
+        SharedPtr<Engine> _engine;
+
         Vector<String> _args;
         /// Application exit code.
         int _exitCode;
         std::atomic<bool> _running;
         std::atomic<bool> _paused;
-        std::atomic<bool> _headless;
+        
         ApplicationSettings _settings;
 
-        std::shared_ptr<spdlog::logger> _logger;
+        
         Timer _timer;
-        ResourceManager _resources;
+        
         SharedPtr<GPUDevice>    _gpuDevice;
         RenderWindow*           _mainWindow = nullptr;
         Input _input;
@@ -138,13 +138,11 @@ namespace alimer
         EntityManager _entities;
         SystemManager _systems;
         Scene _scene;
-        SharedPtr<SceneManager> _sceneManager;
+        
         RenderContext _renderContext;
         SceneRenderPipeline* _sceneRenderPipeline = nullptr;
 
-        // Gui
-        SharedPtr<Gui> _gui;
-
+        
     private:
         static Application *_instance;
 

@@ -41,6 +41,9 @@ namespace alimer
 		/// Destructor.
 		virtual ~ResourceLoader() = default;
 
+        /// Get
+        virtual bool CanLoad(const String& extension) const = 0;
+
 		/// Load the resource synchronously from a binary stream. Return instance on success.
 		SharedPtr<Object> Load(Stream& source);
 

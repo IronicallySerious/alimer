@@ -28,6 +28,7 @@ namespace alimer
 {
     SceneManager::SceneManager()
     {
+        Register();
         AddSubsystem(this);
     }
 

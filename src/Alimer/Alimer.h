@@ -44,8 +44,10 @@
 // Math
 #include "Math/MathUtil.h"
 #include "Math/Math.h"
-#include "Math/Matrix4x4.h"
+#include "Math/Vector2.h"
 #include "Math/Color.h"
+#include "Math/Rectangle.h"
+#include "Math/Matrix4x4.h"
 
 // Graphics
 #include "Graphics/PixelFormat.h"

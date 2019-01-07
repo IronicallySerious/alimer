@@ -28,7 +28,7 @@ add_executable (${PROJECT_NAME} main.cpp)
 alimer_setup_common_properties(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} 
     PUBLIC Alimer AlimerAssets
-    PRIVATE cxxopts
+    PRIVATE CLI11
 )
 
 # Set properties

@@ -108,7 +108,7 @@ namespace alimer
 
         SafeRelease(errorsBlob);
 
-        PODVector<uint8_t> blob(shaderBlob->GetBufferSize());
+        PODVector<uint8_t> blob(static_cast<uint32_t>(shaderBlob->GetBufferSize()));
         memcpy(blob.Data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
         return blob;
     }

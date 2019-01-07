@@ -309,8 +309,10 @@
 #   define MAYBE_UNUSED
 #endif
 
+/*
+* SAL annotations
+*/
 #ifndef _MSC_VER
-// SAL annotations
 #   define _In_reads_(size)
 #endif
 

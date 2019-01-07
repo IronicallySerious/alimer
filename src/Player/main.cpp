@@ -67,7 +67,6 @@ namespace alimer
             vertexElements.Push(VertexElement(VertexElementFormat::Float3, VertexElementSemantic::Position));
             vertexElements.Push(VertexElement(VertexElementFormat::Float4, VertexElementSemantic::Color0));
 
-
             _vertexBuffer = new VertexBuffer();
             _vertexBuffer->Define(3, vertexElements, false, triangleVertices);
 
@@ -83,7 +82,7 @@ namespace alimer
 
             // Shaders
             //auto texture = resources.Load<Texture>("textures/test.png");
-            auto vertexShader = resources.Load<Shader>("shaders/color.hlsl");
+            _shader = resources.Load<Shader>("shaders/color.shader");
             //_shader = new Shader();
             //_shader->Define(vertexShader.Get(), fragmentShader.Get());
         }
@@ -98,9 +97,7 @@ namespace alimer
         SharedPtr<VertexBuffer> _vertexBuffer;
         //GpuBuffer _perCameraUboBuffer;
 
-        SharedPtr<ShaderModule> _vertexShader;
-        SharedPtr<ShaderModule> _fragmentShader;
-        //SharedPtr<Shader> _shader;
+        SharedPtr<Shader> _shader;
         PerCameraCBuffer _camera{};
     };
 
@@ -384,7 +381,7 @@ namespace alimer
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_resources);
+        _triangleExample.Initialize(_engine->GetContent());
         //_quadExample.Initialize(_resources);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());

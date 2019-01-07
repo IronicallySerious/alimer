@@ -27,70 +27,66 @@
 #include <string>
 #include <vector>
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4819)
-#endif
-#include <cxxopts.hpp>
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include <CLI/CLI.hpp>
+#include <fmt/printf.h>
+
+#define ALIMER_SHADER_COMPILER_VERSION std::string("0.9.0")
+
+using namespace std;
+bool verboseOutput = false;
 
 int main(int argc, char* argv[])
 {
-    cxxopts::Options cmd_options("AlimerShaderCompiler", "A tool for compiling HLSL to many shader languages.");
+    CLI::App app{ fmt::sprintf("AlimerShaderCompiler %s: A tool for compiling HLSL to many shader languages.", ALIMER_SHADER_COMPILER_VERSION), "AlimerShaderCompiler" };
+    app.add_flag("-v,--verbose", verboseOutput, "Enable verbose mode.");
 
-    // clang-format off
-    cmd_options.add_options()
-        ("I,input", "Input file name.", cxxopts::value<std::string>())
-        ("O,output", "Output file name", cxxopts::value<std::string>())
-        ("V,vert", "Entry point of the vertex shader.", cxxopts::value<std::string>()->default_value("VSMain"))
-        ("P,pixel", "Entry point of the pixel shader.", cxxopts::value<std::string>()->default_value("PSMain"))
-        ("C,comp", "Entry point of the compute shader.", cxxopts::value<std::string>()->default_value(""))
-        //("T,target", "Target shading language: dxil, spirv, hlsl, glsl, essl, msl", cxxopts::value<std::string>()->default_value("dxil"))
-        //("V,version", "The version of target shading language", cxxopts::value<std::string>()->default_value(""))
-    ;
-    // clang-format on
+    app.add_flag_function("-V,--version", [&](size_t count) {
+        fmt::printf(
+            "AlimerShaderCompiler version %s\n2017-2019 Amer Koleci and contributors.\n",
+            ALIMER_SHADER_COMPILER_VERSION);
+        exit(0);
+    });
 
-    auto opts = cmd_options.parse(argc, argv);
+    std::string inputPath;
+    std::string outputPath;
+    std::string vertexShaderEntryPoint;
+    std::string pixelShaderEntryPoint;
+    std::string computeShaderEntryPoint;
 
-    if ((opts.count("input") == 0))
-    {
-        std::cerr << "COULDN'T find <input> in command line parameters." << std::endl;
-        std::cerr << cmd_options.help() << std::endl;
-        return 1;
-    }
+    app.add_option("-i,--input", inputPath, "Input shader file.")->check(CLI::ExistingFile);
+    app.add_option("-o,--output", outputPath, "Output shader file.");
+    app.add_option("--vertex", vertexShaderEntryPoint, "Entry point of the vertex shader.");
+    app.add_option("-p,--pixel", pixelShaderEntryPoint, "Entry point of the pixel shader.");
+    app.add_option("-c,--compute", computeShaderEntryPoint, "Entry point of the compute shader.");
 
+    // //("T,target", "Target shading language: dxil, spirv, hlsl, glsl, essl, msl", cxxopts::value<std::string>()->default_value("dxil"))
+
+    CLI11_PARSE(app, argc, argv);
     using namespace ShaderCompiler;
 
     Compiler::Options options;
-    options.fileName = opts["input"].as<std::string>();
+    options.fileName = inputPath;
     //const auto targetName = opts["target"].as<std::string>();
-    //options.version = opts["version"].as<std::string>();
 
-    const auto vertex = opts["vert"].as<std::string>();
-    const auto pixel = opts["pixel"].as<std::string>();
-    const auto comp = opts["comp"].as<std::string>();
-
-    if (!vertex.empty())
+    if (!vertexShaderEntryPoint.empty())
     {
-        options.shaders.push_back({ ShaderStage::Vertex, vertex });
+        options.shaders.push_back({ ShaderStage::Vertex, vertexShaderEntryPoint });
     }
 
-    if (!pixel.empty())
+    if (!pixelShaderEntryPoint.empty())
     {
-        options.shaders.push_back({ ShaderStage::Pixel, pixel });
+        options.shaders.push_back({ ShaderStage::Pixel, pixelShaderEntryPoint });
     }
 
-    if (!comp.empty())
+    if (!computeShaderEntryPoint.empty())
     {
-        options.shaders.push_back({ ShaderStage::Compute, comp });
+        options.shaders.push_back({ ShaderStage::Compute, computeShaderEntryPoint });
     }
 
     options.targetLanguage = ShadingLanguage::DXC;
 
     std::string outputName;
-    if (opts.count("output") == 0)
+    if (outputPath.empty())
     {
         static const std::string extMap[] = { "dxil", "spv", "cso", "hlsl", "glsl", "essl", "msl" };
         static_assert(sizeof(extMap) / sizeof(extMap[0]) == static_cast<uint32_t>(ShadingLanguage::COUNT),
@@ -99,7 +95,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        outputName = opts["output"].as<std::string>();
+        outputName = outputPath;
     }
 
     {

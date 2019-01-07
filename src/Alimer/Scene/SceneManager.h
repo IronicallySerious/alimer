@@ -40,10 +40,10 @@ namespace alimer
         /// Destructor.
         ~SceneManager() override;
 
+    private:
         /// Register Scene related object factories and attributes.
         static void Register();
 
-    private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(SceneManager);
     };
 }

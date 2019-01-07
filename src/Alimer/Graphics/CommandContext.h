@@ -28,7 +28,7 @@
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/Pipeline.h"
-#include "../Math/Math.h"
+#include "../Math/Rectangle.h"
 #include "../Math/Color.h"
 
 namespace alimer
@@ -55,12 +55,13 @@ namespace alimer
         void BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
         void EndRenderPass();
 
+        void SetViewport(const RectangleF& viewport);
+        void SetScissor(const Rectangle& scissor);
+
         void SetPipeline(Pipeline* pipeline);
 
         void SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
-        void SetIndexBuffer(Buffer* buffer, uint32_t offset = 0, IndexType indexType = IndexType::UInt16);
-        //virtual void SetViewport(const rect& viewport) = 0;
-        //virtual void SetScissor(const irect& scissor) = 0;
+        void SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex = 0);
 
         void SetPrimitiveTopology(PrimitiveTopology topology);
 
@@ -84,7 +85,6 @@ namespace alimer
 
     private:
         // Backend methods.
-        //virtual void SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
         //virtual void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) = 0;
 
         //virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) = 0;

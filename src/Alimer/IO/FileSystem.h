@@ -94,10 +94,8 @@ namespace alimer
         static String GetPath(const String& fullPath);
         /// Return the filename from a full path.
         static String GetFileName(const String& fullPath);
-
         /// Return the extension from a full path, converted to lowercase by default.
         static String GetExtension(const String& fullPath, bool lowercaseExtension = true);
-
         /// Return the filename and extension from a full path. The case of the extension is preserved by default, so that the file can be opened in case-sensitive operating systems.
         static String GetFileNameAndExtension(const String& fileName, bool lowercaseExtension = false);
 

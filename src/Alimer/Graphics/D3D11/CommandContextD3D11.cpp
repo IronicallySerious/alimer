@@ -34,13 +34,12 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    CommandContextD3D11::CommandContextD3D11(DeviceD3D11* device)
+    CommandBufferD3D11::CommandBufferD3D11(DeviceD3D11* device)
         : _immediate(true)
-        , _d3dContext(device->GetD3DDeviceContext())
-        , _d3dContext1(device->GetD3DDeviceContext1())
+        , _context(device->GetD3DDeviceContext())
         , _fenceValue(0)
     {
-        if (_d3dContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+        if (_context->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
         {
             D3D11_FEATURE_DATA_THREADING threadingCaps = { FALSE, FALSE };
 
@@ -52,29 +51,34 @@ namespace alimer
             }
         }
 
+        _context->QueryInterface(&_context1);
+        _context->QueryInterface(&_annotation);
         BeginContext();
     }
 
-    CommandContextD3D11::~CommandContextD3D11()
+    CommandBufferD3D11::~CommandBufferD3D11()
     {
         if (!_immediate)
         {
-            SafeRelease(_d3dContext);
-            SafeRelease(_d3dContext1);
+            SafeRelease(_context);
+            SafeRelease(_context1);
         }
     }
 
-    void CommandContextD3D11::BeginContext()
+    void CommandBufferD3D11::BeginContext()
     {
         _currentFramebuffer = nullptr;
         _currentColorAttachmentsBound = 0;
         _renderPipeline = nullptr;
         _computePipeline = nullptr;
         _currentTopology = PrimitiveTopology::Count;
+
+        // States
         _currentRasterizerState = nullptr;
         _currentDepthStencilState = nullptr;
         _currentBlendState = nullptr;
 
+        // Shaders
         _vertexShader = nullptr;
         _pixelShader = nullptr;
         _computeShader = nullptr;
@@ -86,26 +90,29 @@ namespace alimer
         _inputLayoutDirty = false;
         //memset(&_bindings, 0, sizeof(_bindings));
         memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
+
+        _viewportsDirty = false; _viewportsCount = 1;
+        _scissorsDirty = false; _scissorsCount = 1;
     }
 
-    uint64_t CommandContextD3D11::Flush(bool waitForCompletion)
+    uint64_t CommandBufferD3D11::Flush(bool waitForCompletion)
     {
-        _d3dContext->Flush();
+        _context->Flush();
         return ++_fenceValue;
     }
 
 
-    void CommandContextD3D11::BeginRenderPass(GPUFramebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    void CommandBufferD3D11::BeginRenderPass(GPUFramebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         _currentFramebuffer = static_cast<FramebufferD3D11*>(framebuffer);
-        _currentColorAttachmentsBound = _currentFramebuffer->Bind(_d3dContext);
+        _currentColorAttachmentsBound = _currentFramebuffer->Bind(_context);
 
         for (uint32_t i = 0; i < _currentColorAttachmentsBound; ++i)
         {
             switch (descriptor[i].colors->loadAction)
             {
             case LoadAction::Clear:
-                _d3dContext->ClearRenderTargetView(_currentFramebuffer->GetColorRTV(i), &descriptor[i].colors->clearColor[i]);
+                _context->ClearRenderTargetView(_currentFramebuffer->GetColorRTV(i), &descriptor[i].colors->clearColor[i]);
                 break;
 
             default:
@@ -131,7 +138,7 @@ namespace alimer
 
             if (clearFlags != 0)
             {
-                _d3dContext->ClearDepthStencilView(
+                _context->ClearDepthStencilView(
                     depthStencilView,
                     clearFlags,
                     descriptor->depthStencil.clearDepth,
@@ -159,52 +166,64 @@ namespace alimer
         }
 
         // Set viewport and scissor from fbo.
-        D3D11_VIEWPORT viewport = {
-            0.0f, 0.0f,
-            static_cast<float>(width),
-            static_cast<float>(height),
-            0.0f, 1.0f
-        };
-
-        D3D11_RECT scissor = { 0, 0,
-            static_cast<LONG>(width),
-            static_cast<LONG>(height)
-        };
-
-        _d3dContext->RSSetViewports(1, &viewport);
-        _d3dContext->RSSetScissorRects(1, &scissor);
+        SetViewport(RectangleF(width, height));
+        SetScissor(Rectangle(width, height));
     }
 
-    void CommandContextD3D11::EndRenderPass()
+    void CommandBufferD3D11::EndRenderPass()
     {
         static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 
-        _d3dContext->OMSetRenderTargets(_currentColorAttachmentsBound, nullViews, nullptr);
+        _context->OMSetRenderTargets(_currentColorAttachmentsBound, nullViews, nullptr);
         _currentFramebuffer = nullptr;
     }
 
-#if TODO_D3D11
-    /*void CommandContextD3D11::SetViewport(const rect& viewport)
+    void CommandBufferD3D11::SetViewport(const RectangleF& viewport)
     {
-        D3D11_VIEWPORT d3dViewport = {
-            viewport.x, viewport.y,
-            viewport.width, viewport.height,
-            D3D11_MIN_DEPTH, D3D11_MAX_DEPTH
-        };
-        _d3dContext->RSSetViewports(1, &d3dViewport);
+        _viewportsDirty = true;
+        _viewportsCount = 1;
+        _viewports[0] = { viewport.x, viewport.y, viewport.width, viewport.height, D3D11_MIN_DEPTH, D3D11_MAX_DEPTH };
     }
 
-    void CommandContextD3D11::SetScissor(const irect& scissor)
+    void CommandBufferD3D11::SetViewport(uint32_t viewportCount, const RectangleF* viewports)
     {
-        D3D11_RECT scissorD3D;
-        scissorD3D.left = scissor.x;
-        scissorD3D.top = scissor.y;
-        scissorD3D.right = scissor.x + scissor.width;
-        scissorD3D.bottom = scissor.y + scissor.height;
-        _d3dContext->RSSetScissorRects(1, &scissorD3D);
-    }*/
+        _viewportsDirty = true;
+        _viewportsCount = viewportCount;
+        for (uint32_t i = 0; i < viewportCount; i++)
+        {
+            _viewports[i] = { viewports[i].x, viewports[i].y, viewports[i].width, viewports[i].height, D3D11_MIN_DEPTH, D3D11_MAX_DEPTH};
+        }
+    }
 
-    void CommandContextD3D11::SetVertexBufferCore(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
+    void CommandBufferD3D11::SetScissor(const Rectangle& scissor)
+    {
+        _scissorsDirty = true;
+        _scissorsCount = 1;
+        _scissors[0].left = static_cast<LONG>(scissor.x);
+        _scissors[0].top = static_cast<LONG>(scissor.y);
+        _scissors[0].right = static_cast<LONG>(scissor.x + scissor.width);
+        _scissors[0].bottom = static_cast<LONG>(scissor.y + scissor.height);
+    }
+
+    void CommandBufferD3D11::SetScissor(uint32_t scissorCount, const Rectangle* scissors)
+    {
+        _scissorsDirty = true;
+        _scissorsCount = scissorCount;
+        for (uint32_t i = 0; i < scissorCount; i++)
+        {
+            _scissors[i].left = static_cast<LONG>(scissors[i].x);
+            _scissors[i].top = static_cast<LONG>(scissors[i].y);
+            _scissors[i].right = static_cast<LONG>(scissors[i].x + scissors[i].width);
+            _scissors[i].bottom = static_cast<LONG>(scissors[i].y + scissors[i].height);
+        }
+    }
+
+    void CommandBufferD3D11::SetBlendConstants(const float blendConstants[4])
+    {
+        //_context->OMSetBlendState(blendState, blendConstants, 0xFFFFFFFF);
+    }
+
+    void CommandBufferD3D11::SetVertexBuffer(uint32_t binding, GPUBuffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
     {
         auto d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
         if (_vbo.buffers[binding] != d3dBuffer
@@ -225,13 +244,15 @@ namespace alimer
         _vbo.inputRates[binding] = inputRate;
     }
 
-    void CommandContextD3D11::SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandBufferD3D11::SetIndexBuffer(GPUBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         ID3D11Buffer* d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
         DXGI_FORMAT dxgiFormat = indexType == IndexType::UInt32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
-        _d3dContext->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
+        _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
     }
 
+
+#if TODO_D3D11
     void CommandContextD3D11::SetPrimitiveTopologyCore(PrimitiveTopology topology)
     {
         if (_currentTopology != topology)
@@ -301,8 +322,22 @@ namespace alimer
         }
     }*/
 
-    void CommandContextD3D11::FlushRenderState()
+    void CommandBufferD3D11::FlushRenderState()
     {
+        // Viewports
+        if (_viewportsDirty)
+        {
+            _viewportsDirty = false;
+            _context->RSSetViewports(_viewportsCount, _viewports);
+        }
+
+        // Scissors
+        if (_scissorsDirty)
+        {
+            _scissorsDirty = false;
+            _context->RSSetScissorRects(_scissorsCount, _scissors);
+        }
+
         // InputLayout
 #if TODO
         if (_inputLayoutDirty)
