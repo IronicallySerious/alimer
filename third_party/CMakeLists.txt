@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 Amer Koleci and contributors.
+# Copyright (c) 2017-2019 Amer Koleci and contributors.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -38,11 +38,6 @@ if (ALIMER_VULKAN)
     if (ALIMER_WINDOWS)
         target_compile_definitions(volk PUBLIC -DVK_USE_PLATFORM_WIN32_KHR)
     endif()
-
-    # vkmemalloc
-    add_library(vkmemalloc INTERFACE)
-    target_sources(vkmemalloc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vkmemalloc/src/vk_mem_alloc.h)
-    target_include_directories(vkmemalloc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vkmemalloc/src)
 endif ()
 
 # STB

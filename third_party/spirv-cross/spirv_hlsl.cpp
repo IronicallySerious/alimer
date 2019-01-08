@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Robert Konrad
+ * Copyright 2016-2019 Robert Konrad
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1893,16 +1893,21 @@ void CompilerHLSL::emit_buffer_block(const SPIRVariable &var)
 
 			// Prefer the block name if possible.
 			auto buffer_name = to_name(type.self, false);
-			if (ir.meta[type.self].decoration.alias.empty() || resource_names.find(buffer_name) != end(resource_names))
+			if (ir.meta[type.self].decoration.alias.empty() ||
+			    resource_names.find(buffer_name) != end(resource_names) ||
+			    block_names.find(buffer_name) != end(block_names))
+			{
 				buffer_name = get_block_fallback_name(var.self);
-			add_variable(resource_names, buffer_name);
+			}
+
+			add_variable(block_names, resource_names, buffer_name);
 
 			// If for some reason buffer_name is an illegal name, make a final fallback to a workaround name.
 			// This cannot conflict with anything else, so we're safe now.
 			if (buffer_name.empty())
 				buffer_name = join("_", get<SPIRType>(var.basetype).self, "_", var.self);
 
-			resource_names.insert(buffer_name);
+			block_names.insert(buffer_name);
 
 			// Save for post-reflection later.
 			declared_block_names[var.self] = buffer_name;
@@ -3440,6 +3445,12 @@ void CompilerHLSL::emit_load(const Instruction &instruction)
 
 		bool forward = should_forward(ptr) && forced_temporaries.find(id) == end(forced_temporaries);
 
+		// If we are forwarding this load,
+		// don't register the read to access chain here, defer that to when we actually use the expression,
+		// using the add_implied_read_expression mechanism.
+		if (!forward)
+			track_expression_read(chain->self);
+
 		// Do not forward complex load sequences like matrices, structs and arrays.
 		auto &type = get<SPIRType>(result_type);
 		if (type.columns > 1 || !type.array.empty() || type.basetype == SPIRType::Struct)
@@ -3448,6 +3459,9 @@ void CompilerHLSL::emit_load(const Instruction &instruction)
 		auto &e = emit_op(result_type, id, load_expr, forward, true);
 		e.need_transpose = false;
 		register_read(id, ptr, forward);
+		inherit_expression_dependencies(id, ptr);
+		if (forward)
+			add_implied_read_expression(e, chain->self);
 	}
 	else
 		CompilerGLSL::emit_instruction(instruction);
@@ -3456,6 +3470,9 @@ void CompilerHLSL::emit_load(const Instruction &instruction)
 void CompilerHLSL::write_access_chain(const SPIRAccessChain &chain, uint32_t value)
 {
 	auto &type = get<SPIRType>(chain.basetype);
+
+	// Make sure we trigger a read of the constituents in the access chain.
+	track_expression_read(chain.self);
 
 	SPIRType target_type;
 	target_type.basetype = SPIRType::UInt;
@@ -3648,6 +3665,12 @@ void CompilerHLSL::emit_access_chain(const Instruction &instruction)
 		{
 			e.dynamic_index += chain->dynamic_index;
 			e.static_index += chain->static_index;
+		}
+
+		for (uint32_t i = 2; i < length; i++)
+		{
+			inherit_expression_dependencies(ops[1], ops[i]);
+			add_implied_read_expression(e, ops[i]);
 		}
 	}
 	else

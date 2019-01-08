@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2018 ARM Limited
+ * Copyright 2015-2019 Arm Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -567,6 +567,10 @@ struct SPIRExpression : IVariant
 	// A list of expressions which this expression depends on.
 	std::vector<uint32_t> expression_dependencies;
 
+	// By reading this expression, we implicitly read these expressions as well.
+	// Used by access chain Store and Load since we read multiple expressions in this case.
+	std::vector<uint32_t> implied_read_expressions;
+
 	SPIRV_CROSS_DECLARE_CLONE(SPIRExpression)
 };
 
@@ -845,6 +849,10 @@ struct SPIRAccessChain : IVariant
 	bool row_major_matrix = false;
 	bool immutable = false;
 
+	// By reading this expression, we implicitly read these expressions as well.
+	// Used by access chain Store and Load since we read multiple expressions in this case.
+	std::vector<uint32_t> implied_read_expressions;
+
 	SPIRV_CROSS_DECLARE_CLONE(SPIRAccessChain)
 };
 
@@ -886,6 +894,10 @@ struct SPIRVariable : IVariant
 
 	bool deferred_declaration = false;
 	bool phi_variable = false;
+
+	// Used to deal with Phi variable flushes. See flush_phi().
+	bool allocate_temporary_copy = false;
+
 	bool remapped_variable = false;
 	uint32_t remapped_components = 0;
 
@@ -1078,6 +1090,21 @@ struct SPIRConstant : IVariant
 		m.columns = constant_type_.columns;
 		for (auto &c : m.c)
 			c.vecsize = constant_type_.vecsize;
+	}
+
+	inline bool constant_is_null() const
+	{
+		if (specialization)
+			return false;
+		if (!subconstants.empty())
+			return false;
+
+		for (uint32_t col = 0; col < columns(); col++)
+			for (uint32_t row = 0; row < vector_size(); row++)
+				if (scalar_u64(col, row) != 0)
+					return false;
+
+		return true;
 	}
 
 	explicit SPIRConstant(uint32_t constant_type_)
@@ -1328,6 +1355,7 @@ struct Meta
 		uint32_t input_attachment = 0;
 		uint32_t spec_id = 0;
 		uint32_t index = 0;
+		spv::FPRoundingMode fp_rounding_mode = spv::FPRoundingModeMax;
 		bool builtin = false;
 	};
 

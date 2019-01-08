@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2018 ARM Limited
+ * Copyright 2015-2019 Arm Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -346,6 +346,7 @@ protected:
 	std::unordered_set<std::string> block_output_names;
 	std::unordered_set<std::string> block_ubo_names;
 	std::unordered_set<std::string> block_ssbo_names;
+	std::unordered_set<std::string> block_names; // A union of all block_*_names.
 	std::unordered_map<std::string, std::unordered_set<uint64_t>> function_overloads;
 
 	bool processing_entry_point = false;
@@ -444,7 +445,8 @@ protected:
 	SPIRExpression &emit_op(uint32_t result_type, uint32_t result_id, const std::string &rhs, bool forward_rhs,
 	                        bool suppress_usage_tracking = false);
 	std::string access_chain_internal(uint32_t base, const uint32_t *indices, uint32_t count, bool index_is_literal,
-	                                  bool chain_only = false, AccessChainMeta *meta = nullptr);
+	                                  bool chain_only = false, AccessChainMeta *meta = nullptr,
+	                                  bool register_expression_read = true);
 	std::string access_chain(uint32_t base, const uint32_t *indices, uint32_t count, const SPIRType &target_type,
 	                         AccessChainMeta *meta = nullptr);
 
@@ -468,8 +470,8 @@ protected:
 	std::string remap_swizzle(const SPIRType &result_type, uint32_t input_components, const std::string &expr);
 	std::string declare_temporary(uint32_t type, uint32_t id);
 	void append_global_func_args(const SPIRFunction &func, uint32_t index, std::vector<std::string> &arglist);
-	std::string to_expression(uint32_t id);
-	std::string to_enclosed_expression(uint32_t id);
+	std::string to_expression(uint32_t id, bool register_expression_read = true);
+	std::string to_enclosed_expression(uint32_t id, bool register_expression_read = true);
 	std::string to_unpacked_expression(uint32_t id);
 	std::string to_enclosed_unpacked_expression(uint32_t id);
 	std::string to_extract_component_expression(uint32_t id, uint32_t index);
@@ -571,8 +573,12 @@ protected:
 	void emit_pls();
 	void remap_pls_variables();
 
-	void add_variable(std::unordered_set<std::string> &variables, uint32_t id);
-	void add_variable(std::unordered_set<std::string> &variables, std::string &name);
+	// A variant which takes two sets of name. The secondary is only used to verify there are no collisions,
+	// but the set is not updated when we have found a new name.
+	// Used primarily when adding block interface names.
+	void add_variable(std::unordered_set<std::string> &variables_primary,
+	                  const std::unordered_set<std::string> &variables_secondary, std::string &name);
+
 	void check_function_call_constraints(const uint32_t *args, uint32_t length);
 	void handle_invalid_expression(uint32_t id);
 	void find_static_extensions();
@@ -607,6 +613,8 @@ protected:
 
 	void handle_store_to_invariant_variable(uint32_t store_id, uint32_t value_id);
 	void disallow_forwarding_in_expression_chain(const SPIRExpression &expr);
+
+	bool expression_is_constant_null(uint32_t id) const;
 
 private:
 	void init()
