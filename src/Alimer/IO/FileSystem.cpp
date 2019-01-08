@@ -91,6 +91,18 @@ namespace alimer
         String _rootDirectory;
     };
 
+    static std::pair<String, String> ProtocolSplit(const String &path)
+    {
+        if (path.IsEmpty())
+            return std::make_pair(String::EMPTY, String::EMPTY);
+
+        auto index = path.Find("://");
+        if (index == String::NPOS)
+            return std::make_pair(String::EMPTY, path);
+
+        return std::make_pair(path.Substring(0, index), path.Substring(index + 3));
+    }
+
     FileSystem::FileSystem()
     {
         // Register default file protocol.
@@ -140,7 +152,7 @@ namespace alimer
 
     bool FileSystem::Exists(const String &path)
     {
-        auto paths = Path::ProtocolSplit(path);
+        auto paths = ProtocolSplit(path);
         auto *backend = GetProcotol(paths.first);
         if (!backend)
             return {};
@@ -150,7 +162,7 @@ namespace alimer
 
     UniquePtr<Stream> FileSystem::Open(const String &path, FileAccess mode)
     {
-        auto paths = Path::ProtocolSplit(path);
+        auto paths = ProtocolSplit(path);
         auto *backend = GetProcotol(paths.first);
         if (!backend)
             return {};

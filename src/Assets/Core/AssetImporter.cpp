@@ -20,20 +20,17 @@
 // THE SOFTWARE.
 //
 
-#if ALIMER_TOOLS
-#include "../assets/AssetImporter.h"
-#include "../IO/Stream.h"
-#include "../Core/Log.h"
+#include "AssetImporter.h"
 
 namespace alimer
 {
-    AssertImporter::AssertImporter()
+    AssetImporter::AssetImporter()
 	{
+
 	}
 
-    AssertImporter::~AssertImporter()
-    {
+    AssetImporter::~AssetImporter()
+	{
 
-    }
+	}
 }
-#endif /* ALIMER_TOOLS */

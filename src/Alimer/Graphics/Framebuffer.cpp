@@ -27,32 +27,6 @@
 
 namespace alimer
 {
-    Framebuffer::Framebuffer(GPUDevice* device, uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment)
-        : GPUResource(device, Type::Framebuffer)
-    {
-        _colorAttachments.Resize(colorAttachmentsCount);
-        _width = UINT32_MAX;
-        _height = UINT32_MAX;
-        _layers = 1;
-
-        for (uint32_t i = 0; i < colorAttachmentsCount; i++)
-        {
-            const FramebufferAttachment& attachment = colorAttachments[i];
-            Texture* texture = attachment.texture;
-            _width = min(_width, texture->GetWidth(attachment.level));
-            _height = min(_height, texture->GetHeight(attachment.level));
-            _colorAttachments.Push(attachment);
-        }
-
-        if (depthStencilAttachment != nullptr)
-        {
-            uint32_t mipLevel = depthStencilAttachment->level;
-            _width = min(_width, depthStencilAttachment->texture->GetWidth(mipLevel));
-            _height = min(_height, depthStencilAttachment->texture->GetHeight(mipLevel));
-            memcpy(&_depthStencilAttachment, depthStencilAttachment, sizeof(FramebufferAttachment));
-        }
-    }
-
     Framebuffer::Framebuffer()
         : GPUResource(GetSubsystem<GPUDevice>(), Type::Framebuffer)
     {

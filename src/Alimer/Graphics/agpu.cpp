@@ -174,22 +174,6 @@ uint64_t agpuFrame()
     return s_renderer->Frame();
 }
 
-static void agpuValidateBufferDescriptor(const AgpuBufferDescriptor* descriptor)
-{
-    ALIMER_ASSERT_MSG(descriptor, "Invalid buffer descriptor.");
-#if !defined(ALIMER_DEV)
-    if (!descriptor->elementCount)
-    {
-        ALIMER_LOGCRITICAL("Cannot create empty buffer");
-    }
-
-    if (!descriptor->stride)
-    {
-        ALIMER_LOGCRITICAL("Invalid buffer stride");
-    }
-#endif
-}
-
 static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* descriptor)
 {
     if (buffer != nullptr)
@@ -232,7 +216,6 @@ static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* 
 
 AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor, const void* initialData)
 {
-    agpuValidateBufferDescriptor(descriptor);
     AgpuBuffer buffer = s_renderer->CreateBuffer(descriptor, initialData, NULL);
     agpuBufferInitialize(buffer, descriptor);
     return buffer;
@@ -240,7 +223,6 @@ AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor, const void* 
 
 AgpuBuffer agpuCreateExternalBuffer(const AgpuBufferDescriptor* descriptor, void* handle)
 {
-    agpuValidateBufferDescriptor(descriptor);
     AgpuBuffer buffer = s_renderer->CreateBuffer(descriptor, NULL, handle);
     agpuBufferInitialize(buffer, descriptor);
     return buffer;

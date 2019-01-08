@@ -51,6 +51,10 @@ namespace alimer
         // Flush existing commands to the GPU and optionally wait for execution.
         uint64_t Flush(bool waitForCompletion = false);
 
+        void PushDebugGroup(const String& name);
+        void PopDebugGroup();
+        void InsertDebugMarker(const String& name);
+
         void BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
         void BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
         void EndRenderPass();
@@ -58,7 +62,7 @@ namespace alimer
         void SetViewport(const RectangleF& viewport);
         void SetScissor(const Rectangle& scissor);
 
-        void SetPipeline(Pipeline* pipeline);
+        void SetShader(Shader* shader);
 
         void SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex = 0);
@@ -77,12 +81,6 @@ namespace alimer
         void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
-        /// Set name.
-        void SetName(const String& name) { _name = name; }
-
-        /// Return name.
-        const String& GetName() const { return _name; }
-
     private:
         // Backend methods.
         //virtual void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) = 0;
@@ -100,10 +98,7 @@ namespace alimer
         WeakPtr<GPUDevice> _device;
 
         bool _insideRenderPass;
-        Pipeline* _currentPipeline = nullptr;
-
-        /// Resource name
-        String _name;
+        Shader* _currentShader = nullptr;
 
     private:
         GPUCommandBuffer* _commandBuffer;

@@ -86,27 +86,27 @@ namespace alimer
         }
     }
 
-    uint32_t GetVertexElementSize(VertexElementFormat format)
+    uint32_t GetVertexElementSize(VertexFormat format)
     {
         switch (format)
         {
-        case VertexElementFormat::Float:
-        case VertexElementFormat::Byte4:
-        case VertexElementFormat::Byte4N:
-        case VertexElementFormat::UByte4:
-        case VertexElementFormat::UByte4N:
-        case VertexElementFormat::Short2:
-        case VertexElementFormat::Short2N:
+        case VertexFormat::Float:
+        case VertexFormat::Byte4:
+        case VertexFormat::Byte4N:
+        case VertexFormat::UByte4:
+        case VertexFormat::UByte4N:
+        case VertexFormat::Short2:
+        case VertexFormat::Short2N:
             return 4;
 
-        case VertexElementFormat::Float2:
-        case VertexElementFormat::Short4:
-        case VertexElementFormat::Short4N:
+        case VertexFormat::Float2:
+        case VertexFormat::Short4:
+        case VertexFormat::Short4N:
             return 8;
 
-        case VertexElementFormat::Float3:
+        case VertexFormat::Float3:
             return 12;
-        case VertexElementFormat::Float4:
+        case VertexFormat::Float4:
             return 16;
 
         default:

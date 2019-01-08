@@ -36,10 +36,6 @@ namespace alimer
     /// Sets to priority so that a package or file is pushed to the end of the vector.
     static constexpr uint32_t PRIORITY_LAST = 0xffffffff;
 
-#if ALIMER_TOOLS
-    class AssetImporter;
-#endif
-
 	/// Resource cache subsystem. Loads resources on demand and stores them for later access.
 	class ALIMER_API ResourceManager final : public Object
 	{
@@ -73,10 +69,6 @@ namespace alimer
         /// Remove unnecessary constructs from a resource directory name and ensure it to be an absolute path.
         String SanitateResourceDirName(const String& name) const;
 
-#if ALIMER_TOOLS
-        void RegisterImporter(AssetImporter* importer);
-#endif 
-
 	private:
         /// Register object.
         static void Register();
@@ -103,10 +95,6 @@ namespace alimer
 
         /// Search priority flag.
         bool _searchPackagesFirst{ true };
-
-#if ALIMER_TOOLS
-        Vector<SharedPtr<AssetImporter>> _assetImporters;
-#endif
 
     private:
 		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceManager);

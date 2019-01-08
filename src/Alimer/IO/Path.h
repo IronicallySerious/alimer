@@ -27,17 +27,25 @@
 
 namespace alimer
 {
-	namespace Path
+    /// Class for path helpers.
+    class ALIMER_API Path
 	{
-		bool IsAbsolutePath(const String &path);
-		bool IsRootPath(const String &path);
+    public:
+		static bool IsAbsolutePath(const String &path);
+        static bool IsRootPath(const String &path);
 
-		String Join(const String &base, const String &path);
-        String GetBaseDir(const String &path);
-        String GetBaseName(const String &path);
-        String GetRelativePath(const String &base, const String &path);
-        String GetExtension(const String &path);
+        static String Join(const String &base, const String &path);
+        static String GetBaseDir(const String &path);
+        static String GetBaseName(const String &path);
+        static String GetRelativePath(const String &base, const String &path);
 
-		std::pair<String, String> ProtocolSplit(const String &path);
-	}
+        /// Return the extension from a path, converted to lowercase by default.
+        static String GetExtension(const String &path, bool lowerCaseExtension = true);
+
+        
+
+    private:
+        Path() = delete;
+        DISALLOW_COPY_MOVE_AND_ASSIGN(Path);
+    };
 }

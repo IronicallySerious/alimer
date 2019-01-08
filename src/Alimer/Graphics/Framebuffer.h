@@ -44,10 +44,6 @@ namespace alimer
     {
         ALIMER_OBJECT(Framebuffer, GPUResource);
 
-    protected:
-        /// Constructor.
-        Framebuffer(GPUDevice* device, uint32_t colorAttachmentsCount, const FramebufferAttachment* colorAttachments, const FramebufferAttachment* depthStencilAttachment);
-
     public:
         /// Constructor.
         Framebuffer();

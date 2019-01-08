@@ -54,7 +54,8 @@ namespace alimer
 
         if (any(_descriptor.usage & BufferUsage::Uniform))
         {
-            bufferDesc.ByteWidth = AlignTo(bufferDesc.ByteWidth, D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
+            ALIMER_ASSERT(bufferDesc.ByteWidth <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT && (bufferDesc.ByteWidth % 16) == 0);
+            bufferDesc.ByteWidth = AlignTo(bufferDesc.ByteWidth, 256);
             bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         }
         else

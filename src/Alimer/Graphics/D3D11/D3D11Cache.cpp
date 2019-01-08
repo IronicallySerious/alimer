@@ -26,8 +26,6 @@
 #include "../D3D/D3DShaderCompiler.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
-#include <spirv-cross/spirv_hlsl.hpp>
-
 using namespace Microsoft::WRL;
 
 namespace alimer
@@ -45,129 +43,6 @@ namespace alimer
     void D3D11Cache::Clear()
     {
         _inputLayouts.clear();
-        _shaders.clear();
-    }
-
-    ID3D11DeviceChild* D3D11Cache::GetShader(ShaderModule* shader)
-    {
-        std::vector<uint8_t> hlslBytecode;
-        return GetShader(shader, hlslBytecode);
-    }
-
-    ID3D11DeviceChild* D3D11Cache::GetShader(ShaderModule* shader, std::vector<uint8_t>& hlslBytecode)
-    {
-        return nullptr;
-#if TODO
-        auto hash = shader->GetHash();
-        auto it = _shaders.find(hash);
-        if (it != end(_shaders))
-        {
-            return it->second.Get();
-        }
-
-        ShaderStage stage = shader->GetStage();
-        const std::vector<uint8_t>& bytecode = shader->GetBytecode();
-
-        // Check if hlsl bytecode.
-        if (bytecode[0] == 0x44
-            && bytecode[1] == 0x58
-            && bytecode[2] == 0x42
-            && bytecode[3] == 0x43)
-        {
-            hlslBytecode = std::move(bytecode);
-        }
-        else
-        {
-            // Convert SPIRV to HLSL
-            spirv_cross::CompilerGLSL::Options options_glsl;
-            //options_glsl.vertex.fixup_clipspace = true;
-            //options_glsl.vertex.flip_vert_y = true;
-
-            spirv_cross::CompilerHLSL compiler(
-                reinterpret_cast<const uint32_t*>(bytecode.data()),
-                bytecode.size() / 4);
-            compiler.set_common_options(options_glsl);
-
-            const uint32_t major = _device->GetShaderModerMajor();
-            const uint32_t minor = _device->GetShaderModerMinor();
-            spirv_cross::CompilerHLSL::Options options_hlsl;
-            options_hlsl.shader_model = major * 10 + minor;
-            compiler.set_hlsl_options(options_hlsl);
-
-            /*auto resources = compiler.get_shader_resources();
-
-            BindingTypeMap<uint32_t> baseRegisters{};
-            for (auto &ubo : resources.uniform_buffers)
-            {
-                auto set = compiler.get_decoration(ubo.id, spv::DecorationDescriptorSet);
-                uint32_t& baseRegister = baseRegisters[DescriptorType::UniformBuffer];
-                uint32_t bindGroupOffset = set * MaxBindingsPerSet;
-                auto binding = bindGroupOffset + baseRegister++;
-                compiler.set_decoration(ubo.id, spv::DecorationBinding, binding);
-            }*/
-
-            // Remap attributes with HLSL semantic.
-            std::vector<spirv_cross::HLSLVertexAttributeRemap> remaps;
-            for (int i = 0; i < static_cast<uint32_t>(VertexElementSemantic::Count); i++)
-            {
-                VertexElementSemantic semantic = static_cast<VertexElementSemantic>(i);
-                spirv_cross::HLSLVertexAttributeRemap remap = { (uint32_t)i , EnumToString(semantic) };
-                remaps.push_back(std::move(remap));
-            }
-
-            std::string hlslSource = compiler.compile(std::move(remaps));
-            auto d3dBlob = D3DShaderCompiler::Compile(
-                _device->GetFunctions()->d3dCompile,
-                hlslSource.c_str(),
-                hlslSource.length(),
-                stage, major, minor);
-            hlslBytecode.resize(d3dBlob->GetBufferSize());
-            memcpy(hlslBytecode.data(), d3dBlob->GetBufferPointer(), d3dBlob->GetBufferSize());
-            d3dBlob->Release();
-        }
-
-        switch (stage)
-        {
-        case ShaderStage::Vertex: {
-            ID3D11VertexShader* vertexShader;
-            _device->GetD3DDevice()->CreateVertexShader(
-                hlslBytecode.data(),
-                hlslBytecode.size(), nullptr,
-                &vertexShader
-            );
-            _shaders[hash].Attach(vertexShader);
-            _vsBytecodes[hash] = std::move(hlslBytecode);
-        } break;
-        case ShaderStage::TessControl:
-            break;
-        case ShaderStage::TessEvaluation:
-            break;
-        case ShaderStage::Geometry:
-            break;
-        case ShaderStage::Fragment: {
-            ID3D11PixelShader* pixelShader;
-            _device->GetD3DDevice()->CreatePixelShader(
-                hlslBytecode.data(),
-                hlslBytecode.size(), nullptr,
-                &pixelShader
-            );
-            _shaders[hash].Attach(pixelShader);
-        } break;
-        case ShaderStage::Compute: {
-            ID3D11ComputeShader* computeShader;
-            _device->GetD3DDevice()->CreateComputeShader(
-                hlslBytecode.data(),
-                hlslBytecode.size(), nullptr,
-                &computeShader
-            );
-            _shaders[hash].Attach(computeShader);
-        } break;
-        default:
-            break;
-        }
-
-        return _shaders[hash].Get();
-#endif // TODO
     }
 
     ID3D11InputLayout* D3D11Cache::GetInputLayout(ShaderModule* shader, const RenderPipelineDescriptor* descriptor)

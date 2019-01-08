@@ -27,7 +27,7 @@
 
 namespace alimer
 {
-    class D3D11Pipeline;
+    class ShaderD3D11;
     class FramebufferD3D11;
     class DeviceD3D11;
 
@@ -38,6 +38,12 @@ namespace alimer
         ~CommandBufferD3D11() override;
 
         uint64_t Flush(bool waitForCompletion) override;
+
+
+        void PushDebugGroup(const char* name) override;
+        void PopDebugGroup() override;
+        void InsertDebugMarker(const char* name) override;
+
         void BeginRenderPass(GPUFramebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPass() override;
 
@@ -47,14 +53,12 @@ namespace alimer
         void SetScissor(uint32_t scissorCount, const Rectangle* scissors) override;
         void SetBlendConstants(const float blendConstants[4]) override;
 
-        void SetVertexBuffer(uint32_t binding, GPUBuffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
+        void SetShader(GPUShader* shader) override;
+
+        void SetVertexBuffer(uint32_t binding, GPUBuffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
         void SetIndexBuffer(GPUBuffer* buffer, uint32_t offset, IndexType indexType) override;
 
-        /*
-        void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) override;
-        void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) override;
-
-       */
+        void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
 
     private:
         void BeginContext();
@@ -67,6 +71,7 @@ namespace alimer
         //void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
     private:
+        DeviceD3D11*                _device;
         ID3D11DeviceContext*        _context;
         ID3D11DeviceContext1*       _context1;
         ID3DUserDefinedAnnotation*  _annotation;
@@ -77,23 +82,24 @@ namespace alimer
         const FramebufferD3D11*     _currentFramebuffer = nullptr;
         uint32_t                    _currentColorAttachmentsBound;
         PrimitiveTopology           _currentTopology;
-        const D3D11Pipeline*        _renderPipeline = nullptr;
-        const D3D11Pipeline*        _computePipeline = nullptr;
+        const ShaderD3D11*          _graphicsShader = nullptr;
+        const ShaderD3D11*          _computeShader = nullptr;
         ID3D11RasterizerState1*     _currentRasterizerState;
         ID3D11DepthStencilState*    _currentDepthStencilState;
         ID3D11BlendState1*          _currentBlendState;
 
-        ID3D11VertexShader*         _vertexShader = nullptr;
-        ID3D11PixelShader*          _pixelShader = nullptr;
-        ID3D11ComputeShader*        _computeShader = nullptr;
-        ID3D11InputLayout*          _inputLayout = nullptr;
+        ID3D11VertexShader*         _currentVertexShader = nullptr;
+        ID3D11PixelShader*          _currentPixelShader = nullptr;
+        ID3D11ComputeShader*        _currentComputeShader = nullptr;
+        ID3D11InputLayout*          _currentInputLayout = nullptr;
 
         struct VertexBindingState
         {
-            ID3D11Buffer*   buffers[MaxVertexBufferBindings];
-            UINT            offsets[MaxVertexBufferBindings];
-            UINT            strides[MaxVertexBufferBindings];
-            VertexInputRate inputRates[MaxVertexBufferBindings];
+            ID3D11Buffer*               buffers[MaxVertexBufferBindings];
+            const VertexDeclaration*    formats[MaxVertexBufferBindings];
+            UINT                        offsets[MaxVertexBufferBindings];
+            UINT                        strides[MaxVertexBufferBindings];
+            VertexInputRate             inputRates[MaxVertexBufferBindings];
         } _vbo = {};
 
         // Viewports
@@ -105,6 +111,10 @@ namespace alimer
         bool                        _scissorsDirty;
         D3D11_RECT                  _scissors[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
         uint32_t                    _scissorsCount;
+
+        bool                        _vertexAttributesDirty;
+        D3D11_INPUT_ELEMENT_DESC    _vertexAttributes[MaxVertexAttributes] = {};
+        uint32_t                    _vertexAttributesCount;
 
         /*struct BufferBindingInfo {
             Buffer*  buffer;
@@ -124,10 +134,6 @@ namespace alimer
             ResourceBinding bindings[MaxDescriptorSets][MaxBindingsPerSet];
             uint8_t push_constant_data[MaxDescriptorSets];
         };*/
-
-        
-        
-        bool            _inputLayoutDirty;
 
         //ResourceBindings _bindings;
         uint32_t        _dirtySets = 0;

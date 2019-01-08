@@ -21,6 +21,8 @@
 //
 
 #include "Alimer.h"
+#include "Color_VSMain.h"
+#include "Color_PSMain.h"
 using namespace alimer;
 
 namespace alimer
@@ -64,8 +66,8 @@ namespace alimer
             };
 
             PODVector<VertexElement> vertexElements;
-            vertexElements.Push(VertexElement(VertexElementFormat::Float3, VertexElementSemantic::Position));
-            vertexElements.Push(VertexElement(VertexElementFormat::Float4, VertexElementSemantic::Color0));
+            vertexElements.Push(VertexElement(VertexFormat::Float3, VertexElementSemantic::Position));
+            vertexElements.Push(VertexElement(VertexFormat::Float4, VertexElementSemantic::Color0));
 
             _vertexBuffer = new VertexBuffer();
             _vertexBuffer->Define(3, vertexElements, false, triangleVertices);
@@ -82,15 +84,17 @@ namespace alimer
 
             // Shaders
             //auto texture = resources.Load<Texture>("textures/test.png");
-            _shader = resources.Load<Shader>("shaders/color.shader");
-            //_shader = new Shader();
-            //_shader->Define(vertexShader.Get(), fragmentShader.Get());
+            _shader = new Shader();
+            _shader->Define(
+                PODVector<uint8_t>(Color_VSMain, sizeof(Color_VSMain)), 
+                PODVector<uint8_t>(Color_PSMain, sizeof(Color_PSMain)));
         }
 
         void Render(CommandContext& context)
         {
             context.SetVertexBuffer(0, _vertexBuffer);
-            //context.Draw(3, 0);
+            context.SetShader(_shader.Get());
+            context.Draw(3, 0);
         }
 
     private:

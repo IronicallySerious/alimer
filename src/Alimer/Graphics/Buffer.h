@@ -24,6 +24,7 @@
 
 #include "../Base/Ptr.h"
 #include "../Base/String.h"
+#include "../Graphics/VertexFormat.h"
 #include "../Graphics/GPUResource.h"
 
 namespace alimer
@@ -85,14 +86,10 @@ namespace alimer
         bool Define(uint32_t vertexCount, const PODVector<VertexElement>& elements, bool useShadowData, const void* data = nullptr);
         bool Define(uint32_t vertexCount, uint32_t elementsCount, const VertexElement* elements, bool useShadowData, const void* data = nullptr);
 
-        /// Return number of vertex elements.
-        uint32_t GetElementsCount() const { return _elements.Size(); }
-
-        /// Return vertex elements.
-        const PODVector<VertexElement>& GetElements() const { return _elements; }
+        const VertexDeclaration* GetVertexDeclaration() const { return &_vertexDeclaration; }
 
     private:
-        PODVector<VertexElement> _elements;
+        VertexDeclaration _vertexDeclaration;
     };
 
     /// Defines a index buffer.

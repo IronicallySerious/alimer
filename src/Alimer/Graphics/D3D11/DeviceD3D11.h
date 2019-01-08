@@ -52,7 +52,13 @@ namespace alimer
         GPUFramebuffer* CreateFramebuffer() override;
         GPUBuffer* CreateBuffer(const BufferDescriptor& descriptor, const void* initialData) override;
         GPUSampler* CreateSampler(const SamplerDescriptor& descriptor) override;
-        GPUShader* CreateShader(const char* source) override;
+        GPUShader* CreateComputeShader(const PODVector<uint8_t>& bytecode) override;
+        GPUShader* CreateGraphicsShader(
+            const PODVector<uint8_t>& vertex, 
+            const PODVector<uint8_t>& tessControl, 
+            const PODVector<uint8_t>& tessEval, 
+            const PODVector<uint8_t>& geometry, 
+            const PODVector<uint8_t>& fragment) override;
 
         void HandleDeviceLost();
 

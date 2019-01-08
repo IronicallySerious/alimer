@@ -22,21 +22,20 @@
 
 #pragma once
 
-#include "../Core/Object.h"
+#include "Alimer.h"
 
 namespace alimer
 {
-	/// Developer asset importer classs.
-	class AssertImporter : public Object
+	class AssetImporter : public Object
 	{
-        ALIMER_OBJECT(AssertImporter, Object);
-
+		ALIMER_OBJECT(AssetImporter, Object);
+	
     public:
-		/// Constructor.
-        AssertImporter();
+        /// Constructor.
+        AssetImporter();
 
-		/// Destructor.
-		virtual ~AssertImporter();
+        /// Destructor.
+        virtual ~AssetImporter();
 
         /// Defines the base asset loading parameters.
         class Parameters
@@ -46,11 +45,11 @@ namespace alimer
         };
 
         /// Get if given extension can be imported by this importer.
-        virtual bool IsExtensionSupported(const String& extension) const = 0;
+        virtual bool IsExtensionSupported(const std::string& extension) const = 0;
 
-		virtual SharedPtr<Object> Import(const String& url, std::shared_ptr<AssertImporter::Parameters> parameters) = 0;
+        virtual bool Import(const std::string& fileName, const std::string& destPath, std::shared_ptr<AssetImporter::Parameters> parameters) = 0;
 
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(AssertImporter);
+    private:
+        DISALLOW_COPY_MOVE_AND_ASSIGN(AssetImporter);
 	};
 }

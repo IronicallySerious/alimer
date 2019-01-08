@@ -394,7 +394,7 @@ namespace ShaderCompiler
     Compiler::CompileResult CompileToBinary(const Compiler::Options& options)
     {
         assert((options.targetLanguage == ShadingLanguage::DXIL)
-            || (options.targetLanguage == ShadingLanguage::HLSL)
+            || (options.targetLanguage == ShadingLanguage::DXC)
             || (options.targetLanguage == ShadingLanguage::SPIRV)
         );
 

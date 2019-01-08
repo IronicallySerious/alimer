@@ -42,7 +42,9 @@ namespace alimer
 		virtual ~ResourceLoader() = default;
 
         /// Get
-        virtual bool CanLoad(const String& extension) const = 0;
+        virtual bool CanLoad(const String& extension) const {
+            return false;
+        }
 
 		/// Load the resource synchronously from a binary stream. Return instance on success.
 		SharedPtr<Object> Load(Stream& source);

@@ -26,17 +26,32 @@
 
 namespace alimer
 {
-    VertexFormat::VertexFormat(const PODVector<VertexElement>& elements)
+    VertexDeclaration::VertexDeclaration()
+    {
+
+    }
+
+    void VertexDeclaration::Define(const Vector<VertexElement>& elements)
     {
         if (!elements.Size())
         {
             ALIMER_LOGERROR("Can not define vertex format with no elements");
         }
 
-        Initialize(elements.Size(), elements.Data());
+        Define(elements.Size(), elements.Data());
     }
 
-    VertexFormat::VertexFormat(uint32_t elementsCount, const VertexElement* elements)
+    void VertexDeclaration::Define(const PODVector<VertexElement>& elements)
+    {
+        if (!elements.Size())
+        {
+            ALIMER_LOGERROR("Can not define vertex format with no elements");
+        }
+
+        Define(elements.Size(), elements.Data());
+    }
+
+    void VertexDeclaration::Define(uint32_t elementsCount, const VertexElement* elements)
     {
         if (!elementsCount || !elements)
         {
@@ -44,11 +59,6 @@ namespace alimer
             return;
         }
 
-        Initialize(elementsCount, elements);
-    }
-
-    void VertexFormat::Initialize(uint32_t elementsCount, const VertexElement* elements)
-    {
         bool useAutoOffset = true;
         for (uint32_t i = 0; i < elementsCount; ++i)
         {

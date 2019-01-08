@@ -31,6 +31,8 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <fmt/ostream.h>
+#include <fmt/format.h>
 
 namespace alimer
 {
@@ -677,6 +679,12 @@ namespace alimer
         /// String buffer, null if not allocated.
         wchar_t* _buffer;
     };
+
+    /// Make fmt library aware of String type for inputs.
+    inline fmt::string_view to_string_view(const String& s)
+    {
+        return { s.CString(), s.Length() };
+    }
 }
 
 namespace std

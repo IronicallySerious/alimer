@@ -26,133 +26,139 @@
 
 namespace alimer
 {
-	namespace Path
-	{
-		static uint32_t FindLastSlash(const String &str)
-		{
+    static String GetCleanPath(const String& path)
+    {
+        return path.Replaced('\\', '/');
+    }
+
+
+    static inline uint32_t FindLastSlash(const String &str)
+    {
 #ifdef _WIN32
-			auto index = str.FindLast("/\\");
+        uint32_t index = str.FindLast("/\\");
+        if (index == String::NPOS)
+        {
+            return str.FindLast('/');
+        }
 #else
-			auto index = str.FindLast('/');
+        return str.FindLast('/');
 #endif
-			return index;
-		}
+    }
 
-		bool IsAbsolutePath(const String &path)
-		{
-			if (path.IsEmpty())
-				return false;
-			if (path.Front() == '/')
-				return true;
+    bool Path::IsAbsolutePath(const String &path)
+    {
+        if (path.IsEmpty())
+            return false;
+        if (path.Front() == '/')
+            return true;
 
 #ifdef _WIN32
-			{
-				auto index = std::min(path.Find(":/"), path.Find(":\\"));
-				if (index != String::NPOS)
-					return true;
-			}
+        {
+            auto index = std::min(path.Find(":/"), path.Find(":\\"));
+            if (index != String::NPOS)
+                return true;
+        }
 #endif
 
-			return path.Find("://") != String::NPOS;
-		}
+        return path.Find("://") != String::NPOS;
+    }
 
-		bool IsRootPath(const String &path)
-		{
-			if (path.IsEmpty())
-				return false;
+    bool Path::IsRootPath(const String &path)
+    {
+        if (path.IsEmpty())
+            return false;
 
-			if (path.Front() == '/' && path.Length() == 1)
-				return true;
+        if (path.Front() == '/' && path.Length() == 1)
+            return true;
 
 #ifdef _WIN32
-			{
-				auto index = std::min(path.Find(":/"), path.Find(":\\"));
-				if (index != String::NPOS && (index + 2) == path.Length())
-					return true;
-			}
+        {
+            auto index = std::min(path.Find(":/"), path.Find(":\\"));
+            if (index != String::NPOS && (index + 2) == path.Length())
+                return true;
+        }
 #endif
 
-			auto index = path.Find("://");
-			return index != String::NPOS && (index + 3) == path.Length();
-		}
+        auto index = path.Find("://");
+        return index != String::NPOS && (index + 3) == path.Length();
+    }
 
-        String Join(const String &base, const String &path)
-		{
-			if (base.IsEmpty())
-				return path;
-			if (path.IsEmpty())
-				return base;
+    String Path::Join(const String &base, const String &path)
+    {
+        if (base.IsEmpty())
+            return path;
+        if (path.IsEmpty())
+            return base;
 
-			if (IsAbsolutePath(path))
-				return path;
+        if (IsAbsolutePath(path))
+            return path;
 
-            auto index = FindLastSlash(base);
-			bool needSlash = index != base.Length() - 1;
-            return String::Joined({ base, path }, needSlash ? "/" : "");
-		}
+        auto index = FindLastSlash(base);
+        bool needSlash = index != base.Length() - 1;
+        return String::Joined({ base, path }, needSlash ? "/" : "");
+    }
 
-        String GetBaseDir(const String &path)
-		{
-			if (path.IsEmpty())
-				return "";
+    String Path::GetBaseDir(const String &path)
+    {
+        if (path.IsEmpty())
+            return "";
 
-			if (IsRootPath(path))
-				return path;
+        if (IsRootPath(path))
+            return path;
 
-			auto index = FindLastSlash(path);
-			if (index == String::NPOS)
-				return ".";
+        auto index = FindLastSlash(path);
+        if (index == String::NPOS)
+            return ".";
 
-			// Preserve the first slash.
-			if (index == 0 && IsAbsolutePath(path))
-				index++;
+        // Preserve the first slash.
+        if (index == 0 && IsAbsolutePath(path))
+            index++;
 
-            String ret = path.Substring(0, index + 1);
-            if (!IsRootPath(ret))
+        String ret = path.Substring(0, index + 1);
+        if (!IsRootPath(ret))
+        {
+            ret.Erase(ret.Length() - 1);
+        }
+
+        return ret;
+    }
+
+    String Path::GetBaseName(const String &path)
+    {
+        if (path.IsEmpty())
+            return String::EMPTY;
+
+        auto index = FindLastSlash(path);
+        if (index == String::NPOS)
+            return path;
+
+        String base = path.Substring(index + 1);
+        return base;
+    }
+
+    String Path::GetRelativePath(const String &base, const String &path)
+    {
+        return Path::Join(GetBaseDir(base), path);
+    }
+
+    String Path::GetExtension(const String &path, bool lowerCaseExtension)
+    {
+        String cleanPath = GetCleanPath(path);
+
+        uint32_t extPos = cleanPath.FindLast('.');
+        uint32_t pathPos = cleanPath.FindLast('/');
+
+        String extension = String::EMPTY;
+        if (extPos != String::NPOS
+            && (pathPos == String::NPOS || extPos > pathPos))
+        {
+            extension = cleanPath.Substring(extPos);
+            if (lowerCaseExtension)
             {
-                ret.Erase(ret.Length() - 1);
+                extension = extension.ToLower();
             }
+        }
 
-			return ret;
-		}
-
-        String GetBaseName(const String &path)
-		{
-			if (path.IsEmpty())
-				return String::EMPTY;
-
-			auto index = FindLastSlash(path);
-			if (index == String::NPOS)
-				return path;
-
-            String base = path.Substring(index + 1);
-			return base;
-		}
-
-        String GetRelativePath(const String &base, const String &path)
-		{
-			return Path::Join(GetBaseDir(base), path);
-		}
-
-        String GetExtension(const String &path)
-		{
-			auto index = path.FindLast('.');
-			if (index == String::NPOS)
-				return String::EMPTY;
-
-			return path.Substring(index + 1);
-		}
-
-		std::pair<String, String> ProtocolSplit(const String &path)
-		{
-			if (path.IsEmpty())
-				return std::make_pair(String::EMPTY, String::EMPTY);
-
-			auto index = path.Find("://");
-			if (index == String::NPOS)
-				return std::make_pair(String::EMPTY, path);
-
-			return std::make_pair(path.Substring(0, index), path.Substring(index + 3));
-		}
-	}
+        return extension;
+    }
 }

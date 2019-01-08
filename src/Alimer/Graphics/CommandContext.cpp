@@ -40,6 +40,21 @@ namespace alimer
         return _commandBuffer->Flush(waitForCompletion);
     }
 
+    void CommandContext::PushDebugGroup(const String& name)
+    {
+        _commandBuffer->PushDebugGroup(name.CString());
+    }
+
+    void CommandContext::PopDebugGroup()
+    {
+        _commandBuffer->PopDebugGroup();
+    }
+
+    void CommandContext::InsertDebugMarker(const String& name)
+    {
+        _commandBuffer->InsertDebugMarker(name.CString());
+    }
+
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
         ALIMER_ASSERT(framebuffer);
@@ -86,11 +101,11 @@ namespace alimer
         _commandBuffer->SetScissor(scissor);
     }
 
-    void CommandContext::SetPipeline(Pipeline* pipeline)
+    void CommandContext::SetShader(Shader* shader)
     {
-        ALIMER_ASSERT(pipeline);
-        _currentPipeline = pipeline;
-        //SetPipelineImpl(pipeline);
+        ALIMER_ASSERT(shader);
+        _currentShader = shader;
+        _commandBuffer->SetShader(shader->GetGPUShader());
     }
 
     void CommandContext::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
@@ -108,6 +123,7 @@ namespace alimer
         _commandBuffer->SetVertexBuffer(
             binding, 
             buffer->GetGPUBuffer(), 
+            buffer->GetVertexDeclaration(),
             vertexOffset * buffer->GetElementSize(), 
             buffer->GetElementSize(), 
             inputRate);
@@ -142,18 +158,18 @@ namespace alimer
     void CommandContext::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
 #if defined(ALIMER_DEV)
-        //ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
+        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT_MSG(_insideRenderPass, "Cannot draw outside render pass");
         ALIMER_ASSERT(vertexCount > 0);
         ALIMER_ASSERT(instanceCount >= 1);
 #endif
 
-        //DrawInstancedCore(vertexCount, instanceCount, firstVertex, firstInstance);
+        _commandBuffer->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
     {
-        ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
+        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(indexCount > 1);
         //DrawIndexedImpl(topology, indexCount, startIndexLocation, baseVertexLocation);
@@ -161,7 +177,7 @@ namespace alimer
 
     void CommandContext::DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
     {
-        ALIMER_ASSERT(_currentPipeline && !_currentPipeline->IsCompute());
+        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(indexCount > 1);
         //DrawIndexedInstancedImpl(topology, indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
@@ -169,7 +185,7 @@ namespace alimer
 
     void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        ALIMER_ASSERT(_currentPipeline && _currentPipeline->IsCompute());
+        ALIMER_ASSERT(_currentShader && _currentShader->IsCompute());
         //DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 

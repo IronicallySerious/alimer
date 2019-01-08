@@ -270,7 +270,7 @@ namespace alimer
     CommandContext& GPUDevice::Begin(const String& name)
     {
         CommandContext* newContext = nullptr; // AllocateContext();
-        newContext->SetName(name);
+        //newContext->SetName(name);
         if (!name.IsEmpty())
         {
             //GpuProfiler::BeginBlock(name, newContext);
@@ -292,7 +292,6 @@ namespace alimer
             return;
         registered = true;
 
-        ShaderModule::RegisterObject();
         Shader::RegisterObject();
         Texture::RegisterObject();
         Sampler::RegisterObject();

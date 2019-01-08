@@ -39,9 +39,5 @@ extern "C" ALIMER_INTERFACE_EXPORT Alimer::Plugin* AlimerPluginLoad()
     //return new TestPlugin();
 }
 
-extern "C" ALIMER_INTERFACE_EXPORT void AlimerPluginUnload(Alimer::Plugin* plugin)
-{
-    delete static_cast<TestPlugin*>(plugin);
-}
 #endif
 */

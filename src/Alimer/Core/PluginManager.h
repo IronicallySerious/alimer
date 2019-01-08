@@ -31,15 +31,19 @@
 
 namespace alimer
 {
+    class Engine;
+
     /// Class that manages runtime plugins.
     class ALIMER_API PluginManager
     {
     public:
-        /// Returns the plugin manager instance.
-        static PluginManager *GetInstance();
+        virtual ~PluginManager() = default;
 
-        /// Shutdown the plugin manager.
-        static void Shutdown();
+        /// Create new plugin manager.
+        static PluginManager* Create(Engine& engine);
+
+        /// Destroy plugin manager instance.
+        static void Destroy(PluginManager* manager);
 
         /// Load plugins from given path.
         void LoadPlugins(const String& pluginPath);
@@ -48,10 +52,10 @@ namespace alimer
 
     private:
         /// Constructor.
-        PluginManager();
-        ~PluginManager();
+        PluginManager(Engine& engine);
+       
 
-        static PluginManager *_instance;
+        Engine& _engine;
         std::vector<UniquePtr<Plugin>> _plugins;
 
     private:

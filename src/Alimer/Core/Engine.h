@@ -27,6 +27,7 @@
 
 namespace alimer
 {
+    class PluginManager;
     class ResourceManager;
     class SceneManager;
     class Gui;
@@ -52,6 +53,9 @@ namespace alimer
         bool IsHeadless() const { return _headless; }
 
         /// Get the engine content manager.
+        inline PluginManager& GetPluginManager() { return *_pluginManager; }
+
+        /// Get the engine content manager.
         inline ResourceManager& GetContent() { return *_content.Get(); }
 
     private:
@@ -62,6 +66,7 @@ namespace alimer
         bool _headless = false;
 
         std::shared_ptr<spdlog::logger> _logger;
+        PluginManager* _pluginManager;
         SharedPtr<ResourceManager> _content;
         SharedPtr<SceneManager> _sceneManager;
 

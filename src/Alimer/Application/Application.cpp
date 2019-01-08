@@ -67,7 +67,6 @@ namespace alimer
         _running = false;
         _gpuDevice.Reset();
         Audio::Shutdown();
-        PluginManager::Shutdown();
     }
 
     bool Application::InitializeBeforeRun()
@@ -121,7 +120,7 @@ namespace alimer
 
     void Application::LoadPlugins()
     {
-        PluginManager::GetInstance()->LoadPlugins(FileSystem::GetExecutableFolder());
+        _engine->GetPluginManager().LoadPlugins(FileSystem::GetExecutableFolder());
     }
 
     int Application::Run(int argc, char** argv)

@@ -21,6 +21,7 @@
 //
 
 #include "../Core/Engine.h"
+#include "../Core/PluginManager.h"
 #include "../Resource/ResourceManager.h"
 #include "../Graphics/GPUDevice.h"
 #include "../Scene/SceneManager.h"
@@ -31,6 +32,7 @@
 namespace alimer
 {
     Engine::Engine()
+        : _pluginManager(nullptr)
     {
         // Register as subsystem.
         AddSubsystem(this);
@@ -53,6 +55,9 @@ namespace alimer
         _logger->set_level(spdlog::level::info);
 #endif
 
+        // Create plugin manager
+        _pluginManager = PluginManager::Create(*this);
+
         // Create content manager.
         _content = new ResourceManager();
 
@@ -65,6 +70,7 @@ namespace alimer
 
     Engine::~Engine()
     {
+        PluginManager::Destroy(_pluginManager);
         _gui.Reset();
         RemoveSubsystem(this);
     }

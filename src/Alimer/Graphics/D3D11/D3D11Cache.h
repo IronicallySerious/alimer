@@ -44,13 +44,10 @@ namespace alimer
 
         void Clear();
 
-        ID3D11DeviceChild* GetShader(ShaderModule* shader);
-        ID3D11DeviceChild* GetShader(ShaderModule* shader, std::vector<uint8_t>& hlslBytecode);
         ID3D11InputLayout* GetInputLayout(ShaderModule* shader, const RenderPipelineDescriptor* descriptor);
 
     private:
         DeviceD3D11* _device;
-        HashMap<Microsoft::WRL::ComPtr<ID3D11DeviceChild>> _shaders;
         HashMap<std::vector<uint8_t>> _vsBytecodes;
         HashMap<Microsoft::WRL::ComPtr<ID3D11InputLayout>> _inputLayouts;
     };

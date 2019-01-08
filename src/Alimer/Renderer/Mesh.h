@@ -47,7 +47,7 @@ namespace alimer
 
     struct MeshAttributeLayout
     {
-        VertexElementFormat format = VertexElementFormat::Unknown;
+        VertexFormat format = VertexFormat::Unknown;
         uint32_t offset = 0;
     };
 

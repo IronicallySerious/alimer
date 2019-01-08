@@ -24,9 +24,6 @@
 #include "../Application/Application.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
-#if ALIMER_TOOLS
-#include "../assets/AssetImporter.h"
-#endif 
 #include "../Core/Log.h"
 
 namespace alimer
@@ -34,15 +31,30 @@ namespace alimer
     ResourceManager::ResourceManager()
     {
         Register();
+
+        // Lookup assets folder at executable path first.
+        if (FileSystem::DirectoryExists(Path::Join(FileSystem::GetExecutableFolder(), "assets")))
+        {
+            AddResourceDir("assets");
+        }
+#ifdef ALIMER_DEFAULT_ASSETS_DIRECTORY
+        else
+        {
+
+            const char *assetsDir = ALIMER_DEFAULT_ASSETS_DIRECTORY;
+            if (assetsDir
+                && FileSystem::DirectoryExists(assetsDir))
+            {
+                AddResourceDir(assetsDir);
+            }
+        }
+#endif // ALIMER_DEFAULT_ASSETS_DIRECTORY
+
         AddSubsystem(this);
     }
 
     ResourceManager::~ResourceManager()
     {
-#if ALIMER_TOOLS
-        _assetImporters.Clear();
-#endif
-
         RemoveSubsystem(this);
     }
 
@@ -118,11 +130,6 @@ namespace alimer
                     stream = SearchPackages(sanitatedName);
             }
 
-            if (!stream)
-            {
-                stream = FileSystem::Get().Open("assets://" + assetName);
-            }
-
             return stream;
         }
 
@@ -155,46 +162,51 @@ namespace alimer
         String fileName;
         String extension;
         SplitPath(assetName, path, fileName, extension, true);
-        String assetPath;
+        
+        String assetPath = SanitateResourceName(assetName);
         if (!loader->CanLoad(extension))
         {
             // Find asset importer and process it.
-            String assetFullPath = path + fileName + ".alb";
-            UniquePtr<Stream> stream = OpenStream(assetFullPath);
+            String convertedAssetFullPath = path + fileName + ".alb";
+            UniquePtr<Stream> stream = OpenStream(convertedAssetFullPath);
             if (stream.IsNull())
             {
                 // Asset conversion is needed.
+#ifdef ALIMER_TOOLS
+                /*AssetImporter* importer = nullptr;
+                for (size_t i = 0; i < _assetImporters.size(); ++i)
+                {
+                    if (_assetImporters[i]->IsExtensionSupported(extension))
+                    {
+                        importer = _assetImporters[i];
+                        break;
+                    }
+                }
+
+                if (importer)
+                {
+                    ALIMER_LOGINFO("Importing asset '{}'", assetName);
+                    UniquePtr<Stream> source = OpenStream(assetPath);
+                    importer->Import(*source, convertedAssetFullPath, nullptr);
+                }*/
+#endif
+
                 return nullptr;
             }
-
-#ifdef ALIMER_TOOLS
-            for (auto& assertImporter : _assetImporters)
-            {
-                if (assertImporter->IsExtensionSupported(extension))
-                {
-                   // return *iter;
-                }
-            }
-#endif
         }
-        else
-        {
-            assetPath = assetName;
-        }
-
-        String sanitatedName = SanitateResourceName(assetPath);
-        UniquePtr<Stream> stream = OpenStream(sanitatedName);
+        
+        UniquePtr<Stream> stream = OpenStream(assetPath);
         if (stream.IsNull())
         {
             return nullptr;
         }
 
-        ALIMER_LOGDEBUG("Loading resource '{}'", sanitatedName.CString());
+        ALIMER_LOGDEBUG("Loading resource '{}'", assetPath);
         SharedPtr<Object> object = loader->Load(*stream);
 
         if (object.IsNull())
         {
-            ALIMER_LOGERROR("Failed to load resource '{}'", sanitatedName.CString());
+            ALIMER_LOGERROR("Failed to load resource '{}'", assetPath);
             return nullptr;
         }
 
@@ -303,17 +315,4 @@ namespace alimer
 
         Image::RegisterObject();
     }
-
-#if ALIMER_TOOLS
-    void ResourceManager::RegisterImporter(AssetImporter* importer)
-    {
-        if (!importer)
-        {
-            ALIMER_LOGWARN("Cannot register null AssetImporter.");
-            return;
-        }
-
-        _assetImporters.Push(SharedPtr<AssetImporter>(importer));
-    }
-#endif
 }

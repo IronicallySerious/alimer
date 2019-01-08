@@ -26,15 +26,21 @@
 
 namespace alimer
 {
-	/// Defines a VertexFormat class.
-	class ALIMER_API VertexFormat 
+	/// A vertex declaration, which defines per-vertex data..
+	class ALIMER_API VertexDeclaration final
 	{
 	public:
         /// Constructor.
-        VertexFormat(const PODVector<VertexElement>& elements);
+        VertexDeclaration();
 
-        /// Constructor.
-        VertexFormat(uint32_t elementsCount, const VertexElement* elements);
+        /// Defines VertexFormat.
+        void Define(const Vector<VertexElement>& elements);
+        
+        /// Defines VertexFormat.
+        void Define(const PODVector<VertexElement>& elements);
+
+        /// Defines VertexFormat.
+        void Define(uint32_t elementsCount, const VertexElement* elements);
 
         /// Return stride of the format.
         uint32_t GetStride() const { return _stride; }
@@ -46,8 +52,6 @@ namespace alimer
         const PODVector<VertexElement>& GetElements() const { return _elements; }
 
     private:
-        void Initialize(uint32_t elementsCount, const VertexElement* elements);
-
         PODVector<VertexElement> _elements;
         uint32_t _stride = 0;
 	};

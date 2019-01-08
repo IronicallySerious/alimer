@@ -42,6 +42,7 @@ namespace alimer
             Sampler,
             Framebuffer,
             Shader, 
+            Program,
             Pipeline,
         };
 

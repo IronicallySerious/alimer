@@ -25,10 +25,11 @@
 #include "../../Base/String.h"
 #include "../../Core/Log.h"
 #include <d3dcompiler.h>
+#include <fmt/printf.h>
 
 namespace alimer
 {
-    PODVector<uint8_t> D3DShaderCompiler::Compile(const String& source, ShaderStage stage, const String& entryPoint, uint32_t major, uint32_t minor)
+    PODVector<uint8_t> D3DShaderCompiler::Compile(const String& source, ShaderStages stage, const String& entryPoint, uint32_t major, uint32_t minor)
     {
 #if ALIMER_D3D_DYNAMIC_LIB
         static pD3DCompile D3DCompile = nullptr;
@@ -62,26 +63,26 @@ namespace alimer
         // SPRIV-cross does matrix multiplication expecting row major matrices
         compileFlags |= D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
 
-        String compileTarget;
+        std::string compileTarget;
         switch (stage)
         {
-        case ShaderStage::Vertex:
-            compileTarget = String::Format("vs_%u_%u", major, minor);
+        case ShaderStages::Vertex:
+            compileTarget = fmt::sprintf("vs_%u_%u", major, minor);
             break;
-        case ShaderStage::TessControl:
-            compileTarget = String::Format("hs_%u_%u", major, minor);
+        case ShaderStages::TessellationControl:
+            compileTarget = fmt::sprintf("hs_%u_%u", major, minor);
             break;
-        case ShaderStage::TessEvaluation:
-            compileTarget = String::Format("ds_%u_%u", major, minor);
+        case ShaderStages::TessellationEvaluation:
+            compileTarget = fmt::sprintf("ds_%u_%u", major, minor);
             break;
-        case ShaderStage::Geometry:
-            compileTarget = String::Format("gs_%u_%u", major, minor);
+        case ShaderStages::Geometry:
+            compileTarget = fmt::sprintf("gs_%u_%u", major, minor);
             break;
-        case ShaderStage::Fragment:
-            compileTarget = String::Format("ps_%u_%u", major, minor);
+        case ShaderStages::Fragment:
+            compileTarget = fmt::sprintf("ps_%u_%u", major, minor);
             break;
-        case ShaderStage::Compute:
-            compileTarget = String::Format("cs_%u_%u", major, minor);
+        case ShaderStages::Compute:
+            compileTarget = fmt::sprintf("cs_%u_%u", major, minor);
             break;
         default:
             break;
@@ -96,7 +97,7 @@ namespace alimer
             nullptr,
             nullptr,
             "main",
-            compileTarget.CString(),
+            compileTarget.c_str(),
             compileFlags, 0,
             &shaderBlob,
             &errorsBlob)))

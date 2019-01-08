@@ -186,12 +186,12 @@ namespace alimer
 		return content;
 	}
 
-	Vector<uint8_t> Stream::ReadBytes(uint64_t count)
+    PODVector<uint8_t> Stream::ReadBytes(uint64_t count)
 	{
 		if (!count)
 			count = _size;
 
-		Vector<uint8_t> result(static_cast<uint32_t>(count));
+        PODVector<uint8_t> result(static_cast<uint32_t>(count));
 
         uint64_t read = Read(result.Data(), count);
 		if (read != count)

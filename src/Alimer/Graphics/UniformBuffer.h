@@ -22,30 +22,54 @@
 
 #pragma once
 
-#include "Graphics/ShaderModule.h"
-#include "D3D11Prerequisites.h"
+#include "../Graphics/Buffer.h"
 
 namespace alimer
 {
-    class DeviceD3D11;
+    enum class UniformType
+    {
+        Float,
+        Float2,
+        Float3,
+        Float4,
+        Matrix3x3,
+        Matrix3x4,
+        Matrix4x4
+    };
 
-    /// D3D11 ShaderModule implementation.
-    class ShaderModuleD3D11 final : public ShaderModule
+    struct Uniform
+    {
+        /// Data type of constant.
+        UniformType type;
+        /// Name of constant.
+        String name;
+        /// Number of elements. Default 1.
+        uint32_t numElements = 1;
+        /// Element size. Filled by UniformBuffer.
+        uint32_t elementSize = 0;
+        /// Offset from the beginning of the buffer. Filled by UniformBuffer.
+        uint32_t offset = 0;
+    };
+
+    /// Defines a uniform buffer.
+    class UniformBuffer final : public Buffer
     {
     public:
         /// Constructor.
-        ShaderModuleD3D11(DeviceD3D11* device);
+        UniformBuffer();
 
-        /// Destructor.
-        ~ShaderModuleD3D11() override;
+        bool Define(const PODVector<Uniform>& uniforms);
+        bool Define(const Uniform* uniforms, uint32_t count);
 
-        void Destroy() override;
+        /// Return number of indices.
+        const PODVector<Uniform>& GetUniforms() const { return _uniforms; }
 
     private:
-        union {
-            ID3D11DeviceChild*  _child;
-            ID3D11VertexShader* _vertex;
-            ID3D11PixelShader*  _pixel;
-        };
+        /// Number of indices.
+        PODVector<Uniform> _uniforms;
+        /// Type of index.
+        IndexType _indexType = IndexType::UInt16;
     };
+
+    ALIMER_API uint32_t GetUniformTypeSize(UniformType type);
 }

@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Graphics/Types.h"
+#include "../Graphics/VertexFormat.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
 #include "../Math/Rectangle.h"
 
@@ -79,7 +80,11 @@ namespace alimer
         virtual ~GPUCommandBuffer() = 0;
 
         virtual uint64_t Flush(bool waitForCompletion) = 0;
-        
+
+        virtual void PushDebugGroup(const char* name) = 0;
+        virtual void PopDebugGroup() = 0;
+        virtual void InsertDebugMarker(const char* name) = 0;
+
         virtual void BeginRenderPass(GPUFramebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
         virtual void EndRenderPass() = 0;
 
@@ -89,8 +94,12 @@ namespace alimer
         virtual void SetScissor(uint32_t scissorCount, const Rectangle* scissors) = 0;
         virtual void SetBlendConstants(const float blendConstants[4]) = 0;
 
-        virtual void SetVertexBuffer(uint32_t binding, GPUBuffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
+        virtual void SetShader(GPUShader* shader) = 0;
+
+        virtual void SetVertexBuffer(uint32_t binding, GPUBuffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
         virtual void SetIndexBuffer(GPUBuffer* buffer, uint32_t offset, IndexType indexType) = 0;
+
+        virtual void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
     };
 
     struct GPUDeviceImpl
@@ -109,7 +118,13 @@ namespace alimer
         virtual GPUFramebuffer* CreateFramebuffer() = 0;
         virtual GPUBuffer* CreateBuffer(const BufferDescriptor& descriptor, const void* initialData) = 0;
         virtual GPUSampler* CreateSampler(const SamplerDescriptor& descriptor) = 0;
-        virtual GPUShader* CreateShader(const char* source) = 0;
+        virtual GPUShader* CreateComputeShader(const PODVector<uint8_t>& bytecode) = 0;
+        virtual GPUShader* CreateGraphicsShader(
+            const PODVector<uint8_t>& vertex,
+            const PODVector<uint8_t>& tessControl,
+            const PODVector<uint8_t>& tessEval,
+            const PODVector<uint8_t>& geometry,
+            const PODVector<uint8_t>& fragment) = 0;
     };
 
     inline GPUTexture::~GPUTexture()

@@ -463,6 +463,7 @@ namespace alimer
 
         _limits.maxColorAttachments = D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;
         _limits.maxBindGroups = MaxDescriptorSets;
+        _limits.minUniformBufferOffsetAlignment = 16;
 
         IDXGIFactory5* factory5;
         if (SUCCEEDED(_factory->QueryInterface(&factory5)))
@@ -511,8 +512,18 @@ namespace alimer
         return new SamplerD3D11(this, descriptor);
     }
 
-    GPUShader* DeviceD3D11::CreateShader(const char* source)
+    GPUShader* DeviceD3D11::CreateComputeShader(const PODVector<uint8_t>& bytecode)
     {
-        return new ShaderD3D11(this, source);
+        return new ShaderD3D11(this, bytecode);
+    }
+
+    GPUShader* DeviceD3D11::CreateGraphicsShader(
+        const PODVector<uint8_t>& vertex,
+        const PODVector<uint8_t>& tessControl,
+        const PODVector<uint8_t>& tessEval,
+        const PODVector<uint8_t>& geometry,
+        const PODVector<uint8_t>& fragment)
+    {
+        return new ShaderD3D11(this, vertex, tessControl, tessEval, geometry, fragment);
     }
 }

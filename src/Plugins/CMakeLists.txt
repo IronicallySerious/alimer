@@ -20,11 +20,6 @@
 # THE SOFTWARE.
 #
 
-if (ALIMER_TOOLS)
-    # ShaderImporter
-    add_subdirectory(ShaderImporter)
-endif ()
-
 # TestPlugin
 add_subdirectory(TestPlugin)
 

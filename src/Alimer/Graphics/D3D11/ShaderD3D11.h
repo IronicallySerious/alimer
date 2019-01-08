@@ -28,25 +28,43 @@
 
 namespace alimer
 {
-	class DeviceD3D11;
+    class DeviceD3D11;
 
+    /// D3D11 Shader implementation.
     class ShaderD3D11 final : public GPUShader
     {
     public:
-        ShaderD3D11(DeviceD3D11* device, const char* source);
+        /// Constructor.
+        ShaderD3D11(DeviceD3D11* device, const PODVector<uint8_t>& bytecode);
+
+        ShaderD3D11(DeviceD3D11* device, const PODVector<uint8_t>& vertex,
+            const PODVector<uint8_t>& tessControl,
+            const PODVector<uint8_t>& tessEval,
+            const PODVector<uint8_t>& geometry,
+            const PODVector<uint8_t>& fragment);
+
+        /// Destructor.
         ~ShaderD3D11() override;
-        void Destroy();
 
-        void Bind(ID3D11DeviceContext* context);
+        ShaderStages GetStages() const { return _stage; }
+        ID3D11VertexShader* GetVertexShader() const { return _vertexShader.Get(); }
+        ID3D11HullShader* GetTessControlShader() const { return _tessControlShader.Get(); }
+        ID3D11DomainShader* GetTessEvalShader() const { return _tessEvalShader.Get(); }
+        ID3D11GeometryShader* GetGeometryShader() const { return _geometryShader.Get(); }
+        ID3D11PixelShader* GetPixelShader() const { return _pixelShader.Get(); }
+        ID3D11ComputeShader* GetComputeShader() const { return _computeShader.Get(); }
 
-        using BindingIndexInfo = std::array<std::array<uint32_t, MaxBindingsPerSet>, MaxDescriptorSets>;
-        const BindingIndexInfo& GetBindingIndexInfo() const { return _indexInfo; }
+        const PODVector<uint8_t>& GetVertexShaderBlob() const { return _vertexShaderBlob; }
 
     private:
         DeviceD3D11* _device;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> _vertexShader = nullptr;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> _pixelShader = nullptr;
-        Microsoft::WRL::ComPtr<ID3D11ComputeShader> _computeShader = nullptr;
-        BindingIndexInfo _indexInfo;
+        ShaderStages _stage;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader>      _vertexShader;
+        Microsoft::WRL::ComPtr<ID3D11HullShader>        _tessControlShader;
+        Microsoft::WRL::ComPtr<ID3D11DomainShader>      _tessEvalShader;
+        Microsoft::WRL::ComPtr<ID3D11GeometryShader>    _geometryShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader>       _pixelShader;
+        Microsoft::WRL::ComPtr<ID3D11ComputeShader>     _computeShader;
+        PODVector<uint8_t>                              _vertexShaderBlob;
     };
 }

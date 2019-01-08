@@ -117,7 +117,7 @@ namespace alimer
         Count = 10,
     };
     
-    enum class VertexElementFormat : uint32_t
+    enum class VertexFormat : uint32_t
     {
         Unknown = 0,
         Float = 1,
@@ -160,17 +160,20 @@ namespace alimer
         Always = 7
     };
 
-    /// Defines shader stage
-    enum class ShaderStage : uint32_t
+    /// Defines shader stages.
+    enum class ShaderStages : uint32_t
     {
-        Vertex = 0,
-        TessControl = 1,
-        TessEvaluation = 2,
-        Geometry = 3,
-        Fragment = 4,
-        Compute = 5,
-        Count = 6
+        None                    = 0,
+        Vertex                  = 0x00000001,
+        TessellationControl     = 0x00000002,
+        TessellationEvaluation  = 0x00000004,
+        Geometry                = 0x00000008,
+        Fragment                = 0x00000010,
+        Compute                 = 0x00000020,
+        AllGraphics             = 0x0000001F,
+        All                     = 0x7FFFFFFF,
     };
+    ALIMER_BITMASK(ShaderStages);
 
     /// Texture types.
     enum class TextureType : uint32_t
@@ -256,25 +259,10 @@ namespace alimer
         Output = 1,
     };
 
-    /// Defines shader stage usage.
-    enum class ShaderStageUsage : uint32_t
-    {
-        None = 0,
-        Vertex = 1 << 0,
-        TessControl = 1 << 1,
-        TessEvaluation = 1 << 2,
-        Geometry = 1 << 3,
-        Fragment = 1 << 4,
-        Compute = 1 << 5,
-        AllGraphics = (Vertex | TessControl | TessEvaluation | Geometry | Fragment),
-        All = (AllGraphics | Compute),
-    };
-    ALIMER_BITMASK(ShaderStageUsage);
-
     struct PipelineResource
     {
         String name;
-        ShaderStageUsage stages;
+        ShaderStages stages;
         ResourceParamType resourceType;
         ParamDataType dataType;
         ParamAccess access;
@@ -328,6 +316,7 @@ namespace alimer
     {
         uint32_t maxColorAttachments;
         uint32_t maxBindGroups;
+        uint32_t minUniformBufferOffsetAlignment;
     };
 
     struct TextureDescriptor
@@ -394,14 +383,14 @@ namespace alimer
     {
         /// Default-construct.
         VertexElement() noexcept
-            : format(VertexElementFormat::Float3)
+            : format(VertexFormat::Float3)
             , semantic(VertexElementSemantic::Position)
             , offset(0)
         {
         }
 
         /// Construct with format, semantic and optional offset.
-        VertexElement(VertexElementFormat format_, VertexElementSemantic semantic_, uint32_t offset_ = 0) noexcept
+        VertexElement(VertexFormat format_, VertexElementSemantic semantic_, uint32_t offset_ = 0) noexcept
             : format(format_)
             , semantic(semantic_)
             , offset(offset_)
@@ -415,14 +404,14 @@ namespace alimer
         bool operator !=(const VertexElement& rhs) const { return !(*this == rhs); }
 
         /// Format of element.
-        VertexElementFormat format;
+        VertexFormat format;
         /// Semantic of element.
         VertexElementSemantic semantic;
         /// Offset of element (packed if all elements offset is 0).
         uint32_t offset;
     };
 
-    ALIMER_API uint32_t GetVertexElementSize(VertexElementFormat format);
+    ALIMER_API uint32_t GetVertexElementSize(VertexFormat format);
 
     ALIMER_API const char* EnumToString(GraphicsBackend backend);
     ALIMER_API const char* EnumToString(ResourceUsage usage);

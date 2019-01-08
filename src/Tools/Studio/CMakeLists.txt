@@ -35,7 +35,7 @@ endif ()
 
 # Set properties
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Editor")
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "editor")
 
 # Install under tools
 if (NOT ALIMER_SKIP_INSTALL)

@@ -22,8 +22,9 @@
 
 #include "../Core/PluginManager.h"
 #include "../IO/FileSystem.h"
-#include "../Core/Log.h"
+#include "../Core/Engine.h"
 #include "../Core/Platform.h"
+#include "../Core/Log.h"
 
 #if defined(_WIN32)
 #   define PLUGIN_EXT ".dll"
@@ -35,29 +36,19 @@
 
 namespace alimer
 {
-    PluginManager *PluginManager::_instance;
-
-    PluginManager::PluginManager()
+    PluginManager::PluginManager(Engine& engine)
+        : _engine(engine)
     {
     }
 
-    PluginManager::~PluginManager()
+    PluginManager* PluginManager::Create(Engine& engine)
     {
-
+        return new PluginManager(engine);
     }
 
-    PluginManager *PluginManager::GetInstance()
+    void PluginManager::Destroy(PluginManager* manager)
     {
-        if (!_instance)
-            _instance = new PluginManager();
-
-        return _instance;
-    }
-
-    void PluginManager::Shutdown()
-    {
-        delete _instance;
-        _instance = nullptr;
+        SafeDelete(manager);
     }
 
     void PluginManager::LoadPlugins(const String& pluginPath)
@@ -92,7 +83,8 @@ namespace alimer
             return false;
         }
 
-        PluginLoadFunc loadFunc = (PluginLoadFunc)GetLibrarySymbol(libHandle, "AlimerPluginLoad");
+        typedef Plugin* (*PluginCreator)(Engine&);
+        PluginCreator loadFunc = (PluginCreator)GetLibrarySymbol(libHandle, "createPlugin");
         if (!loadFunc)
         {
             UnloadNativeLibrary(libHandle);
@@ -102,7 +94,7 @@ namespace alimer
         // Try to instance the plugin being loaded
         try
         {
-            Plugin* plugin = loadFunc();
+            Plugin* plugin = loadFunc(_engine);
             if (plugin)
             {
                 InstallPlugin(plugin);
@@ -120,7 +112,7 @@ namespace alimer
 
     void PluginManager::InstallPlugin(Plugin* plugin)
     {
-        ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName().CString());
+        ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName());
 
         _plugins.push_back(UniquePtr<Plugin>(plugin));
         plugin->Install();

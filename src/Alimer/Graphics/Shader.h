@@ -22,10 +22,12 @@
 
 #pragma once
 
-#include "../Graphics/ShaderModule.h"
+#include "../Graphics/GPUResource.h"
+#include "../Base/Vector.h"
 
 namespace alimer
 {
+    class Stream;
     struct GPUShader;
 
     /// Defines a shader resource.
@@ -38,29 +40,35 @@ namespace alimer
         /// Constructor.
         Shader();
 
-        /// Desturctor
+        /// Destructor.
         ~Shader() override;
 
-        /// Destroy
-        void Destroy() override;
+        /// Unconditionally destroy the GPU resource.
+        void Destroy();
 
-        bool Define(const String& shaderSource);
+        bool Define(const PODVector<uint8_t>& compute);
+        bool Define(const PODVector<uint8_t>& vertex, const PODVector<uint8_t>& fragment);
 
-        bool Define(ShaderModule* vertex, ShaderModule* fragment);
+        /// Get if shader is compute.
+        bool IsCompute() const { return _compute; }
 
-        inline const ShaderModule* GetShader(ShaderStage stage) const
-        {
-            return _shaders[static_cast<unsigned>(stage)].Get();
-        }
+        /// Get the shader stage.
+        ShaderStages GetStages() const { return _stage; }
 
         /// Get the GPUShader.
-        GPUShader* GetGPUShader() const { return _shader; }
+        GPUShader* GetGPUShader() const { return _module; }
 
     private:
         /// Register object factory.
         static void RegisterObject();
 
-        GPUShader* _shader = nullptr;
-        SharedPtr<ShaderModule> _shaders[static_cast<unsigned>(ShaderStage::Count)] = {};
+        void Reflect(const PODVector<uint8_t>& bytecode);
+
+        GPUShader* _module = nullptr;
+
+        //Vector<PipelineResource> _resources;
+        bool _compute = false;
+        /// Shader stage.
+        ShaderStages _stage = ShaderStages::None;
     };
 }

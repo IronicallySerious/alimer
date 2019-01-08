@@ -124,7 +124,7 @@ namespace alimer
 		String ReadAllText();
 
 		/// Read content as vector bytes.
-		Vector<uint8_t> ReadBytes(uint64_t count = 0);
+		PODVector<uint8_t> ReadBytes(uint64_t count = 0);
 
         /// Write an 8-bit integer.
         void WriteByte(signed char value);

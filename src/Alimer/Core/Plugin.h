@@ -27,12 +27,16 @@
 
 #if defined(__CYGWIN32__)
 #   define ALIMER_INTERFACE_EXPORT __declspec(dllexport)
+#   define ALIMER_ATTRIBUTE_USED
 #elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || defined(WINAPI_FAMILY)
 #   define ALIMER_INTERFACE_EXPORT __declspec(dllexport)
+#   define ALIMER_ATTRIBUTE_USED
 #elif defined(__MACH__) || defined(__ANDROID__) || defined(__linux__) || defined(__QNX__)
-#   define ALIMER_INTERFACE_EXPORT
+#   define ALIMER_INTERFACE_EXPORT __attribute__((visibility("default")))
+#   define ALIMER_ATTRIBUTE_USED __attribute__((used))
 #else
 #   define ALIMER_INTERFACE_EXPORT
+#   define ALIMER_ATTRIBUTE_USED
 #endif
 
 namespace alimer
@@ -46,7 +50,7 @@ namespace alimer
         virtual ~Plugin() = default;
 
         /// Get the plugin name.
-        virtual const String& GetName() const = 0;
+        virtual const char* GetName() const = 0;
 
         /// Perform the plugin initial installation sequence. 
         virtual void Install() = 0;
@@ -64,9 +68,15 @@ namespace alimer
         DISALLOW_COPY_MOVE_AND_ASSIGN(Plugin);
     };
 
-    // Plugins should implement thoose functions
-    // "AlimerPluginLoad" and "AlimerPluginUnload" (extern "C")
-    typedef Plugin* (*PluginLoadFunc)();
-    typedef void (*PluginUnloadFunc)(Plugin*);
-
 }
+
+#ifdef ALIMER_STATIC_PLUGINS
+#define ALIMER_DEFINE_PLUGIN(plugin_name)                                           \
+		extern "C" alimer::Plugin* createPlugin_##plugin_name(alimer::Engine& engine); \
+		extern "C" { alimer::StaticPluginRegister ALIMER_ATTRIBUTE_USED s_##plugin_name##_plugin_register(\
+			#plugin_name, createPlugin_##plugin_name); } \
+		extern "C" alimer::Plugin* createPlugin_##plugin_name(alimer::Engine& engine)
+#else
+#define ALIMER_DEFINE_PLUGIN(plugin_name) \
+		extern "C" ALIMER_INTERFACE_EXPORT alimer::Plugin* createPlugin(alimer::Engine& engine)
+#endif

@@ -23,20 +23,52 @@
 #include "../Graphics/Shader.h"
 #include "../Graphics/GPUDevice.h"
 #include "../Graphics/GPUDeviceImpl.h"
-#include "../Graphics/ShaderCompiler.h"
-#include "../Resource/ResourceManager.h"
-#include "../Resource/ResourceLoader.h"
+#include "../IO/Path.h"
 #include "../IO/FileSystem.h"
+#include "../Resource/ResourceManager.h"
 #include "../Core/Log.h"
+#include <algorithm>
+#include <unordered_map>
 #include <spirv-cross/spirv_glsl.hpp>
 
 namespace alimer
 {
+    class CustomCompiler : public spirv_cross::CompilerGLSL
+    {
+    public:
+        CustomCompiler(const PODVector<uint8_t>& bytecode)
+            : spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t*>(bytecode.Data()), bytecode.Size() / 4)
+        {
+
+        }
+
+        /*VkAccessFlags GetAccessFlags(const spirv_cross::SPIRType& type)
+        {
+            // SPIRV-Cross hack to get the correct readonly and writeonly attributes on ssbos.
+            // This isn't working correctly via Compiler::get_decoration(id, spv::DecorationNonReadable) for example.
+            // So the code below is extracted from private methods within spirv_cross.cpp.
+            // The spirv_cross executable correctly outputs the attributes when converting spirv back to GLSL,
+            // but it's own reflection code does not :-(
+            auto all_members_flag_mask = spirv_cross::Bitset(~0ULL);
+            for (auto i = 0U; i < type.member_types.size(); ++i)
+                all_members_flag_mask.merge_and(get_member_decoration_bitset(type.self, i));
+
+            auto base_flags = meta[type.self].decoration.decoration_flags;
+            base_flags.merge_or(spirv_cross::Bitset(all_members_flag_mask));
+
+            VkAccessFlags access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+            if (base_flags.get(spv::DecorationNonReadable))
+                access = VK_ACCESS_SHADER_WRITE_BIT;
+            else if (base_flags.get(spv::DecorationNonWritable))
+                access = VK_ACCESS_SHADER_READ_BIT;
+
+            return access;
+        }*/
+    };
+
     Shader::Shader()
         : GPUResource(GetSubsystem<GPUDevice>(), Type::Shader)
     {
-        // Reflection all shader resouces.
-        //SPIRVReflectResources(reinterpret_cast<const uint32_t*>(blob.data), blob.size, &_reflection);
     }
 
     Shader::~Shader()
@@ -46,24 +78,65 @@ namespace alimer
 
     void Shader::Destroy()
     {
-        SafeDelete(_shader);
+        SafeDelete(_module);
     }
 
-    bool Shader::Define(const String& shaderSource)
+    bool Shader::Define(const PODVector<uint8_t>& compute)
     {
         Destroy();
-        _shader = _device->GetImpl()->CreateShader(shaderSource.CString());
-        return _shader != nullptr;
+        //Reflect(compute);
+        _compute = true;
+        _module = _device->GetImpl()->CreateComputeShader(compute);
+        return _module != nullptr;
     }
 
-    bool Shader::Define(ShaderModule* vertex, ShaderModule* fragment)
+    bool Shader::Define(const PODVector<uint8_t>& vertex, const PODVector<uint8_t>& fragment)
     {
-        ALIMER_ASSERT(vertex);
-        ALIMER_ASSERT(fragment);
+        Destroy();
+        _compute = false;
+        _module = _device->GetImpl()->CreateGraphicsShader(vertex, {}, {}, {}, fragment);
+        return _module != nullptr;
+    }
 
-        _shaders[static_cast<unsigned>(ShaderStage::Vertex)] = vertex;
-        _shaders[static_cast<unsigned>(ShaderStage::Fragment)] = fragment;
-        return true;
+    void Shader::Reflect(const PODVector<uint8_t>& bytecode)
+    {
+        // Parse SPIRV binary.
+        CustomCompiler compiler(bytecode);
+        spirv_cross::CompilerGLSL::Options opts = compiler.get_common_options();
+        opts.enable_420pack_extension = true;
+        compiler.set_common_options(opts);
+
+        // Reflect on all resource bindings.
+        auto resources = compiler.get_shader_resources();
+
+        switch (compiler.get_execution_model())
+        {
+        case spv::ExecutionModelVertex:
+            _stage = ShaderStages::Vertex;
+            break;
+        case spv::ExecutionModelTessellationControl:
+            _stage = ShaderStages::TessellationControl;
+            break;
+        case spv::ExecutionModelTessellationEvaluation:
+            _stage = ShaderStages::TessellationEvaluation;
+            break;
+        case spv::ExecutionModelGeometry:
+            _stage = ShaderStages::Geometry;
+            break;
+        case spv::ExecutionModelFragment:
+            _stage = ShaderStages::Fragment;
+            break;
+        case spv::ExecutionModelGLCompute:
+            _stage = ShaderStages::Compute;
+            break;
+        default:
+            ALIMER_LOGCRITICAL("Invalid shader execution model");
+        }
+
+        // Extract per stage inputs.
+        for (auto& resource : resources.stage_inputs)
+        {
+        }
     }
 
     class ShaderLoader final : public ResourceLoader
@@ -71,27 +144,41 @@ namespace alimer
         ALIMER_OBJECT(ShaderLoader, ResourceLoader);
 
     public:
-        bool CanLoad(const String& extension) const 
-        {
-            return extension == ".shader";
+        bool CanLoad(const String& extension) const {
+            return extension == ".spv" 
+                || extension == ".cso";
         }
 
-        StringHash GetLoadingType() const override 
+        StringHash GetLoadingType() const override
         {
             return Shader::GetTypeStatic();
         }
 
         bool BeginLoad(Stream& source) override
         {
+            _isBinary = Path::GetExtension(source.GetName(), true) == ".spv";
+            if (_isBinary)
+            {
+                _byteCode = source.ReadBytes();
+            }
+
             return true;
         }
 
         Object* EndLoad() override
         {
-            return nullptr;
-            //return GetSubsystem< GPUDevice>()->CreateShaderModule();
+            Shader* shader = new Shader();
+            if (_isBinary)
+                shader->Define(_byteCode);
+
+            return shader;
         }
+
+    private:
+        bool _isBinary = false;
+        PODVector<uint8_t> _byteCode;
     };
+
 
     void Shader::RegisterObject()
     {

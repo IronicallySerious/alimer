@@ -23,13 +23,12 @@
 #pragma once
 
 #include "D3DPrerequisites.h"
-#include "../Shader.h"
-#include <vector>
+#include "../Types.h"
 
 namespace alimer
 {
     namespace D3DShaderCompiler
     {
-        ALIMER_API PODVector<uint8_t> Compile(const String& source, ShaderStage stage, const String& entryPoint, uint32_t major = 4, uint32_t minor = 0);
+        ALIMER_API PODVector<uint8_t> Compile(const String& source, ShaderStages stage, const String& entryPoint, uint32_t major = 4, uint32_t minor = 0);
     }
 }

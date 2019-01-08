@@ -116,6 +116,12 @@ namespace alimer
                 ALIMER_LOGERROR("FileStream::Open - failed to create directory.");
                 return false;
             }
+
+            if (!EnsureDirectoryExists(FileSystem::GetPath(fileName)))
+            {
+                ALIMER_LOGERROR("FileStream::Open - failed to create directory.");
+                return false;
+            }
         }
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
@@ -150,7 +156,7 @@ namespace alimer
 
         if (_handle == INVALID_HANDLE_VALUE)
         {
-            ALIMER_LOGERROR("Win32 - Failed to open file: '{}'.", fileName.CString());
+            ALIMER_LOGERROR("Win32 - Failed to open file: '{}'.", fileName);
         }
 
         if (mode != FileAccess::WriteOnly)

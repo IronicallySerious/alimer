@@ -26,30 +26,10 @@
 
 namespace alimer
 {
-    struct VertexAttributeDescriptor
-    {
-        VertexElementFormat             format = VertexElementFormat::Unknown;
-        uint32_t                        offset = 0;
-        uint32_t                        bufferIndex = 0;
-    };
-
-    struct VertexBufferLayoutDescriptor
-    {
-        uint32_t                        stride = 0;
-        VertexInputRate                 inputRate = VertexInputRate::Vertex;
-    };
-
-    struct VertexDescriptor
-    {
-        VertexBufferLayoutDescriptor    layouts[MaxVertexBufferBindings];
-        VertexAttributeDescriptor       attributes[MaxVertexAttributes];
-    };
-
     struct RenderPipelineDescriptor
     {
         SharedPtr<Shader>               shader;
 
-        VertexDescriptor                vertexDescriptor;
         PrimitiveTopology               primitiveTopology = PrimitiveTopology::TriangleList;
     };
 

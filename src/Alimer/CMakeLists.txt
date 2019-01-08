@@ -120,16 +120,16 @@ if (ALIMER_VULKAN)
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.cpp
     #)
 
-    #list (APPEND HEADER_FILES ${GLSLANG_HEADER_FILES})
+    set (VKMEMALLOC_HEADER_FILES
+	    ${ALIMER_THIRD_PARTY_DIR}/vkmemalloc/src/vk_mem_alloc.h
+    )
+
+    list (APPEND HEADER_FILES ${VKMEMALLOC_HEADER_FILES})
     #list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
 endif ()
 
 if (ALIMER_CSHARP)
     define_engine_source_files(CSharp)
-endif ()
-
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
-    define_engine_source_files(assets)
 endif ()
 
 if (MSVC)
@@ -166,7 +166,7 @@ endif ()
 # endif()
 
 if (ALIMER_VULKAN)
-    list (APPEND THIRD_PARTY_DEPENDENCIES volk vkmemalloc)
+    list (APPEND THIRD_PARTY_DEPENDENCIES volk)
 endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})

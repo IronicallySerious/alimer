@@ -33,7 +33,7 @@ target_link_libraries(${PROJECT_NAME}
 
 # Set properties
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Assets")
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "assets")
 
 # Install under tools
 if (NOT ALIMER_SKIP_INSTALL)

@@ -103,36 +103,17 @@ namespace alimer
             return false;
         }
 
-        bool useAutoOffset = true;
-        for (uint32_t i = 0; i < elementsCount; ++i)
-        {
-            if (elements[i].offset != 0)
-            {
-                useAutoOffset = false;
-                break;
-            }
-        }
-
-        uint32_t stride = 0;
-        _elements.Resize(elementsCount);
-        for (uint32_t i = 0; i < elementsCount; ++i)
-        {
-            _elements[i] = elements[i];
-            _elements[i].offset = useAutoOffset ? stride : elements[i].offset;
-            stride += GetVertexElementSize(elements[i].format);
-            //elementHash |= ElementHash(i, elements[i].semantic);
-        }
-
-        _descriptor.size = vertexCount * stride;
+        _vertexDeclaration.Define(elementsCount, elements);
+        _descriptor.size = vertexCount * _vertexDeclaration.GetStride();
         _descriptor.usage = BufferUsage::Vertex;
-        _descriptor.stride = stride;
+        _descriptor.stride = _vertexDeclaration.GetStride();
         if (!CreateGPUBuffer(useShadowData, data))
         {
             ALIMER_LOGERROR("Failed to define vertex buffer.");
             return false;
         }
 
-        ALIMER_LOGDEBUG("Defined vertex buffer [vertexCount {}, stride {}]", vertexCount, stride);
+        ALIMER_LOGDEBUG("Defined vertex buffer [vertexCount {}, stride {}]", vertexCount, _descriptor.stride);
         return true;
     }
 
