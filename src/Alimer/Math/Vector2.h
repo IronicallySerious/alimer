@@ -36,7 +36,7 @@ namespace alimer
         /// The y-coordinate of the vector.
         int y;
 
-        /// Construct an identity matrix.
+        /// Construct a zero vector.
         IntVector2()  noexcept : x(0), y(0) {}
         constexpr explicit IntVector2(int value) : x(value), y(value) {}
         constexpr IntVector2(int x_, int y_) : x(x_), y(y_) {}
@@ -121,7 +121,6 @@ namespace alimer
         }
 
         bool IsZero() const { return (x == 0) && (y == 0); }
-        bool IsOne() const { return (x == 1) && (y == 1); }
 
         /// Return as string.
         std::string ToString() const;
@@ -145,7 +144,7 @@ namespace alimer
         /// The y-coordinate of the vector.
         float y;
 
-        /// Construct an identity matrix.
+        /// Construct a zero vector.
         Vector2()  noexcept : x(0.0f), y(0.0f) {}
         constexpr explicit Vector2(float value) : x(value), y(value) {}
         constexpr Vector2(float x_, float y_) : x(x_), y(y_) {}
