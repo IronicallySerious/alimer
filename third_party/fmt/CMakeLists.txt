@@ -39,8 +39,8 @@ endif ()
 file (GLOB_RECURSE SOURCE_FILES fmt/*.h)
 add_library(fmt STATIC ${SOURCE_FILES} ${FMT_SOURCES} fmt/format.cc)
 
-target_compile_definitions(fmt INTERFACE FMT_USE_RVALUE_REFERENCES=1 FMT_USE_VARIADIC_TEMPLATES=1)
-target_include_directories(fmt INTERFACE
+target_compile_definitions(fmt PUBLIC FMT_USE_RVALUE_REFERENCES=1 FMT_USE_VARIADIC_TEMPLATES=1)
+target_include_directories(fmt PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${DEST_THIRDPARTY_HEADERS_DIR}>
 )

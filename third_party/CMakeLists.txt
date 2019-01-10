@@ -32,8 +32,17 @@ add_subdirectory(spirv-cross)
 
 # Vulkan libs
 if (ALIMER_VULKAN)
-    # volk
-    add_subdirectory(volk)
+    add_library(volk STATIC ${CMAKE_CURRENT_SOURCE_DIR}/volk/volk.c)
+    if(MSVC)
+        target_compile_options(volk PRIVATE /W4 /WX)
+    else()
+        target_compile_options(volk PRIVATE -Wall -Wextra -Werror)
+    endif()
+    target_include_directories(volk PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+    if (MSVC)
+        set_property(TARGET "volk" PROPERTY FOLDER "third_party")
+    endif ()
 
     if (ALIMER_WINDOWS)
         target_compile_definitions(volk PUBLIC -DVK_USE_PLATFORM_WIN32_KHR)
@@ -43,14 +52,8 @@ endif ()
 # STB
 set(STB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stb)
 
-if (ALIMER_GLFW)
-    set (GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-    set (GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set (GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set (GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-    set (BUILD_SHARED_LIBS OFF CACHE BOOL " " FORCE)
-    set( GLFW_USE_WAYLAND ${ALIMER_GLFW_WAYLAND} CACHE BOOL "" FORCE)
-    add_subdirectory(glfw)
+if (ALIMER_SDL2)
+    add_subdirectory (libsdl2)
 endif ()
 
 if (ALIMER_OPENGL)
