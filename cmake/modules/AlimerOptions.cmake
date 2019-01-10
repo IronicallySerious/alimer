@@ -102,17 +102,9 @@ else ()
     option (ALIMER_NETWORK "Enable network support" TRUE)
 endif ()
 
-option (ALIMER_POSITION_INDEPENDENT "Position independent" ON)
 option (ALIMER_SKIP_INSTALL "Skip installation" ${ALIMER_SKIP_INSTALL})
 set (ALIMER_SHARED OFF CACHE BOOL "Enable shared library build")
 set (ALIMER_USE_DEBUG_INFO ON CACHE BOOL "Enable debug information in all configurations.")
-
-# Windowing/Input
-if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_OSX)
-    set (ALIMER_GLFW ON CACHE BOOL "Enable glfw.")
-else ()
-    set (ALIMER_GLFW OFF CACHE INTERNAL "Disable glfw" FORCE)
-endif ()
 
 # Graphics backends
 if (ALIMER_WINDOWS OR ALIMER_UWP OR ALIMER_XBOX_ONE)
@@ -133,10 +125,6 @@ endif ()
 
 alimer_option (ALIMER_CSHARP "Enable C# support")
 alimer_option (ALIMER_CSHARP_MONO "Use mono for C# support")
-
-if (UNIX AND NOT APPLE)
-    option (ALIMER_GLFW_WAYLAND "Use Wayland for window creation" OFF)
-endif()
 
 if (ALIMER_CSHARP)
     set (ALIMER_SHARED ON CACHE INTERNAL "Vulkan not supported" FORCE)

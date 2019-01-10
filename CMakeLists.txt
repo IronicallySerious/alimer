@@ -22,8 +22,10 @@
 
 # Set CMake minimum version
 cmake_minimum_required (VERSION 3.5)
-
-# Set project name
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
+set (CMAKE_C_STANDARD 99)
 project (Alimer LANGUAGES CXX C)
 
 # Alimer Version
@@ -51,22 +53,14 @@ execute_process(
 )
 
 # Configure CMake global variables
-set (CMAKE_CXX_STANDARD 14)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_EXTENSIONS OFF)
-set (CMAKE_C_STANDARD 99)
-set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set (CMAKE_INCLUDE_CURRENT_DIR ON)
-set (CMAKE_POSITION_INDEPENDENT_CODE ON)
-set (CMAKE_INSTALL_MESSAGE LAZY)
+if (ALIMER_SHARED)
+    set (CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 set (CMAKE_PDB_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin/libs")
 set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin/lib")
-
-if( ALIMER_WINDOWS )
-	set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
-endif()
 
 # Enable solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -89,6 +83,13 @@ include (Alimer)
 
 # Include Alimer packaging module.
 include (AlimerPackaging)
+
+# Options
+if (NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
+    set (ALIMER_SDL2 ON CACHE INTERNAL "Enable SDL2 support" FORCE)
+else ()
+    set (ALIMER_SDL2 OFF CACHE INTERNAL "Disable SDL2 support" FORCE)
+endif ()
 
 # Set alimer sdk path.
 set (ALIMER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})

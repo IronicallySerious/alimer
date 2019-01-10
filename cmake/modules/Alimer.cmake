@@ -232,18 +232,12 @@ endfunction()
 function(add_alimer_library target)
     if (ALIMER_SHARED)
         add_library(${target} SHARED ${ARGN})
+        set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     else()
         add_library(${target} STATIC ${ARGN})
     endif()
 
     alimer_setup_common_properties(${target})
-
-    if (ALIMER_POSITION_INDEPENDENT)
-        set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    else()
-        set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
-    endif()
-
 endfunction()
 
 function (add_alimer_executable TARGET)
@@ -267,17 +261,12 @@ endfunction ()
 function (add_alimer_plugin target)
     if (NOT ALIMER_STATIC_PLUGIN)
         add_library(${target} SHARED ${ARGN})
+        set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     else ()
     	add_library(${target} STATIC ${ARGN})
     endif ()
 
     alimer_setup_common_properties(${target})
-
-    if (ALIMER_POSITION_INDEPENDENT)
-        set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    else()
-        set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
-    endif()
 endfunction ()
 
 function(vs_group_subdirectory_targets DIR FOLDER_NAME)
