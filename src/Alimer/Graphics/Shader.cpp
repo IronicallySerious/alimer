@@ -67,7 +67,7 @@ namespace alimer
     };
 
     Shader::Shader()
-        : GPUResource(GetSubsystem<GPUDevice>(), Type::Shader)
+        : GPUResource(nullptr, Type::Shader)
     {
     }
 
@@ -139,7 +139,7 @@ namespace alimer
         }
     }
 
-    class ShaderLoader final : public ResourceLoader
+    /*class ShaderLoader final : public ResourceLoader
     {
         ALIMER_OBJECT(ShaderLoader, ResourceLoader);
 
@@ -177,14 +177,14 @@ namespace alimer
     private:
         bool _isBinary = false;
         PODVector<uint8_t> _byteCode;
-    };
+    };*/
 
 
     void Shader::RegisterObject()
     {
-        RegisterFactory<Shader>();
+        //RegisterFactory<Shader>();
 
         // Register loader.
-        GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());
+        //GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());
     }
 }

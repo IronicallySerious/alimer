@@ -28,7 +28,7 @@
 namespace alimer
 {
     Buffer::Buffer()
-        : GPUResource(GetSubsystem<GPUDevice>(), Type::Buffer)
+        : GPUResource(nullptr, Type::Buffer)
     {
 
     }

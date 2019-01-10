@@ -28,7 +28,7 @@
 namespace alimer
 {
     Framebuffer::Framebuffer()
-        : GPUResource(GetSubsystem<GPUDevice>(), Type::Framebuffer)
+        : GPUResource(nullptr, Type::Framebuffer)
     {
         _framebuffer = _device->GetImpl()->CreateFramebuffer();
         _colorAttachments.Resize(_device->GetLimits().maxColorAttachments);

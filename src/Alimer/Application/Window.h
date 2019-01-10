@@ -48,41 +48,42 @@ namespace alimer
         uvec2 size;
     };
 
+    class GPUDevice;
+    class SwapChain;
+
     /// OS Window class.
     class ALIMER_API Window : public Object
     {
         ALIMER_OBJECT(Window, Object);
 
-    public:
+    protected:
         /// Constructor.
-        Window(const String& title, const uvec2& size, WindowFlags flags = WindowFlags::Default);
+        Window(GPUDevice* device, const String& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Default);
 
-        /// Destructor.
-        ~Window() override;
-
-        /// Set window title.
-        void SetTitle(const String& newTitle);
-
+    public:
         /// Show the window.
-        void Show();
+        virtual void Show();
         /// Hide the window.
-        void Hide();
+        virtual void Hide();
         /// Minimize the window.
-        void Minimize();
+        virtual void Minimize();
         /// Maximize the window.
-        void Maximize();
+        virtual void Maximize();
         /// Restore window size.
-        void Restore();
+        virtual void Restore();
         /// Close the window.
-        void Close();
+        virtual void Close();
         /// Resize the window.
         void Resize(uint32_t width, uint32_t height);
 
+        /// Set window title.
+        virtual void SetTitle(const String& newTitle);
+
         /// Return whether is visible.
-        bool IsVisible() const { return _visible; }
+        virtual bool IsVisible() const { return true; }
 
         /// Return whether is currently minimized.
-        bool IsMinimized() const;
+        virtual bool IsMinimized() const { return false; }
 
         /// Return whether is fullscreen.
         bool IsFullscreen() const;
@@ -98,28 +99,28 @@ namespace alimer
         float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
         WindowFlags GetFlags() const { return _flags; }
 
-        /// Get if window is open and valid.
-        bool IsOpen() const;
-
         /// Is cursor visible.
-        bool IsCursorVisible() const;
+        virtual bool IsCursorVisible() const { return true; }
 
         /// Set cursor visibility.
-        void SetCursorVisible(bool visible);
+        virtual void SetCursorVisible(bool visible);
 
-        /// Get native window handle.
-        void* GetNativeHandle() const;
+        /// Gets the native window or view handle.
+        void* GetNativeHandle() const { return _nativeWindow; }
+
+        /// Gets the native connection, display or instance handle.
+        void* GetNativeConnection() const { return _nativeConnection; }
 
         /// Size changed event.
         Event<void(const WindowResizeEvent&)> resizeEvent;
 
     protected:
-        virtual void OnSizeChanged(const uvec2& newSize);
+        /// Called when implementation created the native window.
+        void OnCreated();
 
     private:
-        void PlatformConstruct();
-        void PlatformDestroy();
-        void PlatformResize(uint32_t width, uint32_t height);
+        void OnSizeChanged(const uvec2& newSize);
+        virtual void PlatformResize(uint32_t width, uint32_t height) = 0;
 
         /// Window title.
         String _title;
@@ -128,11 +129,13 @@ namespace alimer
         /// Flags
         WindowFlags _flags = WindowFlags::Default;
         /// Visibility flag.
-        bool _visible = true;
-        /// Visibility flag.
         bool _focused = false;
-        /// Window implementation
-        void* _window = nullptr;
+
+    protected:
+        WeakPtr<GPUDevice> _device;
+        SwapChain* _swapChain;
+        void* _nativeWindow = nullptr;
+        void* _nativeConnection = nullptr;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Window);

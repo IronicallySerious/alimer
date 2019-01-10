@@ -22,6 +22,7 @@
 
 #include "../Graphics/GPUDevice.h"
 #include "../Graphics/GPUDeviceImpl.h"
+#include "../Graphics/SwapChain.h"
 #include "../Core/Log.h"
 
 #if defined(ALIMER_D3D11)
@@ -49,13 +50,13 @@ extern "C"
 
 namespace alimer
 {
-    GPUDevice::GPUDevice(GPUDeviceImpl* impl, bool validation)
-        : _impl(impl)
-        , _backend(impl->GetBackend())
+    GPUDevice::GPUDevice(GraphicsBackend backend, bool validation)
+        : _impl(nullptr)
+        , _backend(backend)
         , _validation(validation)
         , _frameIndex(0)
     {
-        _immediateCommandContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
+        //_immediateCommandContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
         AddSubsystem(this);
     }
 
@@ -79,7 +80,7 @@ namespace alimer
             return nullptr;
         }
 
-        GPUDeviceImpl* device = nullptr;
+        GPUDevice* device = nullptr;
         switch (backend)
         {
         case GraphicsBackend::Empty:
@@ -110,7 +111,7 @@ namespace alimer
             ALIMER_UNREACHABLE();
         }
 
-        return new GPUDevice(device, validation);
+        return device;
     }
 
 
@@ -293,8 +294,25 @@ namespace alimer
         registered = true;
 
         Shader::RegisterObject();
-        Texture::RegisterObject();
-        Sampler::RegisterObject();
+        //Texture::RegisterObject();
+        //Sampler::RegisterObject();
+    }
+
+    SwapChain* GPUDevice::CreateSwapChain(const SwapChainDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+
+        if (descriptor->nativeWindow == nullptr)
+        {
+            ALIMER_LOGCRITICAL("Cannot create swap chain with null window handle.");
+        }
+
+        if (descriptor->width == 0 || descriptor->height == 0)
+        {
+            ALIMER_LOGCRITICAL("Cannot create swap chain with 0 width or height.");
+        }
+
+        return CreateSwapChainImpl(descriptor);
     }
 
     Texture* GPUDevice::CreateTexture1D(uint32_t width, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, TextureUsage usage, const void* initialData)
@@ -373,5 +391,11 @@ namespace alimer
 
         return nullptr;
         //return CreateTextureCore(TextureType::Type3D, width, height, depth, mipLevels, 1, format, usage, SampleCount::Count1, initialData);
+    }
+
+    Sampler* GPUDevice::CreateSampler(const SamplerDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+        return CreateSamplerImpl(descriptor);
     }
 }

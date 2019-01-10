@@ -175,7 +175,8 @@ namespace alimer
     }
 
     DeviceD3D11::DeviceD3D11(bool validation)
-        : _cache(this)
+        : GPUDevice(GraphicsBackend::D3D11, validation)
+        , _cache(this)
     {
         if (FAILED(D3D11LoadLibraries()))
         {
@@ -487,9 +488,9 @@ namespace alimer
         return _cache;
     }
 
-    GPUSwapChain* DeviceD3D11::CreateSwapChain(void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb)
+    SwapChain* DeviceD3D11::CreateSwapChainImpl(const SwapChainDescriptor* descriptor)
     {
-        return new SwapChainD3D11(this, window, width, height, depthStencilFormat, srgb, 2);
+        return new SwapChainD3D11(this, descriptor, 2);
     }
 
     GPUTexture* DeviceD3D11::CreateTexture(const TextureDescriptor& descriptor, const void* initialData)
@@ -507,7 +508,7 @@ namespace alimer
         return new BufferD3D11(this, descriptor, initialData);
     }
 
-    GPUSampler* DeviceD3D11::CreateSampler(const SamplerDescriptor& descriptor)
+    Sampler* DeviceD3D11::CreateSamplerImpl(const SamplerDescriptor* descriptor)
     {
         return new SamplerD3D11(this, descriptor);
     }

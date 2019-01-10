@@ -21,20 +21,47 @@
 //
 
 #include "../Application/Window.h"
+#include "../Graphics/SwapChain.h"
+#include "../Graphics/GPUDevice.h"
 
 namespace alimer
 {
-    Window::Window(const String& title, const uvec2& size, WindowFlags flags)
-        : _title(title)
-        , _size(size)
+    Window::Window(GPUDevice* device, const String& title, uint32_t width, uint32_t height, WindowFlags flags)
+        : _device(device)
+        , _title(title)
+        , _size(width, height)
         , _flags(flags)
+        , _swapChain(nullptr)
     {
-        PlatformConstruct();
     }
 
-    Window::~Window()
+    void Window::Show()
     {
-        PlatformDestroy();
+    }
+
+    void Window::Hide()
+    {
+    }
+
+    void Window::Minimize()
+    {
+    }
+
+    void Window::Maximize()
+    {
+    }
+
+    void Window::Restore()
+    {
+    }
+
+    void Window::Close()
+    {
+    }
+
+    void Window::SetTitle(const String& newTitle)
+    {
+        _title = newTitle;
     }
 
     bool Window::IsFullscreen() const
@@ -58,8 +85,27 @@ namespace alimer
 
     void Window::OnSizeChanged(const uvec2& newSize)
     {
+        _swapChain->Configure(newSize.x, newSize.y);
         WindowResizeEvent evt;
         evt.size = _size;
         resizeEvent(evt);
+    }
+
+    void Window::SetCursorVisible(bool visible)
+    {
+
+    }
+
+    void Window::OnCreated()
+    {
+        SwapChainDescriptor descriptor = {};
+        descriptor.nativeConnection = _nativeConnection;
+        descriptor.nativeWindow = _nativeWindow;
+        descriptor.width = _size.x;
+        descriptor.height = _size.y;
+        descriptor.sRGB = false;
+        descriptor.preferredDepthStencilFormat = PixelFormat::D24UNormS8;
+        descriptor.preferredSamples = SampleCount::Count1;
+        _swapChain = _device->CreateSwapChain(&descriptor);
     }
 }

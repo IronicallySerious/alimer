@@ -21,7 +21,8 @@
 //
 
 #include "../Application.h"
-#include "../../Debug/Log.h"
+#include "WindowSDL2.h"
+#include "../../Core/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS
 #   include <ShellScalingAPI.h>
@@ -46,7 +47,7 @@ typedef HRESULT(WINAPI * PFN_GetDpiForMonitor)(HMONITOR, MONITOR_DPI_TYPE, UINT*
 #include <SDL.h>
 #include <SDL_syswm.h>
 
-namespace Alimer
+namespace alimer
 {
     static inline MouseButton ConvertMouseButton(uint8_t sdlButton)
     {
@@ -99,7 +100,7 @@ namespace Alimer
 #endif // ALIMER_PLATFORM_WINDOWS
     }
 
-    int Application::Run()
+    void Application::PlatformRun()
     {
         SDL_SetMainReady();
         int result = SDL_Init(
@@ -113,14 +114,16 @@ namespace Alimer
                 SDL_MESSAGEBOX_ERROR,
                 "SDL Init Errors",
                 SDL_GetError(), nullptr);
-            return EXIT_FAILURE;
+            _exitCode = EXIT_FAILURE;
+            return;
         }
 
         SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 
         if (!InitializeBeforeRun())
         {
-            return EXIT_FAILURE;
+            _exitCode = EXIT_FAILURE;
+            return;
         }
 
         SDL_Event evt;
@@ -178,7 +181,12 @@ namespace Alimer
         // quit all subsystems and quit application.
         SDL_QuitSubSystem(SDL_INIT_EVERYTHING);
         SDL_Quit();
-        return EXIT_SUCCESS;
+        _exitCode = EXIT_SUCCESS;
+    }
+
+    SharedPtr<Window> Application::CreateWindow(const String& title, uint32_t width, uint32_t height, WindowFlags flags)
+    {
+        return MakeShared<WindowSDL2>(_gpuDevice.Get(), title, width, height, flags);
     }
 }
 

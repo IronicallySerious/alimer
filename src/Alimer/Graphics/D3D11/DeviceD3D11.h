@@ -22,13 +22,14 @@
 
 #pragma once
 
+#include "../../Graphics/GPUDevice.h"
 #include "../../Graphics/GPUDeviceImpl.h"
 #include "D3D11Cache.h"
 
 namespace alimer
 {
     /// D3D11 graphics implementation.
-    class DeviceD3D11 final : public GPUDeviceImpl
+    class DeviceD3D11 final : public GPUDevice, public GPUDeviceImpl
     {
     public:
         /// Is backend supported?
@@ -41,17 +42,16 @@ namespace alimer
         ~DeviceD3D11() override;
 
         /* GPUDeviceImpl implementation */
-        GraphicsBackend GetBackend() const override { return GraphicsBackend::D3D11; }
         const GPULimits& GetLimits() const override { return _limits; }
         const GraphicsDeviceFeatures& GetFeatures() const override { return _features; }
         GPUCommandBuffer* GetDefaultCommandBuffer() const { return _immediateCommandBuffer; }
         bool WaitIdle() override;
 
-        GPUSwapChain* CreateSwapChain(void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb) override;
+        SwapChain* CreateSwapChainImpl(const SwapChainDescriptor* descriptor) override;
         GPUTexture* CreateTexture(const TextureDescriptor& descriptor, const void* initialData) override;
         GPUFramebuffer* CreateFramebuffer() override;
         GPUBuffer* CreateBuffer(const BufferDescriptor& descriptor, const void* initialData) override;
-        GPUSampler* CreateSampler(const SamplerDescriptor& descriptor) override;
+        Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor) override;
         GPUShader* CreateComputeShader(const PODVector<uint8_t>& bytecode) override;
         GPUShader* CreateGraphicsShader(
             const PODVector<uint8_t>& vertex, 

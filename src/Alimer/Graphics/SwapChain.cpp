@@ -20,14 +20,24 @@
 // THE SOFTWARE.
 //
 
-#include "../../Input/Input.h"
-#include "../../Core/Log.h"
-#define GLFW_INCLUDE_NONE 
-#include <GLFW/glfw3.h>
+#include "../Graphics/SwapChain.h"
+#include "../Graphics/GPUDevice.h"
 
 namespace alimer
 {
-    void Input::PlatformConstruct()
+    SwapChain::SwapChain(GPUDevice* device, const SwapChainDescriptor* descriptor)
+        : GPUResource(device, Type::SwapChain)
     {
+        ALIMER_UNUSED(descriptor);
+    }
+
+    SwapChain::~SwapChain()
+    {
+        Destroy();
+    }
+
+    void SwapChain::Destroy()
+    {
+        _backbufferTextures.Clear();
     }
 }

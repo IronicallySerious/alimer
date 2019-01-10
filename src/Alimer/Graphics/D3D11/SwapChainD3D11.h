@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../../Base/Ptr.h"
-#include "../GPUDeviceImpl.h"
+#include "../SwapChain.h"
 #include "D3D11Prerequisites.h"
 
 namespace alimer
@@ -31,20 +31,19 @@ namespace alimer
     class DeviceD3D11;
 
     /// D3D11 SwapChain implementation.
-    class SwapChainD3D11 final : public GPUSwapChain
+    class SwapChainD3D11 final : public SwapChain
     {
     public:
         /// Constructor.
-        SwapChainD3D11(DeviceD3D11* device, void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb, uint32_t backBufferCount = 2);
+        SwapChainD3D11(DeviceD3D11* device, const SwapChainDescriptor* descriptor, uint32_t backBufferCount = 2);
 
         /// Destructor.
         ~SwapChainD3D11();
 
         void Destroy();
     private:
-        uint32_t GetBackBufferCount() const override { return 1; }
         uint32_t GetCurrentBackBuffer() const override { return 0; }
-        GPUTexture* GetBackBufferTexture(uint32_t index) const
+        Texture* GetBackBufferTexture(uint32_t index) const
         {
             ALIMER_ASSERT(index == 0);
             return _renderTarget.Get();
@@ -69,6 +68,6 @@ namespace alimer
         UINT                                    _presentFlags = 0;
         Microsoft::WRL::ComPtr<IDXGISwapChain>  _swapChain;
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain1;
-        UniquePtr<GPUTexture>                   _renderTarget;
+        UniquePtr<Texture>                      _renderTarget;
     };
 }

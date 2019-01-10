@@ -29,13 +29,13 @@
 namespace alimer
 {
     Texture::Texture()
-        : GPUResource(GetSubsystem<GPUDevice>(), Type::Texture)
+        : GPUResource(nullptr, Type::Texture)
         , _descriptor{}
     {
     }
 
     Texture::Texture(GPUTexture* texture)
-        : GPUResource(GetSubsystem<GPUDevice>(), Type::Texture)
+        : GPUResource(nullptr, Type::Texture)
         , _texture(texture)
         , _descriptor(texture->GetDescriptor())
     {
@@ -58,11 +58,6 @@ namespace alimer
 
         _texture = _device->GetImpl()->CreateTexture(_descriptor, initialData);
         return _texture != nullptr;
-    }
-
-    void Texture::RegisterObject()
-    {
-        RegisterFactory<Texture2D>();
     }
 
     /* Texture2D */

@@ -89,7 +89,7 @@ namespace alimer
                 return false;
             }
 
-            _mainWindow = new RenderWindow(&_settings.mainWindowDescriptor);
+            _mainWindow = CreateWindow(_settings.title, _settings.width, _settings.height, _settings.windowFlags);
         }
 
         // Load plugins
@@ -189,7 +189,7 @@ namespace alimer
         context->EndRenderPass();*/
 
         // Present rendering frame.
-        _mainWindow->SwapBuffers();
+        //_mainWindow->SwapBuffers();
 
         // Advance to next frame.
         _gpuDevice->Frame();
@@ -202,9 +202,9 @@ namespace alimer
 
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         CommandContext& context = _gpuDevice->GetImmediateContext();
-        context.BeginRenderPass(_mainWindow->GetCurrentFramebuffer(), clearColor);
+        //context.BeginRenderPass(_mainWindow->GetCurrentFramebuffer(), clearColor);
         //context.Draw(3, 0);
-        context.EndRenderPass();
+        //context.EndRenderPass();
         context.Flush();
     }
 

@@ -319,6 +319,25 @@ namespace alimer
         uint32_t minUniformBufferOffsetAlignment;
     };
 
+    /// Describes SwapChain
+    struct SwapChainDescriptor
+    {
+        /// Native connection, display or instance handle.
+        void* nativeConnection;
+        /// Native window or view handle.
+        void* nativeWindow;
+        /// Width.
+        uint32_t width;
+        /// Height.
+        uint32_t height;
+        /// sRGB color space.
+        bool sRGB;
+        /// Preferred depth stencil format.
+        PixelFormat preferredDepthStencilFormat;
+        /// Preferred samples.
+        SampleCount preferredSamples;
+    };
+
     struct TextureDescriptor
     {
         uint32_t width;

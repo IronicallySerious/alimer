@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Core/Object.h"
+#include "../Base/Ptr.h"
 #include "../Graphics/Types.h"
 
 namespace alimer
@@ -30,10 +30,8 @@ namespace alimer
 	class GPUDevice;
 
 	/// Defines a GPUResource created from GPUDevice.
-	class ALIMER_API GPUResource : public Object
+	class ALIMER_API GPUResource : public RefCounted
 	{
-        ALIMER_OBJECT(GPUResource, Object);
-
 	public:
         enum class Type
         {
@@ -44,6 +42,7 @@ namespace alimer
             Shader, 
             Program,
             Pipeline,
+            SwapChain
         };
 
 		/// Destructor.

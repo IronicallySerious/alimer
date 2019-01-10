@@ -30,20 +30,21 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    SwapChainD3D11::SwapChainD3D11(DeviceD3D11* device, void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb, uint32_t backBufferCount)
-        : _device(device)
-        , _sRGB(srgb)
+    SwapChainD3D11::SwapChainD3D11(DeviceD3D11* device, const SwapChainDescriptor* descriptor, uint32_t backBufferCount)
+        : SwapChain(device, descriptor)
+        , _device(device)
+        , _sRGB(descriptor->sRGB)
         , _backBufferCount(backBufferCount)
     {
-        _depthStencilFormat = depthStencilFormat;
+        _depthStencilFormat = descriptor->preferredDepthStencilFormat;
 
 #if ALIMER_PLATFORM_UWP
-        _window = static_cast<IUnknown*>(window);
+        _window = static_cast<IUnknown*>(descriptor->nativeWindow);
 #else
-        _hwnd = static_cast<HWND>(window);
+        _hwnd = static_cast<HWND>(descriptor->nativeWindow);
 #endif
 
-        Resize(width, height, true);
+        Resize(descriptor->width, descriptor->height, true);
     }
 
     SwapChainD3D11::~SwapChainD3D11()
@@ -53,6 +54,7 @@ namespace alimer
 
     void SwapChainD3D11::Destroy()
     {
+        SwapChain::Destroy();
         _swapChain->SetFullscreenState(false, nullptr);
         _renderTarget.Reset();
         _swapChain.Reset();
@@ -192,6 +194,9 @@ namespace alimer
         ID3D11Texture2D* renderTarget;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
 
+        // Resize textures.
+        _backbufferTextures.Resize(1);
+
         // Get D3D Texture desc and convert to engine.
         D3D11_TEXTURE2D_DESC textureDesc;
         renderTarget->GetDesc(&textureDesc);
@@ -204,7 +209,7 @@ namespace alimer
             descriptor.format = PixelFormat::BGRA8UNormSrgb;
         }
 
-        _renderTarget = new TextureD3D11(_device, descriptor, nullptr, renderTarget, backBufferFormat);
+        //_renderTarget = new TextureD3D11(_device, descriptor, nullptr, renderTarget, backBufferFormat);
 
         // Set new size.
         _width = width;

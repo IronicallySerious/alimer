@@ -405,13 +405,13 @@ namespace alimer
         ALIMER_UNUSED(elapsedTime);
 
         CommandContext& context = _gpuDevice->GetImmediateContext();
-        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        /*Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         context.BeginRenderPass(_mainWindow->GetCurrentFramebuffer(), clearColor);
         _triangleExample.Render(context);
         //_quadExample.Render(context);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);
-        context.EndRenderPass();
+        context.EndRenderPass();*/
         context.Flush();
     }
 }

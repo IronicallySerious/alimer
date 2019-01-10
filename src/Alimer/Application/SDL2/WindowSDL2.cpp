@@ -20,20 +20,21 @@
 // THE SOFTWARE.
 //
 
-#include "../../Application/Window.h"
+#include "WindowSDL2.h"
 #include "../../Application/Application.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_syswm.h>
 
-namespace Alimer
+namespace alimer
 {
-    void Window::PlatformConstruct()
+    WindowSDL2::WindowSDL2(GPUDevice* device, const String& title, uint32_t width, uint32_t height, WindowFlags flags)
+        : Window(device, title, width, height, flags)
     {
-        const bool resizable = any(_flags & WindowFlags::Resizable);
-        bool fullscreen = any(_flags & WindowFlags::Fullscreen);
+        const bool resizable = any(flags & WindowFlags::Resizable);
+        bool fullscreen = any(flags & WindowFlags::Fullscreen);
 
         const int x = SDL_WINDOWPOS_CENTERED;
         const int y = SDL_WINDOWPOS_CENTERED;
@@ -48,28 +49,31 @@ namespace Alimer
             windowFlags |= SDL_WINDOW_FULLSCREEN;
         }
 
-        _window = SDL_CreateWindow(_title.CString(),
-            x, y,
-            static_cast<int>(_size.x),
-            static_cast<int>(_size.y),
-            windowFlags);
+        _window = SDL_CreateWindow(title.CString(), x, y, int(width), int(height), windowFlags);
 
         SDL_SysWMinfo wmInfo;
         SDL_VERSION(&wmInfo.version);
         SDL_GetWindowWMInfo(_window, &wmInfo);
 
 #if ALIMER_PLATFORM_LINUX
-        _handle.connection = wmInfo.info.x11.display;
-        _handle.handle = wmInfo.info.x11.window;
+        _nativeWindow = wmInfo.info.x11.window;
+        _nativeConnection = wmInfo.info.x11.display;
 #elif ALIMER_PLATFORM_APPLE_OSX
-        _handle.connection = nullptr;
-        _handle.handle = wmInfo.info.cocoa.window;;
+        _nativeWindow = wmInfo.info.cocoa.window;
 #elif ALIMER_PLATFORM_WINDOWS
-        _handle = wmInfo.info.win.window;
+        _nativeWindow = wmInfo.info.win.window;
+        _nativeConnection = wmInfo.info.win.hinstance;
 #endif
+
+        OnCreated();
     }
 
-    void Window::PlatformDestroy()
+    WindowSDL2::~WindowSDL2()
+    {
+        Destroy();
+    }
+
+    void WindowSDL2::Destroy()
     {
         if (_window != nullptr)
         {
@@ -78,7 +82,12 @@ namespace Alimer
         }
     }
 
-    void Window::Show()
+    void WindowSDL2::PlatformResize(uint32_t width, uint32_t height)
+    {
+        SDL_SetWindowSize(_window, (int)width, (int)height);
+    }
+
+    void WindowSDL2::Show()
     {
         if (_visible)
             return;
@@ -87,7 +96,7 @@ namespace Alimer
         _visible = true;
     }
 
-    void Window::Hide()
+    void WindowSDL2::Hide()
     {
         if (_visible)
         {
@@ -96,34 +105,49 @@ namespace Alimer
         }
     }
 
-    void Window::Minimize()
+    void WindowSDL2::Minimize()
     {
         SDL_MinimizeWindow(_window);
     }
 
-    void Window::Maximize()
+    void WindowSDL2::Maximize()
     {
         SDL_MaximizeWindow(_window);
     }
 
-    void Window::Restore()
+    void WindowSDL2::Restore()
     {
         SDL_RestoreWindow(_window);
     }
 
-    void Window::Close()
+    void WindowSDL2::Close()
     {
-        PlatformDestroy();
+        Destroy();
     }
 
-    bool Window::IsMinimized() const
+    bool WindowSDL2::IsVisible() const
+    {
+        return _visible;
+    }
+
+    bool WindowSDL2::IsMinimized() const
     {
         return (SDL_GetWindowFlags(_window) & SDL_WINDOW_MINIMIZED) != 0;
     }
 
-    void Window::SetTitle(const String& newTitle)
+    void WindowSDL2::SetTitle(const String& newTitle)
     {
-        _title = newTitle;
+        Window::SetTitle(newTitle);
         SDL_SetWindowTitle(_window, newTitle.CString());
+    }
+
+    bool WindowSDL2::IsCursorVisible() const
+    {
+        return SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE;
+    }
+
+    void WindowSDL2::SetCursorVisible(bool visible)
+    {
+        SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
     }
 }

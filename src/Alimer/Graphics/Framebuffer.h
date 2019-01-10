@@ -42,8 +42,6 @@ namespace alimer
     /// Defines a Framebuffer class.
     class ALIMER_API Framebuffer final : public GPUResource
     {
-        ALIMER_OBJECT(Framebuffer, GPUResource);
-
     public:
         /// Constructor.
         Framebuffer();

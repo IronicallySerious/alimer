@@ -35,7 +35,6 @@ namespace alimer
     class ALIMER_API Texture : public GPUResource
     {
         friend class GPUDevice;
-        ALIMER_OBJECT(Texture, GPUResource);
 
     protected:
         /// Constructor.
@@ -93,9 +92,6 @@ namespace alimer
         GPUTexture* GetGPUTexture() const { return _texture; }
 
     protected:
-        /// Register object factory.
-        static void RegisterObject();
-
         bool CreateGPUTexture(const void* initialData);
 
         GPUTexture* _texture = nullptr;

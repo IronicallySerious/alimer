@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2019 Amer Koleci and contributors.
+// Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,39 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Sampler.h"
-#include "../Graphics/GPUDevice.h"
+#pragma once
+#include "..//Window.h"
+
+struct SDL_Window;
 
 namespace alimer
 {
-    Sampler::Sampler(GPUDevice* device, const SamplerDescriptor* descriptor)
-        : GPUResource(device, Type::Sampler)
+    class WindowSDL2 final : public Window
     {
-        memcpy(&_descriptor, descriptor, sizeof(SamplerDescriptor));
-    }
+    public:
+        WindowSDL2(GPUDevice* device, const String& title, uint32_t width, uint32_t height, WindowFlags flags);
+
+        /// Destructor.
+        ~WindowSDL2() override;
+
+    private:
+        void Destroy();
+        void Show() override;
+        void Hide() override;
+        void Minimize() override;
+        void Maximize() override;
+        void Restore() override;
+        void Close() override;
+        void PlatformResize(uint32_t width, uint32_t height) override;
+        bool IsVisible() const override;
+        bool IsMinimized() const override;
+        void SetTitle(const String& newTitle) override;
+        bool IsCursorVisible() const override;
+        void SetCursorVisible(bool visible) override;
+
+
+        SDL_Window* _window;
+        /// Visibility flag.
+        bool _visible = true;
+    };
 }

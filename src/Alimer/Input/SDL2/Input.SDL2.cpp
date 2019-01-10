@@ -21,23 +21,13 @@
 //
 
 #include "../../Input/Input.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
-namespace Alimer
+namespace alimer
 {
     void Input::PlatformConstruct()
     {
-    }
-
-    bool Input::IsCursorVisible() const
-    {
-        return SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE;
-    }
-
-    void Input::SetCursorVisible(bool visible)
-    {
-        SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
     }
 }

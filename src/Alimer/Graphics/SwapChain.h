@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,55 +20,35 @@
 // THE SOFTWARE.
 //
 
-#include "../../Input/Input.h"
-#include "../../Core/Log.h"
+#pragma once
 
-namespace Alimer
+#include "../Base/Ptr.h"
+#include "../Graphics/Texture.h"
+
+namespace alimer
 {
-	void Input::PlatformConstruct()
+	/// Defines a SwapChain.
+	class ALIMER_API SwapChain : public GPUResource
 	{
-		for (uint32_t i = 0; i < static_cast<unsigned>(CursorType::Count); ++i)
-		{
-			switch (static_cast<CursorType>(i))
-			{
-				case CursorType::Arrow:
-					_cursors[i] = LoadCursor(nullptr, IDC_ARROW);
-					break;
+    protected:
+        /// Constructor.
+        SwapChain(GPUDevice* device, const SwapChainDescriptor* descriptor);
 
-				case CursorType::Cross:
-					_cursors[i] = LoadCursor(nullptr, IDC_CROSS);
-					break;
+    public:
+        /// Desturctor
+        ~SwapChain() override;
 
-				case CursorType::Hand:
-					_cursors[i] = LoadCursor(nullptr, IDC_HAND);
-					break;
-			}
-		}
+        void Destroy() override;
 
-		_cursor = _cursors[static_cast<unsigned>(CursorType::Arrow)];
-	}
+        virtual uint32_t GetCurrentBackBuffer() const = 0;
+        virtual Texture* GetBackBufferTexture(uint32_t index) const = 0;
 
-	bool Input::IsCursorVisible() const
-	{
-		return _cursorVisible;
-	}
+        virtual void Configure(uint32_t width, uint32_t height) = 0;
+        virtual void Present() = 0;
 
-	void Input::SetCursorVisible(bool visible)
-	{
-		_cursorVisible = visible;
-		UpdateCursor();
-	}
+        uint32_t GetBackBufferCount() const { return _backbufferTextures.Size(); }
 
-	void Input::UpdateCursor()
-	{
-		if (_cursorVisible)
-		{
-			while (::ShowCursor(TRUE) < 0);
-			::SetCursor(_cursor);
-		}
-		else
-		{
-			while (::ShowCursor(FALSE) >= 0);
-		}
-	}
+    protected:
+        Vector<SharedPtr<Texture>> _backbufferTextures;
+    };
 }

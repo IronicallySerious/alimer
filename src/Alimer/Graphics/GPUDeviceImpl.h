@@ -41,18 +41,6 @@ namespace alimer
         virtual ~GPUBuffer() = 0;
     };
 
-    struct GPUSwapChain
-    {
-        virtual ~GPUSwapChain() = 0;
-
-        virtual uint32_t GetBackBufferCount() const = 0;
-        virtual uint32_t GetCurrentBackBuffer() const = 0;
-        virtual GPUTexture* GetBackBufferTexture(uint32_t index) const = 0;
-
-        virtual void Configure(uint32_t width, uint32_t height) = 0;
-        virtual void Present() = 0;
-    };
-
     struct GPUFramebuffer
     {
         virtual ~GPUFramebuffer() = 0;
@@ -68,11 +56,6 @@ namespace alimer
     struct GPUShader
     {
         virtual ~GPUShader() = 0;
-    };
-
-    struct GPUSampler
-    {
-        virtual ~GPUSampler() = 0;
     };
 
     struct GPUCommandBuffer
@@ -106,18 +89,14 @@ namespace alimer
     {
         virtual ~GPUDeviceImpl() = 0;
 
-        virtual GraphicsBackend GetBackend() const = 0;
-
         virtual const GPULimits& GetLimits() const = 0;
         virtual const GraphicsDeviceFeatures& GetFeatures() const = 0;
         virtual GPUCommandBuffer* GetDefaultCommandBuffer() const = 0;
 
         virtual bool WaitIdle() = 0;
-        virtual GPUSwapChain* CreateSwapChain(void* window, uint32_t width, uint32_t height, PixelFormat depthStencilFormat, bool srgb) = 0;
         virtual GPUTexture* CreateTexture(const TextureDescriptor& descriptor, const void* initialData) = 0;
         virtual GPUFramebuffer* CreateFramebuffer() = 0;
         virtual GPUBuffer* CreateBuffer(const BufferDescriptor& descriptor, const void* initialData) = 0;
-        virtual GPUSampler* CreateSampler(const SamplerDescriptor& descriptor) = 0;
         virtual GPUShader* CreateComputeShader(const PODVector<uint8_t>& bytecode) = 0;
         virtual GPUShader* CreateGraphicsShader(
             const PODVector<uint8_t>& vertex,
@@ -135,19 +114,11 @@ namespace alimer
     {
     }
 
-    inline GPUSwapChain::~GPUSwapChain()
-    {
-    }
-
     inline GPUFramebuffer::~GPUFramebuffer()
     {
     }
 
     inline GPUShader::~GPUShader()
-    {
-    }
-
-    inline GPUSampler::~GPUSampler()
     {
     }
 

@@ -102,39 +102,6 @@ namespace alimer
         return CreateGPUBuffer(false, nullptr);
     }
 
-    bool VertexBuffer::Define(uint32_t vertexCount, const PODVector<VertexElement>& elements, bool useShadowData, const void* data)
-    {
-        if (!vertexCount || !elements.Size())
-        {
-            ALIMER_LOGERROR("Can not define vertex buffer with no vertices or no elements");
-            return false;
-        }
-
-        return Define(vertexCount, elements.Size(), elements.Data(), useShadowData, data);
-    }
-
-    bool VertexBuffer::Define(uint32_t vertexCount, uint32_t elementsCount, const VertexElement* elements, bool useShadowData, const void* data)
-    {
-        if (!vertexCount || !elementsCount || !elements)
-        {
-            ALIMER_LOGERROR("Can not define vertex buffer with no vertices or no elements");
-            return false;
-        }
-
-        _vertexDeclaration.Define(elementsCount, elements);
-        _descriptor.size = vertexCount * _vertexDeclaration.GetStride();
-        _descriptor.usage = BufferUsage::Vertex;
-        _descriptor.stride = _vertexDeclaration.GetStride();
-        if (!CreateGPUBuffer(useShadowData, data))
-        {
-            ALIMER_LOGERROR("Failed to define vertex buffer.");
-            return false;
-        }
-
-        ALIMER_LOGDEBUG("Defined vertex buffer [vertexCount {}, stride {}]", vertexCount, _descriptor.stride);
-        return true;
-    }
-
     uint32_t GetUniformTypeSize(UniformType type)
     {
         switch (type)

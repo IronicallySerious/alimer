@@ -43,8 +43,6 @@ namespace alimer
         SampleCount preferredSamples = SampleCount::Count1;
     };
 
-    struct GPUSwapChain;
-
     /// Defines a RenderWindow class.
     class ALIMER_API RenderWindow final : public Window
     {
@@ -67,11 +65,8 @@ namespace alimer
         Framebuffer* GetCurrentFramebuffer() const;
 
     private:
-        void OnSizeChanged(const uvec2& newSize) override;
-
-        Vector<SharedPtr<Texture2D>> _backbufferTextures;
+        
         SharedPtr<Texture2D> _depthStencilTexture;
         Vector<SharedPtr<Framebuffer>> _framebuffers;
-        GPUSwapChain* _swapChain;
     };
 }

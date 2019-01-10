@@ -28,9 +28,9 @@
 namespace alimer
 {
     RenderWindow::RenderWindow(const RenderWindowDescriptor* descriptor)
-        : Window(descriptor->title, descriptor->size, descriptor->windowFlags)
+        : Window(nullptr, descriptor->title, descriptor->size.x, descriptor->size.y, descriptor->windowFlags)
     {
-        _swapChain = GetSubsystem<GPUDevice>()->GetImpl()->CreateSwapChain(
+        /*_swapChain = GetSubsystem<GPUDevice>()->GetImpl()->CreateSwapChain(
             GetNativeHandle(),
             descriptor->size.x,
             descriptor->size.y,
@@ -58,7 +58,7 @@ namespace alimer
             {
                 _framebuffers[i]->SetDepthStencilAttachment(_depthStencilTexture.Get(), 0, 0);
             }
-        }
+        }*/
     }
 
     RenderWindow::~RenderWindow()
@@ -69,25 +69,20 @@ namespace alimer
     void RenderWindow::Destroy()
     {
         _depthStencilTexture.Reset();
-        _backbufferTextures.Clear();
+        
         _framebuffers.Clear();
-        SafeDelete(_swapChain);
+        //SafeDelete(_swapChain);
     }
 
     void RenderWindow::SwapBuffers()
     {
-        _swapChain->Present();
-    }
-
-    void RenderWindow::OnSizeChanged(const uvec2& newSize)
-    {
-        _swapChain->Configure(newSize.x, newSize.y);
-        Window::OnSizeChanged(newSize);
+        //_swapChain->Present();
     }
 
     Framebuffer* RenderWindow::GetCurrentFramebuffer() const
     {
-        uint32_t currentBackBufferIndex = _swapChain->GetCurrentBackBuffer();
-        return _framebuffers[currentBackBufferIndex].Get();
+        return nullptr;
+        //uint32_t currentBackBufferIndex = _swapChain->GetCurrentBackBuffer();
+        //return _framebuffers[currentBackBufferIndex].Get();
     }
 }

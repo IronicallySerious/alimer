@@ -39,6 +39,10 @@
 #include "../Renderer/RenderPipeline.h"
 #include <atomic>
 
+#ifdef CreateWindow
+#   undef CreateWindow
+#endif
+
 namespace alimer
 {
     struct ApplicationSettings
@@ -50,6 +54,18 @@ namespace alimer
 #else
         bool validation = false;
 #endif
+
+        /// Main window title.
+        String title = "Alimer";
+
+        /// Main window width.
+        uint32_t width = 800;
+
+        /// Main window height.
+        uint32_t height = 600;
+
+        /// Main window flags
+        WindowFlags windowFlags = WindowFlags::Default;
 
         RenderWindowDescriptor mainWindowDescriptor{};
     };
@@ -83,6 +99,9 @@ namespace alimer
 
         /// Resume the main execution loop.
         void Resume();
+
+        /// Create new window (if supported).
+        SharedPtr<Window> CreateWindow(const String& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Default);
 
         Timer &GetFrameTimer() { return _timer; }
 
@@ -131,7 +150,7 @@ namespace alimer
         Timer _timer;
         
         SharedPtr<GPUDevice>    _gpuDevice;
-        RenderWindow*           _mainWindow = nullptr;
+        SharedPtr<Window>       _mainWindow;
         Input _input;
 
         //
@@ -142,11 +161,8 @@ namespace alimer
         RenderContext _renderContext;
         SceneRenderPipeline* _sceneRenderPipeline = nullptr;
 
-        
     private:
         static Application *_instance;
 
-    private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Application);
     };
 }
