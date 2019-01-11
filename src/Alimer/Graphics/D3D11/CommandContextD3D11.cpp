@@ -294,9 +294,9 @@ namespace alimer
         }
     }
 
-    void CommandContextD3D11::SetVertexBuffer(uint32_t binding, Buffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
+    void CommandContextD3D11::SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
     {
-        auto d3dBuffer = static_cast<BufferD3D11*>(buffer->GetGPUBuffer())->GetHandle();
+        auto d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
         if (_vbo.buffers[binding] != d3dBuffer
             || _vbo.offsets[binding] != offset)
         {
@@ -310,7 +310,6 @@ namespace alimer
         }
 
         _vbo.buffers[binding] = d3dBuffer;
-        _vbo.formats[binding] = format;
         _vbo.offsets[binding] = offset;
         _vbo.strides[binding] = stride;
         _vbo.inputRates[binding] = inputRate;
@@ -318,7 +317,7 @@ namespace alimer
 
     void CommandContextD3D11::SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<BufferD3D11*>(buffer->GetGPUBuffer())->GetHandle();
+        ID3D11Buffer* d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
         DXGI_FORMAT dxgiFormat = indexType == IndexType::UInt32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
         _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
     }

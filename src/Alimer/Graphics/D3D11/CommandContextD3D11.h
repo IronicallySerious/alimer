@@ -55,7 +55,7 @@ namespace alimer
 
         void SetShaderImpl(Shader* shader) override;
 
-        void SetVertexBuffer(uint32_t binding, Buffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
+        void SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
         void SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType) override;
 
         void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;

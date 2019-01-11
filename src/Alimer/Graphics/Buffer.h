@@ -40,8 +40,6 @@ namespace alimer
         /// Desturctor
         virtual ~Buffer() = default;
 
-        void Destroy() override;
-
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 
@@ -65,41 +63,4 @@ namespace alimer
         /// CPU-side shadow data.
         AutoArrayPtr<uint8_t> _shadowData;
 	};
-
-    /// Defines a vertex buffer.
-    class VertexBuffer final : public Buffer
-    {
-    public:
-        /// Constructor.
-        VertexBuffer();
-
-        bool Define(uint32_t vertexCount, const PODVector<VertexElement>& elements, bool useShadowData, const void* data = nullptr);
-        bool Define(uint32_t vertexCount, uint32_t elementsCount, const VertexElement* elements, bool useShadowData, const void* data = nullptr);
-
-        const VertexDeclaration* GetVertexDeclaration() const { return &_vertexDeclaration; }
-
-    private:
-        VertexDeclaration _vertexDeclaration;
-    };
-
-    /// Defines a index buffer.
-    class IndexBuffer final : public Buffer
-    {
-    public:
-        /// Constructor.
-        IndexBuffer();
-
-        bool Define(uint32_t indexCount, IndexType indexType, bool useShadowData, const void* data = nullptr);
-
-        /// Return number of indices.
-        uint32_t GetIndexCount() const { return _indexCount; }
-        /// Return the type of index.
-        IndexType GetIndexType() const { return _indexType; }
-
-    private:
-        /// Number of indices.
-        uint32_t _indexCount = 0;
-        /// Type of index.
-        IndexType _indexType = IndexType::UInt16;
-    };
 }

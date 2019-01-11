@@ -91,7 +91,7 @@ namespace alimer
         SetShaderImpl(shader);
     }
 
-    void CommandContext::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
+    void CommandContext::SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
@@ -103,16 +103,15 @@ namespace alimer
             return;
         }
 #endif
-        SetVertexBuffer(
+        SetVertexBufferImpl(
             binding, 
             buffer,
-            buffer->GetVertexDeclaration(),
-            vertexOffset * buffer->GetElementSize(), 
-            buffer->GetElementSize(), 
+            offset,
+            stride, 
             inputRate);
     }
 
-    void CommandContext::SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex)
+    void CommandContext::SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
 
@@ -124,8 +123,7 @@ namespace alimer
         }
 #endif
 
-        uint32_t offset = startIndex * buffer->GetElementSize();
-        SetIndexBufferImpl(buffer, offset, buffer->GetIndexType());
+        SetIndexBufferImpl(buffer, offset, indexType);
     }
 
     void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)

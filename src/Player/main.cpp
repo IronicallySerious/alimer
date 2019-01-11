@@ -54,7 +54,7 @@ namespace alimer
     class TriangleExample
     {
     public:
-        void Initialize(ResourceManager& resources)
+        void Initialize(GPUDevice* device, ResourceManager& resources)
         {
             ALIMER_UNUSED(resources);
 
@@ -68,8 +68,11 @@ namespace alimer
             PODVector<VertexElement> vertexElements;
             vertexElements.Push(VertexElement(VertexFormat::Float3, VertexElementSemantic::Position));
             vertexElements.Push(VertexElement(VertexFormat::Float4, VertexElementSemantic::Color0));
-            //_vertexBuffer = new VertexBuffer();
-            //_vertexBuffer->Define(3, vertexElements, false, triangleVertices);
+
+            BufferDescriptor vertexBufferDesc = {};
+            vertexBufferDesc.usage = BufferUsage::Vertex;
+            vertexBufferDesc.size = sizeof(VertexColor);
+            _vertexBuffer = device->CreateBuffer(&vertexBufferDesc, triangleVertices);
 
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -97,7 +100,7 @@ namespace alimer
         }
 
     private:
-        SharedPtr<VertexBuffer> _vertexBuffer;
+        SharedPtr<Buffer> _vertexBuffer;
         //GpuBuffer _perCameraUboBuffer;
 
         SharedPtr<Shader> _shader;
@@ -384,7 +387,7 @@ namespace alimer
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_engine->GetContent());
+        _triangleExample.Initialize(_gpuDevice.Get(), _engine->GetContent());
         //_quadExample.Initialize(_resources);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());

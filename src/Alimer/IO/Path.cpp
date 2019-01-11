@@ -38,8 +38,9 @@ namespace alimer
         uint32_t index = str.FindLast("/\\");
         if (index == String::NPOS)
         {
-            return str.FindLast('/');
+            index = str.FindLast('/');
         }
+        return index;
 #else
         return str.FindLast('/');
 #endif

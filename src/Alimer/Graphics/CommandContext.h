@@ -68,8 +68,8 @@ namespace alimer
 
         void SetShader(Shader* shader);
 
-        void SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
-        void SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex = 0);
+        void SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate = VertexInputRate::Vertex);
+        void SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType);
 
         void SetPrimitiveTopology(PrimitiveTopology topology);
 
@@ -90,7 +90,7 @@ namespace alimer
         virtual void EndRenderPassImpl() = 0;
         virtual void SetShaderImpl(Shader* shader) = 0;
 
-        virtual void SetVertexBuffer(uint32_t binding, Buffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
+        virtual void SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
         virtual void SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType) = 0;
         virtual void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
 
