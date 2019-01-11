@@ -29,10 +29,9 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    BufferD3D11::BufferD3D11(DeviceD3D11* device, const BufferDescriptor& descriptor, const void* initialData)
-        : _device(device)
+    BufferD3D11::BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* initialData)
+        : Buffer(device, descriptor)
         , _deviceContext(device->GetD3DDeviceContext())
-        , _descriptor(descriptor)
     {
         D3D11_BUFFER_DESC bufferDesc = {};
         bufferDesc.ByteWidth = static_cast<UINT>(_descriptor.size);

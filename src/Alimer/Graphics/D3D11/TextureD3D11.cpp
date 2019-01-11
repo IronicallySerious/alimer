@@ -29,11 +29,11 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     TextureD3D11::TextureD3D11(DeviceD3D11* device,
-        const TextureDescriptor& descriptor, const void* initialData, 
+        const TextureDescriptor* descriptor, const void* initialData, 
         ID3D11Texture2D* externalTexture,  DXGI_FORMAT dxgiFormat)
-        : _d3dDevice(device->GetD3DDevice())
+        : Texture(device, descriptor)
+        , _d3dDevice(device->GetD3DDevice())
         , _resource(nullptr)
-        , _descriptor(descriptor)
     {
         if (externalTexture == nullptr)
         {
@@ -65,7 +65,7 @@ namespace alimer
 
             // If depth stencil format and shader read or write, switch to typeless.
             if (IsDepthStencilFormat(_descriptor.format)
-                && any(_descriptor.usage & (TextureUsage::Sampled | TextureUsage::Storage)))
+                && any(_descriptor.usage & (TextureUsage::ShaderRead | TextureUsage::ShaderWrite)))
             {
                 _dxgiFormat = GetDxgiTypelessDepthFormat(_descriptor.format);
             }
@@ -80,17 +80,17 @@ namespace alimer
             const bool dynamic = false;
             UINT d3dCPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
             UINT d3dMiscFlags = 0;
-            if (any(_descriptor.usage & TextureUsage::Sampled))
+            if (any(_descriptor.usage & TextureUsage::ShaderRead))
             {
                 d3dBindFlags |= D3D11_BIND_SHADER_RESOURCE;
             }
 
-            if (any(_descriptor.usage & TextureUsage::Storage))
+            if (any(_descriptor.usage & TextureUsage::ShaderWrite))
             {
                 d3dBindFlags |= D3D11_BIND_UNORDERED_ACCESS;
             }
 
-            if (any(_descriptor.usage & TextureUsage::OutputAttachment))
+            if (any(_descriptor.usage & TextureUsage::RenderTarget))
             {
                 if (!IsDepthStencilFormat(_descriptor.format))
                 {

@@ -22,37 +22,15 @@
 
 #include "../Graphics/CommandContext.h"
 #include "../Graphics/GPUDevice.h"
-#include "../Graphics/GPUDeviceImpl.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 
 namespace alimer
 {
-    CommandContext::CommandContext(GPUDevice* device, GPUCommandBuffer* commandBuffer)
+    CommandContext::CommandContext(GPUDevice* device)
         : _device(device)
-        , _commandBuffer(commandBuffer)
         , _insideRenderPass(false)
     {
-    }
-
-    uint64_t CommandContext::Flush(bool waitForCompletion)
-    {
-        return _commandBuffer->Flush(waitForCompletion);
-    }
-
-    void CommandContext::PushDebugGroup(const String& name)
-    {
-        _commandBuffer->PushDebugGroup(name.CString());
-    }
-
-    void CommandContext::PopDebugGroup()
-    {
-        _commandBuffer->PopDebugGroup();
-    }
-
-    void CommandContext::InsertDebugMarker(const String& name)
-    {
-        _commandBuffer->InsertDebugMarker(name.CString());
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth, uint8_t clearStencil)
@@ -81,31 +59,36 @@ namespace alimer
     {
         ALIMER_ASSERT(framebuffer);
 
-        _commandBuffer->BeginRenderPass(framebuffer->GetGPUFramebuffer(), descriptor);
+        BeginRenderPassImpl(framebuffer, descriptor);
         _insideRenderPass = true;
     }
 
     void CommandContext::EndRenderPass()
     {
-        _commandBuffer->EndRenderPass();
+        EndRenderPassImpl();
         _insideRenderPass = false;
     }
 
     void CommandContext::SetViewport(const RectangleF& viewport)
     {
-        _commandBuffer->SetViewport(viewport);
+        SetViewport(1, &viewport);
     }
 
     void CommandContext::SetScissor(const Rectangle& scissor)
     {
-        _commandBuffer->SetScissor(scissor);
+        SetScissor(1, &scissor);
+    }
+
+    void CommandContext::SetBlendColor(const Color4& color)
+    {
+        SetBlendColor(color.r, color.g, color.b, color.a);
     }
 
     void CommandContext::SetShader(Shader* shader)
     {
         ALIMER_ASSERT(shader);
         _currentShader = shader;
-        _commandBuffer->SetShader(shader->GetGPUShader());
+        SetShaderImpl(shader);
     }
 
     void CommandContext::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
@@ -120,9 +103,9 @@ namespace alimer
             return;
         }
 #endif
-        _commandBuffer->SetVertexBuffer(
+        SetVertexBuffer(
             binding, 
-            buffer->GetGPUBuffer(), 
+            buffer,
             buffer->GetVertexDeclaration(),
             vertexOffset * buffer->GetElementSize(), 
             buffer->GetElementSize(), 
@@ -142,7 +125,7 @@ namespace alimer
 #endif
 
         uint32_t offset = startIndex * buffer->GetElementSize();
-        _commandBuffer->SetIndexBuffer(buffer->GetGPUBuffer(), offset, buffer->GetIndexType());
+        SetIndexBufferImpl(buffer, offset, buffer->GetIndexType());
     }
 
     void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)
@@ -164,7 +147,7 @@ namespace alimer
         ALIMER_ASSERT(instanceCount >= 1);
 #endif
 
-        _commandBuffer->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+        DrawInstancedImpl(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)

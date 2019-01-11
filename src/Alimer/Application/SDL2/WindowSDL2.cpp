@@ -79,6 +79,8 @@ namespace alimer
         {
             SDL_DestroyWindow(_window);
             _window = nullptr;
+
+            OnDestroyed();
         }
     }
 

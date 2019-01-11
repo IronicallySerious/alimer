@@ -49,6 +49,7 @@ namespace alimer
     };
 
     class GPUDevice;
+    class Framebuffer;
     class SwapChain;
 
     /// OS Window class.
@@ -111,12 +112,21 @@ namespace alimer
         /// Gets the native connection, display or instance handle.
         void* GetNativeConnection() const { return _nativeConnection; }
 
+        /// Get the current framebuffer.
+        Framebuffer* GetCurrentFramebuffer() const;
+
+        /// Swaps the frame buffers to display the next frame. 
+        void SwapBuffers();
+
         /// Size changed event.
         Event<void(const WindowResizeEvent&)> resizeEvent;
 
     protected:
         /// Called when implementation created the native window.
         void OnCreated();
+
+        /// Called when implementation destroys the native window.
+        void OnDestroyed();
 
     private:
         void OnSizeChanged(const uvec2& newSize);

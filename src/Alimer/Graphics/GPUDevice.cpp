@@ -21,7 +21,6 @@
 //
 
 #include "../Graphics/GPUDevice.h"
-#include "../Graphics/GPUDeviceImpl.h"
 #include "../Graphics/SwapChain.h"
 #include "../Core/Log.h"
 
@@ -51,12 +50,10 @@ extern "C"
 namespace alimer
 {
     GPUDevice::GPUDevice(GraphicsBackend backend, bool validation)
-        : _impl(nullptr)
-        , _backend(backend)
+        : _backend(backend)
         , _validation(validation)
         , _frameIndex(0)
     {
-        //_immediateCommandContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
         AddSubsystem(this);
     }
 
@@ -177,7 +174,7 @@ namespace alimer
         default:
             return false;
         }
-        }
+    }
 
     std::set<GraphicsBackend> GPUDevice::GetAvailableBackends()
     {
@@ -235,19 +232,9 @@ namespace alimer
 #endif
     }
 
-    const GPULimits& GPUDevice::GetLimits() const
-    {
-        return _impl->GetLimits();
-    }
-
-    const GraphicsDeviceFeatures& GPUDevice::GetFeatures() const
-    {
-        return _impl->GetFeatures();
-    }
-
     bool GPUDevice::WaitIdle()
     {
-        return _impl->WaitIdle();
+        return true;
     }
 
     uint64_t GPUDevice::Frame()
@@ -293,7 +280,7 @@ namespace alimer
             return;
         registered = true;
 
-        Shader::RegisterObject();
+        //Shader::RegisterObject();
         //Texture::RegisterObject();
         //Sampler::RegisterObject();
     }
@@ -315,87 +302,218 @@ namespace alimer
         return CreateSwapChainImpl(descriptor);
     }
 
-    Texture* GPUDevice::CreateTexture1D(uint32_t width, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, TextureUsage usage, const void* initialData)
+    Texture* GPUDevice::CreateTexture(const TextureDescriptor* descriptor, const void* initialData)
     {
+        ALIMER_ASSERT(descriptor);
 
-#if defined(ALIMER_DEV)
-        if (format == PixelFormat::Unknown)
+        if (descriptor->format == PixelFormat::Unknown)
         {
             ALIMER_LOGCRITICAL("Invalid texture usage");
         }
 
-        if (usage == TextureUsage::None)
+        if (descriptor->usage == TextureUsage::None)
         {
             ALIMER_LOGCRITICAL("Invalid texture usage");
         }
 
-        if (width == 0
-            || arrayLayers == 0
-            || mipLevels == 0)
+        if (descriptor->width == 0
+            || descriptor->height == 0
+            || descriptor->depth == 0
+            || descriptor->arraySize == 0
+            || descriptor->mipLevels == 0)
         {
             ALIMER_LOGCRITICAL("Cannot create an empty texture");
         }
-#endif // defined(ALIMER_DEV)
 
-        return nullptr;
-        //return CreateTextureCore(TextureType::Type1D, width, 1, 1, mipLevels, arrayLayers, format, usage, SampleCount::Count1, initialData);
+        return CreateTextureImpl(descriptor, initialData);
     }
 
     
-    Texture* GPUDevice::CreateTextureCube(uint32_t size, uint32_t mipLevels, uint32_t arrayLayers, PixelFormat format, TextureUsage usage, const void* initialData)
+    Texture* GPUDevice::CreateTexture1D(uint32_t width, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, const void* initialData)
     {
-#if defined(ALIMER_DEV)
-        if (format == PixelFormat::Unknown)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
+        TextureDescriptor descriptor = {};
+        descriptor.width = width;;
+        descriptor.height = 1;
+        descriptor.depth = 1;
+        descriptor.arraySize = arraySize;
+        descriptor.mipLevels = mipLevels;
+        descriptor.samples = SampleCount::Count1;
+        descriptor.type = TextureType::Type1D;
+        descriptor.format = format;
+        descriptor.usage = usage;
+        return CreateTexture(&descriptor, initialData);
+    }
 
-        if (usage == TextureUsage::None)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
+    Texture* GPUDevice::CreateTexture2D(
+        uint32_t width, uint32_t height,
+        uint32_t mipLevels, uint32_t arraySize,
+        PixelFormat format, TextureUsage usage,
+        SampleCount samples, const void* initialData)
+    {
+        TextureDescriptor descriptor = {};
+        descriptor.width = width;;
+        descriptor.height = height;
+        descriptor.depth = 1;
+        descriptor.arraySize = arraySize;
+        descriptor.mipLevels = mipLevels;
+        descriptor.samples = samples;
+        descriptor.type = TextureType::Type2D;
+        descriptor.format = format;
+        descriptor.usage = usage;
+        return CreateTexture(&descriptor, initialData);
+    }
 
-        if (size == 0
-            || arrayLayers == 0
-            || mipLevels == 0)
-        {
-            ALIMER_LOGCRITICAL("Cannot create an empty texture");
-        }
-#endif // defined(ALIMER_DEV)
-
-        return nullptr;
-        //return CreateTextureCore(TextureType::TypeCube, size, size, 1, mipLevels, arrayLayers, format, usage, SampleCount::Count1, initialData);
+    Texture* GPUDevice::CreateTextureCube(uint32_t size, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, const void* initialData)
+    {
+        TextureDescriptor descriptor = {};
+        descriptor.width = size;;
+        descriptor.height = size;
+        descriptor.depth = 1;
+        descriptor.arraySize = arraySize;
+        descriptor.mipLevels = mipLevels;
+        descriptor.samples = SampleCount::Count1;
+        descriptor.type = TextureType::Type3D;
+        descriptor.format = format;
+        descriptor.usage = usage;
+        return CreateTexture(&descriptor, initialData);
     }
 
     Texture* GPUDevice::CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevels, PixelFormat format, TextureUsage usage, const void* initialData)
     {
-#if defined(ALIMER_DEV)
-        if (format == PixelFormat::Unknown)
+        TextureDescriptor descriptor = {};
+        descriptor.width = width;;
+        descriptor.height = height;
+        descriptor.depth = depth;
+        descriptor.arraySize = 1;
+        descriptor.mipLevels = mipLevels;
+        descriptor.samples = SampleCount::Count1;
+        descriptor.type = TextureType::Type3D;
+        descriptor.format = format;
+        descriptor.usage = usage;
+        return CreateTexture(&descriptor, initialData);
+    }
+
+    static bool ValidateFramebufferAttachment(const FramebufferAttachment& attachment, bool isDepthAttachment)
+    {
+#ifndef _DEBUG
+        ALIMER_UNUSED(attachment);
+        ALIMER_UNUSED(isDepthAttachment);
+        return true;
+#else
+        if (attachment.texture == nullptr)
         {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
+            ALIMER_LOGERROR("Framebuffer attachment error : texture is null.");
+            return false;
         }
 
-        if (usage == TextureUsage::None)
+        if (attachment.level >= attachment.texture->GetMipLevels())
         {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
+            ALIMER_LOGERROR("Framebuffer attachment error : mipLevel out of bound.");
+            return false;
         }
 
-        if (width == 0
-            || height == 0
-            || depth == 0
-            || mipLevels == 0)
+        /*if (attachment.layerCount != RemainingArrayLayers)
         {
-            ALIMER_LOGCRITICAL("Cannot create an empty texture");
-        }
-#endif // defined(ALIMER_DEV)
+            if (attachment.layerCount == 0)
+            {
+                ALIMER_LOGERROR("Error when attaching texture to framebuffer : Requested to attach zero array slices");
+                return false;
+            }
 
-        return nullptr;
-        //return CreateTextureCore(TextureType::Type3D, width, height, depth, mipLevels, 1, format, usage, SampleCount::Count1, initialData);
+            if (attachment.texture->GetTextureType() == TextureType::Type3D)
+            {
+                if (attachment.baseArrayLayer + attachment.layerCount > attachment.texture->GetDepth())
+                {
+                    ALIMER_LOGERROR("Error when attaching texture to framebuffer : Requested depth index is out of bound.");
+                    return false;
+                }
+            }
+            else
+            {
+                if (attachment.baseArrayLayer + attachment.layerCount > attachment.texture->GetArrayLayers())
+                {
+                    ALIMER_LOGERROR("Error when attaching texture to framebuffer : Requested array index is out of bound.");
+                    return false;
+                }
+            }
+        }*/
+
+        if (isDepthAttachment)
+        {
+            if (IsDepthStencilFormat(attachment.texture->GetFormat()) == false)
+            {
+                ALIMER_LOGERROR("Error when attaching texture to framebuffer : Attaching to depth-stencil target, but resource has color format.");
+                return false;
+            }
+
+            if (!any(attachment.texture->GetUsage() & TextureUsage::RenderTarget))
+            {
+                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to depth-stencil target, the texture has no RenderTarget usage flag.");
+                return false;
+            }
+        }
+        else
+        {
+            if (IsDepthStencilFormat(attachment.texture->GetFormat()))
+            {
+                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to color target, but resource has depth-stencil format.");
+                return false;
+            }
+
+            if (!any(attachment.texture->GetUsage() & TextureUsage::RenderTarget))
+            {
+                ALIMER_LOGERROR("Error when attaching texture to FBO: Attaching to color target, the texture has no RenderTarget usage flag.");
+                return false;
+            }
+        }
+
+        return true;
+#endif
+    }
+
+    Framebuffer* GPUDevice::CreateFramebuffer(const FramebufferDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+
+        for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+        {
+            if (descriptor->colorAttachments[i].texture == nullptr)
+            {
+                continue;
+            }
+
+            if (!ValidateFramebufferAttachment(descriptor->colorAttachments[i], false))
+            {
+                return nullptr;
+            }
+        }
+
+        if (descriptor->depthStencilAttachment.texture != nullptr)
+        {
+            if (!ValidateFramebufferAttachment(descriptor->depthStencilAttachment, true))
+            {
+                return nullptr;
+            }
+        }
+
+        return CreateFramebufferImpl(descriptor);
     }
 
     Sampler* GPUDevice::CreateSampler(const SamplerDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
         return CreateSamplerImpl(descriptor);
+    }
+
+    Buffer* GPUDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
+    {
+        ALIMER_ASSERT(descriptor);
+        return CreateBufferImpl(descriptor, initialData);
+    }
+
+    Shader* GPUDevice::CreateShader(const ShaderDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+        return CreateShaderImpl(descriptor);
     }
 }

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../GPUDeviceImpl.h"
+#include "../Texture.h"
 #include "D3D11Prerequisites.h"
 #include <unordered_map>
 
@@ -31,11 +31,11 @@ namespace alimer
     class DeviceD3D11;
 
     /// D3D11 Texture implementation.
-    class TextureD3D11 final : public GPUTexture
+    class TextureD3D11 final : public Texture
     {
     public:
         /// Constructor.
-        TextureD3D11(DeviceD3D11* device, const TextureDescriptor& descriptor,
+        TextureD3D11(DeviceD3D11* device, const TextureDescriptor* descriptor,
             const void* initialData, ID3D11Texture2D* externalTexture, DXGI_FORMAT dxgiFormat);
 
         /// Destructor.
@@ -44,8 +44,6 @@ namespace alimer
         void Destroy();
 
         void InvalidateViews();
-
-        TextureDescriptor GetDescriptor() override { return _descriptor; }
 
         ID3D11Device*       GetD3DDevice() const { return _d3dDevice; }
         ID3D11Resource*     GetResource() const { return _resource; }
@@ -58,7 +56,6 @@ namespace alimer
     private:
         ID3D11Device* _d3dDevice;
         DXGI_FORMAT _dxgiFormat;
-        TextureDescriptor _descriptor;
 
         union {
             ID3D11Resource* _resource;

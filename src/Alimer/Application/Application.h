@@ -33,7 +33,6 @@
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
 #include "../Graphics/GPUDevice.h"
-#include "../Graphics/RenderWindow.h"
 #include "../Scene/Scene.h"
 #include "../Renderer/RenderContext.h"
 #include "../Renderer/RenderPipeline.h"
@@ -67,7 +66,7 @@ namespace alimer
         /// Main window flags
         WindowFlags windowFlags = WindowFlags::Default;
 
-        RenderWindowDescriptor mainWindowDescriptor{};
+        SwapChainDescriptor swapChainDescriptor = {};
     };
 
     /// Application for main loop and all modules and OS setup.

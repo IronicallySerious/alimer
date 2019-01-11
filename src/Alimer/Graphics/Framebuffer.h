@@ -27,31 +27,15 @@
 
 namespace alimer
 {
-    struct FramebufferAttachment
-    {
-        /// The texture attachment.
-        Texture* texture = nullptr;
-        /// The mipmap level of the texture used for rendering to the attachment.
-        uint32_t level = 0;
-        /// The slice of the texture used for rendering to the attachment.
-        uint32_t slice = 0;
-    };
-
-    struct GPUFramebuffer;
-
     /// Defines a Framebuffer class.
-    class ALIMER_API Framebuffer final : public GPUResource
+    class ALIMER_API Framebuffer : public GPUResource
     {
-    public:
+    protected:
         /// Constructor.
-        Framebuffer();
+        Framebuffer(GPUDevice* device, const FramebufferDescriptor* descriptor);
 
+    public:
         /// Set color attachment at index.
-        void SetColorAttachment(uint32_t index, Texture* colorTexture, uint32_t level = 0, uint32_t slice = 0);
-
-        /// Set framebuffer depth stencil attachment.
-        void SetDepthStencilAttachment(Texture* depthStencilTexture, uint32_t level = 0, uint32_t slice = 0);
-
         /// Get the number of color attachments.
         uint32_t GetColorAttachmentsCount() const { return _colorAttachments.Size(); }
 
@@ -73,9 +57,6 @@ namespace alimer
         ///Get the layers of the framebuffer.
         uint32_t GetLayers() const { return _layers; }
 
-        /// Get the GPUFramebuffer.
-        GPUFramebuffer* GetGPUFramebuffer() const { return _framebuffer; }
-
     private:
         PODVector<FramebufferAttachment> _colorAttachments;
         FramebufferAttachment _depthStencilAttachment;
@@ -83,7 +64,5 @@ namespace alimer
         uint32_t _width;
         uint32_t _height;
         uint32_t _layers;
-
-        GPUFramebuffer* _framebuffer = nullptr;
     };
 }

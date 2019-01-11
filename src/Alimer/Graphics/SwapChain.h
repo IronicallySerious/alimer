@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Base/Ptr.h"
-#include "../Graphics/Texture.h"
+#include "../Graphics/Framebuffer.h"
 
 namespace alimer
 {
@@ -40,15 +40,33 @@ namespace alimer
 
         void Destroy() override;
 
-        virtual uint32_t GetCurrentBackBuffer() const = 0;
-        virtual Texture* GetBackBufferTexture(uint32_t index) const = 0;
-
-        virtual void Configure(uint32_t width, uint32_t height) = 0;
+        void Resize(uint32_t width, uint32_t height);
         virtual void Present() = 0;
 
         uint32_t GetBackBufferCount() const { return _backbufferTextures.Size(); }
+        Texture* GetBackBufferTexture(uint32_t index) const { return _backbufferTextures[index].Get(); }
+        uint32_t GetCurrentBackBuffer() const { return _currentBackBuffer; }
+        Framebuffer* GetCurrentFramebuffer() const { return _framebuffers[_currentBackBuffer].Get(); }
+
+        /// Get the swap chain width.
+        uint32_t GetWidth() const { return _width; }
+
+        /// Get the swap chain height.
+        uint32_t GetHeight() const { return _height; }
 
     protected:
+        void InitializeFramebuffer();
+        virtual void ResizeImpl(uint32_t width, uint32_t height) = 0;
+
         Vector<SharedPtr<Texture>> _backbufferTextures;
+        uint32_t _currentBackBuffer = 0;
+
+    private:
+        uint32_t _width;
+        uint32_t _height;
+        PixelFormat _backBufferFormat;
+        PixelFormat _depthStencilFormat;
+        SharedPtr<Texture> _depthStencilTexture;
+        Vector<SharedPtr<Framebuffer>> _framebuffers;
     };
 }

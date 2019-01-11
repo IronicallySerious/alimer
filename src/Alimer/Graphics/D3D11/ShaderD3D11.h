@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../GPUDeviceImpl.h"
+#include "../Shader.h"
 #include "D3D11Prerequisites.h"
 #include <array>
 
@@ -31,22 +31,15 @@ namespace alimer
     class DeviceD3D11;
 
     /// D3D11 Shader implementation.
-    class ShaderD3D11 final : public GPUShader
+    class ShaderD3D11 final : public Shader
     {
     public:
         /// Constructor.
-        ShaderD3D11(DeviceD3D11* device, const PODVector<uint8_t>& bytecode);
-
-        ShaderD3D11(DeviceD3D11* device, const PODVector<uint8_t>& vertex,
-            const PODVector<uint8_t>& tessControl,
-            const PODVector<uint8_t>& tessEval,
-            const PODVector<uint8_t>& geometry,
-            const PODVector<uint8_t>& fragment);
+        ShaderD3D11(DeviceD3D11* device, const ShaderDescriptor* descriptor);
 
         /// Destructor.
         ~ShaderD3D11() override;
 
-        ShaderStages GetStages() const { return _stage; }
         ID3D11VertexShader* GetVertexShader() const { return _vertexShader.Get(); }
         ID3D11HullShader* GetTessControlShader() const { return _tessControlShader.Get(); }
         ID3D11DomainShader* GetTessEvalShader() const { return _tessEvalShader.Get(); }
@@ -57,8 +50,6 @@ namespace alimer
         const PODVector<uint8_t>& GetVertexShaderBlob() const { return _vertexShaderBlob; }
 
     private:
-        DeviceD3D11* _device;
-        ShaderStages _stage;
         Microsoft::WRL::ComPtr<ID3D11VertexShader>      _vertexShader;
         Microsoft::WRL::ComPtr<ID3D11HullShader>        _tessControlShader;
         Microsoft::WRL::ComPtr<ID3D11DomainShader>      _tessEvalShader;

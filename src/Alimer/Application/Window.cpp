@@ -21,6 +21,7 @@
 //
 
 #include "../Application/Window.h"
+#include "../Graphics/Framebuffer.h"
 #include "../Graphics/SwapChain.h"
 #include "../Graphics/GPUDevice.h"
 
@@ -85,7 +86,7 @@ namespace alimer
 
     void Window::OnSizeChanged(const uvec2& newSize)
     {
-        _swapChain->Configure(newSize.x, newSize.y);
+        _swapChain->Resize(newSize.x, newSize.y);
         WindowResizeEvent evt;
         evt.size = _size;
         resizeEvent(evt);
@@ -107,5 +108,20 @@ namespace alimer
         descriptor.preferredDepthStencilFormat = PixelFormat::D24UNormS8;
         descriptor.preferredSamples = SampleCount::Count1;
         _swapChain = _device->CreateSwapChain(&descriptor);
+    }
+
+    void Window::OnDestroyed()
+    {
+        SafeDelete(_swapChain);
+    }
+
+    Framebuffer* Window::GetCurrentFramebuffer() const
+    {
+        return _swapChain->GetCurrentFramebuffer();
+    }
+
+    void Window::SwapBuffers()
+    {
+        _swapChain->Present();
     }
 }

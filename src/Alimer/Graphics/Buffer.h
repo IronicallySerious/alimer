@@ -29,18 +29,16 @@
 
 namespace alimer
 {
-    struct GPUBuffer;
-
 	/// Defines a GPU Buffer class.
 	class ALIMER_API Buffer : public GPUResource
 	{
 	protected:
         /// Constructor.
-        Buffer();
+        Buffer(GPUDevice* device, const BufferDescriptor* descriptor);
 
     public:
         /// Desturctor
-        ~Buffer() override;
+        virtual ~Buffer() = default;
 
         void Destroy() override;
 
@@ -50,26 +48,20 @@ namespace alimer
         /// Replace buffer data in synchronous way.
         bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
 
+        /// Get size in bytes of the buffer.
+        uint64_t GetSize() const { return _size; }
+
         /// Get the buffer usage flags.
-        BufferUsage GetUsage() const { return _descriptor.usage; }
+        BufferUsage GetUsage() const { return _usage; }
 
         /// Get single element size.
-        uint32_t GetElementSize() const { return _descriptor.stride; }
+        uint32_t GetStride() const { return _stride; }
+        
+    private:
+        uint64_t _size = 0;
+        BufferUsage _usage = BufferUsage::None;
+        uint32_t _stride = 0;
 
-        /// Get size in bytes of the buffer.
-        uint64_t GetSize() const { return _descriptor.size; }
-
-        /// Get the texture description.
-        const BufferDescriptor& GetDescriptor() const { return _descriptor; }
-
-        /// Get the GPUBuffer.
-        GPUBuffer* GetGPUBuffer() const { return _buffer; }
-
-    protected:
-        bool CreateGPUBuffer(bool useShadowData, const void* data);
-
-        GPUBuffer* _buffer = nullptr;
-        BufferDescriptor _descriptor{};
         /// CPU-side shadow data.
         AutoArrayPtr<uint8_t> _shadowData;
 	};

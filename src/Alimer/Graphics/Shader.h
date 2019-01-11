@@ -31,22 +31,17 @@ namespace alimer
     struct GPUShader;
 
     /// Defines a shader resource.
-    class ALIMER_API Shader final : public GPUResource
+    class ALIMER_API Shader : public GPUResource
     {
         friend class GPUDevice;
 
-    public:
+    protected:
         /// Constructor.
-        Shader();
+        Shader(GPUDevice* device, const ShaderDescriptor* descriptor);
 
+    public:
         /// Destructor.
-        ~Shader() override;
-
-        /// Unconditionally destroy the GPU resource.
-        void Destroy();
-
-        bool Define(const PODVector<uint8_t>& compute);
-        bool Define(const PODVector<uint8_t>& vertex, const PODVector<uint8_t>& fragment);
+        virtual ~Shader() = default;
 
         /// Get if shader is compute.
         bool IsCompute() const { return _compute; }
@@ -54,19 +49,12 @@ namespace alimer
         /// Get the shader stage.
         ShaderStages GetStages() const { return _stage; }
 
-        /// Get the GPUShader.
-        GPUShader* GetGPUShader() const { return _module; }
-
-    private:
-        /// Register object factory.
-        static void RegisterObject();
-
+    protected:
         void Reflect(const PODVector<uint8_t>& bytecode);
-
-        GPUShader* _module = nullptr;
 
         //Vector<PipelineResource> _resources;
         bool _compute = false;
+
         /// Shader stage.
         ShaderStages _stage = ShaderStages::None;
     };

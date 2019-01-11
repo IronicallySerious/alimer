@@ -68,9 +68,8 @@ namespace alimer
             PODVector<VertexElement> vertexElements;
             vertexElements.Push(VertexElement(VertexFormat::Float3, VertexElementSemantic::Position));
             vertexElements.Push(VertexElement(VertexFormat::Float4, VertexElementSemantic::Color0));
-
-            _vertexBuffer = new VertexBuffer();
-            _vertexBuffer->Define(3, vertexElements, false, triangleVertices);
+            //_vertexBuffer = new VertexBuffer();
+            //_vertexBuffer->Define(3, vertexElements, false, triangleVertices);
 
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -84,17 +83,17 @@ namespace alimer
 
             // Shaders
             //auto texture = resources.Load<Texture>("textures/test.png");
-            _shader = new Shader();
-            _shader->Define(
-                PODVector<uint8_t>(Color_VSMain, sizeof(Color_VSMain)), 
-                PODVector<uint8_t>(Color_PSMain, sizeof(Color_PSMain)));
+            //_shader = new Shader();
+            //_shader->Define(
+            //    PODVector<uint8_t>(Color_VSMain, sizeof(Color_VSMain)), 
+            //    PODVector<uint8_t>(Color_PSMain, sizeof(Color_PSMain)));
         }
 
         void Render(CommandContext& context)
         {
-            context.SetVertexBuffer(0, _vertexBuffer);
-            context.SetShader(_shader.Get());
-            context.Draw(3, 0);
+            //context.SetVertexBuffer(0, _vertexBuffer);
+            //context.SetShader(_shader.Get());
+            //context.Draw(3, 0);
         }
 
     private:
@@ -405,13 +404,13 @@ namespace alimer
         ALIMER_UNUSED(elapsedTime);
 
         CommandContext& context = _gpuDevice->GetImmediateContext();
-        /*Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         context.BeginRenderPass(_mainWindow->GetCurrentFramebuffer(), clearColor);
         _triangleExample.Render(context);
         //_quadExample.Render(context);
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);
-        context.EndRenderPass();*/
+        context.EndRenderPass();
         context.Flush();
     }
 }

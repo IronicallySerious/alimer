@@ -157,18 +157,18 @@ namespace alimer
             TextureUsage usage = TextureUsage::None;
             if (bindFlags & D3D11_BIND_SHADER_RESOURCE)
             {
-                usage |= TextureUsage::Sampled;
+                usage |= TextureUsage::ShaderRead;
             }
 
             if (bindFlags & D3D11_BIND_UNORDERED_ACCESS)
             {
-                usage |= TextureUsage::Storage;
+                usage |= TextureUsage::ShaderWrite;
             }
 
             if (bindFlags & D3D11_BIND_RENDER_TARGET
                 || bindFlags & D3D11_BIND_DEPTH_STENCIL)
             {
-                usage |= TextureUsage::OutputAttachment;
+                usage |= TextureUsage::RenderTarget;
             }
 
             return usage;

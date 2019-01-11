@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../GPUDeviceImpl.h"
+#include "../CommandContext.h"
 #include "D3D11Prerequisites.h"
 
 namespace alimer
@@ -31,47 +31,43 @@ namespace alimer
     class FramebufferD3D11;
     class DeviceD3D11;
 
-    class CommandBufferD3D11 final : public GPUCommandBuffer
+    class CommandContextD3D11 final : public CommandContext
     {
     public:
-        CommandBufferD3D11(DeviceD3D11* device);
-        ~CommandBufferD3D11() override;
+        CommandContextD3D11(DeviceD3D11* device);
+        ~CommandContextD3D11() override;
 
+    private:
         uint64_t Flush(bool waitForCompletion) override;
 
-
-        void PushDebugGroup(const char* name) override;
+        void PushDebugGroup(const String& name) override;
         void PopDebugGroup() override;
-        void InsertDebugMarker(const char* name) override;
+        void InsertDebugMarker(const String& name) override;
 
-        void BeginRenderPass(GPUFramebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
-        void EndRenderPass() override;
+        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        void EndRenderPassImpl() override;
 
         void SetViewport(const RectangleF& viewport) override;
         void SetViewport(uint32_t viewportCount, const RectangleF* viewports) override;
         void SetScissor(const Rectangle& scissor)  override;
         void SetScissor(uint32_t scissorCount, const Rectangle* scissors) override;
-        void SetBlendConstants(const float blendConstants[4]) override;
+        void SetBlendColor(float r, float g, float b, float a) override;
 
-        void SetShader(GPUShader* shader) override;
+        void SetShaderImpl(Shader* shader) override;
 
-        void SetVertexBuffer(uint32_t binding, GPUBuffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
-        void SetIndexBuffer(GPUBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetVertexBuffer(uint32_t binding, Buffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
+        void SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType) override;
 
-        void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+        void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+    
+        void DispatchImpl(uint32_t x, uint32_t y, uint32_t z) override;
 
-    private:
         void BeginContext();
         void FlushRenderState();
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
 
-        //void SetPrimitiveTopologyCore(PrimitiveTopology topology) override;
-        //void DrawInstancedCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
-        //void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-
     private:
-        DeviceD3D11*                _device;
         ID3D11DeviceContext*        _context;
         ID3D11DeviceContext1*       _context1;
         ID3DUserDefinedAnnotation*  _annotation;
@@ -101,6 +97,10 @@ namespace alimer
             UINT                        strides[MaxVertexBufferBindings];
             VertexInputRate             inputRates[MaxVertexBufferBindings];
         } _vbo = {};
+
+        // RenderTargetViews
+        ID3D11RenderTargetView*     _renderTargetsViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+        ID3D11DepthStencilView*     _depthStencilView = nullptr;
 
         // Viewports
         bool                        _viewportsDirty;

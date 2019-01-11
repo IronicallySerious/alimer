@@ -22,7 +22,6 @@
 
 #include "../Graphics/Shader.h"
 #include "../Graphics/GPUDevice.h"
-#include "../Graphics/GPUDeviceImpl.h"
 #include "../IO/Path.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceManager.h"
@@ -66,36 +65,20 @@ namespace alimer
         }*/
     };
 
-    Shader::Shader()
-        : GPUResource(nullptr, Type::Shader)
+    Shader::Shader(GPUDevice* device, const ShaderDescriptor* descriptor)
+        : GPUResource(device, Type::Shader)
     {
-    }
+        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        {
+            const ShaderStageDescriptor& shaderStage = descriptor->stages[i];
+            if (!shaderStage.codeSize && !strlen(shaderStage.source))
+                continue;
 
-    Shader::~Shader()
-    {
-        Destroy();
-    }
-
-    void Shader::Destroy()
-    {
-        SafeDelete(_module);
-    }
-
-    bool Shader::Define(const PODVector<uint8_t>& compute)
-    {
-        Destroy();
-        //Reflect(compute);
-        _compute = true;
-        _module = _device->GetImpl()->CreateComputeShader(compute);
-        return _module != nullptr;
-    }
-
-    bool Shader::Define(const PODVector<uint8_t>& vertex, const PODVector<uint8_t>& fragment)
-    {
-        Destroy();
-        _compute = false;
-        _module = _device->GetImpl()->CreateGraphicsShader(vertex, {}, {}, {}, fragment);
-        return _module != nullptr;
+            if ((ShaderStage)i == ShaderStage::Compute)
+            {
+                _compute = true;
+            }
+        }
     }
 
     void Shader::Reflect(const PODVector<uint8_t>& bytecode)
@@ -179,12 +162,4 @@ namespace alimer
         PODVector<uint8_t> _byteCode;
     };*/
 
-
-    void Shader::RegisterObject()
-    {
-        //RegisterFactory<Shader>();
-
-        // Register loader.
-        //GetSubsystem<ResourceManager>()->AddLoader(new ShaderLoader());
-    }
 }

@@ -160,6 +160,17 @@ namespace alimer
         Always = 7
     };
 
+    enum class ShaderStage : uint32_t
+    {
+        Vertex = 0,
+        TessControl = 1,
+        TessEvaluation = 2,
+        Geometry = 3,
+        Fragment = 4,
+        Compute = 5,
+        Count
+    };
+
     /// Defines shader stages.
     enum class ShaderStages : uint32_t
     {
@@ -179,20 +190,18 @@ namespace alimer
     enum class TextureType : uint32_t
     {
         Type1D = 0,
-        Type2D,
-        Type3D,
-        TypeCube,
+        Type2D = 1,
+        Type3D = 2,
+        TypeCube = 3,
     };
 
     /// Defines texture usage enum.
     enum class TextureUsage : uint32_t
     {
         None = 0,
-        TransferSrc = 0x00000001,
-        TransferDest = 0x00000002,
-        Sampled = 0x00000004,
-        Storage = 0x00000008,
-        OutputAttachment = 0x00000010,
+        ShaderRead = 1 << 0,
+        ShaderWrite = 1 << 1,
+        RenderTarget = 1 << 2,
     };
     ALIMER_BITMASK(TextureUsage);
 
@@ -349,6 +358,36 @@ namespace alimer
         TextureType type;
         PixelFormat format;
         TextureUsage usage;
+    };
+
+    class Texture;
+    struct FramebufferAttachment
+    {
+        /// The texture attachment.
+        Texture* texture = nullptr;
+        /// The mipmap level of the texture used for rendering to the attachment.
+        uint32_t level = 0;
+        /// The slice of the texture used for rendering to the attachment.
+        uint32_t slice = 0;
+    };
+
+    struct FramebufferDescriptor
+    {
+        FramebufferAttachment colorAttachments[MaxColorAttachments];
+        FramebufferAttachment depthStencilAttachment;
+    };
+
+    struct ShaderStageDescriptor
+    {
+        uint64_t codeSize;
+        const uint8_t* code;
+        const char* source;
+        const char* entryPoint;
+    };
+
+    struct ShaderDescriptor
+    {
+        ShaderStageDescriptor stages[static_cast<unsigned>(ShaderStage::Count)];
     };
 
     struct BufferDescriptor

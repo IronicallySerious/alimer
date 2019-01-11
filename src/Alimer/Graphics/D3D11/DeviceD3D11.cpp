@@ -294,7 +294,7 @@ namespace alimer
         InitializeCaps();
 
         // Create immediate command buffer.
-        _immediateCommandBuffer = new CommandBufferD3D11(this);
+        _immediateCommandContext = new CommandContextD3D11(this);
     }
 
     DeviceD3D11::~DeviceD3D11()
@@ -493,17 +493,17 @@ namespace alimer
         return new SwapChainD3D11(this, descriptor, 2);
     }
 
-    GPUTexture* DeviceD3D11::CreateTexture(const TextureDescriptor& descriptor, const void* initialData)
+    Texture* DeviceD3D11::CreateTextureImpl(const TextureDescriptor* descriptor, const void* initialData)
     {
         return new TextureD3D11(this, descriptor, initialData, nullptr, DXGI_FORMAT_UNKNOWN);
     }
 
-    GPUFramebuffer* DeviceD3D11::CreateFramebuffer()
+    Framebuffer* DeviceD3D11::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
     {
-        return new FramebufferD3D11(this);
+        return new FramebufferD3D11(this, descriptor);
     }
 
-    GPUBuffer* DeviceD3D11::CreateBuffer(const BufferDescriptor& descriptor, const void* initialData)
+    Buffer* DeviceD3D11::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
         return new BufferD3D11(this, descriptor, initialData);
     }
@@ -513,18 +513,8 @@ namespace alimer
         return new SamplerD3D11(this, descriptor);
     }
 
-    GPUShader* DeviceD3D11::CreateComputeShader(const PODVector<uint8_t>& bytecode)
+    Shader* DeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
     {
-        return new ShaderD3D11(this, bytecode);
-    }
-
-    GPUShader* DeviceD3D11::CreateGraphicsShader(
-        const PODVector<uint8_t>& vertex,
-        const PODVector<uint8_t>& tessControl,
-        const PODVector<uint8_t>& tessEval,
-        const PODVector<uint8_t>& geometry,
-        const PODVector<uint8_t>& fragment)
-    {
-        return new ShaderD3D11(this, vertex, tessControl, tessEval, geometry, fragment);
+        return new ShaderD3D11(this, descriptor);
     }
 }

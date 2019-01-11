@@ -22,88 +22,15 @@
 
 #include "../Graphics/Texture.h"
 #include "../Graphics/GPUDevice.h"
-#include "../Graphics/GPUDeviceImpl.h"
 #include "../IO/Stream.h"
 #include "../Core/Log.h"
 
 namespace alimer
 {
-    Texture::Texture()
-        : GPUResource(nullptr, Type::Texture)
+    Texture::Texture(GPUDevice* device, const TextureDescriptor* descriptor)
+        : GPUResource(device, Type::Texture)
         , _descriptor{}
     {
+        memcpy(&_descriptor, descriptor, sizeof(TextureDescriptor));
     }
-
-    Texture::Texture(GPUTexture* texture)
-        : GPUResource(nullptr, Type::Texture)
-        , _texture(texture)
-        , _descriptor(texture->GetDescriptor())
-    {
-    }
-
-    Texture::~Texture()
-    {
-        Destroy();
-    }
-
-    void Texture::Destroy()
-    {
-        SafeDelete(_texture);
-    }
-
-    bool Texture::CreateGPUTexture(const void* initialData)
-    {
-        // Destroy old instance first.
-        Destroy();
-
-        _texture = _device->GetImpl()->CreateTexture(_descriptor, initialData);
-        return _texture != nullptr;
-    }
-
-    /* Texture2D */
-    Texture2D::Texture2D()
-        : Texture()
-    {
-
-    }
-
-    Texture2D::Texture2D(GPUTexture* texture)
-        : Texture(texture)
-    {
-
-    }
-
-    bool Texture2D::Define(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arraySize,
-        PixelFormat format, TextureUsage usage, SampleCount samples, const void* initialData)
-    {
-        if (format == PixelFormat::Unknown)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
-
-        if (usage == TextureUsage::None)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
-
-        if (width == 0
-            || height == 0
-            || arraySize == 0
-            || mipLevels == 0)
-        {
-            ALIMER_LOGCRITICAL("Cannot create an empty texture");
-        }
-
-        _descriptor.width = width;;
-        _descriptor.height = height;
-        _descriptor.depth = 1;
-        _descriptor.arraySize = arraySize;
-        _descriptor.mipLevels = mipLevels;
-        _descriptor.samples = static_cast<SampleCount>(samples);
-        _descriptor.type = TextureType::Type2D;
-        _descriptor.format = format;
-        _descriptor.usage = usage;
-        return CreateGPUTexture(initialData);
-    }
-
 }

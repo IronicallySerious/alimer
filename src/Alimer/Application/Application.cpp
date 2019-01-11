@@ -189,7 +189,7 @@ namespace alimer
         context->EndRenderPass();*/
 
         // Present rendering frame.
-        //_mainWindow->SwapBuffers();
+        _mainWindow->SwapBuffers();
 
         // Advance to next frame.
         _gpuDevice->Frame();

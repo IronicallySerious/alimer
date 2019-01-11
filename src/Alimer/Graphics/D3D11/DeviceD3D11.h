@@ -23,13 +23,12 @@
 #pragma once
 
 #include "../../Graphics/GPUDevice.h"
-#include "../../Graphics/GPUDeviceImpl.h"
 #include "D3D11Cache.h"
 
 namespace alimer
 {
     /// D3D11 graphics implementation.
-    class DeviceD3D11 final : public GPUDevice, public GPUDeviceImpl
+    class DeviceD3D11 final : public GPUDevice
     {
     public:
         /// Is backend supported?
@@ -41,24 +40,14 @@ namespace alimer
         /// Destructor.
         ~DeviceD3D11() override;
 
-        /* GPUDeviceImpl implementation */
-        const GPULimits& GetLimits() const override { return _limits; }
-        const GraphicsDeviceFeatures& GetFeatures() const override { return _features; }
-        GPUCommandBuffer* GetDefaultCommandBuffer() const { return _immediateCommandBuffer; }
         bool WaitIdle() override;
 
         SwapChain* CreateSwapChainImpl(const SwapChainDescriptor* descriptor) override;
-        GPUTexture* CreateTexture(const TextureDescriptor& descriptor, const void* initialData) override;
-        GPUFramebuffer* CreateFramebuffer() override;
-        GPUBuffer* CreateBuffer(const BufferDescriptor& descriptor, const void* initialData) override;
+        Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const void* initialData) override;
+        Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
+        Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
         Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor) override;
-        GPUShader* CreateComputeShader(const PODVector<uint8_t>& bytecode) override;
-        GPUShader* CreateGraphicsShader(
-            const PODVector<uint8_t>& vertex, 
-            const PODVector<uint8_t>& tessControl, 
-            const PODVector<uint8_t>& tessEval, 
-            const PODVector<uint8_t>& geometry, 
-            const PODVector<uint8_t>& fragment) override;
+        Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
 
         void HandleDeviceLost();
 
@@ -94,9 +83,6 @@ namespace alimer
         uint32_t                                            _shaderModelMinor = 0;
         bool                                                _allowTearing = false;
 
-        GPULimits _limits{};
-        GraphicsDeviceFeatures  _features{};
-        GPUCommandBuffer* _immediateCommandBuffer = nullptr;
         D3D11Cache _cache;
     };
 }

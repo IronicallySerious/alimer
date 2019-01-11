@@ -34,8 +34,8 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    CommandBufferD3D11::CommandBufferD3D11(DeviceD3D11* device)
-        : _device(device)
+    CommandContextD3D11::CommandContextD3D11(DeviceD3D11* device)
+        : CommandContext(device)
         , _immediate(true)
         , _context(device->GetD3DDeviceContext())
         , _fenceValue(0)
@@ -57,7 +57,7 @@ namespace alimer
         BeginContext();
     }
 
-    CommandBufferD3D11::~CommandBufferD3D11()
+    CommandContextD3D11::~CommandContextD3D11()
     {
         if (!_immediate)
         {
@@ -68,7 +68,7 @@ namespace alimer
         SafeRelease(_annotation);
     }
 
-    void CommandBufferD3D11::BeginContext()
+    void CommandContextD3D11::BeginContext()
     {
         _currentFramebuffer = nullptr;
         _currentColorAttachmentsBound = 0;
@@ -99,40 +99,40 @@ namespace alimer
         _vertexAttributesDirty = false; _vertexAttributesCount = 0;
     }
 
-    uint64_t CommandBufferD3D11::Flush(bool waitForCompletion)
+    uint64_t CommandContextD3D11::Flush(bool waitForCompletion)
     {
         _context->Flush();
         return ++_fenceValue;
     }
 
-    void CommandBufferD3D11::PushDebugGroup(const char* name)
+    void CommandContextD3D11::PushDebugGroup(const String& name)
     {
-        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name, -1, nullptr, 0);
+        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name.CString(), -1, nullptr, 0);
         if (bufferSize > 0)
         {
             std::vector<WCHAR> buffer(bufferSize);
-            MultiByteToWideChar(CP_UTF8, 0, name, -1, buffer.data(), bufferSize);
+            MultiByteToWideChar(CP_UTF8, 0, name.CString(), -1, buffer.data(), bufferSize);
             _annotation->BeginEvent(buffer.data());
         }
     }
 
-    void CommandBufferD3D11::PopDebugGroup()
+    void CommandContextD3D11::PopDebugGroup()
     {
         _annotation->EndEvent();
     }
 
-    void CommandBufferD3D11::InsertDebugMarker(const char* name)
+    void CommandContextD3D11::InsertDebugMarker(const String& name)
     {
-        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name, -1, nullptr, 0);
+        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name.CString(), -1, nullptr, 0);
         if (bufferSize > 0)
         {
             std::vector<WCHAR> buffer(bufferSize);
-            MultiByteToWideChar(CP_UTF8, 0, name, -1, buffer.data(), bufferSize);
+            MultiByteToWideChar(CP_UTF8, 0, name.CString(), -1, buffer.data(), bufferSize);
             _annotation->SetMarker(buffer.data());
         }
     }
 
-    void CommandBufferD3D11::BeginRenderPass(GPUFramebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    void CommandContextD3D11::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         _currentFramebuffer = static_cast<FramebufferD3D11*>(framebuffer);
         _currentColorAttachmentsBound = _currentFramebuffer->Bind(_context);
@@ -151,8 +151,8 @@ namespace alimer
         }
 
         // Depth/stencil now.
-        ID3D11DepthStencilView* depthStencilView = _currentFramebuffer->GetDSV();
-        if (depthStencilView != nullptr)
+        _depthStencilView = _currentFramebuffer->GetDSV();
+        if (_depthStencilView != nullptr)
         {
             UINT clearFlags = 0;
             if (descriptor->depthStencil.depthLoadAction == LoadAction::Clear)
@@ -169,7 +169,7 @@ namespace alimer
             if (clearFlags != 0)
             {
                 _context->ClearDepthStencilView(
-                    depthStencilView,
+                    _depthStencilView,
                     clearFlags,
                     descriptor->depthStencil.clearDepth,
                     descriptor->depthStencil.clearStencil);
@@ -200,7 +200,7 @@ namespace alimer
         SetScissor(Rectangle(width, height));
     }
 
-    void CommandBufferD3D11::EndRenderPass()
+    void CommandContextD3D11::EndRenderPassImpl()
     {
         static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 
@@ -208,14 +208,14 @@ namespace alimer
         _currentFramebuffer = nullptr;
     }
 
-    void CommandBufferD3D11::SetViewport(const RectangleF& viewport)
+    void CommandContextD3D11::SetViewport(const RectangleF& viewport)
     {
         _viewportsDirty = true;
         _viewportsCount = 1;
         _viewports[0] = { viewport.x, viewport.y, viewport.width, viewport.height, D3D11_MIN_DEPTH, D3D11_MAX_DEPTH };
     }
 
-    void CommandBufferD3D11::SetViewport(uint32_t viewportCount, const RectangleF* viewports)
+    void CommandContextD3D11::SetViewport(uint32_t viewportCount, const RectangleF* viewports)
     {
         _viewportsDirty = true;
         _viewportsCount = viewportCount;
@@ -225,7 +225,7 @@ namespace alimer
         }
     }
 
-    void CommandBufferD3D11::SetScissor(const Rectangle& scissor)
+    void CommandContextD3D11::SetScissor(const Rectangle& scissor)
     {
         _scissorsDirty = true;
         _scissorsCount = 1;
@@ -235,7 +235,7 @@ namespace alimer
         _scissors[0].bottom = static_cast<LONG>(scissor.y + scissor.height);
     }
 
-    void CommandBufferD3D11::SetScissor(uint32_t scissorCount, const Rectangle* scissors)
+    void CommandContextD3D11::SetScissor(uint32_t scissorCount, const Rectangle* scissors)
     {
         _scissorsDirty = true;
         _scissorsCount = scissorCount;
@@ -248,12 +248,12 @@ namespace alimer
         }
     }
 
-    void CommandBufferD3D11::SetBlendConstants(const float blendConstants[4])
+    void CommandContextD3D11::SetBlendColor(float r, float g, float b, float a)
     {
         //_context->OMSetBlendState(blendState, blendConstants, 0xFFFFFFFF);
     }
 
-    void CommandBufferD3D11::SetShader(GPUShader* shader)
+    void CommandContextD3D11::SetShaderImpl(Shader* shader)
     {
         ShaderD3D11* d3dShader = static_cast<ShaderD3D11*>(shader);
         if (any(d3dShader->GetStages() & ShaderStages::Compute))
@@ -294,9 +294,9 @@ namespace alimer
         }
     }
 
-    void CommandBufferD3D11::SetVertexBuffer(uint32_t binding, GPUBuffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
+    void CommandContextD3D11::SetVertexBuffer(uint32_t binding, Buffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
     {
-        auto d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
+        auto d3dBuffer = static_cast<BufferD3D11*>(buffer->GetGPUBuffer())->GetHandle();
         if (_vbo.buffers[binding] != d3dBuffer
             || _vbo.offsets[binding] != offset)
         {
@@ -316,14 +316,14 @@ namespace alimer
         _vbo.inputRates[binding] = inputRate;
     }
 
-    void CommandBufferD3D11::SetIndexBuffer(GPUBuffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandContextD3D11::SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType)
     {
-        ID3D11Buffer* d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
+        ID3D11Buffer* d3dBuffer = static_cast<BufferD3D11*>(buffer->GetGPUBuffer())->GetHandle();
         DXGI_FORMAT dxgiFormat = indexType == IndexType::UInt32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
         _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
     }
 
-    void CommandBufferD3D11::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    void CommandContextD3D11::DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
         FlushRenderState();
         if (instanceCount <= 1)
@@ -336,6 +336,11 @@ namespace alimer
         }
     }
 
+    void CommandContextD3D11::DispatchImpl(uint32_t x, uint32_t y, uint32_t z)
+    {
+        _context->Dispatch(x, y, z);
+    }
+
 #if TODO_D3D11
     void CommandContextD3D11::SetPrimitiveTopologyCore(PrimitiveTopology topology)
     {
@@ -344,11 +349,6 @@ namespace alimer
             _d3dContext->IASetPrimitiveTopology(d3d::Convert(topology, 1));
             _currentTopology = topology;
         }
-    }
-
-    void CommandContextD3D11::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
-    {
-        _d3dContext->Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
 #endif // TODO_D3D11
@@ -392,7 +392,7 @@ namespace alimer
         }
     }*/
 
-    void CommandBufferD3D11::FlushRenderState()
+    void CommandContextD3D11::FlushRenderState()
     {
         // Viewports
         if (_viewportsDirty)
@@ -447,7 +447,7 @@ namespace alimer
         _dirtyVbos &= ~updateVboMask;
 
         // InputLayout
-        if (_vertexAttributesDirty)
+        /*if (_vertexAttributesDirty)
         {
             _vertexAttributesDirty = false;
 
@@ -469,7 +469,7 @@ namespace alimer
                 _context->IASetInputLayout(inputLayout);
                 //_currentInputLayout = newInputLayout;
             }
-        }
+        }*/
 
         /*
 

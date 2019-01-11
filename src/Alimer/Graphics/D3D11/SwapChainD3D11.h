@@ -42,24 +42,15 @@ namespace alimer
 
         void Destroy();
     private:
-        uint32_t GetCurrentBackBuffer() const override { return 0; }
-        Texture* GetBackBufferTexture(uint32_t index) const
-        {
-            ALIMER_ASSERT(index == 0);
-            return _renderTarget.Get();
-        }
-
-        void Configure(uint32_t width, uint32_t height) override;
+        void ResizeImpl(uint32_t width, uint32_t height) override;
         void Present() override;
-        void Resize(uint32_t width, uint32_t height, bool force = false);
 
         DeviceD3D11*                            _device;
-        uint32_t                                _width = 0;
-        uint32_t                                _height = 0;
+        
         uint32_t                                _backBufferCount = 2u;
         bool                                    _sRGB;
-        DXGI_FORMAT                             _backBufferFormat = DXGI_FORMAT_UNKNOWN;
-        PixelFormat                             _depthStencilFormat = PixelFormat::Unknown;
+        
+        
         HWND                                    _hwnd = nullptr;
         IUnknown*                               _window = nullptr;
 
@@ -68,6 +59,5 @@ namespace alimer
         UINT                                    _presentFlags = 0;
         Microsoft::WRL::ComPtr<IDXGISwapChain>  _swapChain;
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain1;
-        UniquePtr<Texture>                      _renderTarget;
     };
 }

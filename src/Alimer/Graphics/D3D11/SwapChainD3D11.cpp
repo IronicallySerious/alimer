@@ -36,15 +36,13 @@ namespace alimer
         , _sRGB(descriptor->sRGB)
         , _backBufferCount(backBufferCount)
     {
-        _depthStencilFormat = descriptor->preferredDepthStencilFormat;
-
 #if ALIMER_PLATFORM_UWP
         _window = static_cast<IUnknown*>(descriptor->nativeWindow);
 #else
         _hwnd = static_cast<HWND>(descriptor->nativeWindow);
 #endif
 
-        Resize(descriptor->width, descriptor->height, true);
+        ResizeImpl(descriptor->width, descriptor->height);
     }
 
     SwapChainD3D11::~SwapChainD3D11()
@@ -56,29 +54,20 @@ namespace alimer
     {
         SwapChain::Destroy();
         _swapChain->SetFullscreenState(false, nullptr);
-        _renderTarget.Reset();
         _swapChain.Reset();
         _swapChain1.Reset();
     }
 
 
-    void SwapChainD3D11::Resize(uint32_t width, uint32_t height, bool force)
+    void SwapChainD3D11::ResizeImpl(uint32_t width, uint32_t height)
     {
-        if (_width == width && _height == height && !force)
-        {
-            return;
-        }
-
         HRESULT hr = S_OK;
 
         if (_swapChain)
         {
-            //RenderWindow::Destroy();
-            _renderTarget.Reset();
+            SwapChain::Destroy();
 
-            hr = _swapChain->ResizeBuffers(_backBufferCount, width, height,
-                _backBufferFormat, _swapChainFlags
-            );
+            hr = _swapChain->ResizeBuffers(_backBufferCount, width, height, DXGI_FORMAT_UNKNOWN, _swapChainFlags);
 
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
             {
@@ -86,9 +75,9 @@ namespace alimer
         }
         else
         {
-            // Check tearing.
-            _backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
+            DXGI_FORMAT backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
 
+            // Check tearing.
             ComPtr<IDXGIFactory2> dxgiFactory2;
             if (SUCCEEDED(_device->GetFactory()->QueryInterface(dxgiFactory2.ReleaseAndGetAddressOf())))
             {
@@ -100,14 +89,14 @@ namespace alimer
                     _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
                     // Cannot use srgb format with flip swap effect.
                     swapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-                    _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+                    backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
                 }
 
                 // DirectX 11.1 or later.
                 DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
                 swapChainDesc.Width = width;
                 swapChainDesc.Height = height;
-                swapChainDesc.Format = _backBufferFormat;
+                swapChainDesc.Format = backBufferFormat;
                 swapChainDesc.SampleDesc.Count = 1;
                 swapChainDesc.SampleDesc.Quality = 0;
                 swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -169,7 +158,7 @@ namespace alimer
                 DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
                 swapChainDesc.BufferDesc.Width = width;
                 swapChainDesc.BufferDesc.Height = height;
-                swapChainDesc.BufferDesc.Format = _backBufferFormat;
+                swapChainDesc.BufferDesc.Format = backBufferFormat;
                 swapChainDesc.SampleDesc.Count = 1;
                 swapChainDesc.SampleDesc.Quality = 0;
                 swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -194,9 +183,6 @@ namespace alimer
         ID3D11Texture2D* renderTarget;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
 
-        // Resize textures.
-        _backbufferTextures.Resize(1);
-
         // Get D3D Texture desc and convert to engine.
         D3D11_TEXTURE2D_DESC textureDesc;
         renderTarget->GetDesc(&textureDesc);
@@ -209,16 +195,9 @@ namespace alimer
             descriptor.format = PixelFormat::BGRA8UNormSrgb;
         }
 
-        //_renderTarget = new TextureD3D11(_device, descriptor, nullptr, renderTarget, backBufferFormat);
-
-        // Set new size.
-        _width = width;
-        _height = height;
-    }
-
-    void SwapChainD3D11::Configure(uint32_t width, uint32_t height)
-    {
-        Resize(width, height, true);
+        _backbufferTextures.Resize(1);
+        _backbufferTextures[0] = new TextureD3D11(_device, &descriptor, nullptr, renderTarget, backBufferFormat);
+        InitializeFramebuffer();
     }
 
     void SwapChainD3D11::Present()

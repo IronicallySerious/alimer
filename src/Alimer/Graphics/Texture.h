@@ -29,8 +29,6 @@
 
 namespace alimer
 {
-    struct GPUTexture;
-
     /// Defines a Texture class.
     class ALIMER_API Texture : public GPUResource
     {
@@ -38,16 +36,11 @@ namespace alimer
 
     protected:
         /// Constructor.
-        Texture();
-
-        /// Constructor.
-        Texture(GPUTexture* texture);
+        Texture(GPUDevice* device, const TextureDescriptor* descriptor);
 
     public:
         /// Desturctor
-        ~Texture() override;
-
-        void Destroy() override;
+        virtual ~Texture() = default;
 
         /// Get the type of the texture.
         TextureType GetTextureType() const { return _descriptor.type; }
@@ -88,25 +81,7 @@ namespace alimer
         /// Get the texture description.
         const TextureDescriptor& GetDescriptor() const { return _descriptor; }
 
-        /// Get the GPUTexture.
-        GPUTexture* GetGPUTexture() const { return _texture; }
-
     protected:
-        bool CreateGPUTexture(const void* initialData);
-
-        GPUTexture* _texture = nullptr;
         TextureDescriptor _descriptor{};
-    };
-
-    class Texture2D final : public Texture
-    {
-    public:
-        /// Constructor.
-        Texture2D();
-
-        /// Constructor with external texture.
-        Texture2D(GPUTexture* texture);
-
-        bool Define(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, SampleCount samples = SampleCount::Count1, const void* initialData = nullptr);
     };
 }

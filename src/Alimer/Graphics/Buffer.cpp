@@ -22,44 +22,17 @@
 
 #include "../Graphics/Buffer.h"
 #include "../Graphics/GPUDevice.h"
-#include "../Graphics/GPUDeviceImpl.h"
 #include "../Core/Log.h"
 
 namespace alimer
 {
-    Buffer::Buffer()
-        : GPUResource(nullptr, Type::Buffer)
+    Buffer::Buffer(GPUDevice* device, const BufferDescriptor* descriptor)
+        : GPUResource(device, Type::Buffer)
+        , _size(descriptor->size)
+        , _usage(descriptor->usage)
+        , _stride(descriptor->stride)
     {
 
-    }
-
-    Buffer::~Buffer()
-    {
-        Destroy();
-    }
-
-    void Buffer::Destroy()
-    {
-        SafeDelete(_buffer);
-    }
-
-    bool Buffer::CreateGPUBuffer(bool useShadowData, const void* data)
-    {
-        // Destroy old instance first.
-        Destroy();
-
-        // If buffer is reinitialized with the same shadow data, no need to reallocate
-        if (useShadowData && (!data || data != _shadowData.Get()))
-        {
-            _shadowData = new uint8_t[_descriptor.size];
-            if (data)
-            {
-                memcpy(_shadowData.Get(), data, _descriptor.size);
-            }
-        }
-
-        _buffer = _device->GetImpl()->CreateBuffer(_descriptor, data);
-        return _buffer != nullptr;
     }
 
     bool Buffer::SetSubData(const void* pData)

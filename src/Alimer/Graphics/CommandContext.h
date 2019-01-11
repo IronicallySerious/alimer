@@ -34,33 +34,37 @@
 namespace alimer
 {
     class GPUDevice;
-    struct GPUCommandBuffer;
 
     /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext final
+    class ALIMER_API CommandContext
     {
         friend class GPUDevice;
 
-    private:
-        CommandContext(GPUDevice* device, GPUCommandBuffer* commandBuffer);
+    protected:
+        CommandContext(GPUDevice* device);
 
     public:
         /// Destructor.
         virtual ~CommandContext() = default;
 
         // Flush existing commands to the GPU and optionally wait for execution.
-        uint64_t Flush(bool waitForCompletion = false);
+        virtual uint64_t Flush(bool waitForCompletion = false) = 0;
 
-        void PushDebugGroup(const String& name);
-        void PopDebugGroup();
-        void InsertDebugMarker(const String& name);
+        virtual void PushDebugGroup(const String& name) = 0;
+        virtual void PopDebugGroup() = 0;
+        virtual void InsertDebugMarker(const String& name) = 0;
 
         void BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
         void BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
         void EndRenderPass();
 
-        void SetViewport(const RectangleF& viewport);
-        void SetScissor(const Rectangle& scissor);
+        virtual void SetViewport(const RectangleF& viewport);
+        virtual void SetViewport(uint32_t viewportCount, const RectangleF* viewports) = 0;
+        virtual void SetScissor(const Rectangle& scissor);
+        virtual void SetScissor(uint32_t scissorCount, const Rectangle* scissors) = 0;
+
+        virtual void SetBlendColor(const Color4& color);
+        virtual void SetBlendColor(float r, float g, float b, float a) = 0;
 
         void SetShader(Shader* shader);
 
@@ -82,16 +86,15 @@ namespace alimer
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
     private:
-        // Backend methods.
-        //virtual void SetIndexBufferCore(Buffer* buffer, uint32_t offset, IndexType indexType) = 0;
+        virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
+        virtual void EndRenderPassImpl() = 0;
+        virtual void SetShaderImpl(Shader* shader) = 0;
 
-        //virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) = 0;
-        //virtual void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;
+        virtual void SetVertexBuffer(uint32_t binding, Buffer* buffer, const VertexDeclaration* format, uint32_t offset, uint32_t stride, VertexInputRate inputRate) = 0;
+        virtual void SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType) = 0;
+        virtual void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
 
-        //virtual void SetPipelineImpl(Pipeline* pipeline) = 0;
-        //virtual void SetPrimitiveTopologyCore(PrimitiveTopology topology) = 0;
-        //virtual void DrawInstancedCore(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
-        //virtual void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+        virtual void DispatchImpl(uint32_t x, uint32_t y, uint32_t z) = 0;
 
     protected:
         /// GPUDevice.
@@ -99,8 +102,5 @@ namespace alimer
 
         bool _insideRenderPass;
         Shader* _currentShader = nullptr;
-
-    private:
-        GPUCommandBuffer* _commandBuffer;
     };
 }
