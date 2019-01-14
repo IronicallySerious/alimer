@@ -341,7 +341,7 @@ protected:
 	std::string unpack_expression_type(std::string expr_str, const SPIRType &type) override;
 	std::string bitcast_glsl_op(const SPIRType &result_type, const SPIRType &argument_type) override;
 	bool skip_argument(uint32_t id) const override;
-	std::string to_member_reference(const SPIRVariable *var, const SPIRType &type, uint32_t index) override;
+	std::string to_member_reference(uint32_t base, const SPIRType &type, uint32_t index, bool ptr_chain) override;
 	std::string to_qualifiers_glsl(uint32_t id) override;
 	void replace_illegal_names() override;
 	void declare_undefined_values() override;
@@ -361,13 +361,26 @@ protected:
 	                                            std::unordered_set<uint32_t> &global_var_ids,
 	                                            std::unordered_set<uint32_t> &processed_func_ids);
 	uint32_t add_interface_block(spv::StorageClass storage);
+
+	void add_variable_to_interface_block(spv::StorageClass storage, const std::string &ib_var_ref, SPIRType &ib_type,
+	                                     SPIRVariable &var);
+	void add_composite_variable_to_interface_block(spv::StorageClass storage, const std::string &ib_var_ref,
+	                                               SPIRType &ib_type, SPIRVariable &var);
+	void add_plain_variable_to_interface_block(spv::StorageClass storage, const std::string &ib_var_ref,
+	                                           SPIRType &ib_type, SPIRVariable &var);
+	void add_plain_member_variable_to_interface_block(spv::StorageClass storage, const std::string &ib_var_ref,
+	                                                  SPIRType &ib_type, SPIRVariable &var, uint32_t index);
+	void add_composite_member_variable_to_interface_block(spv::StorageClass storage, const std::string &ib_var_ref,
+	                                                      SPIRType &ib_type, SPIRVariable &var, uint32_t index);
+	uint32_t get_accumulated_member_location(const SPIRVariable &var, uint32_t mbr_idx);
+
 	void mark_location_as_used_by_shader(uint32_t location, spv::StorageClass storage);
 	uint32_t ensure_correct_builtin_type(uint32_t type_id, spv::BuiltIn builtin);
 	uint32_t ensure_correct_attribute_type(uint32_t type_id, uint32_t location);
 
 	void emit_custom_functions();
 	void emit_resources();
-	void emit_specialization_constants();
+	void emit_specialization_constants_and_structs();
 	void emit_interface_block(uint32_t ib_var_id);
 	bool maybe_emit_array_assignment(uint32_t id_lhs, uint32_t id_rhs);
 	void add_convert_row_major_matrix_function(uint32_t cols, uint32_t rows);
@@ -391,6 +404,7 @@ protected:
 	bool is_member_packable(SPIRType &ib_type, uint32_t index);
 	MSLStructMemberKey get_struct_member_key(uint32_t type_id, uint32_t index);
 	std::string get_argument_address_space(const SPIRVariable &argument);
+	std::string get_type_address_space(const SPIRType &type);
 	void emit_atomic_func_op(uint32_t result_type, uint32_t result_id, const char *op, uint32_t mem_order_1,
 	                         uint32_t mem_order_2, bool has_mem_order_2, uint32_t op0, uint32_t op1 = 0,
 	                         bool op1_is_pointer = false, bool op1_is_literal = false, uint32_t op2 = 0);

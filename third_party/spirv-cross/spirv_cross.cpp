@@ -158,7 +158,7 @@ bool Compiler::block_is_pure(const SPIRBlock &block)
 
 string Compiler::to_name(uint32_t id, bool allow_alias) const
 {
-	if (allow_alias && ir.ids.at(id).get_type() == TypeType)
+	if (allow_alias && ir.ids[id].get_type() == TypeType)
 	{
 		// If this type is a simple alias, emit the
 		// name of the original type instead.
@@ -174,10 +174,11 @@ string Compiler::to_name(uint32_t id, bool allow_alias) const
 		}
 	}
 
-	if (ir.meta[id].decoration.alias.empty())
+	auto &alias = ir.get_name(id);
+	if (alias.empty())
 		return join("_", id);
 	else
-		return ir.meta[id].decoration.alias;
+		return alias;
 }
 
 bool Compiler::function_is_pure(const SPIRFunction &func)
@@ -294,7 +295,10 @@ void Compiler::register_write(uint32_t chain)
 	if (var)
 	{
 		// If our variable is in a storage class which can alias with other buffers,
-		// invalidate all variables which depend on aliased variables.
+		// invalidate all variables which depend on aliased variables. And if this is a
+		// variable pointer, then invalidate all variables regardless.
+		if (get_variable_data_type(*var).pointer)
+			flush_all_active_variables();
 		if (variable_storage_is_aliased(*var))
 			flush_all_aliased_variables();
 		else if (var)
@@ -306,6 +310,15 @@ void Compiler::register_write(uint32_t chain)
 			var->parameter->write_count++;
 			force_recompile = true;
 		}
+	}
+	else
+	{
+		// If we stored through a variable pointer, then we don't know which
+		// variable we stored to. So *all* expressions after this point need to
+		// be invalidated.
+		// FIXME: If we can prove that the variable pointer will point to
+		// only certain variables, we can invalidate only those.
+		flush_all_active_variables();
 	}
 }
 
@@ -461,17 +474,22 @@ bool Compiler::is_hidden_variable(const SPIRVariable &var, bool include_builtins
 
 bool Compiler::is_builtin_type(const SPIRType &type) const
 {
+	auto *type_meta = ir.find_meta(type.self);
+
 	// We can have builtin structs as well. If one member of a struct is builtin, the struct must also be builtin.
-	for (auto &m : ir.meta[type.self].members)
-		if (m.builtin)
-			return true;
+	if (type_meta)
+		for (auto &m : type_meta->members)
+			if (m.builtin)
+				return true;
 
 	return false;
 }
 
 bool Compiler::is_builtin_variable(const SPIRVariable &var) const
 {
-	if (var.compat_builtin || ir.meta[var.self].decoration.builtin)
+	auto *m = ir.find_meta(var.self);
+
+	if (var.compat_builtin || (m && m->decoration.builtin))
 		return true;
 	else
 		return is_builtin_type(get<SPIRType>(var.basetype));
@@ -479,12 +497,17 @@ bool Compiler::is_builtin_variable(const SPIRVariable &var) const
 
 bool Compiler::is_member_builtin(const SPIRType &type, uint32_t index, BuiltIn *builtin) const
 {
-	auto &memb = ir.meta[type.self].members;
-	if (index < memb.size() && memb[index].builtin)
+	auto *type_meta = ir.find_meta(type.self);
+
+	if (type_meta)
 	{
-		if (builtin)
-			*builtin = memb[index].builtin_type;
-		return true;
+		auto &memb = type_meta->members;
+		if (index < memb.size() && memb[index].builtin)
+		{
+			if (builtin)
+				*builtin = memb[index].builtin_type;
+			return true;
+		}
 	}
 
 	return false;
@@ -538,6 +561,40 @@ bool Compiler::InterfaceVariableAccessHandler::handle(Op opcode, const uint32_t 
 		uint32_t count = length - 3;
 		args += 3;
 		for (uint32_t i = 0; i < count; i++)
+		{
+			auto *var = compiler.maybe_get<SPIRVariable>(args[i]);
+			if (var && storage_class_is_interface(var->storage))
+				variables.insert(args[i]);
+		}
+		break;
+	}
+
+	case OpSelect:
+	{
+		// Invalid SPIR-V.
+		if (length < 5)
+			return false;
+
+		uint32_t count = length - 3;
+		args += 3;
+		for (uint32_t i = 0; i < count; i++)
+		{
+			auto *var = compiler.maybe_get<SPIRVariable>(args[i]);
+			if (var && storage_class_is_interface(var->storage))
+				variables.insert(args[i]);
+		}
+		break;
+	}
+
+	case OpPhi:
+	{
+		// Invalid SPIR-V.
+		if (length < 2)
+			return false;
+
+		uint32_t count = length - 2;
+		args += 2;
+		for (uint32_t i = 0; i < count; i += 2)
 		{
 			auto *var = compiler.maybe_get<SPIRVariable>(args[i]);
 			if (var && storage_class_is_interface(var->storage))
@@ -602,6 +659,7 @@ bool Compiler::InterfaceVariableAccessHandler::handle(Op opcode, const uint32_t 
 
 	case OpAccessChain:
 	case OpInBoundsAccessChain:
+	case OpPtrAccessChain:
 	case OpLoad:
 	case OpCopyObject:
 	case OpImageTexelPointer:
@@ -660,55 +718,52 @@ ShaderResources Compiler::get_shader_resources(const unordered_set<uint32_t> *ac
 {
 	ShaderResources res;
 
-	for (auto &id : ir.ids)
-	{
-		if (id.get_type() != TypeVariable)
-			continue;
-
-		auto &var = id.get<SPIRVariable>();
-		auto &type = get<SPIRType>(var.basetype);
+	ir.for_each_typed_id<SPIRVariable>([&](uint32_t, const SPIRVariable &var) {
+		auto &type = this->get<SPIRType>(var.basetype);
 
 		// It is possible for uniform storage classes to be passed as function parameters, so detect
 		// that. To detect function parameters, check of StorageClass of variable is function scope.
 		if (var.storage == StorageClassFunction || !type.pointer || is_builtin_variable(var))
-			continue;
+			return;
 
 		if (active_variables && active_variables->find(var.self) == end(*active_variables))
-			continue;
+			return;
 
 		// Input
 		if (var.storage == StorageClassInput && interface_variable_exists_in_entry_point(var.self))
 		{
-			if (ir.meta[type.self].decoration.decoration_flags.get(DecorationBlock))
+			if (has_decoration(type.self, DecorationBlock))
+			{
 				res.stage_inputs.push_back(
 				    { var.self, var.basetype, type.self, get_remapped_declared_block_name(var.self) });
+			}
 			else
-				res.stage_inputs.push_back({ var.self, var.basetype, type.self, ir.meta[var.self].decoration.alias });
+				res.stage_inputs.push_back({ var.self, var.basetype, type.self, get_name(var.self) });
 		}
 		// Subpass inputs
 		else if (var.storage == StorageClassUniformConstant && type.image.dim == DimSubpassData)
 		{
-			res.subpass_inputs.push_back({ var.self, var.basetype, type.self, ir.meta[var.self].decoration.alias });
+			res.subpass_inputs.push_back({ var.self, var.basetype, type.self, get_name(var.self) });
 		}
 		// Outputs
 		else if (var.storage == StorageClassOutput && interface_variable_exists_in_entry_point(var.self))
 		{
-			if (ir.meta[type.self].decoration.decoration_flags.get(DecorationBlock))
+			if (has_decoration(type.self, DecorationBlock))
+			{
 				res.stage_outputs.push_back(
 				    { var.self, var.basetype, type.self, get_remapped_declared_block_name(var.self) });
+			}
 			else
-				res.stage_outputs.push_back({ var.self, var.basetype, type.self, ir.meta[var.self].decoration.alias });
+				res.stage_outputs.push_back({ var.self, var.basetype, type.self, get_name(var.self) });
 		}
 		// UBOs
-		else if (type.storage == StorageClassUniform &&
-		         (ir.meta[type.self].decoration.decoration_flags.get(DecorationBlock)))
+		else if (type.storage == StorageClassUniform && has_decoration(type.self, DecorationBlock))
 		{
 			res.uniform_buffers.push_back(
 			    { var.self, var.basetype, type.self, get_remapped_declared_block_name(var.self) });
 		}
 		// Old way to declare SSBOs.
-		else if (type.storage == StorageClassUniform &&
-		         (ir.meta[type.self].decoration.decoration_flags.get(DecorationBufferBlock)))
+		else if (type.storage == StorageClassUniform && has_decoration(type.self, DecorationBufferBlock))
 		{
 			res.storage_buffers.push_back(
 			    { var.self, var.basetype, type.self, get_remapped_declared_block_name(var.self) });
@@ -724,37 +779,36 @@ ShaderResources Compiler::get_shader_resources(const unordered_set<uint32_t> *ac
 		{
 			// There can only be one push constant block, but keep the vector in case this restriction is lifted
 			// in the future.
-			res.push_constant_buffers.push_back(
-			    { var.self, var.basetype, type.self, ir.meta[var.self].decoration.alias });
+			res.push_constant_buffers.push_back({ var.self, var.basetype, type.self, get_name(var.self) });
 		}
 		// Images
 		else if (type.storage == StorageClassUniformConstant && type.basetype == SPIRType::Image &&
 		         type.image.sampled == 2)
 		{
-			res.storage_images.push_back({ var.self, var.basetype, type.self, ir.meta[var.self].decoration.alias });
+			res.storage_images.push_back({ var.self, var.basetype, type.self, get_name(var.self) });
 		}
 		// Separate images
 		else if (type.storage == StorageClassUniformConstant && type.basetype == SPIRType::Image &&
 		         type.image.sampled == 1)
 		{
-			res.separate_images.push_back({ var.self, var.basetype, type.self, ir.meta[var.self].decoration.alias });
+			res.separate_images.push_back({ var.self, var.basetype, type.self, get_name(var.self) });
 		}
 		// Separate samplers
 		else if (type.storage == StorageClassUniformConstant && type.basetype == SPIRType::Sampler)
 		{
-			res.separate_samplers.push_back({ var.self, var.basetype, type.self, ir.meta[var.self].decoration.alias });
+			res.separate_samplers.push_back({ var.self, var.basetype, type.self, get_name(var.self) });
 		}
 		// Textures
 		else if (type.storage == StorageClassUniformConstant && type.basetype == SPIRType::SampledImage)
 		{
-			res.sampled_images.push_back({ var.self, var.basetype, type.self, ir.meta[var.self].decoration.alias });
+			res.sampled_images.push_back({ var.self, var.basetype, type.self, get_name(var.self) });
 		}
 		// Atomic counters
 		else if (type.storage == StorageClassAtomicCounter)
 		{
-			res.atomic_counters.push_back({ var.self, var.basetype, type.self, ir.meta[var.self].decoration.alias });
+			res.atomic_counters.push_back({ var.self, var.basetype, type.self, get_name(var.self) });
 		}
-	}
+	});
 
 	return res;
 }
@@ -782,43 +836,56 @@ void Compiler::fixup_type_alias()
 	// Due to how some backends work, the "master" type of type_alias must be a block-like type if it exists.
 	// FIXME: Multiple alias types which are both block-like will be awkward, for now, it's best to just drop the type
 	// alias if the slave type is a block type.
-	for (auto &id : ir.ids)
-	{
-		if (id.get_type() != TypeType)
-			continue;
-
-		auto &type = id.get<SPIRType>();
-
+	ir.for_each_typed_id<SPIRType>([&](uint32_t self, SPIRType &type) {
 		if (type.type_alias && type_is_block_like(type))
 		{
 			// Become the master.
-			for (auto &other_id : ir.ids)
-			{
-				if (other_id.get_type() != TypeType)
-					continue;
-				if (other_id.get_id() == type.self)
-					continue;
+			ir.for_each_typed_id<SPIRType>([&](uint32_t other_id, SPIRType &other_type) {
+				if (other_id == type.self)
+					return;
 
-				auto &other_type = other_id.get<SPIRType>();
 				if (other_type.type_alias == type.type_alias)
 					other_type.type_alias = type.self;
-			}
+			});
 
-			get<SPIRType>(type.type_alias).type_alias = id.get_id();
+			this->get<SPIRType>(type.type_alias).type_alias = self;
 			type.type_alias = 0;
 		}
-	}
+	});
 
-	for (auto &id : ir.ids)
-	{
-		if (id.get_type() != TypeType)
-			continue;
-
-		auto &type = id.get<SPIRType>();
+	ir.for_each_typed_id<SPIRType>([&](uint32_t, SPIRType &type) {
 		if (type.type_alias && type_is_block_like(type))
 		{
 			// This is not allowed, drop the type_alias.
 			type.type_alias = 0;
+		}
+	});
+
+	// Reorder declaration of types so that the master of the type alias is always emitted first.
+	// We need this in case a type B depends on type A (A must come before in the vector), but A is an alias of a type Abuffer, which
+	// means declaration of A doesn't happen (yet), and order would be B, ABuffer and not ABuffer, B. Fix this up here.
+	auto &type_ids = ir.ids_for_type[TypeType];
+	for (auto alias_itr = begin(type_ids); alias_itr != end(type_ids); ++alias_itr)
+	{
+		auto &type = get<SPIRType>(*alias_itr);
+		if (type.type_alias != 0 && !has_decoration(type.type_alias, DecorationCPacked))
+		{
+			// We will skip declaring this type, so make sure the type_alias type comes before.
+			auto master_itr = find(begin(type_ids), end(type_ids), type.type_alias);
+			assert(master_itr != end(type_ids));
+
+			if (alias_itr < master_itr)
+			{
+				// Must also swap the type order for the constant-type joined array.
+				auto &joined_types = ir.ids_for_constant_or_type;
+				auto alt_alias_itr = find(begin(joined_types), end(joined_types), *alias_itr);
+				auto alt_master_itr = find(begin(joined_types), end(joined_types), *master_itr);
+				assert(alt_alias_itr != end(joined_types));
+				assert(alt_master_itr != end(joined_types));
+
+				swap(*alias_itr, *master_itr);
+				swap(*alt_alias_itr, *alt_master_itr);
+			}
 		}
 	}
 }
@@ -826,8 +893,10 @@ void Compiler::fixup_type_alias()
 void Compiler::parse_fixup()
 {
 	// Figure out specialization constants for work group sizes.
-	for (auto &id : ir.ids)
+	for (auto id_ : ir.ids_for_constant_or_variable)
 	{
+		auto &id = ir.ids[id_];
+
 		if (id.get_type() == TypeConstant)
 		{
 			auto &c = id.get<SPIRConstant>();
@@ -862,7 +931,7 @@ void Compiler::flatten_interface_block(uint32_t id)
 {
 	auto &var = get<SPIRVariable>(id);
 	auto &type = get<SPIRType>(var.basetype);
-	auto &flags = ir.meta.at(type.self).decoration.decoration_flags;
+	auto &flags = ir.meta[type.self].decoration.decoration_flags;
 
 	if (!type.array.empty())
 		SPIRV_CROSS_THROW("Type is array of UBOs.");
@@ -885,7 +954,7 @@ void Compiler::flatten_interface_block(uint32_t id)
 		SPIRV_CROSS_THROW("Member type cannot be struct.");
 
 	// Inherit variable name from interface block name.
-	ir.meta.at(var.self).decoration.alias = ir.meta.at(type.self).decoration.alias;
+	ir.meta[var.self].decoration.alias = ir.meta[type.self].decoration.alias;
 
 	auto storage = var.storage;
 	if (storage == StorageClassUniform)
@@ -898,6 +967,7 @@ void Compiler::flatten_interface_block(uint32_t id)
 	type.array.push_back(array_size);
 	type.pointer = true;
 	type.storage = storage;
+	type.parent_type = t;
 	var.storage = storage;
 }
 
@@ -974,22 +1044,21 @@ const SPIRType &Compiler::get_type_from_variable(uint32_t id) const
 	return get<SPIRType>(get<SPIRVariable>(id).basetype);
 }
 
-uint32_t Compiler::get_non_pointer_type_id(uint32_t type_id) const
+uint32_t Compiler::get_pointee_type_id(uint32_t type_id) const
 {
 	auto *p_type = &get<SPIRType>(type_id);
-	while (p_type->pointer)
+	if (p_type->pointer)
 	{
 		assert(p_type->parent_type);
 		type_id = p_type->parent_type;
-		p_type = &get<SPIRType>(type_id);
 	}
 	return type_id;
 }
 
-const SPIRType &Compiler::get_non_pointer_type(const SPIRType &type) const
+const SPIRType &Compiler::get_pointee_type(const SPIRType &type) const
 {
 	auto *p_type = &type;
-	while (p_type->pointer)
+	if (p_type->pointer)
 	{
 		assert(p_type->parent_type);
 		p_type = &get<SPIRType>(p_type->parent_type);
@@ -997,9 +1066,26 @@ const SPIRType &Compiler::get_non_pointer_type(const SPIRType &type) const
 	return *p_type;
 }
 
-const SPIRType &Compiler::get_non_pointer_type(uint32_t type_id) const
+const SPIRType &Compiler::get_pointee_type(uint32_t type_id) const
 {
-	return get_non_pointer_type(get<SPIRType>(type_id));
+	return get_pointee_type(get<SPIRType>(type_id));
+}
+
+uint32_t Compiler::get_variable_data_type_id(const SPIRVariable &var) const
+{
+	if (var.phi_variable)
+		return var.basetype;
+	return get_pointee_type_id(var.basetype);
+}
+
+SPIRType &Compiler::get_variable_data_type(const SPIRVariable &var)
+{
+	return get<SPIRType>(get_variable_data_type_id(var));
+}
+
+const SPIRType &Compiler::get_variable_data_type(const SPIRVariable &var) const
+{
+	return get<SPIRType>(get_variable_data_type_id(var));
 }
 
 bool Compiler::is_sampled_image_type(const SPIRType &type)
@@ -1031,19 +1117,17 @@ const std::string &Compiler::get_member_name(uint32_t id, uint32_t index) const
 
 void Compiler::set_member_qualified_name(uint32_t type_id, uint32_t index, const std::string &name)
 {
-	ir.meta.at(type_id).members.resize(max(ir.meta[type_id].members.size(), size_t(index) + 1));
-	ir.meta.at(type_id).members[index].qualified_alias = name;
+	ir.meta[type_id].members.resize(max(ir.meta[type_id].members.size(), size_t(index) + 1));
+	ir.meta[type_id].members[index].qualified_alias = name;
 }
 
-const std::string &Compiler::get_member_qualified_name(uint32_t type_id, uint32_t index) const
+const string &Compiler::get_member_qualified_name(uint32_t type_id, uint32_t index) const
 {
-	const static string empty;
-
-	auto &m = ir.meta.at(type_id);
-	if (index < m.members.size())
-		return m.members[index].qualified_alias;
+	auto *m = ir.find_meta(type_id);
+	if (m && index < m->members.size())
+		return m->members[index].qualified_alias;
 	else
-		return empty;
+		return ir.get_empty_string();
 }
 
 uint32_t Compiler::get_member_decoration(uint32_t id, uint32_t index, Decoration decoration) const
@@ -1088,7 +1172,7 @@ StorageClass Compiler::get_storage_class(uint32_t id) const
 
 const std::string &Compiler::get_name(uint32_t id) const
 {
-	return ir.meta.at(id).decoration.alias;
+	return ir.get_name(id);
 }
 
 const std::string Compiler::get_fallback_name(uint32_t id) const
@@ -1142,7 +1226,11 @@ void Compiler::unset_decoration(uint32_t id, Decoration decoration)
 
 bool Compiler::get_binary_offset_for_decoration(uint32_t id, spv::Decoration decoration, uint32_t &word_offset) const
 {
-	auto &word_offsets = ir.meta.at(id).decoration_word_offset;
+	auto *m = ir.find_meta(id);
+	if (!m)
+		return false;
+
+	auto &word_offsets = m->decoration_word_offset;
 	auto itr = word_offsets.find(decoration);
 	if (itr == end(word_offsets))
 		return false;
@@ -1371,32 +1459,50 @@ bool Compiler::traverse_all_reachable_opcodes(const SPIRFunction &func, OpcodeHa
 
 uint32_t Compiler::type_struct_member_offset(const SPIRType &type, uint32_t index) const
 {
-	// Decoration must be set in valid SPIR-V, otherwise throw.
-	auto &dec = ir.meta[type.self].members.at(index);
-	if (dec.decoration_flags.get(DecorationOffset))
-		return dec.offset;
+	auto *type_meta = ir.find_meta(type.self);
+	if (type_meta)
+	{
+		// Decoration must be set in valid SPIR-V, otherwise throw.
+		auto &dec = type_meta->members[index];
+		if (dec.decoration_flags.get(DecorationOffset))
+			return dec.offset;
+		else
+			SPIRV_CROSS_THROW("Struct member does not have Offset set.");
+	}
 	else
 		SPIRV_CROSS_THROW("Struct member does not have Offset set.");
 }
 
 uint32_t Compiler::type_struct_member_array_stride(const SPIRType &type, uint32_t index) const
 {
-	// Decoration must be set in valid SPIR-V, otherwise throw.
-	// ArrayStride is part of the array type not OpMemberDecorate.
-	auto &dec = ir.meta[type.member_types[index]].decoration;
-	if (dec.decoration_flags.get(DecorationArrayStride))
-		return dec.array_stride;
+	auto *type_meta = ir.find_meta(type.member_types[index]);
+	if (type_meta)
+	{
+		// Decoration must be set in valid SPIR-V, otherwise throw.
+		// ArrayStride is part of the array type not OpMemberDecorate.
+		auto &dec = type_meta->decoration;
+		if (dec.decoration_flags.get(DecorationArrayStride))
+			return dec.array_stride;
+		else
+			SPIRV_CROSS_THROW("Struct member does not have ArrayStride set.");
+	}
 	else
-		SPIRV_CROSS_THROW("Struct member does not have ArrayStride set.");
+		SPIRV_CROSS_THROW("Struct member does not have Offset set.");
 }
 
 uint32_t Compiler::type_struct_member_matrix_stride(const SPIRType &type, uint32_t index) const
 {
-	// Decoration must be set in valid SPIR-V, otherwise throw.
-	// MatrixStride is part of OpMemberDecorate.
-	auto &dec = ir.meta[type.self].members[index];
-	if (dec.decoration_flags.get(DecorationMatrixStride))
-		return dec.matrix_stride;
+	auto *type_meta = ir.find_meta(type.self);
+	if (type_meta)
+	{
+		// Decoration must be set in valid SPIR-V, otherwise throw.
+		// MatrixStride is part of OpMemberDecorate.
+		auto &dec = type_meta->members[index];
+		if (dec.decoration_flags.get(DecorationMatrixStride))
+			return dec.matrix_stride;
+		else
+			SPIRV_CROSS_THROW("Struct member does not have MatrixStride set.");
+	}
 	else
 		SPIRV_CROSS_THROW("Struct member does not have MatrixStride set.");
 }
@@ -1487,11 +1593,13 @@ size_t Compiler::get_declared_struct_member_size(const SPIRType &struct_type, ui
 
 bool Compiler::BufferAccessHandler::handle(Op opcode, const uint32_t *args, uint32_t length)
 {
-	if (opcode != OpAccessChain && opcode != OpInBoundsAccessChain)
+	if (opcode != OpAccessChain && opcode != OpInBoundsAccessChain && opcode != OpPtrAccessChain)
 		return true;
 
+	bool ptr_chain = (opcode == OpPtrAccessChain);
+
 	// Invalid SPIR-V.
-	if (length < 4)
+	if (length < (ptr_chain ? 5u : 4u))
 		return false;
 
 	if (args[2] != id)
@@ -1499,7 +1607,7 @@ bool Compiler::BufferAccessHandler::handle(Op opcode, const uint32_t *args, uint
 
 	// Don't bother traversing the entire access chain tree yet.
 	// If we access a struct member, assume we access the entire member.
-	uint32_t index = compiler.get<SPIRConstant>(args[3]).scalar();
+	uint32_t index = compiler.get<SPIRConstant>(args[ptr_chain ? 4 : 3]).scalar();
 
 	// Seen this index already.
 	if (seen.find(index) != end(seen))
@@ -2043,6 +2151,7 @@ void Compiler::CombinedImageSamplerHandler::register_combined_image_sampler(SPIR
 		ptr_type = type;
 		ptr_type.pointer = true;
 		ptr_type.storage = StorageClassUniformConstant;
+		ptr_type.parent_type = type_id;
 
 		// Build new variable.
 		compiler.set<SPIRVariable>(combined_id, ptr_type_id, StorageClassFunction, 0);
@@ -2116,6 +2225,7 @@ bool Compiler::DummySamplerForCombinedImageHandler::handle(Op opcode, const uint
 
 	case OpInBoundsAccessChain:
 	case OpAccessChain:
+	case OpPtrAccessChain:
 	{
 		if (length < 3)
 			return false;
@@ -2175,6 +2285,7 @@ bool Compiler::CombinedImageSamplerHandler::handle(Op opcode, const uint32_t *ar
 
 	case OpInBoundsAccessChain:
 	case OpAccessChain:
+	case OpPtrAccessChain:
 	{
 		if (length < 3)
 			return false;
@@ -2303,6 +2414,7 @@ bool Compiler::CombinedImageSamplerHandler::handle(Op opcode, const uint32_t *ar
 		type = base;
 		type.pointer = true;
 		type.storage = StorageClassUniformConstant;
+		type.parent_type = type_id;
 
 		// Build new variable.
 		compiler.set<SPIRVariable>(combined_id, type_id, StorageClassUniformConstant, 0);
@@ -2350,6 +2462,7 @@ uint32_t Compiler::build_dummy_sampler_for_combined_images()
 		ptr_sampler.self = type_id;
 		ptr_sampler.storage = StorageClassUniformConstant;
 		ptr_sampler.pointer = true;
+		ptr_sampler.parent_type = type_id;
 
 		set<SPIRVariable>(var_id, ptr_type_id, StorageClassUniformConstant, 0);
 		set_name(var_id, "SPIRV_Cross_DummySampler");
@@ -2362,16 +2475,11 @@ uint32_t Compiler::build_dummy_sampler_for_combined_images()
 
 void Compiler::build_combined_image_samplers()
 {
-	for (auto &id : ir.ids)
-	{
-		if (id.get_type() == TypeFunction)
-		{
-			auto &func = id.get<SPIRFunction>();
-			func.combined_parameters.clear();
-			func.shadow_arguments.clear();
-			func.do_combined_parameters = true;
-		}
-	}
+	ir.for_each_typed_id<SPIRFunction>([&](uint32_t, SPIRFunction &func) {
+		func.combined_parameters.clear();
+		func.shadow_arguments.clear();
+		func.do_combined_parameters = true;
+	});
 
 	combined_image_samplers.clear();
 	CombinedImageSamplerHandler handler(*this);
@@ -2381,15 +2489,10 @@ void Compiler::build_combined_image_samplers()
 vector<SpecializationConstant> Compiler::get_specialization_constants() const
 {
 	vector<SpecializationConstant> spec_consts;
-	for (auto &id : ir.ids)
-	{
-		if (id.get_type() == TypeConstant)
-		{
-			auto &c = id.get<SPIRConstant>();
-			if (c.specialization && has_decoration(c.self, DecorationSpecId))
-				spec_consts.push_back({ c.self, get_decoration(c.self, DecorationSpecId) });
-		}
-	}
+	ir.for_each_typed_id<SPIRConstant>([&](uint32_t, const SPIRConstant &c) {
+		if (c.specialization && has_decoration(c.self, DecorationSpecId))
+			spec_consts.push_back({ c.self, get_decoration(c.self, DecorationSpecId) });
+	});
 	return spec_consts;
 }
 
@@ -2599,6 +2702,7 @@ bool Compiler::AnalyzeVariableScopeAccessHandler::handle(spv::Op op, const uint3
 
 	case OpAccessChain:
 	case OpInBoundsAccessChain:
+	case OpPtrAccessChain:
 	{
 		if (length < 3)
 			return false;
@@ -2783,6 +2887,7 @@ bool Compiler::StaticExpressionAccessHandler::handle(spv::Op op, const uint32_t 
 
 	case OpAccessChain:
 	case OpInBoundsAccessChain:
+	case OpPtrAccessChain:
 		if (length < 3)
 			return false;
 		if (args[2] == variable_id) // If we try to access chain our candidate variable before we store to it, bail.
@@ -2817,12 +2922,6 @@ void Compiler::find_function_local_luts(SPIRFunction &entry, const AnalyzeVariab
 
 		// Only consider arrays here.
 		if (type.array.empty())
-			continue;
-
-		// HACK: Do not consider structs. This is a quirk with how types are currently being emitted.
-		// Structs are emitted after specialization constants and composite constants.
-		// FIXME: Fix declaration order so declared constants can have struct types.
-		if (type.basetype == SPIRType::Struct)
 			continue;
 
 		// If the variable has an initializer, make sure it is a constant expression.
@@ -3219,6 +3318,26 @@ bool Compiler::ActiveBuiltinHandler::handle(spv::Op opcode, const uint32_t *args
 		add_if_builtin(args[2]);
 		break;
 
+	case OpSelect:
+		if (length < 5)
+			return false;
+
+		add_if_builtin(args[3]);
+		add_if_builtin(args[4]);
+		break;
+
+	case OpPhi:
+	{
+		if (length < 2)
+			return false;
+
+		uint32_t count = length - 2;
+		args += 2;
+		for (uint32_t i = 0; i < count; i += 2)
+			add_if_builtin(args[i]);
+		break;
+	}
+
 	case OpFunctionCall:
 	{
 		if (length < 3)
@@ -3233,6 +3352,7 @@ bool Compiler::ActiveBuiltinHandler::handle(spv::Op opcode, const uint32_t *args
 
 	case OpAccessChain:
 	case OpInBoundsAccessChain:
+	case OpPtrAccessChain:
 	{
 		if (length < 4)
 			return false;
@@ -3247,7 +3367,7 @@ bool Compiler::ActiveBuiltinHandler::handle(spv::Op opcode, const uint32_t *args
 		add_if_builtin(args[2]);
 
 		// Start traversing type hierarchy at the proper non-pointer types.
-		auto *type = &compiler.get_non_pointer_type(var->basetype);
+		auto *type = &compiler.get_variable_data_type(*var);
 
 		auto &flags =
 		    type->storage == StorageClassInput ? compiler.active_input_builtins : compiler.active_output_builtins;
@@ -3256,6 +3376,13 @@ bool Compiler::ActiveBuiltinHandler::handle(spv::Op opcode, const uint32_t *args
 		args += 3;
 		for (uint32_t i = 0; i < count; i++)
 		{
+			// Pointers
+			if (opcode == OpPtrAccessChain && i == 0)
+			{
+				type = &compiler.get<SPIRType>(type->parent_type);
+				continue;
+			}
+
 			// Arrays
 			if (!type->array.empty())
 			{
@@ -3463,6 +3590,7 @@ bool Compiler::CombinedImageSamplerUsageHandler::handle(Op opcode, const uint32_
 	{
 	case OpAccessChain:
 	case OpInBoundsAccessChain:
+	case OpPtrAccessChain:
 	case OpLoad:
 	{
 		if (length < 3)
@@ -3514,15 +3642,18 @@ bool Compiler::CombinedImageSamplerUsageHandler::handle(Op opcode, const uint32_
 
 bool Compiler::buffer_is_hlsl_counter_buffer(uint32_t id) const
 {
-	return ir.meta.at(id).hlsl_is_magic_counter_buffer;
+	auto *m = ir.find_meta(id);
+	return m && m->hlsl_is_magic_counter_buffer;
 }
 
 bool Compiler::buffer_get_hlsl_counter_buffer(uint32_t id, uint32_t &counter_id) const
 {
+	auto *m = ir.find_meta(id);
+
 	// First, check for the proper decoration.
-	if (ir.meta[id].hlsl_magic_counter_buffer != 0)
+	if (m && m->hlsl_magic_counter_buffer != 0)
 	{
-		counter_id = ir.meta[id].hlsl_magic_counter_buffer;
+		counter_id = m->hlsl_magic_counter_buffer;
 		return true;
 	}
 	else
@@ -3533,7 +3664,12 @@ void Compiler::make_constant_null(uint32_t id, uint32_t type)
 {
 	auto &constant_type = get<SPIRType>(type);
 
-	if (!constant_type.array.empty())
+	if (constant_type.pointer)
+	{
+		auto &constant = set<SPIRConstant>(id, type);
+		constant.make_null(constant_type);
+	}
+	else if (!constant_type.array.empty())
 	{
 		assert(constant_type.parent_type);
 		uint32_t parent_id = ir.increase_bound_by(1);
@@ -3584,8 +3720,10 @@ std::string Compiler::get_remapped_declared_block_name(uint32_t id) const
 	{
 		auto &var = get<SPIRVariable>(id);
 		auto &type = get<SPIRType>(var.basetype);
-		auto &block_name = ir.meta[type.self].decoration.alias;
-		return block_name.empty() ? get_block_fallback_name(id) : block_name;
+
+		auto *type_meta = ir.find_meta(type.self);
+		auto *block_name = type_meta ? &type_meta->decoration.alias : nullptr;
+		return (!block_name || block_name->empty()) ? get_block_fallback_name(id) : *block_name;
 	}
 }
 
@@ -3632,15 +3770,20 @@ bool Compiler::instruction_to_result_type(uint32_t &result_type, uint32_t &resul
 Bitset Compiler::combined_decoration_for_member(const SPIRType &type, uint32_t index) const
 {
 	Bitset flags;
-	auto &memb = ir.meta[type.self].members;
-	if (index >= memb.size())
-		return flags;
-	auto &dec = memb[index];
+	auto *type_meta = ir.find_meta(type.self);
 
-	// If our type is a struct, traverse all the members as well recursively.
-	flags.merge_or(dec.decoration_flags);
-	for (uint32_t i = 0; i < type.member_types.size(); i++)
-		flags.merge_or(combined_decoration_for_member(get<SPIRType>(type.member_types[i]), i));
+	if (type_meta)
+	{
+		auto &memb = type_meta->members;
+		if (index >= memb.size())
+			return flags;
+		auto &dec = memb[index];
+
+		// If our type is a struct, traverse all the members as well recursively.
+		flags.merge_or(dec.decoration_flags);
+		for (uint32_t i = 0; i < type.member_types.size(); i++)
+			flags.merge_or(combined_decoration_for_member(get<SPIRType>(type.member_types[i]), i));
+	}
 
 	return flags;
 }

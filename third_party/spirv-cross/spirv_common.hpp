@@ -322,14 +322,14 @@ enum Types
 	TypeConstant,
 	TypeFunction,
 	TypeFunctionPrototype,
-	TypePointer,
 	TypeBlock,
 	TypeExtension,
 	TypeExpression,
 	TypeConstantOp,
 	TypeCombinedImageSampler,
 	TypeAccessChain,
-	TypeUndef
+	TypeUndef,
+	TypeCount
 };
 
 struct SPIRUndef : IVariant
@@ -563,6 +563,9 @@ struct SPIRExpression : IVariant
 	// Before use, this expression must be transposed.
 	// This is needed for targets which don't support row_major layouts.
 	bool need_transpose = false;
+
+	// Whether or not this is an access chain expression.
+	bool access_chain = false;
 
 	// A list of expressions which this expression depends on.
 	std::vector<uint32_t> expression_dependencies;
@@ -1247,7 +1250,7 @@ public:
 		return *this;
 	}
 
-	void set(std::unique_ptr<IVariant> val, uint32_t new_type)
+	void set(std::unique_ptr<IVariant> val, Types new_type)
 	{
 		holder = std::move(val);
 		if (!allow_type_rewrite && type != TypeNone && type != new_type)
@@ -1261,7 +1264,7 @@ public:
 	{
 		if (!holder)
 			SPIRV_CROSS_THROW("nullptr");
-		if (T::type != type)
+		if (static_cast<Types>(T::type) != type)
 			SPIRV_CROSS_THROW("Bad cast");
 		return *static_cast<T *>(holder.get());
 	}
@@ -1271,12 +1274,12 @@ public:
 	{
 		if (!holder)
 			SPIRV_CROSS_THROW("nullptr");
-		if (T::type != type)
+		if (static_cast<Types>(T::type) != type)
 			SPIRV_CROSS_THROW("Bad cast");
 		return *static_cast<const T *>(holder.get());
 	}
 
-	uint32_t get_type() const
+	Types get_type() const
 	{
 		return type;
 	}
@@ -1304,7 +1307,7 @@ public:
 
 private:
 	std::unique_ptr<IVariant> holder;
-	uint32_t type = TypeNone;
+	Types type = TypeNone;
 	bool allow_type_rewrite = false;
 };
 
@@ -1325,7 +1328,7 @@ T &variant_set(Variant &var, P &&... args)
 {
 	auto uptr = std::unique_ptr<T>(new T(std::forward<P>(args)...));
 	auto ptr = uptr.get();
-	var.set(std::move(uptr), T::type);
+	var.set(std::move(uptr), static_cast<Types>(T::type));
 	return *ptr;
 }
 
@@ -1344,7 +1347,7 @@ struct Meta
 		std::string qualified_alias;
 		std::string hlsl_semantic;
 		Bitset decoration_flags;
-		spv::BuiltIn builtin_type;
+		spv::BuiltIn builtin_type = spv::BuiltInMax;
 		uint32_t location = 0;
 		uint32_t component = 0;
 		uint32_t set = 0;
