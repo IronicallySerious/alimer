@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../IO/Stream.h"
-#include <vector>
 
 namespace alimer
 {

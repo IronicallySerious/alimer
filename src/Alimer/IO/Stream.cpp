@@ -186,14 +186,14 @@ namespace alimer
 		return content;
 	}
 
-    PODVector<uint8_t> Stream::ReadBytes(uint64_t count)
+    Vector<uint8_t> Stream::ReadBytes(size_t count)
 	{
 		if (!count)
 			count = _size;
 
-        PODVector<uint8_t> result(static_cast<uint32_t>(count));
+        Vector<uint8_t> result(count);
 
-        uint64_t read = Read(result.Data(), count);
+        uint64_t read = Read(result.data(), count);
 		if (read != count)
 		{
             ALIMER_LOGERROR("IO", "Failed to read complete contents of stream (amount read vs. file size: {} < {}).",
@@ -226,7 +226,7 @@ namespace alimer
         Write(&value, sizeof value);
     }
 
-    void Stream::WriteVLE(unsigned value)
+    void Stream::WriteVLE(size_t value)
     {
         uint8_t data[4];
 

@@ -135,7 +135,7 @@ namespace alimer
     void FileSystem::RegisterProtocol(const String &name, FileSystemProtocol* protocol)
     {
         protocol->SetName(name);
-        _protocols[name].Reset(protocol);
+        _protocols[name].reset(protocol);
     }
 
     FileSystemProtocol* FileSystem::GetProcotol(const String &name)
@@ -145,7 +145,7 @@ namespace alimer
             it = _protocols.find("file");
 
         if (it != end(_protocols))
-            return it->second.Get();
+            return it->second.get();
 
         return nullptr;
     }
@@ -185,9 +185,9 @@ namespace alimer
     }
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-    WString GetWideNativePath(const String& path)
+    std::wstring GetWideNativePath(const String& path)
     {
-        return WString(path.Replaced('/', '\\'));
+        return std::wstring(path.Replaced('/', '\\'));
     }
 
     String GetUniversalPath(const String& path)
@@ -353,8 +353,8 @@ namespace alimer
     bool FileSystem::CreateDir(const String& path)
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        WString normalizePath = GetWideNativePath(RemoveTrailingSlash(path));
-        return CreateDirectoryW(normalizePath.CString(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS;
+        std::wstring normalizePath = GetWideNativePath(RemoveTrailingSlash(path));
+        return CreateDirectoryW(normalizePath.c_str(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS;
 #else
         return mkdir(RemoveTrailingSlash(path).CString(), S_IRWXU) == 0 || errno == EEXIST;
 #endif
@@ -408,7 +408,7 @@ namespace alimer
 
 #ifdef _WIN32
     void ScanDirInternal(
-        std::vector<String>& result, String path, const String& startPath,
+        Vector<String>& result, String path, const String& startPath,
         const String& filter, ScanDirFlags flags, bool recursive)
     {
         path = AddTrailingSlash(path);
@@ -437,7 +437,10 @@ namespace alimer
                     if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                     {
                         if (any(flags & ScanDirFlags::Directories))
+                        {
                             result.push_back(deltaPath + fileName);
+                        }
+
                         if (recursive && fileName != "." && fileName != "..")
                         {
                             ScanDirInternal(result, path + fileName, startPath, filter, flags, recursive);
@@ -459,7 +462,7 @@ namespace alimer
     }
 
     void ScanDirectory(
-        std::vector<String>& result,
+        Vector<String>& result,
         const String& pathName,
         const String& filter,
         ScanDirFlags flags, bool recursive)

@@ -195,7 +195,7 @@ namespace alimer
             descriptor.format = PixelFormat::BGRA8UNormSrgb;
         }
 
-        _backbufferTextures.Resize(1);
+        _backbufferTextures.resize(1);
         _backbufferTextures[0] = new TextureD3D11(_device, &descriptor, nullptr, renderTarget, backBufferFormat);
         InitializeFramebuffer();
     }

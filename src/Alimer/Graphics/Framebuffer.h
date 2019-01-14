@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Base/Vector.h"
+#include "../Base/StdHeaders.h"
 #include "../Graphics/Texture.h"
 
 namespace alimer
@@ -37,7 +37,7 @@ namespace alimer
     public:
         /// Set color attachment at index.
         /// Get the number of color attachments.
-        uint32_t GetColorAttachmentsCount() const { return _colorAttachments.Size(); }
+        uint32_t GetColorAttachmentsCount() const { return static_cast<uint32_t>(_colorAttachments.size()); }
 
         /// Get an attached color texture or null if no texture is attached.
         const Texture* GetColorTexture(uint32_t index) const;
@@ -58,7 +58,7 @@ namespace alimer
         uint32_t GetLayers() const { return _layers; }
 
     private:
-        PODVector<FramebufferAttachment> _colorAttachments;
+        Vector<FramebufferAttachment> _colorAttachments;
         FramebufferAttachment _depthStencilAttachment;
 
         uint32_t _width;

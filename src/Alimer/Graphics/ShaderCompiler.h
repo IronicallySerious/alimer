@@ -25,7 +25,6 @@
 #if TODO_SHADER_COMPILER
 #include "../Graphics/Shader.h"
 #include <mutex>
-#include <vector>
 
 namespace alimer
 {

@@ -136,7 +136,7 @@ namespace alimer
         GraphicsDeviceFeatures  _features{};
 
         uint64_t                _frameIndex;
-        PODVector<GPUResource*> _gpuResources;
+        Vector<GPUResource*>    _gpuResources;
         std::mutex              _gpuResourceMutex;
         CommandContext*         _immediateCommandContext = nullptr;
     };

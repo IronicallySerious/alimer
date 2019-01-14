@@ -22,11 +22,11 @@
 
 #pragma once
 
+#include "../Base/StdHeaders.h"
 #include "../Base/String.h"
 #include "../Base/Ptr.h"
 #include "../Core/Platform.h"
 #include "../IO/FileStream.h"
-#include <unordered_map>
 
 namespace alimer
 {
@@ -57,7 +57,7 @@ namespace alimer
     ALIMER_API bool IsAbsolutePath(const String& pathName);
 
     /// Scan a directory for specified files.
-    ALIMER_API void ScanDirectory(std::vector<String>& result, const String& pathName, const String& filter, ScanDirFlags flags, bool recursive);
+    ALIMER_API void ScanDirectory(Vector<String>& result, const String& pathName, const String& filter, ScanDirFlags flags, bool recursive);
 
     /// Backend protocol for file system.
     class ALIMER_API FileSystemProtocol
@@ -129,7 +129,7 @@ namespace alimer
     private:
         FileSystem();
 
-        std::unordered_map<String, UniquePtr<FileSystemProtocol>> _protocols;
+        UnorderedMap<String, UniquePtr<FileSystemProtocol>> _protocols;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(FileSystem);

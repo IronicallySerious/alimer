@@ -43,7 +43,7 @@ namespace alimer
         void Resize(uint32_t width, uint32_t height);
         virtual void Present() = 0;
 
-        uint32_t GetBackBufferCount() const { return _backbufferTextures.Size(); }
+        uint32_t GetBackBufferCount() const { return static_cast<uint32_t>(_backbufferTextures.size()); }
         Texture* GetBackBufferTexture(uint32_t index) const { return _backbufferTextures[index].Get(); }
         uint32_t GetCurrentBackBuffer() const { return _currentBackBuffer; }
         Framebuffer* GetCurrentFramebuffer() const { return _framebuffers[_currentBackBuffer].Get(); }

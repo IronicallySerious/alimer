@@ -23,6 +23,7 @@
 #include "Scene/Components/CameraComponent.h"
 #include "Scene/Components/TransformComponent.h"
 
+#if TODO_ENTITY
 namespace alimer
 {
     CameraComponent::~CameraComponent()
@@ -47,3 +48,5 @@ namespace alimer
         return _projection;
     }
 }
+
+#endif // TODO_ENTITY

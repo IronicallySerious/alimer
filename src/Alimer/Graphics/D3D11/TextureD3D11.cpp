@@ -38,10 +38,10 @@ namespace alimer
         if (externalTexture == nullptr)
         {
             // Setup initial data.
-            PODVector<D3D11_SUBRESOURCE_DATA> subResourceData;
+            Vector<D3D11_SUBRESOURCE_DATA> subResourceData;
             if (initialData)
             {
-                subResourceData.Resize(_descriptor.arraySize * _descriptor.mipLevels);
+                subResourceData.resize(_descriptor.arraySize * _descriptor.mipLevels);
                 for (uint32_t mipLevel = 0; mipLevel < _descriptor.arraySize * _descriptor.mipLevels; ++mipLevel)
                 {
                     uint32_t rowPitch;
@@ -127,7 +127,7 @@ namespace alimer
                     d3d11Desc.MiscFlags = d3dMiscFlags;
                 };
 
-                hr = _d3dDevice->CreateTexture1D(&d3d11Desc, subResourceData.Data(), &_texture1D);
+                hr = _d3dDevice->CreateTexture1D(&d3d11Desc, subResourceData.data(), &_texture1D);
             }
             break;
 
@@ -146,7 +146,7 @@ namespace alimer
                 d3d11Desc.BindFlags = d3dBindFlags;
                 d3d11Desc.CPUAccessFlags = d3dCPUAccessFlags;
                 d3d11Desc.MiscFlags = d3dMiscFlags;
-                hr = _d3dDevice->CreateTexture2D(&d3d11Desc, subResourceData.Data(), &_texture2D);
+                hr = _d3dDevice->CreateTexture2D(&d3d11Desc, subResourceData.data(), &_texture2D);
 
             }
             break;

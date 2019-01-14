@@ -22,7 +22,6 @@
 
 #include "../Serialization/JsonDeserializer.h"
 #include "../Core/Log.h"
-#include <vector>
 
 namespace alimer
 {

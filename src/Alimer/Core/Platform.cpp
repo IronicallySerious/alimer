@@ -225,12 +225,14 @@ namespace alimer
     void* LoadNativeLibrary(const char* name)
     {
 #if ALIMER_PLATFORM_WINDOWS
-        alimer::WString wideName = alimer::WString(name);
-        HMODULE handle = LoadLibraryW(wideName.CString());
+        std::string nameStr(name);
+        std::wstring wideName = std::wstring(nameStr.begin(), nameStr.end());
+        HMODULE handle = LoadLibraryW(wideName.c_str());
         return handle;
 #elif ALIMER_PLATFORM_UWP
-        auto wideName = WString(name);
-        HMODULE handle = LoadPackagedLibrary(wideName.CString(), 0);
+        std::string nameStr(name);
+        std::wstring wideName = std::wstring(nameStr.begin(), nameStr.end());
+        HMODULE handle = LoadPackagedLibrary(wideName.c_str(), 0);
         return handle;
 #elif ALIMER_PLATFORM_WEB
         ALIMER_UNUSED(name);

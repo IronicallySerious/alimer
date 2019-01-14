@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../../Application/GameSystem.h"
-
+/*
 namespace alimer
 {
 	/// System that manages updates of any camera components
@@ -36,3 +36,4 @@ namespace alimer
         void Update(EntityManager &entities, double deltaTime) override;
 	};
 }
+*/

@@ -34,14 +34,14 @@ namespace alimer
     {
     }
 
-    bool Mesh::Define(const PODVector<vec3>& positions, const PODVector<Color4>& colors, const PODVector<uint16_t>& indices)
+    bool Mesh::Define(const Vector<vec3>& positions, const Vector<Color4>& colors, const Vector<uint16_t>& indices)
     {
         //auto graphics = Object::GetSubsystem<Graphics>();
         _vertexBuffer.Reset();
         _indexBuffer.Reset();
 
-        _vertexCount = positions.Size();
-        _indexCount = indices.Size();
+        _vertexCount = static_cast<uint32_t>(positions.size());
+        _indexCount = static_cast<uint32_t>(indices.size());
 
         // Create vertex buffer.
         _vertexStride = sizeof(vec3) + sizeof(Color4);
@@ -138,9 +138,9 @@ namespace alimer
             vec3(0, -1,  0),
         };
 
-        PODVector<vec3> positions;
-        PODVector<Color4> colors;
-        PODVector<uint16_t> indices;
+        Vector<vec3> positions;
+        Vector<Color4> colors;
+        Vector<uint16_t> indices;
 
         vec3 tsize = size / 2.0f;
 
@@ -156,31 +156,31 @@ namespace alimer
             vec3 side2 = cross(normal, side1);
 
             // Six indices (two triangles) per face.
-            size_t vbase = positions.Size();
-            indices.Push(static_cast<uint16_t>(vbase + 0));
-            indices.Push(static_cast<uint16_t>(vbase + 1));
-            indices.Push(static_cast<uint16_t>(vbase + 2));
+            size_t vbase = positions.size();
+            indices.push_back(static_cast<uint16_t>(vbase + 0));
+            indices.push_back(static_cast<uint16_t>(vbase + 1));
+            indices.push_back(static_cast<uint16_t>(vbase + 2));
 
-            indices.Push(static_cast<uint16_t>(vbase + 0));
-            indices.Push(static_cast<uint16_t>(vbase + 2));
-            indices.Push(static_cast<uint16_t>(vbase + 3));
+            indices.push_back(static_cast<uint16_t>(vbase + 0));
+            indices.push_back(static_cast<uint16_t>(vbase + 2));
+            indices.push_back(static_cast<uint16_t>(vbase + 3));
 
             // Four vertices per face.
             // (normal - side1 - side2) * tsize // normal // t0
-            positions.Push((normal - side1 - side2) * tsize);
-            colors.Push(Color4(1.0f, 0.0f, 0.0f));
+            positions.push_back((normal - side1 - side2) * tsize);
+            colors.push_back(Color4(1.0f, 0.0f, 0.0f));
 
             // (normal - side1 + side2) * tsize // normal // t1
-            positions.Push((normal - side1 + side2) * tsize);
-            colors.Push(Color4(0.0f, 1.0f, 0.0f));
+            positions.push_back((normal - side1 + side2) * tsize);
+            colors.push_back(Color4(0.0f, 1.0f, 0.0f));
 
             // (normal + side1 + side2) * tsize // normal // t2
-            positions.Push((normal + side1 + side2) * tsize);
-            colors.Push(Color4(0.0f, 0.0f, 1.0f));
+            positions.push_back((normal + side1 + side2) * tsize);
+            colors.push_back(Color4(0.0f, 0.0f, 1.0f));
 
             // (normal + side1 - side2) * tsize // normal // t3
-            positions.Push((normal + side1 - side2) * tsize);
-            colors.Push(Color4(1.0f, 0.0f, 1.0f));
+            positions.push_back((normal + side1 - side2) * tsize);
+            colors.push_back(Color4(1.0f, 0.0f, 1.0f));
         }
 
         Mesh* newMesh = new Mesh();

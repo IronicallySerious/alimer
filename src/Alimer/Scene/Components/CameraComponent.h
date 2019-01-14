@@ -26,11 +26,12 @@
 #include "../../Renderer/Camera.h"
 #include "../../Math/Transform.h"
 
+#if TODO_ENTITY
 namespace alimer
 {
-	/// Defines a Camera Component class.
+    /// Defines a Camera Component class.
     class ALIMER_API CameraComponent final : public Component<CameraComponent>
-	{
+    {
         // ALIMER_OBJECT(CameraComponent, Component);
 
     public:
@@ -55,5 +56,7 @@ namespace alimer
         // Calculated values.
         mat4 _view;
         mat4 _projection;
-	};
+    };
 }
+
+#endif // TODO_ENTITY

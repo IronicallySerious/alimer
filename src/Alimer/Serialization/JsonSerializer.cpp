@@ -22,7 +22,6 @@
 
 #include "../Serialization/JsonSerializer.h"
 #include "../Core/Log.h"
-#include <vector>
 #if TODO
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>

@@ -153,9 +153,9 @@ namespace alimer
         Input _input;
 
         //
-        EntityManager _entities;
-        SystemManager _systems;
-        Scene _scene;
+        //EntityManager _entities;
+        //SystemManager _systems;
+        //Scene _scene;
         
         RenderContext _renderContext;
         SceneRenderPipeline* _sceneRenderPipeline = nullptr;

@@ -37,7 +37,7 @@ namespace alimer
     }
 
 
-	void Resource::SetName(const String& name)
+	void Resource::SetName(const std::string& name)
 	{
 		_name = name;
 		_nameHash = name;

@@ -22,9 +22,8 @@
 
 #pragma once
 
+#include "../Base/StdHeaders.h"
 #include "../Base/String.h"
-#include <memory>
-#include <unordered_map>
 
 namespace alimer
 {
@@ -37,7 +36,7 @@ namespace alimer
     };
 
     template <typename T>
-    using HashMap = std::unordered_map<uint64_t, T, HashMapHasher>;
+    using HashMap = UnorderedMap<uint64_t, T, HashMapHasher>;
 
     class Hasher
     {

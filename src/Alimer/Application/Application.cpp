@@ -34,9 +34,9 @@ namespace alimer
         , _running(false)
         , _paused(false)
         , _settings{}
-        , _entities{}
-        , _systems(_entities)
-        , _scene(_entities)
+        //, _entities{}
+        //, _systems(_entities)
+        //, _scene(_entities)
     {
         PlatformConstruct();
 
@@ -103,7 +103,7 @@ namespace alimer
         Initialize();
 
         // Setup and configure all systems.
-        _systems.Add<CameraSystem>();
+        //_systems.Add<CameraSystem>();
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;
@@ -127,7 +127,7 @@ namespace alimer
     {
         for (int i = 1; i < argc; ++i)
         {
-            _args.Push(argv[i]);
+            _args.push_back(argv[i]);
         }
 
         Setup();
@@ -149,7 +149,7 @@ namespace alimer
             double deltaTime = _timer.GetElapsed();
 
             // Update all systems.
-            _systems.Update(deltaTime);
+            //_systems.Update(deltaTime);
 
             // Render single frame if window is not minimzed.
             if (!_engine->IsHeadless()

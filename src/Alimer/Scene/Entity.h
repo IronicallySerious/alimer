@@ -22,32 +22,13 @@
 
 #pragma once
 
+#if TODO_ENTITY
 // Inspired from different ECS systems:
 // EnTT: https://github.com/skypjack/entt/blob/master/LICENSE
 // EntityX: https://github.com/alecthomas/entityx
 // Granite: https://github.com/Themaister/Granite
 
-#include <cstdint>
-#include <tuple>
-#include <new>
-#include <cstdlib>
-#include <algorithm>
-#include <bitset>
-#include <cassert>
-#include <iostream>
-#include <iterator>
-#include <list>
-#include <memory>
-#include <set>
-#include <string>
-#include <utility>
-#include <vector>
-#include <unordered_map>
-#include <type_traits>
-#include <functional>
-
 #include  "../Serialization/Serializable.h"
-#include  "../Base/IntrusivePtr.h"
 
 namespace alimer
 {
@@ -201,7 +182,7 @@ namespace alimer
     };
 
     /// Base component class.
-    class ALIMER_API BaseComponent : public IntrusivePtrEnabled<BaseComponent>
+    class ALIMER_API BaseComponent : public std::enable_shared_from_this<BaseComponent>
     {
         friend class EntityManager;
 
@@ -720,3 +701,5 @@ namespace std
         }
     };
 }
+
+#endif // TODO_ENTITY

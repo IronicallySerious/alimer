@@ -25,13 +25,13 @@
 #include "../Entity.h"
 #include "../../Math/Math.h"
 #include "../../Math/Transform.h"
-#include <vector>
 
+#if TODO_ENTITY
 namespace alimer
 {
-	/// Defines a Transform Component.
+    /// Defines a Transform Component.
     class ALIMER_API TransformComponent final : public Component<TransformComponent>
-	{
+    {
         //ALIMER_OBJECT(TransformComponent, Component);
 
     public:
@@ -75,5 +75,7 @@ namespace alimer
         Transform _worldTransform;
         /// Transform dirty state.
         bool _dirty = true;
-	};
+    };
 }
+
+#endif // TODO_ENTITY

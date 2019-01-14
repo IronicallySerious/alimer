@@ -29,7 +29,7 @@
 
 namespace alimer
 {
-    PODVector<uint8_t> D3DShaderCompiler::Compile(const String& source, ShaderStages stage, const String& entryPoint, uint32_t major, uint32_t minor)
+    Vector<uint8_t> D3DShaderCompiler::Compile(const String& source, ShaderStages stage, const String& entryPoint, uint32_t major, uint32_t minor)
     {
 #if ALIMER_D3D_DYNAMIC_LIB
         static pD3DCompile D3DCompile = nullptr;
@@ -109,8 +109,8 @@ namespace alimer
 
         SafeRelease(errorsBlob);
 
-        PODVector<uint8_t> blob(static_cast<uint32_t>(shaderBlob->GetBufferSize()));
-        memcpy(blob.Data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
+        Vector<uint8_t> blob(shaderBlob->GetBufferSize());
+        memcpy(blob.data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
         return blob;
     }
 }

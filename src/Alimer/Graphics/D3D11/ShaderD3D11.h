@@ -47,7 +47,7 @@ namespace alimer
         ID3D11PixelShader* GetPixelShader() const { return _pixelShader.Get(); }
         ID3D11ComputeShader* GetComputeShader() const { return _computeShader.Get(); }
 
-        const PODVector<uint8_t>& GetVertexShaderBlob() const { return _vertexShaderBlob; }
+        const Vector<uint8_t>& GetVertexShaderBlob() const { return _vertexShaderBlob; }
 
     private:
         Microsoft::WRL::ComPtr<ID3D11VertexShader>      _vertexShader;
@@ -56,6 +56,6 @@ namespace alimer
         Microsoft::WRL::ComPtr<ID3D11GeometryShader>    _geometryShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader>       _pixelShader;
         Microsoft::WRL::ComPtr<ID3D11ComputeShader>     _computeShader;
-        PODVector<uint8_t>                              _vertexShaderBlob;
+        Vector<uint8_t>                                 _vertexShaderBlob;
     };
 }

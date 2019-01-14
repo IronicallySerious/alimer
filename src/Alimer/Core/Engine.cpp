@@ -38,7 +38,7 @@ namespace alimer
         AddSubsystem(this);
 
         // Setup logger first.
-        std::vector<std::shared_ptr<spdlog::sinks::sink>> sinks;
+        Vector<std::shared_ptr<spdlog::sinks::sink>> sinks;
 
         sinks.emplace_back(std::make_shared<spdlog::sinks::platform_sink_mt>());
         sinks.emplace_back(std::make_shared<spdlog::sinks::daily_file_sink_mt>("AlimerLog", 23, 59));
@@ -91,9 +91,9 @@ namespace alimer
 
             try 
             {
-                std::vector<std::string> cliArgs;
-                cliArgs.reserve(args.Size());
-                for (uint32_t i = 0; i < args.Size(); i++)
+                Vector<std::string> cliArgs;
+                cliArgs.reserve(args.size());
+                for (size_t i = 0; i < args.size(); i++)
                 {
                     cliArgs.emplace_back(args[i].CString());
                 }

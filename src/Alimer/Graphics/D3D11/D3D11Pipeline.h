@@ -24,7 +24,6 @@
 
 #include "../Pipeline.h"
 #include "D3D11Prerequisites.h"
-#include <unordered_map>
 
 namespace alimer
 {
@@ -50,7 +49,7 @@ namespace alimer
         ID3D11VertexShader* _vertexShader = nullptr;
         ID3D11PixelShader* _pixelShader = nullptr;
         ID3D11ComputeShader* _computeShader = nullptr;
-        std::vector<uint8_t> vsBytecode{};
+        Vector<uint8_t> vsBytecode{};
         ID3D11InputLayout* _inputLayout = nullptr;
     };
 }

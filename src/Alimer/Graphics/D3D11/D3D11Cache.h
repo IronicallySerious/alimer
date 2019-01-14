@@ -25,7 +25,6 @@
 #include "../../Base/HashMap.h"
 #include "../Pipeline.h"
 #include "D3D11Prerequisites.h"
-#include <unordered_map>
 
 namespace alimer
 {
@@ -48,7 +47,7 @@ namespace alimer
 
     private:
         DeviceD3D11* _device;
-        HashMap<std::vector<uint8_t>> _vsBytecodes;
+        HashMap<Vector<uint8_t>> _vsBytecodes;
         HashMap<Microsoft::WRL::ComPtr<ID3D11InputLayout>> _inputLayouts;
     };
 }

@@ -26,6 +26,7 @@ namespace alimer
 {
     uint32_t GameSystemIDMapping::ids;
 
+#if TODO_ENTITY
     void SystemManager::Update(double deltaTime)
     {
         for (auto &pair : _systems)
@@ -33,4 +34,6 @@ namespace alimer
             pair.second->Update(_entities, deltaTime);
         }
     }
+#endif // TODO_ENTITY
+
 }

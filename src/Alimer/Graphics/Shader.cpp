@@ -27,7 +27,6 @@
 #include "../Resource/ResourceManager.h"
 #include "../Core/Log.h"
 #include <algorithm>
-#include <unordered_map>
 #include <spirv-cross/spirv_glsl.hpp>
 
 namespace alimer
@@ -35,8 +34,8 @@ namespace alimer
     class CustomCompiler : public spirv_cross::CompilerGLSL
     {
     public:
-        CustomCompiler(const PODVector<uint8_t>& bytecode)
-            : spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t*>(bytecode.Data()), bytecode.Size() / 4)
+        CustomCompiler(const Vector<uint8_t>& bytecode)
+            : spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t*>(bytecode.data()), bytecode.size() / 4)
         {
 
         }
@@ -81,7 +80,7 @@ namespace alimer
         }
     }
 
-    void Shader::Reflect(const PODVector<uint8_t>& bytecode)
+    void Shader::Reflect(const Vector<uint8_t>& bytecode)
     {
         // Parse SPIRV binary.
         CustomCompiler compiler(bytecode);

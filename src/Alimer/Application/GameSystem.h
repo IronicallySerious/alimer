@@ -24,7 +24,6 @@
 
 #include  "AlimerConfig.h"
 #include  "../Scene/Entity.h"
-#include  <unordered_map>
 
 namespace alimer
 {
@@ -42,8 +41,9 @@ namespace alimer
         static uint32_t ids;
     };
 
+#if TODO_ENTITY
     /// Defines a base Game System class.
-    class ALIMER_API GameSystem : public IntrusivePtrEnabled<GameSystem>
+    class ALIMER_API GameSystem : public std::enable_shared_from_this<GameSystem>
     {
     public:
         /// Constructor.
@@ -98,8 +98,10 @@ namespace alimer
 
     private:
         EntityManager& _entities;
-        std::unordered_map<uint32_t, IntrusivePtr<GameSystem>> _systems;
+        UnorderedMap<uint32_t, std::shared_ptr<GameSystem>> _systems;
 
         DISALLOW_COPY_MOVE_AND_ASSIGN(SystemManager);
     };
+#endif // TODO_ENTITY
+
 }

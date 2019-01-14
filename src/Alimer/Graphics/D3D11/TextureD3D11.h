@@ -24,7 +24,6 @@
 
 #include "../Texture.h"
 #include "D3D11Prerequisites.h"
-#include <unordered_map>
 
 namespace alimer
 {
@@ -75,7 +74,7 @@ namespace alimer
             }
         };
 
-        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, ViewInfoHashFunc> _srvs;
-        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>, ViewInfoHashFunc> _uavs;
+        mutable UnorderedMap<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, ViewInfoHashFunc> _srvs;
+        mutable UnorderedMap<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>, ViewInfoHashFunc> _uavs;
     };
 }

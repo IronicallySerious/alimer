@@ -27,6 +27,11 @@ namespace alimer
 {
 	const StringHash StringHash::ZERO;
 
+    StringHash::StringHash(const std::string& str) noexcept
+        : _value(Calculate(str.c_str()))
+    {
+    }
+
 	StringHash::StringHash(const String& str) noexcept
 		: _value(Calculate(str.CString()))
 	{

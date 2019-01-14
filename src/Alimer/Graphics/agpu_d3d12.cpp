@@ -29,7 +29,6 @@
 #include <wrl/event.h>
 #include "../Base/HashMap.h"
 #include "../Base/MurmurHash.h"
-#include "../Base/Vector.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Platform.h"
 #include "../IO/FileStream.h"
@@ -389,9 +388,9 @@ namespace d3d12
 
         FileStream dllFile(String(dllPath), FileAccess::ReadOnly);
         uint64_t fileSize = dllFile.Size();
-        Vector<uint8_t> fileData(static_cast<uint32_t>(fileSize));
-        dllFile.Read(fileData.Data(), uint32_t(fileSize));
-        return GenerateHash(fileData.Data(), int32_t(fileSize));
+        Vector<uint8_t> fileData(static_cast<size_t>(fileSize));
+        dllFile.Read(fileData.data(), uint32_t(fileSize));
+        return GenerateHash(fileData.data(), int32_t(fileSize));
     }
 
     static Hash CompilerHash = MakeCompilerHash();
@@ -956,7 +955,7 @@ namespace d3d12
     Shader::Shader(const AgpuShaderDescriptor* descriptor)
     {
         isCompute = false;
-        shaderModules.Resize(descriptor->stageCount);
+        shaderModules.resize(descriptor->stageCount);
         for (uint32_t i = 0; i < descriptor->stageCount; i++)
         {
             uint32_t stage_mask = 1u << i;
@@ -2034,13 +2033,13 @@ namespace d3d12
 #ifdef AGPU_COMPILER_DXC
 
 #else
-            Vector<uint8_t> compressedShader(static_cast<uint32_t>(shaderSize));
-            cacheFile.Read(compressedShader.Data(), shaderSize);
+            Vector<uint8_t> compressedShader(static_cast<size_t>(shaderSize));
+            cacheFile.Read(compressedShader.data(), shaderSize);
 
             ID3DBlob* decompressedShader[1] = { nullptr };
             uint32_t indices[1] = { 0 };
             DXCall(D3DDecompressShaders(
-                compressedShader.Data(), shaderSize, 1, 0,
+                compressedShader.data(), shaderSize, 1, 0,
                 indices, 0, decompressedShader, nullptr));
 
             AgpuShaderModule shaderModule = new AgpuShaderModule_T();
