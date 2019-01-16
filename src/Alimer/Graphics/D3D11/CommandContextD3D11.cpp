@@ -35,8 +35,7 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     CommandContextD3D11::CommandContextD3D11(DeviceD3D11* device)
-        : CommandContext(device)
-        , _immediate(true)
+        : _immediate(true)
         , _context(device->GetD3DDeviceContext())
         , _fenceValue(0)
     {
@@ -105,13 +104,13 @@ namespace alimer
         return ++_fenceValue;
     }
 
-    void CommandContextD3D11::PushDebugGroup(const String& name)
+    void CommandContextD3D11::PushDebugGroup(const char* name)
     {
-        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name.CString(), -1, nullptr, 0);
+        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name, -1, nullptr, 0);
         if (bufferSize > 0)
         {
             std::vector<WCHAR> buffer(bufferSize);
-            MultiByteToWideChar(CP_UTF8, 0, name.CString(), -1, buffer.data(), bufferSize);
+            MultiByteToWideChar(CP_UTF8, 0, name, -1, buffer.data(), bufferSize);
             _annotation->BeginEvent(buffer.data());
         }
     }
@@ -121,18 +120,18 @@ namespace alimer
         _annotation->EndEvent();
     }
 
-    void CommandContextD3D11::InsertDebugMarker(const String& name)
+    void CommandContextD3D11::InsertDebugMarker(const char* name)
     {
-        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name.CString(), -1, nullptr, 0);
+        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name, -1, nullptr, 0);
         if (bufferSize > 0)
         {
             std::vector<WCHAR> buffer(bufferSize);
-            MultiByteToWideChar(CP_UTF8, 0, name.CString(), -1, buffer.data(), bufferSize);
+            MultiByteToWideChar(CP_UTF8, 0, name, -1, buffer.data(), bufferSize);
             _annotation->SetMarker(buffer.data());
         }
     }
 
-    void CommandContextD3D11::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    /*void CommandContextD3D11::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         _currentFramebuffer = static_cast<FramebufferD3D11*>(framebuffer);
         _currentColorAttachmentsBound = _currentFramebuffer->Bind(_context);
@@ -338,7 +337,7 @@ namespace alimer
     void CommandContextD3D11::DispatchImpl(uint32_t x, uint32_t y, uint32_t z)
     {
         _context->Dispatch(x, y, z);
-    }
+    }*/
 
 #if TODO_D3D11
     void CommandContextD3D11::SetPrimitiveTopologyCore(PrimitiveTopology topology)

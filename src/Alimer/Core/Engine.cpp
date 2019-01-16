@@ -58,8 +58,8 @@ namespace alimer
         // Create plugin manager
         _pluginManager = PluginManager::Create(*this);
 
-        // Create content manager.
-        _content = new ResourceManager();
+        // Create resources manager.
+        _resources = new ResourceManager();
 
         // Register modules
         GPUDevice::RegisterObject();

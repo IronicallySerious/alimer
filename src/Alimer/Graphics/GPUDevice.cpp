@@ -20,20 +20,27 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/GPUDevice.h"
-#include "../Graphics/SwapChain.h"
-#include "../Core/Log.h"
+#include "Graphics/GPUDevice.h"
+#include "Graphics/SwapChain.h"
+#include "Graphics/Texture.h"
+#include "Graphics/Sampler.h"
+#include "Graphics/DeviceBackend.h"
+#include "Core/Log.h"
 
 #if defined(ALIMER_D3D11)
-#   include "../Graphics/D3D11/DeviceD3D11.h"
-#endif
-
-#if ALIMER_COMPILE_VULKAN
-#   include "../Graphics/Vulkan/VulkanGraphicsDevice.h"
+#   include "Graphics/D3D11/DeviceD3D11.h"
 #endif
 
 #if defined(ALIMER_D3D12)
-#include "../Graphics/D3D12/D3D12Graphics.h"
+//#   include "Graphics/D3D12/D3D12Graphics.h"
+#endif
+
+#if defined(ALIMER_OPENGL)
+#   include "Graphics/OpenGL/DeviceGL.h"
+#endif
+
+#if defined(ALIMER_VULKAN)
+//#   include "Graphics/Vulkan/VulkanGraphicsDevice.h"
 #endif
 
 #if defined(_WIN32)
@@ -49,21 +56,8 @@ extern "C"
 
 namespace alimer
 {
-    GPUDevice::GPUDevice(GraphicsBackend backend, bool validation)
-        : _backend(backend)
-        , _validation(validation)
-        , _frameIndex(0)
-    {
-        AddSubsystem(this);
-    }
-
-    GPUDevice::~GPUDevice()
-    {
-        Finalize();
-        RemoveSubsystem(this);
-    }
-
-    GPUDevice* GPUDevice::Create(GraphicsBackend preferredBackend, bool validation)
+    GPUDevice::GPUDevice(GraphicsBackend preferredBackend, bool validation)
+        : _frameIndex(0)
     {
         GraphicsBackend backend = preferredBackend;
         if (backend == GraphicsBackend::Default)
@@ -74,10 +68,9 @@ namespace alimer
         if (!IsBackendSupported(backend))
         {
             ALIMER_LOGERROR("Backend {} is not supported", EnumToString(backend));
-            return nullptr;
+            return;
         }
 
-        GPUDevice* device = nullptr;
         switch (backend)
         {
         case GraphicsBackend::Empty:
@@ -86,7 +79,7 @@ namespace alimer
             break;
         case GraphicsBackend::D3D11:
 #if defined(ALIMER_D3D11)
-            device = new DeviceD3D11(validation);
+            _impl = new DeviceD3D11(validation);
             ALIMER_LOGINFO("D3D11 backend created with success.");
 #else
             ALIMER_LOGERROR("D3D11 backend is not supported.");
@@ -103,14 +96,27 @@ namespace alimer
         case GraphicsBackend::Metal:
             break;
         case GraphicsBackend::OpenGL:
+#if defined(ALIMER_OPENGL)
+            _impl = new DeviceGL(validation);
+            ALIMER_LOGINFO("D3D12 backend created with success.");
+#else
+            ALIMER_LOGERROR("D3D12 backend is not supported.");
+#endif
             break;
         default:
             ALIMER_UNREACHABLE();
         }
 
-        return device;
+        // Create immediate command buffer.
+        _immediateCommandContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
+        AddSubsystem(this);
     }
 
+    GPUDevice::~GPUDevice()
+    {
+        Finalize();
+        RemoveSubsystem(this);
+    }
 
     void GPUDevice::Shutdown()
     {
@@ -166,8 +172,8 @@ namespace alimer
 #endif
 
         case GraphicsBackend::OpenGL:
-#if AGPU_OPENGL
-            return true;
+#if defined(ALIMER_OPENGL)
+            return DeviceGL::IsSupported();
 #else
             return false;
 #endif
@@ -184,8 +190,11 @@ namespace alimer
         {
             backends.insert(GraphicsBackend::Empty);
 
-#if ALIMER_COMPILE_OPENGL
-            backends.insert(GraphicsBackend::OpenGL);
+#if defined(ALIMER_OPENGL)
+            if (DeviceGL::IsSupported())
+            {
+                backends.insert(GraphicsBackend::OpenGL);
+            }
 #endif
 
 #if defined(ALIMER_D3D11)
@@ -197,17 +206,17 @@ namespace alimer
 
 
 #if defined(ALIMER_D3D12)
-            /*if (D3D12Graphics::IsSupported())
-            {
-                backends.insert(GraphicsBackend::D3D12);
-            }*/
+            //if (D3D12Graphics::IsSupported())
+            //{
+            //    backends.insert(GraphicsBackend::D3D12);
+            //}
 #endif
 
-#if ALIMER_COMPILE_VULKAN
-            if (VulkanGraphicsDevice::IsSupported())
-            {
-                backends.insert(GraphicsBackend::Vulkan);
-            }
+#if defined(ALIMER_VULKAN)
+            //if (DeviceVk::IsSupported())
+            //{
+            //    backends.insert(GraphicsBackend::Vulkan);
+            //}
 #endif
         }
 
@@ -234,12 +243,27 @@ namespace alimer
 
     bool GPUDevice::WaitIdle()
     {
-        return true;
+        return _impl->WaitIdle();
+    }
+
+    GraphicsBackend GPUDevice::GetBackend() const
+    {
+        return _impl->GetBackend();
+    }
+
+    const GPULimits& GPUDevice::GetLimits() const
+    {
+        return _impl->GetLimits();
+    }
+
+    const GraphicsDeviceFeatures& GPUDevice::GetFeatures() const
+    {
+        return _impl->GetFeatures();
     }
 
     uint64_t GPUDevice::Frame()
     {
-        OnFrame();
+        _impl->Tick();
         return ++_frameIndex;
     }
 
@@ -281,10 +305,11 @@ namespace alimer
         registered = true;
 
         //Shader::RegisterObject();
-        //Texture::RegisterObject();
-        //Sampler::RegisterObject();
+        Texture::RegisterObject();
+        Sampler::RegisterObject();
     }
 
+#if TODO
     SwapChain* GPUDevice::CreateSwapChain(const SwapChainDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
@@ -302,33 +327,6 @@ namespace alimer
         return CreateSwapChainImpl(descriptor);
     }
 
-    Texture* GPUDevice::CreateTexture(const TextureDescriptor* descriptor, const void* initialData)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->format == PixelFormat::Unknown)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
-
-        if (descriptor->usage == TextureUsage::None)
-        {
-            ALIMER_LOGCRITICAL("Invalid texture usage");
-        }
-
-        if (descriptor->width == 0
-            || descriptor->height == 0
-            || descriptor->depth == 0
-            || descriptor->arraySize == 0
-            || descriptor->mipLevels == 0)
-        {
-            ALIMER_LOGCRITICAL("Cannot create an empty texture");
-        }
-
-        return CreateTextureImpl(descriptor, initialData);
-    }
-
-    
     Texture* GPUDevice::CreateTexture1D(uint32_t width, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, const void* initialData)
     {
         TextureDescriptor descriptor = {};
@@ -499,12 +497,6 @@ namespace alimer
         return CreateFramebufferImpl(descriptor);
     }
 
-    Sampler* GPUDevice::CreateSampler(const SamplerDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-        return CreateSamplerImpl(descriptor);
-    }
-
     Buffer* GPUDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
     {
         ALIMER_ASSERT(descriptor);
@@ -516,4 +508,6 @@ namespace alimer
         ALIMER_ASSERT(descriptor);
         return CreateShaderImpl(descriptor);
     }
+#endif // TODO
+
 }

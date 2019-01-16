@@ -59,15 +59,6 @@ if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_ANDROID)
     set (ALIMER_VULKAN_DEFAULT ON)
 endif ()
 
-macro (alimer_option NAME DESCRIPTION)
-    if (NOT ${NAME}_DEFAULT)
-        set (${NAME}_DEFAULT ${ALIMER_ENABLE_ALL})
-    endif ()
-    if (NOT DEFINED ${NAME})
-        option(${NAME} "${DESCRIPTION}" ${${NAME}_DEFAULT})
-    endif ()
-endmacro ()
-
 # Setup options
 option (ALIMER_PROFILING "Enable performance profiling" TRUE)
 option (ALIMER_EXCEPTIONS "Enable exceptions support" OFF)
@@ -104,7 +95,6 @@ endif ()
 
 option (ALIMER_SKIP_INSTALL "Skip installation" ${ALIMER_SKIP_INSTALL})
 set (ALIMER_SHARED OFF CACHE BOOL "Enable shared library build")
-set (ALIMER_USE_DEBUG_INFO ON CACHE BOOL "Enable debug information in all configurations.")
 
 # Graphics backends
 if (ALIMER_WINDOWS OR ALIMER_UWP OR ALIMER_XBOX_ONE)
@@ -123,8 +113,9 @@ else ()
     set (ALIMER_VULKAN OFF CACHE INTERNAL "Vulkan not supported" FORCE)
 endif ()
 
-alimer_option (ALIMER_CSHARP "Enable C# support")
-alimer_option (ALIMER_CSHARP_MONO "Use mono for C# support")
+option (ALIMER_SCRIPTING_LUA "Enable Lua scripting support" ON)
+option (ALIMER_CSHARP "Enable C# support" OFF)
+option (ALIMER_CSHARP_MONO "Use mono for C# support" OFF)
 
 if (ALIMER_CSHARP)
     set (ALIMER_SHARED ON CACHE INTERNAL "Vulkan not supported" FORCE)

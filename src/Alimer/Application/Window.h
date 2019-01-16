@@ -142,7 +142,7 @@ namespace alimer
         bool _focused = false;
 
     protected:
-        WeakPtr<GPUDevice> _device;
+        GPUDevice* _device;
         SwapChain* _swapChain;
         void* _nativeWindow = nullptr;
         void* _nativeConnection = nullptr;

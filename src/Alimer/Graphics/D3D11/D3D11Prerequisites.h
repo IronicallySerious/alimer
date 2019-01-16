@@ -35,6 +35,8 @@
 
 namespace alimer
 {
+    class DeviceD3D11;
+
     // Helper sets a D3D resource name string (used by PIX and debug layer leak reporting).
     inline void SetDebugObjectName(_In_ ID3D11DeviceChild* resource, _In_z_ const char* name, size_t length)
     {

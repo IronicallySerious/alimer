@@ -32,7 +32,7 @@ namespace alimer
         , _title(title)
         , _size(width, height)
         , _flags(flags)
-        , _swapChain(nullptr)
+        , _swapChain(new SwapChain(device))
     {
     }
 
@@ -107,7 +107,7 @@ namespace alimer
         descriptor.sRGB = false;
         descriptor.preferredDepthStencilFormat = PixelFormat::D24UNormS8;
         descriptor.preferredSamples = SampleCount::Count1;
-        _swapChain = _device->CreateSwapChain(&descriptor);
+        _swapChain->Define(&descriptor);
     }
 
     void Window::OnDestroyed()

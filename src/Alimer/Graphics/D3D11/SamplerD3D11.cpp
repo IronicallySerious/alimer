@@ -22,15 +22,14 @@
 
 #include "SamplerD3D11.h"
 #include "DeviceD3D11.h"
-#include "../D3D/D3DConvert.h"
+#include "Graphics/D3D/D3DConvert.h"
 #include "D3D11Convert.h"
-#include "../../Core/Log.h"
+#include "Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace alimer
 {
     SamplerD3D11::SamplerD3D11(DeviceD3D11* device, const SamplerDescriptor* descriptor)
-        : Sampler(device, descriptor)
     {
         D3D11_SAMPLER_DESC desc;
         memset(&desc, 0, sizeof desc);
@@ -59,11 +58,6 @@ namespace alimer
     }
 
     SamplerD3D11::~SamplerD3D11()
-    {
-        Destroy();
-    }
-
-    void SamplerD3D11::Destroy()
     {
         ALIMER_ASSERT(_handle.Reset() == 0);
     }

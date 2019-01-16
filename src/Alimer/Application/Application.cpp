@@ -82,7 +82,7 @@ namespace alimer
         // Init Window and Gpu.
         if (!_engine->IsHeadless())
         {
-            _gpuDevice = GPUDevice::Create(_settings.preferredGraphicsBackend, _settings.validation);
+            _gpuDevice = new GPUDevice(_settings.preferredGraphicsBackend, _settings.validation);
             if (_gpuDevice == nullptr)
             {
                 ALIMER_LOGERROR("Failed to create GPUDevice instance.");

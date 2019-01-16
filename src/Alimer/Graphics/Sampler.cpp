@@ -30,4 +30,9 @@ namespace alimer
     {
         memcpy(&_descriptor, descriptor, sizeof(SamplerDescriptor));
     }
+
+    void Sampler::RegisterObject()
+    {
+        //RegisterFactory<Sampler>();
+    }
 }

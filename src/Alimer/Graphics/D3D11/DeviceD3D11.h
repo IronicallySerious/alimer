@@ -22,13 +22,13 @@
 
 #pragma once
 
-#include "../../Graphics/GPUDevice.h"
+#include "Graphics/DeviceBackend.h"
 #include "D3D11Cache.h"
 
 namespace alimer
 {
     /// D3D11 graphics implementation.
-    class DeviceD3D11 final : public GPUDevice
+    class DeviceD3D11 final : public DeviceBackend
     {
     public:
         /// Is backend supported?
@@ -41,13 +41,14 @@ namespace alimer
         ~DeviceD3D11() override;
 
         bool WaitIdle() override;
+        void Tick() override;
 
-        SwapChain* CreateSwapChainImpl(const SwapChainDescriptor* descriptor) override;
-        Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const void* initialData) override;
-        Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
-        Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
-        Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor) override;
-        Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
+        GPUSwapChain* CreateSwapChain(const SwapChainDescriptor* descriptor) override;
+        GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData) override;
+        //Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
+        //Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
+        GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
+        //Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
 
         void HandleDeviceLost();
 
@@ -68,7 +69,7 @@ namespace alimer
 
     private:
         void InitializeCaps();
-        void GenerateScreenshot(const std::string& fileName);
+        //void GenerateScreenshot(const std::string& fileName);
 
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
 

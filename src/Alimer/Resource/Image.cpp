@@ -50,7 +50,7 @@ namespace alimer
         }
 
         _memorySize = newSize.x * newSize.y * formatSize;
-        _data = new uint8_t[_memorySize];
+        _data = std::make_unique<uint8_t[]>(_memorySize);
         _size = newSize;
         _format = newFormat;
         _mipLevels = 1;
@@ -60,7 +60,7 @@ namespace alimer
     {
         if (!IsCompressed(_format))
         {
-            memcpy(_data.Get(), pixelData, _memorySize);
+            memcpy(_data.get(), pixelData, _memorySize);
         }
         else
         {
@@ -119,7 +119,7 @@ namespace alimer
             static_cast<int>(_size.x),
             static_cast<int>(_size.y),
             static_cast<int>(components),
-            _data.Get()) != 0;
+            _data.get()) != 0;
     }
 
     bool Image::SavePng(Stream* dest) const
@@ -132,7 +132,7 @@ namespace alimer
             static_cast<int>(_size.x),
             static_cast<int>(_size.y),
             static_cast<int>(components),
-            _data.Get(),
+            _data.get(),
             0) != 0;
     }
 

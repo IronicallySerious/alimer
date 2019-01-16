@@ -56,7 +56,7 @@ namespace alimer
                 auto it = _factories.find(factory->GetType());
                 if (it == _factories.end())
                 {
-                    _factories[factory->GetType()].Reset(factory);
+                    _factories[factory->GetType()].reset(factory);
                 }
                 else
                 {

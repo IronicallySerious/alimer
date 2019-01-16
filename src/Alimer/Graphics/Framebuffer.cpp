@@ -42,8 +42,8 @@ namespace alimer
             }
 
             const uint32_t level = descriptor->colorAttachments[i].level;
-            _width = min(_width, descriptor->colorAttachments[i].texture->GetWidth(level));
-            _height = min(_height, descriptor->colorAttachments[i].texture->GetHeight(level));
+            _width = Min(_width, descriptor->colorAttachments[i].texture->GetWidth(level));
+            _height = Min(_height, descriptor->colorAttachments[i].texture->GetHeight(level));
             _colorAttachments[i] = descriptor->colorAttachments[i];
         }
 
@@ -51,8 +51,8 @@ namespace alimer
         {
             const uint32_t level = descriptor->depthStencilAttachment.level;
             _depthStencilAttachment = descriptor->depthStencilAttachment;
-            _width = min(_width, _depthStencilAttachment.texture->GetWidth(level));
-            _height = min(_height, _depthStencilAttachment.texture->GetHeight(level));
+            _width = Min(_width, _depthStencilAttachment.texture->GetWidth(level));
+            _height = Min(_height, _depthStencilAttachment.texture->GetHeight(level));
         }
     }
 

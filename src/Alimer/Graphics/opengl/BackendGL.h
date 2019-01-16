@@ -22,29 +22,12 @@
 
 #pragma once
 
-#include "Graphics/DeviceBackend.h"
-#include "D3D11Prerequisites.h"
-
-namespace alimer
-{
-	/// D3D11 GpuBuffer implementation.
-	class BufferD3D11 final : public GPUBuffer
-	{
-	public:
-		/// Constructor.
-        BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* initialData);
-
-		/// Destructor.
-		~BufferD3D11() override;
-
-        void Destroy();
-
-        //bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
-
-        ID3D11Buffer* GetHandle() const { return _handle.Get(); }
-
-	private:
-        DeviceD3D11* _device;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>  _handle;
-	};
-}
+#if ALIMER_OPENGLES
+#   include "GLES/gl.h"
+#   include "GLES2/gl2.h"
+#   include "GLES2/gl2ext.h"
+#   include "GLES3/gl3.h"
+#else
+#   include "GL/glcorearb.h"
+#   include "GL/glext.h"
+#endif

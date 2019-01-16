@@ -31,8 +31,7 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     SwapChainD3D11::SwapChainD3D11(DeviceD3D11* device, const SwapChainDescriptor* descriptor, uint32_t backBufferCount)
-        : SwapChain(device, descriptor)
-        , _device(device)
+        : _device(device)
         , _sRGB(descriptor->sRGB)
         , _backBufferCount(backBufferCount)
     {
@@ -42,7 +41,7 @@ namespace alimer
         _hwnd = static_cast<HWND>(descriptor->nativeWindow);
 #endif
 
-        ResizeImpl(descriptor->width, descriptor->height);
+        Resize(descriptor->width, descriptor->height);
     }
 
     SwapChainD3D11::~SwapChainD3D11()
@@ -52,20 +51,19 @@ namespace alimer
 
     void SwapChainD3D11::Destroy()
     {
-        SwapChain::Destroy();
         _swapChain->SetFullscreenState(false, nullptr);
         _swapChain.Reset();
         _swapChain1.Reset();
     }
 
 
-    void SwapChainD3D11::ResizeImpl(uint32_t width, uint32_t height)
+    void SwapChainD3D11::Resize(uint32_t width, uint32_t height)
     {
         HRESULT hr = S_OK;
 
         if (_swapChain)
         {
-            SwapChain::Destroy();
+            //SwapChain::Destroy();
 
             hr = _swapChain->ResizeBuffers(_backBufferCount, width, height, DXGI_FORMAT_UNKNOWN, _swapChainFlags);
 
@@ -187,17 +185,12 @@ namespace alimer
         D3D11_TEXTURE2D_DESC textureDesc;
         renderTarget->GetDesc(&textureDesc);
         TextureDescriptor descriptor = d3d11::Convert(textureDesc);
-
-        DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
         if (_sRGB)
         {
-            backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
             descriptor.format = PixelFormat::BGRA8UNormSrgb;
         }
 
-        _backbufferTextures.Resize(1);
-        _backbufferTextures[0] = new TextureD3D11(_device, &descriptor, nullptr, renderTarget, backBufferFormat);
-        InitializeFramebuffer();
+        _backbufferTexture = new TextureD3D11(_device, &descriptor, renderTarget, nullptr);
     }
 
     void SwapChainD3D11::Present()

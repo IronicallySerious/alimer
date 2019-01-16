@@ -99,9 +99,8 @@ endif ()
 #    define_engine_source_files(Graphics/D3D12)
 #endif ()
 
-if (ALIMER_GL)
-    define_engine_source_files(Graphics/OpenGL)
-    #list (APPEND ALIMER_NATIVE_INCLUDE_DIRS ${ALIMER_THIRD_PARTY_DIR}/khronos)
+if (ALIMER_OPENGL)
+    define_engine_source_files(Graphics/opengl)
 endif ()
 
 if (ALIMER_VULKAN)
@@ -147,6 +146,10 @@ target_include_directories(${TARGET_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
+if (ALIMER_OPENGL AND ALIMER_DESKTOP)
+    target_include_directories(${TARGET_NAME} PRIVATE ${ALIMER_THIRD_PARTY_DIR}/khronos)
+endif ()
+
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES fmt spdlog spirv_cross CLI11 ImGui)
 
@@ -154,9 +157,9 @@ if (ALIMER_SDL2)
     list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()
 
-# if (NOT ALIMER_DISABLE_LUA)
-#     list (APPEND THIRD_PARTY_DEPENDENCIES liblua)
-# endif()
+if (ALIMER_SCRIPTING_LUA)
+    list (APPEND THIRD_PARTY_DEPENDENCIES liblua)
+endif ()
 
 if (ALIMER_VULKAN)
     list (APPEND THIRD_PARTY_DEPENDENCIES volk)
@@ -164,7 +167,7 @@ endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     if (TARGET "${dep}")
-        target_link_libraries(${TARGET_NAME} ${dep})
+        target_link_libraries(${TARGET_NAME} PUBLIC ${dep})
     endif ()
 endforeach()
 
@@ -186,24 +189,32 @@ endif ()
 
 # Add OS-specific library dependencies
 if (ALIMER_WINDOWS)
-    target_link_libraries (${TARGET_NAME} winmm ws2_32)
+    target_link_libraries (${TARGET_NAME} PUBLIC winmm ws2_32)
 elseif (ALIMER_UWP)
-    target_link_libraries (${TARGET_NAME} PRIVATE d3d12 d3d11 dxgi d3dcompiler)
-elseif (ALIMER_ANDROID)
-    if (${ANDROID_PLATFORM_LEVEL} LESS 12)
-        message(FATAL_ERROR "OpenGLES 2 is not supported before API level 11 (currently using ${ANDROID_PLATFORM_LEVEL}).")
-        return()
-    elseif (${ANDROID_PLATFORM_LEVEL} LESS 18)
-        add_definitions("-DDYNAMIC_ES3")
-        set(GL3STUB_SRC gl3stub.c)
-        set(OPENGL_LIB GLESv2)
-    else ()
-        set(OPENGL_LIB GLESv3)
+    target_link_libraries (${TARGET_NAME} PUBLIC d3d12 d3d11 dxgi d3dcompiler)
+else ()
+    target_link_libraries (${TARGET_NAME} PUBLIC dl)
+    if (ALIMER_ANDROID)
+        target_link_libraries (${TARGET_NAME} PUBLIC log android)
+    elseif (ALIMER_DESKTOP)
+	    target_link_libraries (${TARGET_NAME} PUBLIC m pthread)
+        if (NOT APPLE)
+            target_link_libraries (${TARGET_NAME} PUBLIC rt uuid)
+        endif ()
     endif ()
 
-    target_link_libraries (${TARGET_NAME} ${OPENGL_LIB} android EGL log m)
-else ()
-	target_link_libraries (${TARGET_NAME} pthread)
+    if (ALIMER_OPENGL)
+        if (ANDROID)
+            target_link_libraries(${TARGET_NAME} PUBLIC EGL GLESv3)
+        else()
+            target_link_libraries (${TARGET_NAME} PUBLIC GL)
+            target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_TOOLS)
+        endif ()
+
+        if (NOT ALIMER_DESKTOP)
+            target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_OPENGLES)
+        endif ()
+    endif ()
 endif ()
 
 # Suppress some MSVC warnings

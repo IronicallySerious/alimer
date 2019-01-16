@@ -22,21 +22,18 @@
 
 #pragma once
 
-#include "../Texture.h"
+#include "Graphics/DeviceBackend.h"
 #include "D3D11Prerequisites.h"
 #include <unordered_map>
 
 namespace alimer
 {
-    class DeviceD3D11;
-
     /// D3D11 Texture implementation.
-    class TextureD3D11 final : public Texture
+    class TextureD3D11 final : public GPUTexture
     {
     public:
         /// Constructor.
-        TextureD3D11(DeviceD3D11* device, const TextureDescriptor* descriptor,
-            const void* initialData, ID3D11Texture2D* externalTexture, DXGI_FORMAT dxgiFormat);
+        TextureD3D11(DeviceD3D11* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData);
 
         /// Destructor.
         ~TextureD3D11() override;

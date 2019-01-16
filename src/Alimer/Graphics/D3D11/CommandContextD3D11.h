@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../CommandContext.h"
+#include "Graphics/DeviceBackend.h"
 #include "D3D11Prerequisites.h"
 
 namespace alimer
@@ -31,7 +31,7 @@ namespace alimer
     class FramebufferD3D11;
     class DeviceD3D11;
 
-    class CommandContextD3D11 final : public CommandContext
+    class CommandContextD3D11 final : public GPUCommandBuffer
     {
     public:
         CommandContextD3D11(DeviceD3D11* device);
@@ -40,11 +40,11 @@ namespace alimer
     private:
         uint64_t Flush(bool waitForCompletion) override;
 
-        void PushDebugGroup(const String& name) override;
+        void PushDebugGroup(const char* name) override;
         void PopDebugGroup() override;
-        void InsertDebugMarker(const String& name) override;
+        void InsertDebugMarker(const char* name) override;
 
-        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        /*void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
 
         void SetViewport(const RectangleF& viewport) override;
@@ -60,7 +60,7 @@ namespace alimer
 
         void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     
-        void DispatchImpl(uint32_t x, uint32_t y, uint32_t z) override;
+        void DispatchImpl(uint32_t x, uint32_t y, uint32_t z) override;*/
 
         void BeginContext();
         void FlushRenderState();

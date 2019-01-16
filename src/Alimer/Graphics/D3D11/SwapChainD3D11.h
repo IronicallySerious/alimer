@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include "../../Base/Ptr.h"
-#include "../SwapChain.h"
+#include "Graphics/DeviceBackend.h"
 #include "D3D11Prerequisites.h"
 
 namespace alimer
@@ -31,7 +30,7 @@ namespace alimer
     class DeviceD3D11;
 
     /// D3D11 SwapChain implementation.
-    class SwapChainD3D11 final : public SwapChain
+    class SwapChainD3D11 final : public GPUSwapChain
     {
     public:
         /// Constructor.
@@ -42,7 +41,10 @@ namespace alimer
 
         void Destroy();
     private:
-        void ResizeImpl(uint32_t width, uint32_t height) override;
+        uint32_t GetTextureCount() const override { return 1; }
+        uint32_t GetCurrentBackBuffer() const override { return 0; }
+        GPUTexture* GetBackBufferTexture(uint32_t index) const override { return _backbufferTexture; }
+        void Resize(uint32_t width, uint32_t height) override;
         void Present() override;
 
         DeviceD3D11*                            _device;
@@ -59,5 +61,6 @@ namespace alimer
         UINT                                    _presentFlags = 0;
         Microsoft::WRL::ComPtr<IDXGISwapChain>  _swapChain;
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain1;
+        GPUTexture*                             _backbufferTexture = nullptr;
     };
 }

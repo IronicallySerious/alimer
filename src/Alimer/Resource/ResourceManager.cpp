@@ -20,11 +20,11 @@
 // THE SOFTWARE.
 //
 
-#include "../Resource/ResourceManager.h"
-#include "../Application/Application.h"
-#include "../IO/FileSystem.h"
-#include "../IO/Path.h"
-#include "../Core/Log.h"
+#include "Resource/ResourceManager.h"
+#include "Resource/Image.h"
+#include "IO/FileSystem.h"
+#include "IO/Path.h"
+#include "Core/Log.h"
 
 namespace alimer
 {
@@ -98,13 +98,13 @@ namespace alimer
     void ResourceManager::AddLoader(ResourceLoader* loader)
     {
         ALIMER_ASSERT(loader);
-        _loaders[loader->GetLoadingType()].Reset(loader);
+        _loaders[loader->GetLoadingType()].reset(loader);
     }
 
     ResourceLoader* ResourceManager::GetLoader(StringHash type) const
     {
         auto it = _loaders.find(type);
-        return it != end(_loaders) ? it->second.Get() : nullptr;
+        return it != end(_loaders) ? it->second.get() : nullptr;
     }
 
     UniquePtr<Stream> ResourceManager::OpenStream(const String& assetName)
@@ -169,7 +169,7 @@ namespace alimer
             // Find asset importer and process it.
             String convertedAssetFullPath = path + fileName + ".alb";
             UniquePtr<Stream> stream = OpenStream(convertedAssetFullPath);
-            if (stream.IsNull())
+            if (!stream)
             {
                 // Asset conversion is needed.
 #ifdef ALIMER_TOOLS
@@ -196,7 +196,7 @@ namespace alimer
         }
         
         UniquePtr<Stream> stream = OpenStream(assetPath);
-        if (stream.IsNull())
+        if (!stream)
         {
             return nullptr;
         }

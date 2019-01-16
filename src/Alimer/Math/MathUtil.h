@@ -163,6 +163,27 @@ namespace alimer
         return 0 == (value & (value - 1));
     }
 
+    inline uint32_t bitScanReverse(uint32_t value)
+    {
+#if defined(_MSC_VER)
+        unsigned long index;
+        _BitScanForward(&index, value);
+        return (uint32_t)index;
+#else
+        return (sizeof(uint32_t) * 8) - (uint32_t)__builtin_clz(value) - 1;
+#endif
+    }
+
+    inline uint32_t bitScanForward(uint32_t value)
+    {
+#if defined(_MSC_VER)
+        unsigned long index;
+        _BitScanReverse(&index, value);
+        return (uint32_t)index;
+#else
+        return (a > 0) ? ((uint32_t)__builtin_ctz(value)) : 0;
+#endif
+    }
 
     /// Round up to next power of two.
     inline uint32_t NextPowerOfTwo(uint32_t value)
@@ -179,19 +200,6 @@ namespace alimer
 
     /// Update a hash with the given 8-bit value using the SDBM algorithm.
     inline constexpr unsigned SDBMHash(unsigned hash, unsigned char c) { return c + (hash << 6u) + (hash << 16u) - hash; }
-
-    inline uint32_t ScanForward(uint32_t bits)
-    {
-        ALIMER_VERIFY(bits != 0);
-#if defined(_MSC_VER)
-        unsigned long firstBitIndex = 0ul;
-        uint8_t ret = _BitScanForward(&firstBitIndex, bits);
-        ALIMER_VERIFY(ret != 0);
-        return firstBitIndex;
-#else
-        return static_cast<uint32_t>(__builtin_ctz(bits));
-#endif
-    }
 
     inline uint32_t AlignTo(uint32_t value, uint32_t alignment)
     {

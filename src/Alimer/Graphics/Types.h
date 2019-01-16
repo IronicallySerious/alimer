@@ -189,10 +189,16 @@ namespace alimer
     /// Texture types.
     enum class TextureType : uint32_t
     {
-        Type1D = 0,
-        Type2D = 1,
-        Type3D = 2,
-        TypeCube = 3,
+        Type1D,
+        Type1DArray,
+        Type2D,
+        Type2DArray,
+        Type2DMultisample,
+        Type2DMultisampleArray,
+        TypeCube,
+        TypeCubeArray,
+        Type3D,
+        TypeTextureBuffer
     };
 
     /// Defines texture usage enum.

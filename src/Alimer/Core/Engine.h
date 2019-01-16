@@ -55,8 +55,8 @@ namespace alimer
         /// Get the engine content manager.
         inline PluginManager& GetPluginManager() { return *_pluginManager; }
 
-        /// Get the engine content manager.
-        inline ResourceManager& GetContent() { return *_content.Get(); }
+        /// Get the engine resource manager.
+        inline ResourceManager& getResources() { return *_resources.Get(); }
 
     private:
         /// Initialized flag.
@@ -67,7 +67,7 @@ namespace alimer
 
         std::shared_ptr<spdlog::logger> _logger;
         PluginManager* _pluginManager;
-        SharedPtr<ResourceManager> _content;
+        SharedPtr<ResourceManager> _resources;
         SharedPtr<SceneManager> _sceneManager;
 
         // ImGui

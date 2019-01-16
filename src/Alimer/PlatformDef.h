@@ -114,19 +114,12 @@
 #elif defined(__ANDROID__)
 #	undef ALIMER_PLATFORM_ANDROID
 #	define ALIMER_PLATFORM_ANDROID 1
-#   define ALIMER_SUPPORTS_OPENGL 1
-#   define ALIMER_SUPPORTS_OPENGLES 1
-#   define ALIMER_OPENGL_INTERFACE_EGL 1
 #elif defined(__linux__) 
 #	undef ALIMER_PLATFORM_LINUX
 #	define ALIMER_PLATFORM_LINUX 1
-#   define ALIMER_SUPPORTS_OPENGL 1
 #elif defined(__EMSCRIPTEN__) // Emscripten
 #   undef ALIMER_PLATFORM_WEB
 #   define ALIMER_PLATFORM_WEB 1
-#   define ALIMER_SUPPORTS_OPENGL 1
-#   define ALIMER_SUPPORTS_OPENGLES 1
-#   define ALIMER_OPENGL_INTERFACE_EGL 1
 #endif
 
 /**

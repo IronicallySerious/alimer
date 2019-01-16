@@ -28,7 +28,7 @@
 namespace alimer
 {
     class Stream;
-    struct GPUShader;
+    class GPUShader;
 
     /// Defines a shader resource.
     class ALIMER_API Shader : public GPUResource

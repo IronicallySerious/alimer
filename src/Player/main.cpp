@@ -71,8 +71,8 @@ namespace alimer
 
             BufferDescriptor vertexBufferDesc = {};
             vertexBufferDesc.usage = BufferUsage::Vertex;
-            vertexBufferDesc.size = sizeof(VertexColor);
-            _vertexBuffer = device->CreateBuffer(&vertexBufferDesc, triangleVertices);
+            vertexBufferDesc.size = sizeof(triangleVertices);
+            //_vertexBuffer = device->CreateBuffer(&vertexBufferDesc, triangleVertices);
 
             /*BufferDescriptor uboBufferDesc = {};
             uboBufferDesc.resourceUsage = ResourceUsage::Dynamic;
@@ -94,7 +94,7 @@ namespace alimer
 
         void Render(CommandContext& context)
         {
-            //context.SetVertexBuffer(0, _vertexBuffer);
+            context.SetVertexBuffer(0, _vertexBuffer, 0, sizeof(VertexColor));
             //context.SetShader(_shader.Get());
             //context.Draw(3, 0);
         }
@@ -387,7 +387,7 @@ namespace alimer
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_gpuDevice.Get(), _engine->GetContent());
+        _triangleExample.Initialize(_gpuDevice.Get(), _engine->getResources());
         //_quadExample.Initialize(_resources);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());

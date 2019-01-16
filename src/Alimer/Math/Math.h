@@ -504,8 +504,8 @@ namespace alimer
     inline float dot(const vec4 &a, const vec4 &b) { return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w; }
 
     // min, max, clamp
-    template <typename T> T min(T a, T b) { return b < a ? b : a; }
-    template <typename T> T max(T a, T b) { return a < b ? b : a; }
+    //template <typename T> T min(T a, T b) { return b < a ? b : a; }
+    //template <typename T> T max(T a, T b) { return a < b ? b : a; }
     template <typename T> T clamp(T v, T lo, T hi) { return v < lo ? lo : (v > hi ? hi : v); }
     template <typename T> T sign(T v) { return v < T(0) ? T(-1) : (v > T(0) ? T(1) : T(0)); }
     template <typename T> T sin(T v) { return std::sin(v); }
@@ -594,8 +594,8 @@ template <typename T> inline tvec4<T> func(const tvec4<T> &a, const tvec4<T> &b,
         MUGLM_VECTORIZED_FUNC1(log)
         MUGLM_VECTORIZED_FUNC1(exp2)
         MUGLM_VECTORIZED_FUNC1(exp)
-        MUGLM_VECTORIZED_FUNC2(min)
-        MUGLM_VECTORIZED_FUNC2(max)
+        //MUGLM_VECTORIZED_FUNC2(min)
+        //MUGLM_VECTORIZED_FUNC2(max)
         MUGLM_VECTORIZED_FUNC2(pow)
         MUGLM_VECTORIZED_FUNC3(clamp)
 

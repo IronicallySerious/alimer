@@ -49,6 +49,9 @@ namespace alimer
         const SamplerDescriptor &GetDescriptor() const { return _descriptor; }
 
     private:
+        /// Register object factory.
+        static void RegisterObject();
+
         SamplerDescriptor _descriptor{};
     };
 }

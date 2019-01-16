@@ -35,23 +35,21 @@
 namespace alimer
 {
     class SwapChain;
-    class Sampler;
     class Shader;
+
+    class DeviceBackend;
 
     /// Low-level 3D graphics module.
     class ALIMER_API GPUDevice : public Object
     {
         ALIMER_OBJECT(GPUDevice, Object);
 
-    protected:
-        /// Constructor.
-        GPUDevice(GraphicsBackend backend, bool validation);
-
     public:
+        /// Constructor.
+        GPUDevice(GraphicsBackend preferredBackend, bool validation);
+
         /// Destructor.
         ~GPUDevice() override;
-
-        static GPUDevice* Create(GraphicsBackend preferredBackend, bool validation);
 
         /// Register object.
         static void RegisterObject();
@@ -69,7 +67,7 @@ namespace alimer
         static GraphicsBackend GetDefaultPlatformBackend();
 
         /// Wait for a device to become idle.
-        virtual bool WaitIdle();
+        bool WaitIdle();
 
         /// Finishes the current frame and advances to next one.
         uint64_t Frame();
@@ -81,13 +79,13 @@ namespace alimer
         void UntrackResource(GPUResource* resource);
 
         /// Get the backend.
-        GraphicsBackend GetBackend() const { return _backend; }
+        GraphicsBackend GetBackend() const;
 
         /// Get the device limits.
-        const GPULimits& GetLimits() const { return _limits; }
+        const GPULimits& GetLimits() const;
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
+        const GraphicsDeviceFeatures& GetFeatures() const;
 
         /// Get the immediate command context.
         CommandContext& GetImmediateContext() const { return *_immediateCommandContext; }
@@ -98,42 +96,36 @@ namespace alimer
         void NotifyValidationError(const char* message);
 
         /// Create new SwapChain instance.
-        SwapChain* CreateSwapChain(const SwapChainDescriptor* descriptor);
+        /*SwapChain* CreateSwapChain(const SwapChainDescriptor* descriptor);
 
-        Texture* CreateTexture(const TextureDescriptor* descriptor, const void* initialData);
         Texture* CreateTexture1D(uint32_t width, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, const void* initialData = nullptr);
-        Texture* CreateTexture2D(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, SampleCount samples = SampleCount::Count1, const void* initialData = nullptr);
         Texture* CreateTextureCube(uint32_t size, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, const void* initialData = nullptr);
         Texture* CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevels, PixelFormat format, TextureUsage usage, const void* initialData = nullptr);
 
         /// Create new framebuffer with given descriptor.
         Framebuffer* CreateFramebuffer(const FramebufferDescriptor* descriptor);
 
-        /// Create new sampler with given descriptor.
-        Sampler* CreateSampler(const SamplerDescriptor* descriptor);
-
         /// Create new Buffer with given descriptor.
         Buffer* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData);
 
         /// Create new Shader with given descriptor.
         Shader* CreateShader(const ShaderDescriptor* descriptor);
+        */
+
+        /// Return backend implementation.
+        DeviceBackend* GetImpl() const { return _impl; }
 
     private:
-        virtual void OnFrame() {};
-        virtual SwapChain* CreateSwapChainImpl(const SwapChainDescriptor* descriptor) = 0;
-        virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const void* initialData) = 0;
-        virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
-        virtual Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor) = 0;
-        virtual Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
-        virtual Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
+        //virtual SwapChain* CreateSwapChainImpl(const SwapChainDescriptor* descriptor) = 0;
+        //virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
+        //virtual Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
+        //virtual Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
+
+    private:
+        DeviceBackend* _impl = nullptr;
 
     protected:
         virtual void Finalize();
-
-        GraphicsBackend         _backend;
-        bool                    _validation;
-        GPULimits _limits{};
-        GraphicsDeviceFeatures  _features{};
 
         uint64_t                _frameIndex;
         PODVector<GPUResource*> _gpuResources;

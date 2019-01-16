@@ -22,29 +22,35 @@
 
 #pragma once
 
+#include "BackendGL.h"
 #include "Graphics/DeviceBackend.h"
-#include "D3D11Prerequisites.h"
 
 namespace alimer
 {
-	/// D3D11 GpuBuffer implementation.
-	class BufferD3D11 final : public GPUBuffer
-	{
-	public:
-		/// Constructor.
-        BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* initialData);
+    /// OpenGL graphics implementation.
+    class DeviceGL final : public DeviceBackend
+    {
+    public:
+        /// Is backend supported?
+        static bool IsSupported();
 
-		/// Destructor.
-		~BufferD3D11() override;
+        /// Constructor.
+        DeviceGL(bool validation);
 
-        void Destroy();
+        /// Destructor.
+        ~DeviceGL() override;
 
-        //bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
+        bool WaitIdle() override;
+        void Tick() override;
 
-        ID3D11Buffer* GetHandle() const { return _handle.Get(); }
+        GPUSwapChain* CreateSwapChain(const SwapChainDescriptor* descriptor) override;
+        GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData) override;
+        //Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
+        //Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
+        GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
+        //Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
 
-	private:
-        DeviceD3D11* _device;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>  _handle;
-	};
+    private:
+        void InitializeCaps();
+    };
 }

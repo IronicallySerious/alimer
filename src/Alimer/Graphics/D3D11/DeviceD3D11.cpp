@@ -175,7 +175,7 @@ namespace alimer
     }
 
     DeviceD3D11::DeviceD3D11(bool validation)
-        : GPUDevice(GraphicsBackend::D3D11, validation)
+        : DeviceBackend(GraphicsBackend::D3D11, validation)
         , _cache(this)
     {
         if (FAILED(D3D11LoadLibraries()))
@@ -294,7 +294,7 @@ namespace alimer
         InitializeCaps();
 
         // Create immediate command buffer.
-        _immediateCommandContext = new CommandContextD3D11(this);
+        _defaultCommandBuffer = new CommandContextD3D11(this);
     }
 
     DeviceD3D11::~DeviceD3D11()
@@ -316,6 +316,7 @@ namespace alimer
         _d3dDevice.Reset();
     }
 
+#if TODO_D3D11
     void DeviceD3D11::GenerateScreenshot(const std::string& fileName)
     {
         /*HRESULT hr = S_OK;
@@ -397,10 +398,16 @@ namespace alimer
         texture->Release();*/
     }
 
+#endif // TODO_D3D11
+
     bool DeviceD3D11::WaitIdle()
     {
-        _d3dContext->Flush();
         return true;
+    }
+
+    void DeviceD3D11::Tick()
+    {
+        _d3dContext->Flush();
     }
 
     void DeviceD3D11::InitializeCaps()
@@ -488,17 +495,17 @@ namespace alimer
         return _cache;
     }
 
-    SwapChain* DeviceD3D11::CreateSwapChainImpl(const SwapChainDescriptor* descriptor)
+    GPUSwapChain* DeviceD3D11::CreateSwapChain(const SwapChainDescriptor* descriptor)
     {
         return new SwapChainD3D11(this, descriptor, 2);
     }
 
-    Texture* DeviceD3D11::CreateTextureImpl(const TextureDescriptor* descriptor, const void* initialData)
+    GPUTexture* DeviceD3D11::CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData)
     {
-        return new TextureD3D11(this, descriptor, initialData, nullptr, DXGI_FORMAT_UNKNOWN);
+        return new TextureD3D11(this, descriptor, nativeTexture, initialData);
     }
 
-    Framebuffer* DeviceD3D11::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
+    /*Framebuffer* DeviceD3D11::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
     {
         return new FramebufferD3D11(this, descriptor);
     }
@@ -506,15 +513,15 @@ namespace alimer
     Buffer* DeviceD3D11::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
         return new BufferD3D11(this, descriptor, initialData);
-    }
+    }*/
 
-    Sampler* DeviceD3D11::CreateSamplerImpl(const SamplerDescriptor* descriptor)
+    GPUSampler* DeviceD3D11::CreateSampler(const SamplerDescriptor* descriptor)
     {
         return new SamplerD3D11(this, descriptor);
     }
 
-    Shader* DeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
+    /*Shader* DeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
     {
         return new ShaderD3D11(this, descriptor);
-    }
+    }*/
 }

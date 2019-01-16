@@ -20,31 +20,19 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
 #include "Graphics/DeviceBackend.h"
-#include "D3D11Prerequisites.h"
+#include "Core/Log.h"
 
 namespace alimer
 {
-	/// D3D11 GpuBuffer implementation.
-	class BufferD3D11 final : public GPUBuffer
-	{
-	public:
-		/// Constructor.
-        BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* initialData);
+    DeviceBackend::DeviceBackend(GraphicsBackend backend, bool validation)
+        : _backend(backend)
+        , _validation(validation)
+    {
+        ALIMER_ASSERT(backend != GraphicsBackend::Default);
+    }
 
-		/// Destructor.
-		~BufferD3D11() override;
-
-        void Destroy();
-
-        //bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
-
-        ID3D11Buffer* GetHandle() const { return _handle.Get(); }
-
-	private:
-        DeviceD3D11* _device;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>  _handle;
-	};
+    DeviceBackend::~DeviceBackend()
+    {
+    }
 }

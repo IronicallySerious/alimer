@@ -43,6 +43,7 @@ namespace alimer
 
         /// Get
         virtual bool CanLoad(const String& extension) const {
+            ALIMER_UNUSED(extension);
             return false;
         }
 
