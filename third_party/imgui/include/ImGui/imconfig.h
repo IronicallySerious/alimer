@@ -18,22 +18,11 @@
 //#define IM_ASSERT(_EXPR)  ((void)(_EXPR))     // Disable asserts
 
 //---- Define attributes of all API symbols declarations, e.g. for DLL under Windows.
-#if _WIN32
-#   if IMGUI_EXPORTS || ALIMER_EXPORTS
-#       define IMGUI_API __declspec(dllexport)
-#   elif IMGUI_IMPORTS || ALIMER_IMPORTS
-#       define IMGUI_API __declspec(dllimport)
-#	else
-#		define IMGUI_API
-#   endif
-#elif IMGUI_EXPORTS || IMGUI_IMPORTS
-#   define IMGUI_API __attribute__((visibility("default")))
-#else
-#   define IMGUI_API
-#endif
+//#define IMGUI_API __declspec( dllexport )
+//#define IMGUI_API __declspec( dllimport )
 
 //---- Don't define obsolete functions/enums names. Consider enabling from time to time after updating to avoid using soon-to-be obsolete function/names.
-#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+//#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 
 //---- Don't implement demo windows functionality (ShowDemoWindow()/ShowStyleEditor()/ShowUserGuide() methods will be empty)
 //---- It is very strongly recommended to NOT disable the demo windows during development. Please read the comments in imgui_demo.cpp.

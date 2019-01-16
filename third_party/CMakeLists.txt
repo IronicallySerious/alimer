@@ -49,9 +49,6 @@ if (ALIMER_VULKAN)
     endif()
 endif ()
 
-# STB
-set(STB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stb)
-
 if (ALIMER_SDL2)
     add_subdirectory (libsdl2)
 endif ()
@@ -65,5 +62,10 @@ endif ()
 add_subdirectory(CLI11)
 # ImGui
 add_subdirectory(imgui)
+
+if (ALIMER_SCRIPTING_LUA)
+    add_subdirectory(lua)
+    set_property(TARGET "liblua" PROPERTY FOLDER "third_party")
+endif ()
 
 vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} third_party)

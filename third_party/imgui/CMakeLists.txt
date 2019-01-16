@@ -23,10 +23,13 @@
 set (TARGET ImGui)
 
 file (GLOB_RECURSE SOURCE_FILES *.cpp *.h)
+# TODO: Add freetype support
+list (REMOVE_ITEM SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/imgui_freetype.cpp)
+
 add_library (${TARGET} STATIC ${SOURCE_FILES})
 target_compile_definitions(${TARGET}
         PUBLIC -DIMGUI_DEFINE_MATH_OPERATORS=1 -DUSE_IMGUI_API=1
         # PRIVATE -DIMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION=1 -DIMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION=1
 )
 
-target_include_directories(${TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/ImGui ${STB_INCLUDE_DIR})
+target_include_directories(${TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/ImGui ${ALIMER_THIRD_PARTY_DIR}/stb)
