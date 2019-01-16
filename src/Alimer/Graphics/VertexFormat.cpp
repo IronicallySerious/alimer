@@ -33,15 +33,25 @@ namespace alimer
 
     void VertexDeclaration::Define(const Vector<VertexElement>& elements)
     {
-        if (!elements.size())
+        if (!elements.Size())
         {
             ALIMER_LOGERROR("Can not define vertex format with no elements");
         }
 
-        Define(elements.size(), elements.data());
+        Define(elements.Size(), elements.Data());
     }
 
-    void VertexDeclaration::Define(size_t elementsCount, const VertexElement* elements)
+    void VertexDeclaration::Define(const PODVector<VertexElement>& elements)
+    {
+        if (!elements.Size())
+        {
+            ALIMER_LOGERROR("Can not define vertex format with no elements");
+        }
+
+        Define(elements.Size(), elements.Data());
+    }
+
+    void VertexDeclaration::Define(uint32_t elementsCount, const VertexElement* elements)
     {
         if (!elementsCount || !elements)
         {
@@ -50,7 +60,7 @@ namespace alimer
         }
 
         bool useAutoOffset = true;
-        for (size_t i = 0; i < elementsCount; ++i)
+        for (uint32_t i = 0; i < elementsCount; ++i)
         {
             if (elements[i].offset != 0)
             {
@@ -60,8 +70,8 @@ namespace alimer
         }
 
         _stride = 0;
-        _elements.resize(elementsCount);
-        for (size_t i = 0; i < elementsCount; ++i)
+        _elements.Resize(elementsCount);
+        for (uint32_t i = 0; i < elementsCount; ++i)
         {
             _elements[i] = elements[i];
             _elements[i].offset = useAutoOffset ? _stride : elements[i].offset;

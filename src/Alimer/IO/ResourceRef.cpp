@@ -34,7 +34,7 @@ namespace alimer
     bool ResourceRef::FromString(const char* str)
     {
         Vector<String> values = String::Split(str, ';');
-        if (values.size() == 2)
+        if (values.Size() == 2)
         {
             type = values[0];
             name = values[1];
@@ -70,13 +70,13 @@ namespace alimer
     bool ResourceRefList::FromString(const char* str)
     {
         Vector<String> values = String::Split(str, ';');
-        if (values.size() >= 1)
+        if (values.Size() >= 1)
         {
             type = values[0];
-            names.clear();
-            for (size_t i = 1; i < values.size(); ++i)
+            names.Clear();
+            for (uint32_t i = 1; i < values.Size(); ++i)
             {
-                names.push_back(values[i]);
+                names.Push(values[i]);
             }
             return true;
         }
@@ -88,10 +88,10 @@ namespace alimer
     {
         type = source.ReadStringHash();
         uint32_t count = source.ReadVLE();
-        names.clear();
+        names.Clear();
         for (size_t i = 0; i < count && !source.IsEof(); ++i)
         {
-            names.push_back(source.ReadString());
+            names.Push(source.ReadString());
         }
     }
 
@@ -109,7 +109,7 @@ namespace alimer
     void ResourceRefList::ToBinary(Stream& dest) const
     {
         dest.WriteStringHash(type);
-        dest.WriteVLE(names.size());
+        dest.WriteVLE(names.Size());
         for (auto name : names)
         {
             dest.WriteString(name);

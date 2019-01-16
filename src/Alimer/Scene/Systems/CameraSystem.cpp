@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-/*#include "../Systems/CameraSystem.h"
+#include "../Systems/CameraSystem.h"
 #include "../Components/TransformComponent.h"
 #include "../Components/CameraComponent.h"
 
@@ -37,4 +37,3 @@ namespace alimer
         });
     }
 }
-*/

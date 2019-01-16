@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 //
 
-#if TODO_ENTITY
 #include "../Scene/Scene.h"
 #include "../Scene/Components/TransformComponent.h"
 #include "../Scene/Components/CameraComponent.h"
@@ -51,5 +50,3 @@ namespace alimer
         return entity;
     }
 }
-
-#endif // TODO_ENTITY

@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "../Base/StdHeaders.h"
 #include "../Graphics/GPUResource.h"
+#include "../Base/Vector.h"
 
 namespace alimer
 {
@@ -50,7 +50,7 @@ namespace alimer
         ShaderStages GetStages() const { return _stage; }
 
     protected:
-        void Reflect(const Vector<uint8_t>& bytecode);
+        void Reflect(const PODVector<uint8_t>& bytecode);
 
         //Vector<PipelineResource> _resources;
         bool _compute = false;

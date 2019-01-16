@@ -119,15 +119,15 @@ namespace alimer
     void GPUDevice::Finalize()
     {
         // Destroy undestroyed resources.
-        if (_gpuResources.size())
+        if (_gpuResources.Size())
         {
             std::lock_guard<std::mutex> lock(_gpuResourceMutex);
-            for (auto it = _gpuResources.begin(); it != _gpuResources.end(); ++it)
+            for (auto it = _gpuResources.Begin(); it != _gpuResources.End(); ++it)
             {
                 (*it)->Destroy();
             }
 
-            _gpuResources.clear();
+            _gpuResources.Clear();
         }
 
         SafeDelete(_immediateCommandContext);
@@ -246,16 +246,13 @@ namespace alimer
     void GPUDevice::TrackResource(GPUResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
-        _gpuResources.push_back(resource);
+        _gpuResources.Push(resource);
     }
 
     void GPUDevice::UntrackResource(GPUResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
-        _gpuResources.erase(
-            std::remove(_gpuResources.begin(), _gpuResources.end(), resource),
-            _gpuResources.end()
-        );
+        _gpuResources.Remove(resource);
     }
 
     CommandContext& GPUDevice::Begin(const String& name)

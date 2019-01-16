@@ -20,27 +20,18 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
 #include "../Base/Vector.h"
-#include "../Core/Object.h"
+#include "../Debug/DebugNew.h"
 
 namespace alimer
 {
-    class RenderContext;
-    class Camera;
-
-    /// Defines a base class for scene rendering pipeline.
-    class ALIMER_API SceneRenderPipeline : public Object
+    uint8_t* VectorBase::AllocateBuffer(size_t size)
     {
-        ALIMER_OBJECT(SceneRenderPipeline, Object);
+        return new uint8_t[size];
+    }
 
-    public:
-        SceneRenderPipeline();
-        virtual ~SceneRenderPipeline() = default;
-
-        virtual void Render(const RenderContext &context, Vector<Camera> cameras) = 0;
-
-    private:
-    };
+    void VectorBase::FreeBuffer(const uint8_t* buffer)
+    {
+        delete[] buffer;
+    }
 }

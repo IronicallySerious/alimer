@@ -61,6 +61,6 @@ namespace alimer
         uint32_t _stride = 0;
 
         /// CPU-side shadow data.
-        UniquePtr<uint8_t[]> _shadowData;
+        AutoArrayPtr<uint8_t> _shadowData;
 	};
 }

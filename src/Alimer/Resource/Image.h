@@ -74,7 +74,7 @@ namespace alimer
         uint32_t GetHeight() const { return _size.y; }
 
         /// Return pixel data.
-        uint8_t* Data() const { return _data.get(); }
+        uint8_t* Data() const { return _data.Get(); }
 
     private:
         /// Register object factory.
@@ -90,7 +90,7 @@ namespace alimer
         /// Number of mip levels. 1 for uncompressed images.
         uint32_t _mipLevels = 1;
         /// Image pixel data.
-        UniquePtr<uint8_t[]> _data;
+        AutoArrayPtr<uint8_t> _data;
 
         /// Memory size.
         size_t _memorySize = 0;

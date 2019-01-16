@@ -22,25 +22,50 @@
 
 #pragma once
 
-#include "../Base/Vector.h"
-#include "../Core/Object.h"
+#include "../Base/HashMap.h"
+#include "../Base/Ptr.h"
+#include <memory>
+#include <utility>
 
 namespace alimer
 {
-    class RenderContext;
-    class Camera;
-
-    /// Defines a base class for scene rendering pipeline.
-    class ALIMER_API SceneRenderPipeline : public Object
+    template <typename T>
+    class Cache
     {
-        ALIMER_OBJECT(SceneRenderPipeline, Object);
-
     public:
-        SceneRenderPipeline();
-        virtual ~SceneRenderPipeline() = default;
+        void Clear()
+        {
+            _hashMap.clear();
+        }
 
-        virtual void Render(const RenderContext &context, Vector<Camera> cameras) = 0;
+        T* Find(uint64_t hash) const
+        {
+            auto itr = _hashMap.find(hash);
+            auto *ret = itr != end(_hashMap) ? itr->second.Get() : nullptr;
+            return ret;
+        }
+
+        T* Insert(uint64_t hash, UniquePtr<T> value)
+        {
+            auto &cache = _hashMap[hash];
+            if (!cache)
+                cache = std::move(value);
+
+            auto *ret = cache.Get();
+            return ret;
+        }
+
+        HashMap<UniquePtr<T>>& GetMap()
+        {
+            return _hashMap;
+        }
+
+        const HashMap<UniquePtr<T>> &GetMap() const
+        {
+            return _hashMap;
+        }
 
     private:
+        HashMap<UniquePtr<T>> _hashMap;
     };
 }

@@ -22,6 +22,7 @@
 
 #include "../Core/Object.h"
 #include "../Core/Log.h"
+#include <map>
 
 namespace alimer
 {
@@ -55,7 +56,7 @@ namespace alimer
                 auto it = _factories.find(factory->GetType());
                 if (it == _factories.end())
                 {
-                    _factories[factory->GetType()].reset(factory);
+                    _factories[factory->GetType()].Reset(factory);
                 }
                 else
                 {
@@ -88,10 +89,10 @@ namespace alimer
 
         private:
             /// Registered subsystems.
-            Map<StringHash, Object*> _subsystems;
+            std::map<StringHash, Object*> _subsystems;
 
             /// Registered object factories.
-            Map<StringHash, UniquePtr<ObjectFactory>> _factories;
+            std::map<StringHash, UniquePtr<ObjectFactory>> _factories;
         };
 
         SubSystemContext& Context()

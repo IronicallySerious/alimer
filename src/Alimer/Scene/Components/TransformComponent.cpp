@@ -22,7 +22,6 @@
 
 #include "../Components/TransformComponent.h"
 
-#if TODO_ENTITY
 namespace alimer
 {
     static bool CheckValidParent(const Entity& e, const Entity& parent)
@@ -30,7 +29,7 @@ namespace alimer
         if (e == parent)
             return false;
 
-        if (parent.IsValid() && !parent.HasComponent<TransformComponent>())
+        if (parent.IsValid() && !parent.HasComponent<TransformComponent>() )
             return false;
 
         if (e.IsValid())
@@ -144,7 +143,7 @@ namespace alimer
         }
         else
         {
-            SetLocalTransform(Transform::Identity);
+           SetLocalTransform(Transform::Identity);
         }
 
         SetDirty(IsDirty());
@@ -206,5 +205,3 @@ namespace alimer
         _localTransform = transform;
     }
 }
-#endif // TODO_ENTITY
-

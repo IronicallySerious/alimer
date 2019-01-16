@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 //
 
-#if TODO_ENTITY
 #include "../Scene/Entity.h"
 #include "../Core/Log.h"
 
@@ -129,7 +128,7 @@ namespace alimer
     void EntityManager::Destroy(Entity::Id id)
     {
         AssertValid(id);
-
+        
         std::uint32_t index = id.index();
         auto mask = _entityComponentMask[index];
         for (size_t i = 0; i < _componentPools.size(); ++i)
@@ -245,5 +244,3 @@ namespace alimer
         return _entityNames[id.id()];
     }
 }
-
-#endif // TODO_ENTITY

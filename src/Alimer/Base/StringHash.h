@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../Base/StdHeaders.h"
 #include "../Base/String.h"
 #include "../Math/MathUtil.h"
 
@@ -49,9 +48,6 @@ namespace alimer
 
 		/// Construct from a string case-insensitively.
 		StringHash(const String& str) noexcept;      // NOLINT(google-explicit-constructor)
-
-        /// Construct from a string case-insensitively.
-        StringHash(const std::string& str) noexcept;      // NOLINT(google-explicit-constructor)
 
         /// Add a hash.
         StringHash operator +(const StringHash& rhs) const

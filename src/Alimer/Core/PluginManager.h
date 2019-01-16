@@ -23,10 +23,11 @@
 
 #pragma once
 
-#include "../Base/StdHeaders.h"
 #include "../Base/String.h"
 #include "../Base/Ptr.h"
 #include "../Core/Plugin.h"
+#include <vector>
+#include <unordered_map>
 
 namespace alimer
 {
@@ -55,7 +56,7 @@ namespace alimer
        
 
         Engine& _engine;
-        Vector<UniquePtr<Plugin>> _plugins;
+        std::vector<UniquePtr<Plugin>> _plugins;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(PluginManager);

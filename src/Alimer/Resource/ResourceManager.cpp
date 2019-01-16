@@ -72,20 +72,16 @@ namespace alimer
         String fixedPath = SanitateResourceDirName(path);
 
         // Check that the same path does not already exist
-        for (size_t i = 0; i < _resourceDirs.size(); ++i)
+        for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
         {
             if (!_resourceDirs[i].Compare(fixedPath))
                 return true;
         }
 
-        if (priority < _resourceDirs.size())
-        {
-            _resourceDirs.insert(_resourceDirs.begin() + priority, fixedPath);
-        }
+        if (priority < _resourceDirs.Size())
+            _resourceDirs.Insert(priority, fixedPath);
         else
-        {
-            _resourceDirs.push_back(fixedPath);
-        }
+            _resourceDirs.Push(fixedPath);
 
         // If resource auto-reloading active, create a file watcher for the directory
        /* if (_autoReloadResources)
@@ -95,20 +91,20 @@ namespace alimer
             fileWatchers_.Push(watcher);
         }*/
 
-        ALIMER_LOGINFO("Added resource path '{}'", fixedPath);
+        ALIMER_LOGINFO("Added resource path '{}'", fixedPath.CString());
         return true;
     }
 
     void ResourceManager::AddLoader(ResourceLoader* loader)
     {
         ALIMER_ASSERT(loader);
-        _loaders[loader->GetLoadingType()].reset(loader);
+        _loaders[loader->GetLoadingType()].Reset(loader);
     }
 
     ResourceLoader* ResourceManager::GetLoader(StringHash type) const
     {
         auto it = _loaders.find(type);
-        return it != end(_loaders) ? it->second.get() : nullptr;
+        return it != end(_loaders) ? it->second.Get() : nullptr;
     }
 
     UniquePtr<Stream> ResourceManager::OpenStream(const String& assetName)
@@ -173,7 +169,7 @@ namespace alimer
             // Find asset importer and process it.
             String convertedAssetFullPath = path + fileName + ".alb";
             UniquePtr<Stream> stream = OpenStream(convertedAssetFullPath);
-            if (!stream)
+            if (stream.IsNull())
             {
                 // Asset conversion is needed.
 #ifdef ALIMER_TOOLS
@@ -200,7 +196,7 @@ namespace alimer
         }
         
         UniquePtr<Stream> stream = OpenStream(assetPath);
-        if (!stream)
+        if (stream.IsNull())
         {
             return nullptr;
         }
@@ -227,11 +223,11 @@ namespace alimer
         sanitatedName.Replace("./", "");
 
         // If the path refers to one of the resource directories, normalize the resource name
-        if (_resourceDirs.size())
+        if (_resourceDirs.Size())
         {
             String namePath = FileSystem::GetPath(sanitatedName);
             String exePath = FileSystem::GetExecutableFolder().Replaced("/./", "/");
-            for (size_t i = 0; i < _resourceDirs.size(); ++i)
+            for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
             {
                 String relativeResourcePath = _resourceDirs[i];
                 if (relativeResourcePath.StartsWith(exePath))
@@ -262,7 +258,7 @@ namespace alimer
 
     UniquePtr<Stream> ResourceManager::SearchResourceDirs(const String& name)
     {
-        for (size_t i = 0; i < _resourceDirs.size(); ++i)
+        for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
         {
             if (FileSystem::FileExists(_resourceDirs[i] + name))
             {
@@ -288,7 +284,7 @@ namespace alimer
 
     bool ResourceManager::ExistsInResourceDirs(const String& name)
     {
-        for (size_t i = 0; i < _resourceDirs.size(); ++i)
+        for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
         {
             if (FileSystem::FileExists(_resourceDirs[i] + name))
             {

@@ -20,27 +20,13 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "../Base/Vector.h"
-#include "../Core/Object.h"
+#include "../Base/Swap.h"
+#include "../Base/String.h"
 
 namespace alimer
 {
-    class RenderContext;
-    class Camera;
-
-    /// Defines a base class for scene rendering pipeline.
-    class ALIMER_API SceneRenderPipeline : public Object
+    template <> void Swap<String>(String& first, String& second)
     {
-        ALIMER_OBJECT(SceneRenderPipeline, Object);
-
-    public:
-        SceneRenderPipeline();
-        virtual ~SceneRenderPipeline() = default;
-
-        virtual void Render(const RenderContext &context, Vector<Camera> cameras) = 0;
-
-    private:
-    };
+        first.Swap(second);
+    }
 }

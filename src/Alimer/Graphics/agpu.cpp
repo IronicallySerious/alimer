@@ -25,6 +25,7 @@
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
 #include "../Core/Log.h"
+#include <vector>
 
 static AGpuRendererI* s_renderer = nullptr;
 

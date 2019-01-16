@@ -41,9 +41,9 @@ namespace alimer
 
     void SwapChain::Destroy()
     {
-        _backbufferTextures.clear();
+        _backbufferTextures.Clear();
         _depthStencilTexture.Reset();
-        _framebuffers.clear();
+        _framebuffers.Clear();
     }
 
     void SwapChain::Resize(uint32_t width, uint32_t height)
@@ -62,7 +62,7 @@ namespace alimer
     void SwapChain::InitializeFramebuffer()
     {
         const uint32_t backBufferCount = GetBackBufferCount();
-        _framebuffers.resize(backBufferCount);
+        _framebuffers.Resize(backBufferCount);
 
         const bool hasDepthStencil = _depthStencilFormat != PixelFormat::Unknown;
         if (hasDepthStencil)

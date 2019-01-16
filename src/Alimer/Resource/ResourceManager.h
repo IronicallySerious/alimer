@@ -22,11 +22,14 @@
 
 #pragma once
 
-#include "../Base/StdHeaders.h"
 #include "../Base/String.h"
 #include "../Base/StringHash.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceLoader.h"
+#include <mutex>
+#include <atomic>
+#include <map>
+#include <utility>
 
 namespace alimer
 {
@@ -87,8 +90,8 @@ namespace alimer
         /// Resource load directories.
         Vector<String> _resourceDirs;
 
-        UnorderedMap<StringHash, UniquePtr<ResourceLoader>> _loaders;
-		Map<String, SharedPtr<Object>> _resources;
+        std::unordered_map<StringHash, UniquePtr<ResourceLoader>> _loaders;
+		std::map<String, SharedPtr<Object>> _resources;
 
         /// Search priority flag.
         bool _searchPackagesFirst{ true };

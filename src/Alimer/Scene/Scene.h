@@ -25,7 +25,6 @@
 #include "../Serialization/Serializable.h"
 #include "../Scene/Entity.h"
 
-#if TODO_ENTITY
 namespace alimer
 {
     enum class DrawPipeline : unsigned
@@ -35,7 +34,7 @@ namespace alimer
         AlphaBlend,
     };
 
-    class ALIMER_API Renderable : public std::enable_shared_from_this<Renderable>
+    class ALIMER_API Renderable : public IntrusivePtrEnabled<Renderable>
     {
     public:
         virtual DrawPipeline getDrawPipeline() const
@@ -92,5 +91,3 @@ namespace alimer
         DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);
     };
 }
-
-#endif // TODO_ENTITY

@@ -60,7 +60,7 @@ namespace alimer
         Mesh();
         ~Mesh() override;
 
-        bool Define(const Vector<vec3>& positions, const Vector<Color4>& colors, const Vector<uint16_t>& indices);
+        bool Define(const PODVector<vec3>& positions, const PODVector<Color4>& colors, const PODVector<uint16_t>& indices);
 
         void SetVertexData(const void* vertexData, uint32_t vertexStart = 0, uint32_t vertexCount = 0);
 

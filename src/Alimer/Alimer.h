@@ -22,10 +22,11 @@
 
 #pragma once
 
-#include "Base/StdHeaders.h"
+#include "Base/Swap.h"
 #include "Base/Ptr.h"
 #include "Base/String.h"
 #include "Base/StringHash.h"
+#include "Base/Containers.h"
 
 // Debug
 #include "Debug/Debug.h"

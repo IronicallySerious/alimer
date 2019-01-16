@@ -416,9 +416,9 @@ namespace alimer
 #ifdef ALIMER_DEV
                 ALIMER_ASSERT(_vbo.buffers[slot] != nullptr);
 #endif
-                const Vector<VertexElement>& elements = _vbo.formats[slot]->GetElements();
+                const PODVector<VertexElement>& elements = _vbo.formats[slot]->GetElements();
 
-                for (auto it = elements.begin(); it != elements.end(); ++it)
+                for (auto it = elements.Begin(); it != elements.End(); ++it)
                 {
                     const VertexElement& vertexElement = *it;
                     auto &inputElementDesc = _vertexAttributes[_vertexAttributesCount++];

@@ -22,9 +22,9 @@
 
 #pragma once
 
-#include "../Base/StdHeaders.h"
 #include "../Base/String.h"
 #include "../Base/StringHash.h"
+#include "../Base/Vector.h"
 
 namespace alimer
 {
@@ -124,7 +124,7 @@ namespace alimer
 		String ReadAllText();
 
 		/// Read content as vector bytes.
-		Vector<uint8_t> ReadBytes(size_t count = 0);
+		PODVector<uint8_t> ReadBytes(uint64_t count = 0);
 
         /// Write an 8-bit integer.
         void WriteByte(signed char value);
@@ -139,7 +139,7 @@ namespace alimer
         void WriteUInt(unsigned value);
 
         /// Write a variable-length encoded unsigned integer, which can use 29 bits maximum.
-        void WriteVLE(size_t value);
+        void WriteVLE(unsigned value);
 
         /// Write a null-terminated string.
         void WriteString(const String& value);

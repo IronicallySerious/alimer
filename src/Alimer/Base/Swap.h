@@ -22,25 +22,22 @@
 
 #pragma once
 
-#include "../Base/Vector.h"
-#include "../Core/Object.h"
+#include "AlimerConfig.h"
 
 namespace alimer
 {
-    class RenderContext;
-    class Camera;
+    //class HashBase;
+    //class ListBase;
+    //class VectorBase;
+    class String;
 
-    /// Defines a base class for scene rendering pipeline.
-    class ALIMER_API SceneRenderPipeline : public Object
+    /// Swap two values.
+    template<class T> inline void Swap(T& first, T& second)
     {
-        ALIMER_OBJECT(SceneRenderPipeline, Object);
+        T temp = first;
+        first = second;
+        second = temp;
+    }
 
-    public:
-        SceneRenderPipeline();
-        virtual ~SceneRenderPipeline() = default;
-
-        virtual void Render(const RenderContext &context, Vector<Camera> cameras) = 0;
-
-    private:
-    };
+    template <> ALIMER_API void Swap<String>(String& first, String& second);
 }
