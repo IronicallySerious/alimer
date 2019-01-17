@@ -26,8 +26,8 @@
 
 namespace alimer
 {
-    SwapChain::SwapChain(GPUDevice* device)
-        : GPUResource(device, Type::SwapChain)
+    SwapChain::SwapChain()
+        : GPUResource(Type::SwapChain)
     {
 
     }
@@ -54,7 +54,7 @@ namespace alimer
         _depthStencilFormat = descriptor->preferredDepthStencilFormat;
 
         Destroy();
-        _impl = _device->GetImpl()->CreateSwapChain(descriptor);
+        _impl = gGraphics().GetImpl()->CreateSwapChain(descriptor);
         InitializeFramebuffer();
         return _impl != nullptr;
     }
@@ -99,6 +99,7 @@ namespace alimer
                 fboDescriptor.depthStencilAttachment.texture = _depthStencilTexture.Get();
             }
 
+            //_framebuffers = new Framebuffer();
             //_framebuffers[i] = _device->CreateFramebuffer(&fboDescriptor);
         }
     }

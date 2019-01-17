@@ -55,6 +55,9 @@ namespace alimer
         _commandBuffer->InsertDebugMarker(name.CString());
     }
 
+    void CommandContext::BeginRenderPass(const RenderPassDescriptor* descriptor)
+    {
+    }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
@@ -134,7 +137,7 @@ namespace alimer
 #if defined(ALIMER_DEV)
         if (!any(buffer->GetUsage() & BufferUsage::Vertex))
         {
-            _device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
+            //_device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
             return;
         }
 #endif
@@ -153,7 +156,7 @@ namespace alimer
 #if defined(ALIMER_DEV)
         if (!any(buffer->GetUsage() & BufferUsage::Index))
         {
-            _device->NotifyValidationError("SetIndexBuffer need buffer with Index usage");
+            //_device->NotifyValidationError("SetIndexBuffer need buffer with Index usage");
             return;
         }
 #endif

@@ -88,6 +88,9 @@ namespace alimer
         virtual void PopDebugGroup() = 0;
         virtual void InsertDebugMarker(const char* name) = 0;
 
+        virtual void BeginRenderPass(const RenderPassDescriptor* descriptor) = 0;
+        virtual void EndRenderPass() = 0;
+
     };
 
     class DeviceBackend

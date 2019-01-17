@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#include "Core/Engine.h"
 #include "Graphics/GPUDevice.h"
 #include "Graphics/SwapChain.h"
 #include "Graphics/Texture.h"
@@ -56,10 +57,13 @@ extern "C"
 
 namespace alimer
 {
-    GPUDevice::GPUDevice(GraphicsBackend preferredBackend, bool validation)
-        : _frameIndex(0)
+    static Graphics* __graphicsInstance = nullptr;
+    
+    Graphics::Graphics(Engine& engine)
+        : _engine(engine)
     {
-        GraphicsBackend backend = preferredBackend;
+        const bool validation = _engine.GetSettings().validation;
+        GraphicsBackend backend = _engine.GetSettings().preferredBackend;
         if (backend == GraphicsBackend::Default)
         {
             backend = GetDefaultPlatformBackend();
@@ -107,22 +111,39 @@ namespace alimer
             ALIMER_UNREACHABLE();
         }
 
+        Register();
+
         // Create immediate command buffer.
-        _immediateCommandContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
+        //_immediateCommandContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
         AddSubsystem(this);
     }
 
-    GPUDevice::~GPUDevice()
+    Graphics::~Graphics()
     {
         Finalize();
         RemoveSubsystem(this);
     }
 
-    void GPUDevice::Shutdown()
+    Graphics* Graphics::Create(Engine& engine)
     {
+        if (__graphicsInstance)
+        {
+            ALIMER_LOGERROR("Cannot create multiple graphics instances.");
+            return nullptr;
+        }
+
+        __graphicsInstance = new Graphics(engine);
+        return __graphicsInstance;
     }
 
-    void GPUDevice::Finalize()
+    void Graphics::Destroy(Graphics* graphics)
+    {
+        delete graphics;
+        graphics = nullptr;
+        __graphicsInstance = nullptr;
+    }
+
+    void Graphics::Finalize()
     {
         // Destroy undestroyed resources.
         if (_gpuResources.Size())
@@ -139,7 +160,7 @@ namespace alimer
         SafeDelete(_immediateCommandContext);
     }
 
-    bool GPUDevice::IsBackendSupported(GraphicsBackend backend)
+    bool Graphics::IsBackendSupported(GraphicsBackend backend)
     {
         if (backend == GraphicsBackend::Default)
         {
@@ -182,7 +203,7 @@ namespace alimer
         }
     }
 
-    std::set<GraphicsBackend> GPUDevice::GetAvailableBackends()
+    std::set<GraphicsBackend> Graphics::GetAvailableBackends()
     {
         static std::set<GraphicsBackend> backends;
 
@@ -223,7 +244,7 @@ namespace alimer
         return backends;
     }
 
-    GraphicsBackend GPUDevice::GetDefaultPlatformBackend()
+    GraphicsBackend Graphics::GetDefaultPlatformBackend()
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP || ALIMER_PLATFORM_XBOX_ONE
         if (IsBackendSupported(GraphicsBackend::D3D12))
@@ -241,45 +262,45 @@ namespace alimer
 #endif
     }
 
-    bool GPUDevice::WaitIdle()
+    bool Graphics::WaitIdle()
     {
         return _impl->WaitIdle();
     }
 
-    GraphicsBackend GPUDevice::GetBackend() const
+    GraphicsBackend Graphics::GetBackend() const
     {
         return _impl->GetBackend();
     }
 
-    const GPULimits& GPUDevice::GetLimits() const
+    const GPULimits& Graphics::GetLimits() const
     {
         return _impl->GetLimits();
     }
 
-    const GraphicsDeviceFeatures& GPUDevice::GetFeatures() const
+    const GraphicsDeviceFeatures& Graphics::GetFeatures() const
     {
         return _impl->GetFeatures();
     }
 
-    uint64_t GPUDevice::Frame()
+    uint64_t Graphics::Frame()
     {
         _impl->Tick();
         return ++_frameIndex;
     }
 
-    void GPUDevice::TrackResource(GPUResource* resource)
+    void Graphics::TrackResource(GPUResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.Push(resource);
     }
 
-    void GPUDevice::UntrackResource(GPUResource* resource)
+    void Graphics::UntrackResource(GPUResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.Remove(resource);
     }
 
-    CommandContext& GPUDevice::Begin(const String& name)
+    CommandContext& Graphics::Begin(const String& name)
     {
         CommandContext* newContext = nullptr; // AllocateContext();
         //newContext->SetName(name);
@@ -291,13 +312,7 @@ namespace alimer
         return *newContext;
     }
 
-    void GPUDevice::NotifyValidationError(const char* message)
-    {
-        // TODO: Add callback.
-        ALIMER_UNUSED(message);
-    }
-
-    void GPUDevice::RegisterObject()
+    void Graphics::Register()
     {
         static bool registered = false;
         if (registered)
@@ -510,4 +525,8 @@ namespace alimer
     }
 #endif // TODO
 
+    Graphics& gGraphics()
+    {
+        return *__graphicsInstance;
+    }
 }

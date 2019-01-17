@@ -186,7 +186,7 @@ namespace alimer
 
     SharedPtr<Window> Application::CreateWindow(const String& title, uint32_t width, uint32_t height, WindowFlags flags)
     {
-        return MakeShared<WindowSDL2>(_gpuDevice.Get(), title, width, height, flags);
+        return MakeShared<WindowSDL2>( title, width, height, flags);
     }
 }
 

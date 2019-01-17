@@ -31,7 +31,6 @@ namespace alimer
 {
     Texture::Texture() 
     {
-        _device = GetSubsystem<GPUDevice>();
     }
 
     Texture::~Texture()
@@ -54,7 +53,7 @@ namespace alimer
         descriptor.type = _type;
         descriptor.format = _format;
         descriptor.usage = _usage;
-        _texture = _device->GetImpl()->CreateTexture(&descriptor, nativeTexture, initialData);
+        _texture = gGraphics().GetImpl()->CreateTexture(&descriptor, nativeTexture, initialData);
         return _texture != nullptr;
     }
 
@@ -80,7 +79,7 @@ namespace alimer
         ALIMER_ASSERT_MSG(width >= 1, "Width must be greather than 0.");
         ALIMER_ASSERT_MSG(height >= 1, "Height must be greather than 0.");
         ALIMER_ASSERT_MSG(arraySize >= 1 && arraySize <= 2048, "Array size must be between 1 and 2048.");
-        ALIMER_ASSERT_MSG(_format != PixelFormat::Unknown, "Invalid pixel format.");
+        ALIMER_ASSERT_MSG(format != PixelFormat::Unknown, "Invalid pixel format.");
 
         _width = width;
         _height = height;
@@ -94,7 +93,7 @@ namespace alimer
         }
 
         _samples = SampleCount::Count1;
-        _type = arraySize >= 1 ? TextureType::Type2D : TextureType::Type2DArray;
+        _type = TextureType::Type2D;
         _format = format;
         _usage = usage;
         return CreateGPUTexture(nullptr, pInitData);
@@ -121,7 +120,7 @@ namespace alimer
         _arraySize = arraySize;
         _mipLevels = 1;
         _samples = samples;
-        _type = arraySize >= 1 ? TextureType::Type2DMultisample : TextureType::Type2DMultisampleArray;
+        _type = TextureType::Type2D;
         _format = format;
         _usage = usage;
         return CreateGPUTexture(nullptr, pInitData);

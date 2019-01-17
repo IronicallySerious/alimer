@@ -29,7 +29,7 @@
 namespace alimer
 {
     FramebufferD3D11::FramebufferD3D11(DeviceD3D11* device, const FramebufferDescriptor* descriptor)
-        : Framebuffer(nullptr, descriptor)
+        : _device(device)
     {
         for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
@@ -39,14 +39,13 @@ namespace alimer
             }
 
             const FramebufferAttachment& attachment = descriptor->colorAttachments[i];
-            const auto textureDescriptor = attachment.texture->GetDescriptor();
-            const uint32_t arraySize = textureDescriptor.arraySize - attachment.slice;
-            const bool isTextureMs = static_cast<uint32_t>(textureDescriptor.samples) > 1;
+            const uint32_t arraySize = attachment.texture->GetArraySize() - attachment.slice;
+            const bool isTextureMs = static_cast<uint32_t>(attachment.texture->GetSamples()) > 1;
             TextureD3D11* d3d11Texture = static_cast<TextureD3D11*>(attachment.texture->GetGPUTexture());
 
             D3D11_RENDER_TARGET_VIEW_DESC viewDesc = {};
             viewDesc.Format = d3d11Texture->GetDXGIFormat();
-            switch (textureDescriptor.type)
+            switch (attachment.texture->GetTextureType())
             {
             case TextureType::Type1D:
                 if (arraySize > 1)
@@ -115,7 +114,7 @@ namespace alimer
                 viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
                 viewDesc.Texture3D.MipSlice = attachment.level;
                 viewDesc.Texture3D.FirstWSlice = attachment.slice;
-                viewDesc.Texture3D.WSize = textureDescriptor.depth;
+                viewDesc.Texture3D.WSize = attachment.texture->GetDepth();
                 break;
 
             default:
@@ -125,8 +124,8 @@ namespace alimer
             }
 
             HRESULT hr = device->GetD3DDevice()->CreateRenderTargetView(
-                d3d11Texture->GetResource(), 
-                &viewDesc, 
+                d3d11Texture->GetResource(),
+                &viewDesc,
                 &_colorRtvs[_colorAttachmentsCount]);
             if (FAILED(hr))
             {
@@ -138,14 +137,13 @@ namespace alimer
         if (descriptor->depthStencilAttachment.texture != nullptr)
         {
             const FramebufferAttachment& attachment = descriptor->depthStencilAttachment;
-            const auto textureDescriptor = attachment.texture->GetDescriptor();
-            const uint32_t arraySize = textureDescriptor.arraySize - attachment.slice;
-            const bool isTextureMs = static_cast<uint32_t>(textureDescriptor.samples) > 1;
+            const uint32_t arraySize = attachment.texture->GetArraySize() - attachment.slice;
+            const bool isTextureMs = static_cast<uint32_t>(attachment.texture->GetSamples()) > 1;
             TextureD3D11* d3d11Texture = static_cast<TextureD3D11*>(attachment.texture->GetGPUTexture());
 
             D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc = {};
             viewDesc.Format = d3d11Texture->GetDXGIFormat();
-            switch (textureDescriptor.type)
+            switch (attachment.texture->GetTextureType())
             {
             case TextureType::Type1D:
                 if (arraySize > 1)
@@ -213,7 +211,7 @@ namespace alimer
                 viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
                 viewDesc.Texture2DArray.MipSlice = attachment.level;
                 viewDesc.Texture2DArray.FirstArraySlice = attachment.slice;
-                viewDesc.Texture2DArray.ArraySize = textureDescriptor.depth;
+                viewDesc.Texture2DArray.ArraySize = attachment.texture->GetDepth();
                 break;
 
             default:

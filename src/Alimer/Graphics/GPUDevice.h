@@ -34,29 +34,19 @@
 
 namespace alimer
 {
+    class Engine;
     class SwapChain;
     class Shader;
 
     class DeviceBackend;
 
-    /// Low-level 3D graphics module.
-    class ALIMER_API GPUDevice : public Object
+    /// Low-level graphics module.
+    class ALIMER_API Graphics : public Object
     {
-        ALIMER_OBJECT(GPUDevice, Object);
+        ALIMER_OBJECT(Graphics, Object);
+        friend class Engine;
 
     public:
-        /// Constructor.
-        GPUDevice(GraphicsBackend preferredBackend, bool validation);
-
-        /// Destructor.
-        ~GPUDevice() override;
-
-        /// Register object.
-        static void RegisterObject();
-
-        /// Shutdown the Graphics module.
-        static void Shutdown();
-
         /// Check if backend is supported
         static bool IsBackendSupported(GraphicsBackend backend);
 
@@ -93,8 +83,6 @@ namespace alimer
         /// Create new CommandContext
         CommandContext& Begin(const String& name = "");
 
-        void NotifyValidationError(const char* message);
-
         /// Create new SwapChain instance.
         /*SwapChain* CreateSwapChain(const SwapChainDescriptor* descriptor);
 
@@ -116,6 +104,21 @@ namespace alimer
         DeviceBackend* GetImpl() const { return _impl; }
 
     private:
+        /// Constructor.
+        Graphics(Engine& engine);
+
+        /// Destructor.
+        ~Graphics() override;
+
+        /// Create new Graphics.
+        static Graphics* Create(Engine& engine);
+
+        /// Destroy graphics instance.
+        static void Destroy(Graphics* graphics);
+
+        /// Register object.
+        static void Register();
+
         //virtual SwapChain* CreateSwapChainImpl(const SwapChainDescriptor* descriptor) = 0;
         //virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
         //virtual Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) = 0;
@@ -127,9 +130,13 @@ namespace alimer
     protected:
         virtual void Finalize();
 
-        uint64_t                _frameIndex;
+        Engine&                 _engine;
+        uint64_t                _frameIndex = 0;
         PODVector<GPUResource*> _gpuResources;
         std::mutex              _gpuResourceMutex;
         CommandContext*         _immediateCommandContext = nullptr;
     };
+
+    /// Singleton access for graphics. 
+    ALIMER_API Graphics& gGraphics();
 }

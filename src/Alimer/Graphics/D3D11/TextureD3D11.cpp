@@ -70,7 +70,6 @@ namespace alimer
                 }
             }
 
-            HRESULT hr = S_OK;
             D3D11_USAGE d3dUsage = D3D11_USAGE_DEFAULT;
             UINT d3dBindFlags = 0;
             const bool dynamic = false;
@@ -123,7 +122,10 @@ namespace alimer
                     d3d11Desc.MiscFlags = d3dMiscFlags;
                 };
 
-                hr = _d3dDevice->CreateTexture1D(&d3d11Desc, subResourceData.Data(), &_texture1D);
+                if (FAILED(_d3dDevice->CreateTexture1D(&d3d11Desc, subResourceData.Data(), &_texture1D)))
+                {
+                    ALIMER_LOGCRITICAL("[D3D11]: Failed to create 1D texture.");
+                }
             }
             break;
 
@@ -142,8 +144,10 @@ namespace alimer
                 d3d11Desc.BindFlags = d3dBindFlags;
                 d3d11Desc.CPUAccessFlags = d3dCPUAccessFlags;
                 d3d11Desc.MiscFlags = d3dMiscFlags;
-                hr = _d3dDevice->CreateTexture2D(&d3d11Desc, subResourceData.Data(), &_texture2D);
-
+                if (FAILED(_d3dDevice->CreateTexture2D(&d3d11Desc, subResourceData.Data(), &_texture2D)))
+                {
+                    ALIMER_LOGCRITICAL("[D3D11]: Failed to create 2D texture.");
+                }
             }
             break;
 

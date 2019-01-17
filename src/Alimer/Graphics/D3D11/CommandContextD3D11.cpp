@@ -69,8 +69,7 @@ namespace alimer
 
     void CommandContextD3D11::BeginContext()
     {
-        _currentFramebuffer = nullptr;
-        _currentColorAttachmentsBound = 0;
+        _renderTargetsViewsCount = 0;
         _graphicsShader = nullptr;
         _computeShader = nullptr;
         _currentTopology = PrimitiveTopology::Count;
@@ -131,36 +130,43 @@ namespace alimer
         }
     }
 
-    /*void CommandContextD3D11::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    void CommandContextD3D11::BeginRenderPass(const RenderPassDescriptor* descriptor)
     {
-        _currentFramebuffer = static_cast<FramebufferD3D11*>(framebuffer);
-        _currentColorAttachmentsBound = _currentFramebuffer->Bind(_context);
+        _renderTargetsViewsCount = 0;
 
-        for (uint32_t i = 0; i < _currentColorAttachmentsBound; ++i)
+        for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
-            switch (descriptor[i].colors->loadAction)
+            if (descriptor->colorAttachments[i].attachment.texture)
+                continue;
+
+            /*const AttachmentDescriptor& attachment = descriptor->colorAttachments[i].attachment;
+            TextureD3D11* texture = static_cast<TextureD3D11*>(attachment.texture->GetGPUTexture());
+            //_renderTargetsViews[_renderTargetsViewsCount] = 
+            switch (descriptor->colorAttachments[i].loadAction)
             {
             case LoadAction::Clear:
-                _context->ClearRenderTargetView(_currentFramebuffer->GetColorRTV(i), &descriptor[i].colors->clearColor[i]);
+                _context->ClearRenderTargetView(_currentFramebuffer->GetColorRTV(i), &descriptor->colorAttachments[i].clearColor[i]);
                 break;
 
             default:
                 break;
-            }
+            }*/
+            _renderTargetsViewsCount++;
         }
 
         // Depth/stencil now.
-        _depthStencilView = _currentFramebuffer->GetDSV();
-        if (_depthStencilView != nullptr)
+        if (descriptor->depthStencilAttachment.attachment.texture != nullptr)
         {
+            const AttachmentDescriptor& attachment = descriptor->depthStencilAttachment.attachment;
+            /*_depthStencilView = attachment->GetDSV();
             UINT clearFlags = 0;
-            if (descriptor->depthStencil.depthLoadAction == LoadAction::Clear)
+            if (descriptor->depthStencilAttachment.depthLoadAction == LoadAction::Clear)
             {
                 clearFlags |= D3D11_CLEAR_DEPTH;
             }
 
-            if ((descriptor->depthStencil.stencilLoadAction == LoadAction::Clear)
-                && IsStencilFormat(_currentFramebuffer->GetDepthStencilTexture()->GetDescriptor().format))
+            if ((descriptor->depthStencilAttachment.stencilLoadAction == LoadAction::Clear)
+                && IsStencilFormat(attachment.texture->GetFormat()))
             {
                 clearFlags |= D3D11_CLEAR_STENCIL;
             }
@@ -170,12 +176,13 @@ namespace alimer
                 _context->ClearDepthStencilView(
                     _depthStencilView,
                     clearFlags,
-                    descriptor->depthStencil.clearDepth,
-                    descriptor->depthStencil.clearStencil);
-            }
+                    descriptor->depthStencilAttachment.clearDepth,
+                    descriptor->depthStencilAttachment.clearStencil
+                );
+            }*/
         }
 
-        uint32_t width, height;
+        /*uint32_t width, height;
         if (!descriptor->renderTargetWidth)
         {
             width = framebuffer->GetWidth();
@@ -196,18 +203,18 @@ namespace alimer
 
         // Set viewport and scissor from fbo.
         SetViewport(RectangleF(width, height));
-        SetScissor(Rectangle(width, height));
+        SetScissor(Rectangle(width, height));*/
     }
 
-    void CommandContextD3D11::EndRenderPassImpl()
+    void CommandContextD3D11::EndRenderPass()
     {
         static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 
-        _context->OMSetRenderTargets(_currentColorAttachmentsBound, nullViews, nullptr);
-        _currentFramebuffer = nullptr;
+        _context->OMSetRenderTargets(_renderTargetsViewsCount, nullViews, nullptr);
+        _renderTargetsViewsCount = 0;
     }
 
-    void CommandContextD3D11::SetViewport(const RectangleF& viewport)
+    /*void CommandContextD3D11::SetViewport(const RectangleF& viewport)
     {
         _viewportsDirty = true;
         _viewportsCount = 1;
@@ -409,38 +416,38 @@ namespace alimer
         uint32_t activeVbos = 1u << 0u;
         uint32_t updateVboMask = _dirtyVbos & activeVbos;
         ForEachBitRange(updateVboMask, [&](uint32_t binding, uint32_t count)
-        {
-            for (uint32_t slot = binding; slot < binding + count; slot++)
             {
-#ifdef ALIMER_DEV
-                ALIMER_ASSERT(_vbo.buffers[slot] != nullptr);
-#endif
-                const PODVector<VertexElement>& elements = _vbo.formats[slot]->GetElements();
-
-                for (auto it = elements.Begin(); it != elements.End(); ++it)
+                for (uint32_t slot = binding; slot < binding + count; slot++)
                 {
-                    const VertexElement& vertexElement = *it;
-                    auto &inputElementDesc = _vertexAttributes[_vertexAttributesCount++];
-                    inputElementDesc.SemanticName = d3d::Convert(vertexElement.semantic, inputElementDesc.SemanticIndex);
-                    inputElementDesc.Format = d3d::Convert(vertexElement.format);
-                    inputElementDesc.InputSlot = slot;
-                    inputElementDesc.AlignedByteOffset = vertexElement.offset;
+#ifdef ALIMER_DEV
+                    ALIMER_ASSERT(_vbo.buffers[slot] != nullptr);
+#endif
+                    const PODVector<VertexElement>& elements = _vbo.formats[slot]->GetElements();
 
-                    if (_vbo.inputRates[slot] == VertexInputRate::Instance)
+                    for (auto it = elements.Begin(); it != elements.End(); ++it)
                     {
-                        inputElementDesc.InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
-                        inputElementDesc.InstanceDataStepRate = 1;
-                    }
-                    else
-                    {
-                        inputElementDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-                        inputElementDesc.InstanceDataStepRate = 0;
+                        const VertexElement& vertexElement = *it;
+                        auto &inputElementDesc = _vertexAttributes[_vertexAttributesCount++];
+                        inputElementDesc.SemanticName = d3d::Convert(vertexElement.semantic, inputElementDesc.SemanticIndex);
+                        inputElementDesc.Format = d3d::Convert(vertexElement.format);
+                        inputElementDesc.InputSlot = slot;
+                        inputElementDesc.AlignedByteOffset = vertexElement.offset;
+
+                        if (_vbo.inputRates[slot] == VertexInputRate::Instance)
+                        {
+                            inputElementDesc.InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
+                            inputElementDesc.InstanceDataStepRate = 1;
+                        }
+                        else
+                        {
+                            inputElementDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+                            inputElementDesc.InstanceDataStepRate = 0;
+                        }
                     }
                 }
-            }
 
-            _context->IASetVertexBuffers(binding, count, _vbo.buffers, _vbo.strides, _vbo.offsets);
-        });
+                _context->IASetVertexBuffers(binding, count, _vbo.buffers, _vbo.strides, _vbo.offsets);
+            });
 
         _dirtyVbos &= ~updateVboMask;
 

@@ -25,8 +25,8 @@
 
 namespace alimer
 {
-    Sampler::Sampler(GPUDevice* device, const SamplerDescriptor* descriptor)
-        : GPUResource(device, Type::Sampler)
+    Sampler::Sampler(const SamplerDescriptor* descriptor)
+        : GPUResource(Type::Sampler)
     {
         memcpy(&_descriptor, descriptor, sizeof(SamplerDescriptor));
     }

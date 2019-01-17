@@ -27,12 +27,10 @@
 
 namespace alimer
 {
-    Window::Window(GPUDevice* device, const String& title, uint32_t width, uint32_t height, WindowFlags flags)
-        : _device(device)
-        , _title(title)
+    Window::Window(const String& title, uint32_t width, uint32_t height, WindowFlags flags)
+        : _title(title)
         , _size(width, height)
         , _flags(flags)
-        , _swapChain(new SwapChain(device))
     {
     }
 
@@ -86,7 +84,7 @@ namespace alimer
 
     void Window::OnSizeChanged(const uvec2& newSize)
     {
-        _swapChain->Resize(newSize.x, newSize.y);
+        _swapChain.Resize(newSize.x, newSize.y);
         WindowResizeEvent evt;
         evt.size = _size;
         resizeEvent(evt);
@@ -107,21 +105,20 @@ namespace alimer
         descriptor.sRGB = false;
         descriptor.preferredDepthStencilFormat = PixelFormat::D24UNormS8;
         descriptor.preferredSamples = SampleCount::Count1;
-        _swapChain->Define(&descriptor);
+        _swapChain.Define(&descriptor);
     }
 
     void Window::OnDestroyed()
     {
-        SafeDelete(_swapChain);
     }
 
     Framebuffer* Window::GetCurrentFramebuffer() const
     {
-        return _swapChain->GetCurrentFramebuffer();
+        return _swapChain.GetCurrentFramebuffer();
     }
 
     void Window::SwapBuffers()
     {
-        _swapChain->Present();
+        _swapChain.Present();
     }
 }

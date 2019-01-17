@@ -190,15 +190,9 @@ namespace alimer
     enum class TextureType : uint32_t
     {
         Type1D,
-        Type1DArray,
         Type2D,
-        Type2DArray,
-        Type2DMultisample,
-        Type2DMultisampleArray,
         TypeCube,
-        TypeCubeArray,
-        Type3D,
-        TypeTextureBuffer
+        Type3D
     };
 
     /// Defines texture usage enum.
@@ -441,6 +435,45 @@ namespace alimer
         DepthStencilAttachmentAction    depthStencil;
         uint32_t                        renderTargetWidth;
         uint32_t                        renderTargetHeight;
+    };
+
+    class Texture;
+    struct AttachmentDescriptor
+    {
+        /// The texture attachment.
+        Texture* texture;
+        /// The mipmap level of the texture used for rendering to the attachment.
+        uint32_t level;
+        /// The slice of the texture used for rendering to the attachment.
+        uint32_t slice = 0;
+    };
+
+    struct RenderPassColorAttachmentDescriptor
+    {
+        AttachmentDescriptor    attachment;
+        //AttachmentDescriptor resolveTarget;
+
+        LoadAction  loadAction = LoadAction::Clear;
+        StoreAction storeAction = StoreAction::Store;
+        Color4      clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
+    };
+
+    struct RenderPassDepthStencilAttachmentDescriptor
+    {
+        AttachmentDescriptor    attachment;
+
+        LoadAction              depthLoadAction = LoadAction::Clear;
+        StoreAction             depthStoreAction = StoreAction::DontCare;
+        LoadAction              stencilLoadAction = LoadAction::DontCare;
+        StoreAction             stencilStoreAction = StoreAction::DontCare;
+        float                   clearDepth = 1.0f;
+        uint8_t                 clearStencil = 0;
+    };
+
+    struct RenderPassDescriptor
+    {
+        RenderPassColorAttachmentDescriptor         colorAttachments[MaxColorAttachments];
+        RenderPassDepthStencilAttachmentDescriptor  depthStencilAttachment;
     };
 
     struct VertexElement

@@ -32,9 +32,9 @@ namespace alimer
     class GPUTexture;
 
     /// Defines a Texture class.
-    class ALIMER_API Texture final: public Resource
+    class ALIMER_API Texture final : public Resource
     {
-        friend class GPUDevice;
+        friend class Graphics;
         ALIMER_OBJECT(Texture, Resource);
 
     public:
@@ -44,7 +44,7 @@ namespace alimer
         Texture();
 
         /// Destructor
-        virtual ~Texture() override;
+        ~Texture() override;
 
         /** 
         * Defines a 2D texture.
@@ -110,9 +110,6 @@ namespace alimer
         /// Get the sample count.
         SampleCount GetSamples() const { return _samples; }
 
-        /// Return the device used for creation.
-        GPUDevice* GetDevice() const { return _device; }
-
         /// Get the GPUTexture.
         GPUTexture* GetGPUTexture() const { return _texture; }
 
@@ -124,7 +121,6 @@ namespace alimer
         void Destroy();
 
     protected:
-        GPUDevice* _device;
         GPUTexture* _texture = nullptr;
         uint32_t        _width = 0;
         uint32_t        _height = 0;

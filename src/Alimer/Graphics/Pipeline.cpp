@@ -26,8 +26,8 @@
 
 namespace alimer
 {
-    Pipeline::Pipeline(GPUDevice* device)
-        : GPUResource(device, Type::Pipeline)
+    Pipeline::Pipeline()
+        : GPUResource(Type::Pipeline)
         , _isCompute(true)
     {
     }

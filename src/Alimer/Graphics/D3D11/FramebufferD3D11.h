@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Framebuffer.h"
+#include "Graphics/DeviceBackend.h"
 #include "D3D11Prerequisites.h"
 #include <map>
 
@@ -31,7 +31,7 @@ namespace alimer
     class DeviceD3D11;
 
     /// D3D11 Framebuffer implementation.
-    class FramebufferD3D11 final : public Framebuffer
+    class FramebufferD3D11 final : public GPUFramebuffer
     {
     public:
         FramebufferD3D11(DeviceD3D11* device, const FramebufferDescriptor* descriptor);
@@ -49,6 +49,7 @@ namespace alimer
         //GPUTexture* GetDepthStencilTexture() const { return _depthStencilTexture; }
 
     private:
+        DeviceD3D11* _device;
         //GPUTexture* _depthStencilTexture;
 
         uint32_t _colorAttachmentsCount = 0;

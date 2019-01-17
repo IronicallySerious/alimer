@@ -20,10 +20,10 @@
 // THE SOFTWARE.
 //
 
-#include "../Application/Application.h"
-#include "../Scene/Systems/CameraSystem.h"
-#include "../IO/Path.h"
-#include "../Core/Platform.h"
+#include "Application/Application.h"
+#include "Scene/Systems/CameraSystem.h"
+#include "IO/Path.h"
+#include "Core/Platform.h"
 
 namespace alimer
 {
@@ -65,7 +65,7 @@ namespace alimer
 
         _paused = true;
         _running = false;
-        _gpuDevice.Reset();
+        _engine.Reset();
         Audio::Shutdown();
     }
 
@@ -77,19 +77,6 @@ namespace alimer
         if (_engine->Initialize(_args) != EXIT_SUCCESS)
         {
             return false;
-        }
-
-        // Init Window and Gpu.
-        if (!_engine->IsHeadless())
-        {
-            _gpuDevice = new GPUDevice(_settings.preferredGraphicsBackend, _settings.validation);
-            if (_gpuDevice == nullptr)
-            {
-                ALIMER_LOGERROR("Failed to create GPUDevice instance.");
-                return false;
-            }
-
-            _mainWindow = CreateWindow(_settings.title, _settings.width, _settings.height, _settings.windowFlags);
         }
 
         // Load plugins
@@ -192,7 +179,7 @@ namespace alimer
         _mainWindow->SwapBuffers();
 
         // Advance to next frame.
-        _gpuDevice->Frame();
+        //_gpuDevice->Frame();
     }
 
     void Application::OnRenderFrame(double frameTime, double elapsedTime)
@@ -200,12 +187,12 @@ namespace alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-        CommandContext& context = _gpuDevice->GetImmediateContext();
+        //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        //CommandContext& context = _gpuDevice->GetImmediateContext();
         //context.BeginRenderPass(_mainWindow->GetCurrentFramebuffer(), clearColor);
         //context.Draw(3, 0);
         //context.EndRenderPass();
-        context.Flush();
+        //context.Flush();
     }
 
     void Application::Exit()

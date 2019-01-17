@@ -54,7 +54,7 @@ namespace alimer
     class TriangleExample
     {
     public:
-        void Initialize(GPUDevice* device, ResourceManager& resources)
+        void Initialize(ResourceManager& resources)
         {
             ALIMER_UNUSED(resources);
 
@@ -387,7 +387,7 @@ namespace alimer
 
     void RuntimeApplication::Initialize()
     {
-        _triangleExample.Initialize(_gpuDevice.Get(), _engine->getResources());
+        _triangleExample.Initialize(_engine->GetResources());
         //_quadExample.Initialize(_resources);
         //_cubeExample.Initialize(_graphicsDevice.Get(), _window->GetAspectRatio());
         //_texturedCubeExample.Initialize(_graphicsDevice.Get(), _window->getAspectRatio());
@@ -406,7 +406,7 @@ namespace alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        CommandContext& context = _gpuDevice->GetImmediateContext();
+        CommandContext& context = gGraphics().GetImmediateContext();
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         context.BeginRenderPass(_mainWindow->GetCurrentFramebuffer(), clearColor);
         _triangleExample.Render(context);

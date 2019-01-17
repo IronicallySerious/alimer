@@ -61,9 +61,6 @@ namespace alimer
         // Create resources manager.
         _resources = new ResourceManager();
 
-        // Register modules
-        GPUDevice::RegisterObject();
-
         // Create SceneManager.
         _sceneManager = new SceneManager();
     }
@@ -72,6 +69,7 @@ namespace alimer
     {
         PluginManager::Destroy(_pluginManager);
         _gui.Reset();
+        Graphics::Destroy(_graphics);
         RemoveSubsystem(this);
     }
 
@@ -87,7 +85,7 @@ namespace alimer
             CLI::App app{ fmt::sprintf("Alimer %s.", ALIMER_VERSION_STR), "Alimer" };
             bool verboseOutput = false;
             app.add_flag("-v,--verbose", verboseOutput, "Enable verbose mode.");
-            app.add_flag("--headless", _headless, "Do not initialize windowing and graphics subsystem.");
+            app.add_flag("--headless", _settings.headless, "Do not initialize windowing and graphics subsystem.");
 
             try 
             {
@@ -103,6 +101,19 @@ namespace alimer
             catch (const CLI::ParseError &e) {
                 return app.exit(e);
             }
+        }
+
+        // Init Window and Gpu.
+        if (!_settings.headless)
+        {
+            _graphics = Graphics::Create(*this);
+            if (_graphics == nullptr)
+            {
+                ALIMER_LOGERROR("Failed to create GPUDevice instance.");
+                return false;
+            }
+
+            //_mainWindow = CreateWindow(_settings.title, _settings.width, _settings.height, _settings.windowFlags);
         }
 
         // Create imgui system.

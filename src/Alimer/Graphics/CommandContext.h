@@ -55,6 +55,7 @@ namespace alimer
         void PopDebugGroup();
         void InsertDebugMarker(const String& name);
 
+        void BeginRenderPass(const RenderPassDescriptor* descriptor);
         void BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
         void BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
         void EndRenderPass();

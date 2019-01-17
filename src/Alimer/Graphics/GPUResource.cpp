@@ -25,26 +25,15 @@
 
 namespace alimer
 {
-    GPUResource::GPUResource(GPUDevice* device, Type resourceType)
-        : _device(device)
-        , _resourceType(resourceType)
+    GPUResource::GPUResource(Type resourceType)
+        : _resourceType(resourceType)
     {
-        ALIMER_ASSERT_MSG(device, "Invalid Graphics Device");
-        device->TrackResource(this);
+        gGraphics().TrackResource(this);
     }
 
     GPUResource::~GPUResource()
     {
-        if (_device)
-        {
-            _device->UntrackResource(this);
-        }
-
+        gGraphics().UntrackResource(this);
         Destroy();
-    }
-
-    GPUDevice* GPUResource::GetDevice() const
-    {
-        return _device.Get();
     }
 }

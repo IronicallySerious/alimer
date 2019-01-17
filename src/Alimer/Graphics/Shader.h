@@ -37,7 +37,7 @@ namespace alimer
 
     protected:
         /// Constructor.
-        Shader(GPUDevice* device, const ShaderDescriptor* descriptor);
+        Shader(const ShaderDescriptor* descriptor);
 
     public:
         /// Destructor.

@@ -32,7 +32,6 @@
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
-#include "../Graphics/GPUDevice.h"
 #include "../Scene/Scene.h"
 #include "../Renderer/RenderContext.h"
 #include "../Renderer/RenderPipeline.h"
@@ -145,10 +144,8 @@ namespace alimer
         
         ApplicationSettings _settings;
 
-        
         Timer _timer;
         
-        SharedPtr<GPUDevice>    _gpuDevice;
         SharedPtr<Window>       _mainWindow;
         Input _input;
 

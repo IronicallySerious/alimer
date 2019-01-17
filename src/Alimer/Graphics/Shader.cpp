@@ -65,8 +65,8 @@ namespace alimer
         }*/
     };
 
-    Shader::Shader(GPUDevice* device, const ShaderDescriptor* descriptor)
-        : GPUResource(device, Type::Shader)
+    Shader::Shader(const ShaderDescriptor* descriptor)
+        : GPUResource(Type::Shader)
     {
         for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
         {

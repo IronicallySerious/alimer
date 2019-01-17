@@ -23,6 +23,7 @@
 #pragma once
 
 #include "Graphics/DeviceBackend.h"
+#include "Graphics/Texture.h"
 #include "D3D11Prerequisites.h"
 #include <unordered_map>
 
@@ -47,6 +48,7 @@ namespace alimer
         ID3D11Texture2D*    GetD3DTexture2D() const { return _texture2D; }
         DXGI_FORMAT         GetDXGIFormat() const { return _dxgiFormat; }
 
+        //ID3D11RenderTargetView* getRTV(uint32_t mipLevel = 0, uint32_t firstArraySlice = 0, uint32_t arraySize = MaxPossible);
         ID3D11ShaderResourceView* GetSRV(uint32_t mostDetailedMip = 0, uint32_t mipCount = RemainingMipLevels, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingArrayLayers) const;
         ID3D11UnorderedAccessView* GetUAV(uint32_t mipLevel, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingArrayLayers) const;
 

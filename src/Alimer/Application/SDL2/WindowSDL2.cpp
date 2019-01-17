@@ -21,8 +21,8 @@
 //
 
 #include "WindowSDL2.h"
-#include "../../Application/Application.h"
-#include "../../Core/Log.h"
+#include "Application/Application.h"
+#include "Core/Log.h"
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
@@ -30,8 +30,8 @@
 
 namespace alimer
 {
-    WindowSDL2::WindowSDL2(GPUDevice* device, const String& title, uint32_t width, uint32_t height, WindowFlags flags)
-        : Window(device, title, width, height, flags)
+    WindowSDL2::WindowSDL2(const String& title, uint32_t width, uint32_t height, WindowFlags flags)
+        : Window(title, width, height, flags)
     {
         const bool resizable = any(flags & WindowFlags::Resizable);
         bool fullscreen = any(flags & WindowFlags::Fullscreen);

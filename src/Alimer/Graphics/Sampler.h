@@ -26,16 +26,17 @@
 
 namespace alimer
 {
+    class GPUSampler;
+
     /// Defines a Sampler class.
     class ALIMER_API Sampler : public GPUResource
     {
-        friend class GPUDevice;
-
-    protected:
-        /// Constructor.
-        Sampler(GPUDevice* device, const SamplerDescriptor* descriptor);
+        friend class Graphics;
 
     public:
+        /// Constructor.
+        Sampler(const SamplerDescriptor* descriptor);
+
         /// Get the addressing mode for the U texcoord.
         SamplerAddressMode GetAddressModeU() const { return _descriptor.addressModeU; }
 
@@ -52,6 +53,7 @@ namespace alimer
         /// Register object factory.
         static void RegisterObject();
 
+        GPUSampler* _backend = nullptr;
         SamplerDescriptor _descriptor{};
     };
 }

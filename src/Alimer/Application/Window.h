@@ -25,6 +25,7 @@
 #include "../Base/String.h"
 #include "../Core/Platform.h"
 #include "../Core/Object.h"
+#include "../Graphics/SwapChain.h"
 #include "../Math/Math.h"
 #include <string>
 
@@ -48,9 +49,7 @@ namespace alimer
         uvec2 size;
     };
 
-    class GPUDevice;
     class Framebuffer;
-    class SwapChain;
 
     /// OS Window class.
     class ALIMER_API Window : public Object
@@ -59,7 +58,7 @@ namespace alimer
 
     protected:
         /// Constructor.
-        Window(GPUDevice* device, const String& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Default);
+        Window(const String& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Default);
 
     public:
         /// Show the window.
@@ -142,8 +141,7 @@ namespace alimer
         bool _focused = false;
 
     protected:
-        GPUDevice* _device;
-        SwapChain* _swapChain;
+        SwapChain _swapChain;
         void* _nativeWindow = nullptr;
         void* _nativeConnection = nullptr;
 

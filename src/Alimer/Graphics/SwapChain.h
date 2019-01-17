@@ -34,7 +34,7 @@ namespace alimer
 	{
     public:
         /// Constructor.
-        SwapChain(GPUDevice* device);
+        SwapChain();
 
         /// Desturctor
         ~SwapChain() override;

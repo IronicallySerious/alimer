@@ -53,7 +53,6 @@ namespace alimer
     private:
         /// Constructor.
         PluginManager(Engine& engine);
-       
 
         Engine& _engine;
         std::vector<UniquePtr<Plugin>> _plugins;

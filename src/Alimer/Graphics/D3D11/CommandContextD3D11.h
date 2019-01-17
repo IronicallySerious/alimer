@@ -44,10 +44,10 @@ namespace alimer
         void PopDebugGroup() override;
         void InsertDebugMarker(const char* name) override;
 
-        /*void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
-        void EndRenderPassImpl() override;
+        void BeginRenderPass(const RenderPassDescriptor* descriptor) override;
+        void EndRenderPass() override;
 
-        void SetViewport(const RectangleF& viewport) override;
+        /*void SetViewport(const RectangleF& viewport) override;
         void SetViewport(uint32_t viewportCount, const RectangleF* viewports) override;
         void SetScissor(const Rectangle& scissor)  override;
         void SetScissor(uint32_t scissorCount, const Rectangle* scissors) override;
@@ -75,8 +75,6 @@ namespace alimer
         bool                        _needWorkaround = false;
         uint64_t                    _fenceValue;
 
-        const FramebufferD3D11*     _currentFramebuffer = nullptr;
-        uint32_t                    _currentColorAttachmentsBound;
         PrimitiveTopology           _currentTopology;
         const ShaderD3D11*          _graphicsShader = nullptr;
         const ShaderD3D11*          _computeShader = nullptr;
@@ -100,6 +98,7 @@ namespace alimer
 
         // RenderTargetViews
         ID3D11RenderTargetView*     _renderTargetsViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+        uint32_t                    _renderTargetsViewsCount;
         ID3D11DepthStencilView*     _depthStencilView = nullptr;
 
         // Viewports

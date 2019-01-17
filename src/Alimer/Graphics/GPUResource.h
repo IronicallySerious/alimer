@@ -27,7 +27,7 @@
 
 namespace alimer
 {
-	class GPUDevice;
+	class Graphics;
 
 	/// Defines a GPUResource created from GPUDevice.
 	class ALIMER_API GPUResource : public RefCounted
@@ -51,17 +51,13 @@ namespace alimer
         /// Unconditionally destroy the GPU resource.
         virtual void Destroy() {}
 
-        /// Return the gpu device used for creation.
-        GPUDevice* GetDevice() const;
-
         /// Get the resource type.
         Type GetResourceType() const { return _resourceType; }
 
     protected:
         /// Constructor.
-        GPUResource(GPUDevice* device, Type resourceType);
+        GPUResource(Type resourceType);
 
-        WeakPtr<GPUDevice> _device;
         Type _resourceType;
 
 	private:

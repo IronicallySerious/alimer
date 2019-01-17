@@ -30,7 +30,7 @@ namespace alimer
     class WindowSDL2 final : public Window
     {
     public:
-        WindowSDL2(GPUDevice* device, const String& title, uint32_t width, uint32_t height, WindowFlags flags);
+        WindowSDL2(const String& title, uint32_t width, uint32_t height, WindowFlags flags);
 
         /// Destructor.
         ~WindowSDL2() override;
@@ -49,7 +49,6 @@ namespace alimer
         void SetTitle(const String& newTitle) override;
         bool IsCursorVisible() const override;
         void SetCursorVisible(bool visible) override;
-
 
         SDL_Window* _window;
         /// Visibility flag.
