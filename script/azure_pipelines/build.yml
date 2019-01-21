@@ -1,0 +1,24 @@
+steps:
+- bash: eval '$(installCommand)'
+  displayName: 'Install'
+
+- task: PythonScript@0
+  displayName: 'Build'
+  inputs:
+    scriptPath: script/alimer.py
+    arguments: '--action=build --input=$(Build.SourcesDirectory) --platform=desktop --compiler=$(compiler) --buildSystem=ninja --architecture=$(platform) --config=$(configuration) --verbose'
+
+- bash: 'echo $BUILD_SOURCEVERSION > $BUILD_ARTIFACTSTAGINGDIRECTORY/GIT-COMMIT.txt'
+  displayName: 'Add commit info'
+
+- task: CopyFiles@2
+  displayName: 'Copy Binaries'
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)/$(buildFolder)'
+    Contents: $(artifactBinaries)
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    artifactName: alimer-$(combination)

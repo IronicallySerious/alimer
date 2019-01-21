@@ -37,7 +37,7 @@ namespace alimer
 
     void Editor::Initialize()
     {
-        _mainWindow->SetTitle("Alimer Studio 2018");
+        _engine->GetMainWindow().SetTitle("Alimer Studio 2018");
     }
 
     void Editor::OnRenderFrame(double frameTime, double elapsedTime)
@@ -45,7 +45,7 @@ namespace alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        if (_input.IsMouseButtonHeld(MouseButton::Left))
+        if (_engine->GetInput().IsMouseButtonHeld(MouseButton::Left))
         {
             ALIMER_LOGINFO("Mouse left button is held");
         }

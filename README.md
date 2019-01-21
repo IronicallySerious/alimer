@@ -1,8 +1,8 @@
 # Alimer
 
-[![Build status](https://ci.appveyor.com/api/projects/status/uto2wruji8bo6bcl?svg=true)](https://ci.appveyor.com/project/amerkoleci/alimer)
-[![Build Status](https://travis-ci.org/amerkoleci/alimer.svg?branch=master)](https://travis-ci.org/amerkoleci/alimer)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/amerkoleci/alimer/blob/master/LICENSE)
+[![Build status](https://ci.appveyor.com/api/projects/status/uto2wruji8bo6bcl?svg=true)](https://ci.appveyor.com/project/amerkoleci/alimer)
+[![Build Status](https://dev.azure.com/amerkoleci/alimer/_apis/build/status/amerkoleci.alimer?branchName=master)](https://dev.azure.com/amerkoleci/alimer/_build/latest?definitionId=6?branchName=master)
 [![Join the chat at https://gitter.im/alimer/Lobby](https://badges.gitter.im/alimer/Lobby.svg)](https://gitter.im/alimer/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 **Alimer Engine** is a cross platform 2D and 3D game engine implemented in C++14, inspired by [Urho3D](https://github.com/urho3d/Urho3D) and [Ogre3D](http://www.ogre3d.org).

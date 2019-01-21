@@ -1,19 +1,22 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+variables:
+  configuration: Release
+  platform: x64
 
-trigger:
-- master
+resources:
+- repo: self
+  fetchDepth: 5
 
-pool:
-  vmImage: 'Ubuntu-16.04'
+jobs:
+- job: Windows_vc141
+  pool:
+    vmImage: VS2017-Win2016
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  variables:
+    compiler: vc141
+    combination: 'win-$(compiler)-$(platform)-$(configuration)'
+    buildFolder: 'build/ninja-$(combination)'
+    installCommand: 'choco install ninja'
+    artifactBinaries: |
+      bin/AlimerPlayer.exe
+  steps:
+  - template: script/azure_pipelines/build.yml
