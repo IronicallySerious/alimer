@@ -406,7 +406,7 @@ namespace alimer
         ALIMER_UNUSED(frameTime);
         ALIMER_UNUSED(elapsedTime);
 
-        CommandContext& context = gGraphics().GetImmediateContext();
+        /*CommandContext& context = _engine->GetGraphicsDevice().GetImmediateContext();
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         context.BeginRenderPass(_mainWindow->GetCurrentFramebuffer(), clearColor);
         _triangleExample.Render(context);
@@ -414,7 +414,7 @@ namespace alimer
         //_cubeExample.Render(commandBuffer, elapsedTime);
         //_texturedCubeExample.Render(commandBuffer);
         context.EndRenderPass();
-        context.Flush();
+        context.Flush();*/
     }
 }
 

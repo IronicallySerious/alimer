@@ -44,6 +44,8 @@ namespace alimer
 
         // Create immediate command buffer.
         //_immediateCommandContext = new CommandContextGL(this);
+
+        OnAfterCreated();
     }
 
     DeviceGL::~DeviceGL()

@@ -23,34 +23,37 @@
 #pragma once
 
 #include "../Pipeline.h"
-#include "D3D11Prerequisites.h"
+#include "BackendD3D11.h"
 #include <unordered_map>
 
 namespace alimer
 {
-    class D3D11GraphicsDevice;
-
     /// D3D11 Pipeline implementation.
-    class D3D11Pipeline final : public Pipeline
+    class PipelineD3D11 final : public Pipeline
     {
     public:
-        D3D11Pipeline(D3D11GraphicsDevice* device, const RenderPipelineDescriptor* descriptor);
-        ~D3D11Pipeline() override;
+        PipelineD3D11(DeviceD3D11* device, const RenderPipelineDescriptor* descriptor);
+        ~PipelineD3D11() override;
 
         void Destroy() override;
 
-        ID3D11VertexShader* GetVertexShader() const { return _vertexShader; }
-        ID3D11PixelShader* GetPixelShader() const { return _pixelShader; }
-        ID3D11ComputeShader* GetComputeShader() const { return _computeShader; }
-        ID3D11InputLayout* GetInputLayout() const { return _inputLayout; }
+        ID3D11BlendState*           GetBlendState() const { return _blendState; }
+        ID3D11DepthStencilState*    GetDepthStencilState() const { return _depthStencilState; }
+        ID3D11RasterizerState*      GetRasterizerState() const { return _rasterizerState; }
+        ID3D11VertexShader*         GetVertexShader() const { return _vertexShader; }
+        ID3D11PixelShader*          GetPixelShader() const { return _pixelShader; }
+        ID3D11ComputeShader*        GetComputeShader() const { return _computeShader; }
+        ID3D11InputLayout*          GetInputLayout() const { return _inputLayout; }
 
     private:
         ID3D11Device* _d3dDevice;
 
-        ID3D11VertexShader* _vertexShader = nullptr;
-        ID3D11PixelShader* _pixelShader = nullptr;
-        ID3D11ComputeShader* _computeShader = nullptr;
-        std::vector<uint8_t> vsBytecode{};
-        ID3D11InputLayout* _inputLayout = nullptr;
+        ID3D11BlendState*           _blendState = nullptr;
+        ID3D11DepthStencilState*    _depthStencilState = nullptr;
+        ID3D11RasterizerState*      _rasterizerState = nullptr;
+        ID3D11VertexShader*         _vertexShader = nullptr;
+        ID3D11PixelShader*          _pixelShader = nullptr;
+        ID3D11ComputeShader*        _computeShader = nullptr;
+        ID3D11InputLayout*          _inputLayout = nullptr;
     };
 }

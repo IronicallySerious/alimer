@@ -42,6 +42,7 @@ namespace alimer
         static uint32_t ids;
     };
 
+#if TODO_ECS
     /// Defines a base Game System class.
     class ALIMER_API GameSystem : public IntrusivePtrEnabled<GameSystem>
     {
@@ -102,4 +103,6 @@ namespace alimer
 
         DISALLOW_COPY_MOVE_AND_ASSIGN(SystemManager);
     };
+#endif // TODO_ECS
+
 }

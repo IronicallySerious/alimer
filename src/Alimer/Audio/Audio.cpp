@@ -28,22 +28,16 @@
 
 namespace alimer
 {
-    Audio *Audio::_instance;
-
 	Audio::Audio(AudioBackend backend)
         : _backend(backend)
 	{
-        _instance = this;
+        AddSubsystem(this);
 	}
 
     Audio::~Audio()
     {
-        _instance = nullptr;
-    }
-
-    Audio& Audio::GetInstance()
-    {
-        return *_instance;
+        Shutdown();
+        RemoveSubsystem(this);
     }
 
     Audio* Audio::Create(AudioBackend prefferedBackend, bool validation)
@@ -73,7 +67,6 @@ namespace alimer
 
     void Audio::Shutdown()
     {
-        SafeDelete(_instance);
     }
 
     AudioBackend Audio::GetPlatformDefaultBackend()
@@ -128,11 +121,5 @@ namespace alimer
     {
         _masterVolume = volume;
         SetMasterVolumeImpl(volume);
-    }
-
-
-    Audio& gAudio()
-    {
-        return Audio::GetInstance();
     }
 }

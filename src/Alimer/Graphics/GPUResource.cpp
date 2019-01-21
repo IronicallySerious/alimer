@@ -21,19 +21,23 @@
 //
 
 #include "../Graphics/GPUResource.h"
-#include "../Graphics/GPUDevice.h"
+#include "../Graphics/GraphicsDevice.h"
 
 namespace alimer
 {
-    GPUResource::GPUResource(Type resourceType)
-        : _resourceType(resourceType)
+    GPUResource::GPUResource(GraphicsDevice* graphicsDevice, Type resourceType)
+        : _graphicsDevice(graphicsDevice)
+        , _resourceType(resourceType)
     {
-        gGraphics().TrackResource(this);
+        ALIMER_ASSERT(graphicsDevice);
+        graphicsDevice->TrackResource(this);
     }
 
     GPUResource::~GPUResource()
     {
-        gGraphics().UntrackResource(this);
-        Destroy();
+        if (_graphicsDevice)
+        {
+            _graphicsDevice->UntrackResource(this);
+        }
     }
 }

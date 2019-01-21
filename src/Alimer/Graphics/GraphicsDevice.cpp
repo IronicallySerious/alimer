@@ -20,12 +20,10 @@
 // THE SOFTWARE.
 //
 
-#include "Core/Engine.h"
-#include "Graphics/GPUDevice.h"
+#include "Graphics/GraphicsDevice.h"
 #include "Graphics/SwapChain.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Sampler.h"
-#include "Graphics/DeviceBackend.h"
 #include "Core/Log.h"
 
 #if defined(ALIMER_D3D11)
@@ -57,13 +55,35 @@ extern "C"
 
 namespace alimer
 {
-    static Graphics* __graphicsInstance = nullptr;
+    static GraphicsDevice* __graphicsInstance = nullptr;
     
-    Graphics::Graphics(Engine& engine)
-        : _engine(engine)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation)
+        : _backend(backend)
+        , _validation(validation)
+        , _inBeginFrame(false)
+        , _frameIndex(0)
     {
-        const bool validation = _engine.GetSettings().validation;
-        GraphicsBackend backend = _engine.GetSettings().preferredBackend;
+        AddSubsystem(this);
+    }
+
+    GraphicsDevice::~GraphicsDevice()
+    {
+        Finalize();
+        RemoveSubsystem(this);
+    }
+
+    GraphicsDevice* GraphicsDevice::Create(const GraphicsDeviceDescriptor* descriptor)
+    {
+        if (__graphicsInstance)
+        {
+            ALIMER_LOGERROR("Currently cannot create multiple GraphicsDevice instances.");
+            return nullptr;
+        }
+
+        ALIMER_ASSERT(descriptor);
+
+        const bool validation = descriptor->validation;
+        GraphicsBackend backend = descriptor->preferredBackend;
         if (backend == GraphicsBackend::Default)
         {
             backend = GetDefaultPlatformBackend();
@@ -72,9 +92,10 @@ namespace alimer
         if (!IsBackendSupported(backend))
         {
             ALIMER_LOGERROR("Backend {} is not supported", EnumToString(backend));
-            return;
+            return nullptr;
         }
 
+        GraphicsDevice* device = nullptr;
         switch (backend)
         {
         case GraphicsBackend::Empty:
@@ -83,7 +104,7 @@ namespace alimer
             break;
         case GraphicsBackend::D3D11:
 #if defined(ALIMER_D3D11)
-            _impl = new DeviceD3D11(validation);
+            device = new DeviceD3D11(descriptor);
             ALIMER_LOGINFO("D3D11 backend created with success.");
 #else
             ALIMER_LOGERROR("D3D11 backend is not supported.");
@@ -101,7 +122,7 @@ namespace alimer
             break;
         case GraphicsBackend::OpenGL:
 #if defined(ALIMER_OPENGL)
-            _impl = new DeviceGL(validation);
+            //device = new DeviceGL(validation);
             ALIMER_LOGINFO("D3D12 backend created with success.");
 #else
             ALIMER_LOGERROR("D3D12 backend is not supported.");
@@ -111,41 +132,16 @@ namespace alimer
             ALIMER_UNREACHABLE();
         }
 
-        Register();
-
-        // Create immediate command buffer.
-        //_immediateCommandContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
-        AddSubsystem(this);
+        __graphicsInstance = device;
+        return device;
     }
 
-    Graphics::~Graphics()
-    {
-        Finalize();
-        RemoveSubsystem(this);
-    }
-
-    Graphics* Graphics::Create(Engine& engine)
-    {
-        if (__graphicsInstance)
-        {
-            ALIMER_LOGERROR("Cannot create multiple graphics instances.");
-            return nullptr;
-        }
-
-        __graphicsInstance = new Graphics(engine);
-        return __graphicsInstance;
-    }
-
-    void Graphics::Destroy(Graphics* graphics)
-    {
-        delete graphics;
-        graphics = nullptr;
-        __graphicsInstance = nullptr;
-    }
-
-    void Graphics::Finalize()
+    void GraphicsDevice::Finalize()
     {
         // Destroy undestroyed resources.
+        SafeDelete(_pointSampler);
+        SafeDelete(_linearSampler);
+
         if (_gpuResources.Size())
         {
             std::lock_guard<std::mutex> lock(_gpuResourceMutex);
@@ -157,10 +153,10 @@ namespace alimer
             _gpuResources.Clear();
         }
 
-        SafeDelete(_immediateCommandContext);
+        _renderContext.Reset();
     }
 
-    bool Graphics::IsBackendSupported(GraphicsBackend backend)
+    bool GraphicsDevice::IsBackendSupported(GraphicsBackend backend)
     {
         if (backend == GraphicsBackend::Default)
         {
@@ -203,7 +199,7 @@ namespace alimer
         }
     }
 
-    std::set<GraphicsBackend> Graphics::GetAvailableBackends()
+    std::set<GraphicsBackend> GraphicsDevice::GetAvailableBackends()
     {
         static std::set<GraphicsBackend> backends;
 
@@ -244,7 +240,7 @@ namespace alimer
         return backends;
     }
 
-    GraphicsBackend Graphics::GetDefaultPlatformBackend()
+    GraphicsBackend GraphicsDevice::GetDefaultPlatformBackend()
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP || ALIMER_PLATFORM_XBOX_ONE
         if (IsBackendSupported(GraphicsBackend::D3D12))
@@ -262,148 +258,71 @@ namespace alimer
 #endif
     }
 
-    bool Graphics::WaitIdle()
+    void GraphicsDevice::OnAfterCreated()
     {
-        return _impl->WaitIdle();
+        SamplerDescriptor descriptor = {};
+        _pointSampler = CreateSampler(&descriptor);
+
+        descriptor.magFilter = SamplerMinMagFilter::Linear;
+        descriptor.minFilter = SamplerMinMagFilter::Linear;
+        descriptor.mipmapFilter = SamplerMipFilter::Linear;
+        _linearSampler = CreateSampler(&descriptor);
     }
 
-    GraphicsBackend Graphics::GetBackend() const
+    bool GraphicsDevice::BeginFrame()
     {
-        return _impl->GetBackend();
+        if (_inBeginFrame)
+        {
+            ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
+        }
+
+        if (!BeginFrameImpl())
+        {
+            ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
+        }
+
+        _inBeginFrame = true;
+        return true;
     }
 
-    const GPULimits& Graphics::GetLimits() const
+    uint64_t GraphicsDevice::EndFrame()
     {
-        return _impl->GetLimits();
-    }
+        if (!_inBeginFrame)
+        {
+            ALIMER_LOGCRITICAL("BeginFrame must be called before EndFrame.");
+        }
 
-    const GraphicsDeviceFeatures& Graphics::GetFeatures() const
-    {
-        return _impl->GetFeatures();
-    }
-
-    uint64_t Graphics::Frame()
-    {
-        _impl->Tick();
+        EndFrameImpl();
+        _inBeginFrame = false;
         return ++_frameIndex;
     }
 
-    void Graphics::TrackResource(GPUResource* resource)
+    bool GraphicsDevice::WaitIdle()
+    {
+        return true;
+    }
+
+    void GraphicsDevice::TrackResource(GPUResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.Push(resource);
     }
 
-    void Graphics::UntrackResource(GPUResource* resource)
+    void GraphicsDevice::UntrackResource(GPUResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.Remove(resource);
     }
 
-    CommandContext& Graphics::Begin(const String& name)
+    static inline TextureUsage UpdateTextureUsage(TextureUsage usage, bool hasInitData, uint32_t mipLevels)
     {
-        CommandContext* newContext = nullptr; // AllocateContext();
-        //newContext->SetName(name);
-        if (!name.IsEmpty())
+        if ((mipLevels != 0) || (hasInitData == false))
         {
-            //GpuProfiler::BeginBlock(name, newContext);
+            return usage;
         }
 
-        return *newContext;
-    }
-
-    void Graphics::Register()
-    {
-        static bool registered = false;
-        if (registered)
-            return;
-        registered = true;
-
-        //Shader::RegisterObject();
-        Texture::RegisterObject();
-        Sampler::RegisterObject();
-    }
-
-#if TODO
-    SwapChain* GPUDevice::CreateSwapChain(const SwapChainDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-
-        if (descriptor->nativeWindow == nullptr)
-        {
-            ALIMER_LOGCRITICAL("Cannot create swap chain with null window handle.");
-        }
-
-        if (descriptor->width == 0 || descriptor->height == 0)
-        {
-            ALIMER_LOGCRITICAL("Cannot create swap chain with 0 width or height.");
-        }
-
-        return CreateSwapChainImpl(descriptor);
-    }
-
-    Texture* GPUDevice::CreateTexture1D(uint32_t width, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, const void* initialData)
-    {
-        TextureDescriptor descriptor = {};
-        descriptor.width = width;;
-        descriptor.height = 1;
-        descriptor.depth = 1;
-        descriptor.arraySize = arraySize;
-        descriptor.mipLevels = mipLevels;
-        descriptor.samples = SampleCount::Count1;
-        descriptor.type = TextureType::Type1D;
-        descriptor.format = format;
-        descriptor.usage = usage;
-        return CreateTexture(&descriptor, initialData);
-    }
-
-    Texture* GPUDevice::CreateTexture2D(
-        uint32_t width, uint32_t height,
-        uint32_t mipLevels, uint32_t arraySize,
-        PixelFormat format, TextureUsage usage,
-        SampleCount samples, const void* initialData)
-    {
-        TextureDescriptor descriptor = {};
-        descriptor.width = width;;
-        descriptor.height = height;
-        descriptor.depth = 1;
-        descriptor.arraySize = arraySize;
-        descriptor.mipLevels = mipLevels;
-        descriptor.samples = samples;
-        descriptor.type = TextureType::Type2D;
-        descriptor.format = format;
-        descriptor.usage = usage;
-        return CreateTexture(&descriptor, initialData);
-    }
-
-    Texture* GPUDevice::CreateTextureCube(uint32_t size, uint32_t mipLevels, uint32_t arraySize, PixelFormat format, TextureUsage usage, const void* initialData)
-    {
-        TextureDescriptor descriptor = {};
-        descriptor.width = size;;
-        descriptor.height = size;
-        descriptor.depth = 1;
-        descriptor.arraySize = arraySize;
-        descriptor.mipLevels = mipLevels;
-        descriptor.samples = SampleCount::Count1;
-        descriptor.type = TextureType::Type3D;
-        descriptor.format = format;
-        descriptor.usage = usage;
-        return CreateTexture(&descriptor, initialData);
-    }
-
-    Texture* GPUDevice::CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevels, PixelFormat format, TextureUsage usage, const void* initialData)
-    {
-        TextureDescriptor descriptor = {};
-        descriptor.width = width;;
-        descriptor.height = height;
-        descriptor.depth = depth;
-        descriptor.arraySize = 1;
-        descriptor.mipLevels = mipLevels;
-        descriptor.samples = SampleCount::Count1;
-        descriptor.type = TextureType::Type3D;
-        descriptor.format = format;
-        descriptor.usage = usage;
-        return CreateTexture(&descriptor, initialData);
+        usage |= TextureUsage::RenderTarget;
+        return  usage;
     }
 
     static bool ValidateFramebufferAttachment(const FramebufferAttachment& attachment, bool isDepthAttachment)
@@ -484,7 +403,127 @@ namespace alimer
 #endif
     }
 
-    Framebuffer* GPUDevice::CreateFramebuffer(const FramebufferDescriptor* descriptor)
+    Texture* GraphicsDevice::Create1DTexture(uint32_t width, PixelFormat format, uint32_t arraySize, uint32_t mipLevels, TextureUsage textureUsage, const void* pInitData)
+    {
+        ALIMER_ASSERT_MSG(width >= 1, "Width must be greather than 0.");
+        ALIMER_ASSERT_MSG(arraySize >= 1 && arraySize <= 2048, "Array size must be between 1 and 2048.");
+        ALIMER_ASSERT_MSG(format != PixelFormat::Unknown, "Invalid pixel format.");
+
+        TextureDescriptor descriptor = {};
+        descriptor.width = width;
+        descriptor.height = 1;
+        descriptor.depth = 1;
+        descriptor.arraySize = arraySize;
+        descriptor.mipLevels = mipLevels;
+        if (descriptor.mipLevels == 0)
+        {
+            descriptor.mipLevels = bitScanReverse(width) + 1;
+        }
+
+        descriptor.samples = SampleCount::Count1;
+        descriptor.type = TextureType::Type1D;
+        descriptor.format = format;
+        descriptor.usage = UpdateTextureUsage(textureUsage, pInitData != nullptr, mipLevels);
+        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+    }
+
+    Texture* GraphicsDevice::Create2DTexture(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize, uint32_t mipLevels, TextureUsage textureUsage, const void* pInitData)
+    {
+        ALIMER_ASSERT_MSG(width >= 1, "Width must be greather than 0.");
+        ALIMER_ASSERT_MSG(height >= 1, "Height must be greather than 0.");
+        ALIMER_ASSERT_MSG(arraySize >= 1 && arraySize <= 2048, "Array size must be between 1 and 2048.");
+        ALIMER_ASSERT_MSG(format != PixelFormat::Unknown, "Invalid pixel format.");
+
+        TextureDescriptor descriptor = {};
+        descriptor.width = width;
+        descriptor.height = height;
+        descriptor.depth = 1;
+        descriptor.arraySize = arraySize;
+        descriptor.mipLevels = mipLevels;
+        if (descriptor.mipLevels == 0)
+        {
+            uint32_t dims = width | height;
+            descriptor.mipLevels = bitScanReverse(dims) + 1;
+        }
+
+        descriptor.samples = SampleCount::Count1;
+        descriptor.type = TextureType::Type2D;
+        descriptor.format = format;
+        descriptor.usage = UpdateTextureUsage(textureUsage, pInitData != nullptr, mipLevels);
+        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+    }
+
+    Texture* GraphicsDevice::Create2DMultisampleTexture(uint32_t width, uint32_t height, PixelFormat format, SampleCount samples, uint32_t arraySize, TextureUsage textureUsage, const void* pInitData)
+    {
+        ALIMER_ASSERT_MSG(width >= 1, "Width must be greather than 0.");
+        ALIMER_ASSERT_MSG(height >= 1, "Height must be greather than 0.");
+        ALIMER_ASSERT_MSG(arraySize >= 1 && arraySize <= 2048, "Array size must be between 1 and 2048.");
+        ALIMER_ASSERT_MSG(format != PixelFormat::Unknown, "Invalid pixel format.");
+
+        TextureDescriptor descriptor = {};
+        descriptor.width = width;
+        descriptor.height = height;
+        descriptor.depth = 1;
+        descriptor.arraySize = arraySize;
+        descriptor.mipLevels = 1;
+        descriptor.samples = samples;
+        descriptor.type = TextureType::Type2D;
+        descriptor.format = format;
+        descriptor.usage = textureUsage;
+        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+    }
+
+    Texture* GraphicsDevice::Create3DTexture(uint32_t width, uint32_t height, uint32_t depth, PixelFormat format, uint32_t mipLevels, TextureUsage textureUsage, const void* pInitData)
+    {
+        ALIMER_ASSERT_MSG(width >= 1, "Width must be greather than 0.");
+        ALIMER_ASSERT_MSG(height >= 1, "Height must be greather than 0.");
+        ALIMER_ASSERT_MSG(depth >= 1, "Depth must be greather than 0.");
+        ALIMER_ASSERT_MSG(format != PixelFormat::Unknown, "Invalid pixel format.");
+
+        TextureDescriptor descriptor = {};
+        descriptor.width = width;
+        descriptor.height = height;
+        descriptor.depth = depth;
+        descriptor.arraySize = 1;
+        descriptor.mipLevels = mipLevels;
+        if (descriptor.mipLevels == 0)
+        {
+            uint32_t dims = width | height;
+            descriptor.mipLevels = bitScanReverse(dims) + 1;
+        }
+        descriptor.samples = SampleCount::Count1;
+        descriptor.type = TextureType::Type3D;
+        descriptor.format = format;
+        descriptor.usage = UpdateTextureUsage(textureUsage, pInitData != nullptr, mipLevels);
+        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+    }
+
+    Texture* GraphicsDevice::CreateCubeTexture(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize, uint32_t mipLevels, TextureUsage textureUsage, const void* pInitData)
+    {
+        ALIMER_ASSERT_MSG(width >= 1, "Width must be greather than 0.");
+        ALIMER_ASSERT_MSG(height >= 1, "Height must be greather than 0.");
+        ALIMER_ASSERT_MSG(arraySize >= 1 && arraySize <= 2048, "Array size must be between 1 and 2048.");
+        ALIMER_ASSERT_MSG(format != PixelFormat::Unknown, "Invalid pixel format.");
+
+        TextureDescriptor descriptor = {};
+        descriptor.width = width;
+        descriptor.height = height;
+        descriptor.depth = 1;
+        descriptor.arraySize = arraySize;
+        descriptor.mipLevels = mipLevels;
+        if (descriptor.mipLevels == 0)
+        {
+            uint32_t dims = width | height;
+            descriptor.mipLevels = bitScanReverse(dims) + 1;
+        }
+        descriptor.samples = SampleCount::Count1;
+        descriptor.type = TextureType::TypeCube;
+        descriptor.format = format;
+        descriptor.usage = UpdateTextureUsage(textureUsage, pInitData != nullptr, mipLevels);
+        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+    }
+
+    Framebuffer* GraphicsDevice::CreateFramebuffer(const FramebufferDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
 
@@ -512,21 +551,34 @@ namespace alimer
         return CreateFramebufferImpl(descriptor);
     }
 
-    Buffer* GPUDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData)
+    Buffer* GraphicsDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData)
     {
         ALIMER_ASSERT(descriptor);
-        return CreateBufferImpl(descriptor, initialData);
+
+        if (descriptor->size == 0)
+        {
+            ALIMER_LOGERROR("Cannot create empty buffer.");
+            return false;
+        }
+
+        if (descriptor->usage == BufferUsage::None)
+        {
+            ALIMER_LOGERROR("Invalid buffer usage.");
+            return false;
+        }
+
+        return CreateBufferImpl(descriptor, pInitData);
     }
 
-    Shader* GPUDevice::CreateShader(const ShaderDescriptor* descriptor)
+    Sampler* GraphicsDevice::CreateSampler(const SamplerDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+        return CreateSamplerImpl(descriptor);
+    }
+
+    Shader* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
         return CreateShaderImpl(descriptor);
-    }
-#endif // TODO
-
-    Graphics& gGraphics()
-    {
-        return *__graphicsInstance;
     }
 }

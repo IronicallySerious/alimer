@@ -27,17 +27,12 @@
 
 namespace alimer
 {
-    class Stream;
-    class GPUShader;
-
     /// Defines a shader resource.
     class ALIMER_API Shader : public GPUResource
     {
-        friend class GPUDevice;
-
     protected:
         /// Constructor.
-        Shader(const ShaderDescriptor* descriptor);
+        Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor);
 
     public:
         /// Destructor.

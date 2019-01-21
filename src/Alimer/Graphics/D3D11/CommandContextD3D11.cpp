@@ -26,7 +26,7 @@
 #include "FramebufferD3D11.h"
 #include "BufferD3D11.h"
 #include "ShaderD3D11.h"
-//#include "D3D11Pipeline.h"
+#include "PipelineD3D11.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Math/MathUtil.h"
 #include "../../Core/Log.h"
@@ -35,7 +35,8 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     CommandContextD3D11::CommandContextD3D11(DeviceD3D11* device)
-        : _immediate(true)
+        : CommandContext(device)
+        , _immediate(true)
         , _context(device->GetD3DDeviceContext())
         , _fenceValue(0)
     {
@@ -70,14 +71,15 @@ namespace alimer
     void CommandContextD3D11::BeginContext()
     {
         _renderTargetsViewsCount = 0;
-        _graphicsShader = nullptr;
-        _computeShader = nullptr;
+        _graphicsPipeline = nullptr;
+        _computePipeline = nullptr;
+        _currentFramebuffer = nullptr;
         _currentTopology = PrimitiveTopology::Count;
 
         // States
-        _currentRasterizerState = nullptr;
-        _currentDepthStencilState = nullptr;
-        _currentBlendState = nullptr;
+        _blendState = nullptr;
+        _depthStencilState = nullptr;
+        _rasterizerState = nullptr;
 
         // Shaders
         _currentVertexShader = nullptr;
@@ -90,83 +92,70 @@ namespace alimer
         _dirtyVbos = ~0u;
         //memset(&_bindings, 0, sizeof(_bindings));
         memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
-        memset(_vbo.formats, 0, sizeof(_vbo.formats));
 
         _viewportsDirty = false; _viewportsCount = 1;
         _scissorsDirty = false; _scissorsCount = 1;
-        _vertexAttributesDirty = false; _vertexAttributesCount = 0;
+
+        _blendColor = Color4(1.0f, 1.0f, 1.0f, 1.0f);
+        _stencilReference = 0;
     }
 
-    uint64_t CommandContextD3D11::Flush(bool waitForCompletion)
+    uint64_t CommandContextD3D11::FlushImpl(bool waitForCompletion)
     {
         _context->Flush();
         return ++_fenceValue;
     }
 
-    void CommandContextD3D11::PushDebugGroup(const char* name)
+    void CommandContextD3D11::PushDebugGroupImpl(const String& name)
     {
-        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name, -1, nullptr, 0);
-        if (bufferSize > 0)
-        {
-            std::vector<WCHAR> buffer(bufferSize);
-            MultiByteToWideChar(CP_UTF8, 0, name, -1, buffer.data(), bufferSize);
-            _annotation->BeginEvent(buffer.data());
-        }
+        WString wideString(name);
+        _annotation->BeginEvent(wideString.CString());
     }
 
-    void CommandContextD3D11::PopDebugGroup()
+    void CommandContextD3D11::PopDebugGroupImpl()
     {
         _annotation->EndEvent();
     }
 
-    void CommandContextD3D11::InsertDebugMarker(const char* name)
+    void CommandContextD3D11::InsertDebugMarkerImpl(const String& name)
     {
-        int bufferSize = MultiByteToWideChar(CP_UTF8, 0, name, -1, nullptr, 0);
-        if (bufferSize > 0)
-        {
-            std::vector<WCHAR> buffer(bufferSize);
-            MultiByteToWideChar(CP_UTF8, 0, name, -1, buffer.data(), bufferSize);
-            _annotation->SetMarker(buffer.data());
-        }
+        WString wideString(name);
+        _annotation->SetMarker(wideString.CString());
     }
 
-    void CommandContextD3D11::BeginRenderPass(const RenderPassDescriptor* descriptor)
+    void CommandContextD3D11::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
-        _renderTargetsViewsCount = 0;
+        _currentFramebuffer = static_cast<FramebufferD3D11*>(framebuffer);
+        _renderTargetsViewsCount = _currentFramebuffer->Bind(_context);
 
-        for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+        for (uint32_t i = 0; i < _renderTargetsViewsCount; ++i)
         {
-            if (descriptor->colorAttachments[i].attachment.texture)
+            if (descriptor->colors[i].loadAction == LoadAction::DontCare)
                 continue;
 
-            /*const AttachmentDescriptor& attachment = descriptor->colorAttachments[i].attachment;
-            TextureD3D11* texture = static_cast<TextureD3D11*>(attachment.texture->GetGPUTexture());
-            //_renderTargetsViews[_renderTargetsViewsCount] = 
-            switch (descriptor->colorAttachments[i].loadAction)
+            switch (descriptor->colors[i].loadAction)
             {
             case LoadAction::Clear:
-                _context->ClearRenderTargetView(_currentFramebuffer->GetColorRTV(i), &descriptor->colorAttachments[i].clearColor[i]);
+                _context->ClearRenderTargetView(_currentFramebuffer->GetColorRTV(i), &descriptor->colors[i].clearColor[i]);
                 break;
 
             default:
                 break;
-            }*/
-            _renderTargetsViewsCount++;
+            }
         }
 
         // Depth/stencil now.
-        if (descriptor->depthStencilAttachment.attachment.texture != nullptr)
+        if (framebuffer->HasDepthStencilAttachment())
         {
-            const AttachmentDescriptor& attachment = descriptor->depthStencilAttachment.attachment;
-            /*_depthStencilView = attachment->GetDSV();
+            ID3D11DepthStencilView* depthStencilView = _currentFramebuffer->GetDSV();
             UINT clearFlags = 0;
-            if (descriptor->depthStencilAttachment.depthLoadAction == LoadAction::Clear)
+            if (descriptor->depthStencil.depthLoadAction == LoadAction::Clear)
             {
                 clearFlags |= D3D11_CLEAR_DEPTH;
             }
 
-            if ((descriptor->depthStencilAttachment.stencilLoadAction == LoadAction::Clear)
-                && IsStencilFormat(attachment.texture->GetFormat()))
+            if ((descriptor->depthStencil.stencilLoadAction == LoadAction::Clear)
+                && IsStencilFormat(framebuffer->GetDepthStencilTexture()->GetFormat()))
             {
                 clearFlags |= D3D11_CLEAR_STENCIL;
             }
@@ -174,39 +163,20 @@ namespace alimer
             if (clearFlags != 0)
             {
                 _context->ClearDepthStencilView(
-                    _depthStencilView,
-                    clearFlags,
-                    descriptor->depthStencilAttachment.clearDepth,
-                    descriptor->depthStencilAttachment.clearStencil
+                    depthStencilView, clearFlags,
+                    descriptor->depthStencil.clearDepth, descriptor->depthStencil.clearStencil
                 );
-            }*/
-        }
-
-        /*uint32_t width, height;
-        if (!descriptor->renderTargetWidth)
-        {
-            width = framebuffer->GetWidth();
-        }
-        else
-        {
-            width = Min(framebuffer->GetWidth(), descriptor->renderTargetWidth);
-        }
-
-        if (!descriptor->renderTargetHeight)
-        {
-            height = framebuffer->GetHeight();
-        }
-        else
-        {
-            height = Min(framebuffer->GetHeight(), descriptor->renderTargetHeight);
+            }
         }
 
         // Set viewport and scissor from fbo.
+        uint32_t width = framebuffer->GetWidth();
+        uint32_t height = framebuffer->GetHeight();
         SetViewport(RectangleF(width, height));
-        SetScissor(Rectangle(width, height));*/
+        SetScissor(Rectangle(width, height));
     }
 
-    void CommandContextD3D11::EndRenderPass()
+    void CommandContextD3D11::EndRenderPassImpl()
     {
         static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 
@@ -214,7 +184,7 @@ namespace alimer
         _renderTargetsViewsCount = 0;
     }
 
-    /*void CommandContextD3D11::SetViewport(const RectangleF& viewport)
+    void CommandContextD3D11::SetViewport(const RectangleF& viewport)
     {
         _viewportsDirty = true;
         _viewportsCount = 1;
@@ -254,19 +224,27 @@ namespace alimer
         }
     }
 
-    void CommandContextD3D11::SetBlendColor(float r, float g, float b, float a)
+    void CommandContextD3D11::SetBlendColor(const Color4& color)
     {
+        _blendColor = color;
+        //_context->OMSetBlendFactor()
         //_context->OMSetBlendState(blendState, blendConstants, 0xFFFFFFFF);
     }
 
-    void CommandContextD3D11::SetShaderImpl(Shader* shader)
+    void CommandContextD3D11::SetStencilReference(uint32_t reference)
     {
-        ShaderD3D11* d3dShader = static_cast<ShaderD3D11*>(shader);
-        if (any(d3dShader->GetStages() & ShaderStages::Compute))
-        {
-            _computeShader = d3dShader;
+        _stencilReference = reference;
+    }
 
-            ID3D11ComputeShader* computeShader = d3dShader->GetComputeShader();
+    void CommandContextD3D11::SetPipelineImpl(Pipeline* pipeline)
+    {
+        PipelineD3D11* pipelineD3D11 = static_cast<PipelineD3D11*>(pipeline);
+
+        if (pipeline->IsCompute())
+        {
+            _computePipeline = pipelineD3D11;
+
+            ID3D11ComputeShader* computeShader = _computePipeline->GetComputeShader();
             if (_currentComputeShader != computeShader)
             {
                 _currentComputeShader = computeShader;
@@ -275,8 +253,6 @@ namespace alimer
         }
         else
         {
-            _graphicsShader = d3dShader;
-
             // Unset compute shader if any.
             if (_currentComputeShader != nullptr)
             {
@@ -284,23 +260,55 @@ namespace alimer
                 _currentComputeShader = nullptr;
             }
 
-            ID3D11VertexShader* vertexShader = d3dShader->GetVertexShader();
-            if (_currentVertexShader != vertexShader)
+            if (_graphicsPipeline != pipeline)
             {
-                _currentVertexShader = vertexShader;
-                _context->VSSetShader(vertexShader, nullptr, 0);
-            }
+                _graphicsPipeline = pipelineD3D11;
 
-            ID3D11PixelShader* pixelShader = d3dShader->GetPixelShader();
-            if (_currentPixelShader != pixelShader)
-            {
-                _currentPixelShader = pixelShader;
-                _context->PSSetShader(pixelShader, nullptr, 0);
+                // BlendState (TODO: Invalidate when calling SetBlendColor)
+                ID3D11BlendState* blendState = pipelineD3D11->GetBlendState();
+                if (_blendState != blendState)
+                {
+                    _blendState = blendState;
+                    _context->OMSetBlendState(blendState, _blendColor.Data(), 0xFFFFFFFF);
+                }
+
+                // DepthStencilState (TODO: Invalidate when calling SetStencilReference)
+                ID3D11DepthStencilState* depthStencilState = pipelineD3D11->GetDepthStencilState();
+                //uint stencilReference = d3dPipeline.StencilReference;
+                if (_depthStencilState != depthStencilState 
+                    /*|| _stencilReference != stencilReference*/)
+                {
+                    _depthStencilState = depthStencilState;
+                    //_stencilReference = stencilReference;
+                    _context->OMSetDepthStencilState(depthStencilState, _stencilReference);
+                }
+
+                ID3D11RasterizerState* rasterizerState = pipelineD3D11->GetRasterizerState();
+                if (_rasterizerState != rasterizerState)
+                {
+                    _rasterizerState = rasterizerState;
+                    _context->RSSetState(rasterizerState);
+                }
+
+
+                ID3D11VertexShader* vertexShader = pipelineD3D11->GetVertexShader();
+                if (_currentVertexShader != vertexShader)
+                {
+                    _currentVertexShader = vertexShader;
+                    _context->VSSetShader(vertexShader, nullptr, 0);
+                }
+
+                ID3D11PixelShader* pixelShader = pipelineD3D11->GetPixelShader();
+                if (_currentPixelShader != pixelShader)
+                {
+                    _currentPixelShader = pixelShader;
+                    _context->PSSetShader(pixelShader, nullptr, 0);
+                }
             }
         }
     }
 
-    void CommandContextD3D11::SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
+    /*void CommandContextD3D11::SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
     {
         auto d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
         if (_vbo.buffers[binding] != d3dBuffer
@@ -422,7 +430,7 @@ namespace alimer
 #ifdef ALIMER_DEV
                     ALIMER_ASSERT(_vbo.buffers[slot] != nullptr);
 #endif
-                    const PODVector<VertexElement>& elements = _vbo.formats[slot]->GetElements();
+                    /*const PODVector<VertexElement>& elements = _vbo.formats[slot]->GetElements();
 
                     for (auto it = elements.Begin(); it != elements.End(); ++it)
                     {
@@ -443,7 +451,7 @@ namespace alimer
                             inputElementDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
                             inputElementDesc.InstanceDataStepRate = 0;
                         }
-                    }
+                    }*/
                 }
 
                 _context->IASetVertexBuffers(binding, count, _vbo.buffers, _vbo.strides, _vbo.offsets);
@@ -474,31 +482,6 @@ namespace alimer
                 _context->IASetInputLayout(inputLayout);
                 //_currentInputLayout = newInputLayout;
             }
-        }*/
-
-        /*
-
-        _currentD3DShader->Bind(_d3dContext);
-
-        auto rasterizerState = _currentPipeline->GetD3DRasterizerState();
-        if (_currentRasterizerState != rasterizerState)
-        {
-            _currentRasterizerState = rasterizerState;
-            _context->RSSetState(rasterizerState);
-        }
-
-        auto dsState = _currentPipeline->GetD3DDepthStencilState();
-        if (_currentDepthStencilState != dsState)
-        {
-            _currentDepthStencilState = dsState;
-            _context->OMSetDepthStencilState(dsState, 0);
-        }
-
-        auto blendState = _currentPipeline->GetD3DBlendState();
-        if (_currentBlendState != blendState)
-        {
-            _currentBlendState = blendState;
-            _context->OMSetBlendState(blendState, nullptr, 0xFFFFFFFF);
         }
 
         FlushDescriptorSets();*/

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Core/Object.h"
+#include "../Base/Ptr.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/Buffer.h"
 #include "../Graphics/Framebuffer.h"
@@ -33,16 +33,11 @@
 
 namespace alimer
 {
-    class GPUDevice;
-    class GPUCommandBuffer;
-
     /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext final
+    class ALIMER_API CommandContext : public RefCounted
     {
-        friend class GPUDevice;
-
-    private:
-        CommandContext(GPUDevice* device, GPUCommandBuffer* commandBuffer);
+    protected:
+        CommandContext(GraphicsDevice* device);
 
     public:
         /// Destructor.
@@ -55,18 +50,22 @@ namespace alimer
         void PopDebugGroup();
         void InsertDebugMarker(const String& name);
 
-        void BeginRenderPass(const RenderPassDescriptor* descriptor);
-        void BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
+        /// Begin rendering to default backbuffer.
+        void BeginDefaultRenderPass(const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
+
+        /// Begin pass with given descriptor.
         void BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
+
+        /// End current pass.
         void EndRenderPass();
 
-        void SetViewport(const RectangleF& viewport);
-        void SetViewport(uint32_t viewportCount, const RectangleF* viewports);
-        void SetScissor(const Rectangle& scissor);
-        void SetScissor(uint32_t scissorCount, const Rectangle* scissors);
+        virtual void SetViewport(const RectangleF& viewport);
+        virtual void SetViewport(uint32_t viewportCount, const RectangleF* viewports) = 0;
+        virtual void SetScissor(const Rectangle& scissor);
+        virtual void SetScissor(uint32_t scissorCount, const Rectangle* scissors) = 0;
 
-        void SetBlendColor(const Color4& color);
-        void SetBlendColor(float r, float g, float b, float a);
+        virtual void SetBlendColor(const Color4& color) = 0;
+        virtual void SetStencilReference(uint32_t reference) = 0;
 
         void SetShader(Shader* shader);
 
@@ -88,12 +87,21 @@ namespace alimer
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
         /// Return the device used for creation.
-        GPUDevice* GetDevice() const { return _device; }
+        GraphicsDevice* GetDevice() const { return _device.Get(); }
+
+    private:
+        // Backend methods
+        virtual uint64_t FlushImpl(bool waitForCompletion) = 0;
+        virtual void PushDebugGroupImpl(const String& name) = 0;
+        virtual void PopDebugGroupImpl() = 0;
+        virtual void InsertDebugMarkerImpl(const String& name) = 0;
+
+        virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
+        virtual void EndRenderPassImpl() = 0;
 
     private:
         /// GPUDevice.
-        GPUDevice* _device;
-        GPUCommandBuffer* _commandBuffer;
+        WeakPtr<GraphicsDevice> _device;
 
         bool _insideRenderPass;
         Shader* _currentShader = nullptr;

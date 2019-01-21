@@ -21,34 +21,36 @@
 //
 
 #pragma once
-#include "..//Window.h"
 
+#include "../Window.h"
 struct SDL_Window;
 
 namespace alimer
 {
-    class WindowSDL2 final : public Window
+    class WindowImpl final 
     {
     public:
-        WindowSDL2(const String& title, uint32_t width, uint32_t height, WindowFlags flags);
+        WindowImpl(const String& title, uint32_t width, uint32_t height, WindowFlags flags);
 
         /// Destructor.
-        ~WindowSDL2() override;
+        ~WindowImpl();
 
-    private:
         void Destroy();
-        void Show() override;
-        void Hide() override;
-        void Minimize() override;
-        void Maximize() override;
-        void Restore() override;
-        void Close() override;
-        void PlatformResize(uint32_t width, uint32_t height) override;
-        bool IsVisible() const override;
-        bool IsMinimized() const override;
-        void SetTitle(const String& newTitle) override;
-        bool IsCursorVisible() const override;
-        void SetCursorVisible(bool visible) override;
+        void Show();
+        void Hide();
+        void Minimize();
+        void Maximize();
+        void Restore();
+        void Close();
+        void Resize(uint32_t width, uint32_t height);
+        bool IsVisible() const;
+        bool IsMinimized() const;
+        void SetTitle(const String& newTitle);
+        void SetFullscreen(bool value);
+        bool IsCursorVisible() const;
+        void SetCursorVisible(bool visible);
+        NativeHandle GetNativeHandle() const;
+        NativeDisplay GetNativeDisplay() const;
 
         SDL_Window* _window;
         /// Visibility flag.

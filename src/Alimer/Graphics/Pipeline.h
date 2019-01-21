@@ -26,25 +26,40 @@
 
 namespace alimer
 {
+    struct VertexBufferLayoutDescriptor {
+        uint32_t                        stride;
+        VertexInputRate                 inputRate;
+    };
+
+    struct VertexAttributeDescriptor {
+        VertexFormat                    format;
+        uint32_t                        offset;
+        uint32_t                        bufferIndex;
+    };
+
+    struct VertexDescriptor {
+        VertexBufferLayoutDescriptor    layouts[MaxVertexBufferBindings];
+        VertexAttributeDescriptor       attributes[MaxVertexAttributes];
+    };
+
     struct RenderPipelineDescriptor
     {
-        SharedPtr<Shader>               shader;
-
+        Shader*                         shader;
+        RasterizationStateDescriptor    rasterizationState;
+        //BlendStateDescriptor            blendStates;
+        //DepthStencilStateDescriptor     depthStencilState;
+        VertexDescriptor                vertexDescriptor;
         PrimitiveTopology               primitiveTopology = PrimitiveTopology::TriangleList;
     };
 
     /// Defines a Pipeline class.
-    class ALIMER_API Pipeline final : public GPUResource
+    class ALIMER_API Pipeline : public GPUResource
     {
-    public:
+    protected:
         /// Constructor.
-        Pipeline();
+        Pipeline(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor);
 
-        ~Pipeline() override;
-        void Destroy() override;
-
-        bool Define(const RenderPipelineDescriptor* descriptor);
-
+    public:
         /// Get whether pipeline is compute.
         bool IsCompute() const { return _isCompute; }
 

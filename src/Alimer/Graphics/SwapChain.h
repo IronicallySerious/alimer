@@ -27,20 +27,18 @@
 
 namespace alimer
 {
-    class GPUSwapChain;
-
 	/// Defines a SwapChain.
-	class ALIMER_API SwapChain final : public GPUResource
+	class ALIMER_API SwapChain : public GPUResource
 	{
-    public:
+    protected:
         /// Constructor.
-        SwapChain();
+        SwapChain(GraphicsDevice* device, const SwapChainDescriptor* descriptor);
 
-        /// Desturctor
-        ~SwapChain() override;
+    public:
+        /// Destructor
+        virtual ~SwapChain();
 
-        /// Defines swap chain with given description.
-        bool Define(const SwapChainDescriptor* descriptor);
+        void Destroy() override;
 
         void Resize(uint32_t width, uint32_t height);
         void Present();
@@ -57,19 +55,19 @@ namespace alimer
         uint32_t GetHeight() const { return _height; }
 
     private:
-        void Destroy() override;
+        virtual void ResizeImpl(uint32_t width, uint32_t height) = 0;
+        virtual void PresentImpl() = 0;
+
+    protected:
         void InitializeFramebuffer();
 
-        Vector<SharedPtr<Texture>> _backbufferTextures;
-        uint32_t _currentBackBuffer = 0;
-
-    private:
-        GPUSwapChain* _impl = nullptr;
-        uint32_t _width = 0;
-        uint32_t _height = 0;
-        PixelFormat _backBufferFormat = PixelFormat::Unknown;
-        PixelFormat _depthStencilFormat = PixelFormat::Unknown;
-        SharedPtr<Texture> _depthStencilTexture;
-        Vector<SharedPtr<Framebuffer>> _framebuffers;
+        uint32_t                        _width;
+        uint32_t                        _height;
+        PixelFormat                     _colorFormat;
+        PixelFormat                     _depthStencilFormat;
+        Vector<SharedPtr<Texture>>      _backbufferTextures;
+        uint32_t                        _currentBackBuffer = 0;
+        SharedPtr<Texture>              _depthStencilTexture;
+        Vector<SharedPtr<Framebuffer>>  _framebuffers;
     };
 }

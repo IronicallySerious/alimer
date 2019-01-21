@@ -22,15 +22,14 @@
 
 #pragma once
 
-#include "Graphics/DeviceBackend.h"
-#include "Graphics/Texture.h"
-#include "D3D11Prerequisites.h"
+#include "../Texture.h"
+#include "BackendD3D11.h"
 #include <unordered_map>
 
 namespace alimer
 {
     /// D3D11 Texture implementation.
-    class TextureD3D11 final : public GPUTexture
+    class TextureD3D11 final : public Texture
     {
     public:
         /// Constructor.
@@ -39,7 +38,8 @@ namespace alimer
         /// Destructor.
         ~TextureD3D11() override;
 
-        void Destroy();
+        /// Destroy
+        void Destroy() override;
 
         void InvalidateViews();
 

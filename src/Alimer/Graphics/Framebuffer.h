@@ -27,19 +27,16 @@
 
 namespace alimer
 {
-    class GPUFramebuffer;
-
     /// Defines a Framebuffer class.
-    class ALIMER_API Framebuffer final : public GPUResource
+    class ALIMER_API Framebuffer : public GPUResource
     {
-    public:
+    protected:
         /// Constructor.
-        Framebuffer(const FramebufferDescriptor* descriptor);
+        Framebuffer(GraphicsDevice* device, const FramebufferDescriptor* descriptor);
 
+    public:
         /// Destructor
-        ~Framebuffer() override;
-
-        void Destroy() override;
+        virtual ~Framebuffer() = default;
 
         /// Set color attachment at index.
         /// Get the number of color attachments.
@@ -63,12 +60,7 @@ namespace alimer
         ///Get the layers of the framebuffer.
         uint32_t GetLayers() const { return _layers; }
 
-        /// Get the GPUFramebuffer.
-        GPUFramebuffer* GetGPUFramebuffer() const { return _backend; }
-
     private:
-        GPUFramebuffer* _backend = nullptr;
-
         PODVector<FramebufferAttachment> _colorAttachments;
         FramebufferAttachment _depthStencilAttachment;
 

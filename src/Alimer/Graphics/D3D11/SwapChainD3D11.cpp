@@ -31,17 +31,18 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     SwapChainD3D11::SwapChainD3D11(DeviceD3D11* device, const SwapChainDescriptor* descriptor, uint32_t backBufferCount)
-        : _device(device)
-        , _sRGB(descriptor->sRGB)
+        : SwapChain(device, descriptor)
         , _backBufferCount(backBufferCount)
     {
 #if ALIMER_PLATFORM_UWP
-        _window = static_cast<IUnknown*>(descriptor->nativeWindow);
+        _window = static_cast<IUnknown*>(descriptor->nativeHandle);
+        _hwnd = nullptr;
 #else
-        _hwnd = static_cast<HWND>(descriptor->nativeWindow);
+        _hwnd = static_cast<HWND>(descriptor->nativeHandle);
+        _window = nullptr;
 #endif
 
-        Resize(descriptor->width, descriptor->height);
+        ResizeImpl(descriptor->width, descriptor->height);
     }
 
     SwapChainD3D11::~SwapChainD3D11()
@@ -51,19 +52,22 @@ namespace alimer
 
     void SwapChainD3D11::Destroy()
     {
+        SwapChain::Destroy();
         _swapChain->SetFullscreenState(false, nullptr);
         _swapChain.Reset();
         _swapChain1.Reset();
     }
 
 
-    void SwapChainD3D11::Resize(uint32_t width, uint32_t height)
+    void SwapChainD3D11::ResizeImpl(uint32_t width, uint32_t height)
     {
         HRESULT hr = S_OK;
 
+        DeviceD3D11* deviceD3D11 = static_cast<DeviceD3D11*>(_graphicsDevice.Get());
+
         if (_swapChain)
         {
-            //SwapChain::Destroy();
+            SwapChain::Destroy();
 
             hr = _swapChain->ResizeBuffers(_backBufferCount, width, height, DXGI_FORMAT_UNKNOWN, _swapChainFlags);
 
@@ -73,14 +77,14 @@ namespace alimer
         }
         else
         {
-            DXGI_FORMAT backBufferFormat = _sRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
+            DXGI_FORMAT backBufferFormat = GetDxgiFormat(_colorFormat);
 
             // Check tearing.
-            ComPtr<IDXGIFactory2> dxgiFactory2;
-            if (SUCCEEDED(_device->GetFactory()->QueryInterface(dxgiFactory2.ReleaseAndGetAddressOf())))
+            IDXGIFactory2* dxgiFactory2;
+            if (SUCCEEDED(deviceD3D11->GetFactory()->QueryInterface(&dxgiFactory2)))
             {
                 DXGI_SWAP_EFFECT swapEffect = DXGI_SWAP_EFFECT_DISCARD;
-                if (_device->AllowTearing())
+                if (deviceD3D11->AllowTearing())
                 {
                     _syncInterval = 0;
                     _presentFlags = DXGI_PRESENT_ALLOW_TEARING;
@@ -110,7 +114,7 @@ namespace alimer
                     fsSwapChainDesc.Windowed = TRUE;
 
                     hr = dxgiFactory2->CreateSwapChainForHwnd(
-                        _device->GetD3DDevice(),
+                        deviceD3D11->GetD3DDevice(),
                         _hwnd,
                         &swapChainDesc,
                         &fsSwapChainDesc,
@@ -133,7 +137,7 @@ namespace alimer
                     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
                     ThrowIfFailed(dxgiFactory2->CreateSwapChainForCoreWindow(
-                        _device->GetD3DDevice(),
+                        deviceD3D11->GetD3DDevice(),
                         _window,
                         &swapChainDesc,
                         nullptr,
@@ -143,12 +147,14 @@ namespace alimer
                     // Ensure that DXGI does not queue more than one frame at a time. This both reduces latency and
                     // ensures that the application will only render after each VSync, minimizing power consumption.
                     ComPtr<IDXGIDevice3> dxgiDevice3;
-                    ThrowIfFailed(_device->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&dxgiDevice3)));
+                    ThrowIfFailed(deviceD3D11->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&dxgiDevice3)));
                     ThrowIfFailed(dxgiDevice3->SetMaximumFrameLatency(1));
 
                     // TODO: Handle rotation.
                     ThrowIfFailed(_swapChain1->SetRotation(DXGI_MODE_ROTATION_IDENTITY));
                 }
+
+                dxgiFactory2->Release();
             }
             else
             {
@@ -165,8 +171,8 @@ namespace alimer
                 swapChainDesc.Windowed = TRUE;
                 swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
-                ThrowIfFailed(_device->GetFactory()->CreateSwapChain(
-                    _device->GetD3DDevice(),
+                ThrowIfFailed(deviceD3D11->GetFactory()->CreateSwapChain(
+                    deviceD3D11->GetD3DDevice(),
                     &swapChainDesc,
                     _swapChain.ReleaseAndGetAddressOf()
                 ));
@@ -175,7 +181,7 @@ namespace alimer
 
         if (_hwnd)
         {
-            ThrowIfFailed(_device->GetFactory()->MakeWindowAssociation(_hwnd, DXGI_MWA_NO_ALT_ENTER));
+            ThrowIfFailed(deviceD3D11->GetFactory()->MakeWindowAssociation(_hwnd, DXGI_MWA_NO_ALT_ENTER));
         }
 
         ID3D11Texture2D* renderTarget;
@@ -185,15 +191,13 @@ namespace alimer
         D3D11_TEXTURE2D_DESC textureDesc;
         renderTarget->GetDesc(&textureDesc);
         TextureDescriptor descriptor = d3d11::Convert(textureDesc);
-        if (_sRGB)
-        {
-            descriptor.format = PixelFormat::BGRA8UNormSrgb;
-        }
 
-        _backbufferTexture = new TextureD3D11(_device, &descriptor, renderTarget, nullptr);
+        _backbufferTextures.Resize(1);
+        _backbufferTextures[0] = new TextureD3D11(deviceD3D11, &descriptor, renderTarget, nullptr);
+        InitializeFramebuffer();
     }
 
-    void SwapChainD3D11::Present()
+    void SwapChainD3D11::PresentImpl()
     {
         HRESULT hr = _swapChain->Present(_syncInterval, _presentFlags);
         //m_d3dContext->DiscardView(m_d3dRenderTargetView.Get());
@@ -203,13 +207,15 @@ namespace alimer
         if (hr == DXGI_ERROR_DEVICE_REMOVED
             || hr == DXGI_ERROR_DEVICE_RESET)
         {
+            DeviceD3D11* deviceD3D11 = static_cast<DeviceD3D11*>(_graphicsDevice.Get());
+
 #ifdef _DEBUG
             char buff[64] = {};
-            sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n", (hr == DXGI_ERROR_DEVICE_REMOVED) ? _device->GetD3DDevice()->GetDeviceRemovedReason() : hr);
+            sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n", (hr == DXGI_ERROR_DEVICE_REMOVED) ? deviceD3D11->GetD3DDevice()->GetDeviceRemovedReason() : hr);
             OutputDebugStringA(buff);
 #endif
 
-            _device->HandleDeviceLost();
+            deviceD3D11->HandleDeviceLost();
         }
         else
         {

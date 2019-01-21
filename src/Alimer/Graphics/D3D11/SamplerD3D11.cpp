@@ -30,35 +30,19 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     SamplerD3D11::SamplerD3D11(DeviceD3D11* device, const SamplerDescriptor* descriptor)
+        : Sampler(device, descriptor)
     {
-        D3D11_SAMPLER_DESC desc;
-        memset(&desc, 0, sizeof desc);
-
-        const bool isComparison = descriptor->compareFunction != CompareFunction::Never;
-        const bool isAnisotropic = descriptor->maxAnisotropy > 1;
-        desc.Filter = d3d11::Convert(descriptor->minFilter, descriptor->magFilter, descriptor->mipmapFilter, isComparison, isAnisotropic);
-        desc.AddressU = d3d11::Convert(descriptor->addressModeU);
-        desc.AddressV = d3d11::Convert(descriptor->addressModeV);
-        desc.AddressW = d3d11::Convert(descriptor->addressModeV);
-        desc.MipLODBias = 0.0f;
-        desc.MaxAnisotropy = Max(descriptor->maxAnisotropy, 16u);
-        desc.ComparisonFunc = d3d11::Convert(descriptor->compareFunction);
-        desc.BorderColor[0] = 1.0f;
-        desc.BorderColor[1] = 1.0f;
-        desc.BorderColor[2] = 1.0f;
-        desc.BorderColor[3] = 1.0f;
-        desc.MinLOD = descriptor->lodMinClamp;
-        desc.MaxLOD = descriptor->lodMaxClamp;
-
-        HRESULT hr = device->GetD3DDevice()->CreateSamplerState(&desc, _handle.ReleaseAndGetAddressOf());
-        if (FAILED(hr))
-        {
-
-        }
+        auto &cache = device->GetCache();
+        _samplerState = cache.GetSamplerState(descriptor);
     }
 
     SamplerD3D11::~SamplerD3D11()
     {
-        ALIMER_ASSERT(_handle.Reset() == 0);
+        Destroy();
+    }
+
+    void SamplerD3D11::Destroy()
+    {
+        // State is destroyed by cache.
     }
 }

@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Core/Object.h"
 #include "../Audio/Types.h"
 #include <string>
 #include <atomic>
@@ -29,8 +30,10 @@
 namespace alimer
 {
 	/// Defines Audio module class.
-	class ALIMER_API Audio 
+	class ALIMER_API Audio : public Object
 	{
+        ALIMER_OBJECT(Audio, Object);
+
 	protected:
 		/// Constructor.
 		Audio(AudioBackend backend);
@@ -47,9 +50,6 @@ namespace alimer
 
         /// Get the best platform backend.
         static AudioBackend GetPlatformDefaultBackend();
-
-        /// Return the single instance of the Audio.
-        static Audio& GetInstance();
 
         /// Get the backend.
         AudioBackend GetBackend() const { return _backend; }
@@ -71,7 +71,6 @@ namespace alimer
         virtual void SetMasterVolumeImpl(float volume) = 0;
         virtual void SetPaused(bool paused) = 0;
 
-        static Audio *_instance;
         AudioBackend _backend = AudioBackend::Empty;
         bool _initialized = false;
         float _masterVolume = 1.0f;
@@ -79,7 +78,4 @@ namespace alimer
 
 		DISALLOW_COPY_MOVE_AND_ASSIGN(Audio);
 	};
-
-    /// Singleton access for Audio. 
-    ALIMER_API Audio& gAudio();
 }

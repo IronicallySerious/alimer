@@ -23,8 +23,9 @@
 #pragma once
 
 #include "../../Base/HashMap.h"
+#include "../../Base/MurmurHash.h"
 #include "../Pipeline.h"
-#include "D3D11Prerequisites.h"
+#include "BackendD3D11.h"
 #include <unordered_map>
 
 namespace alimer
@@ -44,11 +45,22 @@ namespace alimer
 
         void Clear();
 
+        ID3D11BlendState* GetBlendState(D3D11_BLEND srcBlend, D3D11_BLEND destBlend);
+        ID3D11SamplerState* GetSamplerState(const SamplerDescriptor* descriptor);
         ID3D11InputLayout* GetInputLayout(ShaderModule* shader, const RenderPipelineDescriptor* descriptor);
 
     private:
         DeviceD3D11* _device;
         HashMap<std::vector<uint8_t>> _vsBytecodes;
-        HashMap<Microsoft::WRL::ComPtr<ID3D11InputLayout>> _inputLayouts;
+        HashMap<Microsoft::WRL::ComPtr<ID3D11BlendState>>   _blendStates;
+
+        struct CachedSamplerState
+        {
+            ID3D11SamplerState* state = nullptr;
+            Hash hash;
+        };
+
+        std::vector<CachedSamplerState> _samplerStates;
+        HashMap<Microsoft::WRL::ComPtr<ID3D11InputLayout>>  _inputLayouts;
     };
 }

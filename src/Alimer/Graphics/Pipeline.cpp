@@ -21,63 +21,14 @@
 //
 
 #include "../Graphics/Pipeline.h"
-#include "../Graphics/GPUDevice.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
 namespace alimer
 {
-    Pipeline::Pipeline()
-        : GPUResource(Type::Pipeline)
+    Pipeline::Pipeline(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor)
+        : GPUResource(device, Type::Pipeline)
         , _isCompute(true)
     {
-    }
-
-    Pipeline::~Pipeline()
-    {
-        Destroy();
-    }
-
-    void Pipeline::Destroy()
-    {
-    }
-
-    bool Pipeline::Define(const RenderPipelineDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-#ifdef _DEBUG
-        if (descriptor->shader == nullptr)
-        {
-            ALIMER_LOGERROR("RenderPipeline: Invalid vertex shader.");
-        }
-
-        /*if (descriptor->fragment == nullptr)
-        {
-            ALIMER_LOGERROR("RenderPipeline: Invalid fragment shader.");
-        }*/
-#endif
-
-        Destroy();
-        _isCompute = false;
-
-        /*AgpuRenderPipelineDescriptor gpuPipelineDesc = {};
-        gpuPipelineDesc.shader = descriptor->shader->GetHandle();
-
-        for (uint32_t i = 0u; i < AGPU_MAX_VERTEX_BUFFER_BINDINGS; i++)
-        {
-            gpuPipelineDesc.vertexDescriptor.layouts[i].stride = descriptor->vertexDescriptor.layouts[i].stride;
-            gpuPipelineDesc.vertexDescriptor.layouts[i].inputRate = static_cast<AgpuVertexInputRate>(descriptor->vertexDescriptor.layouts[i].inputRate);
-        }
-
-        for (uint32_t i = 0u; i < AGPU_MAX_VERTEX_ATTRIBUTES; i++)
-        {
-            gpuPipelineDesc.vertexDescriptor.attributes[i].format = static_cast<AgpuVertexFormat>(descriptor->vertexDescriptor.attributes[i].format);
-            gpuPipelineDesc.vertexDescriptor.attributes[i].offset = descriptor->vertexDescriptor.attributes[i].offset;
-            gpuPipelineDesc.vertexDescriptor.attributes[i].bufferIndex = descriptor->vertexDescriptor.attributes[i].bufferIndex;
-        }
-
-        gpuPipelineDesc.primitiveTopology = static_cast<AgpuPrimitiveTopology>(descriptor->primitiveTopology);
-        _handle = agpuCreateRenderPipeline(&gpuPipelineDesc);*/
-
-        return true;
     }
 }

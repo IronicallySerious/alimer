@@ -32,13 +32,11 @@ namespace alimer
 	/// Defines a GPU Buffer class.
 	class ALIMER_API Buffer : public GPUResource
 	{
-    public:
+    protected:
         /// Constructor.
-        Buffer(const BufferDescriptor* descriptor);
+        Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor);
 
-        /// Desturctor
-        virtual ~Buffer() = default;
-
+    public:
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 

@@ -21,15 +21,17 @@
 //
 
 #include "Graphics/SwapChain.h"
-#include "Graphics/GPUDevice.h"
-#include "Graphics/DeviceBackend.h"
+#include "Graphics/GraphicsDevice.h"
 
 namespace alimer
 {
-    SwapChain::SwapChain()
-        : GPUResource(Type::SwapChain)
+    SwapChain::SwapChain(GraphicsDevice* device, const SwapChainDescriptor* descriptor)
+        : GPUResource(device, Type::SwapChain)
+        , _width(descriptor->width)
+        , _height(descriptor->height)
+        , _colorFormat(descriptor->preferredColorFormat)
+        , _depthStencilFormat(descriptor->preferredDepthStencilFormat)
     {
-
     }
 
     SwapChain::~SwapChain()
@@ -42,21 +44,6 @@ namespace alimer
         _backbufferTextures.Clear();
         _depthStencilTexture.Reset();
         _framebuffers.Clear();
-        SafeDelete(_impl);
-    }
-
-    bool SwapChain::Define(const SwapChainDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-        _width = descriptor->width;
-        _height = descriptor->height;
-        _backBufferFormat = descriptor->sRGB ? PixelFormat::BGRA8UNormSrgb : PixelFormat::BGRA8UNorm;
-        _depthStencilFormat = descriptor->preferredDepthStencilFormat;
-
-        Destroy();
-        _impl = gGraphics().GetImpl()->CreateSwapChain(descriptor);
-        InitializeFramebuffer();
-        return _impl != nullptr;
     }
 
     void SwapChain::Resize(uint32_t width, uint32_t height)
@@ -67,40 +54,39 @@ namespace alimer
             return;
         }
 
-        _impl->Resize(width, height);
+        ResizeImpl(width, height);
         _width = width;
         _height = height;
     }
 
     void SwapChain::Present()
     {
-        _impl->Present();
+        PresentImpl();
     }
 
     void SwapChain::InitializeFramebuffer()
     {
-        const uint32_t textureCount = _impl->GetTextureCount();
-        _backbufferTextures.Resize(textureCount);
+        const uint32_t textureCount = _backbufferTextures.Size();
         _framebuffers.Resize(textureCount);
 
         const bool hasDepthStencil = _depthStencilFormat != PixelFormat::Unknown;
         if (hasDepthStencil)
         {
-            _depthStencilTexture = new Texture();
-            _depthStencilTexture->Define2D(_width, _height, _depthStencilFormat, 1, 1, nullptr, TextureUsage::RenderTarget);
+            _depthStencilTexture = _graphicsDevice->Create2DTexture(_width, _height, _depthStencilFormat, 1, 1, TextureUsage::RenderTarget);
         }
 
         for (uint32_t i = 0; i < textureCount; ++i)
         {
             FramebufferDescriptor fboDescriptor = {};
             fboDescriptor.colorAttachments[0].texture = _backbufferTextures[i].Get();
+            fboDescriptor.colorAttachments[0].level = 0;
+            fboDescriptor.colorAttachments[0].slice = 0;
             if (hasDepthStencil)
             {
                 fboDescriptor.depthStencilAttachment.texture = _depthStencilTexture.Get();
             }
 
-            //_framebuffers = new Framebuffer();
-            //_framebuffers[i] = _device->CreateFramebuffer(&fboDescriptor);
+            _framebuffers[i] = _graphicsDevice->CreateFramebuffer(&fboDescriptor);
         }
     }
 }

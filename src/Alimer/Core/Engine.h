@@ -24,21 +24,38 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/Types.h"
+#include "../Application/Window.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
 namespace alimer
 {
     class PluginManager;
     class ResourceManager;
-    class Graphics;
+    class Input;
+    class Audio;
     class SceneManager;
     class Gui;
 
+    struct MainWindowDescriptor
+    {
+        /// Main window title.
+        String title = "Alimer";
+
+        /// Main window width.
+        uint32_t width = 800;
+
+        /// Main window height.
+        uint32_t height = 600;
+
+        /// Main window flags
+        WindowFlags windowFlags = WindowFlags::Default;
+    };
+
     struct EngineSettings
     {
-        GraphicsBackend             preferredBackend = GraphicsBackend::Default;
-        bool                        validation = false;
-        bool                        headless = false;
+        GraphicsDeviceDescriptor    graphicsDeviceDesc = {};
+        MainWindowDescriptor        mainWindowDesc = {};
     };
 
     /// Alimer engine. Manages module setup and all engine logic.
@@ -55,14 +72,23 @@ namespace alimer
 
         int Initialize(const Vector<String>& args);
 
+        /// Run one frame.
+        void RunFrame();
+
+        /// Render frame.
+        void Render();
+
         /// Return whether engine has been initialized.
         bool IsInitialized() const { return _initialized; }
+
+        /// Return whether engine is exiting.
+        bool IsExiting() const { return _exiting; }
 
         /// Get the engine settings.
         const EngineSettings& GetSettings() const { return _settings; }
 
         /// Return whether the engine has been created in headless mode.
-        bool IsHeadless() const { return _settings.headless; }
+        bool IsHeadless() const { return _settings.graphicsDeviceDesc.headless; }
 
         /// Get the engine content manager.
         inline PluginManager& GetPluginManager() { return *_pluginManager; }
@@ -70,21 +96,34 @@ namespace alimer
         /// Get the engine resource manager.
         inline ResourceManager& GetResources() { return *_resources.Get(); }
 
-        /// Get the graphics system.
-        inline Graphics& GetGraphicsSystem() { return *_graphics; }
+        /// Get the main engine window.
+        inline Window& GetMainWindow() { return *_mainWindow.Get(); }
+
+        /// Get the input system.
+        inline Input& GetInput() { return *_input.Get(); }
+
+        /// Get the audio system.
+        inline Audio& GetAudio() { return *_audio.Get(); }
+
+        /// Get the graphics device.
+        inline GraphicsDevice& GetGraphicsDevice() { return *_graphicsDevice.Get(); }
 
     private:
         /// Initialized flag.
-        bool _initialized = false;
+        std::atomic_bool _initialized{ false };
+        std::atomic_bool _exiting{ false };
 
         /// Headless flag
         EngineSettings _settings;
 
         std::shared_ptr<spdlog::logger> _logger;
-        PluginManager* _pluginManager;
-        SharedPtr<ResourceManager> _resources;
-        Graphics* _graphics = nullptr;
-        SharedPtr<SceneManager> _sceneManager;
+        PluginManager*              _pluginManager;
+        SharedPtr<ResourceManager>  _resources;
+        SharedPtr<Window>           _mainWindow;
+        SharedPtr<Input>            _input;
+        SharedPtr<Audio>            _audio;
+        SharedPtr<GraphicsDevice>   _graphicsDevice;
+        SharedPtr<SceneManager>     _sceneManager;
 
         // ImGui
         SharedPtr<Gui> _gui;

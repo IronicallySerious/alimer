@@ -30,8 +30,59 @@
 
 namespace alimer
 {
-    WindowSDL2::WindowSDL2(const String& title, uint32_t width, uint32_t height, WindowFlags flags)
-        : Window(title, width, height, flags)
+    inline NativeHandle GetNativeWindowHandle(const SDL_SysWMinfo& wmi) noexcept
+    {
+        (void)wmi;
+#if defined(SDL_VIDEO_DRIVER_WINDOWS)
+        return wmi.info.win.window;
+#elif defined(SDL_VIDEO_DRIVER_WINRT)
+        return wmi.info.winrt.window;
+#elif defined(SDL_VIDEO_DRIVER_X11)
+        return (void*)(uintptr_t)wmi.info.x11.window;
+#elif defined(SDL_VIDEO_DRIVER_DIRECTFB)
+        return wmi.info.dfb.window;
+#elif defined(SDL_VIDEO_DRIVER_COCOA)
+        return wmi.info.cocoa.window;
+#elif defined(SDL_VIDEO_DRIVER_UIKIT)
+        return wmi.info.uikit.window;
+#elif defined(SDL_VIDEO_DRIVER_WAYLAND)
+        return wmi.info.wl.surface;
+#elif defined(SDL_VIDEO_DRIVER_ANDROID)
+        return wmi.info.android.window;
+#elif defined(SDL_VIDEO_DRIVER_VIVANTE)
+        return (void*)(uintptr_t)wmi.info.vivante.window;
+#else
+        return nullptr;
+#endif
+    }
+
+    inline NativeDisplay GetNativeDisplayHandle(const SDL_SysWMinfo& wmi) noexcept
+    {
+        (void)wmi;
+#if defined(SDL_VIDEO_DRIVER_WINDOWS)
+        return wmi.info.win.hinstance;
+#elif defined(SDL_VIDEO_DRIVER_WINRT)
+        return nullptr;
+#elif defined(SDL_VIDEO_DRIVER_X11)
+        return wmi.info.x11.display;
+#elif defined(SDL_VIDEO_DRIVER_DIRECTFB)
+        return nullptr;
+#elif defined(SDL_VIDEO_DRIVER_COCOA)
+        return nullptr;
+#elif defined(SDL_VIDEO_DRIVER_UIKIT)
+        return nullptr;
+#elif defined(SDL_VIDEO_DRIVER_WAYLAND)
+        return wmi.info.wl.display;
+#elif defined(SDL_VIDEO_DRIVER_ANDROID)
+        return nullptr;
+#elif defined(SDL_VIDEO_DRIVER_VIVANTE)
+        return (void*)(uintptr_t)wmi.info.vivante.display;
+#else
+        return nullptr;
+#endif
+    }
+
+    WindowImpl::WindowImpl(const String& title, uint32_t width, uint32_t height, WindowFlags flags)
     {
         const bool resizable = any(flags & WindowFlags::Resizable);
         bool fullscreen = any(flags & WindowFlags::Fullscreen);
@@ -50,46 +101,31 @@ namespace alimer
         }
 
         _window = SDL_CreateWindow(title.CString(), x, y, int(width), int(height), windowFlags);
-
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        SDL_GetWindowWMInfo(_window, &wmInfo);
-
-#if ALIMER_PLATFORM_LINUX
-        _nativeWindow = wmInfo.info.x11.window;
-        _nativeConnection = wmInfo.info.x11.display;
-#elif ALIMER_PLATFORM_APPLE_OSX
-        _nativeWindow = wmInfo.info.cocoa.window;
-#elif ALIMER_PLATFORM_WINDOWS
-        _nativeWindow = wmInfo.info.win.window;
-        _nativeConnection = wmInfo.info.win.hinstance;
-#endif
-
-        OnCreated();
+        //OnCreated();
     }
 
-    WindowSDL2::~WindowSDL2()
+    WindowImpl::~WindowImpl()
     {
         Destroy();
     }
 
-    void WindowSDL2::Destroy()
+    void WindowImpl::Destroy()
     {
         if (_window != nullptr)
         {
             SDL_DestroyWindow(_window);
             _window = nullptr;
 
-            OnDestroyed();
+            //OnDestroyed();
         }
     }
 
-    void WindowSDL2::PlatformResize(uint32_t width, uint32_t height)
+    void WindowImpl::Resize(uint32_t width, uint32_t height)
     {
         SDL_SetWindowSize(_window, (int)width, (int)height);
     }
 
-    void WindowSDL2::Show()
+    void WindowImpl::Show()
     {
         if (_visible)
             return;
@@ -98,7 +134,7 @@ namespace alimer
         _visible = true;
     }
 
-    void WindowSDL2::Hide()
+    void WindowImpl::Hide()
     {
         if (_visible)
         {
@@ -107,49 +143,80 @@ namespace alimer
         }
     }
 
-    void WindowSDL2::Minimize()
+    void WindowImpl::Minimize()
     {
         SDL_MinimizeWindow(_window);
     }
 
-    void WindowSDL2::Maximize()
+    void WindowImpl::Maximize()
     {
         SDL_MaximizeWindow(_window);
     }
 
-    void WindowSDL2::Restore()
+    void WindowImpl::Restore()
     {
         SDL_RestoreWindow(_window);
     }
 
-    void WindowSDL2::Close()
+    void WindowImpl::Close()
     {
         Destroy();
     }
 
-    bool WindowSDL2::IsVisible() const
+    bool WindowImpl::IsVisible() const
     {
         return _visible;
     }
 
-    bool WindowSDL2::IsMinimized() const
+    bool WindowImpl::IsMinimized() const
     {
         return (SDL_GetWindowFlags(_window) & SDL_WINDOW_MINIMIZED) != 0;
     }
 
-    void WindowSDL2::SetTitle(const String& newTitle)
+    void WindowImpl::SetTitle(const String& newTitle)
     {
-        Window::SetTitle(newTitle);
         SDL_SetWindowTitle(_window, newTitle.CString());
     }
 
-    bool WindowSDL2::IsCursorVisible() const
+    void WindowImpl::SetFullscreen(bool value)
+    {
+        if (SDL_SetWindowFullscreen(_window, value ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0))
+        {
+            // TODO: Log error
+        }
+    }
+
+    bool WindowImpl::IsCursorVisible() const
     {
         return SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE;
     }
 
-    void WindowSDL2::SetCursorVisible(bool visible)
+    void WindowImpl::SetCursorVisible(bool visible)
     {
         SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
+    }
+
+    NativeHandle WindowImpl::GetNativeHandle() const
+    {
+        SDL_SysWMinfo wmi;
+        SDL_VERSION(&wmi.version);
+        if (!SDL_GetWindowWMInfo(_window, &wmi))
+        {
+            return {};
+        }
+
+        return GetNativeWindowHandle(wmi);
+    }
+
+    NativeDisplay WindowImpl::GetNativeDisplay() const
+    {
+        SDL_SysWMinfo wmi;
+        SDL_VERSION(&wmi.version);
+        if (!SDL_GetWindowWMInfo(_window, &wmi))
+        {
+            return {};
+        }
+
+        return GetNativeDisplayHandle(wmi);
     }
 }

@@ -31,7 +31,7 @@
 namespace alimer
 {
     /* Constants */
-    static constexpr uint32_t RemainingMipLevels  = ~0U;
+    static constexpr uint32_t RemainingMipLevels = ~0U;
     static constexpr uint32_t RemainingArrayLayers = ~0U;
     static constexpr uint32_t MaxViewportsAndScissors = 16u;
     static constexpr uint32_t MaxDescriptorSets = 4u;
@@ -116,7 +116,7 @@ namespace alimer
         PatchList = 9,
         Count = 10,
     };
-    
+
     enum class VertexFormat : uint32_t
     {
         Unknown = 0,
@@ -134,7 +134,7 @@ namespace alimer
         Short4N = 12,
         Count = 13
     };
-    
+
     /// VertexInputRate
     enum class VertexInputRate : uint32_t
     {
@@ -148,7 +148,7 @@ namespace alimer
         UInt32 = 1
     };
 
-    enum class CompareFunction : uint32_t 
+    enum class CompareFunction : uint32_t
     {
         Never = 0,
         Less = 1,
@@ -174,15 +174,15 @@ namespace alimer
     /// Defines shader stages.
     enum class ShaderStages : uint32_t
     {
-        None                    = 0,
-        Vertex                  = 0x00000001,
-        TessellationControl     = 0x00000002,
-        TessellationEvaluation  = 0x00000004,
-        Geometry                = 0x00000008,
-        Fragment                = 0x00000010,
-        Compute                 = 0x00000020,
-        AllGraphics             = 0x0000001F,
-        All                     = 0x7FFFFFFF,
+        None = 0,
+        Vertex = 0x00000001,
+        TessellationControl = 0x00000002,
+        TessellationEvaluation = 0x00000004,
+        Geometry = 0x00000008,
+        Fragment = 0x00000010,
+        Compute = 0x00000020,
+        AllGraphics = 0x0000001F,
+        All = 0x7FFFFFFF,
     };
     ALIMER_BITMASK(ShaderStages);
 
@@ -320,6 +320,19 @@ namespace alimer
     };
     ALIMER_BITMASK(BufferUsage);
 
+    enum class FrontFace : uint32_t
+    {
+        CounterClockwise = 0,
+        Clockwise = 1
+    };
+
+    enum class CullMode : uint32_t 
+    {
+        None = 0,
+        Front,
+        Back
+    };
+
     /* Structs */
     struct GPULimits
     {
@@ -331,20 +344,20 @@ namespace alimer
     /// Describes SwapChain
     struct SwapChainDescriptor
     {
-        /// Native connection, display or instance handle.
-        void* nativeConnection;
         /// Native window or view handle.
-        void* nativeWindow;
+        void* nativeHandle;
+        /// Native display, connection or instance handle.
+        void* nativeDisplay;
         /// Width.
         uint32_t width;
         /// Height.
         uint32_t height;
-        /// sRGB color space.
-        bool sRGB;
+        /// Preferred color format.
+        PixelFormat preferredColorFormat = PixelFormat::BGRA8UNormSrgb;
         /// Preferred depth stencil format.
-        PixelFormat preferredDepthStencilFormat;
+        PixelFormat preferredDepthStencilFormat = PixelFormat::D32Float;
         /// Preferred samples.
-        SampleCount preferredSamples;
+        SampleCount preferredSamples = SampleCount::Count1;
     };
 
     struct TextureDescriptor
@@ -364,11 +377,11 @@ namespace alimer
     struct FramebufferAttachment
     {
         /// The texture attachment.
-        Texture* texture = nullptr;
+        Texture* texture;
         /// The mipmap level of the texture used for rendering to the attachment.
-        uint32_t level = 0;
+        uint32_t level;
         /// The slice of the texture used for rendering to the attachment.
-        uint32_t slice = 0;
+        uint32_t slice;
     };
 
     struct FramebufferDescriptor
@@ -412,68 +425,36 @@ namespace alimer
         SamplerBorderColor borderColor = SamplerBorderColor::TransparentBlack;
     };
 
-    struct ColorAttachmentAction 
+    struct RasterizationStateDescriptor {
+        FrontFace       frontFace;
+        CullMode        cullMode;
+
+        uint32_t        depthBias;
+        float           depthBiasSlopeScale;
+        float           depthBiasClamp;
+    };
+
+    struct ColorAttachmentAction
     {
-        LoadAction  loadAction = LoadAction::Clear;
-        StoreAction storeAction = StoreAction::Store;
-        Color4      clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
+        LoadAction  loadAction;
+        StoreAction storeAction;
+        Color4      clearColor;
     };
 
     struct DepthStencilAttachmentAction
     {
-        LoadAction  depthLoadAction = LoadAction::Clear;
-        StoreAction depthStoreAction = StoreAction::DontCare;
-        LoadAction  stencilLoadAction = LoadAction::DontCare;
-        StoreAction stencilStoreAction = StoreAction::DontCare;
-        float       clearDepth = 1.0f;
-        uint8_t     clearStencil = 0;
+        LoadAction  depthLoadAction;
+        StoreAction depthStoreAction;
+        LoadAction  stencilLoadAction;
+        StoreAction stencilStoreAction;
+        float       clearDepth;
+        uint8_t     clearStencil;
     };
 
     struct RenderPassBeginDescriptor
     {
         ColorAttachmentAction           colors[MaxColorAttachments];
         DepthStencilAttachmentAction    depthStencil;
-        uint32_t                        renderTargetWidth;
-        uint32_t                        renderTargetHeight;
-    };
-
-    class Texture;
-    struct AttachmentDescriptor
-    {
-        /// The texture attachment.
-        Texture* texture;
-        /// The mipmap level of the texture used for rendering to the attachment.
-        uint32_t level;
-        /// The slice of the texture used for rendering to the attachment.
-        uint32_t slice = 0;
-    };
-
-    struct RenderPassColorAttachmentDescriptor
-    {
-        AttachmentDescriptor    attachment;
-        //AttachmentDescriptor resolveTarget;
-
-        LoadAction  loadAction = LoadAction::Clear;
-        StoreAction storeAction = StoreAction::Store;
-        Color4      clearColor = Color4(0.0f, 0.0f, 0.0f, 1.0f);
-    };
-
-    struct RenderPassDepthStencilAttachmentDescriptor
-    {
-        AttachmentDescriptor    attachment;
-
-        LoadAction              depthLoadAction = LoadAction::Clear;
-        StoreAction             depthStoreAction = StoreAction::DontCare;
-        LoadAction              stencilLoadAction = LoadAction::DontCare;
-        StoreAction             stencilStoreAction = StoreAction::DontCare;
-        float                   clearDepth = 1.0f;
-        uint8_t                 clearStencil = 0;
-    };
-
-    struct RenderPassDescriptor
-    {
-        RenderPassColorAttachmentDescriptor         colorAttachments[MaxColorAttachments];
-        RenderPassDepthStencilAttachmentDescriptor  depthStencilAttachment;
     };
 
     struct VertexElement

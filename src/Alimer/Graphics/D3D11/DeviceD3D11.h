@@ -22,33 +22,38 @@
 
 #pragma once
 
-#include "Graphics/DeviceBackend.h"
+#include "../GraphicsDevice.h"
 #include "D3D11Cache.h"
 
 namespace alimer
 {
+    class SwapChainD3D11;
+
     /// D3D11 graphics implementation.
-    class DeviceD3D11 final : public DeviceBackend
+    class DeviceD3D11 final : public GraphicsDevice
     {
     public:
         /// Is backend supported?
         static bool IsSupported();
 
         /// Constructor.
-        DeviceD3D11(bool validation);
+        DeviceD3D11(const GraphicsDeviceDescriptor* descriptor);
 
         /// Destructor.
         ~DeviceD3D11() override;
 
+        bool BeginFrameImpl() override;
+        void EndFrameImpl() override;
         bool WaitIdle() override;
-        void Tick() override;
 
-        GPUSwapChain* CreateSwapChain(const SwapChainDescriptor* descriptor) override;
-        GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData) override;
-        //Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
-        //Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
-        GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
-        //Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
+        Framebuffer* GetBackbufferFramebuffer() const override;
+
+        SwapChainD3D11* CreateSwapChain(const SwapChainDescriptor* descriptor);
+        Texture* CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
+        Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
+        Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) override;
+        Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor) override;
+        Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
 
         void HandleDeviceLost();
 
@@ -73,7 +78,7 @@ namespace alimer
 
         D3D_FEATURE_LEVEL                                   _d3dFeatureLevel;
 
-        Microsoft::WRL::ComPtr<IDXGIFactory4>               _factory;
+        Microsoft::WRL::ComPtr<IDXGIFactory1>               _factory;
         Microsoft::WRL::ComPtr<IDXGIAdapter1>               _adapter;
         Microsoft::WRL::ComPtr<ID3D11Device>                _d3dDevice;
         Microsoft::WRL::ComPtr<ID3D11Device1>               _d3dDevice1;
@@ -83,7 +88,7 @@ namespace alimer
         uint32_t                                            _shaderModelMajor = 4;
         uint32_t                                            _shaderModelMinor = 0;
         bool                                                _allowTearing = false;
-
-        D3D11Cache _cache;
+        SwapChainD3D11*                                     _swapChain = nullptr;
+        D3D11Cache                                          _cache;
     };
 }

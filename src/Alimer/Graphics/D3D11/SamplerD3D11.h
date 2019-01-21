@@ -22,15 +22,15 @@
 
 #pragma once
 
-#include "Graphics/DeviceBackend.h"
-#include "D3D11Prerequisites.h"
+#include "../Sampler.h"
+#include "BackendD3D11.h"
 
 namespace alimer
 {
     class DeviceD3D11;
 
     /// D3D11 Sampler implementation.
-    class SamplerD3D11 final : public GPUSampler
+    class SamplerD3D11 final : public Sampler
     {
     public:
         /// Constructor.
@@ -39,9 +39,11 @@ namespace alimer
         /// Destructor.
         ~SamplerD3D11() override;
 
-        ID3D11SamplerState* GetHandle() const { return _handle.Get(); }
+        void Destroy() override;
+
+        ID3D11SamplerState* GetHandle() const { return _samplerState; }
 
     private:
-        Microsoft::WRL::ComPtr<ID3D11SamplerState> _handle;
+        ID3D11SamplerState* _samplerState;
     };
 }

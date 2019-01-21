@@ -23,13 +23,10 @@
 #pragma once
 
 #include "../Shader.h"
-#include "D3D11Prerequisites.h"
-#include <array>
+#include "BackendD3D11.h"
 
 namespace alimer
 {
-    class DeviceD3D11;
-
     /// D3D11 Shader implementation.
     class ShaderD3D11 final : public Shader
     {
@@ -39,6 +36,8 @@ namespace alimer
 
         /// Destructor.
         ~ShaderD3D11() override;
+
+        void Destroy() override;
 
         ID3D11VertexShader* GetVertexShader() const { return _vertexShader.Get(); }
         ID3D11HullShader* GetTessControlShader() const { return _tessControlShader.Get(); }

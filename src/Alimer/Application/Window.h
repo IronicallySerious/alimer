@@ -49,41 +49,48 @@ namespace alimer
         uvec2 size;
     };
 
-    class Framebuffer;
+    using NativeHandle = void*;
+    using NativeDisplay = void*;
+
 
     /// OS Window class.
-    class ALIMER_API Window : public Object
+    class ALIMER_API Window final : public Object
     {
         ALIMER_OBJECT(Window, Object);
 
-    protected:
+    public:
         /// Constructor.
         Window(const String& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Default);
 
-    public:
+        /// Destructor
+        ~Window() override;
+
         /// Show the window.
-        virtual void Show();
+        void Show();
         /// Hide the window.
-        virtual void Hide();
+        void Hide();
         /// Minimize the window.
-        virtual void Minimize();
+        void Minimize();
         /// Maximize the window.
-        virtual void Maximize();
+        void Maximize();
         /// Restore window size.
-        virtual void Restore();
+        void Restore();
         /// Close the window.
-        virtual void Close();
+        void Close();
         /// Resize the window.
         void Resize(uint32_t width, uint32_t height);
 
         /// Set window title.
-        virtual void SetTitle(const String& newTitle);
+        void SetTitle(const String& newTitle);
+
+        /// Set whether is fullscreen.
+        void SetFullscreen(bool value);
 
         /// Return whether is visible.
-        virtual bool IsVisible() const { return true; }
+        bool IsVisible() const;
 
         /// Return whether is currently minimized.
-        virtual bool IsMinimized() const { return false; }
+        bool IsMinimized() const;
 
         /// Return whether is fullscreen.
         bool IsFullscreen() const;
@@ -100,19 +107,16 @@ namespace alimer
         WindowFlags GetFlags() const { return _flags; }
 
         /// Is cursor visible.
-        virtual bool IsCursorVisible() const { return true; }
+        bool IsCursorVisible() const { return true; }
 
         /// Set cursor visibility.
-        virtual void SetCursorVisible(bool visible);
+        void SetCursorVisible(bool visible);
 
         /// Gets the native window or view handle.
-        void* GetNativeHandle() const { return _nativeWindow; }
+        NativeHandle GetNativeHandle() const;
 
-        /// Gets the native connection, display or instance handle.
-        void* GetNativeConnection() const { return _nativeConnection; }
-
-        /// Get the current framebuffer.
-        Framebuffer* GetCurrentFramebuffer() const;
+        /// Gets the native display, connection or instance handle.
+        NativeDisplay GetNativeDisplay() const;
 
         /// Swaps the frame buffers to display the next frame. 
         void SwapBuffers();
@@ -129,8 +133,9 @@ namespace alimer
 
     private:
         void OnSizeChanged(const uvec2& newSize);
-        virtual void PlatformResize(uint32_t width, uint32_t height) = 0;
 
+        /// Backend implementation.
+        class WindowImpl* _impl = nullptr;
         /// Window title.
         String _title;
         /// Window size.
@@ -139,11 +144,6 @@ namespace alimer
         WindowFlags _flags = WindowFlags::Default;
         /// Visibility flag.
         bool _focused = false;
-
-    protected:
-        SwapChain _swapChain;
-        void* _nativeWindow = nullptr;
-        void* _nativeConnection = nullptr;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Window);

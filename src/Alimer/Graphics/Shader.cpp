@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/Shader.h"
-#include "../Graphics/GPUDevice.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../IO/Path.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceManager.h"
@@ -65,8 +65,8 @@ namespace alimer
         }*/
     };
 
-    Shader::Shader(const ShaderDescriptor* descriptor)
-        : GPUResource(Type::Shader)
+    Shader::Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor)
+        : GPUResource(device, Type::Shader)
     {
         for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
         {

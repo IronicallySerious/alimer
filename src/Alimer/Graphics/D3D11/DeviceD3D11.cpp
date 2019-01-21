@@ -174,8 +174,8 @@ namespace alimer
         return isAvailable;
     }
 
-    DeviceD3D11::DeviceD3D11(bool validation)
-        : DeviceBackend(GraphicsBackend::D3D11, validation)
+    DeviceD3D11::DeviceD3D11(const GraphicsDeviceDescriptor* descriptor)
+        : GraphicsDevice(GraphicsBackend::D3D11, descriptor->validation)
         , _cache(this)
     {
         if (FAILED(D3D11LoadLibraries()))
@@ -194,7 +194,7 @@ namespace alimer
         UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #if defined(_DEBUG)
-        if (validation)
+        if (_validation)
         {
             if (SdkLayersAvailable())
             {
@@ -293,12 +293,21 @@ namespace alimer
 
         InitializeCaps();
 
-        // Create immediate command buffer.
-        _defaultCommandBuffer = new CommandContextD3D11(this);
+        // Create main render context..
+        _renderContext = new CommandContextD3D11(this);
+
+        // Create SwapChain if not headless
+        if (!descriptor->headless)
+        {
+            _swapChain = CreateSwapChain(&descriptor->swapchain);
+        }
+
+        OnAfterCreated();
     }
 
     DeviceD3D11::~DeviceD3D11()
     {
+        SafeDelete(_swapChain);
         _cache.Clear();
 
         _d3dContext.Reset();
@@ -400,26 +409,33 @@ namespace alimer
 
 #endif // TODO_D3D11
 
+    bool DeviceD3D11::BeginFrameImpl()
+    {
+        return true;
+    }
+
+    void DeviceD3D11::EndFrameImpl()
+    {
+        if (_swapChain)
+        {
+            _swapChain->Present();
+        }
+    }
+
     bool DeviceD3D11::WaitIdle()
     {
         return true;
     }
 
-    void DeviceD3D11::Tick()
+    Framebuffer* DeviceD3D11::GetBackbufferFramebuffer() const
     {
-        _d3dContext->Flush();
+        return _swapChain->GetCurrentFramebuffer();
     }
 
     void DeviceD3D11::InitializeCaps()
     {
-        ComPtr<IDXGIDevice1> dxgiDevice;
-        ThrowIfFailed(_d3dDevice.As(&dxgiDevice));
-
-        ComPtr<IDXGIAdapter> dxgiAdapter;
-        ThrowIfFailed(dxgiDevice->GetAdapter(dxgiAdapter.GetAddressOf()));
-
         DXGI_ADAPTER_DESC desc;
-        dxgiAdapter->GetDesc(&desc);
+        _adapter->GetDesc(&desc);
 
 #ifdef _DEBUG
         wchar_t buff[256] = {};
@@ -482,6 +498,8 @@ namespace alimer
             {
                 _allowTearing = true;
             }
+
+            factory5->Release();
         }
     }
 
@@ -495,33 +513,33 @@ namespace alimer
         return _cache;
     }
 
-    GPUSwapChain* DeviceD3D11::CreateSwapChain(const SwapChainDescriptor* descriptor)
+    SwapChainD3D11* DeviceD3D11::CreateSwapChain(const SwapChainDescriptor* descriptor)
     {
         return new SwapChainD3D11(this, descriptor, 2);
     }
 
-    GPUTexture* DeviceD3D11::CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData)
+    Texture* DeviceD3D11::CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
     {
-        return new TextureD3D11(this, descriptor, nativeTexture, initialData);
+        return new TextureD3D11(this, descriptor, nativeTexture, pInitData);
     }
 
-    /*Framebuffer* DeviceD3D11::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
+    Framebuffer* DeviceD3D11::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
     {
         return new FramebufferD3D11(this, descriptor);
     }
 
-    Buffer* DeviceD3D11::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
+    Buffer* DeviceD3D11::CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData)
     {
-        return new BufferD3D11(this, descriptor, initialData);
-    }*/
+        return new BufferD3D11(this, descriptor, pInitData);
+    }
 
-    GPUSampler* DeviceD3D11::CreateSampler(const SamplerDescriptor* descriptor)
+    Sampler* DeviceD3D11::CreateSamplerImpl(const SamplerDescriptor* descriptor)
     {
         return new SamplerD3D11(this, descriptor);
     }
 
-    /*Shader* DeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
+    Shader* DeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
     {
         return new ShaderD3D11(this, descriptor);
-    }*/
+    }
 }

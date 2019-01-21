@@ -29,7 +29,8 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     TextureD3D11::TextureD3D11(DeviceD3D11* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData)
-        : _d3dDevice(device->GetD3DDevice())
+        : Texture(device, descriptor)
+        , _d3dDevice(device->GetD3DDevice())
         , _resource(nullptr)
     {
         // If depth stencil format and shader read or write, switch to typeless.

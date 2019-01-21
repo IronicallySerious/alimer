@@ -21,53 +21,46 @@
 //
 
 #include "Graphics/CommandContext.h"
-#include "Graphics/GPUDevice.h"
-#include "Graphics/DeviceBackend.h"
+#include "Graphics/GraphicsDevice.h"
 #include "Math/MathUtil.h"
 #include "Core/Log.h"
 
 namespace alimer
 {
-    CommandContext::CommandContext(GPUDevice* device, GPUCommandBuffer* commandBuffer)
+    CommandContext::CommandContext(GraphicsDevice* device)
         : _device(device)
-        , _commandBuffer(commandBuffer)
         , _insideRenderPass(false)
     {
     }
 
     uint64_t CommandContext::Flush(bool waitForCompletion)
     {
-        return _commandBuffer->Flush(waitForCompletion);
+        return FlushImpl(waitForCompletion);
     }
 
     void CommandContext::PushDebugGroup(const String& name)
     {
-        _commandBuffer->PushDebugGroup(name.CString());
+        PushDebugGroupImpl(name);
     }
 
     void CommandContext::PopDebugGroup()
     {
-        _commandBuffer->PopDebugGroup();
+        PopDebugGroupImpl();
     }
 
     void CommandContext::InsertDebugMarker(const String& name)
     {
-        _commandBuffer->InsertDebugMarker(name.CString());
+        InsertDebugMarkerImpl(name);
     }
 
-    void CommandContext::BeginRenderPass(const RenderPassDescriptor* descriptor)
+    void CommandContext::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
-    }
-
-    void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const Color4& clearColor, float clearDepth, uint8_t clearStencil)
-    {
-        ALIMER_ASSERT(framebuffer);
-
         RenderPassBeginDescriptor descriptor = {};
         descriptor.colors[0].loadAction = LoadAction::Clear;
         descriptor.colors[0].storeAction = StoreAction::Store;
         descriptor.colors[0].clearColor = clearColor;
 
+        Framebuffer* framebuffer = _device->GetBackbufferFramebuffer();
         if (framebuffer->HasDepthStencilAttachment())
         {
             descriptor.depthStencil.depthLoadAction = LoadAction::Clear;
@@ -78,20 +71,18 @@ namespace alimer
             descriptor.depthStencil.clearStencil = clearStencil;
         }
 
-        BeginRenderPass(framebuffer, &descriptor);
+        BeginRenderPass(_device->GetBackbufferFramebuffer(), &descriptor);
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
-        ALIMER_ASSERT(framebuffer);
-
-        //BeginRenderPassImpl(framebuffer, descriptor);
         _insideRenderPass = true;
+        BeginRenderPassImpl(framebuffer, descriptor);
     }
 
     void CommandContext::EndRenderPass()
     {
-        //EndRenderPassImpl();
+        EndRenderPassImpl();
         _insideRenderPass = false;
     }
 
@@ -100,26 +91,9 @@ namespace alimer
         SetViewport(1, &viewport);
     }
 
-    void CommandContext::SetViewport(uint32_t viewportCount, const RectangleF* viewports)
-    {
-    }
-
     void CommandContext::SetScissor(const Rectangle& scissor)
     {
         SetScissor(1, &scissor);
-    }
-
-    void CommandContext::SetScissor(uint32_t scissorCount, const Rectangle* scissors)
-    {
-    }
-
-    void CommandContext::SetBlendColor(const Color4& color)
-    {
-        SetBlendColor(color.r, color.g, color.b, color.a);
-    }
-
-    void CommandContext::SetBlendColor(float r, float g, float b, float a)
-    {
     }
 
     void CommandContext::SetShader(Shader* shader)

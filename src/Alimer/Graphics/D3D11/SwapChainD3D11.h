@@ -22,45 +22,38 @@
 
 #pragma once
 
-#include "Graphics/DeviceBackend.h"
-#include "D3D11Prerequisites.h"
+#include "../SwapChain.h"
+#include "BackendD3D11.h"
 
 namespace alimer
 {
-    class DeviceD3D11;
+    class TextureD3D11;
+    class FramebufferD3D11;
 
     /// D3D11 SwapChain implementation.
-    class SwapChainD3D11 final : public GPUSwapChain
+    class SwapChainD3D11 final : public SwapChain
     {
     public:
         /// Constructor.
         SwapChainD3D11(DeviceD3D11* device, const SwapChainDescriptor* descriptor, uint32_t backBufferCount = 2);
 
         /// Destructor.
-        ~SwapChainD3D11();
+        ~SwapChainD3D11() override;
 
-        void Destroy();
+        void Destroy() override;
+
+        void ResizeImpl(uint32_t width, uint32_t height) override;
+        void PresentImpl() override;
+
     private:
-        uint32_t GetTextureCount() const override { return 1; }
-        uint32_t GetCurrentBackBuffer() const override { return 0; }
-        GPUTexture* GetBackBufferTexture(uint32_t index) const override { return _backbufferTexture; }
-        void Resize(uint32_t width, uint32_t height) override;
-        void Present() override;
-
-        DeviceD3D11*                            _device;
-        
         uint32_t                                _backBufferCount = 2u;
-        bool                                    _sRGB;
-        
-        
-        HWND                                    _hwnd = nullptr;
-        IUnknown*                               _window = nullptr;
+        HWND                                    _hwnd;
+        IUnknown*                               _window;
 
         UINT                                    _swapChainFlags = 0;
         UINT                                    _syncInterval = 1;
         UINT                                    _presentFlags = 0;
         Microsoft::WRL::ComPtr<IDXGISwapChain>  _swapChain;
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain1;
-        GPUTexture*                             _backbufferTexture = nullptr;
     };
 }

@@ -21,13 +21,13 @@
 //
 
 #include "../Graphics/Buffer.h"
-#include "../Graphics/GPUDevice.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
 namespace alimer
 {
-    Buffer::Buffer(const BufferDescriptor* descriptor)
-        : GPUResource(Type::Buffer)
+    Buffer::Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor)
+        : GPUResource(device, Type::Buffer)
         , _size(descriptor->size)
         , _usage(descriptor->usage)
         , _stride(descriptor->stride)

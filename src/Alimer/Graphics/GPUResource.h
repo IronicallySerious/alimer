@@ -27,7 +27,7 @@
 
 namespace alimer
 {
-	class Graphics;
+	class GraphicsDevice;
 
 	/// Defines a GPUResource created from GPUDevice.
 	class ALIMER_API GPUResource : public RefCounted
@@ -56,7 +56,10 @@ namespace alimer
 
     protected:
         /// Constructor.
-        GPUResource(Type resourceType);
+        GPUResource(GraphicsDevice* graphicsDevice, Type resourceType);
+
+        /// Graphics subsystem.
+        WeakPtr<GraphicsDevice> _graphicsDevice;
 
         Type _resourceType;
 

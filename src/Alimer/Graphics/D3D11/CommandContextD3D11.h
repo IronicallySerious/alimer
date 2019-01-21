@@ -22,40 +22,41 @@
 
 #pragma once
 
-#include "Graphics/DeviceBackend.h"
-#include "D3D11Prerequisites.h"
+#include "../CommandContext.h"
+#include "BackendD3D11.h"
 
 namespace alimer
 {
-    class ShaderD3D11;
     class FramebufferD3D11;
+    class PipelineD3D11;
     class DeviceD3D11;
 
-    class CommandContextD3D11 final : public GPUCommandBuffer
+    class CommandContextD3D11 final : public CommandContext
     {
     public:
         CommandContextD3D11(DeviceD3D11* device);
         ~CommandContextD3D11() override;
 
     private:
-        uint64_t Flush(bool waitForCompletion) override;
+        uint64_t FlushImpl(bool waitForCompletion) override;
 
-        void PushDebugGroup(const char* name) override;
-        void PopDebugGroup() override;
-        void InsertDebugMarker(const char* name) override;
+        void PushDebugGroupImpl(const String& name) override;
+        void PopDebugGroupImpl() override;
+        void InsertDebugMarkerImpl(const String& name) override;
 
-        void BeginRenderPass(const RenderPassDescriptor* descriptor) override;
-        void EndRenderPass() override;
+        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        void EndRenderPassImpl() override;
 
-        /*void SetViewport(const RectangleF& viewport) override;
+        void SetViewport(const RectangleF& viewport) override;
         void SetViewport(uint32_t viewportCount, const RectangleF* viewports) override;
         void SetScissor(const Rectangle& scissor)  override;
         void SetScissor(uint32_t scissorCount, const Rectangle* scissors) override;
-        void SetBlendColor(float r, float g, float b, float a) override;
+        void SetBlendColor(const Color4& color) override;
+        void SetStencilReference(uint32_t reference) override;
 
-        void SetShaderImpl(Shader* shader) override;
+        void SetPipelineImpl(Pipeline* pipeline);
 
-        void SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
+        /*void SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
         void SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType) override;
 
         void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
@@ -75,12 +76,13 @@ namespace alimer
         bool                        _needWorkaround = false;
         uint64_t                    _fenceValue;
 
+        const FramebufferD3D11*     _currentFramebuffer = nullptr;
         PrimitiveTopology           _currentTopology;
-        const ShaderD3D11*          _graphicsShader = nullptr;
-        const ShaderD3D11*          _computeShader = nullptr;
-        ID3D11RasterizerState1*     _currentRasterizerState;
-        ID3D11DepthStencilState*    _currentDepthStencilState;
-        ID3D11BlendState1*          _currentBlendState;
+        const PipelineD3D11*        _graphicsPipeline = nullptr;
+        const PipelineD3D11*        _computePipeline = nullptr;
+        ID3D11BlendState*           _blendState;
+        ID3D11DepthStencilState*    _depthStencilState;
+        ID3D11RasterizerState*      _rasterizerState;
 
         ID3D11VertexShader*         _currentVertexShader = nullptr;
         ID3D11PixelShader*          _currentPixelShader = nullptr;
@@ -90,16 +92,13 @@ namespace alimer
         struct VertexBindingState
         {
             ID3D11Buffer*               buffers[MaxVertexBufferBindings];
-            const VertexDeclaration*    formats[MaxVertexBufferBindings];
             UINT                        offsets[MaxVertexBufferBindings];
             UINT                        strides[MaxVertexBufferBindings];
             VertexInputRate             inputRates[MaxVertexBufferBindings];
         } _vbo = {};
 
         // RenderTargetViews
-        ID3D11RenderTargetView*     _renderTargetsViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
         uint32_t                    _renderTargetsViewsCount;
-        ID3D11DepthStencilView*     _depthStencilView = nullptr;
 
         // Viewports
         bool                        _viewportsDirty;
@@ -111,9 +110,8 @@ namespace alimer
         D3D11_RECT                  _scissors[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
         uint32_t                    _scissorsCount;
 
-        bool                        _vertexAttributesDirty;
-        D3D11_INPUT_ELEMENT_DESC    _vertexAttributes[MaxVertexAttributes] = {};
-        uint32_t                    _vertexAttributesCount;
+        Color4                      _blendColor;
+        uint32_t                    _stencilReference;
 
         /*struct BufferBindingInfo {
             Buffer*  buffer;

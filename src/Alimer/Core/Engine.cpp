@@ -23,7 +23,9 @@
 #include "../Core/Engine.h"
 #include "../Core/PluginManager.h"
 #include "../Resource/ResourceManager.h"
-#include "../Graphics/GPUDevice.h"
+#include "../Input/Input.h"
+#include "../Audio/Audio.h"
+#include "../Graphics/GraphicsDevice.h"
 #include "../Scene/SceneManager.h"
 #include "../UI/Gui.h"
 #include <CLI/CLI.hpp>
@@ -69,7 +71,7 @@ namespace alimer
     {
         PluginManager::Destroy(_pluginManager);
         _gui.Reset();
-        Graphics::Destroy(_graphics);
+        _graphicsDevice.Reset();
         RemoveSubsystem(this);
     }
 
@@ -85,9 +87,9 @@ namespace alimer
             CLI::App app{ fmt::sprintf("Alimer %s.", ALIMER_VERSION_STR), "Alimer" };
             bool verboseOutput = false;
             app.add_flag("-v,--verbose", verboseOutput, "Enable verbose mode.");
-            app.add_flag("--headless", _settings.headless, "Do not initialize windowing and graphics subsystem.");
+            app.add_flag("--headless", _settings.graphicsDeviceDesc.headless, "Do not initialize windowing and graphics subsystem.");
 
-            try 
+            try
             {
                 std::vector<std::string> cliArgs;
                 cliArgs.reserve(args.Size());
@@ -103,17 +105,36 @@ namespace alimer
             }
         }
 
+        // Register the rest of the subsystems
+        _input = new Input();
+        _audio = Audio::Create();
+        _audio->Initialize();
+
         // Init Window and Gpu.
-        if (!_settings.headless)
+        if (!_settings.graphicsDeviceDesc.headless)
         {
-            _graphics = Graphics::Create(*this);
-            if (_graphics == nullptr)
+            if (_settings.graphicsDeviceDesc.swapchain.nativeHandle == nullptr)
+            {
+                // Create main Window
+                _mainWindow = new Window(_settings.mainWindowDesc.title, _settings.mainWindowDesc.width, _settings.mainWindowDesc.height, _settings.mainWindowDesc.windowFlags);
+                //_mainWindow->resizeEvent.Connect();
+
+                _settings.graphicsDeviceDesc.swapchain.nativeHandle = _mainWindow->GetNativeHandle();
+                _settings.graphicsDeviceDesc.swapchain.nativeDisplay = _mainWindow->GetNativeDisplay();
+            }
+
+            _settings.graphicsDeviceDesc.swapchain.width = _settings.mainWindowDesc.width;
+            _settings.graphicsDeviceDesc.swapchain.height = _settings.mainWindowDesc.height;
+            _settings.graphicsDeviceDesc.swapchain.preferredDepthStencilFormat = PixelFormat::D24UNormS8;
+            _settings.graphicsDeviceDesc.swapchain.preferredSamples = SampleCount::Count1;
+
+            // Create GraphicsDevice.
+            _graphicsDevice = GraphicsDevice::Create(&_settings.graphicsDeviceDesc);
+            if (_graphicsDevice == nullptr)
             {
                 ALIMER_LOGERROR("Failed to create GPUDevice instance.");
                 return false;
             }
-
-            //_mainWindow = CreateWindow(_settings.title, _settings.width, _settings.height, _settings.windowFlags);
         }
 
         // Create imgui system.
@@ -122,5 +143,67 @@ namespace alimer
         ALIMER_LOGINFO("Engine initialized with success");
         _initialized = true;
         return EXIT_SUCCESS;
+    }
+
+    void Engine::RunFrame()
+    {
+        //ALIMER_PROFILE("RunFrame");
+        {
+            ALIMER_ASSERT(_initialized);
+
+            // If not headless, and the graphics subsystem no longer has a window open, assume we should exit
+            if (!IsHeadless() && _graphicsDevice.IsNull())
+            {
+                _exiting = true;
+            }
+
+            if (_exiting)
+                return;
+        }
+
+        Render();
+
+        /*if (!_paused)
+        {
+            // Tick timer.
+            double frameTime = _timer.Frame();
+            double deltaTime = _timer.GetElapsed();
+
+            // Update all systems.
+            //_systems.Update(deltaTime);
+
+            // Render single frame if window is not minimzed.
+            if (!_engine->IsHeadless()
+                && !_mainWindow->IsMinimized())
+            {
+                RenderFrame(frameTime, deltaTime);
+            }
+        }*/
+
+        // Update input, even when paused.
+        _input->Update();
+    }
+
+    void Engine::Render()
+    {
+        if (IsHeadless())
+            return;
+
+        //ALIMER_PROFILE("Render");
+
+        // If device is lost, BeginFrame will fail and we skip rendering
+        if (!_graphicsDevice->BeginFrame())
+            return;
+
+        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        CommandContext& context = _graphicsDevice->GetContext();
+        context.BeginDefaultRenderPass(clearColor);
+        //context.Draw(3, 0);
+        context.EndRenderPass();
+        context.Flush();
+
+        // TODO: Scene renderer
+        // TODO: UI render.
+        _graphicsDevice->EndFrame();
     }
 }

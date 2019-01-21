@@ -34,9 +34,9 @@ namespace alimer
         , _running(false)
         , _paused(false)
         , _settings{}
-        , _entities{}
-        , _systems(_entities)
-        , _scene(_entities)
+        //, _entities{}
+        //, _systems(_entities)
+        , _scene()
     {
         PlatformConstruct();
 
@@ -66,7 +66,6 @@ namespace alimer
         _paused = true;
         _running = false;
         _engine.Reset();
-        Audio::Shutdown();
     }
 
     bool Application::InitializeBeforeRun()
@@ -82,15 +81,11 @@ namespace alimer
         // Load plugins
         LoadPlugins();
 
-        // Create per platform Audio module.
-        Audio* audio = Audio::Create();
-        audio->Initialize();
-
         // Initialize this instance and all systems.
         Initialize();
 
         // Setup and configure all systems.
-        _systems.Add<CameraSystem>();
+        //_systems.Add<CameraSystem>();
 
         ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;
@@ -129,25 +124,7 @@ namespace alimer
 
     void Application::RunFrame()
     {
-        if (!_paused)
-        {
-            // Tick timer.
-            double frameTime = _timer.Frame();
-            double deltaTime = _timer.GetElapsed();
-
-            // Update all systems.
-            _systems.Update(deltaTime);
-
-            // Render single frame if window is not minimzed.
-            if (!_engine->IsHeadless()
-                && !_mainWindow->IsMinimized())
-            {
-                RenderFrame(frameTime, deltaTime);
-            }
-        }
-
-        // Update input, even when paused.
-        _input.Update();
+        _engine->RunFrame();
     }
 
     void Application::RenderFrame(double frameTime, double elapsedTime)
@@ -176,7 +153,7 @@ namespace alimer
         context->EndRenderPass();*/
 
         // Present rendering frame.
-        _mainWindow->SwapBuffers();
+        //_mainWindow->SwapBuffers();
 
         // Advance to next frame.
         //_gpuDevice->Frame();

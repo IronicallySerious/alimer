@@ -21,14 +21,13 @@
 //
 
 #include "Graphics/Framebuffer.h"
-#include "Graphics/GPUDevice.h"
-#include "Graphics/DeviceBackend.h"
+#include "Graphics/GraphicsDevice.h"
 #include "Core/Log.h"
 
 namespace alimer
 {
-    Framebuffer::Framebuffer(const FramebufferDescriptor* descriptor)
-        : GPUResource( Type::Framebuffer)
+    Framebuffer::Framebuffer(GraphicsDevice* device, const FramebufferDescriptor* descriptor)
+        : GPUResource(device, Type::Framebuffer)
     {
         _colorAttachments.Resize(MaxColorAttachments);
         _width = UINT32_MAX;
@@ -55,16 +54,6 @@ namespace alimer
             _width = Min(_width, _depthStencilAttachment.texture->GetWidth(level));
             _height = Min(_height, _depthStencilAttachment.texture->GetHeight(level));
         }
-    }
-
-    Framebuffer::~Framebuffer()
-    {
-        Destroy();
-    }
-
-    void Framebuffer::Destroy()
-    {
-        SafeDelete(_backend);
     }
 
     const Texture* Framebuffer::GetColorTexture(uint32_t index) const

@@ -20,8 +20,7 @@
 // THE SOFTWARE.
 //
 
-#if TODO_D3D11
-#include "D3D11Pipeline.h"
+#include "PipelineD3D11.h"
 #include "DeviceD3D11.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
@@ -29,12 +28,14 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    D3D11Pipeline::D3D11Pipeline(D3D11GraphicsDevice* device, const RenderPipelineDescriptor* descriptor)
+    PipelineD3D11::PipelineD3D11(DeviceD3D11* device, const RenderPipelineDescriptor* descriptor)
         : Pipeline(device, descriptor)
         , _d3dDevice(device->GetD3DDevice())
     {
         auto &cache = device->GetCache();
-        for (uint32_t i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        _blendState = cache.GetBlendState(D3D11_BLEND_ONE, D3D11_BLEND_ZERO);
+
+        /*for (uint32_t i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
         {
             auto shaderModule = descriptor->shaders[i];
             if (shaderModule == nullptr)
@@ -67,17 +68,15 @@ namespace alimer
         if (vertexShader != nullptr)
         {
             _inputLayout = cache.GetInputLayout(vertexShader, descriptor);
-        }
+        }*/
     }
 
-    D3D11Pipeline::~D3D11Pipeline()
+    PipelineD3D11::~PipelineD3D11()
     {
         Destroy();
     }
 
-    void D3D11Pipeline::Destroy()
+    void PipelineD3D11::Destroy()
     {
     }
 }
-
-#endif // TODO_D3D11

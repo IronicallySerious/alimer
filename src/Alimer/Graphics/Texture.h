@@ -24,55 +24,20 @@
 
 #include "../Math/MathUtil.h"
 #include "../Graphics/GPUResource.h"
-#include "../Resource/Resource.h"
 #include "../Base/HashMap.h"
 
 namespace alimer
 {
-    class GPUTexture;
-
     /// Defines a Texture class.
-    class ALIMER_API Texture final : public Resource
+    class ALIMER_API Texture : public GPUResource
     {
-        friend class Graphics;
-        ALIMER_OBJECT(Texture, Resource);
+    protected:
+        /// Constructor.
+        Texture(GraphicsDevice* device, const TextureDescriptor* descriptor);
 
     public:
-        static constexpr uint32_t MaxPossible = ~0U;
-
-        /// Constructor.
-        Texture();
-
         /// Destructor
-        ~Texture() override;
-
-        /** 
-        * Defines a 2D texture.
-        *
-        * @param width The width of the texture.
-        * @param height The height of the texture.
-        * @param format The format of the texture.
-        * @param arraySize The array size of the texture.
-        * @param mipLevels if equal to MaxPossible then an entire mip chain will be generated from mip level 0. If any other value is given then the data for at least that number of miplevels must be provided.
-        * @param pInitData If different than nullptr, pointer to a buffer containing data to initialize the texture with.
-        * @param usage The requested usage for the resource.
-        * @return A pointer to a new texture, or nullptr if creation failed.
-        */
-        bool Define2D(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize = 1, uint32_t mipLevels = MaxPossible, const void* pInitData = nullptr, TextureUsage usage = TextureUsage::ShaderRead);
-
-        /**
-        * Defines a 2D multi-sampled texture.
-        *
-        * @param width The width of the texture.
-        * @param height The height of the texture.
-        * @param format The format of the texture.
-        * @param arraySize The array size of the texture.
-        * @param mipLevels if equal to MaxPossible then an entire mip chain will be generated from mip level 0. If any other value is given then the data for at least that number of miplevels must be provided.
-        * @param usage The requested bind flags for the resource
-        * @param pInitData If different than nullptr, pointer to a buffer containing data to initialize the texture with.
-        * @return A pointer to a new texture, or nullptr if creation failed
-        */
-        bool Define2DMultisample(uint32_t width, uint32_t height, PixelFormat format, SampleCount samples, uint32_t arraySize = 1, TextureUsage usage = TextureUsage::ShaderRead, const void* pInitData = nullptr);
+        virtual ~Texture() = default;
 
         /// Get the type of the texture.
         TextureType GetTextureType() const { return _type; }
@@ -110,18 +75,7 @@ namespace alimer
         /// Get the sample count.
         SampleCount GetSamples() const { return _samples; }
 
-        /// Get the GPUTexture.
-        GPUTexture* GetGPUTexture() const { return _texture; }
-
-    private:
-        /// Register object factory.
-        static void RegisterObject();
-
-        bool CreateGPUTexture(void* nativeTexture, const void* initialData);
-        void Destroy();
-
     protected:
-        GPUTexture* _texture = nullptr;
         uint32_t        _width = 0;
         uint32_t        _height = 0;
         uint32_t        _depth = 0;

@@ -22,17 +22,17 @@
 
 #pragma once
 
-#include "Graphics/DeviceBackend.h"
-#include "D3D11Prerequisites.h"
+#include "../Buffer.h"
+#include "BackendD3D11.h"
 
 namespace alimer
 {
 	/// D3D11 GpuBuffer implementation.
-	class BufferD3D11 final : public GPUBuffer
+	class BufferD3D11 final : public Buffer
 	{
 	public:
 		/// Constructor.
-        BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* initialData);
+        BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* pInitData);
 
 		/// Destructor.
 		~BufferD3D11() override;
@@ -44,7 +44,6 @@ namespace alimer
         ID3D11Buffer* GetHandle() const { return _handle.Get(); }
 
 	private:
-        DeviceD3D11* _device;
         Microsoft::WRL::ComPtr<ID3D11Buffer>  _handle;
 	};
 }

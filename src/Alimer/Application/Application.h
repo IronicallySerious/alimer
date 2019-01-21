@@ -25,21 +25,15 @@
 #include "../Core/Engine.h"
 #include "../Core/Timer.h"
 #include "../Core/PluginManager.h"
-#include "../Application/Window.h"
 #include "../Application/GameSystem.h"
 #include "../Serialization/Serializable.h"
 #include "../IO/FileSystem.h"
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
-#include "../Audio/Audio.h"
 #include "../Scene/Scene.h"
 #include "../Renderer/RenderContext.h"
 #include "../Renderer/RenderPipeline.h"
 #include <atomic>
-
-#ifdef CreateWindow
-#   undef CreateWindow
-#endif
 
 namespace alimer
 {
@@ -98,14 +92,7 @@ namespace alimer
         /// Resume the main execution loop.
         void Resume();
 
-        /// Create new window (if supported).
-        SharedPtr<Window> CreateWindow(const String& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Default);
-
         Timer &GetFrameTimer() { return _timer; }
-
-        
-        inline Window* GetMainWindow() const { return _mainWindow; }
-        inline Input& GetInput() { return _input; }
 
         /// Returns true if the application is running in an editor, false if standalone.
         virtual bool IsEditor() const { return false; }
@@ -145,13 +132,10 @@ namespace alimer
         ApplicationSettings _settings;
 
         Timer _timer;
-        
-        SharedPtr<Window>       _mainWindow;
-        Input _input;
 
         //
-        EntityManager _entities;
-        SystemManager _systems;
+        //EntityManager _entities;
+        //SystemManager _systems;
         Scene _scene;
         
         RenderContext _renderContext;

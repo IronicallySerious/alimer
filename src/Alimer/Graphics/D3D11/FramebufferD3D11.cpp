@@ -29,7 +29,7 @@
 namespace alimer
 {
     FramebufferD3D11::FramebufferD3D11(DeviceD3D11* device, const FramebufferDescriptor* descriptor)
-        : _device(device)
+        : Framebuffer(device, descriptor)
     {
         for (uint32_t i = 0; i < MaxColorAttachments; ++i)
         {
@@ -41,7 +41,7 @@ namespace alimer
             const FramebufferAttachment& attachment = descriptor->colorAttachments[i];
             const uint32_t arraySize = attachment.texture->GetArraySize() - attachment.slice;
             const bool isTextureMs = static_cast<uint32_t>(attachment.texture->GetSamples()) > 1;
-            TextureD3D11* d3d11Texture = static_cast<TextureD3D11*>(attachment.texture->GetGPUTexture());
+            TextureD3D11* d3d11Texture = static_cast<TextureD3D11*>(attachment.texture);
 
             D3D11_RENDER_TARGET_VIEW_DESC viewDesc = {};
             viewDesc.Format = d3d11Texture->GetDXGIFormat();
@@ -139,7 +139,7 @@ namespace alimer
             const FramebufferAttachment& attachment = descriptor->depthStencilAttachment;
             const uint32_t arraySize = attachment.texture->GetArraySize() - attachment.slice;
             const bool isTextureMs = static_cast<uint32_t>(attachment.texture->GetSamples()) > 1;
-            TextureD3D11* d3d11Texture = static_cast<TextureD3D11*>(attachment.texture->GetGPUTexture());
+            TextureD3D11* d3d11Texture = static_cast<TextureD3D11*>(attachment.texture);
 
             D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc = {};
             viewDesc.Format = d3d11Texture->GetDXGIFormat();

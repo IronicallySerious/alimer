@@ -30,7 +30,7 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     ShaderD3D11::ShaderD3D11(DeviceD3D11* device, const ShaderDescriptor* descriptor)
-        : Shader(descriptor)
+        : Shader(device, descriptor)
     {
         if (_compute)
         {
@@ -43,6 +43,11 @@ namespace alimer
     }
 
     ShaderD3D11::~ShaderD3D11()
+    {
+        Destroy();
+    }
+
+    void ShaderD3D11::Destroy()
     {
         if (any(_stage & ShaderStages::Compute))
         {

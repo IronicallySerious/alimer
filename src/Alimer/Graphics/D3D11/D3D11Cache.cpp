@@ -22,10 +22,11 @@
 
 #include "D3D11Cache.h"
 #include "DeviceD3D11.h"
-#include "../Shader.h"
-#include "../D3D/D3DShaderCompiler.h"
-#include "../D3D/D3DConvert.h"
-#include "../../Core/Log.h"
+#include "D3D11Convert.h"
+#include "Graphics/Shader.h"
+#include "Graphics/D3D/D3DShaderCompiler.h"
+#include "Graphics/D3D/D3DConvert.h"
+#include "Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace alimer
@@ -42,16 +43,102 @@ namespace alimer
 
     void D3D11Cache::Clear()
     {
+        _blendStates.clear();
+        for (size_t i = 0; i < _samplerStates.size(); ++i)
+        {
+            SafeRelease(_samplerStates[i].state);
+        }
+        _samplerStates.clear();
         _inputLayouts.clear();
+    }
+
+    ID3D11BlendState* D3D11Cache::GetBlendState(D3D11_BLEND srcBlend, D3D11_BLEND destBlend)
+    {
+        Hasher hasher;
+        hasher.UInt32(srcBlend);
+        hasher.UInt32(destBlend);
+        uint64_t hash = hasher.GetValue();
+        auto it = _blendStates.find(hash);
+        if (it != end(_blendStates))
+        {
+            return it->second.Get();
+        }
+
+        D3D11_BLEND_DESC desc = {};
+
+        desc.RenderTarget[0].BlendEnable = (srcBlend != D3D11_BLEND_ONE) ||
+            (destBlend != D3D11_BLEND_ZERO);
+
+        desc.RenderTarget[0].SrcBlend = desc.RenderTarget[0].SrcBlendAlpha = srcBlend;
+        desc.RenderTarget[0].DestBlend = desc.RenderTarget[0].DestBlendAlpha = destBlend;
+        desc.RenderTarget[0].BlendOp = desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+        desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+        ID3D11BlendState* blendState;
+        HRESULT hr = _device->GetD3DDevice()->CreateBlendState(&desc, &blendState);
+        if (FAILED(hr))
+        {
+            return nullptr;
+        }
+
+        _blendStates[hash].Attach(blendState);
+        return blendState;
+    }
+
+    ID3D11SamplerState* D3D11Cache::GetSamplerState(const SamplerDescriptor* descriptor)
+    {
+        Hash stateHash = GenerateHash(descriptor, sizeof(SamplerDescriptor));
+
+        const size_t numStates = _samplerStates.size();
+        for (size_t i = 0; i < numStates; ++i)
+        {
+            if (_samplerStates[i].hash == stateHash)
+            {
+                return _samplerStates[i].state;
+            }
+        }
+
+        D3D11_SAMPLER_DESC desc;
+        memset(&desc, 0, sizeof desc);
+
+        const bool isComparison = descriptor->compareFunction != CompareFunction::Never;
+        const bool isAnisotropic = descriptor->maxAnisotropy > 1;
+        desc.Filter = d3d11::Convert(descriptor->minFilter, descriptor->magFilter, descriptor->mipmapFilter, isComparison, isAnisotropic);
+        desc.AddressU = d3d11::Convert(descriptor->addressModeU);
+        desc.AddressV = d3d11::Convert(descriptor->addressModeV);
+        desc.AddressW = d3d11::Convert(descriptor->addressModeV);
+        desc.MipLODBias = 0.0f;
+        desc.MaxAnisotropy = Max(descriptor->maxAnisotropy, 16u);
+        desc.ComparisonFunc = d3d11::Convert(descriptor->compareFunction);
+        desc.BorderColor[0] = 1.0f;
+        desc.BorderColor[1] = 1.0f;
+        desc.BorderColor[2] = 1.0f;
+        desc.BorderColor[3] = 1.0f;
+        desc.MinLOD = descriptor->lodMinClamp;
+        desc.MaxLOD = descriptor->lodMaxClamp;
+
+        ID3D11SamplerState* samplerState;
+        HRESULT hr = _device->GetD3DDevice()->CreateSamplerState(&desc, &samplerState);
+        if (FAILED(hr))
+        {
+            return nullptr;
+        }
+
+        CachedSamplerState cachedState;
+        cachedState.hash = stateHash;
+        cachedState.state = samplerState;
+        _samplerStates.push_back(cachedState);
+        return samplerState;
     }
 
     ID3D11InputLayout* D3D11Cache::GetInputLayout(ShaderModule* shader, const RenderPipelineDescriptor* descriptor)
     {
-        /*Hasher hasher;
-        hasher.UInt64(shader->GetHash());
-        hasher.Data(reinterpret_cast<const uint32_t*>(descriptor->vertexLayouts), sizeof(descriptor->vertexLayouts));
+        Hasher hasher;
+        //hasher.UInt64(shader->GetHash());
+        //hasher.Data(reinterpret_cast<const uint32_t*>(descriptor->ve), sizeof(descriptor->vertexLayouts));
 
-        auto hash = hasher.GetValue();
+        uint64_t hash = hasher.GetValue();
         auto it = _inputLayouts.find(hash);
         if (it != end(_inputLayouts))
         {
@@ -61,17 +148,18 @@ namespace alimer
         bool isEmpty = true;
         for (uint32_t i = 0; i < MaxVertexBufferBindings; i++)
         {
-            if (descriptor->vertexLayouts[i].stride != 0)
+            if (descriptor->vertexDescriptor.layouts[i].stride != 0)
             {
                 isEmpty = false;
                 break;
             }
         }
 
-        std::vector<D3D11_INPUT_ELEMENT_DESC> d3dElementDescs;
+        D3D11_INPUT_ELEMENT_DESC d3d11InputElementDesc[MaxVertexAttributes];
+        memset(d3d11InputElementDesc, 0, sizeof(d3d11InputElementDesc));
         if (isEmpty)
         {
-            // Generate vertex input format from shader reflection.
+            /*// Generate vertex input format from shader reflection.
             std::vector<PipelineResource> inputs;
 
             // Only consider input resources to vertex shader stage.
@@ -155,11 +243,41 @@ namespace alimer
 
                 // Increase the stride for the next vertex attribute.
                 offset += typeSize * input.vecSize;
-            }
+            }*/
         }
         else
         {
-        }*/
+            uint32_t index = 0;
+            for (; index < MaxVertexAttributes; index++)
+            {
+                const VertexAttributeDescriptor* attributeDesc = &descriptor->vertexDescriptor.attributes[index];
+                if (attributeDesc->format == VertexFormat::Unknown)
+                {
+                    break;
+                }
+
+                ALIMER_ASSERT((attributeDesc->bufferIndex >= 0) && (attributeDesc->bufferIndex < MaxVertexBufferBindings));
+                const VertexBufferLayoutDescriptor* layoutDesc = &descriptor->vertexDescriptor.layouts[attributeDesc->bufferIndex];
+                D3D11_INPUT_ELEMENT_DESC* inputElementDesc = &d3d11InputElementDesc[index];
+                inputElementDesc->SemanticName = "TEXCOORD";
+                inputElementDesc->SemanticIndex = index;
+                inputElementDesc->Format = d3d::Convert(attributeDesc->format);
+                inputElementDesc->InputSlot = attributeDesc->bufferIndex;
+                inputElementDesc->AlignedByteOffset = attributeDesc->offset; // use_auto_offset ? auto_offset[a_desc->buffer_index] : a_desc->offset;
+                if (layoutDesc->inputRate == VertexInputRate::Vertex)
+                {
+                    inputElementDesc->InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+                    inputElementDesc->InstanceDataStepRate = 0;
+                    
+                }
+                else
+                {
+                    inputElementDesc->InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
+                    inputElementDesc->InstanceDataStepRate = 1;
+                }
+                //auto_offset[a_desc->buffer_index] += _sg_vertexformat_bytesize(a_desc->format);
+            }
+        }
 
         ID3D11InputLayout* inputLayout = nullptr;
         /*auto byteCode = _vsBytecodes[shader->GetHash()];

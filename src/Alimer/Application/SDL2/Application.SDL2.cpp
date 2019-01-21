@@ -103,11 +103,7 @@ namespace alimer
     void Application::PlatformRun()
     {
         SDL_SetMainReady();
-        int result = SDL_Init(
-            SDL_INIT_VIDEO
-            | SDL_INIT_GAMECONTROLLER
-            | SDL_INIT_HAPTIC
-            | SDL_INIT_TIMER);
+        int result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER);
         if (result < 0)
         {
             SDL_ShowSimpleMessageBox(
@@ -143,7 +139,7 @@ namespace alimer
                 {
                     const SDL_MouseButtonEvent& mouseEvent = evt.button;
                     MouseButton button = ConvertMouseButton(mouseEvent.button);
-                    _input.MouseButtonEvent(button,
+                    _engine->GetInput().MouseButtonEvent(button,
                         static_cast<int32_t>(mouseEvent.x),
                         static_cast<int32_t>(mouseEvent.y),
                         mouseEvent.type == SDL_MOUSEBUTTONDOWN);
@@ -163,7 +159,7 @@ namespace alimer
                     else if (motionEvt.state &SDL_BUTTON(SDL_BUTTON_RIGHT))
                         button = MouseButton::Right;
 
-                    _input.MouseMoveEvent(button,
+                    _engine->GetInput().MouseMoveEvent(button,
                         static_cast<int32_t>(motionEvt.x),
                         static_cast<int32_t>(motionEvt.y));
                     //OnMouseMove(mx, my);
@@ -182,11 +178,6 @@ namespace alimer
         SDL_QuitSubSystem(SDL_INIT_EVERYTHING);
         SDL_Quit();
         _exitCode = EXIT_SUCCESS;
-    }
-
-    SharedPtr<Window> Application::CreateWindow(const String& title, uint32_t width, uint32_t height, WindowFlags flags)
-    {
-        return MakeShared<WindowSDL2>( title, width, height, flags);
     }
 }
 

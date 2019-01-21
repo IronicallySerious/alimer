@@ -29,8 +29,8 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    BufferD3D11::BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* initialData)
-        : _device(device)
+    BufferD3D11::BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* pInitData)
+        : Buffer(device, descriptor)
     {
         D3D11_BUFFER_DESC bufferDesc = {};
         bufferDesc.ByteWidth = static_cast<UINT>(descriptor->size);
@@ -81,10 +81,10 @@ namespace alimer
 
         D3D11_SUBRESOURCE_DATA initData;
         memset(&initData, 0, sizeof(initData));
-        initData.pSysMem = initialData;
+        initData.pSysMem = pInitData;
         HRESULT hr = device->GetD3DDevice()->CreateBuffer(
             &bufferDesc, 
-            initialData ? &initData : nullptr, &_handle);
+            pInitData != nullptr ? &initData : nullptr, &_handle);
         if (FAILED(hr))
         {
             ALIMER_LOGERROR("Failed to create D3D11 buffer");

@@ -23,7 +23,10 @@
 #include "../Application/Window.h"
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/SwapChain.h"
-#include "../Graphics/GPUDevice.h"
+#include "../Graphics/GraphicsDevice.h"
+#if ALIMER_SDL2
+#include "../Application/SDL2/WindowSDL2.h"
+#endif
 
 namespace alimer
 {
@@ -31,7 +34,14 @@ namespace alimer
         : _title(title)
         , _size(width, height)
         , _flags(flags)
+        , _impl(new WindowImpl(title, width, height, flags))
     {
+    }
+
+    Window::~Window()
+    {
+        delete _impl;
+        _impl = nullptr;
     }
 
     void Window::Show()
@@ -61,6 +71,22 @@ namespace alimer
     void Window::SetTitle(const String& newTitle)
     {
         _title = newTitle;
+        _impl->SetTitle(newTitle);
+    }
+
+    void Window::SetFullscreen(bool value)
+    {
+        _impl->SetFullscreen(value);
+    }
+
+    bool Window::IsVisible() const
+    {
+        return _impl->IsVisible();
+    }
+
+    bool Window::IsMinimized() const
+    {
+        return _impl->IsMinimized();
     }
 
     bool Window::IsFullscreen() const
@@ -78,13 +104,13 @@ namespace alimer
 
         _size.x = width;
         _size.y = height;
-        PlatformResize(width, height);
+        _impl->Resize(width, height);
         OnSizeChanged(_size);
     }
 
     void Window::OnSizeChanged(const uvec2& newSize)
     {
-        _swapChain.Resize(newSize.x, newSize.y);
+        //_swapChain.Resize(newSize.x, newSize.y);
         WindowResizeEvent evt;
         evt.size = _size;
         resizeEvent(evt);
@@ -92,12 +118,22 @@ namespace alimer
 
     void Window::SetCursorVisible(bool visible)
     {
+        _impl->SetCursorVisible(visible);
+    }
 
+    NativeHandle Window::GetNativeHandle() const
+    {
+        return _impl->GetNativeHandle();
+    }
+    
+    NativeDisplay Window::GetNativeDisplay() const
+    {
+        return _impl->GetNativeDisplay();
     }
 
     void Window::OnCreated()
     {
-        SwapChainDescriptor descriptor = {};
+        /*SwapChainDescriptor descriptor = {};
         descriptor.nativeConnection = _nativeConnection;
         descriptor.nativeWindow = _nativeWindow;
         descriptor.width = _size.x;
@@ -105,20 +141,15 @@ namespace alimer
         descriptor.sRGB = false;
         descriptor.preferredDepthStencilFormat = PixelFormat::D24UNormS8;
         descriptor.preferredSamples = SampleCount::Count1;
-        _swapChain.Define(&descriptor);
+        _swapChain.Define(&descriptor);*/
     }
 
     void Window::OnDestroyed()
     {
     }
 
-    Framebuffer* Window::GetCurrentFramebuffer() const
-    {
-        return _swapChain.GetCurrentFramebuffer();
-    }
-
     void Window::SwapBuffers()
     {
-        _swapChain.Present();
+        //_swapChain.Present();
     }
 }
