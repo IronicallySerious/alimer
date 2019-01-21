@@ -47,7 +47,6 @@
 #include <functional>
 
 #include  "../Serialization/Serializable.h"
-#include  "../Base/IntrusivePtr.h"
 
 namespace alimer
 {
@@ -65,6 +64,7 @@ namespace alimer
         static uint32_t ids;
     };
 
+#if TODO_ECS
     class BaseComponent;
     class ComponentStorage
     {
@@ -702,8 +702,11 @@ namespace alimer
         assert(IsValid());
         return _manager->GetComponent<T>(_id);
     }
+#endif // TODO_ECS
+
 }
 
+#if TODO_ECS
 namespace std
 {
     template <> struct hash<alimer::Entity>
@@ -720,3 +723,4 @@ namespace std
         }
     };
 }
+#endif 

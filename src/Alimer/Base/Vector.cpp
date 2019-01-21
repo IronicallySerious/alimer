@@ -21,7 +21,6 @@
 //
 
 #include "../Base/Vector.h"
-#include "../Debug/DebugNew.h"
 
 namespace alimer
 {

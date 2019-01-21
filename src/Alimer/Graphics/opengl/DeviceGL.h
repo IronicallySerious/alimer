@@ -23,12 +23,12 @@
 #pragma once
 
 #include "BackendGL.h"
-#include "Graphics/DeviceBackend.h"
+#include "../GraphicsDevice.h"
 
 namespace alimer
 {
     /// OpenGL graphics implementation.
-    class DeviceGL final : public DeviceBackend
+    class DeviceGL final : public GraphicsDevice
     {
     public:
         /// Is backend supported?
@@ -41,13 +41,12 @@ namespace alimer
         ~DeviceGL() override;
 
         bool WaitIdle() override;
-        void Tick() override;
 
-        GPUSwapChain* CreateSwapChain(const SwapChainDescriptor* descriptor) override;
-        GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData) override;
+        //GPUSwapChain* CreateSwapChain(const SwapChainDescriptor* descriptor) override;
+        //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData) override;
         //Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
         //Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
-        GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
+        //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
         //Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
 
     private:

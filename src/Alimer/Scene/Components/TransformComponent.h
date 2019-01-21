@@ -30,7 +30,7 @@
 namespace alimer
 {
 	/// Defines a Transform Component.
-    class ALIMER_API TransformComponent final : public Component<TransformComponent>
+    class ALIMER_API TransformComponent final //: public Component<TransformComponent>
 	{
         //ALIMER_OBJECT(TransformComponent, Component);
 
@@ -41,10 +41,10 @@ namespace alimer
         void UpdateWorldTransform(bool force = false);
 
         /// Set parent entity
-        void SetParent(Entity parent);
+        //void SetParent(Entity parent);
 
         /// Get all chidrens.
-        const std::vector<Entity>& GetChildren() const { return _children; }
+        //const std::vector<Entity>& GetChildren() const { return _children; }
 
         void SetDirty(bool dirty);
         bool IsDirty() const { return _dirty; }
@@ -62,13 +62,13 @@ namespace alimer
         const Transform& GetLocalTransform() const;
 
     private:
-        void AddChild(const Entity& child);
-        void RemoveChild(const Entity& child);
+        //void AddChild(const Entity& child);
+        //void RemoveChild(const Entity& child);
 
         /// Parent entity.
-        Entity _parent;
+        //Entity _parent;
         /// Children entitites.
-        std::vector<Entity> _children;
+        //std::vector<Entity> _children;
         /// Local transformation relative to the parent
         Transform _localTransform;
         /// Cached world transformation at pivot point.

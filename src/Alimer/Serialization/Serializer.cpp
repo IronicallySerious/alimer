@@ -32,7 +32,7 @@ namespace alimer
 
     void Serializer::Serialize(const char* key, const char* value)
     {
-        Serialize(key, std::string(value));
+        Serialize(key, String(value));
     }
 
     void Serializer::Serialize(const char* key, vec2& value)

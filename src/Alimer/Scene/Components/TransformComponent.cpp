@@ -24,12 +24,13 @@
 
 namespace alimer
 {
+#if TODO_ECS
     static bool CheckValidParent(const Entity& e, const Entity& parent)
     {
         if (e == parent)
             return false;
 
-        if (parent.IsValid() && !parent.HasComponent<TransformComponent>() )
+        if (parent.IsValid() && !parent.HasComponent<TransformComponent>())
             return false;
 
         if (e.IsValid())
@@ -49,6 +50,8 @@ namespace alimer
 
         return true;
     }
+#endif // TODO_ECS
+
 
     TransformComponent::~TransformComponent()
     {
@@ -59,6 +62,7 @@ namespace alimer
     {
         if (force || IsDirty())
         {
+#if TODO_ECS
             if (_parent.IsValid())
             {
                 auto parentTransform = _parent.GetComponent<TransformComponent>();
@@ -72,6 +76,8 @@ namespace alimer
                 }
             }
             else
+#endif // TODO_ECS
+
             {
                 _worldTransform = _localTransform;
             }
@@ -86,6 +92,7 @@ namespace alimer
 
         if (_dirty)
         {
+#if TODO_ECS
             for (const Entity& child : _children)
             {
                 if (child.IsValid())
@@ -97,9 +104,12 @@ namespace alimer
                     }
                 }
             }
+#endif // TODO_ECS
+
         }
     }
 
+#if TODO_ECS
     void TransformComponent::SetParent(Entity parent)
     {
         // Check if parent is valid.
@@ -143,7 +153,7 @@ namespace alimer
         }
         else
         {
-           SetLocalTransform(Transform::Identity);
+            SetLocalTransform(Transform::Identity);
         }
 
         SetDirty(IsDirty());
@@ -163,6 +173,8 @@ namespace alimer
             _children.end()
         );
     }
+#endif // TODO_ECS
+
 
     const Transform& TransformComponent::GetTransform()
     {
@@ -186,6 +198,7 @@ namespace alimer
         m.SetRotation(orientation);
         m.SetPosition(position);
 
+#if TODO_ECS
         if (_parent.IsValid())
         {
             auto parentTransform = _parent.GetComponent<TransformComponent>();
@@ -195,6 +208,8 @@ namespace alimer
                 //m = inverseParentTransform * m;
             }
         }
+#endif // TODO_ECS
+
 
         SetLocalTransform(m);
     }

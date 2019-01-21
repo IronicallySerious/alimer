@@ -21,7 +21,7 @@
 //
 
 #include "../Renderer/Mesh.h"
-#include "../Graphics/GPUDevice.h"
+#include "../Graphics/GraphicsDevice.h"
 
 namespace alimer
 {

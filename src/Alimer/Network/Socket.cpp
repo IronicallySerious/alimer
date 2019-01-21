@@ -22,7 +22,6 @@
 
 #include "../Network/Socket.h"
 #include "../Core/Log.h"
-#include "../Debug/DebugNew.h"
 
 #ifdef _WIN32
 #   ifndef NOMINMAX

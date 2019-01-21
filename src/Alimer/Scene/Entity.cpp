@@ -28,6 +28,7 @@ namespace alimer
     uint32_t ComponentIDMapping::ids;
 
     // ComponentStorage
+#if TODO_ECS
     ComponentStorage::ComponentStorage(std::size_t size)
     {
         Expand(size);
@@ -128,7 +129,7 @@ namespace alimer
     void EntityManager::Destroy(Entity::Id id)
     {
         AssertValid(id);
-        
+
         std::uint32_t index = id.index();
         auto mask = _entityComponentMask[index];
         for (size_t i = 0; i < _componentPools.size(); ++i)
@@ -243,4 +244,6 @@ namespace alimer
     {
         return _entityNames[id.id()];
     }
+#endif // TODO_ECS
+
 }

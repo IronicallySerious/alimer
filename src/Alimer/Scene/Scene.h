@@ -27,6 +27,7 @@
 
 namespace alimer
 {
+#if TODO_ECS
     enum class DrawPipeline : unsigned
     {
         Opaque,
@@ -59,6 +60,7 @@ namespace alimer
     {
         RenderableHandle renderable;
     };
+#endif // TODO_ECS
 
     /// Defines a scene, which is a container of SceneObject's.
     class ALIMER_API Scene final : public Serializable
@@ -67,25 +69,25 @@ namespace alimer
 
     public:
         /// Constructor.
-        explicit Scene(EntityManager& entities);
+        explicit Scene(/*EntityManager& entities*/);
 
         /// Destructor.
         ~Scene();
 
         /// Creates a new entity in the Scene.
-        Entity CreateEntity(const std::string& name);
+        //Entity CreateEntity(const std::string& name);
 
         /// Return the Entity containing the default camera.
-        Entity GetDefaultCamera() const { return _defaultCamera; }
+        //Entity GetDefaultCamera() const { return _defaultCamera; }
 
         /// Return the Entity containing the active camera.
-        Entity GetActiveCamera() const { return _activeCamera; }
+        //Entity GetActiveCamera() const { return _activeCamera; }
 
     private:
-        EntityManager& _entities;
+        //EntityManager& _entities;
         //ComponentManager<NameComponent> _names;
-        Entity _defaultCamera;
-        Entity _activeCamera;
+        //Entity _defaultCamera;
+        //Entity _activeCamera;
 
     private:
         DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);

@@ -29,7 +29,7 @@
 namespace alimer
 {
 	/// Defines a Camera Component class.
-    class ALIMER_API CameraComponent final : public Component<CameraComponent>
+    class ALIMER_API CameraComponent final //: public Component<CameraComponent>
 	{
         // ALIMER_OBJECT(CameraComponent, Component);
 

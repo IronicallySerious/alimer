@@ -236,9 +236,9 @@ namespace alimer
         _impl->SerializeString(key, value);
     }
 
-    void JsonSerializer::Serialize(const char* key, const std::string& value)
+    void JsonSerializer::Serialize(const char* key, const String& value)
     {
-        _impl->SerializeString(key, value.c_str());
+        _impl->SerializeString(key, value.CString());
     }
 
     void JsonSerializer::Serialize(const char* key, const float* values, uint32_t count)

@@ -141,6 +141,9 @@ namespace alimer
 		/// Return as string.
 		String ToString() const;
 
+        /// Return float data.
+        const float* Data() const { return &r; }
+
 		/// Black color.
 		static const Color4 Black;
 		static const Color4 White;

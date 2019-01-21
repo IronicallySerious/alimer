@@ -183,6 +183,10 @@ if (ALIMER_CSHARP)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_CSHARP)
 endif ()
 
+if (ALIMER_SDL2)
+    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_SDL2)
+endif ()
+
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_TOOLS)
 endif ()

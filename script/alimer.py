@@ -125,6 +125,8 @@ if __name__ == "__main__":
                         choices=['desktop', 'android', 'ios', 'web', 'uwp', 'all'])
     parser.add_argument('--buildSystem', help="Build system",
                         choices=['vs2017', 'ninja'])
+    parser.add_argument('-c', '--compiler', help="Build compiler",
+                        choices=['vc140', 'vc141', 'gcc7', 'gcc8', 'gcc9', 'clang6', 'clang7', 'clang9'])
     parser.add_argument(
         '--architecture', help="Build architecture", choices=['x64', 'x86', 'ARM'])
     parser.add_argument('--config', help="Build config",
@@ -179,6 +181,16 @@ if __name__ == "__main__":
     else:
         buildSystem = args.buildSystem
 
+    if args.compiler is None:
+        if buildSystem == "vs2017":
+            compiler = "vc141"
+        elif buildSystem == "vs2015":
+            compiler = "vc140"
+        else:
+            compiler = "gcc"
+    else:
+        compiler = args.compiler
+
     if args.architecture is None:
         if hostPlatform == "win":
             architecture = "x64"
@@ -193,17 +205,17 @@ if __name__ == "__main__":
     # Log some usefull info
     logVerbose('Host: {}'.format(hostPlatform))
     logVerbose('Platform: {}'.format(_platform))
+    if _platform == "desktop":
+        logVerbose('Compiler: {}'.format(compiler))
     logVerbose('Action: {}'.format(action))
     logInfo('Build System: {}-{}'.format(buildSystem, configuration))
 
     multiConfig = (buildSystem.find("vs") == 0)
     if _platform == "desktop":
-        buildFolderName = "%s-%s-%s" % (buildSystem,
-                                        hostPlatform, architecture)
-    elif _platform == "uwp":
-        buildFolderName = "%s-%s" % (buildSystem, _platform)
+        buildFolderName = "%s-%s-%s-%s" % (buildSystem,
+                                           hostPlatform, compiler, architecture)
     else:
-        buildFolderName = "cmake-%s-%s" % (_platform, buildSystem)
+        buildFolderName = "%s-%s" % (buildSystem, _platform)
     if not multiConfig:
         buildFolderName += "-%s" % configuration
 
@@ -217,8 +229,12 @@ if __name__ == "__main__":
     logVerbose('Executing {}'.format(action))
 
     if action == "build" or action == "generate":
-        logInfo('Generating build files {}-{}-{}'.format(buildSystem,
-                                                         hostPlatform, architecture))
+        if _platform == "desktop":
+            logInfo('Generating build files: {}-{}-{}-{}'.format(buildSystem,
+                                                                 hostPlatform, compiler, architecture))
+        else:
+            logInfo('Generating build files: {}-{}-{}'.format(buildSystem,
+                                                              _platform, configuration))
 
         parallel = multiprocessing.cpu_count()
         batCmd = BatchCommand(hostPlatform)
@@ -249,12 +265,27 @@ if __name__ == "__main__":
                 emscriptenSDKDir = os.environ.get('EMSCRIPTEN')
                 emscriptenToolchain = os.path.join(
                     emscriptenSDKDir, "cmake/Modules/Platform/Emscripten.cmake")
-                emscriptenInstallPrefix = "Alimer-SDK-Web"
+                emscriptenInstallPrefix = "alimer-sdk-Web"
                 batCmd.AddCommand("cmake -G \"Ninja\" -DCMAKE_TOOLCHAIN_FILE=\"%s\" -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" %
                                   (emscriptenToolchain, configuration, emscriptenInstallPrefix))
+
+                # Generate files to run servers
+                _batchFileExt = "sh"
+                if "win" == hostPlatform:
+                    _batchFileExt = "bat"
+
+                # Python 2
+                serverFile = open("bin/python_server." + _batchFileExt, "w")
+                serverFile.writelines("python -m SimpleHTTPServer")
+                serverFile.close()
+
+                # Python 3
+                serverFile = open("bin/python_server3." + _batchFileExt, "w")
+                serverFile.writelines("python -m http.server")
+                serverFile.close()
             elif _platform == "android":
                 androidNDKDir = os.environ.get('ANDROID_NDK')
-                androidInstallPrefix = "Alimer-SDK-Android"
+                androidInstallPrefix = "alimer-sdk-Android"
                 batCmd.AddCommand("cmake -G \"Ninja\" -DANDROID_NDK=\"%s\" -DCMAKE_SYSTEM_NAME=Android -DCMAKE_SYSTEM_VERSION=21 -DCMAKE_ANDROID_ARCH_ABI=armeabi-v7a -DCMAKE_ANDROID_NDK_TOOLCHAIN_VERSION=clang -DCMAKE_ANDROID_STL_TYPE=c++_static -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" % (androidNDKDir, configuration, androidInstallPrefix))
 
             if action == "build":
@@ -279,6 +310,11 @@ if __name__ == "__main__":
     # Restore original directory
     os.chdir(originalDir)
     if action == "clean":
-        logInfo('Clean {}-{}-{}'.format(buildSystem, hostPlatform, architecture))
+        if _platform == "desktop":
+            logInfo('Clean: {}-{}-{}-{}'.format(buildSystem,
+                                                hostPlatform, compiler, architecture))
+        else:
+            logInfo('Clean: {}-{}-{}'.format(buildSystem,
+                                             _platform, configuration))
         shutil.rmtree(buildDir)
         logInfo("  deleted '{}'".format(buildDir))

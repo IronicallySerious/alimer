@@ -38,7 +38,7 @@ namespace alimer
     }
 
     DeviceGL::DeviceGL(bool validation)
-        : DeviceBackend(GraphicsBackend::OpenGL, validation)
+        : GraphicsDevice(GraphicsBackend::OpenGL, validation)
     {
         InitializeCaps();
 
@@ -55,11 +55,6 @@ namespace alimer
         return true;
     }
 
-    void DeviceGL::Tick()
-    {
-
-    }
-
     void DeviceGL::InitializeCaps()
     {
         //_features.SetVendorId(desc.VendorId);
@@ -72,7 +67,7 @@ namespace alimer
         _limits.minUniformBufferOffsetAlignment = 16;
     }
 
-    GPUSwapChain* DeviceGL::CreateSwapChain(const SwapChainDescriptor* descriptor)
+    /*GPUSwapChain* DeviceGL::CreateSwapChain(const SwapChainDescriptor* descriptor)
     {
         return nullptr;
     }
@@ -82,7 +77,7 @@ namespace alimer
         return nullptr;
     }
 
-    /*Framebuffer* DeviceGL::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
+    Framebuffer* DeviceGL::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
     {
         return nullptr;
     }
@@ -90,14 +85,14 @@ namespace alimer
     Buffer* DeviceGL::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
     {
         return nullptr;
-    }*/
+    }
 
     GPUSampler* DeviceGL::CreateSampler(const SamplerDescriptor* descriptor)
     {
         return nullptr;
     }
 
-    /*Shader* DeviceGL::CreateShaderImpl(const ShaderDescriptor* descriptor)
+    Shader* DeviceGL::CreateShaderImpl(const ShaderDescriptor* descriptor)
     {
         return nullptr;
     }*/

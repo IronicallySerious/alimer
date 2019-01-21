@@ -181,7 +181,7 @@ namespace alimer
         _BitScanReverse(&index, value);
         return (uint32_t)index;
 #else
-        return (a > 0) ? ((uint32_t)__builtin_ctz(value)) : 0;
+        return (value > 0) ? ((uint32_t)__builtin_ctz(value)) : 0;
 #endif
     }
 

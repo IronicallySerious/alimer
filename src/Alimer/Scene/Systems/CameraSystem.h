@@ -24,15 +24,18 @@
 
 #include "../../Application/GameSystem.h"
 
+#if TODO_ECS
 namespace alimer
 {
-	/// System that manages updates of any camera components
+    /// System that manages updates of any camera components
     /// which are attached to entities that also have a transform.
     class ALIMER_API CameraSystem final : public GameSystem
-	{
+    {
     public:
         CameraSystem() = default;
 
         void Update(EntityManager &entities, double deltaTime) override;
-	};
+    };
 }
+#endif // TODO_ECS
+

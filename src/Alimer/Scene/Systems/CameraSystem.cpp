@@ -21,6 +21,7 @@
 //
 
 #include "../Systems/CameraSystem.h"
+#if TODO_ECS
 #include "../Components/TransformComponent.h"
 #include "../Components/CameraComponent.h"
 
@@ -32,8 +33,10 @@ namespace alimer
 
         entities.Each<TransformComponent, CameraComponent>(
             [](Entity e, TransformComponent& transform, CameraComponent& camera) {
-            ALIMER_UNUSED(e);
-            camera.Update(transform.GetTransform());
-        });
+                ALIMER_UNUSED(e);
+                camera.Update(transform.GetTransform());
+            });
     }
 }
+
+#endif // TODO_ECS

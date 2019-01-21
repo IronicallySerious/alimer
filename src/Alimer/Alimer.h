@@ -26,7 +26,6 @@
 #include "Base/Ptr.h"
 #include "Base/String.h"
 #include "Base/StringHash.h"
-#include "Base/Containers.h"
 
 // Debug
 #include "Debug/Debug.h"
@@ -54,7 +53,7 @@
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
-#include "Graphics/GPUDevice.h"
+#include "Graphics/GraphicsDevice.h"
 
 // Resource
 #include "Resource/Resource.h"

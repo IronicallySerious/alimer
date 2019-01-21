@@ -53,7 +53,7 @@ namespace alimer
 
         virtual void Serialize(const char* key, char value) = 0;
         virtual void Serialize(const char* key, const char* value);
-        virtual void Serialize(const char* key, const std::string& value) = 0;
+        virtual void Serialize(const char* key, const String& value) = 0;
 
         virtual void Serialize(const char* key, vec2& value);
         virtual void Serialize(const char* key, vec3& value);
@@ -68,7 +68,7 @@ namespace alimer
         template<typename ENUM, typename = typename std::enable_if<std::is_enum<ENUM>::value>::type>
         void Serialize(const char* key, ENUM value)
         {
-            std::string valueStr = str::ToString(value);
+            String valueStr = EnumToString(value);
             Serialize(key, valueStr);
         }
 
@@ -96,7 +96,7 @@ namespace alimer
 
         /// Map serialization.
         template<typename T>
-        void Serialize(const char* key, std::map<std::string, T> type)
+        void Serialize(const char* key, std::map<String, T> type)
         {
             BeginObject(key, false);
             for (const auto& pair : type)

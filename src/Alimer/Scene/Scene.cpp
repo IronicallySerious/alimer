@@ -27,26 +27,25 @@
 
 namespace alimer
 {
-    Scene::Scene(EntityManager& entities)
-        : _entities(entities)
+    Scene::Scene()
     {
-        _defaultCamera = CreateEntity("Default Camera");
+        /*_defaultCamera = CreateEntity("Default Camera");
         _defaultCamera.Assign<TransformComponent>();
         _defaultCamera.Assign<CameraComponent>();
         ALIMER_ASSERT(_defaultCamera.HasComponent<TransformComponent>());
         ALIMER_ASSERT(_defaultCamera.HasComponent<CameraComponent>());
         //_defaultCamera->AddComponent<AudioListener>();
-        _activeCamera = _defaultCamera;
+        _activeCamera = _defaultCamera;*/
     }
 
     Scene::~Scene()
     {
     }
 
-    Entity Scene::CreateEntity(const std::string& name)
+    /*Entity Scene::CreateEntity(const std::string& name)
     {
         Entity entity = _entities.Create();
         entity.SetName(name);
         return entity;
-    }
+    }*/
 }
