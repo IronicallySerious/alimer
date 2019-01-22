@@ -68,7 +68,7 @@ namespace alimer
             while (conn != nullptr)
             {
                 BaseConnectionData* next = conn->next;
-                SafeDelete(conn);
+                delete conn;
 
                 conn = next;
             }
@@ -77,8 +77,7 @@ namespace alimer
             while (conn != nullptr)
             {
                 BaseConnectionData* next = conn->next;
-                SafeDelete(conn);
-
+                delete conn;
                 conn = next;
             }
 
@@ -86,7 +85,7 @@ namespace alimer
             while (conn != nullptr)
             {
                 BaseConnectionData* next = conn->next;
-                SafeDelete(conn);
+                delete conn;
 
                 conn = next;
             }

@@ -176,7 +176,8 @@ namespace alimer
 
     JsonSerializer::~JsonSerializer()
     {
-        SafeDelete(_impl);
+        delete _impl;
+        _impl = nullptr;
     }
 
     void JsonSerializer::Serialize(const char* key, bool value)

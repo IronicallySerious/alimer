@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <foundation/foundation.h>
 #include "../Base/String.h"
 
 namespace alimer

@@ -44,6 +44,7 @@ namespace alimer
         /// Register Scene related object factories and attributes.
         static void Register();
 
-        DISALLOW_COPY_MOVE_AND_ASSIGN(SceneManager);
+        SceneManager(const SceneManager&) = delete;
+        SceneManager& operator=(const SceneManager&) = delete;
     };
 }

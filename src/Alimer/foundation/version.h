@@ -22,46 +22,15 @@
 
 #pragma once
 
-#include "../Core/Object.h"
+#define ALIMER_MAKE_VERSION(major, minor, patch) (((major) << 22) | ((minor) << 12) | (patch))
+#define ALIMER_VERSION_GET_MAJOR(version) ((unsigned)(version) >> 22)
+#define ALIMER_VERSION_GET_MINOR(version) (((unsigned)(version) >> 12) & 0x3ff)
+#define ALIMER_VERSION_GET_PATCH(version) ((unsigned)(version) & 0xfff)
 
-namespace alimer
-{
-	class Stream;
-
-	/// Runtime resource loader class.
-	class ResourceLoader : public Object
-	{
-        ALIMER_OBJECT(ResourceLoader, Object);
-
-	protected:
-		/// Constructor.
-		ResourceLoader();
-
-	public:
-		/// Destructor.
-		virtual ~ResourceLoader() = default;
-
-        /// Get
-        virtual bool CanLoad(const String& extension) const {
-            ALIMER_UNUSED(extension);
-            return false;
-        }
-
-		/// Load the resource synchronously from a binary stream. Return instance on success.
-		SharedPtr<Object> Load(Stream& source);
-
-        /// Get the type being loaded.
-        virtual StringHash GetLoadingType() const = 0;
-
-	protected:
-		virtual bool BeginLoad(Stream& source) = 0;
-		virtual Object* EndLoad() = 0;
-
-        /// File being loaded.
-        String _fileName;
-
-	private:
-        ResourceLoader(const ResourceLoader&) = delete;
-        ResourceLoader& operator=(const ResourceLoader&) = delete;
-	};
-}
+#define ALIMER_VERSION_MAJOR   0
+#define ALIMER_VERSION_MINOR   1
+#define ALIMER_VERSION_PATCH   0
+#define ALIMER_VERSION         ALIMER_MAKE_VERSION(0, 1, 0)
+#define ALIMER_VERSION_STR     "0.1.0"
+#define ALIMER_GIT_BRANCH "master"
+#define ALIMER_GIT_COMMIT_HASH "fc7b201"

@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <foundation/foundation.h>
 #include "../Base/Swap.h"
 #include "../Base/Vector.h"
 #include <cassert>

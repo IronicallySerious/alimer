@@ -58,6 +58,7 @@ namespace alimer
         std::vector<UniquePtr<Plugin>> _plugins;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(PluginManager);
+        PluginManager(const PluginManager&) = delete;
+        PluginManager& operator=(const PluginManager&) = delete;
     };
 }

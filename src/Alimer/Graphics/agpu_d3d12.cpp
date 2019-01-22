@@ -83,7 +83,7 @@ namespace d3d12
 #define DXCall(hr) \
     do \
     { \
-        ALIMER_ASSERT_MSG(SUCCEEDED(hr), alimer::GetDXErrorStringAnsi(hr).c_str()); \
+        ALIMER_ASSERT_MSG(SUCCEEDED(hr), alimer::GetDXErrorStringAnsi(hr).CString()); \
     } \
     while(0)
 #else

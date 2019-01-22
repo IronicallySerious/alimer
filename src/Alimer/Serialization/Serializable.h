@@ -52,6 +52,7 @@ namespace alimer
     protected:
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Serializable);
+        Serializable(const Serializable&) = delete; 
+        Serializable& operator=(const Serializable&) = delete;
     };
 }

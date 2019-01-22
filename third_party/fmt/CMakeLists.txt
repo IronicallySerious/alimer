@@ -45,7 +45,7 @@ target_include_directories(fmt PUBLIC
     $<INSTALL_INTERFACE:${DEST_THIRDPARTY_HEADERS_DIR}>
 )
 
-if (ALIMER_SHARED)
+if (ALIMER_BUILD_SHARED)
     target_compile_definitions(fmt PUBLIC -DFMT_SHARED PRIVATE -DFMT_EXPORT)
 endif ()
 

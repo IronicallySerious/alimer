@@ -62,8 +62,5 @@ namespace alimer
         WeakPtr<GraphicsDevice> _graphicsDevice;
 
         Type _resourceType;
-
-	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(GPUResource);
 	};
 }

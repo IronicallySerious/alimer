@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <foundation/cpp_macros.h>
 #include "../Base/String.h"
 #include "../Base/Ptr.h"
 #include "../Core/Platform.h"
@@ -132,6 +133,7 @@ namespace alimer
         std::unordered_map<String, UniquePtr<FileSystemProtocol>> _protocols;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(FileSystem);
+        FileSystem(const FileSystem&) = delete;
+        FileSystem& operator=(const FileSystem&) = delete;
     };
 }

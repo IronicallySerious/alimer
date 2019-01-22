@@ -25,11 +25,7 @@
 #include "../Core/Log.h"
 
 #if defined(_WIN32)
-#ifndef NOMINMAX
-#   define NOMINMAX
-#endif
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <foundation/windows.h>
 
 static const DWORD MS_VC_EXCEPTION = 0x406D1388;
 #pragma pack(push,8)
@@ -306,10 +302,10 @@ namespace alimer
     }
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-    std::wstring GetWin32ErrorString(unsigned long errorCode)
+    String GetWin32ErrorString(unsigned long errorCode)
     {
-        wchar_t errorString[MAX_PATH];
-        ::FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM,
+        CHAR errorString[MAX_PATH];
+        ::FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM,
             0,
             errorCode,
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
@@ -317,8 +313,8 @@ namespace alimer
             MAX_PATH,
             NULL);
 
-        std::wstring message = L"Win32 Error: ";
-        message += errorString;
+        String message = "Win32 Error: ";
+        message += String(errorString);
         return message;
     }
 
@@ -443,25 +439,21 @@ namespace alimer
 #undef CHK_ERRA
     }
 
-    std::wstring GetDXErrorString(long hr)
+    WString GetDXErrorString(long hr)
     {
         const uint32_t errStringSize = 1024;
         wchar_t errorString[errStringSize];
         DXGetErrorDescriptionW(hr, errorString, errStringSize);
 
-        std::wstring message = L"DirectX Error: ";
-        message += errorString;
-        return message;
+        String message = "DirectX Error: ";
+        message += String(errorString);
+        return WString(message);
     }
 
-    std::string GetDXErrorStringAnsi(long hr)
+    String GetDXErrorStringAnsi(long hr)
     {
-        std::wstring errorString = GetDXErrorString(hr);
-
-        std::string message;
-        for (size_t i = 0; i < errorString.length(); ++i)
-            message.append(1, static_cast<char>(errorString[i]));
-        return message;
+       WString errorString = GetDXErrorString(hr);
+       return String(errorString);
     }
 #endif
 }

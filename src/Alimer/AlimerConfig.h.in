@@ -22,31 +22,7 @@
 
 #pragma once
 
-#include "PlatformDef.h"
-
-#define ALIMER_VERSION_MAJOR @PRODUCT_VERSION_MAJOR@
-#define ALIMER_VERSION_MINOR @PRODUCT_VERSION_MINOR@
-#define ALIMER_VERSION_PATCH @PRODUCT_VERSION_REVISION@
-#define ALIMER_VERSION_STR   "@PRODUCT_VERSION_MAJOR@.@PRODUCT_VERSION_MINOR@.@PRODUCT_VERSION_REVISION@"
-#define ALIMER_BRANCH "@GIT_BRANCH@"
-#define ALIMER_COMMIT_HASH "@GIT_COMMIT_HASH@"
-
-#ifdef _MSC_VER
-#pragma warning(disable: 4251)
-#pragma warning(disable: 4275)
-#endif
-
-#if defined(_MSC_VER) && defined(ALIMER_EXPORTS)
-#   define ALIMER_API __declspec(dllexport)
-#elif defined(_MSC_VER) && defined(ALIMER_IMPORTS)
-#   define ALIMER_API __declspec(dllimport)
-#else
-#   define ALIMER_API
-#endif
-
-#ifndef ALIMER_API
-#   define ALIMER_API 0
-#endif
+#include <foundation/foundation.h>
 
 // Alimer build configuration
 #cmakedefine ALIMER_PROFILING

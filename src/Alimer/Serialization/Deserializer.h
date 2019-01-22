@@ -39,6 +39,7 @@ namespace alimer
 		virtual ~Deserializer();
 
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Deserializer);
+        Deserializer(const Deserializer&) = delete;
+        Deserializer& operator=(const Deserializer&) = delete;
 	};
 }

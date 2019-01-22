@@ -57,7 +57,7 @@ namespace alimer
 
         constexpr ColorBGRA(uint32_t packedValue_) : packedValue(packedValue_) {}
         //ColorBGRA(float _r, float _g, float _b, float _a);
-        //explicit ColorBGRA(_In_reads_(4) const float *pArray);
+        //explicit ColorBGRA(const float *pArray);
 
         operator uint32_t () const { return packedValue; }
 
@@ -89,9 +89,9 @@ namespace alimer
 
         constexpr ColorRGBA(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_) : r(r_), g(g_), b(b_), a(a_) {}
         explicit constexpr ColorRGBA(uint32_t packedValue_) : packedValue(packedValue_) {}
-        explicit ColorRGBA(_In_reads_(4) const uint8_t *pArray) : r(pArray[0]), g(pArray[1]), b(pArray[2]), a(pArray[3]) {}
+        explicit ColorRGBA(const uint8_t *pArray) : r(pArray[0]), g(pArray[1]), b(pArray[2]), a(pArray[3]) {}
         //ColorRGBA(float _x, float _y, float _z, float _w);
-        //explicit ColorRGBA(_In_reads_(4) const float *pArray);
+        //explicit ColorRGBA(const float *pArray);
 
         ColorRGBA& operator= (uint32_t packedValue_) { packedValue  = packedValue_; return *this; }
     };

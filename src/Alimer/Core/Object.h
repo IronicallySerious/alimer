@@ -59,8 +59,6 @@ namespace alimer
         String _typeName;
         /// Base class type info.
         const TypeInfo* _baseTypeInfo;
-
-        DISALLOW_COPY_MOVE_AND_ASSIGN(TypeInfo);
     };
 
     class ObjectFactory;

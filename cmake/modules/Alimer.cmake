@@ -230,7 +230,7 @@ function(alimer_setup_common_properties target)
 endfunction()
 
 function(add_alimer_library target)
-    if (ALIMER_SHARED)
+    if (ALIMER_BUILD_SHARED)
         add_library(${target} SHARED ${ARGN})
         set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     else()

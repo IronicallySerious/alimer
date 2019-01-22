@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include "AlimerConfig.h"
-#include <string>
+#include "../Base/String.h"
 
 namespace alimer
 {
@@ -125,8 +124,8 @@ namespace alimer
     ALIMER_API void Sleep(uint32_t milliseconds);
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-    ALIMER_API std::wstring GetWin32ErrorString(unsigned long errorCode);
-    ALIMER_API std::wstring GetDXErrorString(long hr);
-    ALIMER_API std::string GetDXErrorStringAnsi(long hr);
+    ALIMER_API String GetWin32ErrorString(unsigned long errorCode);
+    ALIMER_API WString GetDXErrorString(long hr);
+    ALIMER_API String GetDXErrorStringAnsi(long hr);
 #endif
 }

@@ -35,19 +35,17 @@ namespace alimer
 // Block read - if your platform needs to do endian-swapping or can only
 // handle aligned reads, do the conversion here
 
-    ALIMER_FORCE_INLINE uint32_t getblock(const uint32_t * p, int i)
+    ALIMER_FORCEINLINE uint32_t getblock(const uint32_t * p, int i)
     {
         return p[i];
     }
 
-    ALIMER_FORCE_INLINE uint64_t getblock(const uint64_t * p, int i)
+    ALIMER_FORCEINLINE uint64_t getblock(const uint64_t * p, int i)
     {
         return p[i];
     }
 
-    //----------
-
-    static ALIMER_FORCE_INLINE uint64_t fmix64(uint64_t k)
+    static ALIMER_FORCEINLINE uint64_t fmix64(uint64_t k)
     {
         k ^= k >> 33;
         k *= 0xff51afd7ed558ccdULL;

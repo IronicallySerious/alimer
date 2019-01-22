@@ -75,7 +75,5 @@ namespace alimer
         bool _initialized = false;
         float _masterVolume = 1.0f;
         bool _paused = false;
-
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Audio);
 	};
 }

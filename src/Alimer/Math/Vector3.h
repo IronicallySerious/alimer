@@ -42,7 +42,7 @@ namespace alimer
         IntVector3()  noexcept : x(0), y(0), z(0) {}
         constexpr explicit IntVector3(int value) : x(value), y(value),z(value) {}
         constexpr IntVector3(int x_, int y_, int z_) : x(x_), y(y_), z(z_) {}
-        explicit IntVector3(_In_reads_(4) const int *pArray) : x(pArray[0]), y(pArray[1]), z(pArray[2]) {}
+        explicit IntVector3(const int *pArray) : x(pArray[0]), y(pArray[1]), z(pArray[2]) {}
 
         IntVector3(const IntVector3&) = default;
         IntVector3& operator=(const IntVector3&) = default;

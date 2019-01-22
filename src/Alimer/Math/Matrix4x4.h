@@ -24,8 +24,7 @@
 
 #include "AlimerConfig.h"
 #include "../Base/String.h"
-#include "../Math/Math.h"
-#include "../Math/MathUtil.h"
+#include "../Math/Vector4.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -104,7 +103,7 @@ namespace alimer
         }
 
         /// Construct from values.
-        explicit Matrix4x4(const vec3& row0, const vec3& row1, const vec3& row2)
+        explicit Matrix4x4(const Vector3& row0, const Vector3& row1, const Vector3& row2)
             : m11(row0.x), m12(row0.y), m13(row0.z), m14(0.0f)
             , m21(row1.x), m22(row1.y), m23(row1.z), m24(0.0f)
             , m31(row2.x), m32(row2.y), m33(row2.z), m34(0.0f)
@@ -114,10 +113,10 @@ namespace alimer
 
         /// Construct from values.
         explicit Matrix4x4(
-            const vec4& row0,
-            const vec4& row1,
-            const vec4& row2,
-            const vec4& row3)
+            const Vector4& row0,
+            const Vector4& row1,
+            const Vector4& row2,
+            const Vector4& row3)
             : m11(row0.x), m12(row0.y), m13(row0.z), m14(row0.w)
             , m21(row1.x), m22(row1.y), m23(row1.z), m24(row1.w)
             , m31(row2.x), m32(row2.y), m33(row2.z), m34(row2.w)
@@ -127,7 +126,7 @@ namespace alimer
         }
 
         /// Construct from float values.
-        explicit Matrix4x4(_In_reads_(16) const float *data) noexcept
+        explicit Matrix4x4(const float *data) noexcept
             : m11(data[0]), m12(data[1]), m13(data[2]), m14(data[3])
             , m21(data[4]), m22(data[5]), m23(data[6]), m24(data[7])
             , m31(data[8]), m32(data[9]), m33(data[10]), m34(data[11])
@@ -171,9 +170,9 @@ namespace alimer
         bool operator != (const Matrix4x4& rhs) const { return !(*this == rhs); }
 
         /// Multiply a Vector3 which is assumed to represent position.
-        vec3 operator *(const vec3& rhs) const
+        Vector3 operator *(const Vector3& rhs) const
         {
-#ifdef ALIMER_SSE2
+#if ALIMER_ARCH_SSE2
             __m128 vec = _mm_set_ps(1.f, rhs.z, rhs.y, rhs.x);
             __m128 r0 = _mm_mul_ps(_mm_loadu_ps(&m11), vec);
             __m128 r1 = _mm_mul_ps(_mm_loadu_ps(&m21), vec);
@@ -187,7 +186,7 @@ namespace alimer
             t2 = _mm_add_ps(t2, t3);
             vec = _mm_add_ps(_mm_movelh_ps(t0, t2), _mm_movehl_ps(t2, t0));
             vec = _mm_div_ps(vec, _mm_shuffle_ps(vec, vec, _MM_SHUFFLE(3, 3, 3, 3)));
-            return vec3(
+            return Vector3(
                 _mm_cvtss_f32(vec),
                 _mm_cvtss_f32(_mm_shuffle_ps(vec, vec, _MM_SHUFFLE(1, 1, 1, 1))),
                 _mm_cvtss_f32(_mm_movehl_ps(vec, vec)));
@@ -203,9 +202,9 @@ namespace alimer
         }
 
         /// Multiply a Vector4.
-        vec4 operator *(const vec4& rhs) const
+        Vector4 operator *(const Vector4& rhs) const
         {
-#ifdef ALIMER_SSE2
+#if ALIMER_ARCH_SSE2
             __m128 vec = _mm_loadu_ps(&rhs.x);
             __m128 r0 = _mm_mul_ps(_mm_loadu_ps(&m11), vec);
             __m128 r1 = _mm_mul_ps(_mm_loadu_ps(&m21), vec);
@@ -219,7 +218,7 @@ namespace alimer
             t2 = _mm_add_ps(t2, t3);
             vec = _mm_add_ps(_mm_movelh_ps(t0, t2), _mm_movehl_ps(t2, t0));
 
-            vec4 ret;
+            Vector4 ret;
             _mm_storeu_ps(&ret.x, vec);
             return ret;
 #else
@@ -235,7 +234,7 @@ namespace alimer
         /// Add a matrix.
         Matrix4x4 operator +(const Matrix4x4& rhs) const
         {
-#ifdef ALIMER_SSE2
+#if ALIMER_ARCH_SSE2
             Matrix4x4 result;
             _mm_storeu_ps(&result.m11, _mm_add_ps(_mm_loadu_ps(&m11), _mm_loadu_ps(&rhs.m11)));
             _mm_storeu_ps(&result.m21, _mm_add_ps(_mm_loadu_ps(&m21), _mm_loadu_ps(&rhs.m21)));
@@ -267,7 +266,7 @@ namespace alimer
         /// Subtract a matrix.
         Matrix4x4 operator -(const Matrix4x4& rhs) const
         {
-#ifdef ALIMER_SSE2
+#if ALIMER_ARCH_SSE2
             Matrix4x4 result;
             _mm_storeu_ps(&result.m11, _mm_sub_ps(_mm_loadu_ps(&m11), _mm_loadu_ps(&rhs.m11)));
             _mm_storeu_ps(&result.m21, _mm_sub_ps(_mm_loadu_ps(&m21), _mm_loadu_ps(&rhs.m21)));
@@ -299,7 +298,7 @@ namespace alimer
         /// Multiply with a scalar.
         Matrix4x4 operator *(float rhs) const
         {
-#ifdef ALIMER_SSE2
+#if ALIMER_ARCH_SSE2
             const __m128 mul = _mm_set1_ps(rhs);
             Matrix4x4 result;
             _mm_storeu_ps(&result.m11, _mm_mul_ps(_mm_loadu_ps(&m11), mul));
@@ -332,7 +331,7 @@ namespace alimer
         /// Multiply a matrix.
         Matrix4x4 operator *(const Matrix4x4& rhs) const
         {
-#ifdef ALIMER_SSE2
+#if ALIMER_ARCH_SSE2
             Matrix4x4 result;
 
             __m128 r0 = _mm_loadu_ps(&rhs.m11);
@@ -400,7 +399,7 @@ namespace alimer
         */
         void SetZero();
 
-        void Decompose(vec3 &scale, quat &rotation, vec3 &trans);
+        //void Decompose(vec3 &scale, quat &rotation, vec3 &trans);
 
         /// Return float data.
         const float* Data() const { return &m11; }
@@ -409,14 +408,14 @@ namespace alimer
         float Element(uint32_t row, uint32_t column) const { return data[row][column]; }
 
         /// Return matrix row.
-        vec4 Row(uint32_t row) const { return vec4(data[row][0], data[row][1], data[row][2], data[row][3]); }
+        Vector4 Row(uint32_t row) const { return Vector4(data[row][0], data[row][1], data[row][2], data[row][3]); }
 
         /// Return matrix column.
-        vec4 Column(uint32_t column) const { return vec4(data[0][column], data[1][column], data[2][column], data[3][column]); }
+        Vector4 Column(uint32_t column) const { return Vector4(data[0][column], data[1][column], data[2][column], data[3][column]); }
 
         // Properties
-        vec3 Translation() const { return vec3(m14, m24, m34); }
-        void SetTranslation(const vec3& translation)
+        Vector3 Translation() const { return Vector3(m14, m24, m34); }
+        void SetTranslation(const Vector3& translation)
         {
             m14 = translation.x;
             m24 = translation.y;
@@ -424,9 +423,9 @@ namespace alimer
         }
 
         /// Return the scaling part.
-        vec3 Scale() const
+        Vector3 Scale() const
         {
-            return vec3(
+            return Vector3(
                 sqrtf(m11 * m11 + m21 * m21 + m31 * m31),
                 sqrtf(m12 * m12 + m22 * m22 + m32 * m32),
                 sqrtf(m13 * m13 + m23 * m23 + m33 * m33)
@@ -434,7 +433,7 @@ namespace alimer
         }
 
         /// Set scaling elements.
-        void SetScale(const vec3& scale)
+        void SetScale(const Vector3& scale)
         {
             m11 = scale.x;
             m22 = scale.y;
@@ -457,7 +456,7 @@ namespace alimer
 
         Matrix4x4 Inverse() const;
 
-        static Matrix4x4 CreateLookAt(const vec3 &eye, const vec3 &target, const vec3 &up);
+        //static Matrix4x4 CreateLookAt(const Vector3 &eye, const Vector3 &target, const Vector3 &up);
 
         static Matrix4x4 CreatePerspectiveFieldOfView(float fieldOfView, float aspectRatio, float nearPlaneDistance, float farPlaneDistance);
 

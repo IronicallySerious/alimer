@@ -80,7 +80,7 @@ namespace alimer
     static bool KeyModifiersMatch(uint32_t slot, KeyModifiers modifiers, KeyModifiers stateModifiers)
     {
         // TODO: better enum handle
-        const bool areModifiersActive = (ecast(modifiers) & ecast(stateModifiers)) == ecast(modifiers);
+        const bool areModifiersActive = (static_cast<uint8_t>(modifiers) & static_cast<uint8_t>(stateModifiers)) == static_cast<uint8_t>(modifiers);
         const bool areOnlyModifiersActive = modifiers == stateModifiers;
         return IsModifierOnlyButton(slot) ? areModifiersActive : areOnlyModifiersActive;
     }

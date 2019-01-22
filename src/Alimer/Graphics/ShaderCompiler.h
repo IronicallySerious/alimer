@@ -61,8 +61,6 @@ namespace alimer
 
     private:
         std::string _errorMessage;
-
-        DISALLOW_COPY_MOVE_AND_ASSIGN(ShaderCompiler);
     };
 }
 

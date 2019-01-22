@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <foundation/foundation.h>
 #include "../Base/String.h"
 
 #if defined(__CYGWIN32__)
@@ -65,7 +66,10 @@ namespace alimer
         virtual void Shutdown() {}
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Plugin);
+        Plugin(const Plugin&) = delete;
+        Plugin& operator=(const Plugin&) = delete;
+        Plugin(const Plugin&&) = delete;
+        Plugin& operator=(const Plugin&&) = delete;
     };
 
 }

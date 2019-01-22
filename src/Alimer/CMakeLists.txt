@@ -42,7 +42,7 @@ macro (define_engine_source_files)
 		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
 
 		# Get source files
-		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.cpp)
+		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.c ${path}/*.cpp)
 		list (APPEND SOURCE_FILES ${_files})
 	endforeach ()
 endmacro()
@@ -62,11 +62,12 @@ endmacro()
 set (TARGET_NAME Alimer)
 
 # Generate the AlimerConfig.h file
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/foundation/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/foundation/version.h)
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h)
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer)
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . Base Core Debug IO Math Graphics Input Audio Application)
+define_engine_source_files (NORECURSE . foundation Base Core Debug IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
 define_engine_source_files (NORECURSE UI)
 
@@ -171,12 +172,15 @@ foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     endif ()
 endforeach()
 
+target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_COMPILE)
 target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
 
-if (ALIMER_SHARED OR ALIMER_CSHARP OR EMSCRIPTEN)
-	target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_EXPORTS INTERFACE -DALIMER_IMPORTS)
-else ()
-    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_STATIC)
+if (ALIMER_BUILD_SHARED OR ALIMER_CSHARP OR EMSCRIPTEN)
+	target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_SHARED_LIBRARY)
+endif ()
+
+if (ALIMER_SHARED OR ANDROID)
+    set_target_properties(${TARGET_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif ()
 
 if (ALIMER_CSHARP)

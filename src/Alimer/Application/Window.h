@@ -22,12 +22,12 @@
 
 #pragma once
 
+#include <foundation/cpp_macros.h>
 #include "../Base/String.h"
 #include "../Core/Platform.h"
 #include "../Core/Object.h"
 #include "../Graphics/SwapChain.h"
 #include "../Math/Math.h"
-#include <string>
 
 namespace alimer
 {
@@ -146,6 +146,7 @@ namespace alimer
         bool _focused = false;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Window);
+        Window(const Window&) = delete;
+        Window& operator=(const Window&) = delete;
     };
 }

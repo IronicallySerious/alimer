@@ -48,7 +48,8 @@ namespace alimer
 
     void PluginManager::Destroy(PluginManager* manager)
     {
-        SafeDelete(manager);
+        delete manager;
+        manager = nullptr;
     }
 
     void PluginManager::LoadPlugins(const String& pluginPath)

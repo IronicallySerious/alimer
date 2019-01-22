@@ -158,7 +158,7 @@ namespace alimer
     template <class T> inline bool IsNaN(T value) { return std::isnan(value); }
 
     /// Check whether an unsigned integer is a power of two.
-    template <typename T> ALIMER_FORCE_INLINE bool IsPowerOfTwo(T value)
+    template <typename T> ALIMER_FORCEINLINE bool IsPowerOfTwo(T value)
     {
         return 0 == (value & (value - 1));
     }
@@ -213,7 +213,7 @@ namespace alimer
         return ((value + alignment - 1) / alignment) * alignment;
     }
 
-    template <typename T> ALIMER_FORCE_INLINE T DivideByMultiple(T value, size_t alignment)
+    template <typename T> ALIMER_FORCEINLINE T DivideByMultiple(T value, size_t alignment)
     {
         return (T)((value + alignment - 1) / alignment);
     }

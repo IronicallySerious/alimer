@@ -42,10 +42,9 @@ namespace alimer
         /// Return the extension from a path, converted to lowercase by default.
         static String GetExtension(const String &path, bool lowerCaseExtension = true);
 
-        
-
     private:
         Path() = delete;
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Path);
+        Path(const Path&) = delete;
+        Path& operator=(const Path&) = delete;
     };
 }

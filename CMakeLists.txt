@@ -32,15 +32,16 @@ project (Alimer LANGUAGES CXX C)
 set (PRODUCT_NAME "Alimer")
 set (PRODUCT_COMPANY "Amer Koleci")
 set (PRODUCT_COPYRIGHT "Copyright (C) 22018 ${PRODUCT_COMPANY}")
-set (PRODUCT_VERSION_MAJOR "0")
-set (PRODUCT_VERSION_MINOR "9")
-set (PRODUCT_VERSION_REVISION "0")
+set (ALIMER_VERSION_MAJOR 0)
+set (ALIMER_VERSION_MINOR 1)
+set (ALIMER_VERSION_PATCH 0)
+set (ALIMER_VERSION ${ALIMER_VERSION_MAJOR}.${ALIMER_VERSION_MINOR}.${ALIMER_VERSION_PATCH})
 
 # Get the current working branch
 execute_process(
     COMMAND git rev-parse --abbrev-ref HEAD
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_BRANCH
+    OUTPUT_VARIABLE ALIMER_GIT_BRANCH
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
@@ -48,14 +49,9 @@ execute_process(
 execute_process(
     COMMAND git log -1 --format=%h
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_VARIABLE ALIMER_GIT_COMMIT_HASH
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-
-# Configure CMake global variables
-if (ALIMER_SHARED)
-    set (CMAKE_POSITION_INDEPENDENT_CODE ON)
-endif()
 
 # Output paths
 set (ALIMER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -74,26 +70,24 @@ if ( CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_CONFIGURATION_TYPES MATCHES "Debug;
 	set (CMAKE_CONFIGURATION_TYPES "Debug;Dev;Release" CACHE STRING "List of supported configurations." FORCE)
 endif()
 
-# Set default configuration to Release for single-configuration generators
-if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-	set (CMAKE_BUILD_TYPE Release)
-endif ()
-
 # Set CMake modules search path
 set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 # Include Alimer module.
 include (Alimer)
 
-# Include Alimer packaging module.
-include (AlimerPackaging)
-
 # Options
+option (ALIMER_BUILD_SHARED "Build as a shared library." OFF)
+option (ALIMER_SCRIPTING_LUA "Enable Lua scripting support" ON)
 if (NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
     set (ALIMER_SDL2 ON CACHE INTERNAL "Enable SDL2 support" FORCE)
 else ()
     set (ALIMER_SDL2 OFF CACHE INTERNAL "Disable SDL2 support" FORCE)
 endif ()
+
+if (ANDROID OR ALIMER_BUILD_SHARED)
+    set (CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
 
 # Set alimer sdk path.
 set (ALIMER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -128,7 +122,8 @@ if (NOT ALIMER_SKIP_INSTALL)
     # Install CMake modules and toolchains provided by and for Alimer
     install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant
 
-    # Install data files
+    # Install data files (assets)
+    file (GLOB ASSET_DIRS ${Alimer_SOURCE_DIR}/assets ${CMAKE_SOURCE_DIR}/assets)
     file (MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
     if (NOT ANDROID)
         foreach (ASSET_DIR ${ASSET_DIRS})
@@ -154,7 +149,7 @@ message (STATUS "  C++ Compiler    ${ALIMER_COMPILER_NAME}")
 message (STATUS "  Platform        ${ALIMER_PLATFORM_NAME}")
 message (STATUS "  Architecture    ${ALIMER_ARCH_NAME}")
 
-if (ALIMER_SHARED)
+if (ALIMER_BUILD_SHARED)
     message(STATUS "  Library         SHARED")
 else()
     message(STATUS "  Library         STATIC")

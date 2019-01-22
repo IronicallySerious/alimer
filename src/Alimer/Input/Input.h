@@ -130,6 +130,7 @@ namespace alimer
         bool _cursorVisible = true;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Input);
+        Input(const Input&) = delete;
+        Input& operator=(const Input&) = delete;
     };
 }

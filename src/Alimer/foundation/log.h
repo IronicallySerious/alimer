@@ -22,46 +22,5 @@
 
 #pragma once
 
-#include "../Core/Object.h"
-
-namespace alimer
-{
-	class Stream;
-
-	/// Runtime resource loader class.
-	class ResourceLoader : public Object
-	{
-        ALIMER_OBJECT(ResourceLoader, Object);
-
-	protected:
-		/// Constructor.
-		ResourceLoader();
-
-	public:
-		/// Destructor.
-		virtual ~ResourceLoader() = default;
-
-        /// Get
-        virtual bool CanLoad(const String& extension) const {
-            ALIMER_UNUSED(extension);
-            return false;
-        }
-
-		/// Load the resource synchronously from a binary stream. Return instance on success.
-		SharedPtr<Object> Load(Stream& source);
-
-        /// Get the type being loaded.
-        virtual StringHash GetLoadingType() const = 0;
-
-	protected:
-		virtual bool BeginLoad(Stream& source) = 0;
-		virtual Object* EndLoad() = 0;
-
-        /// File being loaded.
-        String _fileName;
-
-	private:
-        ResourceLoader(const ResourceLoader&) = delete;
-        ResourceLoader& operator=(const ResourceLoader&) = delete;
-	};
-}
+#include <foundation/platform.h>
+#include <foundation/types.h>

@@ -90,6 +90,7 @@ namespace alimer
         //Entity _activeCamera;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Scene);
+        Scene(const Scene&) = delete;
+        Scene& operator=(const Scene&) = delete;
     };
 }

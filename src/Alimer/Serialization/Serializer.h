@@ -107,6 +107,7 @@ namespace alimer
         }
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Serializer);
+        Serializer(const Serializer&) = delete;
+        Serializer& operator=(const Serializer&) = delete;
     };
 }

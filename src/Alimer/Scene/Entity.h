@@ -44,7 +44,6 @@
 #include <vector>
 #include <unordered_map>
 #include <type_traits>
-#include <functional>
 
 #include  "../Serialization/Serializable.h"
 
@@ -629,7 +628,9 @@ namespace alimer
         /// Map of entity names.
         std::unordered_map<std::uint64_t, std::string> _entityNames;
 
-        DISALLOW_COPY_MOVE_AND_ASSIGN(EntityManager);
+       private:
+        EntityManager(const EntityManager&) = delete;
+        EntityManager& operator=(const EntityManager&) = delete;
     };
 
     inline bool Entity::IsValid() const

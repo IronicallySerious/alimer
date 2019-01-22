@@ -179,6 +179,9 @@ namespace alimer
         uint64_t _size;
 
 	private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Stream);
+        Stream(const Stream&) = delete;
+        Stream& operator=(const Stream&) = delete;
+        Stream(const Stream&&) = delete;
+        Stream& operator=(const Stream&&) = delete;
 	};
 }

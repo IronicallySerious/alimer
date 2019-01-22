@@ -25,7 +25,6 @@
 
 #include "AlimerConfig.h"
 
-
 namespace alimer
 {
     /// Cross platform Timer class with high precision.
@@ -64,6 +63,7 @@ namespace alimer
         int64_t _idleTime;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(Timer);
+        Timer(const Timer&) = delete;
+        Timer& operator=(const Timer&) = delete;
     };
 }

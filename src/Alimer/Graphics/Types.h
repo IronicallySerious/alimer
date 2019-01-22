@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <foundation/cpp_macros.h>
 #include "../Base/String.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"

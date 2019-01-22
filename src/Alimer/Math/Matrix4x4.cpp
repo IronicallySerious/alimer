@@ -117,6 +117,7 @@ namespace alimer
         memset(&m11, 0, sizeof(Matrix4x4));
     }
 
+#if TODO
     void Matrix4x4::Decompose(vec3 &scale, quat &rotation, vec3 &trans)
     {
         vec4 rot;
@@ -186,6 +187,8 @@ namespace alimer
 
         rotation = quat(rot);
     }
+#endif // TODO
+
 
     String Matrix4x4::ToString() const
     {
@@ -294,7 +297,8 @@ namespace alimer
             i30, i31, i32, i33);
     }
 
-    Matrix4x4 Matrix4x4::CreateLookAt(const vec3 &eye, const vec3 &target, const vec3 &up)
+#if TODO
+    Matrix4x4 Matrix4x4::CreateLookAt(const Vector3 &eye, const Vector3 &target, const Vector3 &up)
     {
         /*vec3 const f(normalize(target - eye));
         vec3 const s(normalize(cross(f, up)));
@@ -319,6 +323,8 @@ namespace alimer
         result.data[3][2] = dot(f, eye);*/
         return result;
     }
+#endif // TODO
+
 
     Matrix4x4 Matrix4x4::CreatePerspectiveFieldOfView(float fieldOfView, float aspectRatio, float nearPlaneDistance, float farPlaneDistance)
     {

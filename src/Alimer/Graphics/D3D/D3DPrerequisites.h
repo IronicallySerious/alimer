@@ -22,11 +22,7 @@
 
 #pragma once
 
-#ifndef NOMINMAX
-#   define NOMINMAX
-#endif
-
-#include <windows.h>
+#include <foundation/windows.h>
 
 #include <dxgi.h>
 #include <d3dcompiler.h>
@@ -61,7 +57,7 @@ namespace alimer
 #define ThrowIfFailed(hr) \
     do \
     { \
-        ALIMER_ASSERT_MSG(SUCCEEDED(hr), alimer::GetDXErrorStringAnsi(hr).c_str()); \
+        ALIMER_ASSERT_MSG(SUCCEEDED(hr), alimer::GetDXErrorStringAnsi(hr).CString()); \
     } \
     while(0)
 #else
@@ -70,37 +66,10 @@ namespace alimer
     {
         if (FAILED(hr))
         {
-            ALIMER_LOGCRITICAL("DirectX Error: {}", alimer::GetDXErrorStringAnsi(hr).c_str());
+            ALIMER_LOGCRITICAL("DirectX Error: {}", alimer::GetDXErrorStringAnsi(hr).CString());
         }
     }
 #endif
-
-    template <typename T>
-    void SafeRelease(T& resource, const char* typeName = nullptr)
-    {
-        if (resource)
-        {
-#if defined(_DEBUG)
-            resource->AddRef();
-            ULONG refCount = resource->Release();
-            if (refCount > 1)
-            {
-                if (typeName)
-                {
-                    OutputDebugStringA(typeName);
-                    OutputDebugStringA(" Leakage found\n");
-                }
-                else
-                {
-                    OutputDebugStringA("IUnknown leakage found\n");
-                }
-            }
-#endif
-
-            resource->Release();
-            resource = nullptr;
-        }
-    }
 
     struct D3DResourceViewInfo
     {

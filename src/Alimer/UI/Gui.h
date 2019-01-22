@@ -51,7 +51,5 @@ namespace alimer
 	private:
         ImGuiContext* _imContext;
         SharedPtr<Pipeline> _pipeline;
-
-		DISALLOW_COPY_MOVE_AND_ASSIGN(Gui);
 	};
 }

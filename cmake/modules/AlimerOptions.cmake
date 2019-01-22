@@ -94,7 +94,6 @@ else ()
 endif ()
 
 option (ALIMER_SKIP_INSTALL "Skip installation" ${ALIMER_SKIP_INSTALL})
-set (ALIMER_SHARED OFF CACHE BOOL "Enable shared library build")
 
 # Graphics backends
 if (ALIMER_WINDOWS OR ALIMER_UWP OR ALIMER_XBOX_ONE)

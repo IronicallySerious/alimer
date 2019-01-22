@@ -170,7 +170,7 @@ namespace alimer
     void TextureD3D11::Destroy()
     {
         InvalidateViews();
-        SafeRelease(_resource, "ID3D11Texture");
+        SafeRelease(_resource);
     }
 
     void TextureD3D11::InvalidateViews()

@@ -95,8 +95,5 @@ namespace alimer
 
         /// Search priority flag.
         bool _searchPackagesFirst{ true };
-
-    private:
-		DISALLOW_COPY_MOVE_AND_ASSIGN(ResourceManager);
 	};
 }
