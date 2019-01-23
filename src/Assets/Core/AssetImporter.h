@@ -50,6 +50,7 @@ namespace alimer
         virtual bool Import(const std::string& fileName, const std::string& destPath, std::shared_ptr<AssetImporter::Parameters> parameters) = 0;
 
     private:
-        DISALLOW_COPY_MOVE_AND_ASSIGN(AssetImporter);
+        AssetImporter(const AssetImporter&) = delete;
+        AssetImporter& operator=(const AssetImporter&) = delete;
 	};
 }

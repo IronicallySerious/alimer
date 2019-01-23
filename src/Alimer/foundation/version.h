@@ -33,4 +33,4 @@
 #define ALIMER_VERSION         ALIMER_MAKE_VERSION(0, 1, 0)
 #define ALIMER_VERSION_STR     "0.1.0"
 #define ALIMER_GIT_BRANCH "master"
-#define ALIMER_GIT_COMMIT_HASH "fc7b201"
+#define ALIMER_GIT_COMMIT_HASH "cd1f6ef"
