@@ -61,13 +61,9 @@ endif ()
 
 # Setup options
 option (ALIMER_PROFILING "Enable performance profiling" TRUE)
-option (ALIMER_EXCEPTIONS "Enable exceptions support" OFF)
 
 if (ALIMER_ANDROID OR ALIMER_IOS OR ALIMER_WEB)
-    set (ALIMER_SIMD OFF CACHE INTERNAL "Enable SIMD support" FORCE)
-    set (ALIMER_BUNDLE ON CACHE INTERNAL "Bundle mode" FORCE)
     set (ALIMER_TOOLS OFF CACHE INTERNAL "Build tools and editors" FORCE)
-    set (ALIMER_HOT_LOADING OFF CACHE INTERNAL "Enable hot-loading of assets and plugins" FORCE)
 
     if (ALIMER_WEB)
         set (EMSCRIPTEN_MEM_INIT_METHOD 1 CACHE STRING "emscripten: how to represent initial memory content (0..2)")
@@ -79,10 +75,7 @@ if (ALIMER_ANDROID OR ALIMER_IOS OR ALIMER_WEB)
         set (ALIMER_WEB_FILESYSTEM OFF CACHE BOOL  "emscripten: enable FS module" OFF)
     endif ()
 else()
-    option (ALIMER_SIMD "Enable SIMD support" ON)
-    option (ALIMER_BUNDLE "Bundle all plugins and runtime together and make a single binary" OFF)
     option (ALIMER_TOOLS "Build tools and editors" ${ALIMER_DESKTOP})
-    option (ALIMER_HOT_LOADING "Enable hot-loading of assets and plugins" ${ALIMER_DESKTOP})
 endif ()
 
 if (ALIMER_WEB)
@@ -92,8 +85,6 @@ else ()
     option (ALIMER_THREADING "Enable threading support" TRUE)
     option (ALIMER_NETWORK "Enable network support" TRUE)
 endif ()
-
-option (ALIMER_SKIP_INSTALL "Skip installation" ${ALIMER_SKIP_INSTALL})
 
 # Graphics backends
 if (ALIMER_WINDOWS OR ALIMER_UWP OR ALIMER_XBOX_ONE)
@@ -110,12 +101,4 @@ if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_ANDROID)
 else ()
     set (ALIMER_OPENGL OFF CACHE INTERNAL "OpenGL not supported" FORCE)
     set (ALIMER_VULKAN OFF CACHE INTERNAL "Vulkan not supported" FORCE)
-endif ()
-
-option (ALIMER_SCRIPTING_LUA "Enable Lua scripting support" ON)
-option (ALIMER_CSHARP "Enable C# support" OFF)
-option (ALIMER_CSHARP_MONO "Use mono for C# support" OFF)
-
-if (ALIMER_CSHARP)
-    set (ALIMER_SHARED ON CACHE INTERNAL "Vulkan not supported" FORCE)
 endif ()

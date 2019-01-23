@@ -334,7 +334,7 @@ namespace alimer
         ID3D11Buffer* d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
         DXGI_FORMAT dxgiFormat = indexType == IndexType::UInt32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
         _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
-    }
+    }*/
 
     void CommandContextD3D11::DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
@@ -349,10 +349,11 @@ namespace alimer
         }
     }
 
-    void CommandContextD3D11::DispatchImpl(uint32_t x, uint32_t y, uint32_t z)
+    void CommandContextD3D11::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        _context->Dispatch(x, y, z);
-    }*/
+        FlushComputeState();
+        _context->Dispatch(groupCountX, groupCountY, groupCountZ);
+    }
 
 #if TODO_D3D11
     void CommandContextD3D11::SetPrimitiveTopologyCore(PrimitiveTopology topology)
@@ -487,7 +488,12 @@ namespace alimer
         FlushDescriptorSets();*/
     }
 
-    /*void D3D11CommandBuffer::FlushDescriptorSet(uint32_t set)
+    void CommandContextD3D11::FlushComputeState()
+    {
+
+    }
+
+    /*void CommandContextD3D11::FlushDescriptorSet(uint32_t set)
     {
         // TODO: We need to remap from vulkan to d3d11 binding scheme.
         if (_needWorkaround)

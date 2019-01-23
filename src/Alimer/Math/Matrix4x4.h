@@ -31,21 +31,12 @@
 #pragma warning(disable : 4201 4203 4244 4702)
 #endif
 
-#ifdef _MSC_VER
-#   ifdef _MSC_VER
-#       pragma warning(push)
-#       pragma warning(disable : 4987)
-#   endif
-#   include <intrin.h>
-#   ifdef _MSC_VER
-#       pragma warning(pop)
-#   endif
-#endif /* ALIMER_SIMD */
+#include <foundation/platform.h>
 
-#ifdef ALIMER_SSE2
+#if !defined(ALIMER_SIMD_DISABLED) && ALIMER_ARCH_SSE2
 #   include <xmmintrin.h>
 #   include <emmintrin.h>
-#endif /* ALIMER_SSE2 */
+#endif /* ALIMER_SIMD_DISABLED */
 
 namespace alimer
 {
@@ -140,7 +131,7 @@ namespace alimer
         // Comparison operators
         bool operator == (const Matrix4x4& rhs) const
         {
-#ifdef ALIMER_SSE2
+#ifdef ALIMER_ARCH_SSE2
             __m128 c0 = _mm_cmpeq_ps(_mm_loadu_ps(&m11), _mm_loadu_ps(&rhs.m11));
             __m128 c1 = _mm_cmpeq_ps(_mm_loadu_ps(&m21), _mm_loadu_ps(&rhs.m21));
             c0 = _mm_and_ps(c0, c1);

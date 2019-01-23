@@ -26,13 +26,14 @@
 #include "../Core/Log.h"
 #include <cstdio>
 
+#if !defined(ALIMER_SIMD_DISABLED)
 #if defined(__AVX2__)
 #   define SIMD_PERMUTE_PS( v, c ) _mm_permute_ps( v, c )
-#elif defined(ALIMER_SSE2)
+#elif defined(ALIMER_ARCH_SSE2)
 #   define SIMD_PERMUTE_PS( v, c ) _mm_shuffle_ps( v, v, c )
 #endif
 
-#if ALIMER_SSE2
+#if ALIMER_ARCH_SSE2
 namespace alimer
 {
     __declspec(align(16)) struct SimdFloat32
@@ -83,6 +84,7 @@ namespace alimer
         _mm_storeu_ps(&destination->m41, simd.data[3]);
     }
 }
+#endif
 #endif
 
 namespace alimer
@@ -210,7 +212,7 @@ namespace alimer
 
     void Matrix4x4::Transpose(Matrix4x4& result) const
     {
-#ifdef ALIMER_SSE2
+#ifdef ALIMER_ARCH_SSE2
         __m128 m0 = _mm_loadu_ps(&m11);
         __m128 m1 = _mm_loadu_ps(&m21);
         __m128 m2 = _mm_loadu_ps(&m31);
@@ -367,7 +369,7 @@ namespace alimer
         // [  0  c  s  0 ]
         // [  0 -s  c  0 ]
         // [  0  0  0  1 ]
-#if ALIMER_SSE2
+#if !defined(ALIMER_SIMD_DISABLED) && ALIMER_ARCH_SSE2
         __m128 vSin = _mm_set_ss(sinAngle);
         __m128 vCos = _mm_set_ss(cosAngle);
 
@@ -402,7 +404,7 @@ namespace alimer
         // [  0  1  0  0 ]
         // [  s  0  c  0 ]
         // [  0  0  0  1 ]
-#if ALIMER_SSE2
+#if !defined(ALIMER_SIMD_DISABLED) && ALIMER_ARCH_SSE2
         __m128 vSin = _mm_set_ss(sinAngle);
         __m128 vCos = _mm_set_ss(cosAngle);
         vSin = _mm_shuffle_ps(vSin, vCos, _MM_SHUFFLE(3, 0, 3, 0));

@@ -22,22 +22,23 @@
 
 #pragma once
 
+#include "../Core/Object.h"
 #include "../Math/MathUtil.h"
 #include "../Graphics/GPUResource.h"
-#include "../Base/HashMap.h"
 
 namespace alimer
 {
     /// Defines a Texture class.
-    class ALIMER_API Texture : public GPUResource
+    class ALIMER_API Texture : public GPUResource, public Object
     {
+        ALIMER_OBJECT(Texture, Object);
     protected:
         /// Constructor.
         Texture(GraphicsDevice* device, const TextureDescriptor* descriptor);
 
     public:
         /// Destructor
-        virtual ~Texture() = default;
+        virtual ~Texture() override;
 
         /// Get the type of the texture.
         TextureType GetTextureType() const { return _type; }

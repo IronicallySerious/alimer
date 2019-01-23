@@ -22,14 +22,17 @@
 
 #pragma once
 
+#include "../Core/Object.h"
 #include "../Graphics/GPUResource.h"
 #include "../Base/Vector.h"
 
 namespace alimer
 {
     /// Defines a shader resource.
-    class ALIMER_API Shader : public GPUResource
+    class ALIMER_API Shader : public GPUResource, public Object
     {
+        ALIMER_OBJECT(Shader, Object);
+
     protected:
         /// Constructor.
         Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor);

@@ -24,8 +24,6 @@
 
 #include "../IO/ResourceRef.h"
 #include "../Core/Object.h"
-#include <memory>
-#include <atomic>
 
 namespace alimer
 {

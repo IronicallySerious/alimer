@@ -34,12 +34,12 @@ macro (define_engine_source_files)
 		list (APPEND HEADER_FILES ${_files})
 
         # Remove unsupported files for install.
-        list (REMOVE_ITEM _files
-            Graphics/GPUDeviceImpl.h
-        )
+        list (REMOVE_ITEM _files Graphics/GPUDeviceImpl.h)
 
-		# Install them
-		install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
+        if (ALIMER_INSTALL)
+		    # Install them
+            install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
+        endif ()
 
 		# Get source files
 		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.c ${path}/*.cpp)
@@ -64,7 +64,9 @@ set (TARGET_NAME Alimer)
 # Generate the AlimerConfig.h file
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/foundation/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/foundation/version.h)
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h)
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer)
+if (ALIMER_INSTALL)
+    install (FILES ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer)
+endif ()
 
 # Add source files from subdirectories
 define_engine_source_files (NORECURSE . foundation Base Core Debug IO Math Graphics Input Audio Application)
@@ -152,7 +154,7 @@ if (ALIMER_OPENGL AND ALIMER_DESKTOP)
 endif ()
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES fmt spdlog spirv_cross CLI11 ImGui)
+set (THIRD_PARTY_DEPENDENCIES fmt spdlog spirv_cross ImGui)
 
 if (ALIMER_SDL2)
     list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
@@ -174,6 +176,10 @@ endforeach()
 
 target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_COMPILE)
 target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
+
+if (EMSCRIPTEN OR ANDROID OR IOS)
+    target_compile_definitions(${TARGET_NAME} PUBLIC -DALIMER_SIMD_DISABLED)
+endif ()
 
 if (ALIMER_BUILD_SHARED OR ALIMER_CSHARP OR EMSCRIPTEN)
 	target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_SHARED_LIBRARY)
@@ -232,7 +238,7 @@ if (MSVC)
 endif()
 
 # SDK installation
-if (NOT ALIMER_SKIP_INSTALL)
+if (ALIMER_INSTALL)
     install(TARGETS ${TARGET_NAME}
 	    EXPORT ${TARGET_NAME}
 	    LIBRARY DESTINATION lib

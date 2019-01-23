@@ -74,6 +74,7 @@ namespace ShaderCompiler
     {
         ShaderStage stage;
         std::string entry;
+        std::string code;
     };
 
     /**
@@ -94,6 +95,7 @@ namespace ShaderCompiler
 
         struct CompileResult
         {
+            ShadingLanguage         language;
             std::vector<uint8_t> bytecode;
             bool isText;
 

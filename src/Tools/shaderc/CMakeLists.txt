@@ -32,8 +32,10 @@ target_include_directories(${TARGET}
     PRIVATE ${ALIMER_THIRD_PARTY_DIR}
 )
 
+target_link_libraries(${TARGET} PRIVATE fmt liblua)
+
 # Set folder
-set_target_properties(${TARGET} PROPERTIES FOLDER "Tools")
+set_target_properties(${TARGET} PROPERTIES FOLDER "tools")
 
 # ==================================================================================================
 # Binary
@@ -54,6 +56,6 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	target_link_libraries(${TARGET} PRIVATE pthread)
 endif ()
 set_target_properties(${TARGET} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
-set_target_properties(${TARGET} PROPERTIES FOLDER "Tools")
+set_target_properties(${TARGET} PROPERTIES FOLDER "tools")
 
 install(TARGETS ${TARGET} RUNTIME DESTINATION bin)

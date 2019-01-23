@@ -26,8 +26,6 @@
 
 // Alimer build configuration
 #cmakedefine ALIMER_PROFILING
-#cmakedefine ALIMER_EXCEPTIONS
-#cmakedefine ALIMER_SIMD
 #cmakedefine ALIMER_THREADING
 #cmakedefine ALIMER_NETWORK
 

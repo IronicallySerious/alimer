@@ -28,7 +28,7 @@
 namespace alimer
 {
     /// Defines a Framebuffer class.
-    class ALIMER_API Framebuffer : public GPUResource
+    class ALIMER_API Framebuffer : public GPUResource, public RefCounted
     {
     protected:
         /// Constructor.

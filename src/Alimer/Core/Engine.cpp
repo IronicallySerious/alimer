@@ -28,8 +28,8 @@
 #include "../Graphics/GraphicsDevice.h"
 #include "../Scene/SceneManager.h"
 #include "../UI/Gui.h"
-#include <CLI/CLI.hpp>
-#include <fmt/printf.h>
+//#include <CLI/CLI.hpp>
+//#include <fmt/printf.h>
 
 namespace alimer
 {
@@ -75,6 +75,83 @@ namespace alimer
         RemoveSubsystem(this);
     }
 
+    template <typename T>
+    struct AssetLink
+    {
+        std::string id;
+        SharedPtr<T> asset;
+    };
+
+    template <typename T>
+    struct AssetHandle
+    {
+        const std::string& id() const
+        {
+            return link->id;
+        }
+
+        inline T* get() const
+        {
+            return link->asset.Get();
+        }
+
+        inline SharedPtr<T> get_asset() const
+        {
+            return link->asset;
+        }
+
+        inline void reset(SharedPtr<T> data = nullptr)
+        {
+            link->asset = data;
+            if (!data)
+            {
+                link->id.clear();
+            }
+        }
+
+        inline long use_count() const
+        {
+            return link.use_count();
+        }
+
+        AssetHandle& operator=(SharedPtr<T> data)
+        {
+            // Own the specified handle's data pointer
+            if (data != link->asset)
+            {
+                link->asset = data;
+            }
+
+            return *this;
+        }
+
+        inline bool operator==(const AssetHandle& handle) const
+        {
+            return (get() == handle.get());
+        }
+
+        inline bool operator!=(const AssetHandle& handle) const
+        {
+            return (get() != handle.get());
+        }
+
+        inline bool operator<(const AssetHandle& handle) const
+        {
+            return (get() < handle.get());
+        }
+
+        inline bool operator>(const AssetHandle& handle) const
+        {
+            return (get() > handle.get());
+        }
+
+        explicit operator bool() const { return (get() != nullptr); }
+        T* operator->() const { return get(); }
+
+        // Internal link to asset
+        std::shared_ptr<AssetLink<T>> link = std::make_shared<AssetLink<T>>();
+    };
+
     int Engine::Initialize(const Vector<String>& args)
     {
         if (_initialized)
@@ -82,6 +159,7 @@ namespace alimer
 
         ALIMER_LOGINFO("Initializing engine {}", ALIMER_VERSION_STR);
 
+#if TODO_CLI_ARGS
         // Define and parse command line parameters.
         {
             CLI::App app{ fmt::sprintf("Alimer %s.", ALIMER_VERSION_STR), "Alimer" };
@@ -104,6 +182,8 @@ namespace alimer
                 return app.exit(e);
             }
         }
+#endif // TODO_CLI
+
 
         // Register the rest of the subsystems
         _input = new Input();
@@ -136,6 +216,15 @@ namespace alimer
                 return false;
             }
         }
+
+        {
+            //AssetHandle<Texture> texture;
+            SharedPtr<Texture> texture = _resources->Load<Texture>("test.png");
+        }
+
+        ShaderDescriptor shaderDescriptor = {};
+        //shaderDescriptor.stages[]
+        Shader* shader = _graphicsDevice->CreateShader(&shaderDescriptor);
 
         // Create imgui system.
         //_gui = new Gui();
@@ -198,7 +287,7 @@ namespace alimer
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         CommandContext& context = _graphicsDevice->GetContext();
         context.BeginDefaultRenderPass(clearColor);
-        //context.Draw(3, 0);
+        context.Draw(3, 0);
         context.EndRenderPass();
         context.Flush();
 

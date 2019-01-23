@@ -157,7 +157,7 @@ namespace alimer
         ALIMER_ASSERT(instanceCount >= 1);
 #endif
 
-        //DrawInstancedImpl(vertexCount, instanceCount, firstVertex, firstInstance);
+        DrawInstancedImpl(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
@@ -179,7 +179,7 @@ namespace alimer
     void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         ALIMER_ASSERT(_currentShader && _currentShader->IsCompute());
-        //DispatchCore(groupCountX, groupCountY, groupCountZ);
+        DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
 
     void CommandContext::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)

@@ -30,7 +30,7 @@
 namespace alimer
 {
 	/// Defines a GPU Buffer class.
-	class ALIMER_API Buffer : public GPUResource
+	class ALIMER_API Buffer : public GPUResource, public RefCounted
 	{
     protected:
         /// Constructor.

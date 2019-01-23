@@ -30,7 +30,7 @@ namespace alimer
 	class GraphicsDevice;
 
 	/// Defines a GPUResource created from GPUDevice.
-	class ALIMER_API GPUResource : public RefCounted
+	class ALIMER_API GPUResource
 	{
 	public:
         enum class Type

@@ -26,10 +26,6 @@ add_subdirectory(spdlog)
 # SPIRV-Cross
 add_subdirectory(spirv-cross)
 
-# if (NOT ALIMER_DISABLE_LUA)
-    # add_subdirectory(Lua)
-# endif()
-
 # Vulkan libs
 if (ALIMER_VULKAN)
     add_library(volk STATIC ${CMAKE_CURRENT_SOURCE_DIR}/volk/volk.c)
@@ -37,6 +33,7 @@ if (ALIMER_VULKAN)
         target_compile_options(volk PRIVATE /W4 /WX)
     else()
         target_compile_options(volk PRIVATE -Wall -Wextra -Werror)
+        target_link_libraries(volk PRIVATE dl)
     endif()
     target_include_directories(volk PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

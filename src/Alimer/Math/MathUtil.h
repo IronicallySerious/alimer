@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <foundation/platform.h>
 #include "../Debug/Debug.h"
 
 #ifdef _MSC_VER
@@ -34,10 +35,6 @@
 #include <cstdlib>
 #include <cmath>
 #include <limits>
-
-#ifdef _MSC_VER
-#   include <intrin.h>
-#endif
 
 namespace alimer
 {

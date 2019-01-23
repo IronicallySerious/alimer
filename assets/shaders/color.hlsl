@@ -1,25 +1,33 @@
-struct PSInput
-{
-    float4 position : SV_POSITION;
-    float4 color : COLOR;
-};
+common [[
+    struct PSInput
+    {
+        float4 position : SV_POSITION;
+        float4 color : COLOR;
+    };
+]]
 
-PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
-{
-    PSInput result;
+vertex_shader [[
+    PSInput main(float4 position : POSITION, float4 color : COLOR)
+    {
+        PSInput result;
 
-    result.position = position;
-    result.color = color;
+        result.position = position;
+        result.color = color;
 
-    return result;
-}
+        return result;
+    }
+]]
 
-float4 PSMain(PSInput input) : SV_TARGET
-{
-    return input.color;
-}
+fragment_shader [[
+    float4 main(PSInput input) : SV_TARGET
+    {
+        return input.color;
+    }
+]]
 
-[numthreads(1, 1, 1)]
-void CSMain( uint3 DTid : SV_DispatchThreadID )
-{
-}
+compute_shader [[
+    [numthreads(1, 1, 1)]
+    void CSMain( uint3 DTid : SV_DispatchThreadID )
+    {
+    }
+]]

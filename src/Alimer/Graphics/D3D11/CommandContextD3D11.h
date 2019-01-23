@@ -56,15 +56,15 @@ namespace alimer
 
         void SetPipelineImpl(Pipeline* pipeline);
 
-        /*void SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
-        void SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType) override;
+        //void SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
+        //void SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType) override;
 
         void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
-    
-        void DispatchImpl(uint32_t x, uint32_t y, uint32_t z) override;*/
+        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
         void BeginContext();
         void FlushRenderState();
+        void FlushComputeState();
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();
 

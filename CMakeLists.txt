@@ -79,10 +79,18 @@ include (Alimer)
 # Options
 option (ALIMER_BUILD_SHARED "Build as a shared library." OFF)
 option (ALIMER_SCRIPTING_LUA "Enable Lua scripting support" ON)
+option (ALIMER_CSHARP "Enable C# support" OFF)
+option (ALIMER_CSHARP_MONO "Use mono for C# support" OFF)
+option (ALIMER_INSTALL "Generate installation target" ON)
+
 if (NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
     set (ALIMER_SDL2 ON CACHE INTERNAL "Enable SDL2 support" FORCE)
 else ()
     set (ALIMER_SDL2 OFF CACHE INTERNAL "Disable SDL2 support" FORCE)
+endif ()
+
+if (ALIMER_CSHARP)
+    set (ALIMER_BUILD_SHARED ON CACHE INTERNAL "Force shared library build" FORCE)
 endif ()
 
 if (ANDROID OR ALIMER_BUILD_SHARED)
@@ -118,7 +126,7 @@ add_subdirectory(third_party)
 # Source
 add_subdirectory(src)
 
-if (NOT ALIMER_SKIP_INSTALL)
+if (ALIMER_INSTALL)
     # Install CMake modules and toolchains provided by and for Alimer
     install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant
 

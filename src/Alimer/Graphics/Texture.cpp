@@ -41,4 +41,9 @@ namespace alimer
         , _usage(descriptor->usage)
     {
     }
+
+    Texture::~Texture()
+    {
+
+    }
 }

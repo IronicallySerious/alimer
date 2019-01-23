@@ -21,6 +21,12 @@
 //
 
 #include "Compiler.h"
+extern "C"
+{
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
 
 #include <dxc/Support/Global.h>
 #include <dxc/Support/WinAdapter.h>
@@ -162,14 +168,14 @@ namespace
             return true;
         }
 
-        int cbUTF8 = ::WideCharToMultiByte(cp, flags, text, 
+        int cbUTF8 = ::WideCharToMultiByte(cp, flags, text,
             static_cast<int>(cUTF16), nullptr, 0, nullptr, pUsedDefaultChar);
         if (cbUTF8 == 0)
             return false;
 
         pValue->resize(cbUTF8);
 
-        cbUTF8 = ::WideCharToMultiByte(cp, flags, text, static_cast<int>(cUTF16), 
+        cbUTF8 = ::WideCharToMultiByte(cp, flags, text, static_cast<int>(cUTF16),
             &(*pValue)[0], static_cast<int>(pValue->size()), nullptr, pUsedDefaultChar);
         DXASSERT(cbUTF8 > 0, "otherwise contents have changed");
         DXASSERT((*pValue)[pValue->size()] == '\0', "otherwise string didn't null-terminate after resize() call");
@@ -496,6 +502,8 @@ namespace ShaderCompiler
                     break;
                 }
 
+
+
                 std::wstring shaderNameUtf16;
                 UTF8ToUTF16String(options.fileName.c_str(), &shaderNameUtf16);
 
@@ -550,8 +558,245 @@ namespace ShaderCompiler
         return {};
     }
 
+    using define_container = std::vector<std::pair<std::string, std::string>>;
+
+    struct technique {
+        struct entry_point {
+            ShaderStage kind;
+            std::string name;
+        };
+        std::string name;
+        define_container defines;
+        std::vector<entry_point> entry_points;
+        std::vector<std::pair<std::string, std::string>> additional_metadata;
+    };
+
+    struct CompileShaderData
+    {
+        std::string common_source;
+        std::vector<Shader> shaders;
+    };
+
+    inline void argError(lua_State* L, int index, const char* expected_type)
+    {
+        /*char buf[128];
+        copyString(buf, "expected ");
+        catString(buf, expected_type);
+        catString(buf, ", got ");
+        int type = lua_type(L, index);
+        catString(buf, LuaWrapper::luaTypeToString(type));
+        luaL_argerror(L, index, buf);*/
+    }
+
+    inline const char* luax_get_string(lua_State *L, int index)
+    {
+        if (!lua_isstring(L, index) != 0)
+        {
+            //argError<T>(L, index);
+        }
+
+        return lua_tostring(L, index);
+    }
+
+    inline int luax_get_field(lua_State* L, int idx, const char* k)
+    {
+        lua_getfield(L, idx, k);
+        return lua_type(L, -1);
+    }
+
+    inline const char* luax_get_optional_string_field(lua_State* L, int idx, const char* field_name)
+    {
+        if (luax_get_field(L, idx, field_name) != LUA_TNIL
+            && lua_isstring(L, -1) != -1)
+        {
+            const char* src = lua_tostring(L, -1);;
+            return src;
+        }
+        lua_pop(L, 1);
+        return nullptr;
+    }
+
+
+    inline int traceback(lua_State *L)
+    {
+        if (!lua_isstring(L, 1)) return 1;
+
+        lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+        if (!lua_istable(L, -1)) {
+            lua_pop(L, 1);
+            return 1;
+        }
+
+        lua_getfield(L, -1, "traceback");
+        if (!lua_isfunction(L, -1)) {
+            lua_pop(L, 2);
+            return 1;
+        }
+
+        lua_pushvalue(L, 1);
+        lua_pushinteger(L, 2);
+        lua_call(L, 2, 1);
+
+        return 1;
+    }
+
+    inline bool execute(lua_State* L, const std::string& content, const std::string& name, int nresults)
+    {
+        lua_pushcfunction(L, traceback);
+        if (luaL_loadbuffer(L, content.c_str(), content.length(), name.c_str()) != 0)
+        {
+            const char* errorMsg = lua_tostring(L, -1);
+            printf("Lua load error: %s", errorMsg);
+            lua_pop(L, 2);
+            return false;
+        }
+
+        if (lua_pcall(L, 0, nresults, -2) != 0)
+        {
+            const char* errorMsg = lua_tostring(L, -1);
+            printf("Lua call error: %s", errorMsg);
+            lua_pop(L, 2);
+            return false;
+        }
+        lua_pop(L, 1);
+        return true;
+    }
+
+
+    static void parse_source(lua_State* L, ShaderStage stage)
+    {
+        auto countLines = [](const char* str) {
+            int count = 0;
+            const char* c = str;
+            while (*c) {
+                if (*c == '\n') ++count;
+                ++c;
+            }
+            return count;
+        };
+
+        const char* src = luax_get_string(L, 1);
+        lua_getfield(L, LUA_GLOBALSINDEX, "this");
+        CompileShaderData* data = (CompileShaderData*)lua_touserdata(L, -1);
+        lua_pop(L, 1);
+
+
+        lua_Debug ar;
+        lua_getstack(L, 1, &ar);
+        lua_getinfo(L, "nSl", &ar);
+        const int line = ar.currentline - countLines(src);
+
+        const std::string line_str("#line " + std::to_string(line) + "\n");
+        const size_t line_str_len = line_str.length();
+        const size_t src_len = strlen(src);
+
+        Shader shader;
+        shader.entry = "main";
+        shader.stage = stage;
+        shader.code.resize(line_str_len + src_len + 1);
+        memcpy(&shader.code[0], line_str.data(), line_str_len);
+        memcpy(&shader.code[line_str_len], src, src_len);
+        shader.code.back() = '\0';
+        data->shaders.emplace_back(shader);
+    }
+
+    static int parse_common(lua_State* L)
+    {
+        auto countLines = [](const char* str) {
+            int count = 0;
+            const char* c = str;
+            while (*c) {
+                if (*c == '\n') ++count;
+                ++c;
+            }
+            return count;
+        };
+
+        const char* src = luax_get_string(L, 1);
+
+        lua_getfield(L, LUA_GLOBALSINDEX, "this");
+        CompileShaderData* data = (CompileShaderData*)lua_touserdata(L, -1);
+        lua_pop(L, 1);
+
+        lua_Debug ar;
+        lua_getstack(L, 1, &ar);
+        lua_getinfo(L, "nSl", &ar);
+        const int line = ar.currentline - countLines(src);
+
+        const std::string line_str("#line " + std::to_string(line) + "\n");
+        const size_t line_str_len = line_str.length();
+        const size_t src_len = strlen(src);
+
+        data->common_source.resize(line_str_len + src_len + 1);
+        memcpy(&data->common_source[0], line_str.data(), line_str_len);
+        memcpy(&data->common_source[line_str_len], src, src_len);
+        data->common_source.back() = '\0';
+        return 0;
+    }
+
+    int parse_vertex_shader(lua_State* L)
+    {
+        parse_source(L, ShaderStage::Vertex);
+        return 0;
+    }
+
+    int parse_fragment_shader(lua_State* L)
+    {
+        parse_source(L, ShaderStage::Pixel);
+        return 0;
+    }
+
+    int parse_compute_shader(lua_State* L)
+    {
+        parse_source(L, ShaderStage::Compute);
+        return 0;
+    }
+
+    int parse_variants(lua_State* L)
+    {
+        if (!lua_istable(L, 1))
+        {
+        }
+
+        lua_getfield(L, LUA_GLOBALSINDEX, "this");
+        CompileShaderData* data = (CompileShaderData*)lua_touserdata(L, -1);
+        lua_pop(L, 1);
+
+        const char* name = luax_get_optional_string_field(L, -1, "name");
+        return 0;
+    }
+
+
     Compiler::CompileResult Compiler::Compile(Compiler::Options options)
     {
+        lua_State* L = luaL_newstate();
+        luaL_openlibs(L);
+
+        CompileShaderData data;
+        lua_pushlightuserdata(L, &data);
+        lua_setfield(L, LUA_GLOBALSINDEX, "this");
+        lua_pushcclosure(L, parse_common, 0);
+        lua_setfield(L, LUA_GLOBALSINDEX, "common");
+        lua_pushcclosure(L, parse_vertex_shader, 0);
+        lua_setfield(L, LUA_GLOBALSINDEX, "vertex_shader");
+        lua_pushcclosure(L, parse_fragment_shader, 0);
+        lua_setfield(L, LUA_GLOBALSINDEX, "fragment_shader");
+        lua_pushcclosure(L, parse_compute_shader, 0);
+        lua_setfield(L, LUA_GLOBALSINDEX, "compute_shader");
+        lua_pushcclosure(L, parse_variants, 0);
+        lua_setfield(L, LUA_GLOBALSINDEX, "variants");
+
+        if (!execute(L, options.source, options.fileName, 0))
+        {
+            lua_close(L);
+            return {};
+        }
+
+        lua_close(L);
+
+        //std::vector<technique> techniques;
+        //parse_techniques(options.source, techniques);
+
         if (!options.loadIncludeCallback)
         {
             options.loadIncludeCallback = DefaultLoadCallback;

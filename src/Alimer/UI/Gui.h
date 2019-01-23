@@ -50,6 +50,6 @@ namespace alimer
 
 	private:
         ImGuiContext* _imContext;
-        SharedPtr<Pipeline> _pipeline;
+        UniquePtr<Pipeline> _pipeline;
 	};
 }

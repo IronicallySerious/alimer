@@ -52,11 +52,11 @@ namespace alimer
             Color4 color;
         };
 
-        std::vector<VertexColor> vertices;
+        Vector<VertexColor> vertices;
 
         for (uint32_t i = 0; i < _vertexCount; ++i)
         {
-            vertices.push_back({ positions[i], colors[i] });
+            vertices.Push({ positions[i], colors[i] });
         }
 
         /*BufferDescriptor vertexBufferDesc = {};
