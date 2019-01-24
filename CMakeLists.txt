@@ -76,6 +76,11 @@ set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 # Include Alimer module.
 include (Alimer)
 
+# Set platform variables
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set (LINUX ON CACHE BOOL "" FORCE)
+endif ()
+
 # Options
 option (ALIMER_BUILD_SHARED "Build as a shared library." OFF)
 option (ALIMER_SCRIPTING_LUA "Enable Lua scripting support" ON)
@@ -83,11 +88,33 @@ option (ALIMER_CSHARP "Enable C# support" OFF)
 option (ALIMER_CSHARP_MONO "Use mono for C# support" OFF)
 option (ALIMER_INSTALL "Generate installation target" ON)
 
+if (EMSCRIPTEN)
+    set (ALIMER_THREADING OFF CACHE INTERNAL "Disable threading on WEB" FORCE)
+    set (ALIMER_NETWORK OFF CACHE INTERNAL "Disable network on WEB" FORCE)
+else ()
+    option (ALIMER_THREADING "Enable threading support" TRUE)
+    option (ALIMER_NETWORK "Enable network support" TRUE)
+endif ()
+
 if (NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
     set (ALIMER_SDL2 ON CACHE INTERNAL "Enable SDL2 support" FORCE)
 else ()
     set (ALIMER_SDL2 OFF CACHE INTERNAL "Disable SDL2 support" FORCE)
 endif ()
+
+# Graphics
+if (ALIMER_WINDOWS)
+    #set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11 | D3D12 | Vulkan | OpenGL")
+    set (ALIMER_RENDERER Vulkan CACHE STRING "Select renderer: D3D11 | D3D12 | Vulkan | OpenGL")
+elseif (ALIMER_UWP OR ALIMER_XBOX_ONE)
+    set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11 | D3D12")
+elseif (LINUX OR ANDROID)
+    set (ALIMER_RENDERER OpenGL CACHE STRING "Select renderer: Vulkan | OpenGL")
+else ()
+    set (ALIMER_RENDERER OpenGL CACHE STRING "Select renderer: Vulkan | OpenGL")
+endif ()
+string(TOUPPER "${ALIMER_RENDERER}" ALIMER_RENDERER)
+set (ALIMER_${ALIMER_RENDERER} ON)
 
 if (ALIMER_CSHARP)
     set (ALIMER_BUILD_SHARED ON CACHE INTERNAL "Force shared library build" FORCE)
@@ -164,10 +191,7 @@ else()
 endif()
 
 message(STATUS "  Threading       ${ALIMER_THREADING}")
-message(STATUS "  OpenGL          ${ALIMER_OPENGL}")
-message(STATUS "  D3D11           ${ALIMER_D3D11}")
-message(STATUS "  D3D12           ${ALIMER_D3D12}")
-message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
+message(STATUS "  Renderer        ${ALIMER_RENDERER}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")
 message(STATUS "  Lua             ${ALIMER_SCRIPTING_LUA}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")
