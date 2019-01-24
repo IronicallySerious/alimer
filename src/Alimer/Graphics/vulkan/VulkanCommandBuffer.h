@@ -23,9 +23,8 @@
 #pragma once
 
 #include "../CommandContext.h"
-#include "VulkanBackend.h"
 
-namespace Alimer
+namespace alimer
 {
     class VulkanPipelineLayout;
     class VulkanProgram;
@@ -47,23 +46,23 @@ namespace Alimer
 
 	private:
         void BeginContext();
-        void FlushImpl(bool waitForCompletion) override;
+        //void FlushImpl(bool waitForCompletion) override;
         void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         void EndRenderPassImpl() override;
 
-        void SetPipelineImpl(Pipeline* pipeline) override;
+        //void SetPipelineImpl(Pipeline* pipeline) override;
 
-        void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
-        void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
-        void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) override;
+        //void SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset) override;
+        //void SetVertexBuffersImpl(uint32_t firstBinding, uint32_t count, const GpuBuffer** buffers, const uint32_t* offsets) override;
+        //void SetIndexBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t stride) override;
 
-        void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) override;
-        void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) override;
-        void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) override;
-        void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) override;
+        //void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t startVertexLocation) override;
+        //void DrawInstancedImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertexLocation, uint32_t startInstanceLocation) override;
+        //void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation) override;
+        //void DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) override;
 
-        void SetViewport(const rect& viewport) override;
-        void SetScissor(const irect& scissor) override;
+        //void SetViewport(const rect& viewport) override;
+        //void SetScissor(const irect& scissor) override;
 
         void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
         void FlushRenderState(PrimitiveTopology topology);

@@ -24,6 +24,7 @@
 
 #include "../Base/Ptr.h"
 #include "../Base/String.h"
+#include "../Graphics/Backend.h"
 #include "../Graphics/VertexFormat.h"
 #include "../Graphics/GPUResource.h"
 
@@ -53,6 +54,8 @@ namespace alimer
         uint32_t GetStride() const { return _stride; }
         
     private:
+        BufferHandle _handle = BACKEND_INVALID_HANDLE;
+
         uint64_t _size = 0;
         BufferUsage _usage = BufferUsage::None;
         uint32_t _stride = 0;

@@ -26,7 +26,7 @@
 #include "VulkanShader.h"
 #include <vector>
 
-namespace Alimer
+namespace alimer
 {
     class VulkanGraphicsDevice;
 

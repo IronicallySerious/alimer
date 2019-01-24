@@ -22,6 +22,7 @@
 
 #include "../Debug/Debug.h"
 
+#ifdef TODO_D3D12
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
 #include "../Core/Log.h"
@@ -429,19 +430,19 @@ void agpuCmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex, int32_t vertex
 typedef enum AgpuPixelFormatType
 {
     /// Unknown format Type
-    AGPU_PIXEL_FORMAT_TYPE_UNKNOWN      = 0,
+    AGPU_PIXEL_FORMAT_TYPE_UNKNOWN = 0,
     /// _FLOATing-point formats
-    AGPU_PIXEL_FORMAT_TYPE_FLOAT        = 1,
+    AGPU_PIXEL_FORMAT_TYPE_FLOAT = 1,
     /// Unsigned normalized formats
-    AGPU_PIXEL_FORMAT_TYPE_UNORM        = 2,
+    AGPU_PIXEL_FORMAT_TYPE_UNORM = 2,
     /// Unsigned normalized SRGB formats
-    AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB   = 3,
+    AGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB = 3,
     /// Signed normalized formats
-    AGPU_PIXEL_FORMAT_TYPE_SNORM        = 4,
+    AGPU_PIXEL_FORMAT_TYPE_SNORM = 4,
     /// Unsigned integer formats
-    AGPU_PIXEL_FORMAT_TYPE_UINT         = 5,
+    AGPU_PIXEL_FORMAT_TYPE_UINT = 5,
     /// Signed integer formats
-    AGPU_PIXEL_FORMAT_TYPE_SINT         = 6
+    AGPU_PIXEL_FORMAT_TYPE_SINT = 6
 } AgpuPixelFormatType;
 
 struct AgpuPixelFormatDesc
@@ -563,4 +564,6 @@ AgpuBool32 agpuIsCompressed(AgpuPixelFormat format)
 
 #ifdef _MSC_VER
 #pragma warning(pop)
-#endif
+#endif  
+#endif // TODO_D3D12
+

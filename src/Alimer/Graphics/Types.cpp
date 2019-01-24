@@ -25,29 +25,6 @@
 
 namespace alimer
 {
-    const char* EnumToString(GraphicsBackend backend)
-    {
-        switch (backend)
-        {
-        case GraphicsBackend::Default: 
-            return "default";
-        case GraphicsBackend::Empty: 
-            return "empty";
-        case GraphicsBackend::Vulkan: 
-            return "vulkan";
-        case GraphicsBackend::D3D11: 
-            return "d3d11";
-        case GraphicsBackend::D3D12: 
-            return "d3d12";
-        case GraphicsBackend::Metal: 
-            return "metal";
-        case GraphicsBackend::OpenGL: 
-            return "opengl";
-        default: 
-            return nullptr;
-        }
-    }
-
     const char* EnumToString(ResourceUsage usage)
     {
         switch (usage)

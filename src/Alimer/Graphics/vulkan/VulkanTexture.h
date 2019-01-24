@@ -23,14 +23,14 @@
 #pragma once
 
 #include "../Texture.h"
-#include "VulkanBackend.h"
+#include "../Backend.h"
 
-namespace Alimer
+namespace alimer
 {
     class VulkanGraphicsDevice;
 
 	/// Vulkan Texture implementation.
-	class VulkanTexture final : public Texture
+	/*class VulkanTexture final : public Texture
 	{
 	public:
         VulkanTexture(VulkanGraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage existingImage = VK_NULL_HANDLE, VkImageUsageFlags usageFlags = 0);
@@ -47,7 +47,7 @@ namespace Alimer
 	};
 
     /// Vulkan TextureView implementation.
-    /*class VulkanTextureView final 
+    class VulkanTextureView final 
     {
     public:
         VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor);

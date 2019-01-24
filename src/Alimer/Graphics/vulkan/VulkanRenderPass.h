@@ -22,15 +22,16 @@
 
 #pragma once
 
+#if TODO_VULKAN
 #include "../RenderPass.h"
 #include "../Framebuffer.h"
 #include "VulkanBackend.h"
 
-namespace Alimer
+namespace alimer
 {
     class VulkanGraphicsDevice;
 
-    class VulkanRenderPass final 
+    class VulkanRenderPass final
     {
     public:
         VulkanRenderPass(uint64_t hash, VulkanGraphicsDevice* device, const RenderPassDescriptor* descriptor);
@@ -76,3 +77,5 @@ namespace Alimer
         DISALLOW_COPY_MOVE_AND_ASSIGN(VulkanFramebuffer);
     };
 }
+
+#endif // TODO_VULKAN

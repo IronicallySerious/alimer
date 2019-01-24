@@ -30,7 +30,7 @@
 #include "../../Math/Math.h"
 #include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
     VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphicsDevice* device, VkQueue queue, VkCommandBufferLevel level)
         : CommandContext(device)
@@ -47,7 +47,7 @@ namespace Alimer
         VkResult result = vkAllocateCommandBuffers(device->GetDevice(), &allocateInfo, &_handle);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERRORF("[Vulkan] - Failed to allocate command buffer: %s", vkGetVulkanResultString(result));
+            ALIMER_LOGERROR("[Vulkan] - Failed to allocate command buffer: %s", vkGetVulkanResultString(result));
             return;
         }
 
@@ -63,7 +63,7 @@ namespace Alimer
     void VulkanCommandBuffer::Destroy()
     {
         vkFreeCommandBuffers(_logicalDevice, _vkCommandPool, 1, &_handle);
-        static_cast<VulkanGraphicsDevice*>(_device)->ReleaseFence(_vkFence);
+        //static_cast<VulkanGraphicsDevice*>(_device)->ReleaseFence(_vkFence);
     }
 
     void VulkanCommandBuffer::BeginContext()
@@ -77,10 +77,10 @@ namespace Alimer
         _currentVkProgram = nullptr;
         //memset(bindings.cookies, 0, sizeof(bindings.cookies));
         memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
-        CommandContext::BeginContext();
+        //CommandContext::BeginContext();
     }
 
-    void VulkanCommandBuffer::FlushImpl(bool waitForCompletion)
+    /*void VulkanCommandBuffer::FlushImpl(bool waitForCompletion)
     {
         End();
 
@@ -93,7 +93,7 @@ namespace Alimer
             static_cast<VulkanGraphicsDevice*>(_device)->SubmitCommandBuffer(_handle, _vkFence);
             Begin();
         }
-    }
+    }*/
 
     void VulkanCommandBuffer::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
@@ -144,9 +144,9 @@ namespace Alimer
         vkCmdEndRenderPass(_handle);
     }
 
-    void VulkanCommandBuffer::SetPipelineImpl(Pipeline* pipeline)
-    {
-    }
+    //void VulkanCommandBuffer::SetPipelineImpl(Pipeline* pipeline)
+    //{
+    //}
 
     void VulkanCommandBuffer::Begin()
     {
@@ -158,7 +158,7 @@ namespace Alimer
         VkResult result = vkBeginCommandBuffer(_handle, &beginInfo);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERRORF("vkBeginCommandBuffer failed: %s", vkGetVulkanResultString(result));
+            ALIMER_LOGERROR("vkBeginCommandBuffer failed: %s", vkGetVulkanResultString(result));
         }
 
         _graphicsState.Reset();
@@ -169,7 +169,7 @@ namespace Alimer
         VkResult result = vkEndCommandBuffer(_handle);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERRORF("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
+            ALIMER_LOGERROR("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
         }
     }
 
@@ -198,8 +198,6 @@ namespace Alimer
             _currentPipelineLayout = _currentLayout->GetHandle();
         }
     }
-#endif // TODO
-
 
     void VulkanCommandBuffer::SetVertexBufferImpl(GpuBuffer* buffer, uint32_t offset)
     {
@@ -534,7 +532,6 @@ namespace Alimer
         _dirty = false;
     }
 
-#if TODO
     void VulkanCommandBuffer::GraphicsState::SetVertexDescriptor(const VertexDescriptor* descriptor)
     {
         if (_vertexDescriptor != *descriptor)

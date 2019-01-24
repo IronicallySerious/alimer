@@ -22,13 +22,12 @@
 
 #pragma once
 
-#include "VulkanBackend.h"
+#include "../Backend.h"
 #include "../Types.h"
 #include "../PixelFormat.h"
-#include "../GpuBuffer.h"
-#include "../RenderPass.h"
+#include "../Buffer.h"
 
-namespace Alimer
+namespace alimer
 {
     namespace vk
     {

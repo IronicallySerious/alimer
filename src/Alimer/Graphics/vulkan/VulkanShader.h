@@ -23,10 +23,10 @@
 #pragma once
 
 #include "../Shader.h"
-#include "VulkanBackend.h"
+#include "../Backend.h"
 #include "../../Base/HashMap.h"
 
-namespace Alimer
+namespace alimer
 {
     class VulkanGraphicsDevice;
     class VulkanPipelineLayout;
@@ -55,7 +55,7 @@ namespace Alimer
         uint32_t descriptorSetMask = 0;
     };
 
-    class VulkanProgram final : public Shader
+    /*class VulkanProgram final : public Shader
     {
     public:
         /// Constructor.
@@ -74,5 +74,5 @@ namespace Alimer
         VkShaderModule _shaderModules[static_cast<unsigned>(ShaderStage::Count)] = {};
         VulkanPipelineLayout* _pipelineLayout = nullptr;
         HashMap<VkPipeline> _graphicsPipelineCache;
-    };
+    };*/
 }

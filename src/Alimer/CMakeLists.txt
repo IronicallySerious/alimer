@@ -107,7 +107,7 @@ if (ALIMER_OPENGL)
 endif ()
 
 if (ALIMER_VULKAN)
-    # define_engine_source_files(Graphics/Vulkan)
+    define_engine_source_files(Graphics/vulkan)
 
     #set(GLSLANG_HEADER_FILES
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
@@ -119,11 +119,6 @@ if (ALIMER_VULKAN)
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.cpp
     #)
 
-    set (VKMEMALLOC_HEADER_FILES
-	    ${ALIMER_THIRD_PARTY_DIR}/vkmemalloc/src/vk_mem_alloc.h
-    )
-
-    list (APPEND HEADER_FILES ${VKMEMALLOC_HEADER_FILES})
     #list (APPEND SOURCE_FILES ${GLSLANG_SOURCE_FILES})
 endif ()
 
@@ -165,7 +160,7 @@ if (ALIMER_SCRIPTING_LUA)
 endif ()
 
 if (ALIMER_VULKAN)
-    list (APPEND THIRD_PARTY_DEPENDENCIES volk)
+    list (APPEND THIRD_PARTY_DEPENDENCIES volk vkmemalloc)
 endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})

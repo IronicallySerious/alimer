@@ -27,7 +27,6 @@
 #include "../Graphics/CommandContext.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Pipeline.h"
-#include <set>
 #include <mutex>
 
 namespace alimer
@@ -37,12 +36,14 @@ namespace alimer
     class Buffer;
     class Sampler;
 
-    struct GraphicsDeviceDescriptor {
-        GraphicsBackend         preferredBackend = GraphicsBackend::Default;
+    struct GraphicsDeviceDescriptor 
+    {
         bool                    validation = false;
         bool                    headless = false;
         SwapChainDescriptor     swapchain = {};
     };
+
+    class PhysicalDevice;
 
     /// Low-level graphics module.
     class ALIMER_API GraphicsDevice : public Object
@@ -50,22 +51,17 @@ namespace alimer
         ALIMER_OBJECT(GraphicsDevice, Object);
 
     public:
-        /// Create new Graphics.
-        static GraphicsDevice* Create(const GraphicsDeviceDescriptor* descriptor);
+        /// Check if device is supported on running platform.
+        static bool IsSupported();
+
+        /// Constructor.
+        GraphicsDevice(bool validation, bool headless);
 
         /// Destructor.
         ~GraphicsDevice() override;
 
-        /// Check if backend is supported
-        static bool IsBackendSupported(GraphicsBackend backend);
+        bool Initialize(const GraphicsDeviceDescriptor* descriptor);
 
-        /// Get all available backends.
-        static std::set<GraphicsBackend> GetAvailableBackends();
-
-        /// Get default best supported platform backend.
-        static GraphicsBackend GetDefaultPlatformBackend();
-
-          
         /// Add a GPUResource to keep track of. 
         void TrackResource(GPUResource* resource);
 
@@ -91,7 +87,7 @@ namespace alimer
         /**
         * Get the current backbuffer framebuffer.
         */
-        virtual Framebuffer* GetBackbufferFramebuffer() const = 0;
+        //virtual Framebuffer* GetBackbufferFramebuffer() const = 0;
 
         /// Begin rendering frame.
         bool BeginFrame();
@@ -203,37 +199,52 @@ namespace alimer
         */
         Shader* CreateShader(const ShaderDescriptor* descriptor);
 
-    protected:
-        /// Constructor.
-        GraphicsDevice(GraphicsBackend backend, bool validation);
+        void NotifyValidationError(const char* message);
 
+    protected:
         void OnAfterCreated();
 
     private:
-        virtual bool BeginFrameImpl() = 0;
-        virtual void EndFrameImpl() = 0;
-
-        virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) = 0;
-        virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
-        virtual Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) = 0;
-        virtual Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor) = 0;
-        virtual Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
+        bool PlatformInitialize(const GraphicsDeviceDescriptor* descriptor);
+        //virtual bool BeginFrameImpl() = 0;
+        //virtual void EndFrameImpl() = 0;
+        //virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) = 0;
+        //virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
+        //virtual Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) = 0;
+        //virtual Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor) = 0;
+        //virtual Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
 
     private:
-        bool                    _inBeginFrame;
-        uint64_t                _frameIndex;
+        /// Implementation.
+        bool                            _validation;
+        bool                            _headless;
+        bool                            _initialized;
+        GraphicsBackend                 _backend = GraphicsBackend::Invalid;
+        bool                            _inBeginFrame = false;
+        uint64_t                        _frameIndex = 0;
+        std::vector<PhysicalDevice*>    _physicalDevices;
+
+        GPULimits                       _limits{};
+        GraphicsDeviceFeatures          _features{};
+        PODVector<GPUResource*>         _gpuResources;
+        std::mutex                      _gpuResourceMutex;
+        SharedPtr<CommandContext>       _renderContext;
+        Sampler*                        _pointSampler = nullptr;
+        Sampler*                        _linearSampler = nullptr;
+
+#if defined(ALIMER_D3D11)
+#elif defined(ALIMER_D3D12)
+#elif defined(ALIMER_VULKAN)
+        VkInstance                      _instance = VK_NULL_HANDLE;
+        VkDebugReportCallbackEXT        _debugCallback = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT        _debugMessenger = VK_NULL_HANDLE;
+#elif defined(ALIMER_OPENGL)
+#endif
 
     protected:
         virtual void Finalize();
 
-        GraphicsBackend             _backend;
-        bool                        _validation;
-        GPULimits                   _limits{};
-        GraphicsDeviceFeatures      _features{};
-        PODVector<GPUResource*>     _gpuResources;
-        std::mutex                  _gpuResourceMutex;
-        SharedPtr<CommandContext>   _renderContext;
-        Sampler*                    _pointSampler = nullptr;
-        Sampler*                    _linearSampler = nullptr;
+        
+        
     };
 }

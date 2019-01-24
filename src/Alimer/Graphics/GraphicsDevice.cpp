@@ -20,27 +20,12 @@
 // THE SOFTWARE.
 //
 
+#include "Graphics/PhysicalDevice.h"
 #include "Graphics/GraphicsDevice.h"
 #include "Graphics/SwapChain.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Sampler.h"
 #include "Core/Log.h"
-
-#if defined(ALIMER_D3D11)
-#   include "Graphics/D3D11/DeviceD3D11.h"
-#endif
-
-#if defined(ALIMER_D3D12)
-//#   include "Graphics/D3D12/D3D12Graphics.h"
-#endif
-
-#if defined(ALIMER_OPENGL)
-#   include "Graphics/OpenGL/DeviceGL.h"
-#endif
-
-#if defined(ALIMER_VULKAN)
-//#   include "Graphics/Vulkan/VulkanGraphicsDevice.h"
-#endif
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -57,83 +42,31 @@ namespace alimer
 {
     static GraphicsDevice* __graphicsInstance = nullptr;
     
-    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation)
-        : _backend(backend)
-        , _validation(validation)
-        , _inBeginFrame(false)
-        , _frameIndex(0)
+    GraphicsDevice::GraphicsDevice(bool validation, bool headless)
+        : _validation(validation)
+        , _headless(headless)
+        , _initialized(false)
     {
-        AddSubsystem(this);
+        if (!IsSupported())
+        {
+            ALIMER_LOGCRITICAL("Graphics backend is not supported");
+        }
+
+#if defined(ALIMER_D3D11)
+        _backend = GraphicsBackend::D3D11;
+#elif defined(ALIMER_D3D12)
+        _backend = GraphicsBackend::D3D12;
+#elif defined(ALIMER_VULKAN)
+        _backend = GraphicsBackend::Vulkan;
+#elif defined(ALIMER_OPENGL)
+        _backend = GraphicsBackend::OpenGL;
+#endif
     }
 
     GraphicsDevice::~GraphicsDevice()
     {
         Finalize();
         RemoveSubsystem(this);
-    }
-
-    GraphicsDevice* GraphicsDevice::Create(const GraphicsDeviceDescriptor* descriptor)
-    {
-        if (__graphicsInstance)
-        {
-            ALIMER_LOGERROR("Currently cannot create multiple GraphicsDevice instances.");
-            return nullptr;
-        }
-
-        ALIMER_ASSERT(descriptor);
-
-        const bool validation = descriptor->validation;
-        GraphicsBackend backend = descriptor->preferredBackend;
-        if (backend == GraphicsBackend::Default)
-        {
-            backend = GetDefaultPlatformBackend();
-        }
-
-        if (!IsBackendSupported(backend))
-        {
-            ALIMER_LOGERROR("Backend {} is not supported", EnumToString(backend));
-            return nullptr;
-        }
-
-        GraphicsDevice* device = nullptr;
-        switch (backend)
-        {
-        case GraphicsBackend::Empty:
-            break;
-        case GraphicsBackend::Vulkan:
-            break;
-        case GraphicsBackend::D3D11:
-#if defined(ALIMER_D3D11)
-            device = new DeviceD3D11(descriptor);
-            ALIMER_LOGINFO("D3D11 backend created with success.");
-#else
-            ALIMER_LOGERROR("D3D11 backend is not supported.");
-#endif
-            break;
-        case GraphicsBackend::D3D12:
-#if defined(ALIMER_D3D12)
-            //device = new D3D12Graphics(validation);
-            ALIMER_LOGINFO("D3D12 backend created with success.");
-#else
-            ALIMER_LOGERROR("D3D12 backend is not supported.");
-#endif
-            break;
-        case GraphicsBackend::Metal:
-            break;
-        case GraphicsBackend::OpenGL:
-#if defined(ALIMER_OPENGL)
-            //device = new DeviceGL(validation);
-            ALIMER_LOGINFO("D3D12 backend created with success.");
-#else
-            ALIMER_LOGERROR("D3D12 backend is not supported.");
-#endif
-            break;
-        default:
-            ALIMER_UNREACHABLE();
-        }
-
-        __graphicsInstance = device;
-        return device;
     }
 
     void GraphicsDevice::Finalize()
@@ -156,106 +89,20 @@ namespace alimer
         _renderContext.Reset();
     }
 
-    bool GraphicsDevice::IsBackendSupported(GraphicsBackend backend)
+    bool GraphicsDevice::Initialize(const GraphicsDeviceDescriptor* descriptor)
     {
-        if (backend == GraphicsBackend::Default)
+        if (_initialized)
         {
-            backend = GetDefaultPlatformBackend();
-        }
-
-        switch (backend)
-        {
-        case GraphicsBackend::Empty:
             return true;
-        case GraphicsBackend::Vulkan:
-#if AGPU_VULKAN
-            return true; // VulkanGraphicsDevice::IsSupported();
-#else
-            return false;
-#endif
-        case GraphicsBackend::D3D11:
-#if defined(ALIMER_D3D11)
-            return DeviceD3D11::IsSupported();
-#else
-            return false;
-#endif
-
-        case GraphicsBackend::D3D12:
-#if defined(ALIMER_D3D12)
-            return false;
-            //return D3D12Graphics::IsSupported();
-#else
-            return false;
-#endif
-
-        case GraphicsBackend::OpenGL:
-#if defined(ALIMER_OPENGL)
-            return DeviceGL::IsSupported();
-#else
-            return false;
-#endif
-        default:
-            return false;
         }
-    }
 
-    std::set<GraphicsBackend> GraphicsDevice::GetAvailableBackends()
-    {
-        static std::set<GraphicsBackend> backends;
-
-        if (backends.empty())
+        if (!PlatformInitialize(descriptor))
         {
-            backends.insert(GraphicsBackend::Empty);
-
-#if defined(ALIMER_OPENGL)
-            if (DeviceGL::IsSupported())
-            {
-                backends.insert(GraphicsBackend::OpenGL);
-            }
-#endif
-
-#if defined(ALIMER_D3D11)
-            if (DeviceD3D11::IsSupported())
-            {
-                backends.insert(GraphicsBackend::D3D11);
-            }
-#endif
-
-
-#if defined(ALIMER_D3D12)
-            //if (D3D12Graphics::IsSupported())
-            //{
-            //    backends.insert(GraphicsBackend::D3D12);
-            //}
-#endif
-
-#if defined(ALIMER_VULKAN)
-            //if (DeviceVk::IsSupported())
-            //{
-            //    backends.insert(GraphicsBackend::Vulkan);
-            //}
-#endif
+            return false;
         }
 
-        return backends;
-    }
-
-    GraphicsBackend GraphicsDevice::GetDefaultPlatformBackend()
-    {
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP || ALIMER_PLATFORM_XBOX_ONE
-        if (IsBackendSupported(GraphicsBackend::D3D12))
-        {
-            return GraphicsBackend::D3D12;
-        }
-
-        return GraphicsBackend::D3D11;
-#elif ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_ANDROID
-        return GraphicsBackend::OpenGL;
-#elif ALIMER_PLATFORM_MACOS || ALIMER_PLATFORM_IOS || ALIMER_PLATFORM_TVOS
-        return GraphicsBackend::Metal;
-#else
-        return GraphicsBackend::OpenGL;
-#endif
+        _initialized = true;
+        return true;
     }
 
     void GraphicsDevice::OnAfterCreated()
@@ -276,10 +123,10 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
         }
 
-        if (!BeginFrameImpl())
-        {
-            ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
-        }
+        //if (!BeginFrameImpl())
+        //{
+        //    ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
+        //}
 
         _inBeginFrame = true;
         return true;
@@ -292,7 +139,7 @@ namespace alimer
             ALIMER_LOGCRITICAL("BeginFrame must be called before EndFrame.");
         }
 
-        EndFrameImpl();
+        //EndFrameImpl();
         _inBeginFrame = false;
         return ++_frameIndex;
     }
@@ -313,6 +160,12 @@ namespace alimer
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         _gpuResources.Remove(resource);
     }
+
+    void GraphicsDevice::NotifyValidationError(const char* message)
+    {
+        ALIMER_UNUSED(message);
+    }
+
 
     static inline TextureUsage UpdateTextureUsage(TextureUsage usage, bool hasInitData, uint32_t mipLevels)
     {
@@ -424,7 +277,8 @@ namespace alimer
         descriptor.type = TextureType::Type1D;
         descriptor.format = format;
         descriptor.usage = UpdateTextureUsage(textureUsage, pInitData != nullptr, mipLevels);
-        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+        return nullptr;
+        //return CreateTextureImpl(&descriptor, nullptr, pInitData);
     }
 
     Texture* GraphicsDevice::Create2DTexture(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize, uint32_t mipLevels, TextureUsage textureUsage, const void* pInitData)
@@ -450,7 +304,8 @@ namespace alimer
         descriptor.type = TextureType::Type2D;
         descriptor.format = format;
         descriptor.usage = UpdateTextureUsage(textureUsage, pInitData != nullptr, mipLevels);
-        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+        return nullptr;
+       // return CreateTextureImpl(&descriptor, nullptr, pInitData);
     }
 
     Texture* GraphicsDevice::Create2DMultisampleTexture(uint32_t width, uint32_t height, PixelFormat format, SampleCount samples, uint32_t arraySize, TextureUsage textureUsage, const void* pInitData)
@@ -470,7 +325,8 @@ namespace alimer
         descriptor.type = TextureType::Type2D;
         descriptor.format = format;
         descriptor.usage = textureUsage;
-        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+        return nullptr;
+        //return CreateTextureImpl(&descriptor, nullptr, pInitData);
     }
 
     Texture* GraphicsDevice::Create3DTexture(uint32_t width, uint32_t height, uint32_t depth, PixelFormat format, uint32_t mipLevels, TextureUsage textureUsage, const void* pInitData)
@@ -495,7 +351,8 @@ namespace alimer
         descriptor.type = TextureType::Type3D;
         descriptor.format = format;
         descriptor.usage = UpdateTextureUsage(textureUsage, pInitData != nullptr, mipLevels);
-        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+        return nullptr;
+        //return CreateTextureImpl(&descriptor, nullptr, pInitData);
     }
 
     Texture* GraphicsDevice::CreateCubeTexture(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize, uint32_t mipLevels, TextureUsage textureUsage, const void* pInitData)
@@ -520,7 +377,8 @@ namespace alimer
         descriptor.type = TextureType::TypeCube;
         descriptor.format = format;
         descriptor.usage = UpdateTextureUsage(textureUsage, pInitData != nullptr, mipLevels);
-        return CreateTextureImpl(&descriptor, nullptr, pInitData);
+        return nullptr;
+        //return CreateTextureImpl(&descriptor, nullptr, pInitData);
     }
 
     Framebuffer* GraphicsDevice::CreateFramebuffer(const FramebufferDescriptor* descriptor)
@@ -548,7 +406,8 @@ namespace alimer
             }
         }
 
-        return CreateFramebufferImpl(descriptor);
+        return nullptr;
+        //return CreateFramebufferImpl(descriptor);
     }
 
     Buffer* GraphicsDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData)
@@ -566,19 +425,21 @@ namespace alimer
             ALIMER_LOGERROR("Invalid buffer usage.");
             return false;
         }
-
-        return CreateBufferImpl(descriptor, pInitData);
+        return nullptr;
+        //return CreateBufferImpl(descriptor, pInitData);
     }
 
     Sampler* GraphicsDevice::CreateSampler(const SamplerDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
-        return CreateSamplerImpl(descriptor);
+        return nullptr; 
+        //return CreateSamplerImpl(descriptor);
     }
 
     Shader* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
-        return CreateShaderImpl(descriptor);
+        return nullptr; 
+        // return CreateShaderImpl(descriptor);
     }
 }

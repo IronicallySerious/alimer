@@ -77,12 +77,13 @@ static ALIMER_FORCEINLINE void alimerAtomicStore64(atomic64_t* dst, int64_t val,
 */
 static ALIMER_FORCEINLINE void alimerAtomicStorePtr(atomicptr_t* dst, void* val, memory_order order);
 
+#if TODO_ATOMICS
 /**
 * Atomically add to the value of the 32 bit integer and returns its new value
 * @param val   Value to change
 * @param add   Value to add
 * @param order The memory synchronization order for this operation
-return      New value after addition 
+return      New value after addition
 */
 static ALIMER_FORCEINLINE int32_t atomic_add32(atomic32_t* val, int32_t add, memory_order order);
 
@@ -91,7 +92,7 @@ static ALIMER_FORCEINLINE int32_t atomic_add32(atomic32_t* val, int32_t add, mem
 * @param val Value to change
 * @param add Value to add
 * @param order The memory synchronization order for this operation
-* @return New value after addition 
+* @return New value after addition
 */
 static ALIMER_FORCEINLINE int64_t atomic_add64(atomic64_t* val, int64_t add, memory_order order);
 
@@ -115,7 +116,7 @@ static ALIMER_FORCEINLINE int64_t atomic_incr64(atomic64_t* val, memory_order or
 * Atomically decreases the value of the 32 bit integer and returns its new value
 * @param val Value to change
 * @param order The memory synchronization order for this operation
-* @return New value after addition 
+* @return New value after addition
 */
 static ALIMER_FORCEINLINE int32_t atomic_decr32(atomic32_t* val, memory_order order);
 
@@ -123,7 +124,7 @@ static ALIMER_FORCEINLINE int32_t atomic_decr32(atomic32_t* val, memory_order or
 * Atomically decreases the value of the 64 bit integer and returns its new value
 * @param val   Value to change
 * @param order The memory synchronization order for this operation
-* @return New value after addition 
+* @return New value after addition
 */
 static ALIMER_FORCEINLINE int64_t atomic_decr64(atomic64_t* val, memory_order order);
 
@@ -132,7 +133,7 @@ static ALIMER_FORCEINLINE int64_t atomic_decr64(atomic64_t* val, memory_order or
 * @param val   Value to change
 * @param add   Value to add
 * @param order The memory synchronization order for this operation
-* @return      Old value before addition 
+* @return      Old value before addition
 */
 static ALIMER_FORCEINLINE int32_t atomic_exchange_and_add32(atomic32_t* val, int32_t add, memory_order order);
 
@@ -141,7 +142,7 @@ static ALIMER_FORCEINLINE int32_t atomic_exchange_and_add32(atomic32_t* val, int
 * @param val   Value to change
 * @param add   Value to add
 * @param order The memory synchronization order for this operation
-* @return      Old value before addition 
+* @return      Old value before addition
 */
 static ALIMER_FORCEINLINE int64_t atomic_exchange_and_add64(atomic64_t* val, int64_t add, memory_order order);
 
@@ -155,7 +156,7 @@ static ALIMER_FORCEINLINE int64_t atomic_exchange_and_add64(atomic64_t* val, int
 * @param ref   Reference value
 * @param success The memory synchronization order for for the read-modify-write operation if the comparison succeeds
 * @param failure The memory synchronization order for the load operation if the comparison fails. This parameter cannot be memory_order_release or memory_order_acq_rel. You cannot specify it with a memory synchronization order stronger than success
-\* @return true if operation was successful and new value stored, false if comparison failed and value was unchanged 
+\* @return true if operation was successful and new value stored, false if comparison failed and value was unchanged
 */
 static ALIMER_FORCEINLINE bool atomic_cas32(atomic32_t* dst, int32_t val, int32_t ref, memory_order success, memory_order failure);
 
@@ -169,7 +170,7 @@ static ALIMER_FORCEINLINE bool atomic_cas32(atomic32_t* dst, int32_t val, int32_
 * @param ref   Reference value
 * @param success The memory synchronization order for for the read-modify-write operation if the comparison succeeds
 * @param failure The memory synchronization order for the load operation if the comparison fails. This parameter cannot be memory_order_release or memory_order_acq_rel. You cannot specify it with a memory synchronization order stronger than success
-* @return true if operation was successful and new value stored, false if comparison failed and value was unchanged 
+* @return true if operation was successful and new value stored, false if comparison failed and value was unchanged
 */
 static ALIMER_FORCEINLINE bool atomic_cas64(atomic64_t* dst, int64_t val, int64_t ref, memory_order success, memory_order failure);
 
@@ -190,39 +191,41 @@ static ALIMER_FORCEINLINE bool atomic_cas_ptr(atomicptr_t* dst, void* val, void*
 /**
 * Signal fence making prior writes made to other memory locations done by a thread on
 * the same core doing a release fence visible to the calling thread. Implemented as a compile
-* barrier on all supported platforms 
+* barrier on all supported platforms
 */
 static ALIMER_FORCEINLINE void atomic_signal_fence_acquire(void);
 
 /**
 * Signal fence to make prior writes to functions doing an acquire fence in threads on
-* the same core. Implemented as a compile barrier on all supported platforms 
+* the same core. Implemented as a compile barrier on all supported platforms
 */
 static ALIMER_FORCEINLINE void atomic_signal_fence_release(void);
 
 /**
 * Signal fence combining acquire and release order as well as providing a single total
 * order on all sequentially consistent fences for threads on the same core. Implemented as
-* a compile barrier on all supported platforms 
+* a compile barrier on all supported platforms
 */
 static ALIMER_FORCEINLINE void atomic_signal_fence_sequentially_consistent(void);
 
 /**
 * Thread fence making prior writes made to other memory locations done by a thread doing
-* a release fence visible to the calling thread. 
+* a release fence visible to the calling thread.
 */
 static ALIMER_FORCEINLINE void atomic_thread_fence_acquire(void);
 
 /**
-* Thread fence making prior writes visible to other threads to do an acquire fence. 
+* Thread fence making prior writes visible to other threads to do an acquire fence.
 */
 static ALIMER_FORCEINLINE void atomic_thread_fence_release(void);
 
 /**
 * Thread fence combining an acquire and release fence as well as enforcing a single
-* total order on all sequentially consistent fences. 
+* total order on all sequentially consistent fences.
 */
 static ALIMER_FORCEINLINE void atomic_thread_fence_sequentially_consistent(void);
+#endif // TODO_ATOMICS
+
 
 // Implementations
 #if !ALIMER_COMPILER_MSVC && !defined(__STDC_NO_ATOMICS__)

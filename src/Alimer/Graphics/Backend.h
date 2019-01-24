@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,27 +22,78 @@
 
 #pragma once
 
-#if defined(_WIN32)
-#   ifndef VK_USE_PLATFORM_WIN32_KHR
-#       define VK_USE_PLATFORM_WIN32_KHR 1
+#include "AlimerConfig.h"
+
+#ifdef _WIN32
+#   ifndef NOMINMAX
+#       define NOMINMAX
 #   endif
-#elif defined(__ANDROID__)
-#   define VK_USE_PLATFORM_ANDROID_KHR 1
-#elif defined(__linux__)
-#   ifdef ALIMER_LINUX_WAYLAND)
-#       define VK_USE_PLATFORM_WAYLAND_KHR 1
-#   else
-#       define VK_USE_PLATFORM_XCB_KHR 1
+#   ifndef WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
 #   endif
 #endif
 
-#define VK_NO_PROTOTYPES
-#include "volk/volk.h"
-#include "vk_mem_alloc.h"
-#include "../../Core/Log.h"
+#if defined(ALIMER_D3D11)
+#   include <dxgi.h>
+#   define D3D11_NO_HELPERS
+#   include <d3d11_1.h>
+#   include <d3dcompiler.h>
+#   ifdef _DEBUG
+#       include <dxgidebug.h>
+#   endif
+#   define MAKE_SMART_COM_PTR(_a) _COM_SMARTPTR_TYPEDEF(_a, __uuidof(_a))
+#   define GET_COM_INTERFACE(base, type, var) MAKE_SMART_COM_PTR(type); concat_strings(type, Ptr) var; d3d_call(base->QueryInterface(IID_PPV_ARGS(&var)));
+#elif defined(ALIMER_D3D12)
+#   include <dxgi.h>
+#   if defined(NTDDI_WIN10_RS2)
+#       include <dxgi1_5.h>
+#   else
+#   include <dxgi1_4.h>
+#   endif
+#   include <d3d12.h>
+#   include <d3dcompiler.h>
+#   ifdef _DEBUG
+#       include <dxgidebug.h>
+#   endif
+#   define MAKE_SMART_COM_PTR(_a) _COM_SMARTPTR_TYPEDEF(_a, __uuidof(_a))
+#   define GET_COM_INTERFACE(base, type, var) MAKE_SMART_COM_PTR(type); concat_strings(type, Ptr) var; d3d_call(base->QueryInterface(IID_PPV_ARGS(&var)));
+#elif defined(ALIMER_VULKAN)
+#   if defined(_WIN32)
+#       ifndef VK_USE_PLATFORM_WIN32_KHR
+#           define VK_USE_PLATFORM_WIN32_KHR 1
+#       endif
+#   elif defined(__ANDROID__)
+#       define VK_USE_PLATFORM_ANDROID_KHR 1
+#   elif defined(__linux__)
+#       ifdef ALIMER_LINUX_WAYLAND)
+#           define VK_USE_PLATFORM_WAYLAND_KHR 1
+#       else
+#           define VK_USE_PLATFORM_XCB_KHR 1
+#       endif
+#   endif
+#   include "volk/volk.h"
+#   include <vk_mem_alloc.h>
+#elif defined(ALIMER_OPENGL)
+#endif
 
-namespace Alimer
+#include "../Core/Log.h"
+
+namespace alimer
 {
+#if defined(ALIMER_D3D11)
+#define BACKEND_INVALID_HANDLE  nullptr
+    using PhysicalDeviceHandle  = IDXGIAdapter1*;
+    using BufferHandle          = ID3D11Buffer*;
+#elif defined(ALIMER_D3D12)
+#define BACKEND_INVALID_HANDLE  nullptr
+    using PhysicalDeviceHandle  = IDXGIAdapter1*;
+    using BufferHandle          = ID3D11Resource*;
+#elif defined(ALIMER_VULKAN)
+#define BACKEND_INVALID_HANDLE  0
+    using PhysicalDeviceHandle  = VkPhysicalDevice;
+    using BufferHandle          = VkBuffer;
+
+
     inline const char* vkGetVulkanResultString(VkResult result)
     {
         switch (result)
@@ -96,18 +147,23 @@ namespace Alimer
         default:
             return "ERROR: UNKNOWN VULKAN ERROR";
         }
-    }
+}
 
     // Helper utility converts Vulkan API failures into exceptions.
     inline void vkThrowIfFailed(VkResult result)
     {
         if (result < VK_SUCCESS)
         {
-            ALIMER_LOGCRITICALF(
+            ALIMER_LOGCRITICAL(
                 "Fatal Vulkan result is \"%s\" in %u at line %u",
                 vkGetVulkanResultString(result),
                 __FILE__,
                 __LINE__);
         }
     }
-}
+#elif defined(ALIMER_OPENGL)
+#define BACKEND_INVALID_HANDLE  GL_INVALID_VALUE
+    using PhysicalDeviceHandle  = unsigned;
+    using BufferHandle          = unsigned;
+#endif
+};

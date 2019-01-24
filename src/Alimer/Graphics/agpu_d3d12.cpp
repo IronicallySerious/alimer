@@ -22,7 +22,7 @@
 
 #include "agpu.h"
 
-#ifdef ALIMER_D3D12
+#if defined(TODO_D3D12) && defined(ALIMER_D3D12)
 #define AGPU_IMPLEMENTATION
 #include "agpu_backend.h"
 #include <wrl/client.h>

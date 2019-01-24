@@ -25,7 +25,7 @@
 #include "VulkanPipelineLayout.h"
 #include "VulkanConvert.h"
 
-namespace Alimer
+namespace alimer
 {
     /*VulkanShaderModule::VulkanShaderModule(VulkanGraphicsDevice* device, uint64_t hash, const ShaderBlob& blob)
         : ShaderModule(device, hash, blob)
@@ -63,7 +63,7 @@ namespace Alimer
             vkDestroyShaderModule(_logicalDevice, _handle, nullptr);
             _handle = VK_NULL_HANDLE;
         }
-    }*/
+    }
 
     VulkanProgram::VulkanProgram(VulkanGraphicsDevice* device, uint64_t hash, const std::vector<ShaderModule*>& shaders)
         : Shader(device, nullptr)
@@ -72,7 +72,7 @@ namespace Alimer
         VulkanResourceLayout layout;
         layout.descriptorSetMask = 0;
 
-        /*for (size_t i = 0, count = shaders.size(); i < count; ++i)
+        for (size_t i = 0, count = shaders.size(); i < count; ++i)
         {
             auto shader = static_cast<VulkanShaderModule*>(shaders[i]);
             if (shader->GetStage() == ShaderStage::Vertex)
@@ -87,7 +87,7 @@ namespace Alimer
             _shaderModules[static_cast<unsigned>(shaders[i]->GetStage())] = shader->GetHandle();
         }
 
-        _pipelineLayout = device->RequestPipelineLayout(&layout);*/
+        _pipelineLayout = device->RequestPipelineLayout(&layout);
     }
 
     VulkanProgram::~VulkanProgram()
@@ -116,5 +116,5 @@ namespace Alimer
     void VulkanProgram::AddPipeline(uint64_t hash, VkPipeline pipeline)
     {
         _graphicsPipelineCache[hash] = pipeline;
-    }
+    }*/
 }

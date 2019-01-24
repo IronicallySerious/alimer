@@ -25,7 +25,7 @@
 #include "../Graphics/SwapChain.h"
 #include "../Graphics/GraphicsDevice.h"
 #if ALIMER_SDL2
-#include "../Application/SDL2/WindowSDL2.h"
+#include "SDL2/WindowSDL2.h"
 #endif
 
 namespace alimer

@@ -25,7 +25,7 @@
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
     VulkanPipelineLayout::VulkanPipelineLayout(
         VulkanGraphicsDevice* device,

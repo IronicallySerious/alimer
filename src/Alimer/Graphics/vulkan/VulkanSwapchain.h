@@ -24,10 +24,10 @@
 
 #include "../../Math/Math.h"
 #include "../PixelFormat.h"
-#include "VulkanBackend.h"
+#include "../Backend.h"
 #include <vector>
 
-namespace Alimer
+namespace alimer
 {
     class VulkanGraphicsDevice;
     class VulkanTexture;
@@ -38,7 +38,7 @@ namespace Alimer
     {
     public:
         /// Construct. Set parent shader and defines but do not compile yet.
-        VulkanSwapchain(VulkanGraphicsDevice* device, VkSurfaceKHR surface, const SwapchainDescriptor* descriptor);
+        VulkanSwapchain(VulkanGraphicsDevice* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
         /// Destruct.
         ~VulkanSwapchain();
 
@@ -65,8 +65,8 @@ namespace Alimer
         VkSwapchainKHR _handle = VK_NULL_HANDLE;
 
         std::vector<VkImage> _vkImages;
-        std::vector<SharedPtr<VulkanTexture>> _textures;
-        std::vector<SharedPtr<VulkanFramebuffer>> _framebuffers;
+        //std::vector<SharedPtr<VulkanTexture>> _textures;
+        //std::vector<SharedPtr<VulkanFramebuffer>> _framebuffers;
 
         uint32_t _imageCount;
         PixelFormat _format = PixelFormat::Unknown;

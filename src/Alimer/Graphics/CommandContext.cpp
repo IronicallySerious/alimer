@@ -55,7 +55,7 @@ namespace alimer
 
     void CommandContext::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
-        RenderPassBeginDescriptor descriptor = {};
+        /*RenderPassBeginDescriptor descriptor = {};
         descriptor.colors[0].loadAction = LoadAction::Clear;
         descriptor.colors[0].storeAction = StoreAction::Store;
         descriptor.colors[0].clearColor = clearColor;
@@ -71,7 +71,7 @@ namespace alimer
             descriptor.depthStencil.clearStencil = clearStencil;
         }
 
-        BeginRenderPass(_device->GetBackbufferFramebuffer(), &descriptor);
+        BeginRenderPass(_device->GetBackbufferFramebuffer(), &descriptor);*/
     }
 
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)

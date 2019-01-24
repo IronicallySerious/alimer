@@ -19,10 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
-#define VMA_STATS_STRING_ENABLED 0
-#define VMA_IMPLEMENTATION
-
 #include "VulkanGraphicsDevice.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanSwapchain.h"
@@ -34,129 +30,10 @@
 #include "VulkanConvert.h"
 #include "../../Math/Math.h"
 #include "../../Core/Log.h"
-#include "AlimerVersion.h"
 #include <map>
 
-namespace Alimer
+namespace alimer
 {
-    static VKAPI_ATTR VkBool32 VKAPI_CALL VkMessengerCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT                  messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
-        void *pUserData)
-    {
-        auto *context = static_cast<VulkanGraphicsDevice*>(pUserData);
-
-        switch (messageSeverity)
-        {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
-            {
-                ALIMER_LOGERRORF("[Vulkan]: Validation Error: %s", pCallbackData->pMessage);
-                context->NotifyValidationError(pCallbackData->pMessage);
-            }
-            else
-            {
-                ALIMER_LOGERRORF("[Vulkan]: %s", pCallbackData->pMessage);
-            }
-
-            break;
-
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
-            {
-                ALIMER_LOGWARNF("[Vulkan]: Validation Warning: %s", pCallbackData->pMessage);
-            }
-            else
-            {
-                ALIMER_LOGWARNF("[Vulkan]: %s", pCallbackData->pMessage);
-            }
-            break;
-
-            // Log to verbose only
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                || messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
-            {
-                ALIMER_LOGTRACEF("[Vulkan]: Validation Info: %s", pCallbackData->pMessage);
-            }
-            else
-            {
-                // Verbose message
-                ALIMER_LOGTRACEF("[Vulkan]: %s", pCallbackData->pMessage);
-            }
-            break;
-
-        default:
-            return VK_FALSE;
-        }
-
-        bool log_object_names = false;
-        for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
-        {
-            auto *name = pCallbackData->pObjects[i].pObjectName;
-            if (name)
-            {
-                log_object_names = true;
-                break;
-            }
-        }
-
-        if (log_object_names)
-        {
-            for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
-            {
-                auto *name = pCallbackData->pObjects[i].pObjectName;
-                ALIMER_LOGINFOF("  Object #%u: %s\n", i, name ? name : "N/A");
-            }
-        }
-
-        return VK_FALSE;
-    }
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
-        VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
-        uint64_t object, size_t location, int32_t messageCode,
-        const char *pLayerPrefix, const char *pMessage, void *pUserData)
-    {
-        (void)objectType;
-        (void)object;
-        (void)location;
-        (void)pUserData;
-
-        //auto *graphics = static_cast<VulkanGraphicsDevice*>(pUserData);
-
-        if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
-        {
-            ALIMER_LOGERRORF("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
-        }
-        else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
-        {
-            ALIMER_LOGWARNF("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
-        }
-        else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
-        {
-            ALIMER_LOGERRORF("[Vulkan] - PERFORMANCE WARNING: [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
-        }
-        else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
-        {
-            ALIMER_LOGINFOF("[Vulkan] - [%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
-        }
-        else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
-        {
-            ALIMER_LOGDEBUGF("[%s] Code %d : %s", pLayerPrefix, messageCode, pMessage);
-        }
-        else
-        {
-            ALIMER_LOGINFOF("%s: %s", pLayerPrefix, pMessage);
-        }
-
-        return VK_FALSE;
-    }
-
     enum class VkExtensionType
     {
         Optional,
@@ -198,7 +75,7 @@ namespace Alimer
     }
 
     VulkanGraphicsDevice::VulkanGraphicsDevice(bool validation)
-        : GraphicsDevice(GraphicsBackend::Vulkan, validation)
+        : GraphicsDevice(validation, false)
     {
 #ifdef ALIMER_THREADING
         _cookie.store(0);
@@ -218,7 +95,7 @@ namespace Alimer
             if (vkEnumerateInstanceVersion(&checkApiVersion) == VK_SUCCESS)
             {
                 // Translate the version into major/minor for easier comparison
-                ALIMER_LOGTRACEF("[Vulkan] - Loader/Runtime support detected %u.%u.%u",
+                ALIMER_LOGTRACE("[Vulkan] - Loader/Runtime support detected %u.%u.%u",
                     VK_VERSION_MAJOR(checkApiVersion),
                     VK_VERSION_MINOR(checkApiVersion),
                     VK_VERSION_PATCH(checkApiVersion));
@@ -342,58 +219,12 @@ namespace Alimer
         VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERRORF("Failed to create vulkan instance: %s", vkGetVulkanResultString(result));
+            ALIMER_LOGERROR("Failed to create vulkan instance: %s", vkGetVulkanResultString(result));
             return;
         }
 
         // Now load vk symbols.
         volkLoadInstance(_instance);
-
-        // Setup debug callback
-        if (validation)
-        {
-            if (_supportsDebugUtils)
-            {
-                VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo = {};
-                debugUtilsMessengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-                debugUtilsMessengerCreateInfo.pNext = nullptr;
-                debugUtilsMessengerCreateInfo.messageSeverity =
-                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
-                    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
-                    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-                    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-                debugUtilsMessengerCreateInfo.pfnUserCallback = VkMessengerCallback;
-                debugUtilsMessengerCreateInfo.messageType =
-                    VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                    | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT
-                    | VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
-                debugUtilsMessengerCreateInfo.pUserData = this;
-
-                result = vkCreateDebugUtilsMessengerEXT(_instance, &debugUtilsMessengerCreateInfo, nullptr, &_debugMessenger);
-                if (result != VK_SUCCESS)
-                {
-                    ALIMER_LOGWARNF("vkCreateDebugUtilsMessengerEXT failed: %s.", vkGetVulkanResultString(result));
-                }
-            }
-            else if (has_extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
-            {
-                VkDebugReportCallbackCreateInfoEXT debugCreateInfo = {};
-                debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-                debugCreateInfo.pNext = nullptr;
-                debugCreateInfo.flags =
-                    VK_DEBUG_REPORT_ERROR_BIT_EXT
-                    | VK_DEBUG_REPORT_WARNING_BIT_EXT
-                    | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-                debugCreateInfo.pfnCallback = VkDebugCallback;
-                debugCreateInfo.pUserData = this;
-
-                result = vkCreateDebugReportCallbackEXT(_instance, &debugCreateInfo, nullptr, &_debugCallback);
-                if (result != VK_SUCCESS)
-                {
-                    ALIMER_LOGWARNF("vkCreateDebugReportCallbackEXT failed: %s.", vkGetVulkanResultString(result));
-                }
-            }
-        }
 
         // Enumerate physical devices.
         uint32_t gpuCount = 0;
@@ -431,10 +262,10 @@ namespace Alimer
     VulkanGraphicsDevice::~VulkanGraphicsDevice()
     {
         WaitIdle();
-        Shutdown();
+        //Shutdown();
     }
 
-    void VulkanGraphicsDevice::Shutdown()
+    /*void VulkanGraphicsDevice::Shutdown()
     {
         // Destroy main swap chain.
         _mainSwapchain.Reset();
@@ -502,6 +333,7 @@ namespace Alimer
         vkDestroyInstance(_instance, nullptr);
         _instance = VK_NULL_HANDLE;
     }
+    */
 
     uint64_t VulkanGraphicsDevice::AllocateCookie()
     {
@@ -554,12 +386,12 @@ namespace Alimer
 
 #if defined(ALIMER_DEV)
         //ALIMER_LOGTRACEF("Physical device %d:", i);
-        ALIMER_LOGTRACEF("\t          Name: %s", properties.deviceName);
-        ALIMER_LOGTRACEF("\t   API version: %x", properties.apiVersion);
-        ALIMER_LOGTRACEF("\tDriver version: %x", properties.driverVersion);
-        ALIMER_LOGTRACEF("\t      VendorId: %x", properties.vendorID);
-        ALIMER_LOGTRACEF("\t      DeviceId: %x", properties.deviceID);
-        ALIMER_LOGTRACEF("\t          Type: %d", properties.deviceType);
+        ALIMER_LOGTRACE("\t          Name: %s", properties.deviceName);
+        ALIMER_LOGTRACE("\t   API version: %x", properties.apiVersion);
+        ALIMER_LOGTRACE("\tDriver version: %x", properties.driverVersion);
+        ALIMER_LOGTRACE("\t      VendorId: %x", properties.vendorID);
+        ALIMER_LOGTRACE("\t      DeviceId: %x", properties.deviceID);
+        ALIMER_LOGTRACE("\t          Type: %d", properties.deviceType);
         //LogVulkanDevice(physicalDeviceProperties);
 #endif
 
@@ -575,6 +407,7 @@ namespace Alimer
         return score;
     }
 
+#if TODO_VULKAN
     bool VulkanGraphicsDevice::Initialize(const RenderingSettings& settings)
     {
         // Log info.
@@ -595,7 +428,7 @@ namespace Alimer
         const auto has_extension = [&](const char *name) -> bool {
             auto itr = std::find_if(std::begin(queried_extensions), std::end(queried_extensions), [name](const VkExtensionProperties &e) -> bool {
                 return strcmp(e.extensionName, name) == 0;
-            });
+                });
             return itr != std::end(queried_extensions);
         };
 
@@ -801,7 +634,7 @@ namespace Alimer
         else
         {
             _supportsExternal = false;
-        }
+    }
 #endif
 
         // Enabled features
@@ -990,6 +823,8 @@ namespace Alimer
         // Submit Swapchain.
         _mainSwapchain->QueuePresent(_graphicsQueue);
     }
+#endif // TODO_VULKAN
+
 
     void VulkanGraphicsDevice::AddWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags flags)
     {
@@ -1021,7 +856,7 @@ namespace Alimer
         vkResetFences(_device, 1, &fence);
     }
 
-    VkSurfaceKHR VulkanGraphicsDevice::CreateSurface(const SwapchainDescriptor& descriptor)
+    VkSurfaceKHR VulkanGraphicsDevice::CreateSurface(const SwapChainDescriptor& descriptor)
     {
         VkResult result = VK_SUCCESS;
         VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -1032,8 +867,8 @@ namespace Alimer
         surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
         surfaceCreateInfo.pNext = nullptr;
         surfaceCreateInfo.flags = 0;
-        surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-        surfaceCreateInfo.hwnd = static_cast<HWND>(descriptor.windowHandle);
+        surfaceCreateInfo.hinstance = static_cast<HINSTANCE>(descriptor.nativeDisplay);
+        surfaceCreateInfo.hwnd = static_cast<HWND>(descriptor.nativeHandle);
         result = vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &surface);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
         VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
@@ -1061,7 +896,7 @@ namespace Alimer
         return surface;
     }
 
-    Framebuffer* VulkanGraphicsDevice::GetSwapchainFramebuffer() const
+    /*Framebuffer* VulkanGraphicsDevice::GetSwapchainFramebuffer() const
     {
         return _mainSwapchain->GetCurrentFramebuffer();
     }
@@ -1089,7 +924,7 @@ namespace Alimer
     Pipeline* VulkanGraphicsDevice::CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor)
     {
         return nullptr;
-    }
+    }*/
 
     VkCommandPool VulkanGraphicsDevice::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
     {
@@ -1191,11 +1026,12 @@ namespace Alimer
 
     VulkanFramebuffer* VulkanGraphicsDevice::RequestFramebuffer(const RenderPassDescriptor* descriptor)
     {
-        auto renderPass = RequestRenderPass(descriptor);
+        return nullptr;
+        /*auto renderPass = RequestRenderPass(descriptor);
         Hasher h;
         h.UInt64(renderPass->GetHash());
 
-        /*for (uint32_t i = 0; i < MaxColorAttachments; i++)
+        for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
             if (descriptor->colorAttachments[i].attachment)
             {
@@ -1206,7 +1042,7 @@ namespace Alimer
         if (descriptor->depthStencil)
         {
             h.u64(static_cast<VulkanTextureView*>(descriptor->depthStencil)->GetId());
-        }*/
+        }
 
         uint64_t hash = h.GetValue();
         auto framebuffer = _framebuffers.Find(hash);
@@ -1215,7 +1051,7 @@ namespace Alimer
             //framebuffer = _framebuffers.Insert(hash, std::make_unique<VulkanFramebuffer>(this, renderPass, descriptor));
         }
 
-        return framebuffer;
+        return framebuffer;*/
     }
 
     VkResult VulkanGraphicsDevice::BufferSubData(VulkanBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, const void* pData)
@@ -1276,17 +1112,19 @@ namespace Alimer
 
     VkResult VulkanGraphicsDevice::MapBuffer(VulkanBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, void** ppData)
     {
-        return vmaMapMemory(_memoryAllocator, buffer->GetAllocation(), ppData);
+        return VK_SUCCESS;
+        //return vmaMapMemory(_memoryAllocator, buffer->GetAllocation(), ppData);
     }
 
     void VulkanGraphicsDevice::UnmapBuffer(VulkanBuffer* buffer)
     {
-        vmaUnmapMemory(_memoryAllocator, buffer->GetAllocation());
+        //vmaUnmapMemory(_memoryAllocator, buffer->GetAllocation());
     }
 
     VulkanRenderPass* VulkanGraphicsDevice::RequestRenderPass(const RenderPassDescriptor* descriptor)
     {
-        Hasher renderPassHasher;
+        return nullptr;
+        /*Hasher renderPassHasher;
 
         /*for (uint32_t i = 0; i < MaxColorAttachments; i++)
         {
@@ -1298,7 +1136,7 @@ namespace Alimer
             renderPassHasher.u32(static_cast<uint32_t>(attachment->GetFormat()));
             renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.loadAction));
             renderPassHasher.u32(static_cast<uint32_t>(colorAttachment.storeAction));
-        }*/
+        }
 
         uint64_t hash = renderPassHasher.GetValue();
         auto renderPass = _renderPasses.Find(hash);
@@ -1306,12 +1144,13 @@ namespace Alimer
         {
             //renderPass = _renderPasses.Insert(hash, std::make_unique<VulkanRenderPass>(hash, this, descriptor));
         }
-        return renderPass;
+        return renderPass;*/
     }
 
     VulkanPipelineLayout* VulkanGraphicsDevice::RequestPipelineLayout(const VulkanResourceLayout* layout)
     {
-        Hasher h;
+        return nullptr;
+        /*Hasher h;
         //h.data(reinterpret_cast<const uint32_t*>(layout.sets), sizeof(layout.sets));
         //h.data(reinterpret_cast<const uint32_t *>(layout.ranges), sizeof(layout.ranges));
         h.UInt32(layout->vertexAttributeMask);
@@ -1325,7 +1164,7 @@ namespace Alimer
             //ret = _pipelineLayouts.Insert(hash, std::make_unique<VulkanPipelineLayout>(this, hash, layout));
         }
 
-        return ret;
+        return ret;*/
     }
 
     VkFence VulkanGraphicsDevice::AcquireFence()
@@ -1347,7 +1186,7 @@ namespace Alimer
             VkResult result = vkCreateFence(_device, &createInfo, nullptr, &fence);
             if (result != VK_SUCCESS)
             {
-                ALIMER_LOGERRORF("[Vulkan] - Failed to create fence: %s", vkGetVulkanResultString(result));
+                ALIMER_LOGERROR("[Vulkan] - Failed to create fence: %s", vkGetVulkanResultString(result));
             }
 
             ALIMER_LOGTRACE("[Vulkan] - New fence created");
@@ -1386,7 +1225,7 @@ namespace Alimer
             VkResult result = vkCreateSemaphore(_device, &createInfo, nullptr, &semaphore);
             if (result != VK_SUCCESS)
             {
-                ALIMER_LOGERRORF("[Vulkan] - Failed to create semaphore: %s", vkGetVulkanResultString(result));
+                ALIMER_LOGERROR("[Vulkan] - Failed to create semaphore: %s", vkGetVulkanResultString(result));
             }
 
             ALIMER_LOGTRACE("[Vulkan] - New semaphore created");

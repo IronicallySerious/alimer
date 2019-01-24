@@ -28,6 +28,7 @@ add_subdirectory(spirv-cross)
 
 # Vulkan libs
 if (ALIMER_VULKAN)
+    # volk
     add_library(volk STATIC ${CMAKE_CURRENT_SOURCE_DIR}/volk/volk.c)
     if(MSVC)
         target_compile_options(volk PRIVATE /W4 /WX)
@@ -41,9 +42,9 @@ if (ALIMER_VULKAN)
         set_property(TARGET "volk" PROPERTY FOLDER "third_party")
     endif ()
 
-    if (ALIMER_WINDOWS)
-        target_compile_definitions(volk PUBLIC -DVK_USE_PLATFORM_WIN32_KHR)
-    endif()
+    # vkmemalloc
+    add_library(vkmemalloc INTERFACE)
+    target_include_directories(vkmemalloc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vkmemalloc/src)
 endif ()
 
 if (ALIMER_SDL2)

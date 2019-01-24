@@ -20,12 +20,13 @@
 // THE SOFTWARE.
 //
 
+#ifdef TODO_VULKAN
 #include "VulkanGraphicsDevice.h"
 #include "VulkanRenderPass.h"
 #include "VulkanTexture.h"
 #include "VulkanConvert.h"
 
-namespace Alimer
+namespace alimer
 {
     VulkanRenderPass::VulkanRenderPass(uint64_t hash, VulkanGraphicsDevice* device, const RenderPassDescriptor* descriptor)
         : _hash(hash)
@@ -209,3 +210,4 @@ namespace Alimer
         }
     }
 }
+#endif 

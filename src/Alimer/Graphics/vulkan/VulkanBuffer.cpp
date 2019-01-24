@@ -25,12 +25,12 @@
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
     VulkanBuffer::VulkanBuffer(VulkanGraphicsDevice* device, const BufferDescriptor* descriptor, const void* initialData)
-        : GpuBuffer(device, descriptor)
+        : Buffer(device, descriptor)
         , _logicalDevice(device->GetDevice())
-        , _allocator(device->GetVmaAllocator())
+        //, _allocator(device->GetVmaAllocator())
     {
         VkBufferCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -84,7 +84,7 @@ namespace Alimer
 
         // Allocate memory from the Vulkan Memory Allocator.
         VkResult result = VK_SUCCESS;
-        const bool noAllocation = false;
+        /*const bool noAllocation = false;
         bool staticBuffer = false;
         VmaAllocationInfo allocationInfo = {};
         if (noAllocation)
@@ -148,7 +148,7 @@ namespace Alimer
                 memcpy(data, initialData, allocationInfo.size);
                 vmaUnmapMemory(_allocator, _allocation);
             }
-        }
+        }*/
     }
 
     VulkanBuffer::~VulkanBuffer()
@@ -158,7 +158,7 @@ namespace Alimer
 
     void VulkanBuffer::Destroy()
     {
-        if (_allocation != VK_NULL_HANDLE)
+        /*if (_allocation != VK_NULL_HANDLE)
         {
             vmaDestroyBuffer(_allocator, _handle, _allocation);
             _allocation = VK_NULL_HANDLE;
@@ -167,11 +167,11 @@ namespace Alimer
         {
             vkDestroyBuffer(_logicalDevice, _handle, nullptr);
             _handle = VK_NULL_HANDLE;
-        }
+        }*/
     }
 
-    bool VulkanBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
+    /*bool VulkanBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
     {
         return static_cast<VulkanGraphicsDevice*>(_device)->BufferSubData(this, offset, size, pData) == VK_SUCCESS;
-    }
+    }*/
 }

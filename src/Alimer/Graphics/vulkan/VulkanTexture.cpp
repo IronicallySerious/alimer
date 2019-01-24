@@ -25,9 +25,9 @@
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
-    VulkanTexture::VulkanTexture(VulkanGraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage existingImage, VkImageUsageFlags usageFlags)
+    /*VulkanTexture::VulkanTexture(VulkanGraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage existingImage, VkImageUsageFlags usageFlags)
         : Texture(device, descriptor)
         , _logicalDevice(device->GetDevice())
         , _allocator(device->GetVmaAllocator())
@@ -60,7 +60,7 @@ namespace Alimer
         }
     }
 
-    /*VulkanTextureView::VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor)
+    VulkanTextureView::VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor)
         : TextureView(texture, descriptor)
         , _logicalDevice(device->GetDevice())
         , _id(device->AllocateCookie())

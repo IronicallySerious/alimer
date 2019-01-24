@@ -20,17 +20,14 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#include "../Graphics/PhysicalDevice.h"
 
-#define ALIMER_MAKE_VERSION(major, minor, patch) (((major) << 22) | ((minor) << 12) | (patch))
-#define ALIMER_VERSION_GET_MAJOR(version) ((unsigned)(version) >> 22)
-#define ALIMER_VERSION_GET_MINOR(version) (((unsigned)(version) >> 12) & 0x3ff)
-#define ALIMER_VERSION_GET_PATCH(version) ((unsigned)(version) & 0xfff)
+namespace alimer
+{
+    PhysicalDevice::PhysicalDevice(PhysicalDeviceHandle handle)
+        : _handle(handle)
+    {
 
-#define ALIMER_VERSION_MAJOR   0
-#define ALIMER_VERSION_MINOR   1
-#define ALIMER_VERSION_PATCH   0
-#define ALIMER_VERSION         ALIMER_MAKE_VERSION(0, 1, 0)
-#define ALIMER_VERSION_STR     "0.1.0"
-#define ALIMER_GIT_BRANCH "master"
-#define ALIMER_GIT_COMMIT_HASH "bd2a941"
+    }
+    
+}

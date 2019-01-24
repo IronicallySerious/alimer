@@ -23,13 +23,13 @@
 #include "VulkanGraphicsDevice.h"
 #include "VulkanSwapchain.h"
 #include "VulkanTexture.h"
-#include "VulkanRenderPass.h"
+//#include "VulkanFramebuffer.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
-    VulkanSwapchain::VulkanSwapchain(VulkanGraphicsDevice* device, VkSurfaceKHR surface, const SwapchainDescriptor* descriptor)
+    VulkanSwapchain::VulkanSwapchain(VulkanGraphicsDevice* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor)
         : _device(device)
         , _surface(surface)
         , _physicalDevice(device->GetPhysicalDevice())
@@ -259,7 +259,7 @@ namespace Alimer
 
         // Get the swap chain images
         _vkImages.resize(_imageCount);
-        _textures.resize(_imageCount);
+        //_textures.resize(_imageCount);
         vkThrowIfFailed(vkGetSwapchainImagesKHR(_logicalDevice, _handle, &_imageCount, _vkImages.data()));
 
         TextureDescriptor textureDesc = {};
@@ -271,7 +271,7 @@ namespace Alimer
 
         for (uint32_t i = 0; i < _imageCount; i++)
         {
-            _textures[i] = new VulkanTexture(_device, &textureDesc, nullptr, _vkImages[i], createInfo.imageUsage);
+            //_textures[i] = new VulkanTexture(_device, &textureDesc, nullptr, _vkImages[i], createInfo.imageUsage);
         }
 
         if (createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
@@ -335,7 +335,8 @@ namespace Alimer
 
     Framebuffer* VulkanSwapchain::GetCurrentFramebuffer() const
     {
-        return _framebuffers[_currentBackBufferIndex].Get();
+        return nullptr;
+        //return _framebuffers[_currentBackBufferIndex].Get();
     }
 
     void VulkanSwapchain::QueuePresent(VkQueue queue, VkSemaphore waitSemaphore)
@@ -356,7 +357,7 @@ namespace Alimer
         VkResult result = vkQueuePresentKHR(queue, &presentInfo);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERRORF("[Vulkan] - vkQueuePresentKHR failed: %s", vkGetVulkanResultString(result));
+            ALIMER_LOGERROR("[Vulkan] - vkQueuePresentKHR failed: %s", vkGetVulkanResultString(result));
             return;
         }
 

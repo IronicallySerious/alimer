@@ -22,7 +22,7 @@
 
 #include "VulkanConvert.h"
 
-namespace Alimer
+namespace alimer
 {
 	// Create an image memory barrier for changing the layout of
 	// an image and put it into an active command buffer

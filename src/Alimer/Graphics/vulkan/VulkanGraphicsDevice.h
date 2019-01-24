@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "VulkanBackend.h"
+#include "../Backend.h"
 #include "../../Base/HashMap.h"
 #include "../GraphicsDevice.h"
 #include <queue>
@@ -34,7 +34,7 @@
 #   include <condition_variable>
 #endif
 
-namespace Alimer
+namespace alimer
 {
     class VulkanBuffer;
     class VulkanCommandBuffer;
@@ -58,22 +58,22 @@ namespace Alimer
 
         uint64_t AllocateCookie();
 
-        bool Initialize(const RenderingSettings& settings) override;
-        void Shutdown() override;
-        bool WaitIdle() override;
+        //bool Initialize(const RenderingSettings& settings) override;
+        //void Shutdown() override;
+        //bool WaitIdle() override;
 
-        void PresentImpl() override;
+        //void PresentImpl() override;
 
         void AddWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags flags);
         void SubmitCommandBuffer(VkCommandBuffer commandBuffer);
         void SubmitCommandBuffer(VkCommandBuffer commandBuffer, VkFence fence);
 
-        Framebuffer* GetSwapchainFramebuffer() const override;
-        GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
-        Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
-        Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
-        Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
-        Pipeline* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) override;
+        //Framebuffer* GetSwapchainFramebuffer() const override;
+        //GpuBuffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
+        //Texture* CreateTextureImpl(const TextureDescriptor* descriptor, const ImageLevel* initialData) override;
+        //Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
+        //Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
+        //Pipeline* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) override;
 
         // Fence
         VkFence AcquireFence();
@@ -116,7 +116,7 @@ namespace Alimer
 
         void InitializeCaps();
         void CreateMemoryAllocator();
-        VkSurfaceKHR CreateSurface(const SwapchainDescriptor& descriptor);
+        VkSurfaceKHR CreateSurface(const SwapChainDescriptor& descriptor);
 
 #ifdef ALIMER_THREADING
         std::atomic<uint64_t> _cookie;
@@ -179,10 +179,10 @@ namespace Alimer
         std::queue<VkSemaphore> _availableSemaphores;
 
         // Cache
-        Cache<VulkanRenderPass> _renderPasses;
-        Cache<VulkanFramebuffer> _framebuffers;
+        //Cache<VulkanRenderPass> _renderPasses;
+        //Cache<VulkanFramebuffer> _framebuffers;
 
         //HashMap<std::unique_ptr<VulkanDescriptorSetAllocator>> _descriptorSetAllocators;
-        Cache<VulkanPipelineLayout> _pipelineLayouts;
+        //Cache<VulkanPipelineLayout> _pipelineLayouts;
     };
 }

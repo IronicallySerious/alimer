@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Base/Ptr.h"
+#include "../Graphics/Backend.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/Buffer.h"
 #include "../Graphics/Framebuffer.h"
