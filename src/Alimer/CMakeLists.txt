@@ -65,7 +65,7 @@ set (TARGET_NAME Alimer)
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/foundation/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/foundation/version.h)
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h)
 if (ALIMER_INSTALL)
-    install (FILES ${CMAKE_CURRENT_BINARY_DIR}/version.h DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer)
+    install (FILES ${CMAKE_CURRENT_BINARY_DIR}/foundation/version.h DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/foundation)
     install (FILES ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer)
 endif ()
 
