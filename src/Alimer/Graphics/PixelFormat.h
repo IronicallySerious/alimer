@@ -151,45 +151,73 @@ namespace alimer
 
     ALIMER_API const String& EnumToString(PixelFormat format);
 
-    /**
-    * Check if the format has a depth component
-    */
+    /// Get the number of bytes per format.
+    inline uint32_t GetFormatBytesPerBlock(PixelFormat format)
+    {
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].bytesPerBlock;
+    }
+
+    inline uint32_t GetFormatPixelsPerBlock(PixelFormat format)
+    {
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].compressionRatio.width * FormatDesc[(uint32_t)format].compressionRatio.height;
+    }
+
+    /// Check if the format has a depth component
     inline bool IsDepthFormat(PixelFormat format)
     {
         assert(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].isDepth;
     }
 
-    /**
-    * Check if the format has a stencil component
-    */
+    /// Check if the format has a stencil component
     inline bool IsStencilFormat(PixelFormat format)
     {
         assert(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].isStencil;
     }
 
-    /**
-    * Check if the format has depth or stencil components
-    */
+    /// Check if the format has depth or stencil components
     inline bool IsDepthStencilFormat(PixelFormat format)
     {
         return IsDepthFormat(format) || IsStencilFormat(format);
     }
 
-    /**
-    * Check if the format is a compressed format
-    */
+    /// Check if the format is a compressed format
     inline bool IsCompressed(PixelFormat format)
     {
         assert(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].isCompressed;
     }
 
-    ALIMER_API uint32_t GetPixelFormatSize(PixelFormat format);
+    /// Get the format compression ration along the x-axis
+    inline uint32_t GetFormatWidthCompressionRatio(PixelFormat format)
+    {
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].compressionRatio.width;
+    }
 
-    /// Calculate the data size of an image level.
-    ALIMER_API uint32_t CalculateDataSize(uint32_t width, uint32_t height, PixelFormat format, uint32_t* numRows = 0, uint32_t* rowPitch = 0);
+    /// Get the format compression ration along the y-axis
+    inline uint32_t GetFormatHeightCompressionRatio(PixelFormat format)
+    {
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].compressionRatio.height;
+    }
+
+    /// Get the number of channels
+    inline uint32_t GetFormatChannelCount(PixelFormat format)
+    {
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].channelCount;
+    }
+
+    /// Get the format Type
+    inline PixelFormatType GetFormatType(PixelFormat format)
+    {
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].Type;
+    }
 }
 
 #ifdef _MSC_VER

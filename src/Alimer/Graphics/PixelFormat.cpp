@@ -29,34 +29,52 @@ namespace alimer
     extern ALIMER_API const PixelFormatDesc FormatDesc[] =
     {
         // Format                           Name,               BytesPerBlock, ChannelCount,  Type  {Depth,  Stencil, Compressed},      {CompressionRatio.Width, CompressionRatio.Height}
-        { PixelFormat::Unknown,             "Unknown",          0,  0,  PixelFormatType::Unknown,    {false, false, false},            {1, 1}},
+        {PixelFormat::Unknown,         "Unknown",          0,  0,  PixelFormatType::Unknown,    {false, false, false},            {1, 1}},
         // 8-bit pixel formats
-        { PixelFormat::A8UNorm,             "A8UNorm",          1,  1,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
-        { PixelFormat::R8UNorm,             "R8UNorm",          1,  1,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
-        { PixelFormat::R8SNorm,             "R8SNorm",          1,  1,  PixelFormatType::SNorm,      {false, false, false},            {1, 1}},
-        { PixelFormat::R8UInt,              "R8UInt",           1,  1,  PixelFormatType::UInt,       {false,  false, false},           {1, 1}},
-        { PixelFormat::R8SInt,              "R8SInt",           1,  1,  PixelFormatType::SInt,       {false,  false, false},           {1, 1}},
+        {PixelFormat::A8UNorm,         "A8UNorm",          1,  1,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
+        {PixelFormat::R8UNorm,         "R8UNorm",          1,  1,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
+        {PixelFormat::R8SNorm,         "R8SNorm",          1,  1,  PixelFormatType::SNorm,      {false, false, false},            {1, 1}},
+        {PixelFormat::R8UInt,          "R8UInt",           1,  1,  PixelFormatType::UInt,       {false,  false, false},           {1, 1}},
+        {PixelFormat::R8SInt,          "R8SInt",           1,  1,  PixelFormatType::SInt,       {false,  false, false},           {1, 1}},
 
         // 16-bit pixel formats
-        { PixelFormat::R16UNorm,            "R16UNorm",         2,  1,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
-        { PixelFormat::R16SNorm,            "R16SNorm",         2,  1,  PixelFormatType::SNorm,      {false, false, false},            {1, 1}},
-        { PixelFormat::R16UInt,             "R16UInt",          2,  1,  PixelFormatType::UInt,       {false,  false, false},           {1, 1}},
-        { PixelFormat::R16SInt,             "R16SInt",          2,  1,  PixelFormatType::SInt,       {false,  false, false},           {1, 1}},
-        { PixelFormat::R16Float,            "R16Float",         2,  1,  PixelFormatType::Float,      {false,  false, false},           {1, 1}},
-        { PixelFormat::RG8UNorm,            "RG8UNorm",         2,  2,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
-        { PixelFormat::RG8SNorm,            "RG8SNorm",         2,  2,  PixelFormatType::SNorm,      {false, false, false},            {1, 1}},
-        { PixelFormat::RG8UInt,             "RG8UInt",          2,  2,  PixelFormatType::UInt,       {false,  false, false},        {1, 1}},
-        { PixelFormat::RG8SInt,             "RG8SInt",          2,  2,  PixelFormatType::SInt,       {false,  false, false},        {1, 1}},
+        {PixelFormat::R16UNorm,        "R16UNorm",         2,  1,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
+        {PixelFormat::R16SNorm,        "R16SNorm",         2,  1,  PixelFormatType::SNorm,      {false, false, false},            {1, 1}},
+        {PixelFormat::R16UInt,         "R16UInt",          2,  1,  PixelFormatType::UInt,       {false,  false, false},           {1, 1}},
+        {PixelFormat::R16SInt,         "R16SInt",          2,  1,  PixelFormatType::SInt,       {false,  false, false},           {1, 1}},
+        {PixelFormat::R16Float,        "R16Float",         2,  1,  PixelFormatType::Float,      {false,  false, false},           {1, 1}},
+        {PixelFormat::RG8UNorm,        "RG8UNorm",         2,  2,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
+        {PixelFormat::RG8SNorm,        "RG8SNorm",         2,  2,  PixelFormatType::SNorm,      {false, false, false},            {1, 1}},
+        {PixelFormat::RG8UInt,         "RG8UInt",          2,  2,  PixelFormatType::UInt,       {false,  false, false},        {1, 1}},
+        {PixelFormat::RG8SInt,         "RG8SInt",          2,  2,  PixelFormatType::SInt,       {false,  false, false},        {1, 1}},
 
         // Packed 16-bit pixel formats
-        { PixelFormat::R5G6B5UNorm,         "R5G6B5Unorm",      2,  3,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
-        { PixelFormat::RGBA4UNorm,          "RGBA4UNorm",       2,  1,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::R5G6B5UNorm,     "R5G6B5Unorm",      2,  3,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RGBA4UNorm,      "RGBA4UNorm",       2,  1,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
 
         // 32-bit pixel formats
-        /* TODO: */
+        { PixelFormat::R32UInt,         "R32UInt",    4,  4,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::R32SInt,         "R32SInt",     4,  4,  PixelFormatType::UInt,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::R32Float,        "R32Float",    4,  3,  PixelFormatType::Float,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RG16UNorm,       "RG16UNorm",     4,  3,  PixelFormatType::Float,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RG16SNorm,       "RG16SNorm",     4,  3,  PixelFormatType::Float,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RG16UInt,        "RG16UInt",     4,  3,  PixelFormatType::Float,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RG16SInt,        "RG16SInt",     4,  3,  PixelFormatType::Float,      {false,  false, false,},        {1, 1}},
+
+        { PixelFormat::RGBA8UNorm,      "RGBA8UNorm",     4,  4,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RGBA8UNormSrgb,  "RGBA8UNormSrgb",     4,  3,  PixelFormatType::UNormSrgb,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RGBA8SNorm,      "RGBA8SNorm",     4,  4,  PixelFormatType::SNorm,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RGBA8UInt,       "RGBA8UInt",     4,  4,  PixelFormatType::UInt,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RGBA8SInt,       "RGBA8SInt",     4,  4,  PixelFormatType::SInt,      {false,  false, false,},        {1, 1}},
+
+        { PixelFormat::BGRA8UNorm,      "BGRA8UNorm",     4,  4,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::BGRA8UNormSrgb,  "BGRA8UNormSrgb",     4,  4,  PixelFormatType::UNormSrgb,      {false,  false, false,},        {1, 1}},
 
         // Packed 32-Bit Pixel formats
-        /* TODO: */
+        { PixelFormat::RGB10A2UNorm,         "RGB10A2UNorm",    4,  4,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RGB10A2UInt,          "RGB10A2UInt",     4,  4,  PixelFormatType::UInt,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RG11B10Float,         "RG11B10Float",    4,  3,  PixelFormatType::Float,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RGB9E5Float,          "RGB9E5Float",     4,  3,  PixelFormatType::Float,      {false,  false, false,},        {1, 1}},
 
         // Depth-stencil formats
         { PixelFormat::D32Float,            "D32Float",         4,  1,  PixelFormatType::Float,      { true,   false, false},           {1, 1}},
@@ -134,40 +152,5 @@ namespace alimer
             //ALIMER_LOGERRORF("Invalid PixelFormat value %s", EnumToString(format));
             return 0;
         }
-    }
-
-    uint32_t CalculateDataSize(uint32_t width, uint32_t height, PixelFormat format, uint32_t* numRows, uint32_t* rowPitch)
-    {
-        uint32_t rows, rowSize, dataSize;
-
-        //if (format < PixelFormat::BC1)
-        {
-            rows = height;
-            rowSize = width * GetPixelFormatSize(format);
-            dataSize = rows * rowSize;
-        }
-        /*else if (format < PixelFormat::PVRTC_RGB_2BPP)
-        {
-            uint32_t blockSize = (format == PixelFormat::BC1 || format == PixelFormat::ETC1) ? 8 : 16;
-            rows = (size.height + 3) / 4;
-            rowSize = ((size.width + 3) / 4) * blockSize;
-            dataSize = rows * rowSize;
-        }
-        else
-        {
-            uint32_t blockSize = format < PixelFormat::PVRTC_RGB_4BPP ? 2 : 4;
-            uint32_t dataWidth = Max(width, blockSize == 2 ? 16u : 8u);
-            rows = Max(height, 8u);
-            dataSize = (dataWidth * rows * blockSize + 7) >> 3;
-            rowSize = dataSize / rows;
-        }*/
-
-        if (numRows)
-            *numRows = rows;
-
-        if (rowPitch)
-            *rowPitch = rowSize;
-
-        return dataSize;
     }
 }

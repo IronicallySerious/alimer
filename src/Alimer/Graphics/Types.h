@@ -201,7 +201,7 @@ namespace alimer
         /// Specifies that the buffer can be used as the source of a transfer command
         TransferSrc     = 1 << 0,
         /// Specifies that the buffer can be used as the destination of a transfer command.
-        TransferDest    = 1 << 0,
+        TransferDest    = 1 << 1,
         /// Specifies that the image can be used for reading or sampling from the shader.
         Sampled         = 1 << 2,
         /// Specifies that the image can be written from shader.

@@ -42,7 +42,7 @@ namespace alimer
         if (all(equal(newSize, _size)) && newFormat == _format)
             return;
 
-        const uint32_t formatSize = GetPixelFormatSize(newFormat);
+        const uint32_t formatSize = GetFormatBytesPerBlock(newFormat);
         if (formatSize == 0)
         {
             ALIMER_LOGERROR("Can not set image size with unspecified pixel byte size (including compressed formats)");
@@ -91,7 +91,7 @@ namespace alimer
             return false;
         }
 
-        uint32_t components = GetPixelFormatSize(_format);
+        uint32_t components = GetFormatChannelCount(_format);
         if (components < 1 || components > 4)
         {
             ALIMER_LOGERROR("Unsupported pixel format for PNG save on image '{}'", GetName().CString());
@@ -111,7 +111,7 @@ namespace alimer
 
     bool Image::SaveBmp(Stream* dest) const
     {
-        uint32_t components = GetPixelFormatSize(_format);
+        uint32_t components = GetFormatChannelCount(_format);
 
         return stbi_write_bmp_to_func(
             StbiWriteCallback,
@@ -124,7 +124,7 @@ namespace alimer
 
     bool Image::SavePng(Stream* dest) const
     {
-        uint32_t components = GetPixelFormatSize(_format);
+        uint32_t components = GetFormatChannelCount(_format);
 
         return stbi_write_png_to_func(
             StbiWriteCallback,
