@@ -994,6 +994,12 @@ typedef volatile _Atomic(void*) atomicptr_t;
 #   define ALIMER_UNUSED(x) (/*lint --e{505,550,818,866} */(void)sizeof((x), 0))
 #endif
 
+// Version
+#define ALIMER_MAKE_VERSION(major, minor, patch) (((major) << 22) | ((minor) << 12) | (patch))
+#define ALIMER_VERSION_GET_MAJOR(version) ((unsigned)(version) >> 22)
+#define ALIMER_VERSION_GET_MINOR(version) (((unsigned)(version) >> 12) & 0x3ff)
+#define ALIMER_VERSION_GET_PATCH(version) ((unsigned)(version) & 0xfff)
+
 #define ALIMER_DECLARE_THREAD_LOCAL(type, name, init) \
 static ALIMER_THREADLOCAL type _thread_##name = init; \
 static ALIMER_FORCEINLINE void set_thread_##name(type val) { _thread_##name = val; } \
