@@ -23,25 +23,32 @@
 #pragma once
 
 #include "../Base/Ptr.h"
+#include "../Graphics/Backend.h"
 #include "../Graphics/Framebuffer.h"
 
 namespace alimer
 {
 	/// Defines a SwapChain.
-	class ALIMER_API SwapChain : public GPUResource
+	class ALIMER_API SwapChain final : public GPUResource
 	{
-    protected:
+        friend class GraphicsDevice;
+
+    private:
         /// Constructor.
-        SwapChain(GraphicsDevice* device, const SwapChainDescriptor* descriptor);
+        SwapChain(GraphicsDevice* device);
 
     public:
         /// Destructor
-        virtual ~SwapChain();
+        ~SwapChain() override;
 
         void Destroy() override;
 
-        void Resize(uint32_t width, uint32_t height);
+        bool Resize(uint32_t width, uint32_t height);
         void Present();
+
+#if defined(ALIMER_VULKAN)
+        bool Define(VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
+#endif
 
         uint32_t GetBackBufferCount() const { return _backbufferTextures.Size(); }
         Texture* GetBackBufferTexture(uint32_t index) const { return _backbufferTextures[index].Get(); }
@@ -55,19 +62,26 @@ namespace alimer
         uint32_t GetHeight() const { return _height; }
 
     private:
-        virtual void ResizeImpl(uint32_t width, uint32_t height) = 0;
-        virtual void PresentImpl() = 0;
+        void PlatformDestroy();
+        bool PlatformResize(uint32_t width, uint32_t height);
+        void PlatformPresent();
 
     protected:
         void InitializeFramebuffer();
 
-        uint32_t                        _width;
-        uint32_t                        _height;
-        PixelFormat                     _colorFormat;
-        PixelFormat                     _depthStencilFormat;
+        uint32_t                        _width = 0;
+        uint32_t                        _height = 0;
+        PixelFormat                     _colorFormat = PixelFormat::Unknown;
+        PixelFormat                     _depthStencilFormat = PixelFormat::Unknown;
         Vector<SharedPtr<Texture>>      _backbufferTextures;
         uint32_t                        _currentBackBuffer = 0;
         SharedPtr<Texture>              _depthStencilTexture;
         Vector<SharedPtr<Framebuffer>>  _framebuffers;
+
+    private:
+        SwapChainHandle     _handle = BACKEND_INVALID_HANDLE;
+#if defined(ALIMER_VULKAN)
+        VkSurfaceKHR        _surface = VK_NULL_HANDLE;
+#endif
     };
 }

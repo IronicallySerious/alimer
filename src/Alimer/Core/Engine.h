@@ -54,6 +54,8 @@ namespace alimer
 
     struct EngineSettings
     {
+        bool validation = false;
+        bool headless = false;
         GraphicsDeviceDescriptor    graphicsDeviceDesc = {};
         MainWindowDescriptor        mainWindowDesc = {};
     };
@@ -88,7 +90,7 @@ namespace alimer
         const EngineSettings& GetSettings() const { return _settings; }
 
         /// Return whether the engine has been created in headless mode.
-        bool IsHeadless() const { return _settings.graphicsDeviceDesc.headless; }
+        bool IsHeadless() const { return _settings.headless; }
 
         /// Get the engine content manager.
         inline PluginManager& GetPluginManager() { return *_pluginManager; }

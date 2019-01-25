@@ -25,12 +25,8 @@
 
 namespace alimer
 {
-    SwapChain::SwapChain(GraphicsDevice* device, const SwapChainDescriptor* descriptor)
+    SwapChain::SwapChain(GraphicsDevice* device)
         : GPUResource(device, Type::SwapChain)
-        , _width(descriptor->width)
-        , _height(descriptor->height)
-        , _colorFormat(descriptor->preferredColorFormat)
-        , _depthStencilFormat(descriptor->preferredDepthStencilFormat)
     {
     }
 
@@ -44,24 +40,27 @@ namespace alimer
         _backbufferTextures.Clear();
         _depthStencilTexture.Reset();
         _framebuffers.Clear();
+
+        // Destroy backend.
+        PlatformDestroy();
     }
 
-    void SwapChain::Resize(uint32_t width, uint32_t height)
+    bool SwapChain::Resize(uint32_t width, uint32_t height)
     {
         if (_width == width
             && _height == height)
         {
-            return;
+            return true;
         }
 
-        ResizeImpl(width, height);
         _width = width;
         _height = height;
+        return PlatformResize(width, height);
     }
 
     void SwapChain::Present()
     {
-        PresentImpl();
+        PlatformPresent();
     }
 
     void SwapChain::InitializeFramebuffer()

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "AlimerConfig.h"
+#include "../Graphics/PixelFormat.h"
 
 #ifdef _WIN32
 #   ifndef NOMINMAX
@@ -41,8 +41,6 @@
 #   ifdef _DEBUG
 #       include <dxgidebug.h>
 #   endif
-#   define MAKE_SMART_COM_PTR(_a) _COM_SMARTPTR_TYPEDEF(_a, __uuidof(_a))
-#   define GET_COM_INTERFACE(base, type, var) MAKE_SMART_COM_PTR(type); concat_strings(type, Ptr) var; d3d_call(base->QueryInterface(IID_PPV_ARGS(&var)));
 #elif defined(ALIMER_D3D12)
 #   include <dxgi.h>
 #   if defined(NTDDI_WIN10_RS2)
@@ -55,8 +53,6 @@
 #   ifdef _DEBUG
 #       include <dxgidebug.h>
 #   endif
-#   define MAKE_SMART_COM_PTR(_a) _COM_SMARTPTR_TYPEDEF(_a, __uuidof(_a))
-#   define GET_COM_INTERFACE(base, type, var) MAKE_SMART_COM_PTR(type); concat_strings(type, Ptr) var; d3d_call(base->QueryInterface(IID_PPV_ARGS(&var)));
 #elif defined(ALIMER_VULKAN)
 #   if defined(_WIN32)
 #       ifndef VK_USE_PLATFORM_WIN32_KHR
@@ -81,18 +77,22 @@
 namespace alimer
 {
 #if defined(ALIMER_D3D11)
-#define BACKEND_INVALID_HANDLE  nullptr
-    using PhysicalDeviceHandle  = IDXGIAdapter1*;
-    using BufferHandle          = ID3D11Buffer*;
+#   define BACKEND_INVALID_HANDLE  nullptr
+    using PhysicalDeviceHandle = IDXGIAdapter1 * ;
+    using SwapChainHandle = IDXGISwapChain1 * ;
+    using BufferHandle = ID3D11Buffer * ;
 #elif defined(ALIMER_D3D12)
-#define BACKEND_INVALID_HANDLE  nullptr
-    using PhysicalDeviceHandle  = IDXGIAdapter1*;
-    using BufferHandle          = ID3D11Resource*;
+#   define BACKEND_INVALID_HANDLE  nullptr
+    using PhysicalDeviceHandle = IDXGIAdapter1 * ;
+    using SwapChainHandle = IDXGISwapChain3 * ;
+    using BufferHandle = ID3D12Resource * ;
+    using TextureHandle = ID3D12Resource * ;
 #elif defined(ALIMER_VULKAN)
-#define BACKEND_INVALID_HANDLE  0
-    using PhysicalDeviceHandle  = VkPhysicalDevice;
-    using BufferHandle          = VkBuffer;
-
+#   define BACKEND_INVALID_HANDLE  VK_NULL_HANDLE
+    using PhysicalDeviceHandle = VkPhysicalDevice;
+    using SwapChainHandle = VkSwapchainKHR;
+    using BufferHandle = VkBuffer;
+    using TextureHandle = VkImage;
 
     inline const char* vkGetVulkanResultString(VkResult result)
     {
@@ -147,7 +147,7 @@ namespace alimer
         default:
             return "ERROR: UNKNOWN VULKAN ERROR";
         }
-}
+    }
 
     // Helper utility converts Vulkan API failures into exceptions.
     inline void vkThrowIfFailed(VkResult result)
@@ -161,9 +161,25 @@ namespace alimer
                 __LINE__);
         }
     }
+
+    struct VkFormatDesc
+    {
+        PixelFormat format;
+        VkFormat    vkFormat;
+    };
+
+    extern ALIMER_API const VkFormatDesc s_vkFormatDesc[];
+
+    inline VkFormat GetVkFormat(PixelFormat format)
+    {
+        assert(s_vkFormatDesc[(uint32_t)format].format == format);
+        assert(s_vkFormatDesc[(uint32_t)format].vkFormat != VK_FORMAT_UNDEFINED);
+        return s_vkFormatDesc[(uint32_t)format].vkFormat;
+    }
+
 #elif defined(ALIMER_OPENGL)
-#define BACKEND_INVALID_HANDLE  GL_INVALID_VALUE
-    using PhysicalDeviceHandle  = unsigned;
-    using BufferHandle          = unsigned;
+#   define BACKEND_INVALID_HANDLE  GL_INVALID_VALUE
+    using PhysicalDeviceHandle = uint32_t;
+    using BufferHandle = uint32_t;
 #endif
 };

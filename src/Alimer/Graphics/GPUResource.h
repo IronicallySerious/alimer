@@ -56,7 +56,7 @@ namespace alimer
 
     protected:
         /// Constructor.
-        GPUResource(GraphicsDevice* graphicsDevice, Type resourceType);
+        GPUResource(GraphicsDevice* device, Type resourceType);
 
         /// Graphics subsystem.
         WeakPtr<GraphicsDevice> _graphicsDevice;

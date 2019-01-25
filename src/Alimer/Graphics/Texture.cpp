@@ -42,8 +42,72 @@ namespace alimer
     {
     }
 
-    Texture::~Texture()
+    Texture::Texture(GraphicsDevice* device)
+        : GPUResource(device, Type::Texture)
     {
 
+    }
+
+    Texture::~Texture()
+    {
+        Destroy();
+    }
+
+    void Texture::Destroy()
+    {
+        // Destroy backend.
+        PlatformDestroy();
+    }
+
+    void Texture::DefineFromHandle(TextureHandle handle,
+        TextureType type,
+        uint32_t width,
+        uint32_t height,
+        uint32_t depth,
+        uint32_t arraySize,
+        uint32_t mipLevels,
+        PixelFormat format,
+        TextureUsage usage,
+        SampleCount sampleCount)
+    {
+        ALIMER_ASSERT_MSG(handle != BACKEND_INVALID_HANDLE, "Invalid backend handle.");
+        ALIMER_ASSERT_MSG(width >= 1, "Width must be greather than 0.");
+        ALIMER_ASSERT_MSG(height >= 1, "Height must be greather than 0.");
+        ALIMER_ASSERT_MSG(arraySize >= 1 && arraySize <= 2048, "Array size must be between 1 and 2048.");
+        ALIMER_ASSERT_MSG(format != PixelFormat::Unknown, "Invalid pixel format.");
+        ALIMER_ASSERT_MSG(usage != TextureUsage::None, "Invalid pixel format.");
+
+        switch (type)
+        {
+        case TextureType::Type1D:
+            assert(height == 1 && depth == 1 && sampleCount == SampleCount::Count1);
+            break;
+        case TextureType::Type2D:
+            assert(depth == 1);
+            break;
+        case TextureType::Type3D:
+            assert(sampleCount == SampleCount::Count1);
+            break;
+        case TextureType::TypeCube:
+            assert(depth == 1 && sampleCount == SampleCount::Count1);
+            break;
+        }
+
+        _handle = handle;
+        _type = type;
+        _width = width;
+        _height = height;
+        _depth = depth;
+        _arraySize = arraySize;
+        _mipLevels = mipLevels;
+        if (_mipLevels == MaxPossible)
+        {
+            uint32_t dims = width | height | _depth;
+            _mipLevels = bitScanReverse(dims) + 1;
+        }
+
+        _format = format;
+        _usage = usage;
+        _samples = sampleCount;
     }
 }

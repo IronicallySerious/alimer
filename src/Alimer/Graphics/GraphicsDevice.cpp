@@ -52,28 +52,17 @@ namespace alimer
             ALIMER_LOGCRITICAL("Graphics backend is not supported");
         }
 
-#if defined(ALIMER_D3D11)
-        _backend = GraphicsBackend::D3D11;
-#elif defined(ALIMER_D3D12)
-        _backend = GraphicsBackend::D3D12;
-#elif defined(ALIMER_VULKAN)
-        _backend = GraphicsBackend::Vulkan;
-#elif defined(ALIMER_OPENGL)
-        _backend = GraphicsBackend::OpenGL;
-#endif
+        PlatformConstruct();
     }
 
     GraphicsDevice::~GraphicsDevice()
     {
-        Finalize();
-        RemoveSubsystem(this);
-    }
+        WaitIdle();
 
-    void GraphicsDevice::Finalize()
-    {
         // Destroy undestroyed resources.
         SafeDelete(_pointSampler);
         SafeDelete(_linearSampler);
+        SafeDelete(_mainSwapChain);
 
         if (_gpuResources.Size())
         {
@@ -87,6 +76,18 @@ namespace alimer
         }
 
         _renderContext.Reset();
+
+        // Destroy adapters
+        for(uint32_t i = 0; i < _physicalDevices.Size(); ++i)
+        {
+            SafeDelete(_physicalDevices[i]);
+        }
+        _physicalDevices.Clear();
+
+        // Destroy backend.
+        PlatformDestroy();
+
+        RemoveSubsystem(this);
     }
 
     bool GraphicsDevice::Initialize(const GraphicsDeviceDescriptor* descriptor)
@@ -142,11 +143,6 @@ namespace alimer
         //EndFrameImpl();
         _inBeginFrame = false;
         return ++_frameIndex;
-    }
-
-    bool GraphicsDevice::WaitIdle()
-    {
-        return true;
     }
 
     void GraphicsDevice::TrackResource(GPUResource* resource)

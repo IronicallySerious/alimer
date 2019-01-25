@@ -114,15 +114,15 @@ namespace alimer
         _audio->Initialize();
 
         // Create GraphicsDevice.
-        _graphicsDevice = new GraphicsDevice(_settings.graphicsDeviceDesc.validation, _settings.graphicsDeviceDesc.headless);
+        _graphicsDevice = new GraphicsDevice(_settings.validation, _settings.headless);
         if (_graphicsDevice == nullptr)
         {
             ALIMER_LOGERROR("Failed to create GraphicsDevice instance.");
             return false;
         }
 
-        // Init Window and Gpu.
-        if (!_settings.graphicsDeviceDesc.headless)
+        // Init main window.
+        if (!_settings.headless)
         {
             if (_settings.graphicsDeviceDesc.swapchain.nativeHandle == nullptr)
             {
@@ -137,12 +137,13 @@ namespace alimer
             _settings.graphicsDeviceDesc.swapchain.width = _settings.mainWindowDesc.width;
             _settings.graphicsDeviceDesc.swapchain.height = _settings.mainWindowDesc.height;
             _settings.graphicsDeviceDesc.swapchain.preferredDepthStencilFormat = PixelFormat::D24UNormS8;
-            _settings.graphicsDeviceDesc.swapchain.preferredSamples = SampleCount::Count1;
         }
 
-        ShaderDescriptor shaderDescriptor = {};
-        //shaderDescriptor.stages[]
-        Shader* shader = _graphicsDevice->CreateShader(&shaderDescriptor);
+        if(!_graphicsDevice->Initialize(&_settings.graphicsDeviceDesc))
+        {
+            ALIMER_LOGERROR("Failed to create GraphicsDevice instance.");
+            return false;
+        }
 
         // Create imgui system.
         //_gui = new Gui();

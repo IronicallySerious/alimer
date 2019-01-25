@@ -38,8 +38,6 @@ namespace alimer
 
     struct GraphicsDeviceDescriptor 
     {
-        bool                    validation = false;
-        bool                    headless = false;
         SwapChainDescriptor     swapchain = {};
     };
 
@@ -77,6 +75,9 @@ namespace alimer
         /// Get the device features.
         const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
 
+        /// Get the selected physical device.
+        PhysicalDevice* GetPhysicalDevice() const { return _physicalDevice; }
+
         /** 
         * Get the default render-context.
         * The default render-context is managed completely by the device. 
@@ -96,7 +97,7 @@ namespace alimer
         uint64_t EndFrame();
 
         /// Wait for a device to become idle.
-        virtual bool WaitIdle();
+        bool WaitIdle();
 
         /**
         * Create a 1D texture.
@@ -109,7 +110,7 @@ namespace alimer
         * @param pInitData If different than nullptr, pointer to a buffer containing data to initialize the texture with.
         * @return A pointer to a new texture, or nullptr if creation failed.
         */
-        Texture* Create1DTexture(uint32_t width, PixelFormat format, uint32_t arraySize = 1, uint32_t mipLevels = 0, TextureUsage textureUsage = TextureUsage::ShaderRead, const void* pInitData = nullptr);
+        Texture* Create1DTexture(uint32_t width, PixelFormat format, uint32_t arraySize = 1, uint32_t mipLevels = 0, TextureUsage textureUsage = TextureUsage::Sampled, const void* pInitData = nullptr);
 
         /**
         * Create a 2D texture.
@@ -123,7 +124,7 @@ namespace alimer
         * @param pInitData If different than nullptr, pointer to a buffer containing data to initialize the texture with.
         * @return A pointer to a new texture, or nullptr if creation failed.
         */
-        Texture* Create2DTexture(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize = 1, uint32_t mipLevels = 0, TextureUsage textureUsage = TextureUsage::ShaderRead, const void* pInitData = nullptr);
+        Texture* Create2DTexture(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize = 1, uint32_t mipLevels = 0, TextureUsage textureUsage = TextureUsage::Sampled, const void* pInitData = nullptr);
 
         /**
         * Create a 2D multi-sampled texture.
@@ -137,7 +138,7 @@ namespace alimer
         * @param pInitData If different than nullptr, pointer to a buffer containing data to initialize the texture with.
         * @return A pointer to a new texture, or nullptr if creation failed
         */
-        Texture* Create2DMultisampleTexture(uint32_t width, uint32_t height, PixelFormat format, SampleCount samples, uint32_t arraySize = 1, TextureUsage textureUsage = TextureUsage::ShaderRead, const void* pInitData = nullptr);
+        Texture* Create2DMultisampleTexture(uint32_t width, uint32_t height, PixelFormat format, SampleCount samples, uint32_t arraySize = 1, TextureUsage textureUsage = TextureUsage::Sampled, const void* pInitData = nullptr);
 
         /**
         * Create a new 3D texture.
@@ -151,7 +152,7 @@ namespace alimer
         * @param pInitData If different than nullptr, pointer to a buffer containing data to initialize the texture with.
         * @return A pointer to a new texture, or nullptr if creation failed
         */
-        Texture* Create3DTexture(uint32_t width, uint32_t height, uint32_t depth, PixelFormat format, uint32_t mipLevels = 0, TextureUsage textureUsage = TextureUsage::ShaderRead, const void* pInitData = nullptr);
+        Texture* Create3DTexture(uint32_t width, uint32_t height, uint32_t depth, PixelFormat format, uint32_t mipLevels = 0, TextureUsage textureUsage = TextureUsage::Sampled, const void* pInitData = nullptr);
 
         /**
         * Create a new cubemap texture.
@@ -165,7 +166,7 @@ namespace alimer
         * @param pInitData If different than nullptr, pointer to a buffer containing data to initialize the texture with.
         * @return A pointer to a new texture, or nullptr if creation failed
         */
-        Texture* CreateCubeTexture(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize = 1, uint32_t mipLevels = 0, TextureUsage textureUsage = TextureUsage::ShaderRead, const void* pInitData = nullptr);
+        Texture* CreateCubeTexture(uint32_t width, uint32_t height, PixelFormat format, uint32_t arraySize = 1, uint32_t mipLevels = 0, TextureUsage textureUsage = TextureUsage::Sampled, const void* pInitData = nullptr);
 
         /**
         * Create new framebuffer with given descriptor.
@@ -201,18 +202,37 @@ namespace alimer
 
         void NotifyValidationError(const char* message);
 
+#if defined(ALIMER_VULKAN)
+        VkInstance GetVkInstance() const { 
+            return _instance; 
+        }
+
+        VkDevice GetVkDevice() const {
+            return _device; 
+        }
+
+        uint32_t GetVkGraphicsQueueFamily() const {
+            return _graphicsQueueFamily;
+        }
+
+        uint32_t GetVkComputeQueueFamily() const {
+            return _computeQueueFamily;
+        }
+
+        uint32_t GetVkTransferQueueFamily() const {
+            return _transferQueueFamily;
+        }
+#endif /* ALIMER_VULKAN */
+
     protected:
         void OnAfterCreated();
 
     private:
+        void PlatformConstruct();
+        void PlatformDestroy();
         bool PlatformInitialize(const GraphicsDeviceDescriptor* descriptor);
         //virtual bool BeginFrameImpl() = 0;
         //virtual void EndFrameImpl() = 0;
-        //virtual Texture* CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) = 0;
-        //virtual Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) = 0;
-        //virtual Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) = 0;
-        //virtual Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor) = 0;
-        //virtual Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
 
     private:
         /// Implementation.
@@ -222,12 +242,14 @@ namespace alimer
         GraphicsBackend                 _backend = GraphicsBackend::Invalid;
         bool                            _inBeginFrame = false;
         uint64_t                        _frameIndex = 0;
-        std::vector<PhysicalDevice*>    _physicalDevices;
+        Vector<PhysicalDevice*>         _physicalDevices;
+        PhysicalDevice*                 _physicalDevice;
 
-        GPULimits                       _limits{};
-        GraphicsDeviceFeatures          _features{};
+        GPULimits                       _limits = {};
+        GraphicsDeviceFeatures          _features = {};
         PODVector<GPUResource*>         _gpuResources;
         std::mutex                      _gpuResourceMutex;
+        SwapChain*                      _mainSwapChain = nullptr;
         SharedPtr<CommandContext>       _renderContext;
         Sampler*                        _pointSampler = nullptr;
         Sampler*                        _linearSampler = nullptr;
@@ -238,13 +260,21 @@ namespace alimer
         VkInstance                      _instance = VK_NULL_HANDLE;
         VkDebugReportCallbackEXT        _debugCallback = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT        _debugMessenger = VK_NULL_HANDLE;
+        uint32_t                        _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t                        _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t                        _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        VkDevice                        _device = VK_NULL_HANDLE;
+        VkQueue                         _graphicsQueue = VK_NULL_HANDLE;
+        VkQueue                         _computeQueue = VK_NULL_HANDLE;
+        VkQueue                         _transferQueue = VK_NULL_HANDLE;
+        /* Features */
+        bool                            _supportsDedicated = false;
+        bool                            _supportsImageFormatList = false;
+        bool                            _supportsGoogleDisplayTiming = false;
+        bool                            _supportsDebugMarker = false;
+        bool                            _supportsDebugUtils = false;
+        bool                            _supportsMirrorClampToEdge = false;
 #elif defined(ALIMER_OPENGL)
 #endif
-
-    protected:
-        virtual void Finalize();
-
-        
-        
     };
 }

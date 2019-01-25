@@ -20,13 +20,61 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanGraphicsDevice.h"
-#include "VulkanTexture.h"
+#include "../GraphicsDevice.h"
+#include "../PhysicalDevice.h"
+#include "../Texture.h"
 #include "VulkanConvert.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
+    VkImageUsageFlags VkImageUsage(TextureUsage usage, PixelFormat format)
+    {
+        VkImageUsageFlags flags = 0;
+
+        if (any(usage & TextureUsage::TransferSrc)) {
+            flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
+
+        if (any(usage & TextureUsage::TransferDest)) {
+            flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        }
+
+        if (any(usage & TextureUsage::Sampled)) {
+            flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+        }
+        if (any(usage & TextureUsage::Storage)) {
+            flags |= VK_IMAGE_USAGE_STORAGE_BIT;
+        }
+
+        if (any(usage & TextureUsage::RenderTarget)) 
+        {
+            if (IsDepthStencilFormat(format)) {
+                flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            }
+            else {
+                flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            }
+        }
+
+        return flags;
+    }
+
+    bool Texture::PlatformCreate(const void* pInitData)
+    {
+        return false;
+    }
+
+    void Texture::PlatformDestroy()
+    {
+        if (!_externalHandle
+            && _handle != VK_NULL_HANDLE)
+        {
+            vkDestroyImage(_graphicsDevice->GetVkDevice(), _handle, nullptr);
+            _handle = VK_NULL_HANDLE;
+        }
+    }
+
     /*VulkanTexture::VulkanTexture(VulkanGraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage existingImage, VkImageUsageFlags usageFlags)
         : Texture(device, descriptor)
         , _logicalDevice(device->GetDevice())
@@ -40,23 +88,6 @@ namespace alimer
             //TextureViewDescriptor viewDescriptor = {};
             //viewDescriptor.format = descriptor->format;
             //_defaultTextureView = CreateTextureView(&viewDescriptor);
-        }
-    }
-
-    VulkanTexture::~VulkanTexture()
-    {
-        Destroy();
-    }
-
-    void VulkanTexture::Destroy()
-    {
-        Texture::Destroy();
-
-        if (_allocated
-            && _vkImage != VK_NULL_HANDLE)
-        {
-            vkDestroyImage(_logicalDevice, _vkImage, nullptr);
-            _vkImage = VK_NULL_HANDLE;
         }
     }
 

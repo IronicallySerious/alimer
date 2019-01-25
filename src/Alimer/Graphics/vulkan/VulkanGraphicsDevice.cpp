@@ -710,18 +710,6 @@ namespace alimer
         return GraphicsDevice::Initialize(settings);
     }
 
-    bool VulkanGraphicsDevice::WaitIdle()
-    {
-        VkResult result = vkDeviceWaitIdle(_device);
-        if (result < VK_SUCCESS)
-        {
-            ALIMER_LOGTRACEF("[Vulkan] - vkDeviceWaitIdle failed : %s", vkGetVulkanResultString(result));
-            return false;
-        }
-
-        return true;
-    }
-
     void VulkanGraphicsDevice::InitializeCaps()
     {
         // Set vendor.

@@ -29,30 +29,42 @@ namespace alimer
     extern ALIMER_API const PixelFormatDesc FormatDesc[] =
     {
         // Format                           Name,               BytesPerBlock, ChannelCount,  Type  {Depth,  Stencil, Compressed},      {CompressionRatio.Width, CompressionRatio.Height}
-        { PixelFormat::Unknown,             "Unknown",          0,  0,  PixelFormatType::Unknown,    { false, false, false},            {1, 1}},
-        { PixelFormat::R8UNorm,             "R8UNorm",          1,  1,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
-        { PixelFormat::R8SNorm,             "R8SNorm",          1,  1,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
-        { PixelFormat::R16UNorm,            "R16UNorm",         2,  1,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
-        { PixelFormat::R16SNorm,            "R16SNorm",         2,  1,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
-        { PixelFormat::RG8UNorm,            "RG8UNorm",         2,  2,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
-        { PixelFormat::RG8SNorm,            "RG8SNorm",         2,  2,  PixelFormatType::SNorm,      { false, false, false,},            {1, 1}},
-        { PixelFormat::RG16UNorm,           "RG16UNorm",        4,  2,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
-        { PixelFormat::RG16SNorm,           "RG16SNorm",        4,  2,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
-        { PixelFormat::RGB16UNorm,          "RGB16UNorm",       6,  3,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
-        { PixelFormat::RGB16SNorm,          "RGB16SNorm",       6,  3,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
+        { PixelFormat::Unknown,             "Unknown",          0,  0,  PixelFormatType::Unknown,    {false, false, false},            {1, 1}},
+        // 8-bit pixel formats
+        { PixelFormat::A8UNorm,             "A8UNorm",          1,  1,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
+        { PixelFormat::R8UNorm,             "R8UNorm",          1,  1,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
+        { PixelFormat::R8SNorm,             "R8SNorm",          1,  1,  PixelFormatType::SNorm,      {false, false, false},            {1, 1}},
+        { PixelFormat::R8UInt,              "R8UInt",           1,  1,  PixelFormatType::UInt,       {false,  false, false},           {1, 1}},
+        { PixelFormat::R8SInt,              "R8SInt",           1,  1,  PixelFormatType::SInt,       {false,  false, false},           {1, 1}},
 
-        { PixelFormat::RGBA8UNorm,          "RGBA8UNorm",       4,  4,  PixelFormatType::UNorm,      { false, false, false},            {1, 1}},
-        { PixelFormat::RGBA8UNormSrgb,      "RGBA8UNormSrgb",   4,  4,  PixelFormatType::UNormSrgb,  { false, false, false},            {1, 1}},
-        { PixelFormat::RGBA8SNorm,          "RGBA8SNorm",       4,  4,  PixelFormatType::SNorm,      { false, false, false},            {1, 1}},
-                                                                                                       
-        { PixelFormat::BGRA8UNorm,          "BGRA8UNorm",       4,  4,  PixelFormatType::UNorm,      { false,  false, false},           {1, 1}},
-        { PixelFormat::BGRA8UNormSrgb,      "BGRA8UNormSrgb",   4,  4,  PixelFormatType::UNormSrgb,  { false,  false, false},           {1, 1}},
+        // 16-bit pixel formats
+        { PixelFormat::R16UNorm,            "R16UNorm",         2,  1,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
+        { PixelFormat::R16SNorm,            "R16SNorm",         2,  1,  PixelFormatType::SNorm,      {false, false, false},            {1, 1}},
+        { PixelFormat::R16UInt,             "R16UInt",          2,  1,  PixelFormatType::UInt,       {false,  false, false},           {1, 1}},
+        { PixelFormat::R16SInt,             "R16SInt",          2,  1,  PixelFormatType::SInt,       {false,  false, false},           {1, 1}},
+        { PixelFormat::R16Float,            "R16Float",         2,  1,  PixelFormatType::Float,      {false,  false, false},           {1, 1}},
+        { PixelFormat::RG8UNorm,            "RG8UNorm",         2,  2,  PixelFormatType::UNorm,      {false, false, false},            {1, 1}},
+        { PixelFormat::RG8SNorm,            "RG8SNorm",         2,  2,  PixelFormatType::SNorm,      {false, false, false},            {1, 1}},
+        { PixelFormat::RG8UInt,             "RG8UInt",          2,  2,  PixelFormatType::UInt,       {false,  false, false},        {1, 1}},
+        { PixelFormat::RG8SInt,             "RG8SInt",          2,  2,  PixelFormatType::SInt,       {false,  false, false},        {1, 1}},
 
+        // Packed 16-bit pixel formats
+        { PixelFormat::R5G6B5UNorm,         "R5G6B5Unorm",      2,  3,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
+        { PixelFormat::RGBA4UNorm,          "RGBA4UNorm",       2,  1,  PixelFormatType::UNorm,      {false,  false, false,},        {1, 1}},
+
+        // 32-bit pixel formats
+        /* TODO: */
+
+        // Packed 32-Bit Pixel formats
+        /* TODO: */
+
+        // Depth-stencil formats
         { PixelFormat::D32Float,            "D32Float",         4,  1,  PixelFormatType::Float,      { true,   false, false},           {1, 1}},
         { PixelFormat::D16UNorm,            "D16UNorm",         2,  1,  PixelFormatType::UNorm,      { true,   false, false},           {1, 1}},
         { PixelFormat::D24UNormS8,          "D24UNormS8",       4,  2,  PixelFormatType::UNorm,      { true,   true,  false},           {1, 1}},
         { PixelFormat::D32FloatS8,          "D32FloatS8",       8,  2,  PixelFormatType::Float,      { true,   true,  false},           {1, 1}},
 
+        // Compressed formats
         { PixelFormat::BC1UNorm,            "BC1UNorm",         8,  3,  PixelFormatType::UNorm,      { false,  false, true },           {4, 4}},
         { PixelFormat::BC1UNormSrgb,        "BC1UNormSrgb",     8,  3,  PixelFormatType::UNormSrgb,  { false,  false, true },           {4, 4}},
         { PixelFormat::BC2UNorm,            "BC2UNorm",         16, 4,  PixelFormatType::UNorm,      { false,  false, true },           {4, 4}},
@@ -63,7 +75,6 @@ namespace alimer
         { PixelFormat::BC4SNorm,            "BC4SNorm",         8,  1,  PixelFormatType::SNorm,      { false,  false, true },           {4, 4}},
         { PixelFormat::BC5UNorm,            "BC5UNorm",         16, 2,  PixelFormatType::UNorm,      { false,  false, true },           {4, 4}},
         { PixelFormat::BC5SNorm,            "BC5SNorm",         16, 2,  PixelFormatType::SNorm,      { false,  false, true },           {4, 4}},
-
         { PixelFormat::BC6HS16,             "BC6HS16",          16, 3,  PixelFormatType::Float,      { false,  false, true, },          { 4, 4 }},
         { PixelFormat::BC6HU16,             "BC6HU16",          16, 3,  PixelFormatType::Float,      { false,  false, true, },          { 4, 4 } },
         { PixelFormat::BC7UNorm,            "BC7UNorm",         16, 4,  PixelFormatType::UNorm,      { false,  false, true, },          { 4, 4 } },

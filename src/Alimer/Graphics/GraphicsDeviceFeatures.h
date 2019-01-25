@@ -26,17 +26,6 @@
 
 namespace alimer
 {
-    enum class GpuVendor : uint8_t
-    {
-        Unknown,
-        Arm,
-        Nvidia,
-        Amd,
-        Intel,
-        Warp,
-        Count
-    };
-
 	/// Describes features supported by given instance of GpuDevice.
 	class ALIMER_API GraphicsDeviceFeatures final
 	{
@@ -53,15 +42,7 @@ namespace alimer
         bool GetMultithreading() const { return _multithreading; }
         void SetMultithreading(bool value) { _multithreading = value; }
 
-        void SetVendorId(uint32_t vendorID);
-        void SetDeviceId(uint32_t deviceID);
-        void SetDeviceName(const String& deviceName);
-
     protected:
-        uint32_t _vendorID;
-        GpuVendor _vendor;
-        uint32_t _deviceID;
-        String _deviceName;
         bool _multithreading;
 	};
 }

@@ -27,11 +27,23 @@
 
 namespace alimer
 {
+    enum class GpuVendor : uint8_t
+    {
+        Unknown,
+        Arm,
+        Nvidia,
+        Amd,
+        Intel,
+        Warp,
+        Count
+    };
+
 	/// Defines a PhysicalDevice.
 	class ALIMER_API PhysicalDevice final
 	{
+        friend class GraphicsDevice;
 	public:
-        PhysicalDevice(PhysicalDeviceHandle handle);
+        PhysicalDevice() = default;
 
 		/// Destructor.
 		~PhysicalDevice() = default;
@@ -39,7 +51,31 @@ namespace alimer
         /// Get the backend handle.
         PhysicalDeviceHandle GetHandle() const { return _handle; }
 
+        uint32_t GetVendorID() const { return _vendorID; }
+        GpuVendor GetVendor() const { return _vendor; }
+        uint32_t GetDeviceID() const { return _deviceID; }
+        String GetDeviceName() const { return _deviceName; }
+
+#if defined(ALIMER_VULKAN)
+        bool IsExtensionSupported(const String& extension)
+        {
+            return _extensions.Contains(extension);
+        }
+#endif
+
     private:
-        PhysicalDeviceHandle _handle;
+        PhysicalDeviceHandle    _handle = BACKEND_INVALID_HANDLE;
+        uint32_t                _vendorID = 0;
+        GpuVendor               _vendor = GpuVendor::Unknown;
+        uint32_t                _deviceID = 0;
+        String                  _deviceName;
+
+#if defined(ALIMER_VULKAN)
+        VkPhysicalDeviceProperties          _properties;
+        VkPhysicalDeviceMemoryProperties    _memoryProperties;
+        VkPhysicalDeviceFeatures            _features;
+        Vector<VkQueueFamilyProperties>     _queueFamilyProperties;
+        Vector<String>                      _extensions;
+#endif
 	};
 }

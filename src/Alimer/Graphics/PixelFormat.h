@@ -37,25 +37,52 @@ namespace alimer
     enum class PixelFormat : uint32_t
     {
         Unknown,
+        // 8-bit pixel formats
+        A8UNorm,
         R8UNorm,
         R8SNorm,
+        R8UInt,
+        R8SInt,
+
+        // 16-bit pixel formats
         R16UNorm,
         R16SNorm,
+        R16UInt,
+        R16SInt,
+        R16Float,
         RG8UNorm,
         RG8SNorm,
+        RG8UInt,
+        RG8SInt,
+
+        // Packed 16-bit pixel formats
+        R5G6B5UNorm,
+        RGBA4UNorm,
+
+        // 32-bit pixel formats
+        R32UInt,
+        R32SInt,
+        R32Float,
         RG16UNorm,
         RG16SNorm,
-        RGB16UNorm,
-        RGB16SNorm,
-
+        RG16UInt,
+        RG16SInt,
+        RG16Float,
         RGBA8UNorm,
         RGBA8UNormSrgb,
         RGBA8SNorm,
-
+        RGBA8UInt,
+        RGBA8SInt,
         BGRA8UNorm,
         BGRA8UNormSrgb,
 
-        // Depth-stencil
+        // Packed 32-Bit Pixel formats
+        RGB10A2UNorm,
+        RGB10A2UInt,
+        RG11B10Float,
+        RGB9E5Float,
+
+        // Depth-stencil formats
         D32Float,
         D16UNorm,
         D24UNormS8,
@@ -72,7 +99,6 @@ namespace alimer
         BC4SNorm,   // RGTC Signed Red
         BC5UNorm,   // RGTC Unsigned RG
         BC5SNorm,   // RGTC Signed RG
-
         BC6HS16,
         BC6HU16,
         BC7UNorm,

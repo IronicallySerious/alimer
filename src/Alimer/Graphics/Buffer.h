@@ -44,6 +44,9 @@ namespace alimer
         /// Replace buffer data in synchronous way.
         bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
 
+        /// Get the backend handle.
+        BufferHandle GetHandle() const { return _handle; }
+
         /// Get size in bytes of the buffer.
         uint64_t GetSize() const { return _size; }
 
@@ -54,11 +57,10 @@ namespace alimer
         uint32_t GetStride() const { return _stride; }
         
     private:
-        BufferHandle _handle = BACKEND_INVALID_HANDLE;
-
-        uint64_t _size = 0;
-        BufferUsage _usage = BufferUsage::None;
-        uint32_t _stride = 0;
+        BufferHandle    _handle = BACKEND_INVALID_HANDLE;
+        uint64_t        _size = 0;
+        BufferUsage     _usage = BufferUsage::None;
+        uint32_t        _stride = 0;
 
         /// CPU-side shadow data.
         UniquePtr<uint8_t[]> _shadowData;

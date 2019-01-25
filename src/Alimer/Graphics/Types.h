@@ -198,9 +198,16 @@ namespace alimer
     enum class TextureUsage : uint32_t
     {
         None = 0,
-        ShaderRead = 1 << 0,
-        ShaderWrite = 1 << 1,
-        RenderTarget = 1 << 2,
+        /// Specifies that the buffer can be used as the source of a transfer command
+        TransferSrc     = 1 << 0,
+        /// Specifies that the buffer can be used as the destination of a transfer command.
+        TransferDest    = 1 << 0,
+        /// Specifies that the image can be used for reading or sampling from the shader.
+        Sampled         = 1 << 2,
+        /// Specifies that the image can be written from shader.
+        Storage         = 1 << 3,
+        /// Specifies that the image can be used as a color, depth, or stencil render target in a render pass descriptor.
+        RenderTarget    = 1 << 4,
     };
     ALIMER_BITMASK(TextureUsage);
 
@@ -351,12 +358,8 @@ namespace alimer
         uint32_t width;
         /// Height.
         uint32_t height;
-        /// Preferred color format.
-        PixelFormat preferredColorFormat = PixelFormat::BGRA8UNormSrgb;
         /// Preferred depth stencil format.
         PixelFormat preferredDepthStencilFormat = PixelFormat::D32Float;
-        /// Preferred samples.
-        SampleCount preferredSamples = SampleCount::Count1;
     };
 
     struct TextureDescriptor

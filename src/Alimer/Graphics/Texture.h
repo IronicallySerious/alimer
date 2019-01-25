@@ -22,23 +22,47 @@
 
 #pragma once
 
-#include "../Core/Object.h"
-#include "../Math/MathUtil.h"
+#include "../Resource/Resource.h"
+#include "../Graphics/Backend.h"
 #include "../Graphics/GPUResource.h"
+#include "../Math/MathUtil.h"
 
 namespace alimer
 {
     /// Defines a Texture class.
-    class ALIMER_API Texture : public GPUResource, public Object
+    class ALIMER_API Texture final : public Resource, public GPUResource
     {
-        ALIMER_OBJECT(Texture, Object);
+        ALIMER_OBJECT(Texture, Resource);
     protected:
         /// Constructor.
         Texture(GraphicsDevice* device, const TextureDescriptor* descriptor);
 
     public:
-        /// Destructor
-        virtual ~Texture() override;
+        static const uint32_t MaxPossible = ~0U;
+
+        /// Constructor.
+        Texture(GraphicsDevice* device);
+
+        /// Destructor.
+        ~Texture() override;
+
+        /// Destroy the backend handle.
+        void Destroy() override;
+
+        /// Defines texture from an existing API-handle
+        void DefineFromHandle(TextureHandle handle,
+            TextureType type, 
+            uint32_t width, 
+            uint32_t height, 
+            uint32_t depth,
+            uint32_t arraySize,
+            uint32_t mipLevels,
+            PixelFormat format,
+            TextureUsage usage,
+            SampleCount sampleCount);
+
+        /// Get the backend handle.
+        TextureHandle GetHandle() const { return _handle; }
 
         /// Get the type of the texture.
         TextureType GetTextureType() const { return _type; }
@@ -76,14 +100,21 @@ namespace alimer
         /// Get the sample count.
         SampleCount GetSamples() const { return _samples; }
 
-    protected:
+    private:
+        bool PlatformCreate(const void* pInitData);
+        void PlatformDestroy();
+
+    private:
+        bool            _externalHandle = false;
+        TextureHandle   _handle = BACKEND_INVALID_HANDLE;
+
+        TextureType     _type = TextureType::Type1D;
         uint32_t        _width = 0;
         uint32_t        _height = 0;
         uint32_t        _depth = 0;
         uint32_t        _arraySize = 0;
         uint32_t        _mipLevels = 0;
         SampleCount     _samples = SampleCount::Count1;
-        TextureType     _type = TextureType::Type1D;
         PixelFormat     _format = PixelFormat::Unknown;
         TextureUsage    _usage = TextureUsage::None;
     };
