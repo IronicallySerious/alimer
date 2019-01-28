@@ -20,8 +20,9 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/SwapChain.h"
-#include "Graphics/GraphicsDevice.h"
+#include "../Graphics/SwapChain.h"
+#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Backend.h"
 
 namespace alimer
 {
@@ -42,25 +43,23 @@ namespace alimer
         _framebuffers.Clear();
 
         // Destroy backend.
-        PlatformDestroy();
+        SafeDelete(_impl);
     }
 
-    bool SwapChain::Resize(uint32_t width, uint32_t height)
+    void SwapChain::Resize(uint32_t width, uint32_t height)
     {
         if (_width == width
             && _height == height)
         {
-            return true;
+            return;
         }
 
         _width = width;
         _height = height;
-        return PlatformResize(width, height);
     }
 
     void SwapChain::Present()
     {
-        PlatformPresent();
     }
 
     void SwapChain::InitializeFramebuffer()

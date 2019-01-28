@@ -31,34 +31,33 @@
 
 namespace alimer
 {
-    class SwapChain;
     class Shader;
     class Buffer;
     class Sampler;
-
-    struct GraphicsDeviceDescriptor 
-    {
-        SwapChainDescriptor     swapchain = {};
-    };
-
-    class PhysicalDevice;
+    class GPUDevice;
+    class Window;
+    struct WindowResizeEvent;
 
     /// Low-level graphics module.
-    class ALIMER_API GraphicsDevice : public Object
+    class ALIMER_API GraphicsDevice final : public Object
     {
         ALIMER_OBJECT(GraphicsDevice, Object);
 
     public:
-        /// Check if device is supported on running platform.
-        static bool IsSupported();
+        /// Get default best supported platform backend.
+        static GraphicsBackend GetDefaultPlatformBackend();
+
+        /// Check if backend is supported.
+        static bool IsBackendSupported(GraphicsBackend backend);
 
         /// Constructor.
-        GraphicsDevice(bool validation, bool headless);
+        GraphicsDevice(GraphicsBackend preferredBackend = GraphicsBackend::Default, bool validation = false, bool headless = false);
 
         /// Destructor.
         ~GraphicsDevice() override;
 
-        bool Initialize(const GraphicsDeviceDescriptor* descriptor);
+        /// Set graphics mode. Create the OS window and rendering context if not created yet. Return true on success.
+        bool SetMode(const String& title, const IntVector2& size, bool fullscreen = false, bool resizable = false, bool vSync = true, SampleCount samples = SampleCount::Count1);
 
         /// Add a GPUResource to keep track of. 
         void TrackResource(GPUResource* resource);
@@ -67,20 +66,17 @@ namespace alimer
         void UntrackResource(GPUResource* resource);
 
         /// Get the backend.
-        GraphicsBackend GetBackend() const { return _backend; }
-
-        /// Get the device limits.
-        const GPULimits& GetLimits() const { return _limits; }
+        GraphicsBackend GetBackend() const;
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
+        const GraphicsDeviceFeatures& GetFeatures() const;
 
-        /// Get the selected physical device.
-        PhysicalDevice* GetPhysicalDevice() const { return _physicalDevice; }
+        /// Return the main renderin window.
+        Window* GetRenderWindow() const;
 
-        /** 
+        /**
         * Get the default render-context.
-        * The default render-context is managed completely by the device. 
+        * The default render-context is managed completely by the device.
         * The user should just queue commands into it, the device will take care of allocation, submission and synchronization
         */
         CommandContext& GetContext() const { return *_renderContext; }
@@ -95,9 +91,6 @@ namespace alimer
 
         /// Finishes the current frame and advances to next one.
         uint64_t EndFrame();
-
-        /// Wait for a device to become idle.
-        bool WaitIdle();
 
         /**
         * Create a 1D texture.
@@ -200,81 +193,31 @@ namespace alimer
         */
         Shader* CreateShader(const ShaderDescriptor* descriptor);
 
-        void NotifyValidationError(const char* message);
+        /// Return backend implementation.
+        GPUDevice* GetImpl() const { return _impl; }
 
-#if defined(ALIMER_VULKAN)
-        VkInstance GetVkInstance() const { 
-            return _instance; 
-        }
-
-        VkDevice GetVkDevice() const {
-            return _device; 
-        }
-
-        uint32_t GetVkGraphicsQueueFamily() const {
-            return _graphicsQueueFamily;
-        }
-
-        uint32_t GetVkComputeQueueFamily() const {
-            return _computeQueueFamily;
-        }
-
-        uint32_t GetVkTransferQueueFamily() const {
-            return _transferQueueFamily;
-        }
-#endif /* ALIMER_VULKAN */
-
-    protected:
+    private:
         void OnAfterCreated();
 
     private:
-        void PlatformConstruct();
-        void PlatformDestroy();
-        bool PlatformInitialize(const GraphicsDeviceDescriptor* descriptor);
+        /// Handle window resize event.
+        void HandleResize(WindowResizeEvent& event);
         //virtual bool BeginFrameImpl() = 0;
         //virtual void EndFrameImpl() = 0;
 
     private:
         /// Implementation.
-        bool                            _validation;
-        bool                            _headless;
-        bool                            _initialized;
-        GraphicsBackend                 _backend = GraphicsBackend::Invalid;
+        GPUDevice* _impl = nullptr;
+        /// OS window.
+        std::unique_ptr<Window> _window;
+        bool _headless = false;
         bool                            _inBeginFrame = false;
         uint64_t                        _frameIndex = 0;
-        Vector<PhysicalDevice*>         _physicalDevices;
-        PhysicalDevice*                 _physicalDevice;
 
-        GPULimits                       _limits = {};
-        GraphicsDeviceFeatures          _features = {};
         PODVector<GPUResource*>         _gpuResources;
         std::mutex                      _gpuResourceMutex;
-        SwapChain*                      _mainSwapChain = nullptr;
         SharedPtr<CommandContext>       _renderContext;
         Sampler*                        _pointSampler = nullptr;
         Sampler*                        _linearSampler = nullptr;
-
-#if defined(ALIMER_D3D11)
-#elif defined(ALIMER_D3D12)
-#elif defined(ALIMER_VULKAN)
-        VkInstance                      _instance = VK_NULL_HANDLE;
-        VkDebugReportCallbackEXT        _debugCallback = VK_NULL_HANDLE;
-        VkDebugUtilsMessengerEXT        _debugMessenger = VK_NULL_HANDLE;
-        uint32_t                        _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t                        _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t                        _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        VkDevice                        _device = VK_NULL_HANDLE;
-        VkQueue                         _graphicsQueue = VK_NULL_HANDLE;
-        VkQueue                         _computeQueue = VK_NULL_HANDLE;
-        VkQueue                         _transferQueue = VK_NULL_HANDLE;
-        /* Features */
-        bool                            _supportsDedicated = false;
-        bool                            _supportsImageFormatList = false;
-        bool                            _supportsGoogleDisplayTiming = false;
-        bool                            _supportsDebugMarker = false;
-        bool                            _supportsDebugUtils = false;
-        bool                            _supportsMirrorClampToEdge = false;
-#elif defined(ALIMER_OPENGL)
-#endif
     };
 }

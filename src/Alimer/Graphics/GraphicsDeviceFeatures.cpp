@@ -26,11 +26,6 @@ namespace alimer
 {
     GraphicsDeviceFeatures::GraphicsDeviceFeatures()
     {
-        Reset();
-    }
-
-    void GraphicsDeviceFeatures::Reset()
-    {
-        _multithreading = false;
+        _backend = GraphicsBackend::Default;
     }
 }

@@ -114,34 +114,18 @@ namespace alimer
         _audio->Initialize();
 
         // Create GraphicsDevice.
-        _graphicsDevice = new GraphicsDevice(_settings.validation, _settings.headless);
+        _graphicsDevice = new GraphicsDevice(_settings.preferredBackend, _settings.validation, _settings.headless);
         if (_graphicsDevice == nullptr)
         {
             ALIMER_LOGERROR("Failed to create GraphicsDevice instance.");
             return false;
         }
 
-        // Init main window.
-        if (!_settings.headless)
+        const bool vSync = true;
+        const SampleCount samples = SampleCount::Count1;
+        if (!_graphicsDevice->SetMode(_settings.title, _settings.size, _settings.fullscreen, _settings.resizable, vSync, samples))
         {
-            if (_settings.graphicsDeviceDesc.swapchain.nativeHandle == nullptr)
-            {
-                // Create main Window
-                _mainWindow = new Window(_settings.mainWindowDesc.title, _settings.mainWindowDesc.width, _settings.mainWindowDesc.height, _settings.mainWindowDesc.windowFlags);
-                //_mainWindow->resizeEvent.Connect();
-
-                _settings.graphicsDeviceDesc.swapchain.nativeHandle = _mainWindow->GetNativeHandle();
-                _settings.graphicsDeviceDesc.swapchain.nativeDisplay = _mainWindow->GetNativeDisplay();
-            }
-
-            _settings.graphicsDeviceDesc.swapchain.width = _settings.mainWindowDesc.width;
-            _settings.graphicsDeviceDesc.swapchain.height = _settings.mainWindowDesc.height;
-            _settings.graphicsDeviceDesc.swapchain.preferredDepthStencilFormat = PixelFormat::D24UNormS8;
-        }
-
-        if(!_graphicsDevice->Initialize(&_settings.graphicsDeviceDesc))
-        {
-            ALIMER_LOGERROR("Failed to create GraphicsDevice instance.");
+            ALIMER_LOGERROR("Failed to setup GraphicsDevice.");
             return false;
         }
 

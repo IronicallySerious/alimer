@@ -23,30 +23,32 @@
 #pragma once
 
 #include "BackendGL.h"
-#include "../GraphicsDevice.h"
 
 namespace alimer
 {
-    /// OpenGL graphics implementation.
-    class DeviceGL final : public GraphicsDevice
+    /// OpenGL gpu backend.
+    class GPUDeviceGL final : public GPUDevice
     {
     public:
         /// Is backend supported?
         static bool IsSupported();
 
         /// Constructor.
-        DeviceGL(bool validation);
+        GPUDeviceGL(bool validation, bool headless);
 
         /// Destructor.
-        ~DeviceGL() override;
+        ~GPUDeviceGL() override;
 
-        bool WaitIdle() override;
+        void WaitIdle() override;
+        bool SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor) override;
 
-        //GPUSwapChain* CreateSwapChain(const SwapChainDescriptor* descriptor) override;
-        //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData) override;
+        bool BeginFrame() override;
+        void EndFrame() override;
+
+        GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
+        GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
+        GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) override;
         //Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
-        //Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData) override;
-        //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
         //Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
 
     private:

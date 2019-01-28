@@ -30,42 +30,54 @@
 
 namespace alimer
 {
-    Window::Window(const String& title, uint32_t width, uint32_t height, WindowFlags flags)
-        : _title(title)
-        , _size(width, height)
-        , _flags(flags)
-        , _impl(new WindowImpl(title, width, height, flags))
+    Window::Window()
+        : _title("Alimer")
+        , _size(800, 600)
+        , _flags(WindowFlags::Default)
     {
     }
 
     Window::~Window()
     {
-        delete _impl;
-        _impl = nullptr;
+        SafeDelete(_impl);
+    }
+
+    bool Window::Define(const String& title, const IntVector2& size, WindowFlags flags)
+    {
+        SafeDelete(_impl);
+        _size = size;
+        _impl = new WindowImpl(title, size.x, size.y, flags);
+        return _impl != nullptr;
     }
 
     void Window::Show()
     {
+        _impl->Show();
     }
 
     void Window::Hide()
     {
+        _impl->Hide();
     }
 
     void Window::Minimize()
     {
+        _impl->Minimize();
     }
 
     void Window::Maximize()
     {
+        _impl->Maximize();
     }
 
     void Window::Restore()
     {
+        _impl->Restore();
     }
 
     void Window::Close()
     {
+        _impl->Close();
     }
 
     void Window::SetTitle(const String& newTitle)
@@ -94,7 +106,7 @@ namespace alimer
         return any(_flags & WindowFlags::Fullscreen);
     }
 
-    void Window::Resize(uint32_t width, uint32_t height)
+    void Window::Resize(int width, int height)
     {
         if (_size.x == width
             && _size.y == height)
@@ -108,9 +120,8 @@ namespace alimer
         OnSizeChanged(_size);
     }
 
-    void Window::OnSizeChanged(const uvec2& newSize)
+    void Window::OnSizeChanged(const IntVector2& newSize)
     {
-        //_swapChain.Resize(newSize.x, newSize.y);
         WindowResizeEvent evt;
         evt.size = _size;
         resizeEvent(evt);
@@ -129,27 +140,5 @@ namespace alimer
     NativeDisplay Window::GetNativeDisplay() const
     {
         return _impl->GetNativeDisplay();
-    }
-
-    void Window::OnCreated()
-    {
-        /*SwapChainDescriptor descriptor = {};
-        descriptor.nativeConnection = _nativeConnection;
-        descriptor.nativeWindow = _nativeWindow;
-        descriptor.width = _size.x;
-        descriptor.height = _size.y;
-        descriptor.sRGB = false;
-        descriptor.preferredDepthStencilFormat = PixelFormat::D24UNormS8;
-        descriptor.preferredSamples = SampleCount::Count1;
-        _swapChain.Define(&descriptor);*/
-    }
-
-    void Window::OnDestroyed()
-    {
-    }
-
-    void Window::SwapBuffers()
-    {
-        //_swapChain.Present();
     }
 }

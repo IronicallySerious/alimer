@@ -20,10 +20,9 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanGraphicsDevice.h"
+#include "GPUDeviceVk.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
-#include "VulkanConvert.h"
 
 namespace alimer
 {

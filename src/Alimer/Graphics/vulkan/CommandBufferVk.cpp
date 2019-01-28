@@ -20,67 +20,157 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanGraphicsDevice.h"
-#include "VulkanCommandBuffer.h"
-#include "VulkanBuffer.h"
+#include "CommandBufferVk.h"
+#include "CommandQueueVk.h"
+#include "GPUDeviceVk.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "VulkanRenderPass.h"
-#include "VulkanConvert.h"
+#include "BackendVk.h"
 #include "../../Math/Math.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphicsDevice* device, VkQueue queue, VkCommandBufferLevel level)
-        : CommandContext(device)
-        , _logicalDevice(device->GetDevice())
-        , _queue(queue)
+    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, CommandQueueVk* commandQueue, VkCommandBuffer commandBuffer)
+        : _device(device)
+        , _commandQueue(commandQueue)
+        , _handle(commandBuffer)
     {
-        _vkCommandPool = device->GetCommandPool();
-        VkCommandBufferAllocateInfo allocateInfo = {};
-        allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocateInfo.pNext = nullptr;
-        allocateInfo.commandPool = _vkCommandPool;
-        allocateInfo.level = level;
-        allocateInfo.commandBufferCount = 1;
-        VkResult result = vkAllocateCommandBuffers(device->GetDevice(), &allocateInfo, &_handle);
+    }
+
+    CommandBufferVk::~CommandBufferVk()
+    {
+        if (_handle != VK_NULL_HANDLE)
+        {
+            vkFreeCommandBuffers(_device->GetVkDevice(), _commandQueue->GetVkCommandPool(), 1, &_handle);
+            _handle = VK_NULL_HANDLE;
+        }
+    }
+
+    void CommandBufferVk::Begin(VkCommandBufferUsageFlags flags)
+    {
+        VkCommandBufferBeginInfo beginInfo;
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.pNext = nullptr;
+        beginInfo.flags = flags;
+        beginInfo.pInheritanceInfo = nullptr;
+        VkResult result = vkBeginCommandBuffer(_handle, &beginInfo);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGERROR("[Vulkan] - Failed to allocate command buffer: %s", vkGetVulkanResultString(result));
-            return;
+            ALIMER_LOGERROR("vkBeginCommandBuffer failed: %s", vkGetVulkanResultString(result));
         }
 
-        _vkFence = device->AcquireFence();
-        Begin();
+        //_graphicsState.Reset();
     }
 
-    VulkanCommandBuffer::~VulkanCommandBuffer()
+    void CommandBufferVk::End()
     {
-        Destroy();
+        VkResult result = vkEndCommandBuffer(_handle);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
+        }
     }
 
-    void VulkanCommandBuffer::Destroy()
+    void CommandBufferVk::PushDebugGroup(const char* name)
     {
-        vkFreeCommandBuffers(_logicalDevice, _vkCommandPool, 1, &_handle);
-        //static_cast<VulkanGraphicsDevice*>(_device)->ReleaseFence(_vkFence);
+        if (_device->GetFeaturesVk().supportsDebugUtils)
+        {
+            VkDebugUtilsLabelEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+            //if (color)
+            //{
+            //    for (unsigned i = 0; i < 4; i++)
+            //        info.color[i] = color[i];
+            //}
+            //else
+            {
+                for (unsigned i = 0; i < 4; i++)
+                    info.color[i] = 1.0f;
+            }
+
+            info.pLabelName = name;
+            if (vkCmdBeginDebugUtilsLabelEXT)
+                vkCmdBeginDebugUtilsLabelEXT(_handle, &info);
+        }
+        else if (_device->GetFeaturesVk().supportsDebugMarker)
+        {
+            VkDebugMarkerMarkerInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT };
+            //if (color)
+            //{
+            //    for (unsigned i = 0; i < 4; i++)
+            //        info.color[i] = color[i];
+            //}
+            //else
+            {
+                for (uint32_t i = 0; i < 4u; i++)
+                {
+                    info.color[i] = 1.0f;
+                }
+            }
+
+            info.pMarkerName = name;
+            vkCmdDebugMarkerBeginEXT(_handle, &info);
+        }
     }
 
-    void VulkanCommandBuffer::BeginContext()
+    void CommandBufferVk::PopDebugGroup()
+    {
+        if (_device->GetFeaturesVk().supportsDebugUtils)
+        {
+            if (vkCmdEndDebugUtilsLabelEXT != nullptr)
+            {
+                vkCmdEndDebugUtilsLabelEXT(_handle);
+            }
+        }
+        else if (_device->GetFeaturesVk().supportsDebugMarker)
+        {
+            vkCmdDebugMarkerEndEXT(_handle);
+        }
+    }
+
+    void CommandBufferVk::InsertDebugMarker(const char* name)
+    {
+        if (_device->GetFeaturesVk().supportsDebugUtils)
+        {
+            if (vkCmdInsertDebugUtilsLabelEXT != nullptr)
+            {
+                VkDebugUtilsLabelEXT markerInfo = {};
+                markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+                markerInfo.pNext = nullptr;
+                markerInfo.pLabelName = name;
+                for (uint32_t i = 0; i < 4u; i++)
+                {
+                    markerInfo.color[i] = 1.0f;
+                }
+                vkCmdInsertDebugUtilsLabelEXT(_handle, &markerInfo);
+            }
+        }
+        else if (_device->GetFeaturesVk().supportsDebugMarker)
+        {
+            VkDebugMarkerMarkerInfoEXT markerInfo = {};
+            markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+            //memcpy(markerInfo.color, &color[0], sizeof(float) * 4);
+            markerInfo.pMarkerName = name;
+            vkCmdDebugMarkerInsertEXT(_handle, &markerInfo);
+        }
+    }
+
+    void CommandBufferVk::BeginContext()
     {
         _dirtyFlags = ~0u;
         _currentPipeline = VK_NULL_HANDLE;
         _currentPipelineLayout = VK_NULL_HANDLE;
         _currentTopology = PrimitiveTopology::Count;
         _currentSubpass = 0;
-        _currentLayout = nullptr;
-        _currentVkProgram = nullptr;
+        //_currentLayout = nullptr;
+        //_currentVkProgram = nullptr;
         //memset(bindings.cookies, 0, sizeof(bindings.cookies));
         memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
         //CommandContext::BeginContext();
     }
 
-    /*void VulkanCommandBuffer::FlushImpl(bool waitForCompletion)
+    /*void CommandBufferVk::FlushImpl(bool waitForCompletion)
     {
         End();
 
@@ -93,11 +183,11 @@ namespace alimer
             static_cast<VulkanGraphicsDevice*>(_device)->SubmitCommandBuffer(_handle, _vkFence);
             Begin();
         }
-    }*/
+    }
 
-    void VulkanCommandBuffer::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    void CommandBufferVk::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
-       /* _currentFramebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
+        _currentFramebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
         _currentRenderPass = _currentFramebuffer->GetRenderPass();
 
         VkRect2D renderArea = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
@@ -136,42 +226,17 @@ namespace alimer
         irect scissor(_currentFramebuffer->GetWidth(), _currentFramebuffer->GetHeight());
         SetViewport(viewport);
         SetScissor(scissor);
-        BeginGraphics();*/
+        BeginGraphics();
     }
 
-    void VulkanCommandBuffer::EndRenderPassImpl()
+    void CommandBufferVk::EndRenderPassImpl()
     {
         vkCmdEndRenderPass(_handle);
-    }
+    }*/
 
     //void VulkanCommandBuffer::SetPipelineImpl(Pipeline* pipeline)
     //{
     //}
-
-    void VulkanCommandBuffer::Begin()
-    {
-        VkCommandBufferBeginInfo beginInfo;
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.pNext = nullptr;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        beginInfo.pInheritanceInfo = nullptr;
-        VkResult result = vkBeginCommandBuffer(_handle, &beginInfo);
-        if (result != VK_SUCCESS)
-        {
-            ALIMER_LOGERROR("vkBeginCommandBuffer failed: %s", vkGetVulkanResultString(result));
-        }
-
-        _graphicsState.Reset();
-    }
-
-    void VulkanCommandBuffer::End()
-    {
-        VkResult result = vkEndCommandBuffer(_handle);
-        if (result != VK_SUCCESS)
-        {
-            ALIMER_LOGERROR("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
-        }
-    }
 
 #if TODO
     void VulkanCommandBuffer::SetShaderImpl(Shader* shader)

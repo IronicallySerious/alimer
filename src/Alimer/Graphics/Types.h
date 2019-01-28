@@ -46,8 +46,8 @@ namespace alimer
     /// Enum describing the Graphics backend.
     enum class GraphicsBackend : uint32_t
     {
-        /// Invalid backend.
-        Invalid,
+        /// Best device supported for running platform.
+        Default,
         /// Vulkan backend.
         Vulkan,
         /// Direct3D 11 backend.
@@ -339,27 +339,32 @@ namespace alimer
         Back
     };
 
-    /* Structs */
-    struct GPULimits
-    {
-        uint32_t maxColorAttachments;
-        uint32_t maxBindGroups;
-        uint32_t minUniformBufferOffsetAlignment;
-    };
-
-    /// Describes SwapChain
-    struct SwapChainDescriptor
+    struct SwapChainHandle
     {
         /// Native window or view handle.
         void* nativeHandle;
         /// Native display, connection or instance handle.
         void* nativeDisplay;
+    };
+
+    /// Describes SwapChain
+    struct SwapChainDescriptor
+    {
         /// Width.
         uint32_t width;
         /// Height.
         uint32_t height;
+        /// Vertical sync
+        bool vSync;
         /// Preferred depth stencil format.
-        PixelFormat preferredDepthStencilFormat = PixelFormat::D32Float;
+        PixelFormat preferredDepthStencilFormat;
+        /// Preferred sample count
+        SampleCount preferredSamples;
+    };
+
+    struct GraphicsDeviceDescriptor
+    {
+        SwapChainDescriptor     swapchain = {};
     };
 
     struct TextureDescriptor

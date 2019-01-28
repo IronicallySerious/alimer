@@ -29,6 +29,8 @@
 
 namespace alimer
 {
+    class GPUTexture;
+
     /// Defines a Texture class.
     class ALIMER_API Texture final : public Resource, public GPUResource
     {
@@ -50,7 +52,7 @@ namespace alimer
         void Destroy() override;
 
         /// Defines texture from an existing API-handle
-        void DefineFromHandle(TextureHandle handle,
+        void DefineFromHandle(GPUTexture* handle,
             TextureType type, 
             uint32_t width, 
             uint32_t height, 
@@ -61,8 +63,8 @@ namespace alimer
             TextureUsage usage,
             SampleCount sampleCount);
 
-        /// Get the backend handle.
-        TextureHandle GetHandle() const { return _handle; }
+        /// Return backend handle.
+        GPUTexture* GetHandle() const { return _handle; }
 
         /// Get the type of the texture.
         TextureType GetTextureType() const { return _type; }
@@ -106,7 +108,7 @@ namespace alimer
 
     private:
         bool            _externalHandle = false;
-        TextureHandle   _handle = BACKEND_INVALID_HANDLE;
+        GPUTexture*   _handle = nullptr;
 
         TextureType     _type = TextureType::Type1D;
         uint32_t        _width = 0;

@@ -20,56 +20,71 @@
 // THE SOFTWARE.
 //
 
-#include "../GraphicsDevice.h"
-#include "../PhysicalDevice.h"
-#include "../SwapChain.h"
-#include "VulkanConvert.h"
+#include "SwapChainVk.h"
+#include "GPUDeviceVk.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    void SwapChain::PlatformDestroy()
+    SwapChainVk::SwapChainVk(GPUDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor)
+        : _device(device)
+        , _surface(surface)
+        , _vSync(descriptor->vSync)
+        , _depthStencilFormat(descriptor->preferredDepthStencilFormat)
+        , _samples(descriptor->preferredSamples)
     {
+        Resize(descriptor->width, descriptor->height);
+    }
+
+    SwapChainVk::~SwapChainVk()
+    {
+        if (_handle != VK_NULL_HANDLE)
+        {
+            //for (uint32_t i = 0; i < imageCount; i++)
+            //{
+            //    vkDestroyImageView(_device->GetVkDevice(), buffers[i].view, nullptr);
+            //}
+
+            vkDestroySwapchainKHR(_device->GetVkDevice(), _handle, nullptr);
+            _handle = VK_NULL_HANDLE;
+        }
+
+        if (_surface != VK_NULL_HANDLE)
+        {
+            vkDestroySurfaceKHR(_device->GetVkInstance(), _surface, nullptr);
+            _surface = VK_NULL_HANDLE;
+        }
 
     }
 
-    bool SwapChain::Define(VkSurfaceKHR surface, const SwapChainDescriptor* descriptor)
+    void SwapChainVk::Resize()
     {
-        _surface = surface;
-        _depthStencilFormat = descriptor->preferredDepthStencilFormat;
-        return Resize(descriptor->width, descriptor->height);
+        Resize(_width, _height);
     }
 
-    bool SwapChain::PlatformResize(uint32_t width, uint32_t height)
+    void SwapChainVk::Resize(uint32_t width, uint32_t height)
     {
-        VkPhysicalDevice  physicalDevice = _graphicsDevice->GetPhysicalDevice()->GetHandle();
+        VkPhysicalDevice physicalDevice = _device->GetVkPhysicalDevice();
 
         VkSurfaceCapabilitiesKHR surfaceCaps;
         if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, _surface, &surfaceCaps) != VK_SUCCESS)
         {
-            return false;
-        }
-
-        // Check windows size.
-        if (surfaceCaps.maxImageExtent.width == 0 &&
-            surfaceCaps.maxImageExtent.height == 0)
-        {
-            return false;
-        }
-
-        VkBool32 supported = VK_FALSE;
-
-        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, _graphicsDevice->GetVkGraphicsQueueFamily(), _surface, &supported);
-        if (!supported)
-        {
-            return false;
+            return;
         }
 
         // No surface, should sleep and retry maybe?.
         if (surfaceCaps.maxImageExtent.width == 0 &&
             surfaceCaps.maxImageExtent.height == 0)
         {
-            return nullptr;
+            return;
+        }
+
+        VkBool32 supported = VK_FALSE;
+
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, _device->GetGraphicsQueueFamily(), _surface, &supported);
+        if (!supported)
+        {
+            return;
         }
 
         uint32_t formatCount;
@@ -88,7 +103,7 @@ namespace alimer
             if (formatCount == 0)
             {
                 ALIMER_LOGERROR("Surface has no formats.");
-                return nullptr;
+                return;
             }
 
             bool found = false;
@@ -117,8 +132,8 @@ namespace alimer
         }
         else
         {
-            swapchainSize.width = Max(Min(width, surfaceCaps.maxImageExtent.width), surfaceCaps.minImageExtent.width);
-            swapchainSize.height = Max(Min(height, surfaceCaps.maxImageExtent.height), surfaceCaps.minImageExtent.height);
+            swapchainSize.width = std::max(std::min(width, surfaceCaps.maxImageExtent.width), surfaceCaps.minImageExtent.width);
+            swapchainSize.height = std::max(std::min(height, surfaceCaps.maxImageExtent.height), surfaceCaps.minImageExtent.height);
         }
 
         uint32_t presentModeCount;
@@ -127,8 +142,7 @@ namespace alimer
         vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, _surface, &presentModeCount, presentModes.data());
 
         VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-        bool useVsync = true;
-        if (!useVsync)
+        if (!_vSync)
         {
             for (uint32_t i = 0; i < presentModeCount; i++)
             {
@@ -212,53 +226,68 @@ namespace alimer
             textureUsage |= TextureUsage::TransferDest;
         }
 
-        VkResult result = vkCreateSwapchainKHR(_graphicsDevice->GetVkDevice(), &createInfo, nullptr, &_handle);
+        VkResult result = vkCreateSwapchainKHR(_device->GetVkDevice(), &createInfo, nullptr, &_handle);
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGCRITICAL("Vulkan: Failed to create swapchain, error: {}", vkGetVulkanResultString(result));
-            return false;
+            return;
         }
 
         if (oldSwapchain != VK_NULL_HANDLE)
         {
-            vkDestroySwapchainKHR(_graphicsDevice->GetVkDevice(), oldSwapchain, nullptr);
+            vkDestroySwapchainKHR(_device->GetVkDevice(), oldSwapchain, nullptr);
         }
 
-        uint32_t imageCount;
-        vkGetSwapchainImagesKHR(_graphicsDevice->GetVkDevice(), _handle, &imageCount, nullptr);
-        std::vector<VkImage> swapchainImages(imageCount);
-        vkGetSwapchainImagesKHR(_graphicsDevice->GetVkDevice(), _handle, &imageCount, swapchainImages.data());
+        _imageIndex = 0;
+        vkGetSwapchainImagesKHR(_device->GetVkDevice(), _handle, &_imageCount, nullptr);
+        _swapchainImages.resize(_imageCount);
+        vkGetSwapchainImagesKHR(_device->GetVkDevice(), _handle, &_imageCount, _swapchainImages.data());
 
         ALIMER_LOGINFO("Vulkan: Created swapchain {} x {} (imageCount: {}, format: {}).",
             swapchainSize.width,
             swapchainSize.height,
-            imageCount,
+            _imageCount,
             static_cast<unsigned>(format.format));
 
         _width = swapchainSize.width;
         _height = swapchainSize.height;
-        _colorFormat = vk::Convert(format.format);
-        _backbufferTextures.Resize(imageCount);
+        _colorFormat = format.format;
+
+        /*_backbufferTextures.Resize(imageCount);
         for (uint32_t i = 0; i < imageCount; ++i)
         {
             _backbufferTextures[i] = new Texture(_graphicsDevice);
             _backbufferTextures[i]->DefineFromHandle(
-                swapchainImages[i], 
+                swapchainImages[i],
                 TextureType::Type2D,
-                swapchainSize.width, swapchainSize.height, 
+                swapchainSize.width, swapchainSize.height,
                 1, 1, 1,
                 _colorFormat,
                 textureUsage,
                 SampleCount::Count1);
-        }
-
-        
-
-        return true;
+        }*/
     }
 
-    void SwapChain::PlatformPresent()
+    VkResult SwapChainVk::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex)
     {
+        return vkAcquireNextImageKHR(_device->GetVkDevice(), _handle, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);
+    }
 
+    VkResult SwapChainVk::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
+    {
+        VkPresentInfoKHR presentInfo = {};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.pNext = NULL;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &_handle;
+        presentInfo.pImageIndices = &imageIndex;
+        // Check if a wait semaphore has been specified to wait for before presenting the image
+        if (waitSemaphore != VK_NULL_HANDLE)
+        {
+            presentInfo.pWaitSemaphores = &waitSemaphore;
+            presentInfo.waitSemaphoreCount = 1;
+        }
+
+        return vkQueuePresentKHR(queue, &presentInfo);
     }
 }

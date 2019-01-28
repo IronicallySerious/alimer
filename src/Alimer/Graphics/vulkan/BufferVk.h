@@ -22,29 +22,26 @@
 
 #pragma once
 
-#include "../Buffer.h"
-#include "../Backend.h"
-#include <vector>
+#include "BackendVk.h"
 
 namespace alimer
 {
-    class VulkanGraphicsDevice;
+    class GPUDeviceVk;
 
-	/// Vulkan Buffer.
-	class VulkanBuffer final : public Buffer
+	/// Vulkan Buffer implementation.
+	class BufferVk final : public GPUBuffer
 	{
 	public:
-        VulkanBuffer(VulkanGraphicsDevice* device, const BufferDescriptor* descriptor, const void* initialData);
-        ~VulkanBuffer() override;
-        void Destroy() override;
+        BufferVk(GPUDeviceVk* device, const BufferDescriptor* descriptor, const void* pInitData);
+        ~BufferVk() override;
 
         //bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
 
-		VkBuffer GetHandle() const { return _handle; }
+		VkBuffer GetVkBuffer() const { return _handle; }
         VmaAllocation GetAllocation() const { return _allocation; }
 	private:
+        GPUDeviceVk* _device;
         VkBuffer _handle = VK_NULL_HANDLE;
-        VkDevice _logicalDevice;
         VmaAllocator _allocator;
         VmaAllocation _allocation = VK_NULL_HANDLE;
 	};

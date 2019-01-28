@@ -28,6 +28,7 @@
 #include "../Core/Object.h"
 #include "../Graphics/SwapChain.h"
 #include "../Math/Math.h"
+#include "../Math/Vector2.h"
 
 namespace alimer
 {
@@ -42,11 +43,10 @@ namespace alimer
     ALIMER_BITMASK(WindowFlags);
 
     /// Window resized event.
-    class ALIMER_API WindowResizeEvent 
+    struct WindowResizeEvent 
     {
-    public:
         /// New window size.
-        uvec2 size;
+        IntVector2 size;
     };
 
     using NativeHandle = void*;
@@ -60,10 +60,13 @@ namespace alimer
 
     public:
         /// Constructor.
-        Window(const String& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Default);
+        Window();
 
         /// Destructor
         ~Window() override;
+
+        /// Defines window.
+        bool Define(const String& title, const IntVector2& size, WindowFlags flags = WindowFlags::Default);
 
         /// Show the window.
         void Show();
@@ -77,8 +80,9 @@ namespace alimer
         void Restore();
         /// Close the window.
         void Close();
+
         /// Resize the window.
-        void Resize(uint32_t width, uint32_t height);
+        void Resize(int width, int height);
 
         /// Set window title.
         void SetTitle(const String& newTitle);
@@ -99,9 +103,9 @@ namespace alimer
         const String& GetTitle() const { return _title; }
 
         /// Return window client area size.
-        const uvec2& GetSize() const { return _size; }
-        uint32_t GetWidth() const { return _size.x; }
-        uint32_t GetHeight() const { return _size.y; }
+        const IntVector2& GetSize() const { return _size; }
+        int GetWidth() const { return _size.x; }
+        int GetHeight() const { return _size.y; }
 
         float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
         WindowFlags GetFlags() const { return _flags; }
@@ -118,28 +122,18 @@ namespace alimer
         /// Gets the native display, connection or instance handle.
         NativeDisplay GetNativeDisplay() const;
 
-        /// Swaps the frame buffers to display the next frame. 
-        void SwapBuffers();
-
         /// Size changed event.
         Event<void(const WindowResizeEvent&)> resizeEvent;
 
-    protected:
-        /// Called when implementation created the native window.
-        void OnCreated();
-
-        /// Called when implementation destroys the native window.
-        void OnDestroyed();
-
     private:
-        void OnSizeChanged(const uvec2& newSize);
+        void OnSizeChanged(const IntVector2& newSize);
 
         /// Backend implementation.
         class WindowImpl* _impl = nullptr;
         /// Window title.
         String _title;
         /// Window size.
-        uvec2 _size;
+        IntVector2 _size;
         /// Flags
         WindowFlags _flags = WindowFlags::Default;
         /// Visibility flag.

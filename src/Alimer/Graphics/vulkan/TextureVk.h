@@ -22,43 +22,22 @@
 
 #pragma once
 
-#include "../Texture.h"
-#include "../Backend.h"
+#include "BackendVk.h"
 
 namespace alimer
 {
-    class VulkanGraphicsDevice;
-
 	/// Vulkan Texture implementation.
-	/*class VulkanTexture final : public Texture
+	class TextureVk final : public GPUTexture
 	{
 	public:
-        VulkanTexture(VulkanGraphicsDevice* device, const TextureDescriptor* descriptor, const ImageLevel* initialData, VkImage existingImage = VK_NULL_HANDLE, VkImageUsageFlags usageFlags = 0);
-        ~VulkanTexture();
-        void Destroy() override;
+        TextureVk(GPUDeviceVk* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData);
+        ~TextureVk();
 
-        VkImage GetVkImage() const { return _vkImage; }
+        VkImage GetVkImage() const { return _handle; }
 
 	private:
-        VkDevice _logicalDevice;
-        VmaAllocator _allocator;
-        VkImage _vkImage = VK_NULL_HANDLE;
-        bool _allocated = false;
+        GPUDeviceVk* _device;
+        VkImage _handle = VK_NULL_HANDLE;
+        bool _externalHandle = false;
 	};
-
-    /// Vulkan TextureView implementation.
-    class VulkanTextureView final 
-    {
-    public:
-        VulkanTextureView(VulkanGraphicsDevice* device, VulkanTexture* texture, const TextureViewDescriptor* descriptor);
-        ~VulkanTextureView();
-
-        VkImageView GetVkImageView() const { return _vkImageView; }
-        uint64_t GetId() const { return _id; }
-
-    private:
-        VkDevice _logicalDevice;
-        VkImageView _vkImageView = VK_NULL_HANDLE;
-        uint64_t _id;
-    };*/
 }

@@ -35,7 +35,7 @@ namespace alimer
 
     void Editor::Initialize()
     {
-        _engine->GetMainWindow().SetTitle("Alimer Studio 2018");
+        _engine->GetGraphicsDevice().GetRenderWindow()->SetTitle("Alimer Studio 2018");
     }
 
     void Editor::OnRenderFrame(double frameTime, double elapsedTime)

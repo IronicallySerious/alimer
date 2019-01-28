@@ -20,10 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "../GraphicsDevice.h"
-#include "../PhysicalDevice.h"
-#include "../Texture.h"
-#include "VulkanConvert.h"
+#include "TextureVk.h"
+#include "GPUDeviceVk.h"
 #include "../../Core/Log.h"
 
 namespace alimer
@@ -60,17 +58,18 @@ namespace alimer
         return flags;
     }
 
-    bool Texture::PlatformCreate(const void* pInitData)
+    TextureVk::TextureVk(GPUDeviceVk* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
+        : _device(device)
+        , _externalHandle(false)
     {
-        return false;
     }
 
-    void Texture::PlatformDestroy()
+    TextureVk::~TextureVk()
     {
         if (!_externalHandle
             && _handle != VK_NULL_HANDLE)
         {
-            vkDestroyImage(_graphicsDevice->GetVkDevice(), _handle, nullptr);
+            //vkDestroyImage(_graphicsDevice->GetVkDevice(), _handle, nullptr);
             _handle = VK_NULL_HANDLE;
         }
     }

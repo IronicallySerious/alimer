@@ -20,37 +20,39 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/CommandContext.h"
-#include "Graphics/GraphicsDevice.h"
-#include "Math/MathUtil.h"
-#include "Core/Log.h"
+#include "../Graphics/CommandContext.h"
+#include "../Graphics/GraphicsDevice.h"
+#include "../Graphics/Backend.h"
+#include "../Math/MathUtil.h"
+#include "../Core/Log.h"
 
 namespace alimer
 {
-    CommandContext::CommandContext(GraphicsDevice* device)
+    CommandContext::CommandContext(GraphicsDevice* device, GPUCommandBuffer* handle)
         : _device(device)
+        , _handle(handle)
         , _insideRenderPass(false)
     {
     }
 
-    uint64_t CommandContext::Flush(bool waitForCompletion)
+    CommandContext::~CommandContext()
     {
-        return FlushImpl(waitForCompletion);
+        SafeDelete(_handle);
     }
 
-    void CommandContext::PushDebugGroup(const String& name)
+    void CommandContext::PushDebugGroup(const std::string& name)
     {
-        PushDebugGroupImpl(name);
+        _handle->PushDebugGroup(name.c_str());
     }
 
     void CommandContext::PopDebugGroup()
     {
-        PopDebugGroupImpl();
+        _handle->PopDebugGroup();
     }
 
-    void CommandContext::InsertDebugMarker(const String& name)
+    void CommandContext::InsertDebugMarker(const std::string& name)
     {
-        InsertDebugMarkerImpl(name);
+        _handle->InsertDebugMarker(name.c_str());
     }
 
     void CommandContext::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
@@ -77,23 +79,23 @@ namespace alimer
     void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         _insideRenderPass = true;
-        BeginRenderPassImpl(framebuffer, descriptor);
+        //BeginRenderPassImpl(framebuffer, descriptor);
     }
 
     void CommandContext::EndRenderPass()
     {
-        EndRenderPassImpl();
+        //EndRenderPassImpl();
         _insideRenderPass = false;
     }
 
     void CommandContext::SetViewport(const RectangleF& viewport)
     {
-        SetViewport(1, &viewport);
+        //SetViewport(1, &viewport);
     }
 
     void CommandContext::SetScissor(const Rectangle& scissor)
     {
-        SetScissor(1, &scissor);
+        //SetScissor(1, &scissor);
     }
 
     void CommandContext::SetShader(Shader* shader)
@@ -157,7 +159,7 @@ namespace alimer
         ALIMER_ASSERT(instanceCount >= 1);
 #endif
 
-        DrawInstancedImpl(vertexCount, instanceCount, firstVertex, firstInstance);
+        //DrawInstancedImpl(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
@@ -179,7 +181,7 @@ namespace alimer
     void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         ALIMER_ASSERT(_currentShader && _currentShader->IsCompute());
-        DispatchImpl(groupCountX, groupCountY, groupCountZ);
+        //DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
 
     void CommandContext::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)

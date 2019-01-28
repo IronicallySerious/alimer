@@ -22,164 +22,84 @@
 
 #pragma once
 
+#include "../Graphics/Types.h"
+#include "../Graphics/VertexFormat.h"
 #include "../Graphics/PixelFormat.h"
-
-#ifdef _WIN32
-#   ifndef NOMINMAX
-#       define NOMINMAX
-#   endif
-#   ifndef WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
-#endif
-
-#if defined(ALIMER_D3D11)
-#   include <dxgi.h>
-#   define D3D11_NO_HELPERS
-#   include <d3d11_1.h>
-#   include <d3dcompiler.h>
-#   ifdef _DEBUG
-#       include <dxgidebug.h>
-#   endif
-#elif defined(ALIMER_D3D12)
-#   include <dxgi.h>
-#   if defined(NTDDI_WIN10_RS2)
-#       include <dxgi1_5.h>
-#   else
-#   include <dxgi1_4.h>
-#   endif
-#   include <d3d12.h>
-#   include <d3dcompiler.h>
-#   ifdef _DEBUG
-#       include <dxgidebug.h>
-#   endif
-#elif defined(ALIMER_VULKAN)
-#   if defined(_WIN32)
-#       ifndef VK_USE_PLATFORM_WIN32_KHR
-#           define VK_USE_PLATFORM_WIN32_KHR 1
-#       endif
-#   elif defined(__ANDROID__)
-#       define VK_USE_PLATFORM_ANDROID_KHR 1
-#   elif defined(__linux__)
-#       ifdef ALIMER_LINUX_WAYLAND)
-#           define VK_USE_PLATFORM_WAYLAND_KHR 1
-#       else
-#           define VK_USE_PLATFORM_XCB_KHR 1
-#       endif
-#   endif
-#   include "volk/volk.h"
-#   include <vk_mem_alloc.h>
-#elif defined(ALIMER_OPENGL)
-#endif
-
+#include "../Graphics/GraphicsDeviceFeatures.h"
 #include "../Core/Log.h"
 
 namespace alimer
 {
-#if defined(ALIMER_D3D11)
-#   define BACKEND_INVALID_HANDLE  nullptr
-    using PhysicalDeviceHandle = IDXGIAdapter1 * ;
-    using SwapChainHandle = IDXGISwapChain1 * ;
-    using BufferHandle = ID3D11Buffer * ;
-#elif defined(ALIMER_D3D12)
-#   define BACKEND_INVALID_HANDLE  nullptr
-    using PhysicalDeviceHandle = IDXGIAdapter1 * ;
-    using SwapChainHandle = IDXGISwapChain3 * ;
-    using BufferHandle = ID3D12Resource * ;
-    using TextureHandle = ID3D12Resource * ;
-#elif defined(ALIMER_VULKAN)
-#   define BACKEND_INVALID_HANDLE  VK_NULL_HANDLE
-    using PhysicalDeviceHandle = VkPhysicalDevice;
-    using SwapChainHandle = VkSwapchainKHR;
-    using BufferHandle = VkBuffer;
-    using TextureHandle = VkImage;
-
-    inline const char* vkGetVulkanResultString(VkResult result)
+    class GPUTexture
     {
-        switch (result)
-        {
-        case VK_SUCCESS:
-            return "Success";
-        case VK_NOT_READY:
-            return "A fence or query has not yet completed";
-        case VK_TIMEOUT:
-            return "A wait operation has not completed in the specified time";
-        case VK_EVENT_SET:
-            return "An event is signaled";
-        case VK_EVENT_RESET:
-            return "An event is unsignaled";
-        case VK_INCOMPLETE:
-            return "A return array was too small for the result";
-        case VK_ERROR_OUT_OF_HOST_MEMORY:
-            return "A host memory allocation has failed";
-        case VK_ERROR_OUT_OF_DEVICE_MEMORY:
-            return "A device memory allocation has failed";
-        case VK_ERROR_INITIALIZATION_FAILED:
-            return "Initialization of an object could not be completed for implementation-specific reasons";
-        case VK_ERROR_DEVICE_LOST:
-            return "The logical or physical device has been lost";
-        case VK_ERROR_MEMORY_MAP_FAILED:
-            return "Mapping of a memory object has failed";
-        case VK_ERROR_LAYER_NOT_PRESENT:
-            return "A requested layer is not present or could not be loaded";
-        case VK_ERROR_EXTENSION_NOT_PRESENT:
-            return "A requested extension is not supported";
-        case VK_ERROR_FEATURE_NOT_PRESENT:
-            return "A requested feature is not supported";
-        case VK_ERROR_INCOMPATIBLE_DRIVER:
-            return "The requested version of Vulkan is not supported by the driver or is otherwise incompatible";
-        case VK_ERROR_TOO_MANY_OBJECTS:
-            return "Too many objects of the type have already been created";
-        case VK_ERROR_FORMAT_NOT_SUPPORTED:
-            return "A requested format is not supported on this device";
-        case VK_ERROR_SURFACE_LOST_KHR:
-            return "A surface is no longer available";
-        case VK_SUBOPTIMAL_KHR:
-            return "A swapchain no longer matches the surface properties exactly, but can still be used";
-        case VK_ERROR_OUT_OF_DATE_KHR:
-            return "A surface has changed in such a way that it is no longer compatible with the swapchain";
-        case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
-            return "The display used by a swapchain does not use the same presentable image layout";
-        case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
-            return "The requested window is already connected to a VkSurfaceKHR, or to some other non-Vulkan API";
-        case VK_ERROR_VALIDATION_FAILED_EXT:
-            return "A validation layer found an error";
-        default:
-            return "ERROR: UNKNOWN VULKAN ERROR";
-        }
-    }
-
-    // Helper utility converts Vulkan API failures into exceptions.
-    inline void vkThrowIfFailed(VkResult result)
-    {
-        if (result < VK_SUCCESS)
-        {
-            ALIMER_LOGCRITICAL(
-                "Fatal Vulkan result is \"%s\" in %u at line %u",
-                vkGetVulkanResultString(result),
-                __FILE__,
-                __LINE__);
-        }
-    }
-
-    struct VkFormatDesc
-    {
-        PixelFormat format;
-        VkFormat    vkFormat;
+    public:
+        virtual ~GPUTexture() = default;
     };
 
-    extern ALIMER_API const VkFormatDesc s_vkFormatDesc[];
-
-    inline VkFormat GetVkFormat(PixelFormat format)
+    class GPUSampler
     {
-        assert(s_vkFormatDesc[(uint32_t)format].format == format);
-        assert(s_vkFormatDesc[(uint32_t)format].vkFormat != VK_FORMAT_UNDEFINED);
-        return s_vkFormatDesc[(uint32_t)format].vkFormat;
-    }
+    public:
+        virtual ~GPUSampler() = default;
+    };
 
-#elif defined(ALIMER_OPENGL)
-#   define BACKEND_INVALID_HANDLE  GL_INVALID_VALUE
-    using PhysicalDeviceHandle = uint32_t;
-    using BufferHandle = uint32_t;
-#endif
+    class GPUBuffer
+    {
+    public:
+        virtual ~GPUBuffer() = default;
+    };
+
+    class GPUSwapChain
+    {
+    public:
+        virtual ~GPUSwapChain() = default;
+
+        virtual uint32_t GetTextureCount() const = 0;
+        virtual uint32_t GetCurrentBackBuffer() const = 0;
+        virtual GPUTexture* GetBackBufferTexture(uint32_t index) const = 0;
+    };
+
+    class GPUCommandBuffer
+    {
+    public:
+        virtual ~GPUCommandBuffer() = default;
+
+        virtual void PushDebugGroup(const char* name) = 0;
+        virtual void PopDebugGroup() = 0;
+        virtual void InsertDebugMarker(const char* name) = 0;
+    };
+
+    class GPUDevice
+    {
+    protected:
+        GPUDevice(GraphicsBackend backend, bool validation, bool headless)
+            : _backend(backend)
+            , _validation(validation)
+            , _headless(headless)
+        {
+        }
+
+    public:
+        virtual ~GPUDevice() = default;
+
+        virtual void WaitIdle() = 0;
+
+        GraphicsBackend GetBackend() const { return _backend; }
+        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
+        virtual GPUCommandBuffer* GetDefaultCommandBuffer() const { return _defaultCommandBuffer; }
+
+        virtual bool SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor) = 0;
+        virtual bool BeginFrame() = 0;
+        virtual void EndFrame() = 0;
+
+        virtual GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) = 0;
+        virtual GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) = 0;
+        virtual GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) = 0;
+
+    protected:
+        GraphicsBackend _backend;
+        bool _validation;
+        bool _headless;
+        GraphicsDeviceFeatures _features = {};
+        GPUCommandBuffer* _defaultCommandBuffer = nullptr;
+    };
 };

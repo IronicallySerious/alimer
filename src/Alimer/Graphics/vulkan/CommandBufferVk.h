@@ -22,33 +22,33 @@
 
 #pragma once
 
-#include "../CommandContext.h"
+#include "BackendVk.h"
 
 namespace alimer
 {
-    class VulkanPipelineLayout;
-    class VulkanProgram;
-    class VulkanGraphicsDevice;
+    class CommandQueueVk;
 
 	/// Vulkan CommandBuffer implementation.
-	class VulkanCommandBuffer final : public CommandContext
+	class CommandBufferVk final : public GPUCommandBuffer
 	{
 	public:
-        VulkanCommandBuffer(VulkanGraphicsDevice* device, VkQueue queue, VkCommandBufferLevel level);
-		~VulkanCommandBuffer() override;
-        void Destroy();
+        CommandBufferVk(GPUDeviceVk* device, CommandQueueVk* commandQueue, VkCommandBuffer commandBuffer);
+		~CommandBufferVk() override;
 
-        void Begin();
+        void Begin(VkCommandBufferUsageFlags flags);
         void End();
+
+        void PushDebugGroup(const char* name) override;
+        void PopDebugGroup() override;
+        void InsertDebugMarker(const char* name) override;
        
-        VkCommandBuffer GetHandle() const { return _handle; }
-        VkFence GetVkFence() const { return _vkFence; }
+        VkCommandBuffer GetVkCommandBuffer() const { return _handle; }
 
 	private:
         void BeginContext();
         //void FlushImpl(bool waitForCompletion) override;
-        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
-        void EndRenderPassImpl() override;
+        //void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        //void EndRenderPassImpl() override;
 
         //void SetPipelineImpl(Pipeline* pipeline) override;
 
@@ -64,17 +64,16 @@ namespace alimer
         //void SetViewport(const rect& viewport) override;
         //void SetScissor(const irect& scissor) override;
 
-        void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+        //void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
         void FlushRenderState(PrimitiveTopology topology);
         void FlushDescriptorSets();
         void FlushDescriptorSet(uint32_t set);
         void FlushGraphicsPipeline();
 
-        VkDevice _logicalDevice;
-        VkQueue _queue;
-        VkCommandPool _vkCommandPool = VK_NULL_HANDLE;
+    private:
+        GPUDeviceVk*    _device;
+        CommandQueueVk* _commandQueue;
         VkCommandBuffer _handle = VK_NULL_HANDLE;
-        VkFence _vkFence = VK_NULL_HANDLE;
 
         // State
         class GraphicsState
@@ -95,18 +94,18 @@ namespace alimer
             bool _dirty;
         };
 
-        GraphicsState _graphicsState;
-        const VulkanFramebuffer* _currentFramebuffer = nullptr;
-        const VulkanRenderPass* _currentRenderPass = nullptr;
+        //GraphicsState _graphicsState;
+        //const VulkanFramebuffer* _currentFramebuffer = nullptr;
+        //const VulkanRenderPass* _currentRenderPass = nullptr;
         
         uint32_t _currentSubpass = 0;
         PrimitiveTopology _currentTopology;
 
         VkPipeline _currentPipeline = VK_NULL_HANDLE;
         VkPipelineLayout _currentPipelineLayout = VK_NULL_HANDLE;
-        VulkanPipelineLayout* _currentLayout = nullptr;
+        //VulkanPipelineLayout* _currentLayout = nullptr;
 
-        VulkanProgram* _currentVkProgram = nullptr;
+        //VulkanProgram* _currentVkProgram = nullptr;
 
         enum CommandBufferDirtyBits
         {

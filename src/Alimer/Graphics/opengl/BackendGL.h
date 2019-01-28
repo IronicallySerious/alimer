@@ -22,12 +22,15 @@
 
 #pragma once
 
-#if ALIMER_OPENGLES
+#include "../Backend.h"
+
+#if ALIMER_PLATFORM_FAMILY_DESKTOP
+#   include "GL/glcorearb.h"
+#   include "GL/glext.h"
+#else
+
 #   include "GLES/gl.h"
 #   include "GLES2/gl2.h"
 #   include "GLES2/gl2ext.h"
 #   include "GLES3/gl3.h"
-#else
-#   include "GL/glcorearb.h"
-#   include "GL/glext.h"
 #endif

@@ -20,10 +20,11 @@
 // THE SOFTWARE.
 //
 
-#include "Graphics/Texture.h"
-#include "Graphics/GraphicsDevice.h"
-#include "IO/Stream.h"
-#include "Math/MathUtil.h"
+#include "../Graphics/Texture.h"
+#include "../Graphics/GraphicsDevice.h"
+#include "../IO/Stream.h"
+#include "../Math/MathUtil.h"
+#include "../Graphics/Backend.h"
 #include "Core/Log.h"
 
 namespace alimer
@@ -59,7 +60,7 @@ namespace alimer
         PlatformDestroy();
     }
 
-    void Texture::DefineFromHandle(TextureHandle handle,
+    void Texture::DefineFromHandle(GPUTexture* handle,
         TextureType type,
         uint32_t width,
         uint32_t height,
@@ -70,7 +71,7 @@ namespace alimer
         TextureUsage usage,
         SampleCount sampleCount)
     {
-        ALIMER_ASSERT_MSG(handle != BACKEND_INVALID_HANDLE, "Invalid backend handle.");
+        ALIMER_ASSERT_MSG(handle != nullptr, "Invalid backend handle.");
         ALIMER_ASSERT_MSG(width >= 1, "Width must be greather than 0.");
         ALIMER_ASSERT_MSG(height >= 1, "Height must be greather than 0.");
         ALIMER_ASSERT_MSG(arraySize >= 1 && arraySize <= 2048, "Array size must be between 1 and 2048.");

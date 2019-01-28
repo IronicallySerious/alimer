@@ -28,27 +28,24 @@
 
 namespace alimer
 {
+    class GPUSwapChain;
+
 	/// Defines a SwapChain.
 	class ALIMER_API SwapChain final : public GPUResource
 	{
         friend class GraphicsDevice;
 
-    private:
+    public:
         /// Constructor.
         SwapChain(GraphicsDevice* device);
 
-    public:
         /// Destructor
         ~SwapChain() override;
 
         void Destroy() override;
 
-        bool Resize(uint32_t width, uint32_t height);
+        void Resize(uint32_t width, uint32_t height);
         void Present();
-
-#if defined(ALIMER_VULKAN)
-        bool Define(VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
-#endif
 
         uint32_t GetBackBufferCount() const { return _backbufferTextures.Size(); }
         Texture* GetBackBufferTexture(uint32_t index) const { return _backbufferTextures[index].Get(); }
@@ -62,9 +59,7 @@ namespace alimer
         uint32_t GetHeight() const { return _height; }
 
     private:
-        void PlatformDestroy();
-        bool PlatformResize(uint32_t width, uint32_t height);
-        void PlatformPresent();
+        GPUSwapChain* _impl = nullptr;
 
     protected:
         void InitializeFramebuffer();
@@ -77,11 +72,5 @@ namespace alimer
         uint32_t                        _currentBackBuffer = 0;
         SharedPtr<Texture>              _depthStencilTexture;
         Vector<SharedPtr<Framebuffer>>  _framebuffers;
-
-    private:
-        SwapChainHandle     _handle = BACKEND_INVALID_HANDLE;
-#if defined(ALIMER_VULKAN)
-        VkSurfaceKHR        _surface = VK_NULL_HANDLE;
-#endif
     };
 }

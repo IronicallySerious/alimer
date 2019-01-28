@@ -37,29 +37,6 @@
 
 namespace alimer
 {
-    struct ApplicationSettings
-    {
-#if defined(_DEBUG)
-        bool validation = true;
-#else
-        bool validation = false;
-#endif
-
-        /// Main window title.
-        String title = "Alimer";
-
-        /// Main window width.
-        uint32_t width = 800;
-
-        /// Main window height.
-        uint32_t height = 600;
-
-        /// Main window flags
-        WindowFlags windowFlags = WindowFlags::Default;
-
-        SwapChainDescriptor swapChainDescriptor = {};
-    };
-
     /// Application for main loop and all modules and OS setup.
     class ALIMER_API Application : public Object
     {
@@ -126,8 +103,6 @@ namespace alimer
         int _exitCode;
         std::atomic<bool> _running;
         std::atomic<bool> _paused;
-        
-        ApplicationSettings _settings;
 
         Timer _timer;
 

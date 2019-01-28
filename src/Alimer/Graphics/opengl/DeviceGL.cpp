@@ -24,7 +24,7 @@
 
 namespace alimer
 {
-    bool DeviceGL::IsSupported()
+    bool GPUDeviceGL::IsSupported()
     {
         static bool availableCheck = false;
         static bool isAvailable = false;
@@ -37,65 +37,65 @@ namespace alimer
         return true;
     }
 
-    DeviceGL::DeviceGL(bool validation)
-        : GraphicsDevice(GraphicsBackend::OpenGL, validation)
+    GPUDeviceGL::GPUDeviceGL(bool validation, bool headless)
+        : GPUDevice(GraphicsBackend::OpenGL, validation, headless)
     {
         InitializeCaps();
 
         // Create immediate command buffer.
         //_immediateCommandContext = new CommandContextGL(this);
 
-        OnAfterCreated();
+        //OnAfterCreated();
     }
 
-    DeviceGL::~DeviceGL()
+    GPUDeviceGL::~GPUDeviceGL()
     {
     }
 
-    bool DeviceGL::WaitIdle()
-    {
-        return true;
-    }
-
-    void DeviceGL::InitializeCaps()
+    void GPUDeviceGL::InitializeCaps()
     {
         //_features.SetVendorId(desc.VendorId);
         //_features.SetDeviceId(desc.DeviceId);
         //_features.SetDeviceName(String(desc.Description));
         _features.SetMultithreading(false);
 
-        _limits.maxColorAttachments = 8u;
-        _limits.maxBindGroups = 4u;
-        _limits.minUniformBufferOffsetAlignment = 16;
+        _features.SetMaxColorAttachments(8u);
+        _features.SetMaxBindGroups(4u);
+        _features.SetMinUniformBufferOffsetAlignment(16);
     }
 
-    /*GPUSwapChain* DeviceGL::CreateSwapChain(const SwapChainDescriptor* descriptor)
+    void GPUDeviceGL::WaitIdle()
+    {
+
+    }
+
+    bool GPUDeviceGL::SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor)
+    {
+        return false;
+    }
+
+    bool GPUDeviceGL::BeginFrame()
+    {
+        return false;
+    }
+
+    void GPUDeviceGL::EndFrame()
+    {
+
+    }
+
+    GPUTexture* GPUDeviceGL::CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
     {
         return nullptr;
     }
 
-    GPUTexture* DeviceGL::CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData)
+    GPUSampler* GPUDeviceGL::CreateSampler(const SamplerDescriptor* descriptor) 
     {
         return nullptr;
     }
 
-    Framebuffer* DeviceGL::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
+    GPUBuffer* GPUDeviceGL::CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData)
     {
         return nullptr;
     }
-
-    Buffer* DeviceGL::CreateBufferImpl(const BufferDescriptor* descriptor, const void* initialData)
-    {
-        return nullptr;
-    }
-
-    GPUSampler* DeviceGL::CreateSampler(const SamplerDescriptor* descriptor)
-    {
-        return nullptr;
-    }
-
-    Shader* DeviceGL::CreateShaderImpl(const ShaderDescriptor* descriptor)
-    {
-        return nullptr;
-    }*/
 }

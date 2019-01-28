@@ -21,16 +21,13 @@
 //
 
 #include "VulkanPipelineLayout.h"
-#include "VulkanGraphicsDevice.h"
-#include "VulkanConvert.h"
+#include "GPUDeviceVk.h"
+#include "BackendVk.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    VulkanPipelineLayout::VulkanPipelineLayout(
-        VulkanGraphicsDevice* device,
-        uint64_t hash,
-        const VulkanResourceLayout* layout)
+    VulkanPipelineLayout::VulkanPipelineLayout(GPUDeviceVk* device, uint64_t hash, const VulkanResourceLayout* layout)
         : _device(device)
         , _hash(hash)
         , _layout(*layout)
@@ -60,7 +57,7 @@ namespace alimer
             createInfo.pSetLayouts = layouts;
         }
 
-        if (vkCreatePipelineLayout(_device->GetDevice(), &createInfo, nullptr, &_handle) != VK_SUCCESS)
+        if (vkCreatePipelineLayout(_device->GetVkDevice(), &createInfo, nullptr, &_handle) != VK_SUCCESS)
         {
             ALIMER_LOGCRITICAL("[Vulkan] - Failed to create pipeline layout.");
         }
@@ -70,7 +67,7 @@ namespace alimer
     {
         if (_handle != VK_NULL_HANDLE)
         {
-            vkDestroyPipelineLayout(_device->GetDevice(), _handle, nullptr);
+            vkDestroyPipelineLayout(_device->GetVkDevice(), _handle, nullptr);
             _handle = VK_NULL_HANDLE;
         }
     }

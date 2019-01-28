@@ -34,22 +34,23 @@
 
 namespace alimer
 {
-    /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext : public RefCounted
+    class GPUCommandBuffer;
+
+    /// Defines a command buffer for recording gpu commands.
+    class ALIMER_API CommandContext final : public RefCounted
     {
-    protected:
-        CommandContext(GraphicsDevice* device);
+        friend class GraphicsDevice;
+
+    private:
+        CommandContext(GraphicsDevice* device, GPUCommandBuffer* handle);
 
     public:
         /// Destructor.
-        virtual ~CommandContext() = default;
+        ~CommandContext();
 
-        /// Flush existing commands to the GPU and optionally wait for execution.
-        uint64_t Flush(bool waitForCompletion = false);
-
-        void PushDebugGroup(const String& name);
+        void PushDebugGroup(const std::string& name);
         void PopDebugGroup();
-        void InsertDebugMarker(const String& name);
+        void InsertDebugMarker(const std::string& name);
 
         /// Begin rendering to default backbuffer.
         void BeginDefaultRenderPass(const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
@@ -60,13 +61,13 @@ namespace alimer
         /// End current pass.
         void EndRenderPass();
 
-        virtual void SetViewport(const RectangleF& viewport);
-        virtual void SetViewport(uint32_t viewportCount, const RectangleF* viewports) = 0;
-        virtual void SetScissor(const Rectangle& scissor);
-        virtual void SetScissor(uint32_t scissorCount, const Rectangle* scissors) = 0;
+        void SetViewport(const RectangleF& viewport);
+        void SetViewport(uint32_t viewportCount, const RectangleF* viewports);
+        void SetScissor(const Rectangle& scissor);
+        void SetScissor(uint32_t scissorCount, const Rectangle* scissors);
 
-        virtual void SetBlendColor(const Color4& color) = 0;
-        virtual void SetStencilReference(uint32_t reference) = 0;
+        void SetBlendColor(const Color4& color);
+        void SetStencilReference(uint32_t reference);
 
         void SetShader(Shader* shader);
 
@@ -92,20 +93,22 @@ namespace alimer
 
     private:
         // Backend methods
-        virtual uint64_t FlushImpl(bool waitForCompletion) = 0;
-        virtual void PushDebugGroupImpl(const String& name) = 0;
-        virtual void PopDebugGroupImpl() = 0;
-        virtual void InsertDebugMarkerImpl(const String& name) = 0;
+        //virtual void PushDebugGroupImpl(const String& name) = 0;
+        //virtual void PopDebugGroupImpl() = 0;
+        //virtual void InsertDebugMarkerImpl(const String& name) = 0;
 
-        virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
-        virtual void EndRenderPassImpl() = 0;
+        //virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
+        //virtual void EndRenderPassImpl() = 0;
 
-        virtual void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
-        virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+        //virtual void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
+        //virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
     private:
         /// GPUDevice.
         WeakPtr<GraphicsDevice> _device;
+
+        /// Backend handle.
+        GPUCommandBuffer* _handle;
 
         bool _insideRenderPass;
         Shader* _currentShader = nullptr;

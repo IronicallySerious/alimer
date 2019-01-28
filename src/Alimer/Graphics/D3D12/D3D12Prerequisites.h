@@ -22,15 +22,17 @@
 
 #pragma once
 
-#include "../D3D/D3DPrerequisites.h"
-
-#if defined(NTDDI_WIN10_RS2)
-#include <dxgi1_6.h>
-#else
-#include <dxgi1_5.h>
-#endif
-
-#include <d3d12.h>
+#   include <dxgi.h>
+#   if defined(NTDDI_WIN10_RS2)
+#       include <dxgi1_5.h>
+#   else
+#   include <dxgi1_4.h>
+#   endif
+#   include <d3d12.h>
+#   include <d3dcompiler.h>
+#   ifdef _DEBUG
+#       include <dxgidebug.h>
+#   endif
 
 #include "../Types.h"
 #include "../PixelFormat.h"

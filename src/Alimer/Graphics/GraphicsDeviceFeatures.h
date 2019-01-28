@@ -23,9 +23,21 @@
 #pragma once
 
 #include "../Base/String.h"
+#include "../Graphics/Types.h"
 
 namespace alimer
 {
+    enum class GpuVendor : uint32_t
+    {
+        Unknown = 0,
+        NVIDIA = 1,
+        AMD = 2,
+        INTEL = 3,
+        ARM = 4,
+        WARP = 5,
+        Count = 6
+    };
+
 	/// Describes features supported by given instance of GpuDevice.
 	class ALIMER_API GraphicsDeviceFeatures final
 	{
@@ -36,13 +48,80 @@ namespace alimer
 		/// Destructor.
 		~GraphicsDeviceFeatures() = default;
 
-        /// Reset features to default.
-        void Reset();
+        GraphicsBackend GetBackend() const { 
+            return _backend;
+        }
 
-        bool GetMultithreading() const { return _multithreading; }
-        void SetMultithreading(bool value) { _multithreading = value; }
+        void SetBackend(GraphicsBackend backend) {
+            _backend = backend; 
+        }
 
-    protected:
-        bool _multithreading;
+        uint32_t GetVendorId() const { 
+            return _vendorId; 
+        }
+        void SetVendorId(uint32_t vendorID) {
+            _vendorId = vendorID;
+        }
+        GpuVendor GetVendor() const { 
+            return _vendor;
+        }
+        void SetVendor(GpuVendor vendor) {
+            _vendor = vendor;
+        }
+        uint32_t GetDeviceId() const { 
+            return _deviceId; 
+        }
+        void SetDeviceId(uint32_t deviceId) {
+            _deviceId = deviceId;
+        }
+
+        ///	Gets the current physical device name.
+        String GetDeviceName() const { 
+            return _deviceName; 
+        }
+        ///	Sets the current GPU device name.
+        void SetDeviceName(const String& name) {
+            _deviceName = name;
+        }
+
+        bool GetMultithreading() const { 
+            return _multithreading; 
+        }
+        void SetMultithreading(bool value) {
+            _multithreading = value; 
+        }
+
+        uint32_t GetMaxColorAttachments() const {
+            return _maxColorAttachments;
+        }
+        void SetMaxColorAttachments(uint32_t value) {
+            _maxColorAttachments = value;
+        }
+
+        uint32_t GetMaxBindGroups() const {
+            return _maxBindGroups;
+        }
+        void SetMaxBindGroups(uint32_t value) {
+            _maxBindGroups = value;
+        }
+
+        uint32_t GetMinUniformBufferOffsetAlignment() const {
+            return _minUniformBufferOffsetAlignment;
+        }
+        void SetMinUniformBufferOffsetAlignment(uint32_t value) {
+            _minUniformBufferOffsetAlignment = value;
+        }
+
+    private:
+        GraphicsBackend _backend = GraphicsBackend::Null;
+        uint32_t        _vendorId = 0;
+        GpuVendor       _vendor = GpuVendor::Unknown;
+        uint32_t        _deviceId = 0;
+        String          _deviceName;
+        bool            _multithreading = false;
+
+        uint32_t        _maxColorAttachments = 0;
+        uint32_t        _maxBindGroups = 0;
+        uint32_t        _minUniformBufferOffsetAlignment = 0;
 	};
 }

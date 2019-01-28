@@ -24,7 +24,6 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/Types.h"
-#include "../Application/Window.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
@@ -37,27 +36,23 @@ namespace alimer
     class SceneManager;
     class Gui;
 
-    struct MainWindowDescriptor
+    struct EngineSettings
     {
+        GraphicsBackend                     preferredBackend = GraphicsBackend::Default;
+#if defined(_DEBUG)
+        bool                                validation = true;
+#else
+        bool                                validation = false;
+#endif
+        bool                                headless = false;
+
         /// Main window title.
         String title = "Alimer";
 
-        /// Main window width.
-        uint32_t width = 800;
-
-        /// Main window height.
-        uint32_t height = 600;
-
-        /// Main window flags
-        WindowFlags windowFlags = WindowFlags::Default;
-    };
-
-    struct EngineSettings
-    {
-        bool validation = false;
-        bool headless = false;
-        GraphicsDeviceDescriptor    graphicsDeviceDesc = {};
-        MainWindowDescriptor        mainWindowDesc = {};
+        /// Main window size.
+        IntVector2 size = { 800, 600 };
+        bool fullscreen = false;
+        bool resizable = false;
     };
 
     /// Alimer engine. Manages module setup and all engine logic.
@@ -98,9 +93,6 @@ namespace alimer
         /// Get the engine resource manager.
         inline ResourceManager& GetResources() { return *_resources.Get(); }
 
-        /// Get the main engine window.
-        inline Window& GetMainWindow() { return *_mainWindow.Get(); }
-
         /// Get the input system.
         inline Input& GetInput() { return *_input.Get(); }
 
@@ -115,13 +107,12 @@ namespace alimer
         std::atomic_bool _initialized{ false };
         std::atomic_bool _exiting{ false };
 
-        /// Headless flag
+        /// Engine settings.
         EngineSettings _settings;
 
         std::shared_ptr<spdlog::logger> _logger;
         PluginManager*              _pluginManager;
         SharedPtr<ResourceManager>  _resources;
-        SharedPtr<Window>           _mainWindow;
         SharedPtr<Input>            _input;
         SharedPtr<Audio>            _audio;
         SharedPtr<GraphicsDevice>   _graphicsDevice;

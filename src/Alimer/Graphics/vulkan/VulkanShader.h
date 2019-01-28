@@ -23,7 +23,8 @@
 #pragma once
 
 #include "../Shader.h"
-#include "../Backend.h"
+#include "../Types.h"
+#include "BackendVk.h"
 #include "../../Base/HashMap.h"
 
 namespace alimer

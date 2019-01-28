@@ -22,28 +22,29 @@
 
 #pragma once
 
-#include "../../Base/HashMap.h"
-#include "VulkanShader.h"
+#include "BackendVk.h"
 #include <vector>
 
 namespace alimer
 {
-    class GPUDeviceVk;
+    class CommandBufferVk;
 
-    class VulkanPipelineLayout final
-    {
-    public:
-        VulkanPipelineLayout(GPUDeviceVk* device, uint64_t hash, const VulkanResourceLayout* layout);
-        ~VulkanPipelineLayout();
+	/// Vulkan CommandQueue implementation.
+	class CommandQueueVk final
+	{
+	public:
+        CommandQueueVk(GPUDeviceVk* device, VkQueue queue, uint32_t queueFamilyIndex);
+        ~CommandQueueVk();
 
-        uint64_t GetHash() const { return _hash; }
-        const VulkanResourceLayout& GetResourceLayout() const { return _layout; }
-        VkPipelineLayout GetHandle() const { return _handle; }
+        void ExecuteCommandBuffer(CommandBufferVk* buffer, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore, VkFence fence);
 
-    private:
+        VkCommandPool GetVkCommandPool() const {
+            return _commandPool;
+        }
+
+	private:
         GPUDeviceVk* _device;
-        uint64_t _hash;
-        VkPipelineLayout _handle = VK_NULL_HANDLE;
-        VulkanResourceLayout _layout;
-    };
+        VkQueue _queue;
+        VkCommandPool _commandPool = VK_NULL_HANDLE;
+	};
 }

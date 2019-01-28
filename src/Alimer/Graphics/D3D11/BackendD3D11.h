@@ -22,11 +22,21 @@
 
 #pragma once
 
-#include "../D3D/D3DPrerequisites.h"
-#if defined(NTDDI_WIN10_RS2)
-#include <dxgi1_5.h>
-#else
-#include <dxgi1_3.h>
+#ifdef _WIN32
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#   ifndef WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#   endif
+#endif
+
+#include <dxgi.h>
+#define D3D11_NO_HELPERS
+#include <d3d11_1.h>
+#include <d3dcompiler.h>
+#ifdef _DEBUG
+#   include <dxgidebug.h>
 #endif
 
 #if defined(ALIMER_DEV) && (!defined(_XBOX_ONE) || !defined(_TITLE))

@@ -22,10 +22,13 @@
 
 #define VMA_STATS_STRING_ENABLED 0
 #define VMA_IMPLEMENTATION
-#include "../GraphicsDevice.h"
-#include "../PhysicalDevice.h"
-#include "../SwapChain.h"
-#include "../../Math/MathUtil.h"
+#include "GPUDeviceVk.h"
+#include "SwapChainVk.h"
+#include "CommandQueueVk.h"
+#include "CommandBufferVk.h"
+#include "TextureVk.h"
+#include "SamplerVk.h"
+#include "BufferVk.h"
 
 namespace alimer
 {
@@ -60,7 +63,7 @@ namespace alimer
         const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
         void *pUserData)
     {
-        GraphicsDevice* device = static_cast<GraphicsDevice*>(pUserData);
+        GPUDeviceVk* device = static_cast<GPUDeviceVk*>(pUserData);
 
         switch (messageSeverity)
         {
@@ -126,7 +129,7 @@ namespace alimer
         size_t, int32_t messageCode, const char *pLayerPrefix,
         const char *pMessage, void *pUserData)
     {
-        GraphicsDevice* device = static_cast<GraphicsDevice*>(pUserData);
+        GPUDeviceVk* device = static_cast<GPUDeviceVk*>(pUserData);
 
         // False positives about lack of srcAccessMask/dstAccessMask.
         if (strcmp(pLayerPrefix, "DS") == 0 && messageCode == 10)
@@ -161,74 +164,7 @@ namespace alimer
         return VK_FALSE;
     }
 
-    static VkSurfaceKHR CreatePlatformSurface(VkInstance instance, const SwapChainDescriptor* descriptor)
-    {
-        // Create the os-specific surface
-        VkResult result = VK_SUCCESS;
-        VkSurfaceKHR surface = VK_NULL_HANDLE;
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
-        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-        if (descriptor->nativeDisplay != nullptr)
-        {
-            surfaceCreateInfo.hinstance = (HINSTANCE)descriptor->nativeDisplay;
-        }
-        else
-        {
-            surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-        }
-        surfaceCreateInfo.hwnd = (HWND)descriptor->nativeHandle;
-        PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHRProc = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR");
-        result = vkCreateWin32SurfaceKHRProc(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-        VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo;
-        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.window = (ANativeWindow)descriptor->windowHandle;
-        PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHRProc = (PFN_vkCreateAndroidSurfaceKHR)vkGetInstanceProcAddr(instance, "vkCreateAndroidSurfaceKHR");
-        result = vkCreateAndroidSurfaceKHRProc(instance, &surfaceCreateInfo, NULL, &surface);
-#elif defined(VK_USE_PLATFORM_IOS_MVK)
-        VkIOSSurfaceCreateInfoMVK surfaceCreateInfo;
-        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
-        surfaceCreateInfo.pView = descriptor->windowHandle;
-        PFN_vkCreateIOSSurfaceMVK vkCreateIOSSurfaceMVKProc = (PFN_vkCreateIOSSurfaceMVK)vkGetInstanceProcAddr(instance, "vkCreateIOSSurfaceMVK");
-        result = vkCreateIOSSurfaceMVKProc(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_MACOS_MVK)
-        VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo;
-        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-        surfaceCreateInfo.pView = descriptor->windowHandle;
-        PFN_vkCreateMacOSSurfaceMVK vkCreateMacOSSurfaceMVKProc = (PFN_vkCreateMacOSSurfaceMVK)vkGetInstanceProcAddr(instance, "vkCreateMacOSSurfaceMVK");
-        result = vkCreateMacOSSurfaceMVKProc(instance, &surfaceCreateInfo, NULL, &surface);
-#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-        VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo;
-        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.display = (wl_display*)display;
-        surfaceCreateInfo.surface = (wl_surface*)descriptor->windowHandle;
-        PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHRProc = (PFN_vkCreateWaylandSurfaceKHR)vkGetInstanceProcAddr(instance, "vkCreateWaylandSurfaceKHR");
-        result = vkCreateWaylandSurfaceKHRProc(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
-        VkXcbSurfaceCreateInfoKHR surfaceCreateInfo;
-        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.connection = (xcb_connection_t*)connection;
-        surfaceCreateInfo.window = (xcb_window_t)descriptor->windowHandle;
-        PFN_vkCreateXcbSurfaceKHR vkCreateXcbSurfaceKHRProc = (PFN_vkCreateXcbSurfaceKHR)vkGetInstanceProcAddr(instance, "vkCreateXcbSurfaceKHR");
-        result = vkCreateXcbSurfaceKHRProc(instance, &surfaceCreateInfo, nullptr, &surface);
-#endif
-
-        if (result != VK_SUCCESS)
-        {
-            return nullptr;
-        }
-
-        return surface;
-    }
-
-    bool GraphicsDevice::IsSupported()
+    bool GPUDeviceVk::IsSupported()
     {
         VkResult result;
         uint32_t i, count;
@@ -244,7 +180,6 @@ namespace alimer
             _s_gpu_vk_data.available = false;
             return false;
         }
-
 
         result = vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
         if (result < VK_SUCCESS)
@@ -325,10 +260,9 @@ namespace alimer
         return true;
     }
 
-    void GraphicsDevice::PlatformConstruct()
+    GPUDeviceVk::GPUDeviceVk(bool validation, bool headless)
+        : GPUDevice(GraphicsBackend::Vulkan, validation, headless)
     {
-        _backend = GraphicsBackend::Vulkan;
-
         VkApplicationInfo appInfo;
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pNext = nullptr;
@@ -343,48 +277,48 @@ namespace alimer
             appInfo.apiVersion = VK_API_VERSION_1_1;
         }
 
-        Vector<const char*> instanceLayers;
-        Vector<const char*> instanceExtensions;
+        std::vector<const char*> instanceLayers;
+        std::vector<const char*> instanceExtensions;
 
         if (_s_gpu_vk_data.KHR_get_physical_device_properties2)
         {
-            instanceExtensions.Push(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+            instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
         }
 
         if (_s_gpu_vk_data.KHR_get_physical_device_properties2
             && _s_gpu_vk_data.KHR_external_memory_capabilities
             && _s_gpu_vk_data.KHR_external_semaphore_capabilities)
         {
-            instanceExtensions.Push(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-            instanceExtensions.Push(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
-            instanceExtensions.Push(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME);
+            instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+            instanceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
+            instanceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME);
         }
 
         if (_s_gpu_vk_data.EXT_debug_utils)
         {
-            instanceExtensions.Push(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
 
         if (_validation)
         {
-            uint32_t layer_count = 0;
-            vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
-            Vector<VkLayerProperties> queried_layers(layer_count);
-            if (layer_count)
+            uint32_t layerCount = 0;
+            vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+            std::vector<VkLayerProperties> queriedLayers(layerCount);
+            if (layerCount)
             {
-                vkEnumerateInstanceLayerProperties(&layer_count, queried_layers.Data());
+                vkEnumerateInstanceLayerProperties(&layerCount, queriedLayers.data());
             }
 
             const auto has_layer = [&](const char *name) -> bool {
-                auto itr = std::find_if(queried_layers.Begin(), queried_layers.End(), [name](const VkLayerProperties &e) -> bool {
+                auto itr = std::find_if(queriedLayers.begin(), queriedLayers.end(), [name](const VkLayerProperties &e) -> bool {
                     return strcmp(e.layerName, name) == 0;
                     });
-                return itr != end(queried_layers);
+                return itr != queriedLayers.end();
             };
 
             if (!_s_gpu_vk_data.EXT_debug_utils && _s_gpu_vk_data.EXT_debug_report)
             {
-                instanceExtensions.Push(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+                instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
             }
 
             bool force_no_validation = false;
@@ -395,7 +329,7 @@ namespace alimer
 
             if (!force_no_validation && has_layer("VK_LAYER_LUNARG_standard_validation"))
             {
-                instanceLayers.Push("VK_LAYER_LUNARG_standard_validation");
+                instanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
             }
             else
             {
@@ -406,35 +340,35 @@ namespace alimer
         if (!_headless
             && _s_gpu_vk_data.KHR_surface)
         {
-            instanceExtensions.Push(VK_KHR_SURFACE_EXTENSION_NAME);
+            instanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
 #if ALIMER_PLATFORM_WINDOWS
             if (_s_gpu_vk_data.KHR_win32_surface)
             {
-                instanceExtensions.Push("VK_KHR_win32_surface");
+                instanceExtensions.push_back("VK_KHR_win32_surface");
             }
 #elif ALIMER_PLATFORM_APPLE
             if (_s_gpu_vk_data.MVK_macos_surface)
             {
-                instanceExtensions.Push("VK_MVK_macos_surface");
+                instanceExtensions.push_back("VK_MVK_macos_surface");
             }
 #elif ALIMER_PLATFORM_LINUX
             if (strcmp(_s_gpu_vk_data.KHR_xlib_surface)
             {
-                instanceExtensions.Push("VK_KHR_xlib_surface");
+                instanceExtensions.push_back("VK_KHR_xlib_surface");
             }
             else if (_s_gpu_vk_data.KHR_xcb_surface)
             {
-                instanceExtensions.Push("VK_KHR_xcb_surface");
+                instanceExtensions.push_back("VK_KHR_xcb_surface");
             }
             else if (_s_gpu_vk_data.KHR_wayland_surface)
             {
-                instanceExtensions.Push("VK_KHR_wayland_surface");
+                instanceExtensions.push_back("VK_KHR_wayland_surface");
             }
 #elif ALIMER_PLATFORM_ANDROID
             if (_s_gpu_vk_data.KHR_android_surface)
             {
-                instanceExtensions.Push("VK_KHR_android_surface")
+                instanceExtensions.push_back("VK_KHR_android_surface")
             }
 #endif
         }
@@ -444,10 +378,10 @@ namespace alimer
         instanceCreateInfo.pNext = nullptr;
         instanceCreateInfo.flags = 0;
         instanceCreateInfo.pApplicationInfo = &appInfo;
-        instanceCreateInfo.enabledLayerCount = instanceLayers.Size();
-        instanceCreateInfo.ppEnabledLayerNames = instanceLayers.Data();
-        instanceCreateInfo.enabledExtensionCount = instanceExtensions.Size();
-        instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.Data();
+        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
+        instanceCreateInfo.ppEnabledLayerNames = instanceLayers.data();
+        instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
+        instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 
         VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
         if (result != VK_SUCCESS)
@@ -500,66 +434,10 @@ namespace alimer
         const bool preferDiscrete = true;
         for (uint32_t i = 0; i < gpuCount; ++i)
         {
-            // Initialize physical device.
-            auto physicalDevice = new PhysicalDevice();
-            physicalDevice->_handle = physicalDevices[i];
-            vkGetPhysicalDeviceProperties(physicalDevices[i], &physicalDevice->_properties);
-            vkGetPhysicalDeviceMemoryProperties(physicalDevices[i], &physicalDevice->_memoryProperties);
-            vkGetPhysicalDeviceFeatures(physicalDevices[i], &physicalDevice->_features);
-
-            // Queue family properties, used for setting up requested queues upon device creation
-            uint32_t queueFamilyCount;
-            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], &queueFamilyCount, nullptr);
-            assert(queueFamilyCount > 0);
-            physicalDevice->_queueFamilyProperties.Resize(queueFamilyCount);
-            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], &queueFamilyCount, physicalDevice->_queueFamilyProperties.Data());
-
-            // Get list of supported extensions
-            uint32_t extCount = 0;
-            vkEnumerateDeviceExtensionProperties(physicalDevices[i], nullptr, &extCount, nullptr);
-            if (extCount > 0)
-            {
-                std::vector<VkExtensionProperties> extensions(extCount);
-                if (vkEnumerateDeviceExtensionProperties(physicalDevices[i], nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
-                {
-                    for (auto ext : extensions)
-                    {
-                        physicalDevice->_extensions.Push(ext.extensionName);
-                    }
-                }
-            }
-
-            // Find vendor
-            switch (physicalDevice->_properties.vendorID)
-            {
-            case 0x13B5:
-                physicalDevice->_vendor = GpuVendor::Arm;
-                break;
-            case 0x10DE:
-                physicalDevice->_vendor = GpuVendor::Nvidia;
-                break;
-            case 0x1002:
-            case 0x1022:
-                physicalDevice->_vendor = GpuVendor::Amd;
-                break;
-            case 0x8086:
-                physicalDevice->_vendor = GpuVendor::Intel;
-                break;
-            default:
-                physicalDevice->_vendor = GpuVendor::Unknown;
-                break;
-            }
-
-            physicalDevice->_vendorID = physicalDevice->_properties.vendorID;
-            physicalDevice->_deviceID = physicalDevice->_properties.deviceID;
-            physicalDevice->_deviceName = physicalDevice->_properties.deviceName;
-
-            // Add to our vector.
-            _physicalDevices.Push(physicalDevice);
-
-            // Rank device.
             uint32_t score = 0U;
-            switch (physicalDevice->_properties.deviceType)
+            VkPhysicalDeviceProperties properties;
+            vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
+            switch (properties.deviceType)
             {
             case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
                 score += 100U;
@@ -584,6 +462,7 @@ namespace alimer
 
             if (score > bestDeviceScore) {
                 bestDeviceIndex = i;
+                bestDeviceScore = score;
             }
         }
 
@@ -593,11 +472,41 @@ namespace alimer
             return;
         }
 
-        _physicalDevice = _physicalDevices[bestDeviceIndex];
+        _physicalDevice = physicalDevices[bestDeviceIndex];
+        InitializeFeatures();
     }
 
-    void GraphicsDevice::PlatformDestroy()
+    GPUDeviceVk::~GPUDeviceVk()
     {
+        vkDeviceWaitIdle(_device);
+
+        // Delete swap chain if created.
+        SafeDelete(_mainSwapChain);
+
+        for (uint32_t i = 0; i < RenderLatency; i++)
+        {
+            vkDestroyFence(_device, _waitFences[i], nullptr);
+            vkDestroySemaphore(_device, _renderCompleteSemaphores[i], nullptr);
+            vkDestroySemaphore(_device, _presentCompleteSemaphores[i], nullptr);
+        }
+
+        _commandBuffers.clear();
+        _graphicsCommandQueue.reset();
+        _computeCommandQueue.reset();
+        _copyCommandQueue.reset();
+
+        if (_device != VK_NULL_HANDLE)
+        {
+            vkDestroyDevice(_device, nullptr);
+            _device = VK_NULL_HANDLE;
+        }
+
+        if (_memoryAllocator != VK_NULL_HANDLE)
+        {
+            vmaDestroyAllocator(_memoryAllocator);
+            _memoryAllocator = VK_NULL_HANDLE;
+        }
+
         if (_debugCallback != VK_NULL_HANDLE)
         {
             vkDestroyDebugReportCallbackEXT(_instance, _debugCallback, nullptr);
@@ -610,31 +519,91 @@ namespace alimer
             _debugMessenger = VK_NULL_HANDLE;
         }
 
-        if (_device != VK_NULL_HANDLE)
-        {
-            vkDestroyDevice(_device, nullptr);
-            _device = VK_NULL_HANDLE;
-        }
-
         vkDestroyInstance(_instance, nullptr);
     }
-   
-    bool GraphicsDevice::PlatformInitialize(const GraphicsDeviceDescriptor* descriptor)
+
+    void GPUDeviceVk::NotifyValidationError(const char* message)
+    {
+        ALIMER_UNUSED(message);
+    }
+
+    void GPUDeviceVk::InitializeFeatures()
+    {
+        vkGetPhysicalDeviceProperties(_physicalDevice, &_physicalDeviceProperties);
+        vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_physicalDeviceMemoryProperties);
+        vkGetPhysicalDeviceFeatures(_physicalDevice, &_physicalDeviceFeatures);
+
+        // Queue family properties, used for setting up requested queues upon device creation
+        uint32_t queueFamilyCount;
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyCount, nullptr);
+        assert(queueFamilyCount > 0);
+        _physicalDeviceQueueFamilyProperties.resize(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyCount, _physicalDeviceQueueFamilyProperties.data());
+
+        // Get list of supported extensions
+        uint32_t extCount = 0;
+        vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &extCount, nullptr);
+        if (extCount > 0)
+        {
+            std::vector<VkExtensionProperties> extensions(extCount);
+            if (vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
+            {
+                for (auto ext : extensions)
+                {
+                    _physicalDeviceExtensions.push_back(ext.extensionName);
+                }
+            }
+        }
+
+
+        _features.SetBackend(GraphicsBackend::Vulkan);
+        _features.SetVendorId(_physicalDeviceProperties.vendorID);
+        // Find vendor
+        switch (_physicalDeviceProperties.vendorID)
+        {
+        case 0x13B5:
+            _features.SetVendor(GpuVendor::ARM);
+            break;
+        case 0x10DE:
+            _features.SetVendor(GpuVendor::NVIDIA);
+            break;
+        case 0x1002:
+        case 0x1022:
+            _features.SetVendor(GpuVendor::AMD);
+            break;
+        case 0x163C:
+        case 0x8086:
+            _features.SetVendor(GpuVendor::INTEL);
+            break;
+        default:
+            _features.SetVendor(GpuVendor::Unknown);
+            break;
+        }
+
+        _features.SetDeviceId(_physicalDeviceProperties.deviceID);
+        _features.SetDeviceName(_physicalDeviceProperties.deviceName);
+        _features.SetMultithreading(true);
+        _features.SetMaxColorAttachments(_physicalDeviceProperties.limits.maxColorAttachments);
+        _features.SetMaxBindGroups(_physicalDeviceProperties.limits.maxBoundDescriptorSets);
+        _features.SetMinUniformBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment));
+    }
+
+    bool GPUDeviceVk::SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor)
     {
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         if (!_headless)
         {
-            surface = CreatePlatformSurface(_instance, &descriptor->swapchain);
+            surface = CreateSurface(handle);
         }
 
-        uint32_t queueCount = _physicalDevice->_queueFamilyProperties.Size();
-        Vector<VkQueueFamilyProperties> queue_props = _physicalDevice->_queueFamilyProperties;
+        uint32_t queueCount = (uint32_t)_physicalDeviceQueueFamilyProperties.size();
+        std::vector<VkQueueFamilyProperties> queue_props = _physicalDeviceQueueFamilyProperties;
 
         for (uint32_t i = 0; i < queueCount; i++)
         {
             VkBool32 supported = surface == VK_NULL_HANDLE;
             if (surface != VK_NULL_HANDLE)
-                vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice->GetHandle(), i, surface, &supported);
+                vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, surface, &supported);
 
             static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT;
             if (supported
@@ -696,19 +665,19 @@ namespace alimer
         if (_computeQueueFamily == VK_QUEUE_FAMILY_IGNORED)
         {
             _computeQueueFamily = _graphicsQueueFamily;
-            computeQueueIndex = Min(queue_props[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
+            computeQueueIndex = std::min(queue_props[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
             universalQueueIndex++;
         }
 
         if (_transferQueueFamily == VK_QUEUE_FAMILY_IGNORED)
         {
             _transferQueueFamily = _graphicsQueueFamily;
-            transferQueueIndex = Min(queue_props[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
+            transferQueueIndex = std::min(queue_props[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
             universalQueueIndex++;
         }
         else if (_transferQueueFamily == _computeQueueFamily)
         {
-            transferQueueIndex = Min(queue_props[_computeQueueFamily].queueCount - 1, 1u);
+            transferQueueIndex = std::min(queue_props[_computeQueueFamily].queueCount - 1, 1u);
         }
 
         static const float graphicsQueuePriority = 0.5f;
@@ -724,7 +693,7 @@ namespace alimer
 
         queueCreateInfo[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo[queueFamilyCount].queueFamilyIndex = _graphicsQueueFamily;
-        queueCreateInfo[queueFamilyCount].queueCount = Min(universalQueueIndex, queue_props[_graphicsQueueFamily].queueCount);
+        queueCreateInfo[queueFamilyCount].queueCount = std::min(universalQueueIndex, queue_props[_graphicsQueueFamily].queueCount);
         queueCreateInfo[queueFamilyCount].pQueuePriorities = queuePriorities;
         queueFamilyCount++;
 
@@ -732,7 +701,7 @@ namespace alimer
         {
             queueCreateInfo[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo[queueFamilyCount].queueFamilyIndex = _computeQueueFamily;
-            queueCreateInfo[queueFamilyCount].queueCount = Min(_transferQueueFamily == _computeQueueFamily ? 2u : 1u,
+            queueCreateInfo[queueFamilyCount].queueCount = std::min(_transferQueueFamily == _computeQueueFamily ? 2u : 1u,
                 queue_props[_computeQueueFamily].queueCount);
             queueCreateInfo[queueFamilyCount].pQueuePriorities = queuePriorities + 1;
             queueFamilyCount++;
@@ -748,63 +717,63 @@ namespace alimer
             queueFamilyCount++;
         }
 
-        Vector<const char*> enabledExtensions;
+        std::vector<const char*> enabledExtensions;
         if (!_headless)
         {
-            enabledExtensions.Push(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         }
 
-        /* Enable VK_KHR_maintenance1 to support nevagive viewport and match DirectX coordinate system. */
-        if (_physicalDevice->IsExtensionSupported(VK_KHR_MAINTENANCE1_EXTENSION_NAME))
+        // Enable VK_KHR_maintenance1 to support nevagive viewport and match DirectX coordinate system.
+        if (IsExtensionSupported(VK_KHR_MAINTENANCE1_EXTENSION_NAME))
         {
-            enabledExtensions.Push(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
         }
 
-        if (_physicalDevice->IsExtensionSupported(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME)
-            && _physicalDevice->IsExtensionSupported(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME))
+        if (IsExtensionSupported(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME)
+            && IsExtensionSupported(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME))
         {
-            _supportsDedicated = true;
-            enabledExtensions.Push(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
-            enabledExtensions.Push(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+            _featuresVk.supportsDedicated = true;
+            enabledExtensions.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
         }
 
-        if (_physicalDevice->IsExtensionSupported(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME))
+        if (IsExtensionSupported(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME))
         {
-            _supportsImageFormatList = true;
-            enabledExtensions.Push(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME);
+            _featuresVk.supportsImageFormatList = true;
+            enabledExtensions.push_back(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME);
         }
 
-        if (_physicalDevice->IsExtensionSupported(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME))
+        if (IsExtensionSupported(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME))
         {
-            _supportsGoogleDisplayTiming = true;
-            enabledExtensions.Push(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
+            _featuresVk.supportsGoogleDisplayTiming = true;
+            enabledExtensions.push_back(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
         }
 
         if (_s_gpu_vk_data.EXT_debug_utils)
         {
-            _supportsDebugUtils = true;
+            _featuresVk.supportsDebugUtils = true;
         }
 
-        if (_physicalDevice->IsExtensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
+        if (IsExtensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
         {
-            _supportsDebugMarker = true;
-            enabledExtensions.Push(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+            _featuresVk.supportsDebugMarker = true;
+            enabledExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
         }
 
-        if (_physicalDevice->IsExtensionSupported(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME))
+        if (IsExtensionSupported(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME))
         {
-            _supportsMirrorClampToEdge = true;
-            enabledExtensions.Push(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
+            _featuresVk.supportsMirrorClampToEdge = true;
+            enabledExtensions.push_back(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
         }
 
         VkPhysicalDeviceFeatures2KHR features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
         if (_s_gpu_vk_data.KHR_get_physical_device_properties2)
         {
-            vkGetPhysicalDeviceFeatures2KHR(_physicalDevice->GetHandle(), &features);
+            vkGetPhysicalDeviceFeatures2KHR(_physicalDevice, &features);
         }
         else
         {
-            vkGetPhysicalDeviceFeatures(_physicalDevice->GetHandle(), &features.features);
+            vkGetPhysicalDeviceFeatures(_physicalDevice, &features.features);
         }
 
         // Enable device features we might care about.
@@ -851,10 +820,10 @@ namespace alimer
         deviceCreateInfo.queueCreateInfoCount = queueFamilyCount;
         deviceCreateInfo.enabledLayerCount = 0;
         deviceCreateInfo.ppEnabledLayerNames = nullptr;
-        deviceCreateInfo.enabledExtensionCount =  enabledExtensions.Size();
-        deviceCreateInfo.ppEnabledExtensionNames = enabledExtensions.Data();
+        deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size());
+        deviceCreateInfo.ppEnabledExtensionNames = enabledExtensions.data();
 
-        if (vkCreateDevice(_physicalDevice->GetHandle(), &deviceCreateInfo, nullptr, &_device) != VK_SUCCESS)
+        if (vkCreateDevice(_physicalDevice, &deviceCreateInfo, nullptr, &_device) != VK_SUCCESS)
         {
             ALIMER_LOGERROR("Vulkan: Failed to create device");
             return false;
@@ -865,25 +834,254 @@ namespace alimer
         vkGetDeviceQueue(_device, _computeQueueFamily, computeQueueIndex, &_computeQueue);
         vkGetDeviceQueue(_device, _transferQueueFamily, transferQueueIndex, &_transferQueue);
 
-        // Create main swap chain.
-        if (surface != VK_NULL_HANDLE)
+        // Set up VMA.
+        VmaVulkanFunctions vulkanFunctions = {};
+        vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+        vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+        vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
+        vulkanFunctions.vkFreeMemory = vkFreeMemory;
+        vulkanFunctions.vkMapMemory = vkMapMemory;
+        vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+        vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+        vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+        vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
+        vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
+        vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+        vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+        vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
+        vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
+        vulkanFunctions.vkCreateImage = vkCreateImage;
+        vulkanFunctions.vkDestroyImage = vkDestroyImage;
+        vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
+#if VMA_DEDICATED_ALLOCATION
+        vulkanFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+        vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+#endif
+
+        VmaAllocatorCreateInfo allocatorCreateInfo = {};
+        allocatorCreateInfo.physicalDevice = _physicalDevice;
+        allocatorCreateInfo.device = _device;
+        allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+        if (vmaCreateAllocator(&allocatorCreateInfo, &_memoryAllocator) != VK_SUCCESS)
         {
-            _mainSwapChain = new SwapChain(this);
-            _mainSwapChain->Define(surface, &descriptor->swapchain);
+            return false;
+        }
+
+        // Create command queue's.
+        _graphicsCommandQueue = std::make_unique<CommandQueueVk>(this, _graphicsQueue, _graphicsQueueFamily);
+        _computeCommandQueue = std::make_unique<CommandQueueVk>(this, _computeQueue, _computeQueueFamily);
+        _copyCommandQueue = std::make_unique<CommandQueueVk>(this, _transferQueue, _transferQueueFamily);
+
+        // Create main swap chain.
+        if (!_headless)
+        {
+            _mainSwapChain = new SwapChainVk(this, surface, descriptor);
+        }
+
+        _waitFences.resize(RenderLatency);
+        _presentCompleteSemaphores.resize(RenderLatency);
+        _renderCompleteSemaphores.resize(RenderLatency);
+        _perFrame.clear();
+        for (uint32_t i = 0; i < RenderLatency; ++i)
+        {
+            VkFenceCreateInfo fenceCreateInfo = {};
+            fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+            vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_waitFences[i]));
+
+            VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+            semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            vkThrowIfFailed(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_presentCompleteSemaphores[i]));
+            vkThrowIfFailed(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_renderCompleteSemaphores[i]));
+
+            auto frame = std::unique_ptr<PerFrame>(new PerFrame(this));
+            _perFrame.emplace_back(std::move(frame));
+        }
+
+        // Frame command buffers.
+        {
+            std::vector<VkCommandBuffer> vkCommandBuffers(_mainSwapChain->GetTextureCount());
+            VkCommandBufferAllocateInfo commandBufferAllocateInfo;
+            commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            commandBufferAllocateInfo.pNext = nullptr;
+            commandBufferAllocateInfo.commandPool = _graphicsCommandQueue->GetVkCommandPool();
+            commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            commandBufferAllocateInfo.commandBufferCount = _mainSwapChain->GetTextureCount();
+            vkThrowIfFailed(vkAllocateCommandBuffers(_device, &commandBufferAllocateInfo, vkCommandBuffers.data()));
+
+            _commandBuffers.resize(_mainSwapChain->GetTextureCount());
+            for (uint32_t i = 0; i < _mainSwapChain->GetTextureCount(); i++)
+            {
+                _commandBuffers[i] = std::make_unique<CommandBufferVk>(this, _graphicsCommandQueue.get(), vkCommandBuffers[i]);
+            }
         }
 
         return true;
     }
 
-    bool GraphicsDevice::WaitIdle()
+    VkSurfaceKHR GPUDeviceVk::CreateSurface(const SwapChainHandle* handle)
+    {
+        VkResult result = VK_SUCCESS;
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
+        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        if (handle->nativeDisplay != nullptr)
+        {
+            surfaceCreateInfo.hinstance = (HINSTANCE)handle->nativeDisplay;
+        }
+        else
+        {
+            surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
+        }
+
+        surfaceCreateInfo.hwnd = (HWND)handle->nativeHandle;
+        PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHRProc = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(_instance, "vkCreateWin32SurfaceKHR");
+        result = vkCreateWin32SurfaceKHRProc(_instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+        VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo;
+        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.window = (ANativeWindow)handle->nativeHandle;
+        PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHRProc = (PFN_vkCreateAndroidSurfaceKHR)vkGetInstanceProcAddr(_instance, "vkCreateAndroidSurfaceKHR");
+        result = vkCreateAndroidSurfaceKHRProc(_instance, &surfaceCreateInfo, NULL, &surface);
+#elif defined(VK_USE_PLATFORM_IOS_MVK)
+        VkIOSSurfaceCreateInfoMVK surfaceCreateInfo;
+        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
+        surfaceCreateInfo.pView = handle->nativeHandle;
+        PFN_vkCreateIOSSurfaceMVK vkCreateIOSSurfaceMVKProc = (PFN_vkCreateIOSSurfaceMVK)vkGetInstanceProcAddr(_instance, "vkCreateIOSSurfaceMVK");
+        result = vkCreateIOSSurfaceMVKProc(_instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+        VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo;
+        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
+        surfaceCreateInfo.pView = handle->nativeHandle;
+        PFN_vkCreateMacOSSurfaceMVK vkCreateMacOSSurfaceMVKProc = (PFN_vkCreateMacOSSurfaceMVK)vkGetInstanceProcAddr(_instance, "vkCreateMacOSSurfaceMVK");
+        result = vkCreateMacOSSurfaceMVKProc(_instance, &surfaceCreateInfo, NULL, &surface);
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+        VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo;
+        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.display = (wl_display*)handle->display;
+        surfaceCreateInfo.surface = (wl_surface*)handle->windowHandle;
+        PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHRProc = (PFN_vkCreateWaylandSurfaceKHR)vkGetInstanceProcAddr(_instance, "vkCreateWaylandSurfaceKHR");
+        result = vkCreateWaylandSurfaceKHRProc(_instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+        VkXcbSurfaceCreateInfoKHR surfaceCreateInfo;
+        memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.connection = (xcb_connection_t*)handle->nativeDisplay;
+        surfaceCreateInfo.window = (xcb_window_t)handle->nativeHandle;
+        PFN_vkCreateXcbSurfaceKHR vkCreateXcbSurfaceKHRProc = (PFN_vkCreateXcbSurfaceKHR)vkGetInstanceProcAddr(_instance, "vkCreateXcbSurfaceKHR");
+        result = vkCreateXcbSurfaceKHRProc(_instance, &surfaceCreateInfo, nullptr, &surface);
+#endif
+
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("Vulkan: Failed to create platform surface");
+            return nullptr;
+        }
+
+        return surface;
+    }
+
+    void GPUDeviceVk::WaitIdle()
     {
         VkResult result = vkDeviceWaitIdle(_device);
         if (result < VK_SUCCESS)
         {
-            ALIMER_LOGTRACE("[Vulkan] - vkDeviceWaitIdle failed : %s", vkGetVulkanResultString(result));
-            return false;
+            ALIMER_LOGTRACE("Vulkan: vkDeviceWaitIdle failed : %s", vkGetVulkanResultString(result));
+        }
+    }
+
+    bool GPUDeviceVk::BeginFrame()
+    {
+        vkThrowIfFailed(vkWaitForFences(_device, 1, &_waitFences[_frameIndex], VK_TRUE, UINT64_MAX));
+        vkThrowIfFailed(vkResetFences(_device, 1, &_waitFences[_frameIndex]));
+
+        VkResult result = _mainSwapChain->AcquireNextImage(_presentCompleteSemaphores[_frameIndex], &_swapchainImageIndex);
+        if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
+        {
+            _mainSwapChain->Resize();
+        }
+        else {
+            vkThrowIfFailed(result);
         }
 
+        _commandBuffers[_swapchainImageIndex]->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
         return true;
+    }
+
+    void GPUDeviceVk::EndFrame()
+    {
+        _graphicsCommandQueue->ExecuteCommandBuffer(
+            _commandBuffers[_swapchainImageIndex].get(),
+            _presentCompleteSemaphores[_frameIndex],
+            _renderCompleteSemaphores[_frameIndex],
+            _waitFences[_frameIndex]
+        );
+
+        VkResult result = _mainSwapChain->QueuePresent(_graphicsQueue, _swapchainImageIndex, _renderCompleteSemaphores[_frameIndex]);
+        if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR)))
+        {
+            if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+                _mainSwapChain->Resize();
+                return;
+            }
+            else {
+                vkThrowIfFailed(result);
+            }
+        }
+
+        _frameIndex += 1;
+        _frameIndex %= RenderLatency;
+    }
+
+    GPUTexture* GPUDeviceVk::CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
+    {
+        return new TextureVk(this, descriptor, nativeTexture, pInitData);
+    }
+
+    GPUSampler* GPUDeviceVk::CreateSampler(const SamplerDescriptor* descriptor)
+    {
+        return new SamplerVk(this, descriptor);
+    }
+
+    GPUBuffer* GPUDeviceVk::CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData)
+    {
+        return new BufferVk(this, descriptor, pInitData);
+    }
+
+    void GPUDeviceVk::DestroySampler(VkSampler sampler)
+    {
+#if !defined(NDEBUG)
+        ALIMER_ASSERT(std::find(frame().destroyedSamplers.begin(), frame().destroyedSamplers.end(), sampler) == frame().destroyedSamplers.end());
+#endif
+        frame().destroyedSamplers.push_back(sampler);
+    }
+
+
+    GPUDeviceVk::PerFrame::PerFrame(GPUDeviceVk* device_)
+        : device(device_)
+        , logicalDevice(device_->GetVkDevice())
+    {
+
+    }
+
+    GPUDeviceVk::PerFrame::~PerFrame()
+    {
+        Begin();
+    }
+
+    void GPUDeviceVk::PerFrame::Begin()
+    {
+        for (auto &sampler : destroyedSamplers)
+        {
+            vkDestroySampler(logicalDevice, sampler, nullptr);
+        }
     }
 }

@@ -20,17 +20,14 @@
 // THE SOFTWARE.
 //
 
-#include "VulkanGraphicsDevice.h"
-#include "VulkanBuffer.h"
-#include "VulkanConvert.h"
+#include "BufferVk.h"
+#include "GPUDeviceVk.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    VulkanBuffer::VulkanBuffer(VulkanGraphicsDevice* device, const BufferDescriptor* descriptor, const void* initialData)
-        : Buffer(device, descriptor)
-        , _logicalDevice(device->GetDevice())
-        //, _allocator(device->GetVmaAllocator())
+    BufferVk::BufferVk(GPUDeviceVk* device, const BufferDescriptor* descriptor, const void* pInitData)
+        : _device(device)
     {
         VkBufferCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -84,18 +81,19 @@ namespace alimer
 
         // Allocate memory from the Vulkan Memory Allocator.
         VkResult result = VK_SUCCESS;
-        /*const bool noAllocation = false;
+        const bool noAllocation = false;
         bool staticBuffer = false;
         VmaAllocationInfo allocationInfo = {};
         if (noAllocation)
         {
-            result = vkCreateBuffer(_logicalDevice, &createInfo, nullptr, &_handle);
+            result = vkCreateBuffer(_device->GetVkDevice(), &createInfo, nullptr, &_handle);
         }
         else
         {
             // Determine appropriate memory usage flags.
             VmaAllocationCreateInfo allocCreateInfo = {};
-            switch (descriptor->resourceUsage)
+            ResourceUsage resourceUsage = ResourceUsage::Default;
+            switch (resourceUsage)
             {
             case ResourceUsage::Default:
             case ResourceUsage::Immutable:
@@ -135,7 +133,7 @@ namespace alimer
         }
 
         // Handle
-        if (initialData != nullptr)
+        /*if (initialData != nullptr)
         {
             if (staticBuffer)
             {
@@ -151,23 +149,18 @@ namespace alimer
         }*/
     }
 
-    VulkanBuffer::~VulkanBuffer()
+    BufferVk::~BufferVk()
     {
-        Destroy();
-    }
-
-    void VulkanBuffer::Destroy()
-    {
-        /*if (_allocation != VK_NULL_HANDLE)
+        if (_allocation != VK_NULL_HANDLE)
         {
             vmaDestroyBuffer(_allocator, _handle, _allocation);
             _allocation = VK_NULL_HANDLE;
         }
-        else if(_handle != VK_NULL_HANDLE)
+        else if (_handle != VK_NULL_HANDLE)
         {
-            vkDestroyBuffer(_logicalDevice, _handle, nullptr);
+            vkDestroyBuffer(_device->GetVkDevice(), _handle, nullptr);
             _handle = VK_NULL_HANDLE;
-        }*/
+        }
     }
 
     /*bool VulkanBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
