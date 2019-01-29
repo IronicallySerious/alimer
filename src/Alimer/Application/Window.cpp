@@ -22,9 +22,10 @@
 
 #include "../Application/Window.h"
 #include "../Graphics/Framebuffer.h"
-#include "../Graphics/SwapChain.h"
 #include "../Graphics/GraphicsDevice.h"
-#if ALIMER_SDL2
+#if defined(ALIMER_GLFW)
+#include "glfw/window_glfw.h"
+#elif defined(ALIMER_SDL2)
 #include "SDL2/WindowSDL2.h"
 #endif
 
@@ -104,6 +105,11 @@ namespace alimer
     bool Window::IsFullscreen() const
     {
         return any(_flags & WindowFlags::Fullscreen);
+    }
+
+    bool Window::IsOpen() const
+    {
+        return _impl != nullptr && _impl->IsOpen();
     }
 
     void Window::Resize(int width, int height)

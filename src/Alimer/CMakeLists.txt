@@ -78,12 +78,12 @@ if (ALIMER_NETWORK)
     define_engine_source_files(Network)
 endif ()
 
-if (ALIMER_SDL2)
+if (ALIMER_DESKTOP)
+    define_engine_source_files(Application/glfw)
+elseif (ALIMER_SDL2)
     define_engine_source_files(Application/SDL2)
-    define_engine_source_files(Input/SDL2)
 elseif (ALIMER_UWP)
 	define_engine_source_files(Application/UWP)
-	define_engine_source_files(Input/UWP)
 endif ()
 
 if (ALIMER_WINDOWS OR ALIMER_UWP)
@@ -152,7 +152,9 @@ endif ()
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES fmt spdlog spirv_cross ImGui)
 
-if (ALIMER_SDL2)
+if (ALIMER_DESKTOP)
+    list (APPEND THIRD_PARTY_DEPENDENCIES glfw)
+elseif (ALIMER_SDL2)
     list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()
 
@@ -189,7 +191,9 @@ if (ALIMER_CSHARP)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_CSHARP)
 endif ()
 
-if (ALIMER_SDL2)
+if (ALIMER_DESKTOP)
+    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_GLFW)
+elseif (ALIMER_SDL2)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_SDL2)
 endif ()
 

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2019 Amer Koleci and contributors.
+// Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,40 @@
 
 #pragma once
 
-#include "BackendGL.h"
-#include "../GraphicsDevice.h"
+#include "../Window.h"
+struct GLFWwindow;
 
 namespace alimer
 {
-    /// OpenGL gpu backend.
-    class GPUDeviceGL final : public GraphicsDevice
+    class WindowImpl final 
     {
     public:
-        /// Is backend supported?
-        static bool IsSupported();
-
-        /// Constructor.
-        GPUDeviceGL(bool validation, bool headless);
+        WindowImpl(const String& title, uint32_t width, uint32_t height, WindowFlags flags);
 
         /// Destructor.
-        ~GPUDeviceGL() override;
+        ~WindowImpl();
 
-        void WaitIdle() override;
-        //bool SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor) override;
+        void Destroy();
+        void Show();
+        void Hide();
+        void Minimize();
+        void Maximize();
+        void Restore();
+        void Close();
+        void Resize(uint32_t width, uint32_t height);
+        bool IsVisible() const;
+        bool IsMinimized() const;
+        void SetTitle(const String& newTitle);
+        void SetFullscreen(bool value);
+        bool IsOpen() const;
+        bool IsCursorVisible() const;
+        void SetCursorVisible(bool visible);
+        NativeHandle GetNativeHandle() const;
+        NativeDisplay GetNativeDisplay() const;
 
-        //bool BeginFrame() override;
-        //void EndFrame() override;
+        GLFWwindow* _window;
 
-        //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
-        //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
-        //GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) override;
-        //Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
-        //Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
-
-    private:
-        void InitializeCaps();
+        /// Visibility flag.
+        bool _visible = true;
     };
 }

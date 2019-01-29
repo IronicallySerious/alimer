@@ -41,8 +41,7 @@ namespace alimer
             Framebuffer,
             Shader, 
             Program,
-            Pipeline,
-            SwapChain
+            Pipeline
         };
 
 		/// Destructor.

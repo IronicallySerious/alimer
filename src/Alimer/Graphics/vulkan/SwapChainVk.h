@@ -27,6 +27,8 @@
 
 namespace alimer
 {
+    class TextureVk;
+
 	/// Vulkan SwapChain implementation.
 	class SwapChainVk final : public GPUSwapChain
 	{
@@ -61,6 +63,6 @@ namespace alimer
         SampleCount _samples;
         uint32_t _imageCount = 0;
         uint32_t _imageIndex = 0;
-        std::vector<VkImage> _swapchainImages;
+        std::vector<std::unique_ptr<TextureVk>> _swapchainTextures;
 	};
 }

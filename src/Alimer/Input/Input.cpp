@@ -28,7 +28,6 @@ namespace alimer
     Input::Input()
         : _mouseButtons(static_cast<uint32_t>(MouseButton::Count))
     {
-        PlatformConstruct();
         AddSubsystem(this);
     }
 

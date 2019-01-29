@@ -26,7 +26,6 @@
 #include "../Base/String.h"
 #include "../Core/Platform.h"
 #include "../Core/Object.h"
-#include "../Graphics/SwapChain.h"
 #include "../Math/Math.h"
 #include "../Math/Vector2.h"
 
@@ -54,7 +53,7 @@ namespace alimer
 
 
     /// OS Window class.
-    class ALIMER_API Window final : public Object
+    class ALIMER_API Window : public Object
     {
         ALIMER_OBJECT(Window, Object);
 
@@ -98,6 +97,9 @@ namespace alimer
 
         /// Return whether is fullscreen.
         bool IsFullscreen() const;
+
+        /// Return is native window is valid.
+        bool IsOpen() const;
 
         /// Return window title.
         const String& GetTitle() const { return _title; }

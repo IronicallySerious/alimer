@@ -22,37 +22,19 @@
 
 #pragma once
 
-#include "BackendGL.h"
-#include "../GraphicsDevice.h"
+#include "../Application/Window.h"
+#include "../Graphics/GPUResource.h"
 
 namespace alimer
 {
-    /// OpenGL gpu backend.
-    class GPUDeviceGL final : public GraphicsDevice
+    /// Defines a Sampler class.
+    class ALIMER_API RenderWindow : public Window
     {
-    public:
-        /// Is backend supported?
-        static bool IsSupported();
+        friend class GraphicsDevice;
+        ALIMER_OBJECT(RenderWindow, Window);
 
+    protected:
         /// Constructor.
-        GPUDeviceGL(bool validation, bool headless);
-
-        /// Destructor.
-        ~GPUDeviceGL() override;
-
-        void WaitIdle() override;
-        //bool SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor) override;
-
-        //bool BeginFrame() override;
-        //void EndFrame() override;
-
-        //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
-        //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
-        //GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) override;
-        //Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor) override;
-        //Shader* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
-
-    private:
-        void InitializeCaps();
+        RenderWindow(GraphicsDevice* device);
     };
 }

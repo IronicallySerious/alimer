@@ -45,7 +45,7 @@ namespace alimer
             flags |= VK_IMAGE_USAGE_STORAGE_BIT;
         }
 
-        if (any(usage & TextureUsage::RenderTarget)) 
+        if (any(usage & TextureUsage::RenderTarget))
         {
             if (IsDepthStencilFormat(format)) {
                 flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -62,6 +62,15 @@ namespace alimer
         : _device(device)
         , _externalHandle(false)
     {
+        if (nativeTexture != nullptr)
+        {
+            _handle = static_cast<VkImage>(nativeTexture);
+            _externalHandle = true;
+        }
+        else
+        {
+
+        }
     }
 
     TextureVk::~TextureVk()

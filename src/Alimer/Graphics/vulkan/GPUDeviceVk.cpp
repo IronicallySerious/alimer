@@ -261,7 +261,7 @@ namespace alimer
     }
 
     GPUDeviceVk::GPUDeviceVk(bool validation, bool headless)
-        : GPUDevice(GraphicsBackend::Vulkan, validation, headless)
+        : GraphicsDevice(GraphicsBackend::Vulkan, validation, headless)
     {
         VkApplicationInfo appInfo;
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -588,7 +588,7 @@ namespace alimer
         _features.SetMinUniformBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment));
     }
 
-    bool GPUDeviceVk::SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor)
+    /*bool GPUDeviceVk::SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor)
     {
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         if (!_headless)
@@ -917,7 +917,7 @@ namespace alimer
         }
 
         return true;
-    }
+    }*/
 
     VkSurfaceKHR GPUDeviceVk::CreateSurface(const SwapChainHandle* handle)
     {
@@ -997,7 +997,7 @@ namespace alimer
         }
     }
 
-    bool GPUDeviceVk::BeginFrame()
+    /*bool GPUDeviceVk::BeginFrame()
     {
         vkThrowIfFailed(vkWaitForFences(_device, 1, &_waitFences[_frameIndex], VK_TRUE, UINT64_MAX));
         vkThrowIfFailed(vkResetFences(_device, 1, &_waitFences[_frameIndex]));
@@ -1054,7 +1054,7 @@ namespace alimer
     GPUBuffer* GPUDeviceVk::CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData)
     {
         return new BufferVk(this, descriptor, pInitData);
-    }
+    }*/
 
     void GPUDeviceVk::DestroySampler(VkSampler sampler)
     {
@@ -1062,6 +1062,91 @@ namespace alimer
         ALIMER_ASSERT(std::find(frame().destroyedSamplers.begin(), frame().destroyedSamplers.end(), sampler) == frame().destroyedSamplers.end());
 #endif
         frame().destroyedSamplers.push_back(sampler);
+    }
+
+    VkCommandBuffer GPUDeviceVk::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
+    {
+        VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+        info.commandPool = _graphicsCommandQueue->GetVkCommandPool();
+        info.level = level;
+        info.commandBufferCount = 1;
+
+        VkCommandBuffer vkCommandBuffer;
+        vkThrowIfFailed(vkAllocateCommandBuffers(_device, &info, &vkCommandBuffer));
+
+        // If requested, also start recording for the new command buffer
+        if (begin)
+        {
+            VkCommandBufferBeginInfo beginInfo = {};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            vkThrowIfFailed(vkBeginCommandBuffer(vkCommandBuffer, &beginInfo));
+        }
+
+        return vkCommandBuffer;
+    }
+
+    void GPUDeviceVk::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
+    {
+        FlushCommandBuffer(commandBuffer, _graphicsQueue, free);
+    }
+
+    void GPUDeviceVk::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
+    {
+        if (commandBuffer == VK_NULL_HANDLE)
+            return;
+
+        vkThrowIfFailed(vkEndCommandBuffer(commandBuffer));
+
+        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        // Create fence to ensure that the command buffer has finished executing
+        VkFenceCreateInfo fenceCreateInfo = {};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = 0;
+        VkFence fence;
+        vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &fence));
+
+        // Submit to the queue
+        vkThrowIfFailed(vkQueueSubmit(queue, 1, &submitInfo, fence));
+
+        // Wait for the fence to signal that command buffer has finished executing.
+        vkThrowIfFailed(vkWaitForFences(_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+        vkDestroyFence(_device, fence, nullptr);
+
+        if (free)
+        {
+            vkFreeCommandBuffers(_device, _graphicsCommandQueue->GetVkCommandPool(), 1, &commandBuffer);
+        }
+    }
+
+    void GPUDeviceVk::ClearImageWithColor(
+        VkCommandBuffer commandBuffer,
+        VkImage image,
+        VkImageSubresourceRange range,
+        VkImageAspectFlags aspect,
+        VkImageLayout sourceLayout,
+        VkImageLayout destLayout,
+        VkClearColorValue *clearValue)
+    {
+        // Transition to destination layout.
+        vk::SetImageLayout(commandBuffer, image, aspect, sourceLayout,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+        // Clear the image
+        range.aspectMask = aspect;
+        vkCmdClearColorImage(
+            commandBuffer,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            clearValue,
+            1,
+            &range);
+
+        // Transition back to source layout.
+        vk::SetImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
     }
 
 

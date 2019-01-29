@@ -23,6 +23,7 @@
 #pragma once
 
 #include "BackendVk.h"
+#include "../GraphicsDevice.h"
 
 namespace alimer
 {
@@ -31,7 +32,7 @@ namespace alimer
     class CommandBufferVk;
 
     /// Vulkan gpu backend.
-    class GPUDeviceVk final : public GPUDevice
+    class GPUDeviceVk final : public GraphicsDevice
     {
     public:
         // Constants
@@ -47,18 +48,22 @@ namespace alimer
         ~GPUDeviceVk() override;
 
         /// Wait device idle.
-        void WaitIdle();
+        void WaitIdle() override;
 
-        bool SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor) override;
+        //bool SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor) override;
+        //bool BeginFrame() override;
+        //void EndFrame() override;
 
-        bool BeginFrame() override;
-        void EndFrame() override;
-
-        GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
-        GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
-        GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) override;
+        //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
+        //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
+        //GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) override;
 
         void DestroySampler(VkSampler sampler);
+
+        VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
+        void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
+        void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
+        void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkClearColorValue *clearValue);
 
         /// notify when validation layers report error.
         void NotifyValidationError(const char* message);
@@ -102,7 +107,7 @@ namespace alimer
         std::unique_ptr<CommandQueueVk>         _graphicsCommandQueue;
         std::unique_ptr<CommandQueueVk>         _computeCommandQueue;
         std::unique_ptr<CommandQueueVk>         _copyCommandQueue;
-        std::vector< std::unique_ptr<CommandBufferVk>> _commandBuffers;
+        std::vector<std::unique_ptr<CommandBufferVk>> _commandBuffers;
 
         /* Features */
         DeviceFeaturesVk                        _featuresVk;

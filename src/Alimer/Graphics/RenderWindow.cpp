@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "../../Input/Input.h"
-#include "../../Core/Log.h"
-#define SDL_MAIN_HANDLED
-#include <SDL.h>
+#include "../Graphics/RenderWindow.h"
+#include "../Graphics/GraphicsDevice.h"
 
 namespace alimer
 {
-    void Input::PlatformConstruct()
+    RenderWindow::RenderWindow(GraphicsDevice* device)
     {
     }
 }

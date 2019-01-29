@@ -114,7 +114,7 @@ namespace alimer
         _audio->Initialize();
 
         // Create GraphicsDevice.
-        _graphicsDevice = new GraphicsDevice(_settings.preferredBackend, _settings.validation, _settings.headless);
+        _graphicsDevice = GraphicsDevice::Create(_settings.preferredGraphicsBackend, _settings.validation, _settings.headless);
         if (_graphicsDevice == nullptr)
         {
             ALIMER_LOGERROR("Failed to create GraphicsDevice instance.");
@@ -187,12 +187,11 @@ namespace alimer
         if (!_graphicsDevice->BeginFrame())
             return;
 
-        //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-        //CommandContext& context = _graphicsDevice->GetContext();
-        //context.BeginDefaultRenderPass(clearColor);
+        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        CommandContext& context = _graphicsDevice->GetContext();
+        context.BeginDefaultRenderPass(clearColor);
         //context.Draw(3, 0);
-        //context.EndRenderPass();
-        //context.Flush();
+        context.EndRenderPass();
 
         // TODO: Scene renderer
         // TODO: UI render.

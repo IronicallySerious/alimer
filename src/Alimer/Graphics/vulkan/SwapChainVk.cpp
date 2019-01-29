@@ -21,6 +21,7 @@
 //
 
 #include "SwapChainVk.h"
+#include "TextureVk.h"
 #include "GPUDeviceVk.h"
 #include "../../Core/Log.h"
 
@@ -240,8 +241,8 @@ namespace alimer
 
         _imageIndex = 0;
         vkGetSwapchainImagesKHR(_device->GetVkDevice(), _handle, &_imageCount, nullptr);
-        _swapchainImages.resize(_imageCount);
-        vkGetSwapchainImagesKHR(_device->GetVkDevice(), _handle, &_imageCount, _swapchainImages.data());
+        std::vector<VkImage> swapchainImages(_imageCount);
+        vkGetSwapchainImagesKHR(_device->GetVkDevice(), _handle, &_imageCount, swapchainImages.data());
 
         ALIMER_LOGINFO("Vulkan: Created swapchain {} x {} (imageCount: {}, format: {}).",
             swapchainSize.width,
@@ -253,19 +254,53 @@ namespace alimer
         _height = swapchainSize.height;
         _colorFormat = format.format;
 
-        /*_backbufferTextures.Resize(imageCount);
-        for (uint32_t i = 0; i < imageCount; ++i)
+        // Create backend textures
+        _swapchainTextures.resize(_imageCount);
+        TextureDescriptor textureDescriptor = {};
+        textureDescriptor.width = _width;
+        textureDescriptor.height = _height;
+        textureDescriptor.depth = 1;
+        textureDescriptor.arraySize = 1;
+        textureDescriptor.mipLevels = 1;
+        textureDescriptor.samples = SampleCount::Count1;
+        textureDescriptor.type = TextureType::Type2D;
+        textureDescriptor.format = vk::Convert(_colorFormat);
+        textureDescriptor.usage = textureUsage;
+
+        const bool canClear = createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        VkCommandBuffer clearImageCmdBuffer = canClear ? _device->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true) : VK_NULL_HANDLE;
+        for (uint32_t i = 0; i < _imageCount; ++i)
         {
-            _backbufferTextures[i] = new Texture(_graphicsDevice);
-            _backbufferTextures[i]->DefineFromHandle(
-                swapchainImages[i],
-                TextureType::Type2D,
-                swapchainSize.width, swapchainSize.height,
-                1, 1, 1,
-                _colorFormat,
-                textureUsage,
-                SampleCount::Count1);
-        }*/
+            _swapchainTextures[i] = std::make_unique<TextureVk>(_device, &textureDescriptor, swapchainImages[i], nullptr);
+            
+            // Clear with default value if supported.
+            if (canClear)
+            {
+                // Clear images with default color.
+                VkClearColorValue clearColor = {};
+                clearColor.float32[3] = 1.0f;
+                //clearColor.float32[0] = 1.0f;
+
+                VkImageSubresourceRange clearRange = {};
+                clearRange.layerCount = 1;
+                clearRange.levelCount = 1;
+
+                // Clear with default color.
+                _device->ClearImageWithColor(
+                    clearImageCmdBuffer,
+                    swapchainImages[i],
+                    clearRange,
+                    VK_IMAGE_ASPECT_COLOR_BIT,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    &clearColor);
+            }
+        }
+
+        if (canClear)
+        {
+            _device->FlushCommandBuffer(clearImageCmdBuffer, true);
+        }
     }
 
     VkResult SwapChainVk::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex)

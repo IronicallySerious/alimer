@@ -38,7 +38,7 @@ namespace alimer
     }
 
     GPUDeviceGL::GPUDeviceGL(bool validation, bool headless)
-        : GPUDevice(GraphicsBackend::OpenGL, validation, headless)
+        : GraphicsDevice(GraphicsBackend::OpenGL, validation, headless)
     {
         InitializeCaps();
 
@@ -69,7 +69,7 @@ namespace alimer
 
     }
 
-    bool GPUDeviceGL::SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor)
+    /*bool GPUDeviceGL::SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor)
     {
         return false;
     }
@@ -97,5 +97,5 @@ namespace alimer
     GPUBuffer* GPUDeviceGL::CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData)
     {
         return nullptr;
-    }
+    }*/
 }
