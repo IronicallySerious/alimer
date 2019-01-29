@@ -1390,50 +1390,6 @@ void CompilerHLSL::emit_resources()
 		}
 	}
 
-	if (requires_textureProj)
-	{
-		if (hlsl_options.shader_model >= 40)
-		{
-			statement("float SPIRV_Cross_projectTextureCoordinate(float2 coord)");
-			begin_scope();
-			statement("return coord.x / coord.y;");
-			end_scope();
-			statement("");
-
-			statement("float2 SPIRV_Cross_projectTextureCoordinate(float3 coord)");
-			begin_scope();
-			statement("return float2(coord.x, coord.y) / coord.z;");
-			end_scope();
-			statement("");
-
-			statement("float3 SPIRV_Cross_projectTextureCoordinate(float4 coord)");
-			begin_scope();
-			statement("return float3(coord.x, coord.y, coord.z) / coord.w;");
-			end_scope();
-			statement("");
-		}
-		else
-		{
-			statement("float4 SPIRV_Cross_projectTextureCoordinate(float2 coord)");
-			begin_scope();
-			statement("return float4(coord.x, 0.0, 0.0, coord.y);");
-			end_scope();
-			statement("");
-
-			statement("float4 SPIRV_Cross_projectTextureCoordinate(float3 coord)");
-			begin_scope();
-			statement("return float4(coord.x, coord.y, 0.0, coord.z);");
-			end_scope();
-			statement("");
-
-			statement("float4 SPIRV_Cross_projectTextureCoordinate(float4 coord)");
-			begin_scope();
-			statement("return coord;");
-			end_scope();
-			statement("");
-		}
-	}
-
 	if (required_textureSizeVariants != 0)
 	{
 		static const char *types[QueryTypeCount] = { "float4", "int4", "uint4" };
@@ -1835,7 +1791,7 @@ void CompilerHLSL::emit_struct_member(const SPIRType &type, uint32_t member_type
 	string packing_offset;
 	bool is_push_constant = type.storage == StorageClassPushConstant;
 
-	if ((has_decoration(type.self, DecorationCPacked) || is_push_constant) &&
+	if ((has_extended_decoration(type.self, SPIRVCrossDecorationPacked) || is_push_constant) &&
 	    has_member_decoration(type.self, index, DecorationOffset))
 	{
 		uint32_t offset = memb[index].offset - base_offset;
@@ -1870,7 +1826,7 @@ void CompilerHLSL::emit_buffer_block(const SPIRVariable &var)
 		if (type.array.empty())
 		{
 			if (buffer_is_packing_standard(type, BufferPackingHLSLCbufferPackOffset))
-				set_decoration(type.self, DecorationCPacked);
+				set_extended_decoration(type.self, SPIRVCrossDecorationPacked);
 			else
 				SPIRV_CROSS_THROW("cbuffer cannot be expressed with either HLSL packing layout or packoffset.");
 
@@ -1952,7 +1908,7 @@ void CompilerHLSL::emit_push_constant_block(const SPIRVariable &var)
 			auto &type = get<SPIRType>(var.basetype);
 
 			if (buffer_is_packing_standard(type, BufferPackingHLSLCbufferPackOffset, layout.start, layout.end))
-				set_decoration(type.self, DecorationCPacked);
+				set_extended_decoration(type.self, SPIRVCrossDecorationPacked);
 			else
 				SPIRV_CROSS_THROW(
 				    "root constant cbuffer cannot be expressed with either HLSL packing layout or packoffset.");
@@ -2575,8 +2531,6 @@ void CompilerHLSL::emit_texture_op(const Instruction &i)
 	if (dref)
 		inherited_expressions.push_back(dref);
 
-	if (proj)
-		coord_components++;
 	if (imgtype.image.arrayed)
 		coord_components++;
 
@@ -2775,17 +2729,14 @@ void CompilerHLSL::emit_texture_op(const Instruction &i)
 	bool forward = should_forward(coord);
 
 	// The IR can give us more components than we need, so chop them off as needed.
-	auto coord_expr = to_expression(coord) + swizzle(coord_components, expression_type(coord).vecsize);
+	string coord_expr;
+	if (coord_components != expression_type(coord).vecsize)
+		coord_expr = to_enclosed_expression(coord) + swizzle(coord_components, expression_type(coord).vecsize);
+	else
+		coord_expr = to_expression(coord);
 
-	if (proj)
-	{
-		if (!requires_textureProj)
-		{
-			requires_textureProj = true;
-			force_recompile = true;
-		}
-		coord_expr = "SPIRV_Cross_projectTextureCoordinate(" + coord_expr + ")";
-	}
+	if (proj && hlsl_options.shader_model >= 40) // Legacy HLSL has "proj" operations which do this for us.
+		coord_expr = coord_expr + " / " + to_extract_component_expression(coord, coord_components);
 
 	if (hlsl_options.shader_model < 40 && lod)
 	{
@@ -2822,9 +2773,16 @@ void CompilerHLSL::emit_texture_op(const Instruction &i)
 
 	if (dref)
 	{
+		if (hlsl_options.shader_model < 40)
+			SPIRV_CROSS_THROW("Legacy HLSL does not support comparison sampling.");
+
 		forward = forward && should_forward(dref);
 		expr += ", ";
-		expr += to_expression(dref);
+
+		if (proj)
+			expr += to_enclosed_expression(dref) + " / " + to_extract_component_expression(coord, coord_components);
+		else
+			expr += to_expression(dref);
 	}
 
 	if (!dref && (grad_x || grad_y))

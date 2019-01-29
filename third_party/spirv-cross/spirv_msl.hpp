@@ -168,6 +168,10 @@ public:
 		bool disable_rasterization = false;
 		bool swizzle_texture_samples = false;
 
+		// Fragment output in MSL must have at least as many components as the render pass.
+		// Add support to explicit pad out components.
+		bool pad_fragment_output_components = false;
+
 		bool is_ios()
 		{
 			return platform == iOS;
@@ -312,6 +316,10 @@ public:
 	// The remapped sampler must not be an array of samplers.
 	void remap_constexpr_sampler(uint32_t id, const MSLConstexprSampler &sampler);
 
+	// If using CompilerMSL::Options::pad_fragment_output_components, override the number of components we expect
+	// to use for a particular location. The default is 4 if number of components is not overridden.
+	void set_fragment_output_components(uint32_t location, uint32_t components);
+
 protected:
 	void emit_binary_unord_op(uint32_t result_type, uint32_t result_id, uint32_t op0, uint32_t op1, const char *op);
 	void emit_instruction(const Instruction &instr) override;
@@ -338,7 +346,7 @@ protected:
 	                             uint32_t grad_y, uint32_t lod, uint32_t coffset, uint32_t offset, uint32_t bias,
 	                             uint32_t comp, uint32_t sample, bool *p_forward) override;
 	std::string to_initializer_expression(const SPIRVariable &var) override;
-	std::string unpack_expression_type(std::string expr_str, const SPIRType &type) override;
+	std::string unpack_expression_type(std::string expr_str, const SPIRType &type, uint32_t packed_type_id) override;
 	std::string bitcast_glsl_op(const SPIRType &result_type, const SPIRType &argument_type) override;
 	bool skip_argument(uint32_t id) const override;
 	std::string to_member_reference(uint32_t base, const SPIRType &type, uint32_t index, bool ptr_chain) override;
@@ -384,12 +392,14 @@ protected:
 	void emit_interface_block(uint32_t ib_var_id);
 	bool maybe_emit_array_assignment(uint32_t id_lhs, uint32_t id_rhs);
 	void add_convert_row_major_matrix_function(uint32_t cols, uint32_t rows);
+	void fix_up_shader_inputs_outputs();
 
 	std::string func_type_decl(SPIRType &type);
 	std::string entry_point_args(bool append_comma);
 	std::string to_qualified_member_name(const SPIRType &type, uint32_t index);
 	std::string ensure_valid_name(std::string name, std::string pfx);
 	std::string to_sampler_expression(uint32_t id);
+	std::string to_swizzle_expression(uint32_t id);
 	std::string builtin_qualifier(spv::BuiltIn builtin);
 	std::string builtin_type_decl(spv::BuiltIn builtin);
 	std::string built_in_func_arg(spv::BuiltIn builtin, bool prefix_comma);
@@ -421,12 +431,14 @@ protected:
 
 	void bitcast_to_builtin_store(uint32_t target_id, std::string &expr, const SPIRType &expr_type) override;
 	void bitcast_from_builtin_load(uint32_t source_id, std::string &expr, const SPIRType &expr_type) override;
+	void emit_store_statement(uint32_t lhs_expression, uint32_t rhs_expression) override;
 
 	void analyze_sampled_image_usage();
 
 	Options msl_options;
 	std::set<SPVFuncImpl> spv_function_implementations;
 	std::unordered_map<uint32_t, MSLVertexAttr *> vtx_attrs_by_location;
+	std::unordered_map<uint32_t, uint32_t> fragment_output_components;
 	std::unordered_map<MSLStructMemberKey, uint32_t> struct_member_padding;
 	std::set<std::string> pragma_lines;
 	std::set<std::string> typedef_lines;
@@ -444,10 +456,14 @@ protected:
 	std::string stage_in_var_name = "in";
 	std::string stage_out_var_name = "out";
 	std::string sampler_name_suffix = "Smplr";
+	std::string swizzle_name_suffix = "Swzl";
 	spv::Op previous_instruction_opcode = spv::OpNop;
 
 	std::unordered_map<uint32_t, MSLConstexprSampler> constexpr_samplers;
 	std::vector<uint32_t> buffer_arrays;
+
+	uint32_t get_target_components_for_fragment_location(uint32_t location) const;
+	uint32_t build_extended_vector_type(uint32_t type_id, uint32_t components);
 
 	// OpcodeHandler that handles several MSL preprocessing operations.
 	struct OpCodePreprocessor : OpcodeHandler
