@@ -87,7 +87,6 @@ namespace alimer
         const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
         virtual GPUCommandBuffer* GetDefaultCommandBuffer() const { return _defaultCommandBuffer; }
 
-        virtual bool SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor) = 0;
         virtual bool BeginFrame() = 0;
         virtual void EndFrame() = 0;
 

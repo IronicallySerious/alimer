@@ -25,7 +25,7 @@
 #include "../IO/Stream.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #   define STBI_MSC_SECURE_CRT 1
 #endif
 #include <STB/stb_image.h>
@@ -42,7 +42,7 @@ namespace alimer
         if (all(equal(newSize, _size)) && newFormat == _format)
             return;
 
-        const uint32_t formatSize = GetFormatBytesPerBlock(newFormat);
+        const uint32_t formatSize = GetFormatBitsPerPixel(newFormat);
         if (formatSize == 0)
         {
             ALIMER_LOGERROR("Can not set image size with unspecified pixel byte size (including compressed formats)");
@@ -58,7 +58,7 @@ namespace alimer
 
     void Image::SetData(const uint8_t* pixelData)
     {
-        if (!IsCompressed(_format))
+        if (!IsCompressedFormat(_format))
         {
             memcpy(_data.get(), pixelData, _memorySize);
         }
@@ -79,7 +79,7 @@ namespace alimer
         //ALIMER_PROFILE(SaveImageBMP);
         ALIMER_ASSERT(dest);
 
-        if (IsCompressed(_format))
+        if (IsCompressedFormat(_format))
         {
             ALIMER_LOGERROR("Can not save compressed image '{}'", GetName().CString());
             return false;
@@ -91,7 +91,7 @@ namespace alimer
             return false;
         }
 
-        uint32_t components = GetFormatChannelCount(_format);
+        uint32_t components = GetFormatBitsPerPixel(_format) / 4;
         if (components < 1 || components > 4)
         {
             ALIMER_LOGERROR("Unsupported pixel format for PNG save on image '{}'", GetName().CString());
@@ -111,7 +111,7 @@ namespace alimer
 
     bool Image::SaveBmp(Stream* dest) const
     {
-        uint32_t components = GetFormatChannelCount(_format);
+        uint32_t components = GetFormatBitsPerPixel(_format) / 4; 
 
         return stbi_write_bmp_to_func(
             StbiWriteCallback,
@@ -124,7 +124,7 @@ namespace alimer
 
     bool Image::SavePng(Stream* dest) const
     {
-        uint32_t components = GetFormatChannelCount(_format);
+        uint32_t components = GetFormatBitsPerPixel(_format) / 4;
 
         return stbi_write_png_to_func(
             StbiWriteCallback,

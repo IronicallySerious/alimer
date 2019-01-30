@@ -56,7 +56,7 @@ namespace alimer
         ~GraphicsDevice() override;
 
         /// Set graphics mode. Create the OS window and rendering context if not created yet. Return true on success.
-        bool SetMode(const String& title, const IntVector2& size, bool fullscreen = false, bool resizable = false, bool vSync = true, SampleCount samples = SampleCount::Count1);
+        bool SetMode(const String& title, const IntVector2& size, bool fullscreen = false, bool resizable = false, bool vsync = true, bool multisampling = false);
 
         /// Add a GPUResource to keep track of. 
         void TrackResource(GPUResource* resource);

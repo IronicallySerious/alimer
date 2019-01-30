@@ -138,12 +138,12 @@ namespace alimer
         _impl->SetCursorVisible(visible);
     }
 
-    NativeHandle Window::GetNativeHandle() const
+    uint64_t Window::GetNativeHandle() const
     {
         return _impl->GetNativeHandle();
     }
     
-    NativeDisplay Window::GetNativeDisplay() const
+    uint64_t Window::GetNativeDisplay() const
     {
         return _impl->GetNativeDisplay();
     }

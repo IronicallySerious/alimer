@@ -121,9 +121,9 @@ namespace alimer
             return false;
         }
 
-        const bool vSync = true;
-        const SampleCount samples = SampleCount::Count1;
-        if (!_graphicsDevice->SetMode(_settings.title, _settings.size, _settings.fullscreen, _settings.resizable, vSync, samples))
+        const bool vsync = true;
+        const bool multisampling = false;
+        if (!_graphicsDevice->SetMode(_settings.title, _settings.size, _settings.fullscreen, _settings.resizable, vsync, multisampling))
         {
             ALIMER_LOGERROR("Failed to setup GraphicsDevice.");
             return false;
@@ -187,11 +187,11 @@ namespace alimer
         if (!_graphicsDevice->BeginFrame())
             return;
 
-        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-        CommandContext& context = _graphicsDevice->GetContext();
-        context.BeginDefaultRenderPass(clearColor);
+        //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        //CommandContext& context = _graphicsDevice->GetContext();
+        //context.BeginDefaultRenderPass(clearColor);
         //context.Draw(3, 0);
-        context.EndRenderPass();
+        //context.EndRenderPass();
 
         // TODO: Scene renderer
         // TODO: UI render.

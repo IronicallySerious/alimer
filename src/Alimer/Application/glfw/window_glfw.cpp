@@ -41,35 +41,35 @@
 
 namespace alimer
 {
-    inline NativeHandle GetNativeWindowHandle(GLFWwindow* window) noexcept
+    inline uint64_t GetNativeWindowHandle(GLFWwindow* window) noexcept
     {
         ALIMER_UNUSED(window);
 #if defined(GLFW_EXPOSE_NATIVE_WIN32)
-        return glfwGetWin32Window(window);
+        return (uint64_t)glfwGetWin32Window(window);
 #elif defined(GLFW_EXPOSE_NATIVE_X11)
-        return glfwGetX11Window((window);
+        return (uint64_t)glfwGetX11Window((window);
 #elif defined(GLFW_EXPOSE_NATIVE_WAYLAND)
-        return glfwGetWaylandWindow((window);
+        return (uint64_t)glfwGetWaylandWindow((window);
 #elif defined(GLFW_EXPOSE_NATIVE_COCOA)
-        return glfwGetCocoaWindow(window);
+        return (uint64_t)glfwGetCocoaWindow(window);
 #else
-        return nullptr;
+        return 0;
 #endif
     }
 
-    inline NativeDisplay GetNativeDisplayHandle(GLFWwindow* window) noexcept
+    inline uint64_t GetNativeDisplayHandle(GLFWwindow* window) noexcept
     {
         ALIMER_UNUSED(window);
 #if defined(GLFW_EXPOSE_NATIVE_WIN32)
-        return GetModuleHandleW(nullptr);
+        return (uint64_t)GetModuleHandleW(nullptr);
 #elif defined(GLFW_EXPOSE_NATIVE_X11)
-        return glfwGetX11Display((window);
+        return (uint64_t)glfwGetX11Display(window);
 #elif defined(GLFW_EXPOSE_NATIVE_WAYLAND)
-        return glfwGetWaylandDisplay((window);
+        return (uint64_t)glfwGetWaylandDisplay(window);
 #elif defined(GLFW_EXPOSE_NATIVE_COCOA)
-        return nullptr;
+        return 0;
 #else
-        return nullptr;
+        return 0;
 #endif
     }
 
@@ -248,12 +248,12 @@ namespace alimer
         glfwSetInputMode(_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
     }
 
-    NativeHandle WindowImpl::GetNativeHandle() const
+    uint64_t WindowImpl::GetNativeHandle() const
     {
         return GetNativeWindowHandle(_window);
     }
 
-    NativeDisplay WindowImpl::GetNativeDisplay() const
+    uint64_t WindowImpl::GetNativeDisplay() const
     {
         return GetNativeDisplayHandle(_window);
     }

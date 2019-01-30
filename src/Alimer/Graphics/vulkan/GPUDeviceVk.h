@@ -80,7 +80,7 @@ namespace alimer
 
     private:
         void InitializeFeatures();
-        VkSurfaceKHR CreateSurface(const SwapChainHandle* handle);
+        //VkSurfaceKHR CreateSurface(const SwapChainHandle* handle);
         bool IsExtensionSupported(const String& extension)
         {
             return (std::find(_physicalDeviceExtensions.begin(), _physicalDeviceExtensions.end(), extension) != _physicalDeviceExtensions.end());

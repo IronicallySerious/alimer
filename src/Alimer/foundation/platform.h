@@ -705,7 +705,7 @@
 #   include <intrin.h>
 
 // Microsoft
-#elif defined( _MSC_VER )
+#elif defined(_MSC_VER)
 
 #   undef  ALIMER_COMPILER_MSVC
 #   define ALIMER_COMPILER_MSVC 1

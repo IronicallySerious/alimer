@@ -23,6 +23,7 @@
 #pragma once
 
 #include <foundation/cpp_macros.h>
+#include "../vgpu/vgpu.h"
 #include "../Base/String.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
@@ -339,14 +340,6 @@ namespace alimer
         Back
     };
 
-    struct SwapChainHandle
-    {
-        /// Native window or view handle.
-        void* nativeHandle;
-        /// Native display, connection or instance handle.
-        void* nativeDisplay;
-    };
-
     /// Describes SwapChain
     struct SwapChainDescriptor
     {
@@ -360,11 +353,6 @@ namespace alimer
         PixelFormat preferredDepthStencilFormat;
         /// Preferred sample count
         SampleCount preferredSamples;
-    };
-
-    struct GraphicsDeviceDescriptor
-    {
-        SwapChainDescriptor     swapchain = {};
     };
 
     struct TextureDescriptor

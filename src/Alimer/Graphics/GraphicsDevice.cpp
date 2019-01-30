@@ -31,10 +31,6 @@
 #include "vulkan/GPUDeviceVk.h"
 #endif
 
-#if defined(ALIMER_OPENGL)
-#include "opengl/DeviceGL.h"
-#endif
-
 #if defined(_WIN32)
 #include <windows.h>
 
@@ -112,11 +108,7 @@ namespace alimer
 #endif
 
         case GraphicsBackend::OpenGL:
-#if defined(ALIMER_OPENGL)
-            return GPUDeviceGL::IsSupported();
-#else
             return false;
-#endif
         default:
             return false;
         }
@@ -179,12 +171,7 @@ namespace alimer
 #endif
             break;
         case GraphicsBackend::OpenGL:
-#if defined(ALIMER_OPENGL)
-            device = new GPUDeviceGL(validation, headless);
-            ALIMER_LOGINFO("D3D12 backend created with success.");
-#else
-            ALIMER_LOGERROR("D3D12 backend is not supported.");
-#endif
+            ALIMER_LOGERROR("OpenGL backend is not supported.");
             break;
         default:
             ALIMER_UNREACHABLE();
@@ -223,41 +210,50 @@ namespace alimer
         RemoveSubsystem(this);
     }
 
-    bool GraphicsDevice::SetMode(const String& title, const IntVector2& size, bool fullscreen, bool resizable, bool vSync, SampleCount samples)
+    bool GraphicsDevice::SetMode(const String& title, const IntVector2& size, bool fullscreen, bool resizable, bool vsync, bool multisampling)
     {
+        VGpuDescriptor descriptor = {};
+        descriptor.validation = _validation;
+        VgpuSwapchainDescriptor swapchainDescriptor = {};
+
         if (_headless)
         {
-            return true;
+            descriptor.swapchain = nullptr;
         }
-
-        WindowFlags flags = WindowFlags::None;
-        if (fullscreen) {
-            flags |= WindowFlags::Fullscreen;
-        }
-
-        if (resizable) {
-            flags |= WindowFlags::Resizable;
-        }
-
-        if (!_renderWindow->Define(title, size, flags))
+        else
         {
+            WindowFlags flags = WindowFlags::None;
+            if (fullscreen) {
+                flags |= WindowFlags::Fullscreen;
+            }
+
+            if (resizable) {
+                flags |= WindowFlags::Resizable;
+            }
+
+            if (!_renderWindow->Define(title, size, flags))
+            {
+                return false;
+            }
+
+            swapchainDescriptor.width = _renderWindow->GetWidth();
+            swapchainDescriptor.height = _renderWindow->GetHeight();
+            swapchainDescriptor.depthStencil = true;
+            swapchainDescriptor.multisampling = multisampling;
+            swapchainDescriptor.tripleBuffer = false;
+            swapchainDescriptor.vsync = vsync;
+            swapchainDescriptor.nativeHandle = _renderWindow->GetNativeHandle();
+            swapchainDescriptor.nativeDisplay = _renderWindow->GetNativeDisplay();
+            descriptor.swapchain = &swapchainDescriptor;
+        }
+
+        if (vgpuInitialize("alimer", &descriptor) != VGPU_SUCCESS)
+        {
+            ALIMER_LOGERROR("Failed to initialize graphics system");
             return false;
         }
 
-        // Define handle.
-        SwapChainHandle handle = {};
-        handle.nativeHandle = _renderWindow->GetNativeHandle();
-        handle.nativeDisplay = _renderWindow->GetNativeDisplay();
-
-        // Define swap chain.
-        SwapChainDescriptor swapchainDescriptor = {};
-        swapchainDescriptor.width = _renderWindow->GetWidth();
-        swapchainDescriptor.height = _renderWindow->GetHeight();
-        swapchainDescriptor.vSync = vSync;
-        swapchainDescriptor.preferredDepthStencilFormat = PixelFormat::D32Float;
-        swapchainDescriptor.preferredSamples = samples;
-        return false;
-        //return _impl->SetMode(&handle, &swapchainDescriptor);
+        return true;
     }
 
     void GraphicsDevice::OnAfterCreated()

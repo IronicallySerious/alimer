@@ -48,10 +48,6 @@ namespace alimer
         IntVector2 size;
     };
 
-    using NativeHandle = void*;
-    using NativeDisplay = void*;
-
-
     /// OS Window class.
     class ALIMER_API Window : public Object
     {
@@ -119,10 +115,10 @@ namespace alimer
         void SetCursorVisible(bool visible);
 
         /// Gets the native window or view handle.
-        NativeHandle GetNativeHandle() const;
+        uint64_t GetNativeHandle() const;
 
         /// Gets the native display, connection or instance handle.
-        NativeDisplay GetNativeDisplay() const;
+        uint64_t GetNativeDisplay() const;
 
         /// Size changed event.
         Event<void(const WindowResizeEvent&)> resizeEvent;

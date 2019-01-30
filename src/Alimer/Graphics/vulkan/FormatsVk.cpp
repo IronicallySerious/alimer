@@ -24,7 +24,7 @@
 
 namespace alimer
 {
-    const VkFormatDesc s_vkFormatDesc[] =
+    /*const VkFormatDesc s_vkFormatDesc[] =
     {
         { PixelFormat::Unknown,                     VK_FORMAT_UNDEFINED },
 
@@ -47,8 +47,8 @@ namespace alimer
         { PixelFormat::RG8SInt,                     VK_FORMAT_R8G8_SINT },
 
         // Packed 16-bit pixel formats
-        { PixelFormat::R5G6B5UNorm,                 VK_FORMAT_B5G6R5_UNORM_PACK16}, /* DXGI_FORMAT_B5G6R5_UNORM */
-        { PixelFormat::RGBA4UNorm,                  VK_FORMAT_B4G4R4A4_UNORM_PACK16}, /* DXGI_FORMAT_B4G4R4A4_UNORM*/
+        { PixelFormat::R5G6B5UNorm,                 VK_FORMAT_B5G6R5_UNORM_PACK16}, // DXGI_FORMAT_B5G6R5_UNORM 
+        { PixelFormat::RGBA4UNorm,                  VK_FORMAT_B4G4R4A4_UNORM_PACK16}, // DXGI_FORMAT_B4G4R4A4_UNORM
        
         // 32-bit pixel formats
         { PixelFormat::R32UInt,                     VK_FORMAT_R32_UINT}, 
@@ -94,7 +94,7 @@ namespace alimer
         { PixelFormat::BC6HU16,                       VK_FORMAT_BC6H_UFLOAT_BLOCK },
         { PixelFormat::BC7UNorm,                      VK_FORMAT_BC7_UNORM_BLOCK },
         { PixelFormat::BC7UNormSrgb,                  VK_FORMAT_BC7_SRGB_BLOCK },
-    };
+    };*/
 
     // Create an image memory barrier for changing the layout of
     // an image and put it into an active command buffer

@@ -199,8 +199,11 @@ namespace alimer
                 case VK_FORMAT_R8_UNORM:            return PixelFormat::R8UNorm;
                 case VK_FORMAT_R8G8_UNORM:          return PixelFormat::RG8UNorm;
                 case VK_FORMAT_R8G8B8A8_UNORM:		return PixelFormat::RGBA8UNorm;
-                case VK_FORMAT_B8G8R8A8_UNORM:		return PixelFormat::BGRA8UNorm;
-                case VK_FORMAT_B8G8R8A8_SRGB:		return PixelFormat::BGRA8UNormSrgb;
+
+                case VK_FORMAT_B8G8R8A8_UNORM:		
+                case VK_FORMAT_B8G8R8A8_SRGB:		
+                    return PixelFormat::BGRA8UNorm;
+
                 default:
                     return PixelFormat::Unknown;
             }

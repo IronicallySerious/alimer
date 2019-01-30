@@ -53,6 +53,7 @@
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
+#include "Graphics/RenderWindow.h"
 #include "Graphics/GraphicsDevice.h"
 
 // Resource

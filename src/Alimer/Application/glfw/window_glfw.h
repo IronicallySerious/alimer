@@ -50,8 +50,8 @@ namespace alimer
         bool IsOpen() const;
         bool IsCursorVisible() const;
         void SetCursorVisible(bool visible);
-        NativeHandle GetNativeHandle() const;
-        NativeDisplay GetNativeDisplay() const;
+        uintptr_t GetNativeHandle() const;
+        uint64_t GetNativeDisplay() const;
 
         GLFWwindow* _window;
 
