@@ -47,20 +47,20 @@ namespace alimer
     /// Enum describing the Graphics backend.
     enum class GraphicsBackend : uint32_t
     {
-        /// Best device supported for running platform.
-        Default,
-        /// Vulkan backend.
-        Vulkan,
-        /// Direct3D 11 backend.
-        D3D11,
-        /// Direct3D 12 backend.
-        D3D12,
-        /// OpenGL backend.
-        OpenGL,
+        /// Invalid backend.
+        Invalid = VGPU_BACKEND_INVALID,
         /// Null backend.
-        Null,
+        Null = VGPU_BACKEND_NULL,
+        /// Vulkan backend.
+        Vulkan = VGPU_BACKEND_VULKAN,
+        /// Direct3D 12 backend.
+        D3D12 = VGPU_BACKEND_D3D12,
+        /// Direct3D 11 backend.
+        D3D11 = VGPU_BACKEND_D3D11,
+        /// OpenGL backend.
+        OpenGL = VGPU_BACKEND_OPENGL,
         /// Count
-        Count
+        Count = VGPU_BACKEND_COUNT
     };
 
     /// Enum describing the number of samples.

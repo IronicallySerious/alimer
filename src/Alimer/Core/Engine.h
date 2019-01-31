@@ -38,7 +38,6 @@ namespace alimer
 
     struct EngineSettings
     {
-        GraphicsBackend                     preferredGraphicsBackend = GraphicsBackend::Default;
 #if defined(_DEBUG)
         bool                                validation = true;
 #else

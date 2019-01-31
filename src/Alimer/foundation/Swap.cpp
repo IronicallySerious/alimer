@@ -20,12 +20,13 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/RenderWindow.h"
-#include "../Graphics/GraphicsDevice.h"
+#include "../foundation/Swap.h"
+#include "../Base/String.h"
 
 namespace alimer
 {
-    RenderWindow::RenderWindow(GraphicsDevice* device)
+    template <> void Swap<String>(String& first, String& second)
     {
+        first.Swap(second);
     }
 }

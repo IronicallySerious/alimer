@@ -43,23 +43,7 @@ namespace alimer
 {
     class GPUDeviceVk;
 
-    struct DeviceFeaturesVk
-    {
-        bool supportsPhysicalDeviceProperties2 = false;
-        bool supportsExternal = false;
-        bool supportsDedicated = false;
-        bool supportsImageFormatList = false;
-        bool supportsDebugMarker = false;
-        bool supportsDebugUtils = false;
-        bool supportsMirrorClampToEdge = false;
-        bool supportsGoogleDisplayTiming = false;
-        VkPhysicalDeviceSubgroupProperties subgroupProperties = {};
-        VkPhysicalDevice8BitStorageFeaturesKHR storage8bitFeatures = {};
-        VkPhysicalDevice16BitStorageFeaturesKHR storage_16bitFeatures = {};
-        VkPhysicalDeviceFloat16Int8FeaturesKHR float16Int8Features = {};
-        VkPhysicalDeviceFeatures enabledFeatures = {};
-    };
-
+    
 
     inline const char* vkGetVulkanResultString(VkResult result)
     {

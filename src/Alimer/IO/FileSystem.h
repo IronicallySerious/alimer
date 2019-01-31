@@ -24,7 +24,7 @@
 
 #include <foundation/cpp_macros.h>
 #include "../Base/String.h"
-#include "../Base/Ptr.h"
+#include "../foundation/Ptr.h"
 #include "../Core/Platform.h"
 #include "../IO/FileStream.h"
 #include <unordered_map>

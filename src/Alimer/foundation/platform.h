@@ -896,6 +896,13 @@ typedef   float32_t    real;
 #   endif
 #endif
 
+// Macro for determining size of arrays.
+#if defined(_MSC_VER)
+#   define ALIMER_ARRAYSIZE(arr) _countof(arr)
+#else
+#   define ALIMER_ARRAYSIZE(arr) (sizeof(arr)/sizeof(arr[0]))
+#endif
+
 
 #if ALIMER_COMPILER_MSVC || defined(__STDC_NO_ATOMICS__)
 

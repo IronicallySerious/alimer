@@ -21,7 +21,6 @@
 //
 
 #include "../Application.h"
-#include "../../Graphics/RenderWindow.h"
 #include "window_glfw.h"
 #define GLFW_INCLUDE_NONE 
 #include <GLFW/glfw3.h>
@@ -51,13 +50,7 @@ namespace alimer
 
     void Application::PlatformRun()
     {
-        GraphicsBackend gpuBackend = _engine->GetSettings().preferredGraphicsBackend;
-        if (gpuBackend == GraphicsBackend::Default)
-        {
-            gpuBackend = GraphicsDevice::GetDefaultPlatformBackend();
-        }
-
-        if (gpuBackend != GraphicsBackend::OpenGL)
+        if (vgpuGetBackend() != VGPU_BACKEND_OPENGL)
         {
             // By default on non opengl context creation.
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -73,7 +66,7 @@ namespace alimer
             return;
         }
 
-        while (_engine->GetGraphicsDevice().GetRenderWindow()->IsOpen())
+        while (_engine->GetGraphicsDevice().GetRenderWindow().IsOpen())
         {
             if (!_paused)
             {

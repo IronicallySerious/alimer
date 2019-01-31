@@ -48,8 +48,6 @@ namespace alimer
 
         void Resize();
         void Resize(uint32_t width, uint32_t height);
-        VkResult AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex);
-        VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 
 	private:
         GPUDeviceVk* _device;

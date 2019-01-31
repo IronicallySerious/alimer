@@ -20,13 +20,24 @@
 // THE SOFTWARE.
 //
 
-#include "../Base/Swap.h"
-#include "../Base/String.h"
+#pragma once
+
+#include <foundation/platform.h>
 
 namespace alimer
 {
-    template <> void Swap<String>(String& first, String& second)
+    //class HashBase;
+    //class ListBase;
+    //class VectorBase;
+    class String;
+
+    /// Swap two values.
+    template<class T> inline void Swap(T& first, T& second)
     {
-        first.Swap(second);
+        T temp = first;
+        first = second;
+        second = temp;
     }
+
+    template <> ALIMER_API void Swap<String>(String& first, String& second);
 }

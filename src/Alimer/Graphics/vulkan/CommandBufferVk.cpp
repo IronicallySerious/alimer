@@ -75,7 +75,7 @@ namespace alimer
 
     void CommandBufferVk::PushDebugGroup(const char* name)
     {
-        if (_device->GetFeaturesVk().supportsDebugUtils)
+/*if (_device->GetFeaturesVk().supportsDebugUtils)
         {
             VkDebugUtilsLabelEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
             //if (color)
@@ -111,12 +111,12 @@ namespace alimer
 
             info.pMarkerName = name;
             vkCmdDebugMarkerBeginEXT(_handle, &info);
-        }
+        }*/
     }
 
     void CommandBufferVk::PopDebugGroup()
     {
-        if (_device->GetFeaturesVk().supportsDebugUtils)
+        /*if (_device->GetFeaturesVk().supportsDebugUtils)
         {
             if (vkCmdEndDebugUtilsLabelEXT != nullptr)
             {
@@ -126,12 +126,12 @@ namespace alimer
         else if (_device->GetFeaturesVk().supportsDebugMarker)
         {
             vkCmdDebugMarkerEndEXT(_handle);
-        }
+        }*/
     }
 
     void CommandBufferVk::InsertDebugMarker(const char* name)
     {
-        if (_device->GetFeaturesVk().supportsDebugUtils)
+        /*if (_device->GetFeaturesVk().supportsDebugUtils)
         {
             if (vkCmdInsertDebugUtilsLabelEXT != nullptr)
             {
@@ -153,7 +153,7 @@ namespace alimer
             //memcpy(markerInfo.color, &color[0], sizeof(float) * 4);
             markerInfo.pMarkerName = name;
             vkCmdDebugMarkerInsertEXT(_handle, &markerInfo);
-        }
+        }*/
     }
 
     void CommandBufferVk::BeginContext()

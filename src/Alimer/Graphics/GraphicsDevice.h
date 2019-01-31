@@ -34,23 +34,17 @@ namespace alimer
     class Shader;
     class Buffer;
     class Sampler;
-    class RenderWindow;
+    class Window;
     struct WindowResizeEvent;
 
     /// Low-level graphics module.
-    class ALIMER_API GraphicsDevice : public Object
+    class ALIMER_API GraphicsDevice final : public Object
     {
         ALIMER_OBJECT(GraphicsDevice, Object);
 
     public:
-        /// Get default best supported platform backend.
-        static GraphicsBackend GetDefaultPlatformBackend();
-
-        /// Check if backend is supported.
-        static bool IsBackendSupported(GraphicsBackend backend);
-
         /// Constructor.
-        static GraphicsDevice* Create(GraphicsBackend preferredBackend = GraphicsBackend::Default, bool validation = false, bool headless = false);
+        static GraphicsDevice* Create(bool validation = false, bool headless = false);
 
         /// Destructor.
         ~GraphicsDevice() override;
@@ -70,8 +64,8 @@ namespace alimer
         /// Get the device features.
         const GraphicsDeviceFeatures& GetFeatures() const;
 
-        /// Return the main renderin window.
-        RenderWindow* GetRenderWindow() const;
+        /// Return the main rendering window.
+        inline Window& GetRenderWindow() { return *_renderWindow.Get(); }
 
         /**
         * Get the default render-context.
@@ -92,7 +86,7 @@ namespace alimer
         uint64_t EndFrame();
 
         /// Wait device to finish all pending operations.
-        virtual void WaitIdle();
+        void WaitIdle();
 
         /**
         * Create a 1D texture.
@@ -198,13 +192,9 @@ namespace alimer
     private:
         void OnAfterCreated();
 
-    protected:
-        /// Constructor.
-        GraphicsDevice(GraphicsBackend backend, bool validation, bool headless);
-
     private:
-        //virtual bool BeginFrameImpl() = 0;
-        //virtual void EndFrameImpl() = 0;
+        /// Constructor.
+        GraphicsDevice(bool validation, bool headless);
 
         GraphicsBackend _backend;
         bool _inBeginFrame = false;
@@ -216,7 +206,7 @@ namespace alimer
         GraphicsDeviceFeatures _features = {};
 
         /// OS window.
-        SharedPtr<RenderWindow>         _renderWindow;
+        SharedPtr<Window>               _renderWindow;
 
         PODVector<GPUResource*>         _gpuResources;
         std::mutex                      _gpuResourceMutex;

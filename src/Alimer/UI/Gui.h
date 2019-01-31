@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../foundation/Ptr.h"
 #include "../Core/Object.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"

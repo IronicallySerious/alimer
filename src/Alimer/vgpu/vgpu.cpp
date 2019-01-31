@@ -23,7 +23,7 @@
 #include "vgpu.h"
 #include <assert.h>
 
-VGpuBackend vgpuGetBackend()
+VgpuBackend vgpuGetBackend()
 {
 #if defined(VGPU_D3D12) || defined(ALIMER_D3D12)
     return VGPU_BACKEND_D3D12;
@@ -203,24 +203,24 @@ VgpuPixelFormatType vgpuGetFormatType(VgpuPixelFormat format)
     return FormatDesc[(uint32_t)format].type;
 }
 
-VGpuBool32 vgpuIsDepthFormat(VgpuPixelFormat format)
+VgpuBool32 vgpuIsDepthFormat(VgpuPixelFormat format)
 {
     assert(FormatDesc[format].format == format);
     return FormatDesc[format].bits.depth > 0;
 }
 
-VGpuBool32 vgpuIsStencilFormat(VgpuPixelFormat format)
+VgpuBool32 vgpuIsStencilFormat(VgpuPixelFormat format)
 {
     assert(FormatDesc[format].format == format);
     return FormatDesc[format].bits.stencil > 0;
 }
 
-VGpuBool32 vgpuIsDepthStencilFormat(VgpuPixelFormat format)
+VgpuBool32 vgpuIsDepthStencilFormat(VgpuPixelFormat format)
 {
     return vgpuIsDepthFormat(format) || vgpuIsStencilFormat(format);
 }
 
-VGpuBool32 vgpuIsCompressedFormat(VgpuPixelFormat format)
+VgpuBool32 vgpuIsCompressedFormat(VgpuPixelFormat format)
 {
     assert(FormatDesc[format].format == format);
     return format >= VGPU_PIXEL_FORMAT_BC1_UNORM && format <= VGPU_PIXEL_FORMAT_PVRTC_RGBA4;
@@ -244,63 +244,6 @@ static AGpuRendererI* s_renderer = nullptr;
 #pragma warning(push)
 #pragma warning(disable:4201)   /* nonstandard extension used: nameless struct/union */
 #endif
-
-AgpuResult agpuInitialize(const AgpuDescriptor* descriptor)
-{
-    if (s_renderer != nullptr)
-        return AGPU_ALREADY_INITIALIZED;
-
-    AgpuBackend backend = descriptor->preferredBackend;
-    if (backend == AGPU_BACKEND_DEFAULT)
-    {
-        backend = agpuGetDefaultPlatformBackend();
-    }
-
-    AGpuRendererI* renderer = nullptr;
-    switch (backend)
-    {
-    case AGPU_BACKEND_EMPTY:
-        break;
-    case AGPU_BACKEND_VULKAN:
-        break;
-    case AGPU_BACKEND_D3D12:
-#if defined(ALIMER_D3D12)
-        renderer = agpuCreateD3D12Backend(descriptor->validation);
-#else
-        ALIMER_LOGERROR("D3D12 backend is not supported");
-#endif
-        break;
-    case AGPU_BACKEND_METAL:
-        break;
-    case AGPU_BACKEND_OPENGL:
-        break;
-    default:
-        break;
-    }
-
-    if (renderer != nullptr)
-    {
-        s_renderer = renderer;
-        return renderer->Initialize(descriptor);
-    }
-
-    return AGPU_ERROR;
-}
-
-void agpuShutdown()
-{
-    if (s_renderer != nullptr)
-    {
-        s_renderer->Shutdown();
-        delete s_renderer;
-        s_renderer = nullptr;
-    }
-}
-
-uint64_t agpuFrame()
-{
-    return s_renderer->Frame();
-}
 
 static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* descriptor)
 {

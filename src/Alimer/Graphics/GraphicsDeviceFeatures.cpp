@@ -26,6 +26,5 @@ namespace alimer
 {
     GraphicsDeviceFeatures::GraphicsDeviceFeatures()
     {
-        _backend = GraphicsBackend::Default;
     }
 }

@@ -115,7 +115,7 @@ namespace alimer
     {
         ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName());
 
-        _plugins.push_back(UniquePtr<Plugin>(plugin));
+        _plugins.Push(UniquePtr<Plugin>(plugin));
         plugin->Install();
 
         //if (_initialized)

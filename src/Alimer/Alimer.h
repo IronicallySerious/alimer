@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "Base/Swap.h"
+#include "foundation/Swap.h"
+#include "foundation/Ptr.h"
 #include "Base/Ptr.h"
 #include "Base/String.h"
 #include "Base/StringHash.h"
@@ -53,7 +54,6 @@
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
-#include "Graphics/RenderWindow.h"
 #include "Graphics/GraphicsDevice.h"
 
 // Resource

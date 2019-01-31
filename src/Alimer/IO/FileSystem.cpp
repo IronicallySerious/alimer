@@ -135,7 +135,7 @@ namespace alimer
     void FileSystem::RegisterProtocol(const String &name, FileSystemProtocol* protocol)
     {
         protocol->SetName(name);
-        _protocols[name].reset(protocol);
+        _protocols[name].Reset(protocol);
     }
 
     FileSystemProtocol* FileSystem::GetProcotol(const String &name)
@@ -146,7 +146,7 @@ namespace alimer
 
         if (it != end(_protocols))
         {
-            return it->second.get();
+            return it->second.Get();
         }
 
         return nullptr;

@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/GraphicsDevice.h"
-#include "../Graphics/RenderWindow.h"
+#include "../Application/Window.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Sampler.h"
 #include "../Application/Window.h"
@@ -46,138 +46,28 @@ namespace alimer
 {
     static GraphicsDevice* __graphicsInstance = nullptr;
 
-    GraphicsBackend GraphicsDevice::GetDefaultPlatformBackend()
-    {
-#if ALIMER_PLATFORM_WINDOWS
-        if (IsBackendSupported(GraphicsBackend::D3D12))
-        {
-            return GraphicsBackend::D3D12;
-        }
-        else if (IsBackendSupported(GraphicsBackend::Vulkan))
-        {
-            return GraphicsBackend::Vulkan;
-        }
-
-        return GraphicsBackend::D3D11;
-#elif ALIMER_PLATFORM_UWP || ALIMER_PLATFORM_XBOX_ONE
-        if (IsBackendSupported(GraphicsBackend::D3D12))
-        {
-            return GraphicsBackend::D3D12;
-        }
-
-        return GraphicsBackend::D3D11;
-#elif ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_ANDROID
-        return GraphicsBackend::OpenGL;
-#elif ALIMER_PLATFORM_MACOS || ALIMER_PLATFORM_IOS || ALIMER_PLATFORM_TVOS
-        return GraphicsBackend::Metal;
-#else
-        return GraphicsBackend::OpenGL;
-#endif
-    }
-
-    bool GraphicsDevice::IsBackendSupported(GraphicsBackend backend)
-    {
-        if (backend == GraphicsBackend::Default)
-        {
-            backend = GetDefaultPlatformBackend();
-        }
-
-        switch (backend)
-        {
-        case GraphicsBackend::Null:
-            return true;
-        case GraphicsBackend::Vulkan:
-#if defined(ALIMER_VULKAN)
-            return GPUDeviceVk::IsSupported();
-#else
-            return false;
-#endif
-        case GraphicsBackend::D3D11:
-#if defined(ALIMER_D3D11)
-            return DeviceD3D11::IsSupported();
-#else
-            return false;
-#endif
-
-        case GraphicsBackend::D3D12:
-#if defined(ALIMER_D3D12)
-            return false;
-            //return D3D12Graphics::IsSupported();
-#else
-            return false;
-#endif
-
-        case GraphicsBackend::OpenGL:
-            return false;
-        default:
-            return false;
-        }
-    }
-    
-    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, bool validation, bool headless)
-        : _backend(backend)
-        , _validation(validation)
+    GraphicsDevice::GraphicsDevice(bool validation, bool headless)
+        : _validation(validation)
         , _headless(headless)
     {
-        _renderWindow = new RenderWindow(this);
-
-        //_window->resizeEvent.Connect(&GraphicsDevice::HandleResize);
+        _backend = (GraphicsBackend)vgpuGetBackend();
+        _renderWindow = new Window();
+        //_renderWindow->resizeEvent.Connect(&GraphicsDevice::HandleResize);
         // Create immediate command buffer.
         //_renderContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
         AddSubsystem(this);
     }
 
-    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, bool validation, bool headless)
+    GraphicsDevice* GraphicsDevice::Create(bool validation, bool headless)
     {
-        GraphicsBackend backend = preferredBackend;
-        if (backend == GraphicsBackend::Default)
+        if (__graphicsInstance != nullptr)
         {
-            backend = GetDefaultPlatformBackend();
+            ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
+
         }
 
-        if (!IsBackendSupported(backend))
-        {
-            ALIMER_LOGERROR("GraphicsBackend is not supported on current platform");
-            return nullptr;
-        }
-
-        GraphicsDevice* device = nullptr;
-        switch (backend)
-        {
-        case GraphicsBackend::Null:
-            break;
-        case GraphicsBackend::Vulkan:
-#if defined(ALIMER_VULKAN)
-            device = new GPUDeviceVk(validation, headless);
-            ALIMER_LOGINFO("Vulkan backend created with success.");
-#else
-            ALIMER_LOGERROR("Vulkan backend is not supported.");
-#endif
-            break;
-        case GraphicsBackend::D3D11:
-#if defined(ALIMER_D3D11)
-            _impl = new DeviceD3D11(validation);
-            ALIMER_LOGINFO("D3D11 backend created with success.");
-#else
-            ALIMER_LOGERROR("D3D11 backend is not supported.");
-#endif
-            break;
-        case GraphicsBackend::D3D12:
-#if defined(ALIMER_D3D12)
-            //device = new D3D12Graphics(validation);
-            ALIMER_LOGINFO("D3D12 backend created with success.");
-#else
-            ALIMER_LOGERROR("D3D12 backend is not supported.");
-#endif
-            break;
-        case GraphicsBackend::OpenGL:
-            ALIMER_LOGERROR("OpenGL backend is not supported.");
-            break;
-        default:
-            ALIMER_UNREACHABLE();
-        }
-
-        return device;
+        __graphicsInstance = new GraphicsDevice(validation, headless);
+        return __graphicsInstance;
     }
 
     GraphicsDevice::~GraphicsDevice()
@@ -202,17 +92,18 @@ namespace alimer
         _renderContext.Reset();
 
         // Destroy backend.
-        //SafeDelete(_impl);
+        vgpuShutdown();
 
         // Destroy main window
         _renderWindow.Reset();
 
         RemoveSubsystem(this);
+        __graphicsInstance = nullptr;
     }
 
     bool GraphicsDevice::SetMode(const String& title, const IntVector2& size, bool fullscreen, bool resizable, bool vsync, bool multisampling)
     {
-        VGpuDescriptor descriptor = {};
+        VgpuDescriptor descriptor = {};
         descriptor.validation = _validation;
         VgpuSwapchainDescriptor swapchainDescriptor = {};
 
@@ -253,6 +144,7 @@ namespace alimer
             return false;
         }
 
+        OnAfterCreated();
         return true;
     }
 
@@ -274,10 +166,10 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
         }
 
-        //if (!_impl->BeginFrame())
-        //{
-        //    ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
-        //}
+        if (agpuBeginFrame() != VGPU_SUCCESS)
+        {
+            ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
+        }
 
         _inBeginFrame = true;
         return true;
@@ -290,13 +182,18 @@ namespace alimer
             ALIMER_LOGCRITICAL("BeginFrame must be called before EndFrame.");
         }
 
-        //_impl->EndFrame();
+        if (agpuEndFrame() != VGPU_SUCCESS)
+        {
+            ALIMER_LOGCRITICAL("Failed to end rendering frame.");
+        }
+
         _inBeginFrame = false;
         return ++_frameIndex;
     }
 
     void GraphicsDevice::WaitIdle()
     {
+        vgpuWaitIdle();
     }
 
     void GraphicsDevice::TrackResource(GPUResource* resource)
@@ -321,11 +218,6 @@ namespace alimer
     const GraphicsDeviceFeatures& GraphicsDevice::GetFeatures() const
     {
         return _features;
-    }
-
-    RenderWindow* GraphicsDevice::GetRenderWindow() const
-    {
-        return _renderWindow.Get();
     }
 
     static inline TextureUsage UpdateTextureUsage(TextureUsage usage, bool hasInitData, uint32_t mipLevels)

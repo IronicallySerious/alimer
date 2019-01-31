@@ -559,29 +559,6 @@ namespace alimer
         return ret;
     }
 
-    /// UniquePtr
-    template <typename T>
-    using UniquePtr = std::unique_ptr<T>;
-
-    /// Swap two UniquePtr-s.
-    template <class T> void Swap(UniquePtr<T>& first, UniquePtr<T>& second)
-    {
-        first.swap(second);
-    }
-
-    /// Construct UniquePtr.
-    template <class T, class ... Args> UniquePtr<T> MakeUnique(Args && ... args)
-    {
-        static_assert(!std::is_array<T>::value, "Arrays not supported");
-        return UniquePtr<T>(new T(std::forward<Args>(args)...));
-    }
-
-    /// Construct UniquePtr.
-    template <class T, class ... Args> UniquePtr<T> MakeUnique(size_t size)
-    {
-        return std::make_unique<T>(size);
-    }
-
     /// Construct SharedPtr.
     template <class T, class ... Args> SharedPtr<T> MakeShared(Args && ... args)
     {

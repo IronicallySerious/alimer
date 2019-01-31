@@ -114,7 +114,7 @@ namespace alimer
         _audio->Initialize();
 
         // Create GraphicsDevice.
-        _graphicsDevice = GraphicsDevice::Create(_settings.preferredGraphicsBackend, _settings.validation, _settings.headless);
+        _graphicsDevice = GraphicsDevice::Create(_settings.validation, _settings.headless);
         if (_graphicsDevice == nullptr)
         {
             ALIMER_LOGERROR("Failed to create GraphicsDevice instance.");

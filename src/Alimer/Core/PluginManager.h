@@ -23,8 +23,9 @@
 
 #pragma once
 
+#include "../foundation/Ptr.h"
 #include "../Base/String.h"
-#include "../Base/Ptr.h"
+#include "../Base/Vector.h"
 #include "../Core/Plugin.h"
 #include <vector>
 #include <unordered_map>
@@ -34,10 +35,10 @@ namespace alimer
     class Engine;
 
     /// Class that manages runtime plugins.
-    class ALIMER_API PluginManager
+    class ALIMER_API PluginManager final
     {
     public:
-        virtual ~PluginManager() = default;
+        ~PluginManager() = default;
 
         /// Create new plugin manager.
         static PluginManager* Create(Engine& engine);
@@ -55,7 +56,7 @@ namespace alimer
         PluginManager(Engine& engine);
 
         Engine& _engine;
-        std::vector<UniquePtr<Plugin>> _plugins;
+        Vector<UniquePtr<Plugin>> _plugins;
 
     private:
         PluginManager(const PluginManager&) = delete;

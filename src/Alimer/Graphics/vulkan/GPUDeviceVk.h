@@ -32,7 +32,7 @@ namespace alimer
     class CommandBufferVk;
 
     /// Vulkan gpu backend.
-    class GPUDeviceVk final : public GraphicsDevice
+    class GPUDeviceVk final 
     {
     public:
         // Constants
@@ -45,10 +45,7 @@ namespace alimer
         GPUDeviceVk(bool validation, bool headless);
 
         /// Destructor.
-        ~GPUDeviceVk() override;
-
-        /// Wait device idle.
-        void WaitIdle() override;
+        ~GPUDeviceVk();
 
         //bool SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor) override;
         //bool BeginFrame() override;
@@ -60,14 +57,6 @@ namespace alimer
 
         void DestroySampler(VkSampler sampler);
 
-        VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
-        void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
-        void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
-        void ClearImageWithColor(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange range, VkImageAspectFlags aspect, VkImageLayout sourceLayout, VkImageLayout destLayout, VkClearColorValue *clearValue);
-
-        /// notify when validation layers report error.
-        void NotifyValidationError(const char* message);
-
         VkInstance GetVkInstance() const { return _instance; }
         VkPhysicalDevice GetVkPhysicalDevice() const { return _physicalDevice; }
         VkDevice GetVkDevice() const { return _device; }
@@ -76,10 +65,8 @@ namespace alimer
         uint32_t GetGraphicsQueueFamily() const { return _graphicsQueueFamily; }
         uint32_t GetComputeQueueFamily() const { return _computeQueueFamily; }
         uint32_t GetTransferQueueFamily() const { return _transferQueueFamily; }
-        const DeviceFeaturesVk& GetFeaturesVk() const { return _featuresVk; }
 
     private:
-        void InitializeFeatures();
         //VkSurfaceKHR CreateSurface(const SwapChainHandle* handle);
         bool IsExtensionSupported(const String& extension)
         {
@@ -110,7 +97,6 @@ namespace alimer
         std::vector<std::unique_ptr<CommandBufferVk>> _commandBuffers;
 
         /* Features */
-        DeviceFeaturesVk                        _featuresVk;
         SwapChainVk*                             _mainSwapChain = nullptr;
         std::vector<VkFence>                    _waitFences;
         std::vector<VkSemaphore>                _renderCompleteSemaphores;

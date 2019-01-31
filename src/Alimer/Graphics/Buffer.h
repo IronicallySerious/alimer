@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Base/Ptr.h"
+#include "../foundation/Ptr.h"
 #include "../Base/String.h"
 #include "../Graphics/Backend.h"
 #include "../Graphics/VertexFormat.h"
@@ -65,6 +65,6 @@ namespace alimer
         uint32_t  _stride = 0;
 
         /// CPU-side shadow data.
-        UniquePtr<uint8_t[]> _shadowData;
+        AutoArrayPtr<uint8_t> _shadowData;
 	};
 }
