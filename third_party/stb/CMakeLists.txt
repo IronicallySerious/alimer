@@ -20,44 +20,13 @@
 # THE SOFTWARE.
 #
 
-# STB
-add_subdirectory(stb)
+set(STB_HEADER_FILES 
+    ${CMAKE_CURRENT_LIST_DIR}/stb_image.h
+    ${CMAKE_CURRENT_LIST_DIR}/stb_image_write.h
+    )
+set(STB_SOURCE_FILES 
+    ${CMAKE_CURRENT_LIST_DIR}/stb_image.c
+    ${CMAKE_CURRENT_LIST_DIR}/stb_image_write.c
+    )
 
-# vgpu (vortice gpu)
-add_subdirectory(vgpu)
-
-add_subdirectory(fmt)
-add_subdirectory(spdlog)
-
-# SPIRV-Cross
-add_subdirectory(spirv-cross)
-
-if (ALIMER_DESKTOP)
-    # glfw
-    if (ALIMER_SYSTEM_GLFW)
-        pkg_search_module(GLFW REQUIRED glfw3)
-        include_directories(${GLFW_INCLUDE_DIRS})
-    else()
-        set (GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-        set (GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-        set (GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-        set (GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-        #set (GLFW_USE_WAYLAND ${VGPU_USE_WAYLAND} CACHE BOOL "" FORCE)
-        add_subdirectory(glfw)
-    endif ()
-endif ()
-
-if (ALIMER_OPENGL)
-    add_subdirectory(glad)
-endif ()
-
-# CLI11
-add_subdirectory(CLI11)
-# ImGui
-add_subdirectory(imgui)
-
-if (ALIMER_SCRIPTING_LUA)
-    add_subdirectory(lua)
-endif ()
-
-vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} third_party)
+add_library(STB STATIC ${STB_HEADER_FILES} ${STB_SOURCE_FILES})

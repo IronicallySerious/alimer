@@ -73,7 +73,6 @@ endif ()
 define_engine_source_files (NORECURSE . foundation Base Core Debug IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
 define_engine_source_files (NORECURSE UI)
-define_engine_source_files (NORECURSE . vgpu)
 
 if (ALIMER_NETWORK)
     define_engine_source_files(Network)
@@ -99,14 +98,7 @@ if (ALIMER_D3D11)
     define_engine_source_files(Graphics/D3D11)
 endif ()
 
-# Temporary disable d3d12
-#if (ALIMER_D3D12)
-#    define_engine_source_files(Graphics/D3D12)
-#endif ()
-
 if (ALIMER_VULKAN)
-    define_engine_source_files(Graphics/vulkan)
-
     #set(GLSLANG_HEADER_FILES
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.h
@@ -147,7 +139,7 @@ if (ALIMER_OPENGL AND ALIMER_DESKTOP)
 endif ()
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES fmt spdlog spirv_cross ImGui)
+set (THIRD_PARTY_DEPENDENCIES STB vgpu fmt spdlog spirv_cross ImGui)
 
 if (ALIMER_DESKTOP)
     list (APPEND THIRD_PARTY_DEPENDENCIES glfw)
@@ -157,10 +149,6 @@ endif ()
 
 if (ALIMER_SCRIPTING_LUA)
     list (APPEND THIRD_PARTY_DEPENDENCIES liblua)
-endif ()
-
-if (ALIMER_VULKAN)
-    list (APPEND THIRD_PARTY_DEPENDENCIES volk vkmemalloc)
 endif ()
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
@@ -192,14 +180,6 @@ if (ALIMER_DESKTOP)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_GLFW)
 elseif (ALIMER_SDL2)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_SDL2)
-endif ()
-
-if (ALIMER_D3D12)
-    target_compile_definitions(${TARGET_NAME} PRIVATE -DVGPU_D3D12)
-elseif (ALIMER_D3D11)
-    target_compile_definitions(${TARGET_NAME} PRIVATE -DVGPU_D3D11)
-elseif (ALIMER_VULKAN)
-    target_compile_definitions(${TARGET_NAME} PRIVATE -DVGPU_VK)
 endif ()
 
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)

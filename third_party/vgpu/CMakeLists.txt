@@ -20,44 +20,29 @@
 # THE SOFTWARE.
 #
 
-# STB
-add_subdirectory(stb)
+cmake_minimum_required(VERSION 3.1)
+project (vgpu)
 
-# vgpu (vortice gpu)
-add_subdirectory(vgpu)
+set(VGPU_HEADER_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu.h)
+set(VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu.cpp)
 
-add_subdirectory(fmt)
-add_subdirectory(spdlog)
+if (ALIMER_D3D12)
+    list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu_d3d12.cpp)
+elseif (ALIMER_D3D11)
+    list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu_d3d11.cpp)
+elseif (ALIMER_VULKAN)
+    list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu_vk.cpp)
+    # volk
+    list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/libs/volk/volk.c)
+endif ()
 
-# SPIRV-Cross
-add_subdirectory(spirv-cross)
+add_library (vgpu STATIC ${VGPU_HEADER_FILES} ${VGPU_SOURCE_FILES})
+target_include_directories(vgpu PRIVATE ${CMAKE_CURRENT_LIST_DIR}/libs)
 
-if (ALIMER_DESKTOP)
-    # glfw
-    if (ALIMER_SYSTEM_GLFW)
-        pkg_search_module(GLFW REQUIRED glfw3)
-        include_directories(${GLFW_INCLUDE_DIRS})
-    else()
-        set (GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-        set (GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-        set (GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-        set (GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-        #set (GLFW_USE_WAYLAND ${VGPU_USE_WAYLAND} CACHE BOOL "" FORCE)
-        add_subdirectory(glfw)
+if (ALIMER_D3D12)
+elseif (ALIMER_D3D11)
+elseif (ALIMER_VULKAN)
+    if(NOT MSVC)
+        target_link_libraries(vgpu PRIVATE dl)
     endif ()
 endif ()
-
-if (ALIMER_OPENGL)
-    add_subdirectory(glad)
-endif ()
-
-# CLI11
-add_subdirectory(CLI11)
-# ImGui
-add_subdirectory(imgui)
-
-if (ALIMER_SCRIPTING_LUA)
-    add_subdirectory(lua)
-endif ()
-
-vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} third_party)

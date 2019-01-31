@@ -23,13 +23,8 @@
 #include "../Resource/Image.h"
 #include "../Core/Log.h"
 #include "../IO/Stream.h"
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#if defined(_MSC_VER)
-#   define STBI_MSC_SECURE_CRT 1
-#endif
-#include <STB/stb_image.h>
-#include <STB/stb_image_write.h>
+#include <stb_image.h>
+#include <stb_image_write.h>
 
 namespace alimer
 {

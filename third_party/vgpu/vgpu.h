@@ -22,7 +22,31 @@
 
 #pragma once
 
-#include "AlimerConfig.h"
+#include <stddef.h>
+
+#if !defined(VGPU_NO_STDINT_H)
+    #if defined(_MSC_VER) && (_MSC_VER < 1600)
+        typedef signed   __int8  int8_t;
+        typedef unsigned __int8  uint8_t;
+        typedef signed   __int16 int16_t;
+        typedef unsigned __int16 uint16_t;
+        typedef signed   __int32 int32_t;
+        typedef unsigned __int32 uint32_t;
+        typedef signed   __int64 int64_t;
+        typedef unsigned __int64 uint64_t;
+    #else
+        #include <stdint.h>
+    #endif
+#endif // !defined(VGPU_NO_STDINT_H)
+
+#if defined(_WIN32) && defined(VGPU_SHARED_LIBRARY)
+#   define VGPU_API __declspec(dllexport)
+#elif defined(_WIN32) && defined(VGPU_USE_SHARED_LIBRARY)
+#   define VGPU_API __declspec(dllimport)
+#else
+#   define VGPU_API
+#endif
+
 
 #ifndef VGPU_DEFINE_HANDLE
 #   define VGPU_DEFINE_HANDLE(object) typedef struct object##_T* object
@@ -430,79 +454,79 @@ extern "C"
     } VgpuRect2D;
 
     /// Get the gpu backend.
-    ALIMER_API VgpuBackend vgpuGetBackend();
+    VGPU_API VgpuBackend vgpuGetBackend();
 
-    ALIMER_API VgpuResult vgpuInitialize(const char* applicationName, const VgpuDescriptor* descriptor);
-    ALIMER_API void vgpuShutdown();
-    ALIMER_API VgpuResult agpuBeginFrame();
-    ALIMER_API VgpuResult agpuEndFrame();
-    ALIMER_API VgpuResult vgpuWaitIdle();
+    VGPU_API VgpuResult vgpuInitialize(const char* applicationName, const VgpuDescriptor* descriptor);
+    VGPU_API void vgpuShutdown();
+    VGPU_API VgpuResult agpuBeginFrame();
+    VGPU_API VgpuResult agpuEndFrame();
+    VGPU_API VgpuResult vgpuWaitIdle();
 
     /* Buffer */
-    ALIMER_API VgpuBuffer agpuCreateBuffer(const VgpuBufferDescriptor* descriptor, const void* initialData);
-    ALIMER_API VgpuBuffer agpuCreateExternalBuffer(const VgpuBufferDescriptor* descriptor, void* handle);
-    ALIMER_API void agpuDestroyBuffer(VgpuBuffer buffer);
+    VGPU_API VgpuBuffer agpuCreateBuffer(const VgpuBufferDescriptor* descriptor, const void* initialData);
+    VGPU_API VgpuBuffer agpuCreateExternalBuffer(const VgpuBufferDescriptor* descriptor, void* handle);
+    VGPU_API void agpuDestroyBuffer(VgpuBuffer buffer);
 
     /* Texture */
-    ALIMER_API VgpuTexture agpuCreateTexture(const VgpuTextureDescriptor* descriptor);
-    ALIMER_API VgpuTexture agpuCreateExternalTexture(const VgpuTextureDescriptor* descriptor, void* handle);
-    ALIMER_API void agpuDestroyTexture(VgpuTexture texture);
+    VGPU_API VgpuTexture agpuCreateTexture(const VgpuTextureDescriptor* descriptor);
+    VGPU_API VgpuTexture agpuCreateExternalTexture(const VgpuTextureDescriptor* descriptor, void* handle);
+    VGPU_API void agpuDestroyTexture(VgpuTexture texture);
 
     /* Framebuffer */
-    ALIMER_API VgpuFramebuffer agpuCreateFramebuffer(const VgpuFramebufferDescriptor* descriptor);
-    ALIMER_API void agpuDestroyFramebuffer(VgpuFramebuffer framebuffer);
+    VGPU_API VgpuFramebuffer agpuCreateFramebuffer(const VgpuFramebufferDescriptor* descriptor);
+    VGPU_API void agpuDestroyFramebuffer(VgpuFramebuffer framebuffer);
 
     /* ShaderModule */
-    ALIMER_API VgpuShaderModule agpuCreateShaderModule(const VgpuShaderModuleDescriptor* descriptor);
-    ALIMER_API void agpuDestroyShaderModule(VgpuShaderModule shaderModule);
+    VGPU_API VgpuShaderModule agpuCreateShaderModule(const VgpuShaderModuleDescriptor* descriptor);
+    VGPU_API void agpuDestroyShaderModule(VgpuShaderModule shaderModule);
 
     /* Shader */
-    ALIMER_API VgpuShader agpuCreateShader(const VgpuShaderDescriptor* descriptor);
-    ALIMER_API void agpuDestroyShader(VgpuShader shader);
+    VGPU_API VgpuShader agpuCreateShader(const VgpuShaderDescriptor* descriptor);
+    VGPU_API void agpuDestroyShader(VgpuShader shader);
 
     /* Pipeline */
-    ALIMER_API VgpuPipeline agpuCreateRenderPipeline(const VgpuRenderPipelineDescriptor* descriptor);
-    ALIMER_API VgpuPipeline agpuCreateComputePipeline(const VgpuComputePipelineDescriptor* descriptor);
-    ALIMER_API void agpuDestroyPipeline(VgpuPipeline pipeline);
+    VGPU_API VgpuPipeline agpuCreateRenderPipeline(const VgpuRenderPipelineDescriptor* descriptor);
+    VGPU_API VgpuPipeline agpuCreateComputePipeline(const VgpuComputePipelineDescriptor* descriptor);
+    VGPU_API void agpuDestroyPipeline(VgpuPipeline pipeline);
 
     /* Command buffer */
-    ALIMER_API void agpuBeginRenderPass(VgpuFramebuffer framebuffer);
-    ALIMER_API void agpuEndRenderPass();
-    ALIMER_API void agpuCmdSetShader(VgpuShader shader);
-    ALIMER_API void agpuCmdSetVertexBuffer(uint32_t binding, VgpuBuffer buffer, uint64_t offset, VgpuVertexInputRate inputRate);
-    ALIMER_API void agpuCmdSetIndexBuffer(VgpuBuffer buffer, uint64_t offset, VgpuIndexType indexType);
+    VGPU_API void agpuBeginRenderPass(VgpuFramebuffer framebuffer);
+    VGPU_API void agpuEndRenderPass();
+    VGPU_API void agpuCmdSetShader(VgpuShader shader);
+    VGPU_API void agpuCmdSetVertexBuffer(uint32_t binding, VgpuBuffer buffer, uint64_t offset, VgpuVertexInputRate inputRate);
+    VGPU_API void agpuCmdSetIndexBuffer(VgpuBuffer buffer, uint64_t offset, VgpuIndexType indexType);
 
-    ALIMER_API void agpuCmdSetViewport(VgpuViewport viewport);
-    ALIMER_API void agpuCmdSetViewports(uint32_t viewportCount, const VgpuViewport* pViewports);
-    ALIMER_API void agpuCmdSetScissor(VgpuRect2D scissor);
-    ALIMER_API void agpuCmdSetScissors(uint32_t scissorCount, const VgpuRect2D* pScissors);
+    VGPU_API void agpuCmdSetViewport(VgpuViewport viewport);
+    VGPU_API void agpuCmdSetViewports(uint32_t viewportCount, const VgpuViewport* pViewports);
+    VGPU_API void agpuCmdSetScissor(VgpuRect2D scissor);
+    VGPU_API void agpuCmdSetScissors(uint32_t scissorCount, const VgpuRect2D* pScissors);
 
-    ALIMER_API void CmdSetPrimitiveTopology(VgpuPrimitiveTopology topology);
-    ALIMER_API void agpuCmdDraw(uint32_t vertexCount, uint32_t firstVertex);
-    ALIMER_API void agpuCmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset);
+    VGPU_API void CmdSetPrimitiveTopology(VgpuPrimitiveTopology topology);
+    VGPU_API void agpuCmdDraw(uint32_t vertexCount, uint32_t firstVertex);
+    VGPU_API void agpuCmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset);
 
     /* Helper methods */
     /// Get the number of bits per format
-    ALIMER_API uint32_t vgpuGetFormatBitsPerPixel(VgpuPixelFormat format);
-    ALIMER_API uint32_t vgpuGetFormatBlockSize(VgpuPixelFormat format);
+    VGPU_API uint32_t vgpuGetFormatBitsPerPixel(VgpuPixelFormat format);
+    VGPU_API uint32_t vgpuGetFormatBlockSize(VgpuPixelFormat format);
 
     /// Get the format compression ration along the x-axis.
-    ALIMER_API uint32_t vgpuGetFormatBlockWidth(VgpuPixelFormat format);
+    VGPU_API uint32_t vgpuGetFormatBlockWidth(VgpuPixelFormat format);
     /// Get the format compression ration along the y-axis.
-    ALIMER_API uint32_t vgpuGetFormatBlockHeight(VgpuPixelFormat format);
+    VGPU_API uint32_t vgpuGetFormatBlockHeight(VgpuPixelFormat format);
     /// Get the format Type.
-    ALIMER_API VgpuPixelFormatType vgpuGetFormatType(VgpuPixelFormat format);
+    VGPU_API VgpuPixelFormatType vgpuGetFormatType(VgpuPixelFormat format);
 
     /// Check if the format has a depth component.
-    ALIMER_API VgpuBool32 vgpuIsDepthFormat(VgpuPixelFormat format);
+    VGPU_API VgpuBool32 vgpuIsDepthFormat(VgpuPixelFormat format);
     /// Check if the format has a stencil component.
-    ALIMER_API VgpuBool32 vgpuIsStencilFormat(VgpuPixelFormat format);
+    VGPU_API VgpuBool32 vgpuIsStencilFormat(VgpuPixelFormat format);
     /// Check if the format has depth or stencil components.
-    ALIMER_API VgpuBool32 vgpuIsDepthStencilFormat(VgpuPixelFormat format);
+    VGPU_API VgpuBool32 vgpuIsDepthStencilFormat(VgpuPixelFormat format);
     /// Check if the format is a compressed format.
-    ALIMER_API VgpuBool32 vgpuIsCompressedFormat(VgpuPixelFormat format);
+    VGPU_API VgpuBool32 vgpuIsCompressedFormat(VgpuPixelFormat format);
     /// Get format string name.
-    ALIMER_API const char* vgpuGetFormatName(VgpuPixelFormat format);
+    VGPU_API const char* vgpuGetFormatName(VgpuPixelFormat format);
 
 #ifdef __cplusplus
 }

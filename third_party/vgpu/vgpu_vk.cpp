@@ -22,7 +22,6 @@
 
 #include "vgpu.h"
 
-#if defined(VGPU_VK) || defined(ALIMER_VULKAN)
 #if defined(_WIN32)
 #    ifndef VK_USE_PLATFORM_WIN32_KHR
 #        define VK_USE_PLATFORM_WIN32_KHR 1
@@ -34,14 +33,16 @@
 #elif defined(__ANDROID__)
 #    define VK_USE_PLATFORM_ANDROID_KHR 1
 #elif defined(__linux__)
-#    ifdef ALIMER_LINUX_WAYLAND
+#    ifdef VGPU_LINUX_WAYLAND
 #        define VK_USE_PLATFORM_WAYLAND_KHR 1
 #    else
 #        define VK_USE_PLATFORM_XLIB_KHR 1
 #    endif
 #endif
+
 #include "volk/volk.h"
-#include <vk_mem_alloc.h>
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc/vk_mem_alloc.h>
 //#include <spirv-cross/spirv_hlsl.hpp>
 
 #if !defined(VGPU_DEBUG) && !defined(NDEBUG)
@@ -55,6 +56,7 @@
 
 #ifndef VGPU_ALLOC
 #   include <stdlib.h>
+#   include <malloc.h>
 #   define VGPU_ALLOC(type) ((type*) malloc(sizeof(type)))
 #   define VGPU_ALLOCN(type, n) ((type*) malloc(sizeof(type) * n))
 #   define VGPU_FREE(ptr) free(ptr)
@@ -1927,5 +1929,3 @@ VgpuResult vgpuWaitIdle()
 {
     return s_renderer->waitIdle();
 }
-
-#endif /* defined(VGPU_VK) || defined(ALIMER_VULKAN) */

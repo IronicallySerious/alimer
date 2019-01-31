@@ -28,11 +28,11 @@
 #include "../Core/Log.h"
 #include <algorithm>
 #include <unordered_map>
-#include <spirv-cross/spirv_glsl.hpp>
+//#include <spirv-cross/spirv_glsl.hpp>
 
 namespace alimer
 {
-    class CustomCompiler : public spirv_cross::CompilerGLSL
+    /*class CustomCompiler : public spirv_cross::CompilerGLSL
     {
     public:
         CustomCompiler(const PODVector<uint8_t>& bytecode)
@@ -62,8 +62,8 @@ namespace alimer
                 access = VK_ACCESS_SHADER_READ_BIT;
 
             return access;
-        }*/
-    };
+        }
+    };*/
 
     Shader::Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor)
         : GPUResource(device, Type::Shader)
@@ -84,7 +84,7 @@ namespace alimer
     void Shader::Reflect(const PODVector<uint8_t>& bytecode)
     {
         // Parse SPIRV binary.
-        CustomCompiler compiler(bytecode);
+        /*CustomCompiler compiler(bytecode);
         spirv_cross::CompilerGLSL::Options opts = compiler.get_common_options();
         opts.enable_420pack_extension = true;
         compiler.set_common_options(opts);
@@ -119,7 +119,7 @@ namespace alimer
         // Extract per stage inputs.
         for (auto& resource : resources.stage_inputs)
         {
-        }
+        }*/
     }
 
     /*class ShaderLoader final : public ResourceLoader
