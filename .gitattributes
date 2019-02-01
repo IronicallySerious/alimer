@@ -1,33 +1,24 @@
-# Auto detect text files and perform LF normalization
 * text=auto
-
-*.c   eol=lf
-*.cpp eol=lf
-*.h   eol=lf
-*.sc  eol=lf
-*.sh  eol=lf
-*.m   eol=lf
-*.mm  eol=lf
-*.md  eol=lf
-*.lua eol=lf
-*.mk  eol=lf
-makefile eol=lf
-
-*.sln     text eol=crlf
-*.vcproj  text eof=crlf
-*.vcxproj text eof=crlf
-*.bat     text eol=crlf
-
-*.so  binary
-*.dll binary
-*.exe binary
-*.png binary
-*.tga binary
-*.dds binary
-*.ktx binary
-*.pvr binary
-*.wav binary
-*.ogg binary
+*.h   text
+*.c   text
+*.hpp text
+*.cpp text
+*.hxx text
+*.cxx text
+*.inl text
+*.txt text
+*.xml text
+*.json text
+*.html text
+*.cmake text
+*.dox text
+*.in text
+*.md text
+*.sh text
+*.bat text
+*.py text
+*.glsl text
+*.hlsl text
 
 # Exclude dirs from githug language statis
 assets/* linguist-vendored=true
