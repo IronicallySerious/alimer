@@ -47,6 +47,15 @@ if (ALIMER_DESKTOP)
     endif ()
 endif ()
 
+if (ALIMER_VULKAN)
+    add_subdirectory(volk)
+    add_subdirectory(vk_mem_alloc)
+
+    set_property(TARGET "volk" PROPERTY FOLDER "third_party")
+    set_property(TARGET "vk_mem_alloc" PROPERTY FOLDER "third_party")
+endif ()
+
+
 if (ALIMER_OPENGL)
     add_subdirectory(glad)
 endif ()
