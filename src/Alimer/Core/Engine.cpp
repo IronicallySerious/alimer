@@ -25,6 +25,7 @@
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
+#include "../Application/Window.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Scene/SceneManager.h"
 #include "../UI/Gui.h"
@@ -72,6 +73,10 @@ namespace alimer
         PluginManager::Destroy(_pluginManager);
         _gui.Reset();
         _graphicsDevice.Reset();
+
+        // Destroy main window.
+        _window.reset();
+
         RemoveSubsystem(this);
     }
 
@@ -113,17 +118,37 @@ namespace alimer
         _audio = Audio::Create();
         _audio->Initialize();
 
+        // Create main window
+        _window.reset(new Window());
+        WindowFlags windowFlags = WindowFlags::None;
+        if (_settings.fullscreen) {
+            windowFlags |= WindowFlags::Fullscreen;
+        }
+
+        if (_settings.resizable) {
+            windowFlags |= WindowFlags::Resizable;
+        }
+
+        if (!_window->Define(_settings.title, _settings.size, windowFlags))
+        {
+            return false;
+        }
+
         // Create GraphicsDevice.
-        _graphicsDevice = GraphicsDevice::Create(_settings.validation, _settings.headless);
+        _graphicsDevice = GraphicsDevice::Create(
+            _settings.preferredGraphicsBackend,
+            _settings.validation,
+            _settings.headless);
         if (_graphicsDevice == nullptr)
         {
             ALIMER_LOGERROR("Failed to create GraphicsDevice instance.");
             return false;
         }
 
+        const bool depthStencil = true;
         const bool vsync = true;
-        const bool multisampling = false;
-        if (!_graphicsDevice->SetMode(_settings.title, _settings.size, _settings.fullscreen, _settings.resizable, vsync, multisampling))
+        const SampleCount samples = SampleCount::Count1;
+        if (!_graphicsDevice->Initialize(_window.get(), depthStencil, vsync, samples))
         {
             ALIMER_LOGERROR("Failed to setup GraphicsDevice.");
             return false;

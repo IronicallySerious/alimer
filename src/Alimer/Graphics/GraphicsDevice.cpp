@@ -28,7 +28,7 @@
 #include "Core/Log.h"
 
 #if defined(ALIMER_VULKAN)
-#include "vulkan/GPUDeviceVk.h"
+#   include "vulkan/GPUDeviceVk.h"
 #endif
 
 #if defined(_WIN32)
@@ -46,19 +46,49 @@ namespace alimer
 {
     static GraphicsDevice* __graphicsInstance = nullptr;
 
-    GraphicsDevice::GraphicsDevice(bool validation, bool headless)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend preferredBackend, bool validation, bool headless)
         : _validation(validation)
         , _headless(headless)
     {
-        _backend = (GraphicsBackend)vgpuGetBackend();
-        _renderWindow = new Window();
-        //_renderWindow->resizeEvent.Connect(&GraphicsDevice::HandleResize);
+        _backend = preferredBackend;
+        if (preferredBackend == GraphicsBackend::Default)
+        {
+            _backend = GraphicsBackend::Vulkan;
+        }
+
+        switch (_backend)
+        {
+        case GraphicsBackend::Null:
+            break;
+        case GraphicsBackend::Vulkan:
+#if defined(ALIMER_VULKAN)
+            if (GPUDeviceVk::IsSupported())
+            {
+                _device = new GPUDeviceVk(validation, headless);
+                ALIMER_LOGINFO("Vulkan backend created with success.");
+            }
+            else
+#else
+            {
+                ALIMER_LOGERROR("Vulkan backend is not supported.");
+            }
+#endif
+        case GraphicsBackend::D3D12:
+            break;
+        case GraphicsBackend::D3D11:
+            break;
+        case GraphicsBackend::OpenGL:
+            break;
+        default:
+            ALIMER_UNREACHABLE();
+        }
+
         // Create immediate command buffer.
         //_renderContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
         AddSubsystem(this);
     }
 
-    GraphicsDevice* GraphicsDevice::Create(bool validation, bool headless)
+    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, bool validation, bool headless)
     {
         if (__graphicsInstance != nullptr)
         {
@@ -66,7 +96,7 @@ namespace alimer
 
         }
 
-        __graphicsInstance = new GraphicsDevice(validation, headless);
+        __graphicsInstance = new GraphicsDevice(preferredBackend, validation, headless);
         return __graphicsInstance;
     }
 
@@ -92,59 +122,30 @@ namespace alimer
         _renderContext.Reset();
 
         // Destroy backend.
-        vgpuShutdown();
-
-        // Destroy main window
-        _renderWindow.Reset();
+        SafeDelete(_device);
 
         RemoveSubsystem(this);
         __graphicsInstance = nullptr;
     }
 
-    bool GraphicsDevice::SetMode(const String& title, const IntVector2& size, bool fullscreen, bool resizable, bool vsync, bool multisampling)
+    bool GraphicsDevice::Initialize(Window* window, bool depthStencil, bool vsync, SampleCount samples)
     {
-        VgpuDescriptor descriptor = {};
-        descriptor.validation = _validation;
-        VgpuSwapchainDescriptor swapchainDescriptor = {};
-
-        if (_headless)
-        {
-            descriptor.swapchain = nullptr;
-        }
-        else
-        {
-            WindowFlags flags = WindowFlags::None;
-            if (fullscreen) {
-                flags |= WindowFlags::Fullscreen;
-            }
-
-            if (resizable) {
-                flags |= WindowFlags::Resizable;
-            }
-
-            if (!_renderWindow->Define(title, size, flags))
-            {
-                return false;
-            }
-
-            swapchainDescriptor.width = _renderWindow->GetWidth();
-            swapchainDescriptor.height = _renderWindow->GetHeight();
-            swapchainDescriptor.depthStencil = true;
-            swapchainDescriptor.multisampling = multisampling;
-            swapchainDescriptor.tripleBuffer = false;
-            swapchainDescriptor.vsync = vsync;
-            swapchainDescriptor.nativeHandle = _renderWindow->GetNativeHandle();
-            swapchainDescriptor.nativeDisplay = _renderWindow->GetNativeDisplay();
-            descriptor.swapchain = &swapchainDescriptor;
+        if (_initialized) {
+            return true;
         }
 
-        if (vgpuInitialize("alimer", &descriptor) != VGPU_SUCCESS)
+        SwapChainDescriptor descriptor = {};
+        descriptor.width = window->GetWidth();
+        descriptor.height = window->GetWidth();
+
+        if (!_device->Initialize(&descriptor))
         {
-            ALIMER_LOGERROR("Failed to initialize graphics system");
+            ALIMER_LOGERROR("Failed to initialize graphics backend");
             return false;
         }
 
         OnAfterCreated();
+        _initialized = true;
         return true;
     }
 
@@ -166,10 +167,10 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
         }
 
-        if (agpuBeginFrame() != VGPU_SUCCESS)
-        {
-            ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
-        }
+        //if (agpuBeginFrame() != VGPU_SUCCESS)
+        //{
+        //    ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
+        //}
 
         _inBeginFrame = true;
         return true;
@@ -182,10 +183,10 @@ namespace alimer
             ALIMER_LOGCRITICAL("BeginFrame must be called before EndFrame.");
         }
 
-        if (agpuEndFrame() != VGPU_SUCCESS)
-        {
-            ALIMER_LOGCRITICAL("Failed to end rendering frame.");
-        }
+        //if (agpuEndFrame() != VGPU_SUCCESS)
+        //{
+        //    ALIMER_LOGCRITICAL("Failed to end rendering frame.");
+        //}
 
         _inBeginFrame = false;
         return ++_frameIndex;
@@ -193,7 +194,7 @@ namespace alimer
 
     void GraphicsDevice::WaitIdle()
     {
-        vgpuWaitIdle();
+        _device->WaitIdle();
     }
 
     void GraphicsDevice::TrackResource(GPUResource* resource)
@@ -209,7 +210,7 @@ namespace alimer
     }
 
     /// Get the backend.
-    GraphicsBackend GraphicsDevice::GetBackend() const 
+    GraphicsBackend GraphicsDevice::GetBackend() const
     {
         return _backend;
     }
@@ -307,7 +308,7 @@ namespace alimer
 
         return true;
 #endif
-    }
+}
 
     Texture* GraphicsDevice::Create1DTexture(uint32_t width, PixelFormat format, uint32_t arraySize, uint32_t mipLevels, TextureUsage textureUsage, const void* pInitData)
     {
@@ -358,7 +359,7 @@ namespace alimer
         descriptor.format = format;
         descriptor.usage = UpdateTextureUsage(textureUsage, pInitData != nullptr, mipLevels);
         return nullptr;
-       // return CreateTextureImpl(&descriptor, nullptr, pInitData);
+        // return CreateTextureImpl(&descriptor, nullptr, pInitData);
     }
 
     Texture* GraphicsDevice::Create2DMultisampleTexture(uint32_t width, uint32_t height, PixelFormat format, SampleCount samples, uint32_t arraySize, TextureUsage textureUsage, const void* pInitData)
@@ -485,14 +486,14 @@ namespace alimer
     Sampler* GraphicsDevice::CreateSampler(const SamplerDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
-        return nullptr; 
+        return nullptr;
         //return CreateSamplerImpl(descriptor);
     }
 
     Shader* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
-        return nullptr; 
+        return nullptr;
         // return CreateShaderImpl(descriptor);
     }
 }

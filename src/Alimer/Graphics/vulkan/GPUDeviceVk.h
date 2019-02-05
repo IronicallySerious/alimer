@@ -32,7 +32,7 @@ namespace alimer
     class CommandBufferVk;
 
     /// Vulkan gpu backend.
-    class GPUDeviceVk final 
+    class GPUDeviceVk final : public GPUDevice
     {
     public:
         // Constants
@@ -47,7 +47,9 @@ namespace alimer
         /// Destructor.
         ~GPUDeviceVk();
 
-        //bool SetMode(const SwapChainHandle* handle, const SwapChainDescriptor* descriptor) override;
+        void WaitIdle() override;
+        bool Initialize(const SwapChainDescriptor* descriptor) override;
+
         //bool BeginFrame() override;
         //void EndFrame() override;
 

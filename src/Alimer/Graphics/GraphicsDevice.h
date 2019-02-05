@@ -31,11 +31,11 @@
 
 namespace alimer
 {
+    class GPUDevice;
+    class Window;
     class Shader;
     class Buffer;
     class Sampler;
-    class Window;
-    struct WindowResizeEvent;
 
     /// Low-level graphics module.
     class ALIMER_API GraphicsDevice final : public Object
@@ -44,13 +44,13 @@ namespace alimer
 
     public:
         /// Constructor.
-        static GraphicsDevice* Create(bool validation = false, bool headless = false);
+        static GraphicsDevice* Create(GraphicsBackend preferredBackend = GraphicsBackend::Default, bool validation = false, bool headless = false);
 
         /// Destructor.
         ~GraphicsDevice() override;
 
-        /// Set graphics mode. Create the OS window and rendering context if not created yet. Return true on success.
-        bool SetMode(const String& title, const IntVector2& size, bool fullscreen = false, bool resizable = false, bool vsync = true, bool multisampling = false);
+        /// Initialize device using given window and other settings.
+        bool Initialize(Window* window, bool depthStencil = true, bool vsync = true, SampleCount samples = SampleCount::Count1);
 
         /// Add a GPUResource to keep track of. 
         void TrackResource(GPUResource* resource);
@@ -63,9 +63,6 @@ namespace alimer
 
         /// Get the device features.
         const GraphicsDeviceFeatures& GetFeatures() const;
-
-        /// Return the main rendering window.
-        inline Window& GetRenderWindow() { return *_renderWindow.Get(); }
 
         /**
         * Get the default render-context.
@@ -189,24 +186,26 @@ namespace alimer
         */
         Shader* CreateShader(const ShaderDescriptor* descriptor);
 
+        /// Return backend graphics device implementation.
+        GPUDevice* GetGPUDevice() const { return _device; }
+
     private:
         void OnAfterCreated();
 
     private:
         /// Constructor.
-        GraphicsDevice(bool validation, bool headless);
+        GraphicsDevice(GraphicsBackend preferredBackend, bool validation, bool headless);
 
         GraphicsBackend _backend;
-        bool _inBeginFrame = false;
-        uint64_t _frameIndex = 0;
+        GPUDevice*      _device = nullptr;
+        bool            _initialized = false;
+        bool            _inBeginFrame = false;
+        uint64_t        _frameIndex = 0;
 
     protected:
         bool _validation;
         bool _headless;
         GraphicsDeviceFeatures _features = {};
-
-        /// OS window.
-        SharedPtr<Window>               _renderWindow;
 
         PODVector<GPUResource*>         _gpuResources;
         std::mutex                      _gpuResourceMutex;

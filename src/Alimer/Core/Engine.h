@@ -31,6 +31,7 @@ namespace alimer
 {
     class PluginManager;
     class ResourceManager;
+    class Window;
     class Input;
     class Audio;
     class SceneManager;
@@ -38,20 +39,21 @@ namespace alimer
 
     struct EngineSettings
     {
+        GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Vulkan;
 #if defined(_DEBUG)
-        bool                                validation = true;
+        bool            validation = true;
 #else
-        bool                                validation = false;
+        bool            validation = false;
 #endif
-        bool                                headless = false;
+        bool            headless = false;
 
         /// Main window title.
-        String title = "Alimer";
+        std::string     title = "Alimer";
 
         /// Main window size.
-        IntVector2 size = { 800, 600 };
-        bool fullscreen = false;
-        bool resizable = false;
+        IntVector2      size = { 800, 600 };
+        bool            fullscreen = false;
+        bool            resizable = false;
     };
 
     /// Alimer engine. Manages module setup and all engine logic.
@@ -98,6 +100,9 @@ namespace alimer
         /// Get the audio system.
         inline Audio& GetAudio() { return *_audio.Get(); }
 
+        /// Get the main window.
+        inline Window* GetWindow() { return _window.get(); }
+
         /// Get the graphics device.
         inline GraphicsDevice& GetGraphicsDevice() { return *_graphicsDevice.Get(); }
 
@@ -114,6 +119,7 @@ namespace alimer
         SharedPtr<ResourceManager>  _resources;
         SharedPtr<Input>            _input;
         SharedPtr<Audio>            _audio;
+        std::unique_ptr<Window>     _window;
         SharedPtr<GraphicsDevice>   _graphicsDevice;
         SharedPtr<SceneManager>     _sceneManager;
 

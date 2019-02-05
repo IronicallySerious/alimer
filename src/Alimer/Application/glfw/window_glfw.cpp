@@ -112,7 +112,7 @@ namespace alimer
         //io.MouseWheel += (float)yoffset;
     }
 
-    WindowImpl::WindowImpl(const String& title, uint32_t width, uint32_t height, WindowFlags flags)
+    WindowImpl::WindowImpl(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags)
     {
         const bool resizable = any(flags & WindowFlags::Resizable);
         bool fullscreen = any(flags & WindowFlags::Fullscreen);
@@ -136,7 +136,7 @@ namespace alimer
         _window = glfwCreateWindow(
             windowWidth,
             windowHeight,
-            title.CString(),
+            title.c_str(),
             monitor,
             nullptr);
 
@@ -228,9 +228,9 @@ namespace alimer
         return !glfwWindowShouldClose(_window);
     }
 
-    void WindowImpl::SetTitle(const String& newTitle)
+    void WindowImpl::SetTitle(const std::string& newTitle)
     {
-        glfwSetWindowTitle(_window, newTitle.CString());
+        glfwSetWindowTitle(_window, newTitle.c_str());
     }
 
     void WindowImpl::SetFullscreen(bool value)

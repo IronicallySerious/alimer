@@ -36,14 +36,12 @@
 #        define VK_USE_PLATFORM_XCB_KHR 1
 #    endif
 #endif
-#include "volk/volk.h"
+#include <volk.h>
 #include <vk_mem_alloc.h>
 
 namespace alimer
 {
     class GPUDeviceVk;
-
-    
 
     inline const char* vkGetVulkanResultString(VkResult result)
     {

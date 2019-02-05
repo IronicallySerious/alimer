@@ -43,7 +43,7 @@ namespace alimer
         SafeDelete(_impl);
     }
 
-    bool Window::Define(const String& title, const IntVector2& size, WindowFlags flags)
+    bool Window::Define(const std::string& title, const IntVector2& size, WindowFlags flags)
     {
         SafeDelete(_impl);
         _size = size;
@@ -81,7 +81,7 @@ namespace alimer
         _impl->Close();
     }
 
-    void Window::SetTitle(const String& newTitle)
+    void Window::SetTitle(const std::string& newTitle)
     {
         _title = newTitle;
         _impl->SetTitle(newTitle);

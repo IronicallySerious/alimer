@@ -30,7 +30,7 @@ namespace alimer
     class WindowImpl final 
     {
     public:
-        WindowImpl(const String& title, uint32_t width, uint32_t height, WindowFlags flags);
+        WindowImpl(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags);
 
         /// Destructor.
         ~WindowImpl();
@@ -45,7 +45,7 @@ namespace alimer
         void Resize(uint32_t width, uint32_t height);
         bool IsVisible() const;
         bool IsMinimized() const;
-        void SetTitle(const String& newTitle);
+        void SetTitle(const std::string& newTitle);
         void SetFullscreen(bool value);
         bool IsOpen() const;
         bool IsCursorVisible() const;

@@ -59,7 +59,7 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
-set (TARGET_NAME Alimer)
+set (TARGET_NAME alimer)
 
 # Generate the AlimerConfig.h file
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/foundation/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/foundation/version.h)
@@ -99,6 +99,7 @@ if (ALIMER_D3D11)
 endif ()
 
 if (ALIMER_VULKAN)
+    define_engine_source_files(Graphics/vulkan)
     #set(GLSLANG_HEADER_FILES
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.h
@@ -139,7 +140,7 @@ if (ALIMER_OPENGL AND ALIMER_DESKTOP)
 endif ()
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES STB vgpu fmt spdlog spirv_cross ImGui)
+set (THIRD_PARTY_DEPENDENCIES STB fmt spdlog spirv_cross ImGui)
 
 if (ALIMER_DESKTOP)
     list (APPEND THIRD_PARTY_DEPENDENCIES glfw)
@@ -216,11 +217,11 @@ else ()
     endif ()
 endif ()
 
-# Suppress some MSVC warnings
-if (MSVC)
-    # = conversion possible loss of data -- for STB image
-    target_compile_options(${TARGET_NAME} PRIVATE /wd4100)
-endif()
+
+if (ALIMER_VULKAN)
+    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_VULKAN)
+    target_link_libraries(${TARGET_NAME} PRIVATE volk vk_mem_alloc)
+endif ()
 
 # SDK installation
 if (ALIMER_INSTALL)

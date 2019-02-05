@@ -24,5 +24,3 @@
 
 #include <foundation/platform.h>
 
-/*! UUID, 128-bit unique identifier */
-typedef uint128_t     uuid_t;

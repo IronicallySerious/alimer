@@ -71,9 +71,8 @@ namespace alimer
     class GPUDevice
     {
     protected:
-        GPUDevice(GraphicsBackend backend, bool validation, bool headless)
-            : _backend(backend)
-            , _validation(validation)
+        GPUDevice(bool validation, bool headless)
+            : _validation(validation)
             , _headless(headless)
         {
         }
@@ -82,20 +81,18 @@ namespace alimer
         virtual ~GPUDevice() = default;
 
         virtual void WaitIdle() = 0;
+        virtual bool Initialize(const SwapChainDescriptor* descriptor) = 0;
 
-        GraphicsBackend GetBackend() const { return _backend; }
-        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
-        virtual GPUCommandBuffer* GetDefaultCommandBuffer() const { return _defaultCommandBuffer; }
+        inline const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
+        GPUCommandBuffer* GetDefaultCommandBuffer() const { return _defaultCommandBuffer; }
 
-        virtual bool BeginFrame() = 0;
-        virtual void EndFrame() = 0;
-
-        virtual GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) = 0;
-        virtual GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) = 0;
-        virtual GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) = 0;
+        //virtual bool BeginFrame() = 0;
+        //virtual void EndFrame() = 0;
+        //virtual GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) = 0;
+        //virtual GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) = 0;
+        //virtual GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) = 0;
 
     protected:
-        GraphicsBackend _backend;
         bool _validation;
         bool _headless;
         GraphicsDeviceFeatures _features = {};

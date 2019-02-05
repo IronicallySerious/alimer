@@ -50,7 +50,7 @@ namespace alimer
 
     void Application::PlatformRun()
     {
-        if (vgpuGetBackend() != VGPU_BACKEND_OPENGL)
+        if (_engine->GetSettings().preferredGraphicsBackend != GraphicsBackend::OpenGL)
         {
             // By default on non opengl context creation.
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -66,7 +66,7 @@ namespace alimer
             return;
         }
 
-        while (_engine->GetGraphicsDevice().GetRenderWindow().IsOpen())
+        while (_engine->GetWindow()->IsOpen())
         {
             if (!_paused)
             {

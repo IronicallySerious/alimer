@@ -49,7 +49,7 @@ namespace alimer
     };
 
     /// OS Window class.
-    class ALIMER_API Window : public Object
+    class ALIMER_API Window final : public Object
     {
         ALIMER_OBJECT(Window, Object);
 
@@ -61,7 +61,7 @@ namespace alimer
         ~Window() override;
 
         /// Defines window.
-        bool Define(const String& title, const IntVector2& size, WindowFlags flags = WindowFlags::Default);
+        bool Define(const std::string& title, const IntVector2& size, WindowFlags flags = WindowFlags::Default);
 
         /// Show the window.
         void Show();
@@ -80,7 +80,7 @@ namespace alimer
         void Resize(int width, int height);
 
         /// Set window title.
-        void SetTitle(const String& newTitle);
+        void SetTitle(const std::string& newTitle);
 
         /// Set whether is fullscreen.
         void SetFullscreen(bool value);
@@ -98,7 +98,7 @@ namespace alimer
         bool IsOpen() const;
 
         /// Return window title.
-        const String& GetTitle() const { return _title; }
+        const std::string& GetTitle() const { return _title; }
 
         /// Return window client area size.
         const IntVector2& GetSize() const { return _size; }
@@ -129,7 +129,7 @@ namespace alimer
         /// Backend implementation.
         class WindowImpl* _impl = nullptr;
         /// Window title.
-        String _title;
+        std::string _title;
         /// Window size.
         IntVector2 _size;
         /// Flags

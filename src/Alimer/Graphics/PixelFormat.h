@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include "../Base/String.h"
-#include "../vgpu/vgpu.h"
+#include <foundation/foundation.h>
 #include <cassert>
 #include <string>
 
@@ -37,109 +36,109 @@ namespace alimer
     /// Defines pixel format.
     enum class PixelFormat : uint32_t
     {
-        Unknown = VGPU_PIXEL_FORMAT_UNKNOWN,
+        Unknown = 0,
         // 8-bit pixel formats
-        A8UNorm = VGPU_PIXEL_FORMAT_A8_UNORM,
-        R8UNorm = VGPU_PIXEL_FORMAT_R8_UNORM,
-        R8SNorm = VGPU_PIXEL_FORMAT_R8_SNORM,
-        R8UInt = VGPU_PIXEL_FORMAT_R8_UINT,
-        R8SInt = VGPU_PIXEL_FORMAT_R8_SINT,
+        A8UNorm,
+        R8UNorm,
+        R8SNorm,
+        R8UInt,
+        R8SInt,
 
         // 16-bit pixel formats
-        R16UNorm = VGPU_PIXEL_FORMAT_R16_UNORM,
-        R16SNorm = VGPU_PIXEL_FORMAT_R16_SNORM,
-        R16UInt = VGPU_PIXEL_FORMAT_R16_UINT,
-        R16SInt = VGPU_PIXEL_FORMAT_R16_SINT,
-        R16Float = VGPU_PIXEL_FORMAT_R16_FLOAT,
-        RG8UNorm = VGPU_PIXEL_FORMAT_RG8_UNORM,
-        RG8SNorm = VGPU_PIXEL_FORMAT_RG8_SNORM,
-        RG8UInt = VGPU_PIXEL_FORMAT_RG8_UINT,
-        RG8SInt = VGPU_PIXEL_FORMAT_RG8_SINT,
+        R16UNorm,
+        R16SNorm,
+        R16UInt,
+        R16SInt,
+        R16Float,
+        RG8UNorm,
+        RG8SNorm,
+        RG8UInt,
+        RG8SInt,
 
         // Packed 16-bit pixel formats
-        R5G6B5UNorm = VGPU_PIXEL_FORMAT_R5G6B5_UNORM,
-        RGBA4UNorm = VGPU_PIXEL_FORMAT_RGBA4_UNORM,
+        R5G6B5UNorm,
+        RGBA4UNorm,
 
         // 32-bit pixel formats
-        R32UInt = VGPU_PIXEL_FORMAT_R32_UINT,
-        R32SInt = VGPU_PIXEL_FORMAT_R32_SINT,
-        R32Float = VGPU_PIXEL_FORMAT_R32_FLOAT,
-        RG16UNorm = VGPU_PIXEL_FORMAT_RG16_UNORM,
-        RG16SNorm = VGPU_PIXEL_FORMAT_RG16_SNORM,
-        RG16UInt = VGPU_PIXEL_FORMAT_RG16_UINT,
-        RG16SInt = VGPU_PIXEL_FORMAT_RG16_SINT,
-        RG16Float = VGPU_PIXEL_FORMAT_RG16_FLOAT,
-        RGBA8UNorm = VGPU_PIXEL_FORMAT_RGBA8_UNORM,
-        RGBA8SNorm = VGPU_PIXEL_FORMAT_RGBA8_SNORM,
-        RGBA8UInt = VGPU_PIXEL_FORMAT_RGBA8_UINT,
-        RGBA8SInt = VGPU_PIXEL_FORMAT_RGBA8_SINT,
-        BGRA8UNorm = VGPU_PIXEL_FORMAT_BGRA8_UNORM,
+        R32UInt,
+        R32SInt,
+        R32Float,
+        RG16UNorm,
+        RG16SNorm,
+        RG16UInt,
+        RG16SInt,
+        RG16Float,
+        RGBA8UNorm,
+        RGBA8SNorm,
+        RGBA8UInt,
+        RGBA8SInt,
+        BGRA8UNorm,
 
         // Packed 32-Bit Pixel formats
-        RGB10A2UNorm = VGPU_PIXEL_FORMAT_RGB10A2_UNORM,
-        RGB10A2UInt = VGPU_PIXEL_FORMAT_RGB10A2_UINT,
-        RG11B10Float = VGPU_PIXEL_FORMAT_RG11B10_FLOAT,
-        RGB9E5Float = VGPU_PIXEL_FORMAT_RGB9E5_FLOAT,
+        RGB10A2UNorm,
+        RGB10A2UInt,
+        RG11B10Float,
+        RGB9E5Float,
 
         // 64-Bit Pixel Formats
-        RG32UInt = VGPU_PIXEL_FORMAT_RG32_UINT,
-        RG32SInt = VGPU_PIXEL_FORMAT_RG32_SINT,
-        RG32Float = VGPU_PIXEL_FORMAT_RG32_FLOAT,
-        RGBA16UNorm = VGPU_PIXEL_FORMAT_RGBA16_UNORM,
-        RGBA16SNorm =VGPU_PIXEL_FORMAT_RGBA16_SNORM,
-        RGBA16UInt =VGPU_PIXEL_FORMAT_RGBA16_UINT,
-        RGBA16SInt =VGPU_PIXEL_FORMAT_RGBA16_SINT,
-        RGBA16F = VGPU_PIXEL_FORMAT_RGBA16_FLOAT,
+        RG32UInt,
+        RG32SInt,
+        RG32Float,
+        RGBA16UNorm,
+        RGBA16SNorm,
+        RGBA16UInt,
+        RGBA16SInt,
+        RGBA16F,
 
         // 128-Bit Pixel Formats
-        RGBA32UInt = VGPU_PIXEL_FORMAT_RGBA32_UINT,
-        RGBA32SInt = VGPU_PIXEL_FORMAT_RGBA32_SINT,
-        RGBA32Float = VGPU_PIXEL_FORMAT_RGBA32_FLOAT,
+        RGBA32UInt,
+        RGBA32SInt,
+        RGBA32Float,
 
         // Depth-stencil formats
-        D16 = VGPU_PIXEL_FORMAT_D16,
-        D24 = VGPU_PIXEL_FORMAT_D24,
-        D24S8 = VGPU_PIXEL_FORMAT_D24S8,
-        D32 = VGPU_PIXEL_FORMAT_D32,
-        D16F = VGPU_PIXEL_FORMAT_D16F,
-        D24F = VGPU_PIXEL_FORMAT_D24F,
-        D32F = VGPU_PIXEL_FORMAT_D32F,
-        D32FS8 = VGPU_PIXEL_FORMAT_D32FS8,
-        D0S8 = VGPU_PIXEL_FORMAT_D0S8,
+        Depth16,
+        Depth24,
+        Depth24Stencil8,
+        Depth32,
+        Depth16F,
+        Depth24F,
+        Depth32F,
+        Depth32FStencil8,
+        Stencil8,
 
         // Compressed formats
-        BC1UNorm = VGPU_PIXEL_FORMAT_BC1_UNORM,     
-        BC2UNorm = VGPU_PIXEL_FORMAT_BC1_UNORM,
-        BC3UNorm = VGPU_PIXEL_FORMAT_BC3_UNORM,
-        BC4UNorm = VGPU_PIXEL_FORMAT_BC4_UNORM,
-        BC4SNorm = VGPU_PIXEL_FORMAT_BC4_UNORM,
-        BC5UNorm = VGPU_PIXEL_FORMAT_BC5_UNORM,
-        BC5SNorm = VGPU_PIXEL_FORMAT_BC5_SNORM,
-        BC6HS16 = VGPU_PIXEL_FORMAT_BC6HS16,
-        BC6HU16 = VGPU_PIXEL_FORMAT_BC6HU16,
-        BC7UNorm = VGPU_PIXEL_FORMAT_BC7_UNORM,
+        BC1UNorm,     
+        BC2UNorm,
+        BC3UNorm,
+        BC4UNorm,
+        BC4SNorm,
+        BC5UNorm,
+        BC5SNorm,
+        BC6HS16,
+        BC6HU16,
+        BC7UNorm,
 
         // Compressed PVRTC Pixel Formats
-        PVRTC_RGB2 = VGPU_PIXEL_FORMAT_PVRTC_RGB2,
-        PVRTC_RGBA2 = VGPU_PIXEL_FORMAT_PVRTC_RGBA2,
-        PVRTC_RGB4 = VGPU_PIXEL_FORMAT_PVRTC_RGB4,
-        PVRTC_RGBA4 = VGPU_PIXEL_FORMAT_PVRTC_RGBA4,
+        PVRTC_RGB2,
+        PVRTC_RGBA2,
+        PVRTC_RGB4,
+        PVRTC_RGBA4,
 
         // Compressed ETC Pixel Formats
-        ETC2_RGB8 = VGPU_PIXEL_FORMAT_ETC2_RGB8,
-        ETC2_RGB8A1 = VGPU_PIXEL_FORMAT_ETC2_RGB8A1,
+        ETC2_RGB8 ,
+        ETC2_RGB8A1,
 
         // Compressed ASTC Pixel Formats
-        ASTC4x4 = VGPU_PIXEL_FORMAT_ASTC4x4,
-        ASTC5x5 = VGPU_PIXEL_FORMAT_ASTC5x5,
-        ASTC6x6 = VGPU_PIXEL_FORMAT_ASTC6x6,
-        ASTC8x5 = VGPU_PIXEL_FORMAT_ASTC8x5,
-        ASTC8x6 = VGPU_PIXEL_FORMAT_ASTC8x6,
-        ASTC8x8 = VGPU_PIXEL_FORMAT_ASTC8x8,
-        ASTC10x10 = VGPU_PIXEL_FORMAT_ASTC10x10,
-        ASTC12x12 = VGPU_PIXEL_FORMAT_ASTC12x12,
+        ASTC4x4,
+        ASTC5x5,
+        ASTC6x6,
+        ASTC8x5,
+        ASTC8x6,
+        ASTC8x8,
+        ASTC10x10,
+        ASTC12x12,
 
-        Count = VGPU_PIXEL_FORMAT_COUNT
+        Count
     };
 
     /**
@@ -148,93 +147,114 @@ namespace alimer
     enum class PixelFormatType
     {
         /// Unknown format Type.
-        Unknown = VGPU_PIXEL_FORMAT_TYPE_UNKNOWN,
+        Unknown = 0,
         /// Floating-point formats.
-        Float = VGPU_PIXEL_FORMAT_TYPE_FLOAT,
+        Float,
         /// Unsigned normalized formats.
-        UNorm = VGPU_PIXEL_FORMAT_TYPE_UNORM,
+        UNorm,
         /// Signed normalized formats.
-        SNorm = VGPU_PIXEL_FORMAT_TYPE_SNORM,
+        SNorm,
         /// Unsigned integer formats.
-        UInt = VGPU_PIXEL_FORMAT_TYPE_UINT,
+        UInt,
         /// Signed integer formats.
-        SInt = VGPU_PIXEL_FORMAT_TYPE_SINT
+        SInt
     };
 
     struct PixelFormatDesc
     {
         PixelFormat format;
-        const String name;
-        uint32_t bytesPerBlock;
-        uint32_t channelCount;
-        PixelFormatType Type;
+        const std::string name;
+        PixelFormatType type;
+        uint8_t                 bitsPerPixel;
         struct
         {
-            bool isDepth;
-            bool isStencil;
-            bool isCompressed;
-        };
+            uint8_t             blockWidth;
+            uint8_t             blockHeight;
+            uint8_t             blockSize;
+            uint8_t             minBlockX;
+            uint8_t             minBlockY;
+        } compression;
+
         struct
         {
-            uint32_t width;
-            uint32_t height;
-        } compressionRatio;
+            uint8_t             depth;
+            uint8_t             stencil;
+            uint8_t             red;
+            uint8_t             green;
+            uint8_t             blue;
+            uint8_t             alpha;
+        } bits;
     };
 
-    ALIMER_API const String& GetFormatName(PixelFormat format);
+    ALIMER_API extern const PixelFormatDesc FormatDesc[];
 
     /// Get the number of bytes per format.
     inline uint32_t GetFormatBitsPerPixel(PixelFormat format)
     {
-        return vgpuGetFormatBitsPerPixel((VgpuPixelFormat)format);
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].bitsPerPixel;
     }
 
     inline uint32_t GetFormatBlockSize(PixelFormat format)
     {
-        return vgpuGetFormatBlockSize((VgpuPixelFormat)format);
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].compression.blockSize;
     }
 
     /// Check if the format has a depth component
     inline bool IsDepthFormat(PixelFormat format)
     {
-        return vgpuIsDepthFormat((VgpuPixelFormat)format);
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].bits.depth > 0;
     }
 
     /// Check if the format has a stencil component
     inline bool IsStencilFormat(PixelFormat format)
     {
-        return vgpuIsStencilFormat((VgpuPixelFormat)format);
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].bits.stencil > 0;
     }
 
     /// Check if the format has depth or stencil components
     inline bool IsDepthStencilFormat(PixelFormat format)
     {
-        return vgpuIsDepthStencilFormat((VgpuPixelFormat)format);
+        return IsDepthFormat(format) || IsStencilFormat(format);
     }
 
     /// Check if the format is a compressed format
     inline bool IsCompressedFormat(PixelFormat format)
     {
-        return vgpuIsCompressedFormat((VgpuPixelFormat)format);
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return format >= PixelFormat::BC1UNorm && format <= PixelFormat::PVRTC_RGBA4;
     }
 
     /// Get the format compression ration along the x-axis
     inline uint32_t GetFormatBlockWidth(PixelFormat format)
     {
-        return vgpuGetFormatBlockWidth((VgpuPixelFormat)format);
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].compression.blockWidth;
     }
 
     /// Get the format compression ration along the y-axis
     inline uint32_t GetFormatBlockHeight(PixelFormat format)
     {
-        return vgpuGetFormatBlockHeight((VgpuPixelFormat)format);
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].compression.blockHeight;
     }
 
     /// Get the format Type
     inline PixelFormatType GetFormatType(PixelFormat format)
     {
-        return static_cast<PixelFormatType>(vgpuGetFormatType((VgpuPixelFormat)format));
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].type;
     }
+
+    inline const std::string& to_string(PixelFormat format)
+    {
+        assert(FormatDesc[(uint32_t)format].format == format);
+        return FormatDesc[(uint32_t)format].name;
+    }
+
 }
 
 #ifdef _MSC_VER

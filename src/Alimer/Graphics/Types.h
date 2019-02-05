@@ -23,7 +23,6 @@
 #pragma once
 
 #include <foundation/cpp_macros.h>
-#include "../vgpu/vgpu.h"
 #include "../Base/String.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
@@ -43,24 +42,32 @@ namespace alimer
     static constexpr uint32_t MaxColorAttachments = 8u;
 
     /* Enums */
+    enum class GPUDevicePreference : uint32_t {
+        /// Prefer discrete GPU.
+        Discrete = 0,
+        /// Prefer integrated GPU.
+        Integrated,
+        /// No GPU preference.
+        DontCare
+    };
 
     /// Enum describing the Graphics backend.
     enum class GraphicsBackend : uint32_t
     {
-        /// Invalid backend.
-        Invalid = VGPU_BACKEND_INVALID,
+        /// Default backend for platform.
+        Default = 0,
         /// Null backend.
-        Null = VGPU_BACKEND_NULL,
+        Null,
         /// Vulkan backend.
-        Vulkan = VGPU_BACKEND_VULKAN,
+        Vulkan,
         /// Direct3D 12 backend.
-        D3D12 = VGPU_BACKEND_D3D12,
+        D3D12,
         /// Direct3D 11 backend.
-        D3D11 = VGPU_BACKEND_D3D11,
+        D3D11,
         /// OpenGL backend.
-        OpenGL = VGPU_BACKEND_OPENGL,
+        OpenGL,
         /// Count
-        Count = VGPU_BACKEND_COUNT
+        Count
     };
 
     /// Enum describing the number of samples.

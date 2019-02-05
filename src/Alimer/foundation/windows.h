@@ -51,7 +51,6 @@ Safe inclusion of windows.h without collisions with foundation library symbols.
 #   endif
 
 #   include <Windows.h>
-#   undef uuid_t
 
 #   include <WinSock2.h>
 #   include <IPTypes.h>
@@ -69,7 +68,6 @@ Safe inclusion of windows.h without collisions with foundation library symbols.
 #   undef max
 #   undef STREAM_SEEK_END
 #   undef UUID
-#   undef uuid_t
 
 #   if ALIMER_COMPILER_CLANG
 #       undef WINAPI

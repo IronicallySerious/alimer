@@ -28,7 +28,7 @@ file (GLOB SOURCE_FILES *.cpp)
 
 # Define the target.
 add_alimer_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
-target_link_libraries(${PROJECT_NAME} Alimer)
+target_link_libraries(${PROJECT_NAME} alimer)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
 
