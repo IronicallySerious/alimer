@@ -42,7 +42,7 @@ namespace alimer
     static constexpr uint32_t MaxColorAttachments = 8u;
 
     /* Enums */
-    enum class GPUDevicePreference : uint32_t {
+    enum class PhysicalDevicePreference : uint32_t {
         /// Prefer discrete GPU.
         Discrete = 0,
         /// Prefer integrated GPU.
@@ -351,15 +351,17 @@ namespace alimer
     struct SwapChainDescriptor
     {
         /// Width.
-        uint32_t width;
+        uint32_t    width = 800;
         /// Height.
-        uint32_t height;
+        uint32_t    height = 600;
+        bool        depthStencil = true;
+        bool        tripleBuffer = true;
         /// Vertical sync
-        bool vSync;
-        /// Preferred depth stencil format.
-        PixelFormat preferredDepthStencilFormat;
+        bool        vSync = true;
         /// Preferred sample count
-        SampleCount preferredSamples;
+        SampleCount samples = SampleCount::Count1;
+        /// Native window handle (HWND, ANativeWindow, NSWindow).
+        uint64_t    nativeHandle;
     };
 
     struct TextureDescriptor

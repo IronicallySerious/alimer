@@ -54,6 +54,7 @@
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
+#include "Graphics/CommandBuffer.h"
 #include "Graphics/GraphicsDevice.h"
 
 // Resource

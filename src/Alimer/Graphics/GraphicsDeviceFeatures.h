@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "../Base/String.h"
 #include "../Graphics/Types.h"
+#include <string>
 
 namespace alimer
 {
@@ -56,31 +56,19 @@ namespace alimer
             _backend = backend; 
         }
 
-        uint32_t GetVendorId() const { 
-            return _vendorId; 
-        }
-        void SetVendorId(uint32_t vendorID) {
-            _vendorId = vendorID;
-        }
-        GpuVendor GetVendor() const { 
-            return _vendor;
-        }
-        void SetVendor(GpuVendor vendor) {
-            _vendor = vendor;
-        }
-        uint32_t GetDeviceId() const { 
-            return _deviceId; 
-        }
-        void SetDeviceId(uint32_t deviceId) {
-            _deviceId = deviceId;
-        }
+        uint32_t GetVendorId() const {  return _vendorId;  }
+        GpuVendor GetVendor() const {  return _vendor; }
+        void SetVendorId(uint32_t vendorId);
+
+        uint32_t GetDeviceId() const {  return _deviceId;  }
+        void SetDeviceId(uint32_t deviceId) { _deviceId = deviceId; }
 
         ///	Gets the current physical device name.
-        String GetDeviceName() const { 
+        std::string GetDeviceName() const {
             return _deviceName; 
         }
         ///	Sets the current GPU device name.
-        void SetDeviceName(const String& name) {
+        void SetDeviceName(const std::string& name) {
             _deviceName = name;
         }
 
@@ -117,7 +105,7 @@ namespace alimer
         uint32_t        _vendorId = 0;
         GpuVendor       _vendor = GpuVendor::Unknown;
         uint32_t        _deviceId = 0;
-        String          _deviceName;
+        std::string     _deviceName;
         bool            _multithreading = false;
 
         uint32_t        _maxColorAttachments = 0;

@@ -26,6 +26,7 @@
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
 #include "../Application/Window.h"
+#include "../Graphics/CommandBuffer.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Scene/SceneManager.h"
 #include "../UI/Gui.h"
@@ -137,6 +138,7 @@ namespace alimer
         // Create GraphicsDevice.
         _graphicsDevice = GraphicsDevice::Create(
             _settings.preferredGraphicsBackend,
+            PhysicalDevicePreference::Discrete,
             _settings.validation,
             _settings.headless);
         if (_graphicsDevice == nullptr)
@@ -153,6 +155,9 @@ namespace alimer
             ALIMER_LOGERROR("Failed to setup GraphicsDevice.");
             return false;
         }
+
+        // Create command buffer for frame rendering.
+        _commandBuffer = new CommandBuffer(_graphicsDevice.Get());
 
         // Create imgui system.
         //_gui = new Gui();
@@ -209,14 +214,19 @@ namespace alimer
         //ALIMER_PROFILE("Render");
 
         // If device is lost, BeginFrame will fail and we skip rendering
-        if (!_graphicsDevice->BeginFrame())
+        if (!_graphicsDevice->BeginFrame()) {
             return;
+        }
 
+        _commandBuffer->Begin();
         //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-        //CommandContext& context = _graphicsDevice->GetContext();
         //context.BeginDefaultRenderPass(clearColor);
         //context.Draw(3, 0);
         //context.EndRenderPass();
+        _commandBuffer->End();
+
+        CommandBuffer* commandBuffer = _commandBuffer.Get();
+        _graphicsDevice->SubmitCommandBuffers(1, &commandBuffer);
 
         // TODO: Scene renderer
         // TODO: UI render.

@@ -92,9 +92,9 @@ namespace alimer
             //    PODVector<uint8_t>(Color_PSMain, sizeof(Color_PSMain)));
         }
 
-        void Render(CommandContext& context)
+        void Render(CommandBuffer& commandBuffer)
         {
-            context.SetVertexBuffer(0, _vertexBuffer, 0, sizeof(VertexColor));
+            commandBuffer.SetVertexBuffer(0, _vertexBuffer, 0, sizeof(VertexColor));
             //context.SetShader(_shader.Get());
             //context.Draw(3, 0);
         }

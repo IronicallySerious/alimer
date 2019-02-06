@@ -24,7 +24,6 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
-#include "../Graphics/CommandContext.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Pipeline.h"
 #include <mutex>
@@ -32,10 +31,12 @@
 namespace alimer
 {
     class GPUDevice;
+    class CommandBuffer;
     class Window;
     class Shader;
     class Buffer;
     class Sampler;
+    class Framebuffer;
 
     /// Low-level graphics module.
     class ALIMER_API GraphicsDevice final : public Object
@@ -44,13 +45,17 @@ namespace alimer
 
     public:
         /// Constructor.
-        static GraphicsDevice* Create(GraphicsBackend preferredBackend = GraphicsBackend::Default, bool validation = false, bool headless = false);
+        static GraphicsDevice* Create(
+            GraphicsBackend preferredBackend = GraphicsBackend::Default,
+            PhysicalDevicePreference devicePreference = PhysicalDevicePreference::Discrete,
+            bool validation = false,
+            bool headless = false);
 
         /// Destructor.
         ~GraphicsDevice() override;
 
         /// Initialize device using given window and other settings.
-        bool Initialize(Window* window, bool depthStencil = true, bool vsync = true, SampleCount samples = SampleCount::Count1);
+        bool Initialize(Window* window, bool depthStencil = true, bool vSync = true, SampleCount samples = SampleCount::Count1);
 
         /// Add a GPUResource to keep track of. 
         void TrackResource(GPUResource* resource);
@@ -65,13 +70,6 @@ namespace alimer
         const GraphicsDeviceFeatures& GetFeatures() const;
 
         /**
-        * Get the default render-context.
-        * The default render-context is managed completely by the device.
-        * The user should just queue commands into it, the device will take care of allocation, submission and synchronization
-        */
-        CommandContext& GetContext() const { return *_renderContext; }
-
-        /**
         * Get the current backbuffer framebuffer.
         */
         //virtual Framebuffer* GetBackbufferFramebuffer() const = 0;
@@ -84,6 +82,9 @@ namespace alimer
 
         /// Wait device to finish all pending operations.
         void WaitIdle();
+
+        /// Submit command buffers
+        void SubmitCommandBuffers(uint32_t count, CommandBuffer** commandBuffers);
 
         /**
         * Create a 1D texture.
@@ -194,7 +195,7 @@ namespace alimer
 
     private:
         /// Constructor.
-        GraphicsDevice(GraphicsBackend preferredBackend, bool validation, bool headless);
+        GraphicsDevice(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference, bool validation, bool headless);
 
         GraphicsBackend _backend;
         GPUDevice*      _device = nullptr;
@@ -209,7 +210,6 @@ namespace alimer
 
         PODVector<GPUResource*>         _gpuResources;
         std::mutex                      _gpuResourceMutex;
-        SharedPtr<CommandContext>       _renderContext;
         Sampler*                        _pointSampler = nullptr;
         Sampler*                        _linearSampler = nullptr;
     };

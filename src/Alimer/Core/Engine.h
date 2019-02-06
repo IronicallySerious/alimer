@@ -26,6 +26,7 @@
 #include "../Graphics/Types.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
+#include "../Math/Vector2.h"
 
 namespace alimer
 {
@@ -34,6 +35,7 @@ namespace alimer
     class Window;
     class Input;
     class Audio;
+    class CommandBuffer;
     class SceneManager;
     class Gui;
 
@@ -121,6 +123,7 @@ namespace alimer
         SharedPtr<Audio>            _audio;
         std::unique_ptr<Window>     _window;
         SharedPtr<GraphicsDevice>   _graphicsDevice;
+        SharedPtr<CommandBuffer>    _commandBuffer;
         SharedPtr<SceneManager>     _sceneManager;
 
         // ImGui

@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "window_glfw.h"
+#include "WindowImplGLFW.h"
 #include "../Application.h"
 #include "Core/Log.h"
 

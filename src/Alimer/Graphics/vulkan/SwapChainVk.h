@@ -36,31 +36,33 @@ namespace alimer
         SwapChainVk(GPUDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
         ~SwapChainVk();
 
-        uint32_t GetTextureCount() const override {
-            return _imageCount;
-        }
-        uint32_t GetCurrentBackBuffer() const override {
-            return _imageIndex;
-        }
+        uint32_t GetTextureCount() const override { return _imageCount; }
+        uint32_t GetCurrentBackBuffer() const override { return _imageIndex; }
         GPUTexture* GetBackBufferTexture(uint32_t index) const override {
             return nullptr;
         }
 
+        GPUTexture* GetNextTexture();
+        VkSwapchainKHR GetVkHandle() const { return _handle; }
+
         void Resize();
-        void Resize(uint32_t width, uint32_t height);
+        bool Resize(uint32_t width, uint32_t height);
 
 	private:
-        GPUDeviceVk* _device;
-        VkSurfaceKHR _surface = VK_NULL_HANDLE;
-        VkSwapchainKHR _handle = VK_NULL_HANDLE;
-        uint32_t _width = 0;
-        uint32_t _height = 0;
-        VkFormat _colorFormat = VK_FORMAT_UNDEFINED;
-        bool _vSync;
-        PixelFormat _depthStencilFormat;
-        SampleCount _samples;
-        uint32_t _imageCount = 0;
-        uint32_t _imageIndex = 0;
+        GPUDeviceVk*                _device;
+        VkSurfaceKHR                _surface = VK_NULL_HANDLE;
+        VkSwapchainKHR              _handle = VK_NULL_HANDLE;
+        uint32_t                    _width = 0;
+        uint32_t                    _height = 0;
+        VkFormat                    _colorFormat = VK_FORMAT_UNDEFINED;
+        bool                        _vSync;
+        bool                        _tripleBuffer;
+        PixelFormat                 _depthStencilFormat;
+        SampleCount                 _samples;
+        uint32_t                    _imageIndex = 0;
+        uint32_t                    _imageCount = 0;
+        std::vector<VkImage>        _images;
+        std::vector<VkSemaphore>    _imageSemaphores;
         std::vector<std::unique_ptr<TextureVk>> _swapchainTextures;
 	};
 }

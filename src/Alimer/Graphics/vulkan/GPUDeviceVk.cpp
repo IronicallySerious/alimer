@@ -50,6 +50,8 @@
 #   define VK_USE_PLATFORM_XCB_KHR      1
 #endif
 
+using namespace std;
+
 namespace alimer
 {
     struct {
@@ -152,12 +154,6 @@ namespace alimer
         if (strcmp(pLayerPrefix, "DS") == 0 && messageCode == 10)
         {
             return VK_FALSE;
-        }
-
-        // Demote to a warning, it's a false positive almost all the time for Granite.
-        if (strcmp(pLayerPrefix, "DS") == 0 && messageCode == 6)
-        {
-            flags = VK_DEBUG_REPORT_DEBUG_BIT_EXT;
         }
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
@@ -289,7 +285,7 @@ namespace alimer
         return true;
     }
 
-    GPUDeviceVk::GPUDeviceVk(bool validation, bool headless)
+    GPUDeviceVk::GPUDeviceVk(PhysicalDevicePreference devicePreference, bool validation, bool headless)
         : GPUDevice(validation, headless)
     {
         VkApplicationInfo appInfo;
@@ -303,11 +299,12 @@ namespace alimer
 
         if (appInfo.apiVersion >= VK_API_VERSION_1_1)
         {
+            _featuresVk.supportsVulkan11Instance = true;
             appInfo.apiVersion = VK_API_VERSION_1_1;
         }
 
-        std::vector<const char*> instanceLayers;
-        std::vector<const char*> instanceExtensions;
+        vector<const char*> instanceLayers;
+        vector<const char*> instanceExtensions;
 
         if (_vk.KHR_get_physical_device_properties2)
         {
@@ -398,11 +395,138 @@ namespace alimer
             }
         }
 
+        uint32_t gpuCount = 0;
+        vkEnumeratePhysicalDevices(_instance, &gpuCount, nullptr);
+        if (gpuCount == 0)
+        {
+            ALIMER_LOGCRITICAL("Vulkan: No physical device detected");
+            return;
+        }
+
+        VkPhysicalDevice* physicalDevices = (VkPhysicalDevice*)alloca(gpuCount * sizeof(VkPhysicalDevice));
+        vkEnumeratePhysicalDevices(_instance, &gpuCount, physicalDevices);
+        uint32_t bestDeviceScore = 0U;
+        uint32_t bestDeviceIndex = static_cast<uint32_t>(-1);
+        for (uint32_t i = 0; i < gpuCount; ++i)
+        {
+            uint32_t score = 0U;
+            VkPhysicalDeviceProperties properties;
+            vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
+
+            ALIMER_LOGTRACE("Found Vulkan GPU: {}", properties.deviceName);
+            ALIMER_LOGTRACE("    API: {}.{}.{}",
+                VK_VERSION_MAJOR(properties.apiVersion),
+                VK_VERSION_MINOR(properties.apiVersion),
+                VK_VERSION_PATCH(properties.apiVersion));
+            ALIMER_LOGTRACE("    Driver: {}.{}.{}",
+                VK_VERSION_MAJOR(properties.driverVersion),
+                VK_VERSION_MINOR(properties.driverVersion),
+                VK_VERSION_PATCH(properties.driverVersion));
+
+            switch (properties.deviceType)
+            {
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                score += 100u;
+                if (devicePreference == PhysicalDevicePreference::Discrete) {
+                    score += 1000u;
+                }
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                score += 90u;
+                if (devicePreference == PhysicalDevicePreference::Integrated) {
+                    score += 1000u;
+                }
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                score += 80u;
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                score += 70u;
+                break;
+            default:
+                score += 10u;
+                break;
+            }
+
+            if (score > bestDeviceScore) {
+                bestDeviceIndex = i;
+                bestDeviceScore = score;
+            }
+        }
+
+        if (bestDeviceIndex == ~0u)
+        {
+            ALIMER_LOGCRITICAL("Vulkan: No physical device supported.");
+            return;
+        }
+
+        _physicalDevice = physicalDevices[bestDeviceIndex];
+        vkGetPhysicalDeviceProperties(_physicalDevice, &_physicalDeviceProperties);
+        vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_physicalDeviceMemoryProperties);
+        vkGetPhysicalDeviceFeatures(_physicalDevice, &_physicalDeviceFeatures);
+
+        // Queue family properties, used for setting up requested queues upon device creation
+        uint32_t count = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &count, nullptr);
+        ALIMER_ASSERT(count > 0);
+        _physicalDeviceQueueFamilyProperties.resize(count);
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &count, _physicalDeviceQueueFamilyProperties.data());
+
+        // Get list of supported extensions
+        vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &count, nullptr);
+        if (vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &count, nullptr) == VK_SUCCESS &&
+            count > 0)
+        {
+            _physicalDeviceExtensions.resize(count);
+            std::vector<VkExtensionProperties> extensions(count);
+            if (vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &count, &extensions.front()) == VK_SUCCESS)
+            {
+                for (auto ext : extensions)
+                {
+                    _physicalDeviceExtensions.push_back(ext.extensionName);
+                }
+            }
+        }
+
+        if (vkEnumerateDeviceLayerProperties(_physicalDevice, &count, nullptr) == VK_SUCCESS &&
+            count > 0)
+        {
+            vector<VkLayerProperties> queriedLayers(count);
+            if (vkEnumerateDeviceLayerProperties(_physicalDevice, &count, &queriedLayers.front()) == VK_SUCCESS)
+            {
+                for (auto layer : queriedLayers)
+                {
+                    _physicalDeviceLayers.push_back(layer.layerName);
+                }
+            }
+        }
+
+        ALIMER_LOGDEBUG("Selected Vulkan GPU: {}", _physicalDeviceProperties.deviceName);
+
+        _features.SetBackend(GraphicsBackend::Vulkan);
+        _features.SetVendorId(_physicalDeviceProperties.vendorID);
+        _features.SetDeviceId(_physicalDeviceProperties.deviceID);
+        _features.SetDeviceName(_physicalDeviceProperties.deviceName);
+        _features.SetMultithreading(true);
+        _features.SetMaxColorAttachments(_physicalDeviceProperties.limits.maxColorAttachments);
+        _features.SetMaxBindGroups(_physicalDeviceProperties.limits.maxBoundDescriptorSets);
+        _features.SetMinUniformBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment));
     }
 
     GPUDeviceVk::~GPUDeviceVk()
     {
         vkDeviceWaitIdle(_device);
+
+        _graphicsCommandQueue.reset();
+        _computeCommandQueue.reset();
+        _copyCommandQueue.reset();
+
+        for (auto &semaphore : _semaphores)
+        {
+            vkDestroySemaphore(_device, semaphore, nullptr);
+        }
+        _semaphores.clear();
+        _frameData.clear();
 
         if (_device != VK_NULL_HANDLE)
         {
@@ -440,12 +564,353 @@ namespace alimer
 
     bool GPUDeviceVk::Initialize(const SwapChainDescriptor* descriptor)
     {
-        /*VkSurfaceKHR surface = VK_NULL_HANDLE;
-        if (!_headless)
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        if (descriptor->nativeHandle != 0)
         {
-            surface = CreateSurface(handle);
+            surface = CreateSurface(descriptor->nativeHandle);
         }
 
+        /*
+        * Create device, code adapted from Granite
+        * https://github.com/Themaister/Granite
+        */
+
+        if (_physicalDeviceProperties.apiVersion >= VK_API_VERSION_1_1)
+        {
+            _featuresVk.supportsVulkan11Device = _featuresVk.supportsVulkan11Instance;
+            ALIMER_LOGDEBUG("GPU supports Vulkan 1.1.");
+        }
+        else if (_physicalDeviceProperties.apiVersion >= VK_API_VERSION_1_0)
+        {
+            _featuresVk.supportsVulkan11Device = false;
+            ALIMER_LOGDEBUG("GPU supports Vulkan 1.0.");
+        }
+
+        // Only need GetPhysicalDeviceProperties2 for Vulkan 1.1-only code, so don't bother getting KHR variant.
+        _featuresVk.subgroupProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES };
+        VkPhysicalDeviceProperties2 props = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+        void **ppNext = &props.pNext;
+
+        if (_featuresVk.supportsVulkan11Instance
+            && _featuresVk.supportsVulkan11Device)
+        {
+            *ppNext = &_featuresVk.subgroupProperties;
+            ppNext = &_featuresVk.subgroupProperties.pNext;
+        }
+
+        if (_featuresVk.supportsVulkan11Instance
+            && _featuresVk.supportsVulkan11Device)
+        {
+            vkGetPhysicalDeviceProperties2(_physicalDevice, &props);
+        }
+
+        // Find queue's family
+        const uint32_t queueCount = (uint32_t)_physicalDeviceQueueFamilyProperties.size();
+        for (uint32_t i = 0u; i < queueCount; i++)
+        {
+            VkBool32 supported = surface == VK_NULL_HANDLE;
+            if (surface != VK_NULL_HANDLE)
+            {
+                vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, surface, &supported);
+            }
+
+            static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT;
+            if (supported && ((_physicalDeviceQueueFamilyProperties[i].queueFlags & required) == required))
+            {
+                _graphicsQueueFamily = i;
+                break;
+            }
+        }
+
+        for (uint32_t i = 0u; i < queueCount; i++)
+        {
+            static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT;
+            if (i != _graphicsQueueFamily
+                && (_physicalDeviceQueueFamilyProperties[i].queueFlags & required) == required)
+            {
+                _computeQueueFamily = i;
+                break;
+            }
+        }
+
+        for (uint32_t i = 0u; i < queueCount; i++)
+        {
+            static const VkQueueFlags required = VK_QUEUE_TRANSFER_BIT;
+            if (i != _graphicsQueueFamily
+                && i != _computeQueueFamily
+                && (_physicalDeviceQueueFamilyProperties[i].queueFlags & required) == required)
+            {
+                _transferQueueFamily = i;
+                break;
+            }
+        }
+
+        if (_transferQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+        {
+            for (uint32_t i = 0u; i < queueCount; i++)
+            {
+                static const VkQueueFlags required = VK_QUEUE_TRANSFER_BIT;
+                if (i != _graphicsQueueFamily
+                    && (_physicalDeviceQueueFamilyProperties[i].queueFlags & required) == required)
+                {
+                    _transferQueueFamily = i;
+                    break;
+                }
+            }
+        }
+
+        if (_graphicsQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+        {
+            return false;
+        }
+
+        // Setup queues
+        uint32_t universalQueueIndex = 1;
+        const uint32_t graphicsQueueIndex = 0;
+        uint32_t computeQueueIndex = 0;
+        uint32_t transferQueueIndex = 0;
+
+        if (_computeQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+        {
+            _computeQueueFamily = _graphicsQueueFamily;
+            computeQueueIndex = std::min(_physicalDeviceQueueFamilyProperties[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
+            universalQueueIndex++;
+        }
+
+        if (_transferQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+        {
+            _transferQueueFamily = _graphicsQueueFamily;
+            transferQueueIndex = std::min(_physicalDeviceQueueFamilyProperties[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
+            universalQueueIndex++;
+        }
+        else if (_transferQueueFamily == _computeQueueFamily)
+        {
+            transferQueueIndex = std::min(_physicalDeviceQueueFamilyProperties[_computeQueueFamily].queueCount - 1, 1u);
+        }
+
+        static const float graphicsQueuePriority = 0.5f;
+        static const float computeQueuePriority = 1.0f;
+        static const float transferQueuePriority = 1.0f;
+        float queuePriorities[3] = { graphicsQueuePriority, computeQueuePriority, transferQueuePriority };
+
+        uint32_t queueFamilyCount = 0;
+        VkDeviceQueueCreateInfo queue_info[3] = {};
+
+        VkDeviceCreateInfo device_info = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+        device_info.pQueueCreateInfos = queue_info;
+
+        queue_info[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_info[queueFamilyCount].queueFamilyIndex = _graphicsQueueFamily;
+        queue_info[queueFamilyCount].queueCount = std::min(universalQueueIndex,
+            _physicalDeviceQueueFamilyProperties[_graphicsQueueFamily].queueCount);
+        queue_info[queueFamilyCount].pQueuePriorities = queuePriorities;
+        queueFamilyCount++;
+
+        if (_computeQueueFamily != _graphicsQueueFamily)
+        {
+            queue_info[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queue_info[queueFamilyCount].queueFamilyIndex = _computeQueueFamily;
+            queue_info[queueFamilyCount].queueCount = std::min(_transferQueueFamily == _computeQueueFamily ? 2u : 1u,
+                _physicalDeviceQueueFamilyProperties[_computeQueueFamily].queueCount);
+            queue_info[queueFamilyCount].pQueuePriorities = queuePriorities + 1;
+            queueFamilyCount++;
+        }
+
+        if (_transferQueueFamily != _graphicsQueueFamily
+            && _transferQueueFamily != _computeQueueFamily)
+        {
+            queue_info[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queue_info[queueFamilyCount].queueFamilyIndex = _transferQueueFamily;
+            queue_info[queueFamilyCount].queueCount = 1;
+            queue_info[queueFamilyCount].pQueuePriorities = queuePriorities + 2;
+            queueFamilyCount++;
+        }
+
+        device_info.queueCreateInfoCount = queueFamilyCount;
+
+        vector<const char*> requiredDeviceExtensions;
+        if (surface != VK_NULL_HANDLE)
+        {
+            requiredDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        }
+
+        // VK_KHR_maintenance1 to support nevagive viewport and match DirectX coordinate system.
+        requiredDeviceExtensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+
+        vector<const char*> enabledExtensions;
+        vector<const char*> enabledLayers;
+
+        for (size_t i = 0; i < requiredDeviceExtensions.size(); i++)
+        {
+            if (!HasExtension(requiredDeviceExtensions[i]))
+            {
+                ALIMER_LOGERROR("Vulkan: required extension is not supported '{}'", requiredDeviceExtensions[i]);
+                return false;
+            }
+
+            enabledExtensions.push_back(requiredDeviceExtensions[i]);
+        }
+
+        if (HasExtension(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) &&
+            HasExtension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME))
+        {
+            _featuresVk.supportsDedicated = true;
+            enabledExtensions.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+        }
+
+        if (HasExtension(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME))
+        {
+            _featuresVk.supportsImageFormatList = true;
+            enabledExtensions.push_back(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME);
+        }
+
+        if (HasExtension(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
+        {
+            _featuresVk.supportsDebugMarker = true;
+            enabledExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+        }
+
+        if (HasExtension(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME))
+        {
+            _featuresVk.supportsMirrorClampToEdge = true;
+            enabledExtensions.push_back(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
+        }
+
+        if (HasExtension(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME))
+        {
+            _featuresVk.supportsGoogleDisplayTiming = true;
+            enabledExtensions.push_back(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
+        }
+
+#ifdef _WIN32
+        _featuresVk.supportsExternal = false;
+#else
+        if (_featuresVk.supportsExternal
+            && _featuresVk.supportsDedicated
+            && HasExtension(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME)
+            && HasExtension(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME)
+            && HasExtension(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME)
+            && HasExtension(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME))
+        {
+            _featuresVk.supportsExternal = true;
+            enabledExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+        }
+        else {
+            _featuresVk.supportsExternal = false;
+        }
+#endif
+
+        VkPhysicalDeviceFeatures2KHR features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
+        _featuresVk.storage8BitFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR };
+        _featuresVk.storage16BitFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR };
+        _featuresVk.float16Int8Features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR };
+        ppNext = &features.pNext;
+
+        if (HasExtension(VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME))
+        {
+            enabledExtensions.push_back(VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME);
+        }
+
+        if (_featuresVk.supportsPhysicalDeviceProperties2
+            && HasExtension(VK_KHR_8BIT_STORAGE_EXTENSION_NAME))
+        {
+            enabledExtensions.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
+            *ppNext = &_featuresVk.storage8BitFeatures;
+            ppNext = &_featuresVk.storage8BitFeatures.pNext;
+        }
+
+        if (_featuresVk.supportsPhysicalDeviceProperties2
+            && HasExtension(VK_KHR_16BIT_STORAGE_EXTENSION_NAME))
+        {
+            enabledExtensions.push_back(VK_KHR_16BIT_STORAGE_EXTENSION_NAME);
+            *ppNext = &_featuresVk.storage16BitFeatures;
+            ppNext = &_featuresVk.storage16BitFeatures.pNext;
+        }
+
+        if (_featuresVk.supportsPhysicalDeviceProperties2
+            && HasExtension(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME))
+        {
+            enabledExtensions.push_back(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME);
+            *ppNext = &_featuresVk.float16Int8Features;
+            ppNext = &_featuresVk.float16Int8Features.pNext;
+        }
+
+        if (_featuresVk.supportsPhysicalDeviceProperties2)
+        {
+            vkGetPhysicalDeviceFeatures2KHR(_physicalDevice, &features);
+        }
+        else
+        {
+            vkGetPhysicalDeviceFeatures(_physicalDevice, &features.features);
+        }
+
+        // Enable device features we use.
+        {
+            VkPhysicalDeviceFeatures enabled_features = {};
+            if (features.features.textureCompressionETC2)
+                enabled_features.textureCompressionETC2 = VK_TRUE;
+            if (features.features.textureCompressionBC)
+                enabled_features.textureCompressionBC = VK_TRUE;
+            if (features.features.textureCompressionASTC_LDR)
+                enabled_features.textureCompressionASTC_LDR = VK_TRUE;
+            if (features.features.fullDrawIndexUint32)
+                enabled_features.fullDrawIndexUint32 = VK_TRUE;
+            if (features.features.imageCubeArray)
+                enabled_features.imageCubeArray = VK_TRUE;
+            if (features.features.fillModeNonSolid)
+                enabled_features.fillModeNonSolid = VK_TRUE;
+            if (features.features.independentBlend)
+                enabled_features.independentBlend = VK_TRUE;
+            if (features.features.sampleRateShading)
+                enabled_features.sampleRateShading = VK_TRUE;
+            if (features.features.fragmentStoresAndAtomics)
+                enabled_features.fragmentStoresAndAtomics = VK_TRUE;
+            if (features.features.shaderStorageImageExtendedFormats)
+                enabled_features.shaderStorageImageExtendedFormats = VK_TRUE;
+            if (features.features.shaderStorageImageMultisample)
+                enabled_features.shaderStorageImageMultisample = VK_TRUE;
+            if (features.features.largePoints)
+                enabled_features.largePoints = VK_TRUE;
+
+            features.features = enabled_features;
+            _featuresVk.enabledFeatures = enabled_features;
+        }
+
+        if (_featuresVk.supportsPhysicalDeviceProperties2)
+        {
+            device_info.pNext = &features;
+        }
+        else
+        {
+            device_info.pEnabledFeatures = &features.features;
+        }
+
+#if !defined(NDEBUG)
+        if(_validation
+            && HasLayer("VK_LAYER_LUNARG_standard_validation"))
+        {
+            enabledLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+        }
+#endif
+
+        device_info.enabledExtensionCount = (uint32_t)enabledExtensions.size();
+        device_info.ppEnabledExtensionNames = enabledExtensions.data();
+        device_info.enabledLayerCount = (uint32_t)enabledLayers.size();
+        device_info.ppEnabledLayerNames = enabledLayers.data();
+
+        if (vkCreateDevice(_physicalDevice, &device_info, nullptr, &_device) != VK_SUCCESS)
+        {
+            return false;
+        }
+
+        volkLoadDevice(_device);
+        vkGetDeviceQueue(_device, _graphicsQueueFamily, graphicsQueueIndex, &_graphicsQueue);
+        vkGetDeviceQueue(_device, _computeQueueFamily, computeQueueIndex, &_computeQueue);
+        vkGetDeviceQueue(_device, _transferQueueFamily, transferQueueIndex, &_transferQueue);
 
         // Create command queue's.
         _graphicsCommandQueue = std::make_unique<CommandQueueVk>(this, _graphicsQueue, _graphicsQueueFamily);
@@ -458,92 +923,176 @@ namespace alimer
             _mainSwapChain = new SwapChainVk(this, surface, descriptor);
         }
 
-        _waitFences.resize(RenderLatency);
-        _presentCompleteSemaphores.resize(RenderLatency);
-        _renderCompleteSemaphores.resize(RenderLatency);
-        _perFrame.clear();
-        for (uint32_t i = 0; i < RenderLatency; ++i)
+        _frameIndex = 0;
+        _maxInflightFrames = _headless ? 3u : _mainSwapChain->GetTextureCount();
+        _frameData.clear();
+        for (uint32_t i = 0u; i < _maxInflightFrames; ++i)
         {
-            VkFenceCreateInfo fenceCreateInfo = {};
-            fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-            vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_waitFences[i]));
-
-            VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-            semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            vkThrowIfFailed(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_presentCompleteSemaphores[i]));
-            vkThrowIfFailed(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_renderCompleteSemaphores[i]));
-
-            auto frame = std::unique_ptr<PerFrame>(new PerFrame(this));
-            _perFrame.emplace_back(std::move(frame));
+            auto frame = std::unique_ptr<FrameData>(new FrameData(this));
+            _frameData.emplace_back(std::move(frame));
         }
 
-        // Frame command buffers.
-        {
-            std::vector<VkCommandBuffer> vkCommandBuffers(_mainSwapChain->GetTextureCount());
-            VkCommandBufferAllocateInfo commandBufferAllocateInfo;
-            commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            commandBufferAllocateInfo.pNext = nullptr;
-            commandBufferAllocateInfo.commandPool = _graphicsCommandQueue->GetVkCommandPool();
-            commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            commandBufferAllocateInfo.commandBufferCount = _mainSwapChain->GetTextureCount();
-            vkThrowIfFailed(vkAllocateCommandBuffers(_device, &commandBufferAllocateInfo, vkCommandBuffers.data()));
+        return true;
+    }
 
-            _commandBuffers.resize(_mainSwapChain->GetTextureCount());
-            for (uint32_t i = 0; i < _mainSwapChain->GetTextureCount(); i++)
+    VkSurfaceKHR GPUDeviceVk::CreateSurface(uint64_t nativeHandle)
+    {
+#if defined(_WIN32) || defined(_WIN64)
+        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
+        surfaceCreateInfo.hwnd = (HWND)nativeHandle;
+#elif defined(__ANDROID__)
+        VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.window = (ANativeWindow)nativeHandle;
+#elif defined(__linux__)
+        static xcb_connection_t* XCB_CONNECTION = nullptr;
+        if (XCB_CONNECTION == nullptr) {
+            int screenIndex = 0;
+            xcb_screen_t* screen = nullptr;
+            xcb_connection_t* connection = xcb_connect(NULL, &screenIndex);
+            const xcb_setup_t *setup = xcb_get_setup(connection);
+            for (xcb_screen_iterator_t it = xcb_setup_roots_iterator(setup);
+                screen >= 0 && it.rem;
+                xcb_screen_next(&it)) {
+                if (screenIndex-- == 0) {
+                    screen = it.data;
+                }
+            }
+            assert(screen);
+            XCB_CONNECTION = connection;
+        }
+
+        VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.connection = XCB_CONNECTION;
+        surfaceCreateInfo.window = (xcb_window_t)nativeHandle;
+#elif defined(VK_USE_PLATFORM_IOS_MVK)
+        VkIOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
+        surfaceCreateInfo.pView = nativeHandle;
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+        VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
+        surfaceCreateInfo.pView = nativeHandle;
+#endif
+
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        VkResult result = VK_CREATE_SURFACE_FN(_instance, &surfaceCreateInfo, nullptr, &surface);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("Vulkan: Failed to create platform surface");
+            return VK_NULL_HANDLE;
+        }
+
+        return surface;
+    }
+
+    bool GPUDeviceVk::BeginFrame()
+    {
+        if (_mainSwapChain != nullptr) {
+            _mainSwapChain->GetNextTexture();
+        }
+
+        return true;
+    }
+
+    bool GPUDeviceVk::EndFrame()
+    {
+        VkSubmitInfo submitInfo;
+        memset(&submitInfo, 0, sizeof(submitInfo));
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.pNext = nullptr;
+        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(graphics.waitSemaphores.size());
+        submitInfo.pWaitSemaphores = graphics.waitSemaphores.data();
+        submitInfo.pWaitDstStageMask = graphics.waitStages.data();
+
+        const uint32_t submittedCmdBuffersCount = static_cast<uint32_t>(frame().submittedCmdBuffers.size());
+        if (submittedCmdBuffersCount > 0)
+        {
+            submitInfo.pWaitDstStageMask = graphics.waitStages.data();
+            submitInfo.commandBufferCount = submittedCmdBuffersCount;
+            submitInfo.pCommandBuffers = frame().submittedCmdBuffers.data();
+            submitInfo.signalSemaphoreCount = submittedCmdBuffersCount;
+            submitInfo.pSignalSemaphores = frame().waitSemaphores.data();
+        }
+
+        // Submit to the queue
+        vkThrowIfFailed(
+            vkQueueSubmit(_graphicsQueue, 1, &submitInfo, frame().fence)
+            );
+
+        // Present swap chain.
+        if (_mainSwapChain != nullptr) {
+            VkSwapchainKHR swapchain = _mainSwapChain->GetVkHandle();
+            uint32_t imageIndex = _mainSwapChain->GetCurrentBackBuffer();
+            VkResult presentResult = VK_SUCCESS;
+
+            VkPresentInfoKHR presentInfo = {};
+            presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+            presentInfo.pNext = nullptr;
+            if (submittedCmdBuffersCount > 0)
             {
-                _commandBuffers[i] = std::make_unique<CommandBufferVk>(this, _graphicsCommandQueue.get(), vkCommandBuffers[i]);
+                presentInfo.waitSemaphoreCount = submittedCmdBuffersCount;
+                presentInfo.pWaitSemaphores = frame().waitSemaphores.data();
             }
-        }*/
 
+            presentInfo.swapchainCount = 1;
+            presentInfo.pSwapchains = &swapchain;
+            presentInfo.pImageIndices = &imageIndex;
+            presentInfo.pResults = &presentResult;
+            vkThrowIfFailed(
+                vkQueuePresentKHR(_graphicsQueue, &presentInfo)
+                );
+        }
+
+        // Wait for frame fence and reset it.
+        vkThrowIfFailed(
+            vkWaitForFences(_device, 1, &frame().fence, VK_TRUE, UINT64_MAX)
+            );
+        vkResetFences(_device, 1, &frame().fence);
+
+        // Delete all pending/deferred resources
+        frame().ProcessDeferredDelete();
+
+        // Clear queue data.
+        graphics.waitSemaphores.clear();
+        graphics.waitStages.clear();
+        compute.waitSemaphores.clear();
+        compute.waitStages.clear();
+        transfer.waitSemaphores.clear();
+        transfer.waitStages.clear();
+
+        // TODO: Free all command buffers (not submitted).
+
+        // Advance frame index.
+        _frameIndex = (_frameIndex + 1u) % _maxInflightFrames;
         return true;
     }
 
-    /*bool GPUDeviceVk::BeginFrame()
+    GPUCommandBuffer* GPUDeviceVk::CreateCommandBuffer()
     {
-        vkThrowIfFailed(vkWaitForFences(_device, 1, &_waitFences[_frameIndex], VK_TRUE, UINT64_MAX));
-        vkThrowIfFailed(vkResetFences(_device, 1, &_waitFences[_frameIndex]));
-
-        VkResult result = _mainSwapChain->AcquireNextImage(_presentCompleteSemaphores[_frameIndex], &_swapchainImageIndex);
-        if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
-        {
-            _mainSwapChain->Resize();
-        }
-        else {
-            vkThrowIfFailed(result);
-        }
-
-        _commandBuffers[_swapchainImageIndex]->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-        return true;
+        return new CommandBufferVk(this, _graphicsCommandQueue.get());
     }
 
-    void GPUDeviceVk::EndFrame()
+    void GPUDeviceVk::SubmitCommandBuffers(uint32_t count, GPUCommandBuffer** commandBuffers)
     {
-        _graphicsCommandQueue->ExecuteCommandBuffer(
-            _commandBuffers[_swapchainImageIndex].get(),
-            _presentCompleteSemaphores[_frameIndex],
-            _renderCompleteSemaphores[_frameIndex],
-            _waitFences[_frameIndex]
-        );
+        ALIMER_ASSERT(count > 0);
+        ALIMER_ASSERT(commandBuffers);
 
-        VkResult result = _mainSwapChain->QueuePresent(_graphicsQueue, _swapchainImageIndex, _renderCompleteSemaphores[_frameIndex]);
-        if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR)))
-        {
-            if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-                _mainSwapChain->Resize();
-                return;
-            }
-            else {
-                vkThrowIfFailed(result);
-            }
+        for (uint32_t i = 0u; i < count; ++i) {
+            //if (commandBuffers[i]->recording) {
+            //    return VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING;
+            //}
+
+            CommandBufferVk* commandBufferVk = static_cast<CommandBufferVk*>(commandBuffers[i]);
+            frame().submittedCmdBuffers.push_back(commandBufferVk->GetVkCommandBuffer());
+            frame().waitSemaphores.push_back(commandBufferVk->GetVkSemaphore());
         }
-
-        _frameIndex += 1;
-        _frameIndex %= RenderLatency;
     }
 
-    GPUTexture* GPUDeviceVk::CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
+    /*GPUTexture* GPUDeviceVk::CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
     {
         return new TextureVk(this, descriptor, nativeTexture, pInitData);
     }
@@ -558,6 +1107,99 @@ namespace alimer
         return new BufferVk(this, descriptor, pInitData);
     }*/
 
+    VkCommandBuffer GPUDeviceVk::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
+    {
+        VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+        info.commandPool = _graphicsCommandQueue->GetVkCommandPool();
+        info.level = level;
+        info.commandBufferCount = 1;
+
+        VkCommandBuffer vkCommandBuffer;
+        vkThrowIfFailed(vkAllocateCommandBuffers(_device, &info, &vkCommandBuffer));
+
+        // If requested, also start recording for the new command buffer
+        if (begin)
+        {
+            VkCommandBufferBeginInfo beginInfo = {};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            vkThrowIfFailed(vkBeginCommandBuffer(vkCommandBuffer, &beginInfo));
+        }
+
+        return vkCommandBuffer;
+    }
+
+    void GPUDeviceVk::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
+    {
+        FlushCommandBuffer(commandBuffer, _graphicsQueue, free);
+    }
+
+    void GPUDeviceVk::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
+    {
+        if (commandBuffer == VK_NULL_HANDLE) {
+            return;
+        }
+
+        vkThrowIfFailed(vkEndCommandBuffer(commandBuffer));
+
+        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        // Create fence to ensure that the command buffer has finished executing
+        VkFenceCreateInfo fenceCreateInfo = {};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = 0;
+        VkFence fence;
+        vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &fence));
+
+        // Submit to the queue
+        vkThrowIfFailed(vkQueueSubmit(queue, 1, &submitInfo, fence));
+
+        // Wait for the fence to signal that command buffer has finished executing.
+        vkThrowIfFailed(vkWaitForFences(_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+        vkDestroyFence(_device, fence, nullptr);
+
+        if (free)
+        {
+            vkFreeCommandBuffers(_device, _graphicsCommandQueue->GetVkCommandPool(), 1, &commandBuffer);
+        }
+    }
+
+    VkSemaphore GPUDeviceVk::RequestSemaphore()
+    {
+        VkSemaphore semaphore;
+        if (_semaphores.empty())
+        {
+            VkSemaphoreCreateInfo createInfo;
+            createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            createInfo.pNext = nullptr;
+            createInfo.flags = 0u;
+            vkCreateSemaphore(_device, &createInfo, nullptr, &semaphore);
+        }
+        else
+        {
+            semaphore = _semaphores.back();
+            _semaphores.pop_back();
+        }
+
+        return semaphore;
+    }
+
+    void GPUDeviceVk::RecycleSemaphore(VkSemaphore semaphore)
+    {
+        _semaphores.push_back(semaphore);
+    }
+
+    void GPUDeviceVk::AddWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags stages)
+    {
+        graphics.waitSemaphores.push_back(semaphore);
+        graphics.waitStages.push_back(stages);
+
+        // Sanity check.
+        ALIMER_ASSERT(graphics.waitSemaphores.size() < 16 * 1024);
+    }
+
     void GPUDeviceVk::DestroySampler(VkSampler sampler)
     {
 #if !defined(NDEBUG)
@@ -566,19 +1208,23 @@ namespace alimer
         frame().destroyedSamplers.push_back(sampler);
     }
 
-    GPUDeviceVk::PerFrame::PerFrame(GPUDeviceVk* device_)
+    GPUDeviceVk::FrameData::FrameData(GPUDeviceVk* device_)
         : device(device_)
         , logicalDevice(device_->GetVkDevice())
     {
-
+        VkFenceCreateInfo fenceCreateInfo = {};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.pNext = nullptr;
+        fenceCreateInfo.flags = 0u;
+        vkThrowIfFailed(vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &fence));
     }
 
-    GPUDeviceVk::PerFrame::~PerFrame()
+    GPUDeviceVk::FrameData::~FrameData()
     {
-        Begin();
+        ProcessDeferredDelete();
     }
 
-    void GPUDeviceVk::PerFrame::Begin()
+    void GPUDeviceVk::FrameData::ProcessDeferredDelete()
     {
         for (auto &sampler : destroyedSamplers)
         {

@@ -35,14 +35,11 @@ namespace alimer
     class GPUDeviceVk final : public GPUDevice
     {
     public:
-        // Constants
-        static constexpr uint32_t RenderLatency = 2u;
-
         /// Is backend supported?
         static bool IsSupported();
 
         /// Constructor.
-        GPUDeviceVk(bool validation, bool headless);
+        GPUDeviceVk(PhysicalDevicePreference devicePreference, bool validation, bool headless);
 
         /// Destructor.
         ~GPUDeviceVk();
@@ -50,12 +47,23 @@ namespace alimer
         void WaitIdle() override;
         bool Initialize(const SwapChainDescriptor* descriptor) override;
 
-        //bool BeginFrame() override;
-        //void EndFrame() override;
+        bool BeginFrame() override;
+        bool EndFrame() override;
+
+        GPUCommandBuffer* CreateCommandBuffer() override;
+        void SubmitCommandBuffers(uint32_t count, GPUCommandBuffer** commandBuffers) override;
 
         //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
         //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
         //GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) override;
+
+        VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
+        void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
+        void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
+
+        VkSemaphore RequestSemaphore();
+        void RecycleSemaphore(VkSemaphore semaphore);
+        void AddWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags stages);
 
         void DestroySampler(VkSampler sampler);
 
@@ -69,10 +77,16 @@ namespace alimer
         uint32_t GetTransferQueueFamily() const { return _transferQueueFamily; }
 
     private:
-        //VkSurfaceKHR CreateSurface(const SwapChainHandle* handle);
-        bool IsExtensionSupported(const String& extension)
+        VkSurfaceKHR CreateSurface(uint64_t nativeHandle);
+
+        bool HasExtension(const std::string& extension)
         {
             return (std::find(_physicalDeviceExtensions.begin(), _physicalDeviceExtensions.end(), extension) != _physicalDeviceExtensions.end());
+        }
+
+        bool HasLayer(const std::string& extension)
+        {
+            return (std::find(_physicalDeviceLayers.begin(), _physicalDeviceLayers.end(), extension) != _physicalDeviceLayers.end());
         }
 
     private:
@@ -84,7 +98,8 @@ namespace alimer
         VkPhysicalDeviceMemoryProperties        _physicalDeviceMemoryProperties;
         VkPhysicalDeviceFeatures                _physicalDeviceFeatures;
         std::vector<VkQueueFamilyProperties>    _physicalDeviceQueueFamilyProperties;
-        std::vector<String>                     _physicalDeviceExtensions;
+        std::vector<std::string>                _physicalDeviceExtensions;
+        std::vector<std::string>                _physicalDeviceLayers;
         uint32_t                                _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t                                _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t                                _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
@@ -96,46 +111,51 @@ namespace alimer
         std::unique_ptr<CommandQueueVk>         _graphicsCommandQueue;
         std::unique_ptr<CommandQueueVk>         _computeCommandQueue;
         std::unique_ptr<CommandQueueVk>         _copyCommandQueue;
-        std::vector<std::unique_ptr<CommandBufferVk>> _commandBuffers;
 
-        /* Features */
-        SwapChainVk*                             _mainSwapChain = nullptr;
-        std::vector<VkFence>                    _waitFences;
-        std::vector<VkSemaphore>                _renderCompleteSemaphores;
-        std::vector<VkSemaphore>                _presentCompleteSemaphores;
+        DeviceFeaturesVk                        _featuresVk = {};
+        SwapChainVk*                            _mainSwapChain = nullptr;
+        std::vector<VkSemaphore>                _semaphores;
         uint32_t                                _frameIndex = 0;
-        uint32_t                                _swapchainImageIndex = 0;
+        uint32_t                                _maxInflightFrames = 0u;
 
         /* Per Frame data */
-        struct PerFrame
+        struct FrameData
         {
-            PerFrame(GPUDeviceVk* device_);
-            ~PerFrame();
-            void operator=(const PerFrame &) = delete;
-            PerFrame(const PerFrame &) = delete;
+            FrameData(GPUDeviceVk* device_);
+            ~FrameData();
+            void operator=(const FrameData&) = delete;
+            FrameData(const FrameData&) = delete;
 
-            void Begin();
+            void ProcessDeferredDelete();
 
             GPUDeviceVk* device;
             VkDevice logicalDevice;
-            std::vector<VkSampler> destroyedSamplers;
+            std::vector<VkCommandBuffer>    submittedCmdBuffers;
+            std::vector<VkSemaphore>        waitSemaphores;
+            VkFence                         fence;
+            std::vector<VkSampler>          destroyedSamplers;
         };
 
-        std::vector<std::unique_ptr<PerFrame>> _perFrame;
+        std::vector<std::unique_ptr<FrameData>> _frameData;
 
-        PerFrame &frame()
+        FrameData &frame()
         {
-            ALIMER_ASSERT(_frameIndex < _perFrame.size());
-            ALIMER_ASSERT(_perFrame[_frameIndex]);
-            return *_perFrame[_frameIndex];
+            ALIMER_ASSERT(_frameIndex < _frameData.size());
+            ALIMER_ASSERT(_frameData[_frameIndex]);
+            return *_frameData[_frameIndex];
         }
 
-        const PerFrame &frame() const
+        const FrameData &frame() const
         {
-            ALIMER_ASSERT(_frameIndex < _perFrame.size());
-            ALIMER_ASSERT(_perFrame[_frameIndex]);
-            return *_perFrame[_frameIndex];
+            ALIMER_ASSERT(_frameIndex < _frameData.size());
+            ALIMER_ASSERT(_frameData[_frameIndex]);
+            return *_frameData[_frameIndex];
         }
 
+        struct QueueData
+        {
+            std::vector<VkSemaphore> waitSemaphores;
+            std::vector<VkPipelineStageFlags> waitStages;
+        } graphics, compute, transfer;
     };
 }

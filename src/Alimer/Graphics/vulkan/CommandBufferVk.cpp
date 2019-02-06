@@ -32,45 +32,54 @@
 
 namespace alimer
 {
-    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, CommandQueueVk* commandQueue, VkCommandBuffer commandBuffer)
+    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, CommandQueueVk* commandQueue)
         : _device(device)
         , _commandQueue(commandQueue)
-        , _handle(commandBuffer)
+        , _semaphore(device->RequestSemaphore())
     {
+        VkCommandBufferAllocateInfo commandBufferAllocateInfo;
+        commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        commandBufferAllocateInfo.pNext = nullptr;
+        commandBufferAllocateInfo.commandPool = commandQueue->GetVkCommandPool();
+        commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        commandBufferAllocateInfo.commandBufferCount = 1;
+        vkThrowIfFailed(vkAllocateCommandBuffers(
+            _device->GetVkDevice(),
+            &commandBufferAllocateInfo,
+            &_commandBuffer)
+        );
     }
 
     CommandBufferVk::~CommandBufferVk()
     {
-        if (_handle != VK_NULL_HANDLE)
+        if (_commandBuffer != VK_NULL_HANDLE)
         {
-            vkFreeCommandBuffers(_device->GetVkDevice(), _commandQueue->GetVkCommandPool(), 1, &_handle);
-            _handle = VK_NULL_HANDLE;
+            vkFreeCommandBuffers(_device->GetVkDevice(), _commandQueue->GetVkCommandPool(), 1, &_commandBuffer);
+            _commandBuffer = VK_NULL_HANDLE;
         }
+
+        _device->RecycleSemaphore(_semaphore);
     }
 
-    void CommandBufferVk::Begin(VkCommandBufferUsageFlags flags)
+    void CommandBufferVk::Begin()
     {
         VkCommandBufferBeginInfo beginInfo;
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
-        beginInfo.flags = flags;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         beginInfo.pInheritanceInfo = nullptr;
-        VkResult result = vkBeginCommandBuffer(_handle, &beginInfo);
-        if (result != VK_SUCCESS)
-        {
-            ALIMER_LOGERROR("vkBeginCommandBuffer failed: %s", vkGetVulkanResultString(result));
-        }
+        vkThrowIfFailed(
+            vkBeginCommandBuffer(_commandBuffer, &beginInfo)
+            );
 
         //_graphicsState.Reset();
     }
 
     void CommandBufferVk::End()
     {
-        VkResult result = vkEndCommandBuffer(_handle);
-        if (result != VK_SUCCESS)
-        {
-            ALIMER_LOGERROR("vkEndCommandBuffer failed: %s", vkGetVulkanResultString(result));
-        }
+        vkThrowIfFailed(
+            vkEndCommandBuffer(_commandBuffer)
+            );
     }
 
     void CommandBufferVk::PushDebugGroup(const char* name)

@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/GraphicsDevice.h"
-#include "../Application/Window.h"
+#include "../Graphics/CommandBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Sampler.h"
 #include "../Application/Window.h"
@@ -46,7 +46,7 @@ namespace alimer
 {
     static GraphicsDevice* __graphicsInstance = nullptr;
 
-    GraphicsDevice::GraphicsDevice(GraphicsBackend preferredBackend, bool validation, bool headless)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference, bool validation, bool headless)
         : _validation(validation)
         , _headless(headless)
     {
@@ -64,7 +64,7 @@ namespace alimer
 #if defined(ALIMER_VULKAN)
             if (GPUDeviceVk::IsSupported())
             {
-                _device = new GPUDeviceVk(validation, headless);
+                _device = new GPUDeviceVk(devicePreference, validation, headless);
                 ALIMER_LOGINFO("Vulkan backend created with success.");
             }
             else
@@ -83,12 +83,10 @@ namespace alimer
             ALIMER_UNREACHABLE();
         }
 
-        // Create immediate command buffer.
-        //_renderContext = new CommandContext(this, _impl->GetDefaultCommandBuffer());
         AddSubsystem(this);
     }
 
-    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, bool validation, bool headless)
+    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference, bool validation, bool headless)
     {
         if (__graphicsInstance != nullptr)
         {
@@ -96,7 +94,7 @@ namespace alimer
 
         }
 
-        __graphicsInstance = new GraphicsDevice(preferredBackend, validation, headless);
+        __graphicsInstance = new GraphicsDevice(preferredBackend, devicePreference, validation, headless);
         return __graphicsInstance;
     }
 
@@ -119,8 +117,6 @@ namespace alimer
             _gpuResources.Clear();
         }
 
-        _renderContext.Reset();
-
         // Destroy backend.
         SafeDelete(_device);
 
@@ -128,7 +124,7 @@ namespace alimer
         __graphicsInstance = nullptr;
     }
 
-    bool GraphicsDevice::Initialize(Window* window, bool depthStencil, bool vsync, SampleCount samples)
+    bool GraphicsDevice::Initialize(Window* window, bool depthStencil, bool vSync, SampleCount samples)
     {
         if (_initialized) {
             return true;
@@ -137,7 +133,11 @@ namespace alimer
         SwapChainDescriptor descriptor = {};
         descriptor.width = window->GetWidth();
         descriptor.height = window->GetWidth();
-
+        descriptor.depthStencil = depthStencil;
+        descriptor.tripleBuffer = true;
+        descriptor.vSync = vSync;
+        descriptor.samples = samples;
+        descriptor.nativeHandle = window->GetNativeHandle();
         if (!_device->Initialize(&descriptor))
         {
             ALIMER_LOGERROR("Failed to initialize graphics backend");
@@ -167,10 +167,10 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
         }
 
-        //if (agpuBeginFrame() != VGPU_SUCCESS)
-        //{
-        //    ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
-        //}
+        if (!_device->BeginFrame())
+        {
+            ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
+        }
 
         _inBeginFrame = true;
         return true;
@@ -183,10 +183,10 @@ namespace alimer
             ALIMER_LOGCRITICAL("BeginFrame must be called before EndFrame.");
         }
 
-        //if (agpuEndFrame() != VGPU_SUCCESS)
-        //{
-        //    ALIMER_LOGCRITICAL("Failed to end rendering frame.");
-        //}
+        if (!_device->EndFrame())
+        {
+            ALIMER_LOGCRITICAL("Failed to end rendering frame.");
+        }
 
         _inBeginFrame = false;
         return ++_frameIndex;
@@ -195,6 +195,20 @@ namespace alimer
     void GraphicsDevice::WaitIdle()
     {
         _device->WaitIdle();
+    }
+
+    void GraphicsDevice::SubmitCommandBuffers(uint32_t count, CommandBuffer** commandBuffers)
+    {
+        ALIMER_ASSERT(count > 0);
+        ALIMER_ASSERT(commandBuffers);
+
+        std::vector<GPUCommandBuffer*> gpuCommandBuffers(count);
+
+        for (uint32_t i = 0u; i < count; ++i) {
+            gpuCommandBuffers[i] = commandBuffers[i]->GetGPUCommandBuffer();
+        }
+
+        _device->SubmitCommandBuffers(count, gpuCommandBuffers.data());
     }
 
     void GraphicsDevice::TrackResource(GPUResource* resource)

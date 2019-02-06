@@ -27,4 +27,31 @@ namespace alimer
     GraphicsDeviceFeatures::GraphicsDeviceFeatures()
     {
     }
+
+    void GraphicsDeviceFeatures::SetVendorId(uint32_t vendorId)
+    {
+        _vendorId = vendorId;
+
+        // Find vendor
+        switch (vendorId)
+        {
+        case 0x13B5:
+            _vendor = GpuVendor::ARM;
+            break;
+        case 0x10DE:
+            _vendor = GpuVendor::NVIDIA;
+            break;
+        case 0x1002:
+        case 0x1022:
+            _vendor = GpuVendor::AMD;
+            break;
+        case 0x163C:
+        case 0x8086:
+            _vendor = GpuVendor::INTEL;
+            break;
+        default:
+            _vendor = GpuVendor::Unknown;
+            break;
+        }
+    }
 }

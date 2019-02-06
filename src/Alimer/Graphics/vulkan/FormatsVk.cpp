@@ -24,7 +24,7 @@
 
 namespace alimer
 {
-    /*const VkFormatDesc s_vkFormatDesc[] =
+    const VkFormatDesc s_vkFormatDesc[] =
     {
         { PixelFormat::Unknown,                     VK_FORMAT_UNDEFINED },
 
@@ -60,12 +60,12 @@ namespace alimer
         { PixelFormat::RG16SInt,                    VK_FORMAT_R16G16_SINT },
         { PixelFormat::RG16Float,                   VK_FORMAT_R16G16_SFLOAT },
         { PixelFormat::RGBA8UNorm,                  VK_FORMAT_R8G8B8A8_UNORM },
-        { PixelFormat::RGBA8UNormSrgb,              VK_FORMAT_R8G8B8A8_SRGB },
+        //{ PixelFormat::RGBA8UNormSrgb,              VK_FORMAT_R8G8B8A8_SRGB },
         { PixelFormat::RGBA8SNorm,                  VK_FORMAT_R8G8B8A8_SNORM },
         { PixelFormat::RGBA8UInt,                   VK_FORMAT_R8G8B8A8_UINT },
         { PixelFormat::RGBA8SInt,                   VK_FORMAT_R8G8B8A8_SINT },
         { PixelFormat::BGRA8UNorm,                  VK_FORMAT_B8G8R8A8_UNORM },
-        { PixelFormat::BGRA8UNormSrgb,              VK_FORMAT_B8G8R8A8_SRGB },
+        //{ PixelFormat::BGRA8UNormSrgb,              VK_FORMAT_B8G8R8A8_SRGB },
 
         // Packed 32-Bit Pixel Formats
         { PixelFormat::RGB10A2UNorm,                VK_FORMAT_A2R10G10B10_UNORM_PACK32},
@@ -74,18 +74,18 @@ namespace alimer
         { PixelFormat::RGB9E5Float,                 VK_FORMAT_E5B9G9R9_UFLOAT_PACK32},
 
         // Depth-stencil
-        { PixelFormat::D32Float,                      VK_FORMAT_D32_SFLOAT },
-        { PixelFormat::D16UNorm,                      VK_FORMAT_D16_UNORM },
-        { PixelFormat::D24UNormS8,                    VK_FORMAT_D24_UNORM_S8_UINT },
-        { PixelFormat::D32FloatS8,                      VK_FORMAT_D32_SFLOAT_S8_UINT },
+        //{ PixelFormat::D32Float,                      VK_FORMAT_D32_SFLOAT },
+        //{ PixelFormat::D16UNorm,                      VK_FORMAT_D16_UNORM },
+        //{ PixelFormat::D24UNormS8,                    VK_FORMAT_D24_UNORM_S8_UINT },
+        //{ PixelFormat::D32FloatS8,                      VK_FORMAT_D32_SFLOAT_S8_UINT },
 
         // Compressed formats
         { PixelFormat::BC1UNorm,                      VK_FORMAT_BC1_RGB_UNORM_BLOCK },
-        { PixelFormat::BC1UNormSrgb,                  VK_FORMAT_BC1_RGB_SRGB_BLOCK },
+        //{ PixelFormat::BC1UNormSrgb,                  VK_FORMAT_BC1_RGB_SRGB_BLOCK },
         { PixelFormat::BC2UNorm,                      VK_FORMAT_BC2_UNORM_BLOCK },
-        { PixelFormat::BC2UNormSrgb,                  VK_FORMAT_BC2_SRGB_BLOCK },
+        //{ PixelFormat::BC2UNormSrgb,                  VK_FORMAT_BC2_SRGB_BLOCK },
         { PixelFormat::BC3UNorm,                      VK_FORMAT_BC3_UNORM_BLOCK },
-        { PixelFormat::BC3UNormSrgb,                  VK_FORMAT_BC3_SRGB_BLOCK },
+        //{ PixelFormat::BC3UNormSrgb,                  VK_FORMAT_BC3_SRGB_BLOCK },
         { PixelFormat::BC4UNorm,                      VK_FORMAT_BC4_UNORM_BLOCK },
         { PixelFormat::BC4SNorm,                      VK_FORMAT_BC4_SNORM_BLOCK },
         { PixelFormat::BC5UNorm,                      VK_FORMAT_BC5_UNORM_BLOCK },
@@ -93,15 +93,15 @@ namespace alimer
         { PixelFormat::BC6HS16,                       VK_FORMAT_BC6H_SFLOAT_BLOCK },
         { PixelFormat::BC6HU16,                       VK_FORMAT_BC6H_UFLOAT_BLOCK },
         { PixelFormat::BC7UNorm,                      VK_FORMAT_BC7_UNORM_BLOCK },
-        { PixelFormat::BC7UNormSrgb,                  VK_FORMAT_BC7_SRGB_BLOCK },
-    };*/
+        //{ PixelFormat::BC7UNormSrgb,                  VK_FORMAT_BC7_SRGB_BLOCK },
+    };
 
     // Create an image memory barrier for changing the layout of
     // an image and put it into an active command buffer
     // See chapter 11.4 "Image Layout" for details
 
-    void vk::SetImageLayout(
-        VkCommandBuffer cmdbuffer,
+    void vkTransitionImageLayout(
+        VkCommandBuffer commandBuffer,
         VkImage image,
         VkImageLayout oldImageLayout,
         VkImageLayout newImageLayout,
@@ -216,7 +216,7 @@ namespace alimer
 
         // Put barrier inside setup command buffer
         vkCmdPipelineBarrier(
-            cmdbuffer,
+            commandBuffer,
             srcStageMask,
             dstStageMask,
             0,
@@ -226,8 +226,8 @@ namespace alimer
     }
 
     // Fixed sub resource on first mip level and layer
-    void vk::SetImageLayout(
-        VkCommandBuffer cmdbuffer,
+    void vkTransitionImageLayout(
+        VkCommandBuffer commandBuffer,
         VkImage image,
         VkImageAspectFlags aspectMask,
         VkImageLayout oldImageLayout,
@@ -240,6 +240,32 @@ namespace alimer
         subresourceRange.baseMipLevel = 0;
         subresourceRange.levelCount = 1;
         subresourceRange.layerCount = 1;
-        vk::SetImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
+        vkTransitionImageLayout(commandBuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
+    }
+
+    void vkClearImageWithColor(
+        VkCommandBuffer commandBuffer,
+        VkImage image,
+        VkImageSubresourceRange range,
+        VkImageAspectFlags aspect,
+        VkImageLayout sourceLayout,
+        VkImageLayout destLayout,
+        VkClearColorValue *clearValue)
+    {
+        // Transition to destination layout.
+        vkTransitionImageLayout(commandBuffer, image, aspect, sourceLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+        // Clear the image
+        range.aspectMask = aspect;
+        vkCmdClearColorImage(
+            commandBuffer,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            clearValue,
+            1,
+            &range);
+
+        // Transition back to source layout.
+        vkTransitionImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
     }
 }

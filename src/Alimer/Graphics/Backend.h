@@ -63,6 +63,9 @@ namespace alimer
     public:
         virtual ~GPUCommandBuffer() = default;
 
+        virtual void Begin() = 0;
+        virtual void End() = 0;
+
         virtual void PushDebugGroup(const char* name) = 0;
         virtual void PopDebugGroup() = 0;
         virtual void InsertDebugMarker(const char* name) = 0;
@@ -84,18 +87,20 @@ namespace alimer
         virtual bool Initialize(const SwapChainDescriptor* descriptor) = 0;
 
         inline const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
-        GPUCommandBuffer* GetDefaultCommandBuffer() const { return _defaultCommandBuffer; }
 
-        //virtual bool BeginFrame() = 0;
-        //virtual void EndFrame() = 0;
+        virtual bool BeginFrame() = 0;
+        virtual bool EndFrame() = 0;
+
+        virtual GPUCommandBuffer* CreateCommandBuffer() = 0;
+        virtual void SubmitCommandBuffers(uint32_t count, GPUCommandBuffer** commandBuffers) = 0;
+
         //virtual GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) = 0;
         //virtual GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) = 0;
         //virtual GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) = 0;
 
     protected:
-        bool _validation;
-        bool _headless;
-        GraphicsDeviceFeatures _features = {};
-        GPUCommandBuffer* _defaultCommandBuffer = nullptr;
+        bool                    _validation;
+        bool                    _headless;
+        GraphicsDeviceFeatures  _features = {};
     };
 };

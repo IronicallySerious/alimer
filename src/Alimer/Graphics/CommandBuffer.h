@@ -37,16 +37,18 @@ namespace alimer
     class GPUCommandBuffer;
 
     /// Defines a command buffer for recording gpu commands.
-    class ALIMER_API CommandContext final : public RefCounted
+    class ALIMER_API CommandBuffer final : public RefCounted
     {
         friend class GraphicsDevice;
 
-    private:
-        CommandContext(GraphicsDevice* device, GPUCommandBuffer* handle);
-
     public:
+        CommandBuffer(GraphicsDevice* device);
+
         /// Destructor.
-        ~CommandContext();
+        ~CommandBuffer() override;
+
+        void Begin();
+        void End();
 
         void PushDebugGroup(const std::string& name);
         void PopDebugGroup();
@@ -91,6 +93,9 @@ namespace alimer
         /// Return the device used for creation.
         GraphicsDevice* GetDevice() const { return _device.Get(); }
 
+        /// Return backend gpu handle.
+        GPUCommandBuffer* GetGPUCommandBuffer() const { return _handle; }
+
     private:
         // Backend methods
         //virtual void PushDebugGroupImpl(const String& name) = 0;
@@ -108,9 +113,10 @@ namespace alimer
         WeakPtr<GraphicsDevice> _device;
 
         /// Backend handle.
-        GPUCommandBuffer* _handle;
+        GPUCommandBuffer* _handle = nullptr;
 
-        bool _insideRenderPass;
+        bool            _isRecording = false;
+        bool            _insideRenderPass = false;
         Shader* _currentShader = nullptr;
     };
 }

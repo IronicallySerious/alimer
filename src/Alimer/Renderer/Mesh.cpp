@@ -98,7 +98,7 @@ namespace alimer
         }
     }
 
-    void Mesh::Draw(CommandContext& context, uint32_t instanceCount)
+    void Mesh::Draw(CommandBuffer& commandBuffer, uint32_t instanceCount)
     {
         ALIMER_ASSERT(instanceCount >= 1);
 

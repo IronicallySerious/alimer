@@ -24,7 +24,7 @@
 #include "../Graphics/Framebuffer.h"
 #include "../Graphics/GraphicsDevice.h"
 #if defined(ALIMER_GLFW)
-#include "glfw/window_glfw.h"
+#include "glfw/WindowImplGLFW.h"
 #elif defined(ALIMER_SDL2)
 #include "SDL2/WindowSDL2.h"
 #endif

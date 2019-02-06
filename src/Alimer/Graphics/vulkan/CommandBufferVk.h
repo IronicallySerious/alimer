@@ -32,17 +32,18 @@ namespace alimer
 	class CommandBufferVk final : public GPUCommandBuffer
 	{
 	public:
-        CommandBufferVk(GPUDeviceVk* device, CommandQueueVk* commandQueue, VkCommandBuffer commandBuffer);
+        CommandBufferVk(GPUDeviceVk* device, CommandQueueVk* commandQueue);
 		~CommandBufferVk() override;
 
-        void Begin(VkCommandBufferUsageFlags flags);
-        void End();
+        void Begin() override;
+        void End() override;
 
         void PushDebugGroup(const char* name) override;
         void PopDebugGroup() override;
         void InsertDebugMarker(const char* name) override;
        
-        VkCommandBuffer GetVkCommandBuffer() const { return _handle; }
+        VkCommandBuffer GetVkCommandBuffer() const { return _commandBuffer; }
+        VkSemaphore GetVkSemaphore() const { return _semaphore; }
 
 	private:
         void BeginContext();
@@ -73,7 +74,8 @@ namespace alimer
     private:
         GPUDeviceVk*    _device;
         CommandQueueVk* _commandQueue;
-        VkCommandBuffer _handle = VK_NULL_HANDLE;
+        VkCommandBuffer _commandBuffer;
+        VkSemaphore     _semaphore;
 
         // State
         class GraphicsState
