@@ -141,8 +141,8 @@ namespace alimer
         return c;
     }
 
-    String Hash::ToString() const
+    std::string Hash::ToString() const
     {
-        return String(A) + "_" + String(B);
+        return std::to_string(A) + "_" + std::to_string(B);
     }
 }

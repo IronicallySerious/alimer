@@ -22,12 +22,15 @@
 
 #pragma once
 
+#include <vector>
+#include <string>
+#include <memory>
+#include <unordered_map>
+#include <functional>
+#include <stdio.h>
 #include <foundation/cpp_macros.h>
-#include "../Base/String.h"
-#include "../foundation/Ptr.h"
 #include "../Core/Platform.h"
 #include "../IO/FileStream.h"
-#include <unordered_map>
 
 namespace alimer
 {
@@ -45,20 +48,20 @@ namespace alimer
     ALIMER_BITMASK(ScanDirFlags);
 
     /// Add a slash at the end of the path if missing and convert to internal format (use slashes.)
-    ALIMER_API String AddTrailingSlash(const String& path);
+    ALIMER_API std::string AddTrailingSlash(const std::string& path);
     /// Remove the slash from the end of a path if exists and convert to internal format (use slashes.)
-    ALIMER_API String RemoveTrailingSlash(const String& path);
+    ALIMER_API std::string RemoveTrailingSlash(const std::string& path);
 
     /// Split a full path to path, filename and extension. The extension will be converted to lowercase by default.
-    ALIMER_API void SplitPath(const String& fullPath, String& pathName, String& fileName, String& extension, bool lowerCaseExtension = true);
+    ALIMER_API void SplitPath(const std::string& fullPath, std::string& pathName, std::string& fileName, std::string& extension, bool lowerCaseExtension = true);
 
     /// Return the parent path, or the path itself if not available.
-    ALIMER_API String GetParentPath(const String& path);
+    ALIMER_API std::string GetParentPath(const std::string& path);
     /// Return whether a path is absolute.
-    ALIMER_API bool IsAbsolutePath(const String& pathName);
+    ALIMER_API bool IsAbsolutePath(const std::string& pathName);
 
     /// Scan a directory for specified files.
-    ALIMER_API void ScanDirectory(std::vector<String>& result, const String& pathName, const String& filter, ScanDirFlags flags, bool recursive);
+    ALIMER_API void ScanDirectory(std::vector<std::string>& result, const std::string& pathName, const std::string& filter, ScanDirFlags flags, bool recursive);
 
     /// Backend protocol for file system.
     class ALIMER_API FileSystemProtocol
@@ -66,22 +69,22 @@ namespace alimer
     public:
         virtual ~FileSystemProtocol() = default;
 
-        virtual bool Exists(const String &path) = 0;
-        virtual UniquePtr<Stream> Open(const String &path, FileAccess mode = FileAccess::ReadOnly) = 0;
+        virtual bool Exists(const std::string& path) = 0;
+        virtual std::unique_ptr<Stream> Open(const std::string& path, FileAccess mode = FileAccess::ReadOnly) = 0;
 
-        inline virtual String GetFileSystemPath(const String&)
+        inline virtual std::string GetFileSystemPath(const std::string&)
         {
             return "";
         }
 
         /// Gets the name.
-        String GetName() const { return _name; }
+        std::string GetName() const { return _name; }
 
         /// Set the name.
-        void SetName(const String &name) { _name = name; }
+        void SetName(const std::string &name) { _name = name; }
 
     protected:
-        String _name;
+        std::string _name;
     };
 
     /// Class for accessing File system.
@@ -92,45 +95,45 @@ namespace alimer
         static FileSystem &Get();
 
         /// Return the path from a full path.
-        static String GetPath(const String& fullPath);
+        static std::string GetPath(const std::string& fullPath);
         /// Return the filename from a full path.
-        static String GetFileName(const String& fullPath);
+        static std::string GetFileName(const std::string& fullPath);
         /// Return the extension from a full path, converted to lowercase by default.
-        static String GetExtension(const String& fullPath, bool lowercaseExtension = true);
+        static std::string GetExtension(const std::string& fullPath, bool lowercaseExtension = true);
         /// Return the filename and extension from a full path. The case of the extension is preserved by default, so that the file can be opened in case-sensitive operating systems.
-        static String GetFileNameAndExtension(const String& fileName, bool lowercaseExtension = false);
+        static std::string GetFileNameAndExtension(const std::string& fileName, bool lowercaseExtension = false);
 
         /// Check if a file exists.
-        static bool FileExists(const String& fileName);
+        static bool FileExists(const std::string& fileName);
 
         /// Check if a directory exists.
-        static bool DirectoryExists(const String& path);
+        static bool DirectoryExists(const std::string& path);
 
         /// Create a directory.
-        static bool CreateDir(const String& path);
+        static bool CreateDir(const std::string& path);
 
         /// Return the absolute current working directory.
-        static String GetCurrentDir();
+        static std::string GetCurrentDir();
 
         /// Return the executable application folder.
-        static String GetExecutableFolder();
+        static std::string GetExecutableFolder();
 
         /// Register protocol with given name.
-        void RegisterProtocol(const String &name, FileSystemProtocol* protocol);
+        void RegisterProtocol(const std::string& name, FileSystemProtocol* protocol);
 
         /// Get protocol by name or empty for default protocol.
-        FileSystemProtocol* GetProcotol(const String &name);
+        FileSystemProtocol* GetProcotol(const std::string& name);
 
         /// Check if file exists.
-        bool Exists(const String &path);
+        bool Exists(const std::string& path);
 
         /// Open stream from given path with given access mode.
-        UniquePtr<Stream> Open(const String &path, FileAccess mode = FileAccess::ReadOnly);
+        std::unique_ptr<Stream> Open(const std::string& path, FileAccess mode = FileAccess::ReadOnly);
 
     private:
         FileSystem();
 
-        std::unordered_map<String, UniquePtr<FileSystemProtocol>> _protocols;
+        std::unordered_map<std::string, std::unique_ptr<FileSystemProtocol>> _protocols;
 
     private:
         FileSystem(const FileSystem&) = delete;

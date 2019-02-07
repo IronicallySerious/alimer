@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "../Base/String.h"
+#include <vector>
+#include <string>
 #include "../Base/StringHash.h"
 
 namespace alimer
@@ -58,7 +59,7 @@ namespace alimer
         /// Resource type.
         StringHash type;
         /// Resource name.
-        String name;
+        std::string name;
 
         /// Construct.
         ResourceRef() = default;
@@ -71,21 +72,21 @@ namespace alimer
         }
 
         /// Construct with type and resource name.
-        ResourceRef(StringHash type_, const String& name_ = String::EMPTY)
+        ResourceRef(StringHash type_, const std::string& name_ = "")
             : type(type_)
             , name(name_)
         {
         }
 
         /// Construct with type and resource name.
-        ResourceRef(const String& type_, const String& name_)
+        ResourceRef(const std::string& type_, const std::string& name_)
             : type(type_)
             , name(name_)
         {
         }
 
         /// Construct from a string.
-        ResourceRef(const String& str)
+        ResourceRef(const std::string& str)
         {
             FromString(str);
         }
@@ -97,14 +98,14 @@ namespace alimer
         }
 
         /// Set from a string that contains the type and name separated by a semicolon. Return true on success.
-        bool FromString(const String& str);
+        bool FromString(const std::string& str);
         /// Set from a C string that contains the type and name separated by a semicolon. Return true on success.
         bool FromString(const char* str);
         /// Deserialize from a binary stream.
         void FromBinary(Stream& source);
 
         /// Return as a string.
-        String ToString() const;
+        std::string ToString() const;
         /// Serialize to a binary stream.
         void ToBinary(Stream& dest) const;
 
@@ -121,7 +122,7 @@ namespace alimer
         /// Resource type.
         StringHash type;
         /// List of resource names.
-        Vector<String> names;
+        std::vector<std::string> names;
 
         /// Construct.
         ResourceRefList() = default;
@@ -134,7 +135,7 @@ namespace alimer
         }
 
         /// Construct from a string.
-        ResourceRefList(const String& str)
+        ResourceRefList(const std::string& str)
         {
             FromString(str);
         }
@@ -146,21 +147,21 @@ namespace alimer
         }
 
         /// Construct with type and name list.
-        ResourceRefList(StringHash type_, const Vector<String>& names_ = Vector<String>())
+        ResourceRefList(StringHash type_, const std::vector<std::string>& names_ = std::vector<std::string>())
             : type(type_)
             , names(names_)
         {
         }
 
         /// Set from a string that contains the type and names separated by semicolons. Return true on success.
-        bool FromString(const String& str);
+        bool FromString(const std::string& str);
         /// Set from a C string that contains the type and names separated by semicolons. Return true on success.
         bool FromString(const char* str);
         /// Deserialize from a binary stream.
         void FromBinary(Stream& source);
 
         /// Return as a string.
-        String ToString() const;
+        std::string ToString() const;
         /// Deserialize from a binary stream.
         void ToBinary(Stream& dest) const;
 

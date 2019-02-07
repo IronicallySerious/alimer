@@ -1,45 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-    <!-- alimer::Array<> -->
-    <Type Name="alimer::Array&lt;*,*&gt;">
-        <DisplayString Condition="$T2 == 0">Empty</DisplayString>
-        <DisplayString Condition="$T2 != 0">size = {$T2}</DisplayString>
-        <Expand>
-            <ArrayItems>
-                <Size>($T2)</Size>
-                <ValuePointer>($T1*)_data</ValuePointer>
-            </ArrayItems>
-        </Expand>
-    </Type>
-
-    <!-- alimer::ArrayView<> -->
-    <Type Name="alimer::ArrayView&lt;*&gt;">
-        <DisplayString Condition="(_end - _begin) == 0">Empty</DisplayString>
-        <DisplayString Condition="(_end - _begin) != 0">size = {_end - _begin}</DisplayString>
-        <Expand>
-            <Item Name="[size]" ExcludeView="simple">(_end - _begin)</Item>
-            <ArrayItems>
-                <Size>(_end - _begin)</Size>
-                <ValuePointer>($T1*)_begin</ValuePointer>
-            </ArrayItems>
-        </Expand>
-    </Type>
-
-    <!-- alimer::PODVector<> -->
-    <Type Name="alimer::PODVector&lt;*&gt;">
-        <DisplayString Condition="_size == 0">Empty</DisplayString>
-        <DisplayString>{{ size={_size} [POD] }}</DisplayString>
-        <Expand>
-            <Item Name="[size]" ExcludeView="simple">_size</Item>
-            <Item Name="[capacity]" ExcludeView="simple">_capacity</Item>
-            <ArrayItems>
-                <Size>_size</Size>
-                <ValuePointer>($T1*)_buffer</ValuePointer>
-            </ArrayItems>
-        </Expand>
-    </Type>
-
     <!-- alimer::Vector<> -->
     <Type Name="alimer::Vector&lt;*&gt;">
         <DisplayString Condition="_size == 0">Empty</DisplayString>

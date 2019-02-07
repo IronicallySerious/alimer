@@ -20,10 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "../foundation/Ptr.h"
 #include "../Core/Object.h"
 #include "../Core/Log.h"
+#include <memory>
 #include <map>
+
+using namespace std;
 
 namespace alimer
 {
@@ -57,11 +59,11 @@ namespace alimer
                 auto it = _factories.find(factory->GetType());
                 if (it == _factories.end())
                 {
-                    _factories[factory->GetType()].Reset(factory);
+                    _factories[factory->GetType()].reset(factory);
                 }
                 else
                 {
-                    ALIMER_LOGERROR("Type already registered: {}", factory->GetTypeName().CString());
+                    ALIMER_LOGERROR("Type already registered: {}", factory->GetTypeName());
                 }
                 
             }
@@ -82,18 +84,23 @@ namespace alimer
                 return nullptr;
             }
 
-            const String& GetTypeNameFromType(StringHash type)
+            const std::string& GetTypeNameFromType(StringHash type)
             {
                 auto it = _factories.find(type);
-                return it != _factories.end() ? it->second->GetTypeName() : String::EMPTY;
+                if (it != _factories.end()) {
+                    return it->second->GetTypeName();
+                }
+
+                static std::string empty_string = "";
+                return empty_string;
             }
 
         private:
             /// Registered subsystems.
-            std::map<StringHash, Object*> _subsystems;
+            map<StringHash, Object*> _subsystems;
 
             /// Registered object factories.
-            std::map<StringHash, UniquePtr<ObjectFactory>> _factories;
+            map<StringHash, unique_ptr<ObjectFactory>> _factories;
         };
 
         SubSystemContext& Context()
@@ -186,7 +193,7 @@ namespace alimer
         return details::Context().CreateObject(type);
     }
 
-    const String& Object::GetTypeNameFromType(StringHash type)
+    const std::string& Object::GetTypeNameFromType(StringHash type)
     {
         return details::Context().GetTypeNameFromType(type);
     }

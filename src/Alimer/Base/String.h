@@ -22,8 +22,7 @@
 
 #pragma once
 
-#include <foundation/foundation.h>
-#include "../foundation/Swap.h"
+#include "foundation/foundation.h"
 #include "../Base/Vector.h"
 #include <cassert>
 #include <cstdarg>
@@ -38,8 +37,15 @@
 namespace alimer
 {
     class String;
-    class WString;
-    class StringHash;
+
+    /// Convert a char to uppercase.
+    inline char ToUpper(char c) { return (c >= 'a' && c <= 'z') ? c - 0x20 : c; }
+    /// Convert a char to lowercase.
+    inline char ToLower(char c) { return (c >= 'A' && c <= 'Z') ? c + 0x20 : c; }
+    /// Return whether a char is an alphabet letter.
+    inline bool IsAlpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
+    /// Return whether a char is a digit.
+    inline bool IsDigit(char c) { return c >= '0' && c <= '9'; }
 
     static constexpr size_t CONVERSION_BUFFER_LENGTH = 128;
 
@@ -139,9 +145,6 @@ namespace alimer
         {
             SetUTF8FromWChar(str);
         }
-
-        /// Construct from a wide character string.
-        explicit String(const WString& str);
 
         /// Construct from an integer.
         explicit String(int value);
@@ -614,72 +617,6 @@ namespace alimer
         ret += rhs;
         return ret;
     }
-
-    /// Wide character string. Only meant for converting from String and passing to the operating system where necessary.
-    class ALIMER_API WString final
-    {
-    public:
-        /// Construct empty.
-        WString()
-            : _length(0), _buffer(nullptr)
-        {
-        }
-
-        /// Construct from a string.
-        explicit WString(const String& str);
-
-        /// Destruct.
-        ~WString()
-        {
-            delete[] _buffer;
-        }
-
-        /// Return char at index.
-        wchar_t& operator [](uint32_t index)
-        {
-            assert(index < _length);
-            return _buffer[index];
-        }
-
-        /// Return const char at index.
-        const wchar_t& operator [](uint32_t index) const
-        {
-            assert(index < _length);
-            return _buffer[index];
-        }
-
-        /// Return char at index.
-        wchar_t& At(uint32_t index)
-        {
-            assert(index < _length);
-            return _buffer[index];
-        }
-
-        /// Return const char at index.
-        const wchar_t& At(uint32_t index) const
-        {
-            assert(index < _length);
-            return _buffer[index];
-        }
-
-        /// Resize the string.
-        void Resize(uint32_t newLength);
-
-        /// Return whether the string is empty.
-        bool IsEmpty() const { return _length == 0; }
-
-        /// Return length.
-        uint32_t Length() const { return _length; }
-
-        /// Return character data.
-        const wchar_t* CString() const { return _buffer; }
-
-    private:
-        /// String length.
-        uint32_t _length;
-        /// String buffer, null if not allocated.
-        wchar_t* _buffer;
-    };
 
     /// Make fmt library aware of String type for inputs.
     inline fmt::string_view to_string_view(const String& s)

@@ -35,7 +35,7 @@ namespace alimer
     /*class CustomCompiler : public spirv_cross::CompilerGLSL
     {
     public:
-        CustomCompiler(const PODVector<uint8_t>& bytecode)
+        CustomCompiler(const std::vector<uint8_t>& bytecode)
             : spirv_cross::CompilerGLSL(reinterpret_cast<const uint32_t*>(bytecode.Data()), bytecode.Size() / 4)
         {
 
@@ -81,7 +81,7 @@ namespace alimer
         }
     }
 
-    void Shader::Reflect(const PODVector<uint8_t>& bytecode)
+    void Shader::Reflect(const std::vector<uint8_t>& bytecode)
     {
         // Parse SPIRV binary.
         /*CustomCompiler compiler(bytecode);
@@ -159,7 +159,7 @@ namespace alimer
 
     private:
         bool _isBinary = false;
-        PODVector<uint8_t> _byteCode;
+        std::vector<uint8_t> _byteCode;
     };*/
 
 }

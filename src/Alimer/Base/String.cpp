@@ -29,14 +29,6 @@ namespace alimer
     char String::END_ZERO = 0;
     const String String::EMPTY;
 
-    String::String(const WString& str)
-        : _length(0)
-        , _capacity(0)
-        , _buffer(&END_ZERO)
-    {
-        SetUTF8FromWChar(str.CString());
-    }
-
     String::String(int value)
         : _length(0)
         , _capacity(0)
@@ -292,9 +284,9 @@ namespace alimer
 
     void String::Swap(String& str)
     {
-        alimer::Swap(_length, str._length);
-        alimer::Swap(_capacity, str._capacity);
-        alimer::Swap(_buffer, str._buffer);
+        std::swap(_length, str._length);
+        std::swap(_capacity, str._capacity);
+        std::swap(_buffer, str._buffer);
     }
 
     int String::Compare(const String& str, bool caseSensitive) const
@@ -1276,60 +1268,4 @@ namespace alimer
         }
     }
 #endif
-
-    WString::WString(const String& str)
-        : _length(0), _buffer(nullptr)
-    {
-#ifdef _WIN32
-        uint32_t neededSize = 0;
-        wchar_t temp[3];
-
-        uint32_t byteOffset = 0;
-        while (byteOffset < str.Length())
-        {
-            wchar_t* dest = temp;
-            String::EncodeUTF16(dest, str.NextUTF8Char(byteOffset));
-            neededSize += (uint32_t)(dest - temp);
-        }
-
-        Resize(neededSize);
-
-        byteOffset = 0;
-        wchar_t* dest = _buffer;
-        while (byteOffset < str.Length())
-        {
-            String::EncodeUTF16(dest, str.NextUTF8Char(byteOffset));
-        }
-#else
-        Resize(str.LengthUTF8());
-
-        uint32_t byteOffset = 0;
-        wchar_t* dest = _buffer;
-        while (byteOffset < str.Length())
-            *dest++ = (wchar_t)str.NextUTF8Char(byteOffset);
-#endif
-    }
-
-    void WString::Resize(uint32_t newLength)
-    {
-        if (!newLength)
-        {
-            delete[] _buffer;
-            _buffer = nullptr;
-            _length = 0;
-        }
-        else
-        {
-            auto* newBuffer = new wchar_t[newLength + 1];
-            if (_buffer)
-            {
-                uint32_t copyLength = _length < newLength ? _length : newLength;
-                memcpy(newBuffer, _buffer, copyLength * sizeof(wchar_t));
-                delete[] _buffer;
-            }
-            newBuffer[newLength] = 0;
-            _buffer = newBuffer;
-            _length = newLength;
-        }
-    }
 }

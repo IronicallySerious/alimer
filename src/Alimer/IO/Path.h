@@ -22,29 +22,22 @@
 
 #pragma once
 
-#include "../Base/String.h"
-#include <utility>
+#include "../foundation/platform.h"
+#include <string>
 
 namespace alimer
 {
     /// Class for path helpers.
-    class ALIMER_API Path
-	{
-    public:
-		static bool IsAbsolutePath(const String &path);
-        static bool IsRootPath(const String &path);
+    namespace Path {
+        ALIMER_API bool IsAbsolutePath(const std::string& path);
+        ALIMER_API bool IsRootPath(const std::string& path);
 
-        static String Join(const String &base, const String &path);
-        static String GetBaseDir(const String &path);
-        static String GetBaseName(const String &path);
-        static String GetRelativePath(const String &base, const String &path);
+        ALIMER_API std::string Join(const std::string& base, const std::string& path);
+        ALIMER_API std::string GetBaseDir(const std::string& path);
+        ALIMER_API std::string GetBaseName(const std::string& path);
+        ALIMER_API std::string GetRelativePath(const std::string& base, const std::string& path);
 
         /// Return the extension from a path, converted to lowercase by default.
-        static String GetExtension(const String &path, bool lowerCaseExtension = true);
-
-    private:
-        Path() = delete;
-        Path(const Path&) = delete;
-        Path& operator=(const Path&) = delete;
-    };
+        ALIMER_API std::string GetExtension(const std::string& path, bool lowerCaseExtension = true);
+    }
 }

@@ -21,22 +21,21 @@
 //
 
 #include "../Base/StringHash.h"
-#include "../Base/String.h"
 
 namespace alimer
 {
 	const StringHash StringHash::ZERO;
 
-	StringHash::StringHash(const String& str) noexcept
-		: _value(Calculate(str.CString()))
+	StringHash::StringHash(const std::string& str) noexcept
+		: _value(Calculate(str.c_str()))
 	{
 	}
 
-	String StringHash::ToString() const
+    std::string StringHash::ToString() const
 	{
-		char tempBuffer[CONVERSION_BUFFER_LENGTH];
+		char tempBuffer[128];
 		sprintf(tempBuffer, "%08X", _value);
-		return String(tempBuffer);
+		return std::string(tempBuffer);
 	}
 
     uint32_t StringHash::Calculate(void* data, uint32_t length, uint32_t hash)

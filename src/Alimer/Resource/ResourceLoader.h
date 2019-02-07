@@ -42,7 +42,7 @@ namespace alimer
 		virtual ~ResourceLoader() = default;
 
         /// Get
-        virtual bool CanLoad(const String& extension) const {
+        virtual bool CanLoad(const std::string& extension) const {
             ALIMER_UNUSED(extension);
             return false;
         }
@@ -58,7 +58,7 @@ namespace alimer
 		virtual Object* EndLoad() = 0;
 
         /// File being loaded.
-        String _fileName;
+        std::string _fileName;
 
 	private:
         ResourceLoader(const ResourceLoader&) = delete;

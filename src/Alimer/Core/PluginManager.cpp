@@ -52,15 +52,15 @@ namespace alimer
         manager = nullptr;
     }
 
-    void PluginManager::LoadPlugins(const String& pluginPath)
+    void PluginManager::LoadPlugins(const std::string& pluginPath)
     {
         ALIMER_LOGTRACE("Initializing Plugin System...");
-        ALIMER_LOGDEBUG("Scanning for plugins in directory '{}'", pluginPath.CString());
+        ALIMER_LOGDEBUG("Scanning for plugins in directory '{}'", pluginPath);
 
-        std::vector<String> files;
+        std::vector<std::string> files;
         ScanDirectory(files, pluginPath, PLUGIN_EXT, ScanDirFlags::Files, false);
 
-        for (const String& pluginFile : files)
+        for (const std::string& pluginFile : files)
         {
             LoadPlugin(pluginFile);
         }
@@ -76,9 +76,9 @@ namespace alimer
         }*/
     }
 
-    bool PluginManager::LoadPlugin(const String& pluginName)
+    bool PluginManager::LoadPlugin(const std::string& pluginName)
     {
-        void* libHandle = LoadNativeLibrary(pluginName.CString());
+        void* libHandle = LoadNativeLibrary(pluginName.c_str());
         if (!libHandle)
         {
             return false;
@@ -115,7 +115,7 @@ namespace alimer
     {
         ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName());
 
-        _plugins.Push(UniquePtr<Plugin>(plugin));
+        _plugins.push_back(std::unique_ptr<Plugin>(plugin));
         plugin->Install();
 
         //if (_initialized)

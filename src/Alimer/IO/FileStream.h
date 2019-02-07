@@ -41,13 +41,13 @@ namespace alimer
         FileStream();
 
         /// Construct and open a file.
-        FileStream(const String& fileName, FileAccess mode = FileAccess::ReadOnly);
+        FileStream(const std::string& fileName, FileAccess mode = FileAccess::ReadOnly);
 
         /// Destructor. Close the file if open.
         ~FileStream() override;
 
         /// Open a file. Return true on success.
-        bool Open(const String& fileName, FileAccess mode = FileAccess::ReadOnly);
+        bool Open(const std::string& fileName, FileAccess mode = FileAccess::ReadOnly);
 
         /// Close the file.
         void Close();

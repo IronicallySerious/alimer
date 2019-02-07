@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../foundation/Ptr.h"
+#include <memory>
 #include "../Core/Object.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
@@ -51,6 +51,6 @@ namespace alimer
 
 	private:
         ImGuiContext* _imContext;
-        UniquePtr<Pipeline> _pipeline;
+        std::unique_ptr<Pipeline> _pipeline;
 	};
 }

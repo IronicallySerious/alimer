@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <vector>
 #include "../Graphics/Types.h"
 
 namespace alimer
@@ -34,25 +35,22 @@ namespace alimer
         VertexDeclaration();
 
         /// Defines VertexFormat.
-        void Define(const Vector<VertexElement>& elements);
+        void Define(const std::vector<VertexElement>& elements);
         
         /// Defines VertexFormat.
-        void Define(const PODVector<VertexElement>& elements);
-
-        /// Defines VertexFormat.
-        void Define(uint32_t elementsCount, const VertexElement* elements);
+        void Define(size_t elementsCount, const VertexElement* elements);
 
         /// Return stride of the format.
         uint32_t GetStride() const { return _stride; }
 
         /// Return number of vertex elements.
-        uint32_t GetElementsCount() const { return _elements.Size(); }
+        uint32_t GetElementsCount() const { return (uint32_t)_elements.size(); }
 
         /// Return vertex elements.
-        const PODVector<VertexElement>& GetElements() const { return _elements; }
+        const std::vector<VertexElement>& GetElements() const { return _elements; }
 
     private:
-        PODVector<VertexElement> _elements;
+        std::vector<VertexElement> _elements;
         uint32_t _stride = 0;
 	};
 }

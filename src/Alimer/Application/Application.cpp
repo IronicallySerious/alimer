@@ -108,7 +108,7 @@ namespace alimer
     {
         for (int i = 1; i < argc; ++i)
         {
-            _args.Push(argv[i]);
+            _args.push_back(argv[i]);
         }
 
         Setup();

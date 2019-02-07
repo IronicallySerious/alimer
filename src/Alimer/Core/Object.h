@@ -22,7 +22,7 @@
 
 #pragma once
 
-
+#include <string>
 #include "../Base/Ptr.h"
 #include "../Base/StringHash.h"
 #include "../Core/Event.h"
@@ -48,7 +48,7 @@ namespace alimer
         /// Return type.
         StringHash GetType() const { return _type; }
         /// Return type name.
-        const String& GetTypeName() const { return _typeName; }
+        const std::string& GetTypeName() const { return _typeName; }
         /// Return base type info.
         const TypeInfo* GetBaseTypeInfo() const { return _baseTypeInfo; }
 
@@ -56,7 +56,7 @@ namespace alimer
         /// Type.
         StringHash _type;
         /// Type name.
-        String _typeName;
+        std::string _typeName;
         /// Base class type info.
         const TypeInfo* _baseTypeInfo;
     };
@@ -74,7 +74,7 @@ namespace alimer
         /// Return hash of the type name.
         virtual StringHash GetType() const = 0;
         /// Return type name.
-        virtual const String& GetTypeName() const = 0;
+        virtual const std::string& GetTypeName() const = 0;
         /// Return type info.
         virtual const TypeInfo* GetTypeInfo() const = 0;
 
@@ -123,7 +123,7 @@ namespace alimer
         static Object* CreateObject(StringHash type);
 
         /// Return a type name from hash, or empty if not known. Requires a registered object factory.
-        static const String& GetTypeNameFromType(StringHash type);
+        static const std::string& GetTypeNameFromType(StringHash type);
     };
 
     /// Base class for object factories.
@@ -143,7 +143,7 @@ namespace alimer
         StringHash GetType() const { return _typeInfo->GetType(); }
 
         /// Return type name of objects created by this factory.
-        const String& GetTypeName() const { return _typeInfo->GetTypeName(); }
+        const std::string& GetTypeName() const { return _typeInfo->GetTypeName(); }
 
     protected:
         /// Type info.
@@ -171,8 +171,8 @@ namespace alimer
 		using ClassName = typeName; \
 		using Parent = baseTypeName; \
 		virtual alimer::StringHash GetType() const override { return GetTypeInfoStatic()->GetType(); } \
-		virtual const alimer::String& GetTypeName() const override { return GetTypeInfoStatic()->GetTypeName(); } \
+		virtual const std::string& GetTypeName() const override { return GetTypeInfoStatic()->GetTypeName(); } \
 		virtual const alimer::TypeInfo* GetTypeInfo() const override { return GetTypeInfoStatic(); } \
 		static alimer::StringHash GetTypeStatic() { return GetTypeInfoStatic()->GetType(); } \
-		static const alimer::String& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
+		static const std::string& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
 		static const alimer::TypeInfo* GetTypeInfoStatic() { static const alimer::TypeInfo typeInfoStatic(#typeName, Parent::GetTypeInfoStatic()); return &typeInfoStatic; }

@@ -99,7 +99,7 @@ namespace alimer
 
     private:
         EntityManager& _entities;
-        std::unordered_map<uint32_t, IntrusivePtr<GameSystem>> _systems;
+        UnorderedMap<uint32_t, IntrusivePtr<GameSystem>> _systems;
 
         DISALLOW_COPY_MOVE_AND_ASSIGN(SystemManager);
     };

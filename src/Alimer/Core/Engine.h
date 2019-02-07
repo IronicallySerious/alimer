@@ -70,7 +70,7 @@ namespace alimer
         /// Destructor.
         ~Engine();
 
-        int Initialize(const Vector<String>& args);
+        int Initialize(const std::vector<std::string>& args);
 
         /// Run one frame.
         void RunFrame();

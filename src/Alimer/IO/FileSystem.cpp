@@ -20,9 +20,9 @@
 // THE SOFTWARE.
 //
 
+#include "foundation/StringUtils.h"
 #include "../IO/FileSystem.h"
 #include "../IO/Path.h"
-#include "../Base/String.h"
 #include "../Core/Log.h"
 
 #include <sys/stat.h>
@@ -51,12 +51,14 @@
 #   include <mach-o/dyld.h>
 #endif
 
+using namespace std;
+
 namespace alimer
 {
     class OSFileSystemProtocol final : public FileSystemProtocol
     {
     public:
-        OSFileSystemProtocol(const String &rootDirectory)
+        OSFileSystemProtocol(const string &rootDirectory)
             : _rootDirectory(rootDirectory)
         {
 
@@ -64,43 +66,43 @@ namespace alimer
 
         ~OSFileSystemProtocol() override = default;
 
-        String GetFileSystemPath(const String& path) override
+        string GetFileSystemPath(const string& path) override
         {
             return Path::Join(_rootDirectory, path);
         }
 
-        bool Exists(const String &path) override
+        bool Exists(const string &path) override
         {
-            String fullPath = Path::Join(_rootDirectory, path);
+            string fullPath = Path::Join(_rootDirectory, path);
             return FileSystem::FileExists(fullPath);
         }
 
-        UniquePtr<Stream> Open(const String &path, FileAccess mode) override
+        unique_ptr<Stream> Open(const string &path, FileAccess mode) override
         {
             if (mode == FileAccess::ReadOnly
                 && !Exists(path))
             {
-                ALIMER_LOGERROR("Cannot open file '{}' as it doesn't exists", path.CString());
+                ALIMER_LOGERROR("Cannot open file '{}' as it doesn't exists", path);
                 return {};
             }
 
-            return UniquePtr<Stream>(new FileStream(Path::Join(_rootDirectory, path), mode));
+            return unique_ptr<Stream>(new FileStream(Path::Join(_rootDirectory, path), mode));
         }
 
     protected:
-        String _rootDirectory;
+        string _rootDirectory;
     };
 
-    static std::pair<String, String> ProtocolSplit(const String &path)
+    static std::pair<string, string> ProtocolSplit(const string &path)
     {
-        if (path.IsEmpty())
-            return std::make_pair(String::EMPTY, String::EMPTY);
+        if (path.empty())
+            return std::make_pair(string(""), string(""));
 
-        auto index = path.Find("://");
-        if (index == String::NPOS)
-            return std::make_pair(String::EMPTY, path);
+        auto index = path.find("://");
+        if (index == string::npos)
+            return std::make_pair(string(""), path);
 
-        return std::make_pair(path.Substring(0, index), path.Substring(index + 3));
+        return std::make_pair(path.substr(0, index), path.substr(index + 3, string::npos));
     }
 
     FileSystem::FileSystem()
@@ -132,27 +134,28 @@ namespace alimer
         return fs;
     }
 
-    void FileSystem::RegisterProtocol(const String &name, FileSystemProtocol* protocol)
+    void FileSystem::RegisterProtocol(const std::string& name, FileSystemProtocol* protocol)
     {
         protocol->SetName(name);
-        _protocols[name].Reset(protocol);
+        _protocols[name].reset(protocol);
     }
 
-    FileSystemProtocol* FileSystem::GetProcotol(const String &name)
+    FileSystemProtocol* FileSystem::GetProcotol(const string& name)
     {
         auto it = _protocols.find(name);
-        if (name.IsEmpty())
+        if (name.empty()) {
             it = _protocols.find("file");
+        }
 
         if (it != end(_protocols))
         {
-            return it->second.Get();
+            return it->second.get();
         }
 
         return nullptr;
     }
 
-    bool FileSystem::Exists(const String &path)
+    bool FileSystem::Exists(const string& path)
     {
         auto paths = ProtocolSplit(path);
         auto *backend = GetProcotol(paths.first);
@@ -162,7 +165,7 @@ namespace alimer
         return backend->Exists(paths.second);
     }
 
-    UniquePtr<Stream> FileSystem::Open(const String &path, FileAccess mode)
+    unique_ptr<Stream> FileSystem::Open(const string &path, FileAccess mode)
     {
         auto paths = ProtocolSplit(path);
         auto *backend = GetProcotol(paths.first);
@@ -172,134 +175,135 @@ namespace alimer
         return backend->Open(paths.second, mode);
     }
 
-    String GetInternalPath(const String& path)
+    string GetInternalPath(const string& path)
     {
-        return path.Replaced('\\', '/');
+        return StringUtils::Replace(path, '\\', '/');
     }
 
-    String GetNativePath(const String& path)
+    string GetNativePath(const string& path)
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        return path.Replaced('/', '\\');
+        return StringUtils::Replace(path, '/', '\\');
 #else
         return path;
 #endif
     }
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-    WString GetWideNativePath(const String& path)
+    wstring GetWideNativePath(const string& path)
     {
-        return WString(path.Replaced('/', '\\'));
+        auto newPath = StringUtils::Replace(path, '/', '\\');
+        return ToUtf16(newPath);
     }
 
-    String GetUniversalPath(const String& path)
+    string GetUniversalPath(const string& path)
     {
-        return path.Replaced("\\", "/");
+        return StringUtils::Replace(path, '\\', '/');
     }
 #endif
 
-    String AddTrailingSlash(const String& path)
+    string AddTrailingSlash(const string& path)
     {
-        String ret = path.Trimmed();
-        ret.Replace('\\', '/');
-        if (!ret.IsEmpty() && ret.Back() != '/')
+        string ret = StringUtils::Replace(StringUtils::Trim(path), '\\', '/');
+        if (!ret.empty() && ret.back() != '/')
             ret += '/';
         return ret;
     }
 
-    String RemoveTrailingSlash(const String& path)
+    string RemoveTrailingSlash(const string& path)
     {
-        String ret = path.Trimmed();
-        ret.Replace('\\', '/');
-        if (!ret.IsEmpty() && ret.Back() == '/')
-            ret.Resize(ret.Length() - 1);
+        string ret = StringUtils::Replace(StringUtils::Trim(path), '\\', '/');
+        if (!ret.empty() && ret.back() == '/') {
+            ret.resize(ret.length() - 1);
+        }
         return ret;
     }
 
-    void SplitPath(const String& fullPath, String& pathName, String& fileName, String& extension, bool lowerCaseExtension)
+    void SplitPath(const string& fullPath, string& pathName, string& fileName, string& extension, bool lowerCaseExtension)
     {
-        String fullPathCopy = GetInternalPath(fullPath);
+        string fullPathCopy = GetInternalPath(fullPath);
 
-        uint32_t extPos = fullPathCopy.FindLast('.');
-        uint32_t pathPos = fullPathCopy.FindLast('/');
+        string::size_type extPos = fullPathCopy.find_last_of('.');
+        string::size_type pathPos = fullPathCopy.find_last_of('/');
 
-        if (extPos != String::NPOS
-            && (pathPos == String::NPOS || extPos > pathPos))
+        if (extPos != string::npos
+            && (pathPos == string::npos || extPos > pathPos))
         {
-            extension = fullPathCopy.Substring(extPos);
+            extension = fullPathCopy.substr(extPos, string::npos);
             if (lowerCaseExtension)
             {
-                extension = extension.ToLower();
+                StringUtils::ToLower(extension);
             }
 
-            fullPathCopy = fullPathCopy.Substring(0, extPos);
+            fullPathCopy = fullPathCopy.substr(0, extPos);
         }
         else {
-            extension.Clear();
+            extension.clear();
         }
 
-        pathPos = fullPathCopy.FindLast('/');
-        if (pathPos != String::NPOS)
+        pathPos = fullPathCopy.find_last_of('/');
+        if (pathPos != string::npos)
         {
-            fileName = fullPathCopy.Substring(pathPos + 1);
-            pathName = fullPathCopy.Substring(0, pathPos + 1);
+            fileName = fullPathCopy.substr(pathPos + 1, string::npos);
+            pathName = fullPathCopy.substr(0, pathPos + 1);
         }
         else
         {
             fileName = fullPathCopy;
-            pathName.Clear();
+            pathName.clear();
         }
     }
 
-    String FileSystem::GetPath(const String& fullPath)
+    string FileSystem::GetPath(const string& fullPath)
     {
-        String path, file, extension;
+        string path, file, extension;
         SplitPath(fullPath, path, file, extension);
         return path;
     }
 
-    String FileSystem::GetFileName(const String& fullPath)
+    string FileSystem::GetFileName(const string& fullPath)
     {
-        String path, file, extension;
+        string path, file, extension;
         SplitPath(fullPath, path, file, extension);
         return file;
     }
 
-    String FileSystem::GetExtension(const String& fullPath, bool lowercaseExtension)
+    string FileSystem::GetExtension(const string& fullPath, bool lowercaseExtension)
     {
-        String path, file, extension;
+        string path, file, extension;
         SplitPath(fullPath, path, file, extension, lowercaseExtension);
         return extension;
     }
 
-    String FileSystem::GetFileNameAndExtension(const String& fileName, bool lowercaseExtension)
+    string FileSystem::GetFileNameAndExtension(const string& fileName, bool lowercaseExtension)
     {
-        String path, file, extension;
+        string path, file, extension;
         SplitPath(fileName, path, file, extension, lowercaseExtension);
         return file + extension;
     }
 
-    String GetParentPath(const String& path)
+    string GetParentPath(const string& path)
     {
-        uint32_t pos = RemoveTrailingSlash(path).FindLast('/');
-        if (pos != String::NPOS)
-            return path.Substring(0, pos + 1);
+        string::size_type pos = RemoveTrailingSlash(path).find_last_of('/');
+        if (pos != string::npos) {
+            return path.substr(0, pos + 1);
+        }
 
-        return String();
+        return string("");
     }
 
-    bool IsAbsolutePath(const String& pathName)
+    bool IsAbsolutePath(const string& pathName)
     {
-        if (pathName.IsEmpty())
+        if (pathName.empty())
             return false;
 
-        String path = GetInternalPath(pathName);
+        string path = GetInternalPath(pathName);
 
         if (path[0] == '/')
             return true;
 
 #ifdef _WIN32
-        if (path.Length() > 1 && isalpha(path[0]) && path[1] == ':')
+        if (path.length() > 1 && isalpha(path[0]) && path[1] == ':')
             return true;
 #endif
 
@@ -307,12 +311,12 @@ namespace alimer
     }
 
     // File
-    bool FileSystem::FileExists(const String& fileName)
+    bool FileSystem::FileExists(const string& fileName)
     {
-        String fixedName = GetNativePath(RemoveTrailingSlash(fileName));
+        string fixedName = GetNativePath(RemoveTrailingSlash(fileName));
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        DWORD attributes = GetFileAttributesW(WString(fixedName).CString());
+        DWORD attributes = GetFileAttributesW(ToUtf16(fixedName).c_str());
         if (attributes == INVALID_FILE_ATTRIBUTES || attributes & FILE_ATTRIBUTE_DIRECTORY)
         {
             return false;
@@ -327,7 +331,7 @@ namespace alimer
         return true;
     }
 
-    bool FileSystem::DirectoryExists(const String& path)
+    bool FileSystem::DirectoryExists(const string& path)
     {
 #ifndef _WIN32
         // Always return true for the root directory
@@ -335,10 +339,10 @@ namespace alimer
             return true;
 #endif
 
-        String fixedName = GetNativePath(RemoveTrailingSlash(path));
+        string fixedName = GetNativePath(RemoveTrailingSlash(path));
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        DWORD attributes = GetFileAttributesW(WString(fixedName).CString());
+        DWORD attributes = GetFileAttributesW(ToUtf16(fixedName).c_str());
         if (attributes == INVALID_FILE_ATTRIBUTES
             || !(attributes & FILE_ATTRIBUTE_DIRECTORY))
         {
@@ -352,57 +356,57 @@ namespace alimer
         return true;
     }
 
-    bool FileSystem::CreateDir(const String& path)
+    bool FileSystem::CreateDir(const string& path)
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-        WString normalizePath = GetWideNativePath(RemoveTrailingSlash(path));
-        return CreateDirectoryW(normalizePath.CString(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS;
+        wstring normalizePath = GetWideNativePath(RemoveTrailingSlash(path));
+        return CreateDirectoryW(normalizePath.c_str(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS;
 #else
         return mkdir(RemoveTrailingSlash(path).CString(), S_IRWXU) == 0 || errno == EEXIST;
 #endif
     }
 
-    String FileSystem::GetCurrentDir()
+    string FileSystem::GetCurrentDir()
     {
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         wchar_t path[MAX_PATH];
         path[0] = 0;
         GetCurrentDirectoryW(MAX_PATH, path);
-        return String(path);
+        return ToUtf8(path);
 #else
         char path[MAX_PATH];
         path[0] = 0;
         getcwd(path, MAX_PATH);
-        return String(path);
+        return string(path);
 #endif
     }
 
-    String FileSystem::GetExecutableFolder()
+    string FileSystem::GetExecutableFolder()
     {
-        String result = String::EMPTY;
+        string result = "";
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
         wchar_t exeName[MAX_PATH];
         exeName[0] = 0;
         GetModuleFileNameW(nullptr, exeName, MAX_PATH);
-        result = FileSystem::GetPath(GetUniversalPath(String(exeName)));
+        result = FileSystem::GetPath(GetUniversalPath(ToUtf8(exeName)));
 #elif defined(__APPLE__)
         char exeName[MAX_PATH];
         memset(exeName, 0, MAX_PATH);
         unsigned size = MAX_PATH;
         _NSGetExecutablePath(exeName, &size);
-        result = FileSystem::GetPath(String(exeName));
+        result = FileSystem::GetPath(string(exeName));
 #elif defined(__linux__)
         char exeName[MAX_PATH];
         memset(exeName, 0, MAX_PATH);
         pid_t pid = getpid();
-        String link = "/proc/" + String(pid) + "/exe";
-        readlink(link.CString(), exeName, MAX_PATH);
-        result = FileSystem::GetPath(String(exeName));
+        string link = "/proc/" + string(pid) + "/exe";
+        readlink(link.c_str(), exeName, MAX_PATH);
+        result = FileSystem::GetPath(string(exeName));
 #endif
-        if (!result.IsEmpty())
+        if (!result.empty())
         {
             // Sanitate /./ construct away
-            result.Replace("/./", "/");
+            result = StringUtils::Replace(result, "/./", "/");
         }
 
         return result;
@@ -410,28 +414,29 @@ namespace alimer
 
 #ifdef _WIN32
     void ScanDirInternal(
-        std::vector<String>& result, String path, const String& startPath,
-        const String& filter, ScanDirFlags flags, bool recursive)
+        std::vector<string>& result, string path, const string& startPath,
+        const string& filter, ScanDirFlags flags, bool recursive)
     {
         path = AddTrailingSlash(path);
-        String deltaPath;
-        if (path.Length() > startPath.Length())
-            deltaPath = path.Substring(startPath.Length());
+        string deltaPath;
+        if (path.length() > startPath.length())
+            deltaPath = path.substr(startPath.length(), string::npos);
 
-        String filterExtension = filter.Substring(filter.FindLast('.'));
-        if (filterExtension.Find('*') != String::NPOS)
+        string filterExtension = filter.substr(filter.find_last_of('.'));
+        if (filterExtension.find('*') != string::npos)
         {
-            filterExtension.Clear();
+            filterExtension.clear();
         }
 
         WIN32_FIND_DATAW info;
-        HANDLE handle = FindFirstFileW(WString(path + "*").CString(), &info);
+        path = path + "*";
+        HANDLE handle = FindFirstFileW(ToUtf16(path).c_str(), &info);
         if (handle != INVALID_HANDLE_VALUE)
         {
             do
             {
-                String fileName(info.cFileName);
-                if (!fileName.IsEmpty())
+                string fileName = ToUtf8(info.cFileName);
+                if (!fileName.empty())
                 {
                     if (info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN && !any(flags & ScanDirFlags::Hidden))
                         continue;
@@ -447,8 +452,8 @@ namespace alimer
                     }
                     else if (any(flags & ScanDirFlags::Files))
                     {
-                        if (filterExtension.IsEmpty()
-                            || fileName.EndsWith(filterExtension))
+                        if (filterExtension.empty()
+                            || StringUtils::EndsWith(fileName, filterExtension))
                         {
                             result.push_back(deltaPath + fileName);
                         }
@@ -461,14 +466,14 @@ namespace alimer
     }
 
     void ScanDirectory(
-        std::vector<String>& result,
-        const String& pathName,
-        const String& filter,
+        std::vector<string>& result,
+        const string& pathName,
+        const string& filter,
         ScanDirFlags flags, bool recursive)
     {
         result.clear();
 
-        String initialPath = AddTrailingSlash(pathName);
+        string initialPath = AddTrailingSlash(pathName);
         ScanDirInternal(result, initialPath, initialPath, filter, flags, recursive);
     }
 #endif

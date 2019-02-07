@@ -20,8 +20,10 @@
 // THE SOFTWARE.
 //
 
-#include "../IO/Stream.h"
-#include "../Core/Log.h"
+#include <algorithm>
+#include "IO/Stream.h"
+#include "Core/Log.h"
+using namespace std;
 
 namespace alimer
 {
@@ -37,7 +39,7 @@ namespace alimer
     {
     }
 
-    void Stream::SetName(const String& name)
+    void Stream::SetName(const string& name)
     {
         _name = name;
     }
@@ -114,9 +116,9 @@ namespace alimer
         return ret;
     }
 
-    String Stream::ReadString()
+    string Stream::ReadString()
     {
-        String ret;
+        string ret;
 
         while (!IsEof())
         {
@@ -130,9 +132,9 @@ namespace alimer
         return ret;
     }
 
-    String Stream::ReadLine()
+    string Stream::ReadLine()
     {
-        String result;
+        string result;
 
         while (!IsEof())
         {
@@ -159,10 +161,10 @@ namespace alimer
         return result;
     }
 
-    String Stream::ReadFileID()
+    string Stream::ReadFileID()
     {
-        String ret;
-        ret.Resize(4);
+        string ret;
+        ret.resize(4);
         Read(&ret[0], 4);
         return ret;
     }
@@ -173,27 +175,27 @@ namespace alimer
     }
 
 
-	String Stream::ReadAllText()
+    string Stream::ReadAllText()
 	{
-		String content;
+        string content;
 		uint64_t length = _size;
 		if (length)
 		{
-			content.Resize(static_cast<uint32_t>(length));
+			content.resize(length);
 			Read(&content[0], length);
 		}
 
 		return content;
 	}
 
-    PODVector<uint8_t> Stream::ReadBytes(uint64_t count)
+    vector<uint8_t> Stream::ReadBytes(size_t count)
 	{
 		if (!count)
 			count = _size;
 
-        PODVector<uint8_t> result(static_cast<uint32_t>(count));
+        vector<uint8_t> result(count);
 
-        uint64_t read = Read(result.Data(), count);
+        uint64_t read = Read(result.data(), count);
 		if (read != count)
 		{
             ALIMER_LOGERROR("IO", "Failed to read complete contents of stream (amount read vs. file size: {} < {}).",
@@ -226,7 +228,7 @@ namespace alimer
         Write(&value, sizeof value);
     }
 
-    void Stream::WriteVLE(unsigned value)
+    void Stream::WriteVLE(size_t value)
     {
         uint8_t data[4];
 
@@ -257,20 +259,20 @@ namespace alimer
         }
     }
 
-    void Stream::WriteString(const String& value)
+    void Stream::WriteString(const string& value)
     {
-        const char* chars = value.CString();
+        const char* chars = value.c_str();
         // Count length to the first zero, because ReadString() does the same
-        unsigned length = String::CStringLength(chars);
+        size_t length = strlen(chars);
         Write(chars, length + 1);
     }
 
-    void Stream::WriteFileID(const String& value)
+    void Stream::WriteFileID(const string& value)
     {
-        unsigned length = Min(value.Length(), 4U);
+        size_t length = std::min<size_t>(value.length(), 4U);
 
-        Write(value.CString(), length);
-        for (unsigned i = value.Length(); i < 4; ++i)
+        Write(value.c_str(), length);
+        for (size_t i = value.length(); i < 4; ++i)
         {
             WriteByte(' ');
         }
@@ -281,9 +283,9 @@ namespace alimer
         return WriteUInt(value.Value());
     }
 
-    void Stream::WriteLine(const String& value)
+    void Stream::WriteLine(const string& value)
     {
-        Write(value.CString(), value.Length());
+        Write(value.c_str(), value.length());
         WriteUByte('\r');
         WriteUByte('\n');
     }

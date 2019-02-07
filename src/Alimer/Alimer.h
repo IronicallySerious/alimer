@@ -22,8 +22,6 @@
 
 #pragma once
 
-#include "foundation/Swap.h"
-#include "foundation/Ptr.h"
 #include "Base/Ptr.h"
 #include "Base/String.h"
 #include "Base/StringHash.h"

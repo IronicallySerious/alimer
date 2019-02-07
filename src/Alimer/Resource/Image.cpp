@@ -45,7 +45,7 @@ namespace alimer
         }
 
         _memorySize = newSize.x * newSize.y * formatSize;
-        _data = new uint8_t[_memorySize];
+        _data = std::make_unique< uint8_t[]>(_memorySize);
         _size = newSize;
         _format = newFormat;
         _mipLevels = 1;
@@ -55,7 +55,7 @@ namespace alimer
     {
         if (!IsCompressedFormat(_format))
         {
-            memcpy(_data.Get(), pixelData, _memorySize);
+            memcpy(_data.get(), pixelData, _memorySize);
         }
         else
         {
@@ -76,20 +76,20 @@ namespace alimer
 
         if (IsCompressedFormat(_format))
         {
-            ALIMER_LOGERROR("Can not save compressed image '{}'", GetName().CString());
+            ALIMER_LOGERROR("Can not save compressed image '{}'", GetName());
             return false;
         }
 
         if (!_data)
         {
-            ALIMER_LOGERROR("Can not save zero-sized image '{}'", GetName().CString());
+            ALIMER_LOGERROR("Can not save zero-sized image '{}'", GetName());
             return false;
         }
 
         uint32_t components = GetFormatBitsPerPixel(_format) / 4;
         if (components < 1 || components > 4)
         {
-            ALIMER_LOGERROR("Unsupported pixel format for PNG save on image '{}'", GetName().CString());
+            ALIMER_LOGERROR("Unsupported pixel format for PNG save on image '{}'", GetName());
             return false;
         }
 
@@ -114,7 +114,7 @@ namespace alimer
             static_cast<int>(_size.x),
             static_cast<int>(_size.y),
             static_cast<int>(components),
-            _data.Get()) != 0;
+            _data.get()) != 0;
     }
 
     bool Image::SavePng(Stream* dest) const
@@ -127,7 +127,7 @@ namespace alimer
             static_cast<int>(_size.x),
             static_cast<int>(_size.y),
             static_cast<int>(components),
-            _data.Get(),
+            _data.get(),
             0) != 0;
     }
 

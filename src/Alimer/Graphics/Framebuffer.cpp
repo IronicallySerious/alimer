@@ -29,7 +29,7 @@ namespace alimer
     Framebuffer::Framebuffer(GraphicsDevice* device, const FramebufferDescriptor* descriptor)
         : GPUResource(device, Type::Framebuffer)
     {
-        _colorAttachments.Resize(MaxColorAttachments);
+        _colorAttachments.resize(MaxColorAttachments);
         _width = UINT32_MAX;
         _height = UINT32_MAX;
         _layers = 1;
@@ -58,9 +58,9 @@ namespace alimer
 
     const Texture* Framebuffer::GetColorTexture(uint32_t index) const
     {
-        if (index >= _colorAttachments.Size())
+        if (index >= _colorAttachments.size())
         {
-            ALIMER_LOGERROR("Framebuffer::GetColorTexture: Index is out of range. Requested {} but only {} color slots are available.", index, _colorAttachments.Size());
+            ALIMER_LOGERROR("Framebuffer::GetColorTexture: Index is out of range. Requested {} but only {} color slots are available.", index, _colorAttachments.size());
             return nullptr;
         }
 

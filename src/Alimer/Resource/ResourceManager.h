@@ -22,14 +22,16 @@
 
 #pragma once
 
-#include "../Base/String.h"
-#include "../Base/StringHash.h"
-#include "../IO/FileSystem.h"
-#include "../Resource/ResourceLoader.h"
+#include <string>
+#include <memory>
 #include <mutex>
 #include <atomic>
 #include <map>
 #include <utility>
+#include <unordered_map>
+#include "../Base/StringHash.h"
+#include "../IO/FileSystem.h"
+#include "../Resource/ResourceLoader.h"
 
 namespace alimer
 {
@@ -48,50 +50,50 @@ namespace alimer
 		/// Destructor.
 		~ResourceManager();
 
-        bool AddResourceDir(const String& assetName, uint32_t priority = PRIORITY_LAST);
+        bool AddResourceDir(const std::string& assetName, uint32_t priority = PRIORITY_LAST);
 
         void AddLoader(ResourceLoader* loader);
         ResourceLoader* GetLoader(StringHash type) const;
 
-        UniquePtr<Stream> OpenStream(const String& assetName);
+        std::unique_ptr<Stream> OpenStream(const std::string& assetName);
 
-        SharedPtr<Object> Load(StringHash type, const String& assetName);
+        SharedPtr<Object> Load(StringHash type, const std::string& assetName);
 
-		template <class T> SharedPtr<T> Load(const String& assetName)
+		template <class T> SharedPtr<T> Load(const std::string& assetName)
 		{
             static_assert(std::is_base_of<Object, T>(), "T is not a resource thus cannot load");
 			return StaticCast<T>(Load(T::GetTypeStatic(), assetName));
 		}
 
         /// Remove unsupported constructs from the resource name to prevent ambiguity, and normalize absolute filename to resource path relative if possible.
-        String SanitateResourceName(const String& name) const;
+        std::string SanitateResourceName(const std::string& name) const;
 
         /// Remove unnecessary constructs from a resource directory name and ensure it to be an absolute path.
-        String SanitateResourceDirName(const String& name) const;
+        std::string SanitateResourceDirName(const std::string& name) const;
 
 	private:
         /// Register object.
         static void Register();
 
         /// Search FileSystem for file.
-        UniquePtr<Stream> SearchResourceDirs(const String& name);
+        std::unique_ptr<Stream> SearchResourceDirs(const std::string& name);
         /// Search resource packages for file.
-        UniquePtr<Stream> SearchPackages(const String& name);
+        std::unique_ptr<Stream> SearchPackages(const std::string& name);
 
         /// Search FileSystem for file.
-        bool ExistsInResourceDirs(const String& name);
+        bool ExistsInResourceDirs(const std::string& name);
 
         /// Search resource packages for file.
-        bool ExistsInPackages(const String& name);
+        bool ExistsInPackages(const std::string& name);
 
         /// Mutex for thread-safe access to the resource directories, resource packages and resource dependencies.
         mutable std::mutex _resourceMutex;
 
         /// Resource load directories.
-        Vector<String> _resourceDirs;
+        std::vector<std::string> _resourceDirs;
 
-        std::unordered_map<StringHash, UniquePtr<ResourceLoader>> _loaders;
-		std::map<String, SharedPtr<Object>> _resources;
+        std::unordered_map<StringHash, std::unique_ptr<ResourceLoader>> _loaders;
+		std::map<std::string, SharedPtr<Object>> _resources;
 
         /// Search priority flag.
         bool _searchPackagesFirst{ true };

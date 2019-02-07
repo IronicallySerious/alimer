@@ -23,12 +23,9 @@
 
 #pragma once
 
-#include "../foundation/Ptr.h"
-#include "../Base/String.h"
-#include "../Base/Vector.h"
-#include "../Core/Plugin.h"
 #include <vector>
-#include <unordered_map>
+#include <string>
+#include "../Core/Plugin.h"
 
 namespace alimer
 {
@@ -47,8 +44,8 @@ namespace alimer
         static void Destroy(PluginManager* manager);
 
         /// Load plugins from given path.
-        void LoadPlugins(const String& pluginPath);
-        bool LoadPlugin(const String& pluginName);
+        void LoadPlugins(const std::string& pluginPath);
+        bool LoadPlugin(const std::string& pluginName);
         void InstallPlugin(Plugin* plugin);
 
     private:
@@ -56,7 +53,7 @@ namespace alimer
         PluginManager(Engine& engine);
 
         Engine& _engine;
-        Vector<UniquePtr<Plugin>> _plugins;
+        std::vector<std::unique_ptr<Plugin>> _plugins;
 
     private:
         PluginManager(const PluginManager&) = delete;

@@ -32,12 +32,12 @@ namespace alimer
 
     bool Resource::Save(Stream& dest)
     {
-        ALIMER_LOGERROR("Save not supported for '{}'", GetTypeName().CString());
+        ALIMER_LOGERROR("Save not supported for '{}'", GetTypeName());
         return false;
     }
 
 
-	void Resource::SetName(const String& name)
+	void Resource::SetName(const std::string& name)
 	{
 		_name = name;
 		_nameHash = name;

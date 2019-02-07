@@ -23,11 +23,11 @@
 #pragma once
 
 #include <foundation/cpp_macros.h>
-#include "../Base/String.h"
 #include "../Core/Platform.h"
 #include "../Core/Object.h"
 #include "../Math/Math.h"
 #include "../Math/Vector2.h"
+#include <string>
 
 namespace alimer
 {

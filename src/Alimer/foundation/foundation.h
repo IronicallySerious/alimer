@@ -23,8 +23,5 @@
 #pragma once
 
 #include <foundation/platform.h>
-#include <foundation/atomic.h>
-//#include <foundation/uuid.h>
 #include <foundation/log.h>
 #include <foundation/version.h>
-//#include <foundation/random.h>

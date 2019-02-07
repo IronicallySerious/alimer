@@ -20,23 +20,19 @@
 // THE SOFTWARE.
 //
 
-#include "../IO/FileStream.h"
-#include "../IO/FileSystem.h"
-#include "../IO/Path.h"
-#include "../Core/Log.h"
+#include "foundation/StringUtils.h"
+#include "IO/FileStream.h"
+#include "IO/FileSystem.h"
+#include "IO/Path.h"
+#include "Core/Log.h"
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-#   ifndef NOMINMAX
-#       define NOMINMAX
-#   endif
-#   define WIN32_LEAN_AND_MEAN
-#   include <Windows.h>
 #   define INVALID_FILE_HANDLE INVALID_HANDLE_VALUE
 #else
 #   define INVALID_FILE_HANDLE nullptr
 #endif
 
-#include <cstdio>
+using namespace std;
 
 namespace alimer
 {
@@ -50,7 +46,7 @@ namespace alimer
     };
 #endif
 
-    static bool EnsureDirectoryExistsInner(const String &path)
+    static bool EnsureDirectoryExistsInner(const string &path)
     {
         if (Path::IsRootPath(path))
             return false;
@@ -68,9 +64,9 @@ namespace alimer
         return true;
     }
 
-    static bool EnsureDirectoryExists(const String &path)
+    static bool EnsureDirectoryExists(const string &path)
     {
-        String basedir = Path::GetBaseDir(path);
+        string basedir = Path::GetBaseDir(path);
         return EnsureDirectoryExistsInner(basedir);
     }
 
@@ -81,7 +77,7 @@ namespace alimer
     {
     }
 
-    FileStream::FileStream(const String& fileName, FileAccess mode)
+    FileStream::FileStream(const string& fileName, FileAccess mode)
         : _mode(FileAccess::ReadOnly)
         , _canSeek(true)
         , _handle(INVALID_FILE_HANDLE)
@@ -94,11 +90,11 @@ namespace alimer
         Close();
     }
 
-    bool FileStream::Open(const String& fileName, FileAccess mode)
+    bool FileStream::Open(const string& fileName, FileAccess mode)
     {
         Close();
 
-        if (fileName.IsEmpty())
+        if (fileName.empty())
             return false;
 
         if (mode == FileAccess::ReadOnly
@@ -146,7 +142,7 @@ namespace alimer
         }
 
         _handle = CreateFileW(
-            WString(fileName).CString(),
+            ToUtf16(fileName).c_str(),
             access,
             FILE_SHARE_READ,
             nullptr,

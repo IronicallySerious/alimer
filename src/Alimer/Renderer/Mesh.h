@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <vector>
 #include "../Resource/Resource.h"
 #include "../Graphics/Buffer.h"
 #include "../Graphics/Types.h"
@@ -59,7 +60,7 @@ namespace alimer
         Mesh();
         ~Mesh() override;
 
-        bool Define(const PODVector<vec3>& positions, const PODVector<Color4>& colors, const PODVector<uint16_t>& indices);
+        bool Define(const std::vector<vec3>& positions, const std::vector<Color4>& colors, const std::vector<uint16_t>& indices);
 
         void SetVertexData(const void* vertexData, uint32_t vertexStart = 0, uint32_t vertexCount = 0);
 

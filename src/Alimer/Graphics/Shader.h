@@ -22,9 +22,9 @@
 
 #pragma once
 
+#include <vector>
 #include "../Core/Object.h"
 #include "../Graphics/GPUResource.h"
-#include "../Base/Vector.h"
 
 namespace alimer
 {
@@ -48,7 +48,7 @@ namespace alimer
         ShaderStages GetStages() const { return _stage; }
 
     protected:
-        void Reflect(const PODVector<uint8_t>& bytecode);
+        void Reflect(const std::vector<uint8_t>& bytecode);
 
         //Vector<PipelineResource> _resources;
         bool _compute = false;

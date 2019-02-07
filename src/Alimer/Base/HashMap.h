@@ -22,23 +22,12 @@
 
 #pragma once
 
-#include "../Base/String.h"
-#include <memory>
+#include <stdint.h>
+#include <string>
 #include <unordered_map>
 
 namespace alimer
 {
-    struct HashMapHasher
-    {
-        inline size_t operator()(uint64_t hash) const
-        {
-            return hash;
-        }
-    };
-
-    template <typename T>
-    using HashMap = std::unordered_map<uint64_t, T, HashMapHasher>;
-
     class Hasher
     {
     public:
@@ -98,7 +87,7 @@ namespace alimer
             }
         }
 
-        inline void String(const alimer::String &str)
+        inline void String(const std::string &str)
         {
             UInt32(0xff);
             for (auto &c : str)
@@ -112,4 +101,15 @@ namespace alimer
     private:
         uint64_t _value = 0xcbf29ce484222325ull;
     };
+
+    struct HashMapHasher
+    {
+        inline size_t operator()(uint64_t hash) const
+        {
+            return hash;
+        }
+    };
+
+    template <typename T>
+    using HashMap = std::unordered_map<uint64_t, T, HashMapHasher>;
 }

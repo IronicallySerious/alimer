@@ -208,7 +208,7 @@ namespace alimer
         bool _headless;
         GraphicsDeviceFeatures _features = {};
 
-        PODVector<GPUResource*>         _gpuResources;
+        std::vector<GPUResource*>       _gpuResources;
         std::mutex                      _gpuResourceMutex;
         Sampler*                        _pointSampler = nullptr;
         Sampler*                        _linearSampler = nullptr;

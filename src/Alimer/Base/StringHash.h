@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Base/String.h"
+#include <string>
 #include "../Math/MathUtil.h"
 
 namespace alimer
@@ -47,7 +47,7 @@ namespace alimer
         }
 
 		/// Construct from a string case-insensitively.
-		StringHash(const String& str) noexcept;      // NOLINT(google-explicit-constructor)
+		StringHash(const std::string& str) noexcept;      // NOLINT(google-explicit-constructor)
 
         /// Add a hash.
         StringHash operator +(const StringHash& rhs) const
@@ -77,7 +77,7 @@ namespace alimer
 		/// Return hash value.
 		uint32_t Value() const { return _value; }
 		/// Return as string.
-		String ToString() const;
+		std::string ToString() const;
 
 		/// Return hash value for HashSet & HashMap.
 		uint32_t ToHash() const { return _value; }

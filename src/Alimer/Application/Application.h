@@ -98,7 +98,7 @@ namespace alimer
         /// Alimer engine.
         SharedPtr<Engine> _engine;
 
-        Vector<String> _args;
+        std::vector<std::string> _args;
         /// Application exit code.
         int _exitCode;
         std::atomic<bool> _running;

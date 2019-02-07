@@ -65,9 +65,9 @@ namespace alimer
                 { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
             };
 
-            PODVector<VertexElement> vertexElements;
-            vertexElements.Push(VertexElement(VertexFormat::Float3, VertexElementSemantic::Position));
-            vertexElements.Push(VertexElement(VertexFormat::Float4, VertexElementSemantic::Color0));
+            std::vector<VertexElement> vertexElements;
+            vertexElements.emplace_back(VertexFormat::Float3, VertexElementSemantic::Position);
+            vertexElements.emplace_back(VertexFormat::Float4, VertexElementSemantic::Color0);
 
             BufferDescriptor vertexBufferDesc = {};
             vertexBufferDesc.usage = BufferUsage::Vertex;

@@ -106,15 +106,15 @@ namespace alimer
         SafeDelete(_pointSampler);
         SafeDelete(_linearSampler);
 
-        if (_gpuResources.Size())
+        if (_gpuResources.size() > 0)
         {
             std::lock_guard<std::mutex> lock(_gpuResourceMutex);
-            for (auto it = _gpuResources.Begin(); it != _gpuResources.End(); ++it)
+            for (auto it = _gpuResources.begin(); it != _gpuResources.end(); ++it)
             {
                 (*it)->Destroy();
             }
 
-            _gpuResources.Clear();
+            _gpuResources.clear();
         }
 
         // Destroy backend.
@@ -214,13 +214,13 @@ namespace alimer
     void GraphicsDevice::TrackResource(GPUResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
-        _gpuResources.Push(resource);
+        _gpuResources.push_back(resource);
     }
 
     void GraphicsDevice::UntrackResource(GPUResource* resource)
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
-        _gpuResources.Remove(resource);
+        std::remove(_gpuResources.begin(), _gpuResources.end(), resource);
     }
 
     /// Get the backend.

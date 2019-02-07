@@ -32,6 +32,7 @@
 #include "../UI/Gui.h"
 //#include <CLI/CLI.hpp>
 //#include <fmt/printf.h>
+using namespace std;
 
 namespace alimer
 {
@@ -73,6 +74,7 @@ namespace alimer
     {
         PluginManager::Destroy(_pluginManager);
         _gui.Reset();
+        _commandBuffer.Reset();
         _graphicsDevice.Reset();
 
         // Destroy main window.
@@ -81,7 +83,7 @@ namespace alimer
         RemoveSubsystem(this);
     }
 
-    int Engine::Initialize(const Vector<String>& args)
+    int Engine::Initialize(const vector<string>& args)
     {
         if (_initialized)
             return EXIT_SUCCESS;

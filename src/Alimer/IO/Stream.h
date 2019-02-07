@@ -22,15 +22,15 @@
 
 #pragma once
 
+#include <vector>
+#include <string>
 #include "../Base/String.h"
 #include "../Base/StringHash.h"
-#include "../Base/Vector.h"
 
 namespace alimer
 {
     //class JSONValue;
     class StringHash;
-    //template <class T> class Vector;
     struct ObjectRef;
     struct ResourceRef;
     struct ResourceRefList;
@@ -113,18 +113,18 @@ namespace alimer
         uint32_t ReadVLE();
 
         /// Read a null-terminated string.
-        String ReadString();
+        std::string ReadString();
         /// Read a text line.
-        String ReadLine();
+        std::string ReadLine();
         /// Read a four-letter file ID.
-        String ReadFileID();
+        std::string ReadFileID();
         /// Read a 32-bit StringHash.
         StringHash ReadStringHash();
 		/// Read entire file as text.
-		String ReadAllText();
+        std::string ReadAllText();
 
 		/// Read content as vector bytes.
-		PODVector<uint8_t> ReadBytes(uint64_t count = 0);
+		std::vector<uint8_t> ReadBytes(size_t count = 0);
 
         /// Write an 8-bit integer.
         void WriteByte(signed char value);
@@ -139,27 +139,23 @@ namespace alimer
         void WriteUInt(unsigned value);
 
         /// Write a variable-length encoded unsigned integer, which can use 29 bits maximum.
-        void WriteVLE(unsigned value);
+        void WriteVLE(size_t value);
 
         /// Write a null-terminated string.
-        void WriteString(const String& value);
+        void WriteString(const std::string& value);
         /// Write a four-letter file ID. If the string is not long enough, spaces will be appended.
-        void WriteFileID(const String& value);
+        void WriteFileID(const std::string& value);
         /// Write a 32-bit StringHash.
         void WriteStringHash(const StringHash& value);
 
         /// Write a text line with end line automatically appended.
-        void WriteLine(const String& value);
+        void WriteLine(const std::string& value);
 
         
-		/**
-		* Get current position in bytes.
-		*/
+		/// Get current position in bytes.
         uint64_t GetPosition() const { return _position; }
 
-		/**
-		* Get the size in bytes of the stream.
-		*/
+		/// Get the size in bytes of the stream.
 		uint64_t Size() const { return _size; }
 
 		/**
@@ -168,13 +164,13 @@ namespace alimer
 		bool IsEof() const { return _position >= _size; }
 
         /// Gets the name of this object.
-        String GetName() const { return _name; }
+        std::string GetName() const { return _name; }
 
         /// Sets the name of this object.
-        void SetName(const String& name);
+        void SetName(const std::string& name);
 
 	protected:
-        String _name;
+        std::string _name;
         uint64_t _position;
         uint64_t _size;
 

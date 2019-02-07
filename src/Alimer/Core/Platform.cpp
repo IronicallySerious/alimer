@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#include "foundation/StringUtils.h"
 #include "../Core/Platform.h"
 #include "../Base/String.h"
 #include "../Core/Log.h"
@@ -81,6 +82,8 @@ bool IsWindowsVersionOrGreater(WORD wMajorVersion, WORD wMinorVersion, WORD wSer
 #   include <dlfcn.h>
 #   include <pthread.h>
 #endif
+
+using namespace std;
 
 namespace alimer
 {
@@ -221,12 +224,12 @@ namespace alimer
     void* LoadNativeLibrary(const char* name)
     {
 #if ALIMER_PLATFORM_WINDOWS
-        alimer::WString wideName = alimer::WString(name);
-        HMODULE handle = LoadLibraryW(wideName.CString());
+        std::wstring wideName = ToUtf16(name, strlen(name));
+        HMODULE handle = LoadLibraryW(wideName.c_str());
         return handle;
 #elif ALIMER_PLATFORM_UWP
-        auto wideName = WString(name);
-        HMODULE handle = LoadPackagedLibrary(wideName.CString(), 0);
+        std::wstring wideName = ToUtf16(name, strlen(name));
+        HMODULE handle = LoadPackagedLibrary(wideName.c_str(), 0);
         return handle;
 #elif ALIMER_PLATFORM_WEB
         ALIMER_UNUSED(name);
@@ -302,9 +305,25 @@ namespace alimer
     }
 
 #if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-    String GetWin32ErrorString(unsigned long errorCode)
+    wstring GetWin32ErrorString(unsigned long errorCode)
     {
-        CHAR errorString[MAX_PATH];
+        WCHAR errorString[MAX_PATH];
+        ::FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM,
+            0,
+            errorCode,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            errorString,
+            MAX_PATH,
+            NULL);
+
+        wstring message = L"Win32 Error: ";
+        message += errorString;
+        return message;
+    }
+
+    string GetWin32ErrorStringAnsi(DWORD errorCode)
+    {
+        char errorString[MAX_PATH];
         ::FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM,
             0,
             errorCode,
@@ -313,8 +332,8 @@ namespace alimer
             MAX_PATH,
             NULL);
 
-        String message = "Win32 Error: ";
-        message += String(errorString);
+        string message = "Win32 Error: ";
+        message += errorString;
         return message;
     }
 
@@ -439,21 +458,27 @@ namespace alimer
 #undef CHK_ERRA
     }
 
-    WString GetDXErrorString(long hr)
+    wstring GetDXErrorString(long hr)
     {
         const uint32_t errStringSize = 1024;
         wchar_t errorString[errStringSize];
         DXGetErrorDescriptionW(hr, errorString, errStringSize);
 
-        String message = "DirectX Error: ";
-        message += String(errorString);
-        return WString(message);
+        wstring message = L"DirectX Error: ";
+        message += errorString;
+        return message;
     }
 
-    String GetDXErrorStringAnsi(long hr)
+    string GetDXErrorStringAnsi(long hr)
     {
-       WString errorString = GetDXErrorString(hr);
-       return String(errorString);
+        wstring errorString = GetDXErrorString(hr);
+
+        string message;
+        for (uint64_t i = 0; i < errorString.length(); ++i) {
+            message.append(1, static_cast<char>(errorString[i]));
+        }
+
+        return message;
     }
 #endif
 }

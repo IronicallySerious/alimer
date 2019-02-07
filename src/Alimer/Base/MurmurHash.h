@@ -23,7 +23,7 @@
 #pragma once
 
 #include <foundation/foundation.h>
-#include "../Base/String.h"
+#include <string>
 
 namespace alimer
 {
@@ -35,7 +35,7 @@ namespace alimer
         Hash() : A(0), B(0) {}
         Hash(uint64_t a, uint64_t b) : A(a), B(b) {}
 
-        String ToString() const;
+        std::string ToString() const;
 
         bool operator==(const Hash& other)
         {

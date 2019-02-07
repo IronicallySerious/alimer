@@ -21,24 +21,28 @@
 //
 
 #include "../IO/Path.h"
-#include "../Base/String.h"
 #include <algorithm>
+#include "foundation/StringUtils.h"
+using namespace std;
 
 namespace alimer
 {
-    static String GetCleanPath(const String& path)
-    {
-        return path.Replaced('\\', '/');
-    }
-
-
-    static inline uint32_t FindLastSlash(const String &str)
+    static string GetCleanPath(const string& path)
     {
 #ifdef _WIN32
-        uint32_t index = str.FindLast("/\\");
-        if (index == String::NPOS)
+        return StringUtils::Replace(path, '\\', '/');
+#else
+        return path;
+#endif
+    }
+
+    static inline string::size_type FindLastSlash(const string &str)
+    {
+#ifdef _WIN32
+        string::size_type index = str.find_last_of("/\\");
+        if (index == string::npos)
         {
-            index = str.FindLast('/');
+            index = str.find_last_of('/');
         }
         return index;
 #else
@@ -46,117 +50,120 @@ namespace alimer
 #endif
     }
 
-    bool Path::IsAbsolutePath(const String &path)
+    bool Path::IsAbsolutePath(const string& path)
     {
-        if (path.IsEmpty())
+        if (path.empty()) {
             return false;
-        if (path.Front() == '/')
+        }
+
+        if (path.front() == '/') {
             return true;
+        }
 
 #ifdef _WIN32
         {
-            auto index = std::min(path.Find(":/"), path.Find(":\\"));
-            if (index != String::NPOS)
+            auto index = std::min(path.find(":/"), path.find(":\\"));
+            if (index != string::npos)
                 return true;
         }
 #endif
 
-        return path.Find("://") != String::NPOS;
+        return path.find("://") != string::npos;
     }
 
-    bool Path::IsRootPath(const String &path)
+    bool Path::IsRootPath(const string& path)
     {
-        if (path.IsEmpty())
+        if (path.empty())
             return false;
 
-        if (path.Front() == '/' && path.Length() == 1)
+        if (path.front() == '/' && path.length() == 1)
             return true;
 
 #ifdef _WIN32
         {
-            auto index = std::min(path.Find(":/"), path.Find(":\\"));
-            if (index != String::NPOS && (index + 2) == path.Length())
+            auto index = std::min(path.find(":/"), path.find(":\\"));
+            if (index != string::npos && (index + 2) == path.length())
                 return true;
         }
 #endif
 
-        auto index = path.Find("://");
-        return index != String::NPOS && (index + 3) == path.Length();
+        auto index = path.find("://");
+        return index != string::npos && (index + 3) == path.length();
     }
 
-    String Path::Join(const String &base, const String &path)
+    string Path::Join(const string& base, const string& path)
     {
-        if (base.IsEmpty())
+        if (base.empty())
             return path;
-        if (path.IsEmpty())
+        if (path.empty())
             return base;
 
         if (IsAbsolutePath(path))
             return path;
 
         auto index = FindLastSlash(base);
-        bool needSlash = index != base.Length() - 1;
-        return String::Joined({ base, path }, needSlash ? "/" : "");
+        bool needSlash = index != base.length() - 1;
+        return StringUtils::Join(base, needSlash ? "/" : "", path);
     }
 
-    String Path::GetBaseDir(const String &path)
+    string Path::GetBaseDir(const string& path)
     {
-        if (path.IsEmpty())
+        if (path.empty())
             return "";
 
         if (IsRootPath(path))
             return path;
 
         auto index = FindLastSlash(path);
-        if (index == String::NPOS)
+        if (index == string::npos)
             return ".";
 
         // Preserve the first slash.
         if (index == 0 && IsAbsolutePath(path))
             index++;
 
-        String ret = path.Substring(0, index + 1);
+        string ret = path.substr(0, index + 1);
         if (!IsRootPath(ret))
         {
-            ret.Erase(ret.Length() - 1);
+            ret.erase(ret.length() - 1);
         }
 
         return ret;
     }
 
-    String Path::GetBaseName(const String &path)
+    string Path::GetBaseName(const string& path)
     {
-        if (path.IsEmpty())
-            return String::EMPTY;
+        if (path.empty())
+            return "";
 
         auto index = FindLastSlash(path);
-        if (index == String::NPOS)
+        if (index == string::npos)
             return path;
 
-        String base = path.Substring(index + 1);
+        string base = path.substr(index + 1, string::npos);
         return base;
     }
 
-    String Path::GetRelativePath(const String &base, const String &path)
+    string Path::GetRelativePath(const string& base, const string& path)
     {
         return Path::Join(GetBaseDir(base), path);
     }
 
-    String Path::GetExtension(const String &path, bool lowerCaseExtension)
+    string Path::GetExtension(const string& path, bool lowerCaseExtension)
     {
-        String cleanPath = GetCleanPath(path);
+        string cleanPath = GetCleanPath(path);
 
-        uint32_t extPos = cleanPath.FindLast('.');
-        uint32_t pathPos = cleanPath.FindLast('/');
+        string::size_type extPos = cleanPath.find_last_of('.');
+        string::size_type pathPos = cleanPath.find_last_of('/');
 
-        String extension = String::EMPTY;
-        if (extPos != String::NPOS
-            && (pathPos == String::NPOS || extPos > pathPos))
+        string extension = "";
+        if (extPos != string::npos
+            && (pathPos == string::npos || extPos > pathPos))
         {
-            extension = cleanPath.Substring(extPos);
+            extension = cleanPath.substr(extPos, string::npos);
             if (lowerCaseExtension)
             {
-                extension = extension.ToLower();
+                StringUtils::ToLower(extension);
             }
         }
 

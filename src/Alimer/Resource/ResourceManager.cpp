@@ -20,11 +20,14 @@
 // THE SOFTWARE.
 //
 
+#include "foundation/StringUtils.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/Image.h"
 #include "IO/FileSystem.h"
 #include "IO/Path.h"
 #include "Core/Log.h"
+
+using namespace std;
 
 namespace alimer
 {
@@ -58,30 +61,32 @@ namespace alimer
         RemoveSubsystem(this);
     }
 
-    bool ResourceManager::AddResourceDir(const String& path, uint32_t priority)
+    bool ResourceManager::AddResourceDir(const string& path, uint32_t priority)
     {
         std::lock_guard<std::mutex> guard(_resourceMutex);
 
         if (!FileSystem::DirectoryExists(path))
         {
-            ALIMER_LOGERROR("Directory '{}' does not exists", path.CString());
+            ALIMER_LOGERROR("Directory '{}' does not exists", path);
             return false;
         }
 
         // Convert path to absolute
-        String fixedPath = SanitateResourceDirName(path);
+        string fixedPath = SanitateResourceDirName(path);
 
         // Check that the same path does not already exist
-        for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
+        for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
-            if (!_resourceDirs[i].Compare(fixedPath))
+            if (!_resourceDirs[i].compare(fixedPath))
                 return true;
         }
 
-        if (priority < _resourceDirs.Size())
-            _resourceDirs.Insert(priority, fixedPath);
-        else
-            _resourceDirs.Push(fixedPath);
+        if (priority < _resourceDirs.size()) {
+            _resourceDirs.insert(_resourceDirs.begin() + priority, fixedPath);
+        }
+        else {
+            _resourceDirs.push_back(fixedPath);
+        }
 
         // If resource auto-reloading active, create a file watcher for the directory
        /* if (_autoReloadResources)
@@ -91,43 +96,45 @@ namespace alimer
             fileWatchers_.Push(watcher);
         }*/
 
-        ALIMER_LOGINFO("Added resource path '{}'", fixedPath.CString());
+        ALIMER_LOGINFO("Added resource path '{}'", fixedPath);
         return true;
     }
 
     void ResourceManager::AddLoader(ResourceLoader* loader)
     {
         ALIMER_ASSERT(loader);
-        _loaders[loader->GetLoadingType()].Reset(loader);
+        _loaders[loader->GetLoadingType()].reset(loader);
     }
 
     ResourceLoader* ResourceManager::GetLoader(StringHash type) const
     {
         auto it = _loaders.find(type);
-        return it != end(_loaders) ? it->second.Get() : nullptr;
+        return it != end(_loaders) ? it->second.get() : nullptr;
     }
 
-    UniquePtr<Stream> ResourceManager::OpenStream(const String& assetName)
+    unique_ptr<Stream> ResourceManager::OpenStream(const string& assetName)
     {
         std::lock_guard<std::mutex> guard(_resourceMutex);
 
-        String sanitatedName = SanitateResourceName(assetName);
+        string sanitatedName = SanitateResourceName(assetName);
 
-        if (sanitatedName.Length())
+        if (sanitatedName.length())
         {
-            UniquePtr<Stream> stream = {};
+            unique_ptr<Stream> stream = {};
 
             if (_searchPackagesFirst)
             {
                 stream = SearchPackages(sanitatedName);
-                if (!stream)
+                if (!stream) {
                     stream = SearchResourceDirs(sanitatedName);
+                }
             }
             else
             {
                 stream = SearchResourceDirs(sanitatedName);
-                if (!stream)
+                if (!stream) {
                     stream = SearchPackages(sanitatedName);
+                }
             }
 
             return stream;
@@ -136,9 +143,9 @@ namespace alimer
         return {};
     }
 
-    SharedPtr<Object> ResourceManager::Load(StringHash type, const String& assetName)
+    SharedPtr<Object> ResourceManager::Load(StringHash type, const string& assetName)
     {
-        if (assetName.IsEmpty())
+        if (assetName.empty())
         {
             ALIMER_LOGCRITICAL("Cannot load with empty asset name");
         }
@@ -154,21 +161,21 @@ namespace alimer
         ResourceLoader* loader = GetLoader(type);
         if (!loader)
         {
-            ALIMER_LOGERROR("Could not load unknown resource type {}, no loader found.", String(type).CString());
+            //ALIMER_LOGERROR("Could not load unknown resource type {}, no loader found.", string(type).c_str());
             return nullptr;
         }
 
-        String path;
-        String fileName;
-        String extension;
+        string path;
+        string fileName;
+        string extension;
         SplitPath(assetName, path, fileName, extension, true);
         
-        String assetPath = SanitateResourceName(assetName);
+        string assetPath = SanitateResourceName(assetName);
         if (!loader->CanLoad(extension))
         {
             // Find asset importer and process it.
-            String convertedAssetFullPath = path + fileName + ".alb";
-            UniquePtr<Stream> stream = OpenStream(convertedAssetFullPath);
+            string convertedAssetFullPath = path + fileName + ".alb";
+            auto stream = OpenStream(convertedAssetFullPath);
             if (!stream)
             {
                 // Asset conversion is needed.
@@ -195,7 +202,7 @@ namespace alimer
             }
         }
         
-        UniquePtr<Stream> stream = OpenStream(assetPath);
+        auto stream = OpenStream(assetPath);
         if (!stream)
         {
             return nullptr;
@@ -216,75 +223,81 @@ namespace alimer
         return object;
     }
 
-    String ResourceManager::SanitateResourceName(const String& name) const
+    string ResourceManager::SanitateResourceName(const string& name) const
     {
         // Sanitate unsupported constructs from the resource name
-        String sanitatedName = name.Replaced("../", "");
-        sanitatedName.Replace("./", "");
+        string sanitatedName = StringUtils::Replace(name, "../", "");
+        sanitatedName = StringUtils::Replace(sanitatedName, "./", "");
 
         // If the path refers to one of the resource directories, normalize the resource name
-        if (_resourceDirs.Size())
+        if (_resourceDirs.size() > 0)
         {
-            String namePath = FileSystem::GetPath(sanitatedName);
-            String exePath = FileSystem::GetExecutableFolder().Replaced("/./", "/");
-            for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
+            string namePath = FileSystem::GetPath(sanitatedName);
+            string exePath = StringUtils::Replace(FileSystem::GetExecutableFolder(), "/./", "/");
+            for (size_t i = 0; i < _resourceDirs.size(); ++i)
             {
-                String relativeResourcePath = _resourceDirs[i];
-                if (relativeResourcePath.StartsWith(exePath))
-                    relativeResourcePath = relativeResourcePath.Substring(exePath.Length());
+                string relativeResourcePath = _resourceDirs[i];
+                if (StringUtils::StartsWith(relativeResourcePath, exePath))
+                {
+                    relativeResourcePath = relativeResourcePath.substr(exePath.length());
+                }
 
-                if (namePath.StartsWith(_resourceDirs[i], false))
-                    namePath = namePath.Substring(_resourceDirs[i].Length());
-                else if (namePath.StartsWith(relativeResourcePath, false))
-                    namePath = namePath.Substring(relativeResourcePath.Length());
+                if (StringUtils::StartsWith(namePath, _resourceDirs[i], false))
+                {
+                    namePath = namePath.substr(_resourceDirs[i].length());
+                }
+                else if (StringUtils::StartsWith(namePath, relativeResourcePath, false))
+                {
+                    namePath = namePath.substr(relativeResourcePath.length());
+                }
             }
 
             sanitatedName = namePath + FileSystem::GetFileNameAndExtension(sanitatedName);
         }
 
-        return sanitatedName.Trimmed();
+        return StringUtils::Trim(sanitatedName);
     }
 
-    String ResourceManager::SanitateResourceDirName(const String& name) const
+    string ResourceManager::SanitateResourceDirName(const string& name) const
     {
-        String cleanName = AddTrailingSlash(name);
+        string cleanName = AddTrailingSlash(name);
         if (!IsAbsolutePath(name))
             cleanName = Path::Join(FileSystem::GetCurrentDir(), name);
 
         // Sanitate away /./ construct
-        cleanName = cleanName.Replaced("/./", "/").Trimmed();
+        cleanName = StringUtils::Trim(StringUtils::Replace(cleanName, "/./", "/"));
         return cleanName;
     }
 
-    UniquePtr<Stream> ResourceManager::SearchResourceDirs(const String& name)
+    unique_ptr<Stream> ResourceManager::SearchResourceDirs(const string& name)
     {
-        for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
+        for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
             if (FileSystem::FileExists(_resourceDirs[i] + name))
             {
-                return UniquePtr<Stream>(new FileStream(_resourceDirs[i] + name));
+                return make_unique<FileStream>(_resourceDirs[i] + name);
             }
         }
 
         // Fallback using absolute path
         if (FileSystem::FileExists(name))
         {
-            return UniquePtr<Stream>(new FileStream(name));
+            return make_unique<FileStream>(name);
         }
 
         return {};
     }
 
-    UniquePtr<Stream> ResourceManager::SearchPackages(const String& name)
+    unique_ptr<Stream> ResourceManager::SearchPackages(const string& name)
     {
         ALIMER_UNUSED(name);
         // TODO:
         return {};
     }
 
-    bool ResourceManager::ExistsInResourceDirs(const String& name)
+    bool ResourceManager::ExistsInResourceDirs(const string& name)
     {
-        for (uint32_t i = 0; i < _resourceDirs.Size(); ++i)
+        for (size_t i = 0; i < _resourceDirs.size(); ++i)
         {
             if (FileSystem::FileExists(_resourceDirs[i] + name))
             {
@@ -299,7 +312,7 @@ namespace alimer
         return false;
     }
 
-    bool ResourceManager::ExistsInPackages(const String& name)
+    bool ResourceManager::ExistsInPackages(const string& name)
     {
         ALIMER_UNUSED(name);
         // TODO:

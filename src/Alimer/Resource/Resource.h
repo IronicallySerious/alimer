@@ -61,10 +61,10 @@ namespace alimer
         virtual bool Save(Stream& dest);
 
 		/// Set name.
-		void SetName(const String& name);
+		void SetName(const std::string& name);
 
 		/// Return name.
-		const String& GetName() const { return _name; }
+		const std::string& GetName() const { return _name; }
 
         /// Set the asynchronous loading state. Called by ResourceCache. Resources in the middle of asynchronous loading are not normally returned to user.
         void SetAsyncLoadState(AsyncLoadState newState);
@@ -73,15 +73,16 @@ namespace alimer
 		AsyncLoadState GetAsyncLoadState() const { return _asyncLoadState; }
 
 	protected:
-        String _name;
+        std::string _name;
         /// Resource name hash.
         StringHash _nameHash;
 		AsyncLoadState _asyncLoadState;
 	};
 
-    inline const String& GetResourceName(Resource* resource)
+    inline const std::string& GetResourceName(Resource* resource)
     {
-        return resource ? resource->GetName() : String::EMPTY;
+        static std::string empty_string = "";
+        return resource ? resource->GetName() : empty_string;
     }
 
     inline StringHash GetResourceType(Resource* resource, StringHash defaultType)
