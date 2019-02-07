@@ -20,14 +20,17 @@
 # THE SOFTWARE.
 #
 
-# STB
-add_subdirectory(stb)
+# Always included libraries
+foreach (TARGET stb freetype fmt spdlog)
+    add_subdirectory (${TARGET})
+
+    if (TARGET target_name)
+        set_property(TARGET ${target_name} PROPERTY FOLDER "third_party")
+    endif ()
+endforeach ()
 
 # vgpu (vortice gpu)
 add_subdirectory(vgpu)
-
-add_subdirectory(fmt)
-add_subdirectory(spdlog)
 
 # SPIRV-Cross
 add_subdirectory(spirv-cross)

@@ -19,6 +19,7 @@ Alimer uses the following open-source and third-party libraries:
 - [fmt 5.3.0](http://fmtlib.net)
 - [spdlog 1.2.1](https://github.com/gabime/spdlog)
 - [CLI11](https://github.com/CLIUtils/CLI11)
+- [FreeType 2.9.1](https://www.freetype.org)
 
 Additional inspiration, research or code used:
 
