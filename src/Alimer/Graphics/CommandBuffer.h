@@ -34,25 +34,27 @@
 
 namespace alimer
 {
-    class GPUCommandBuffer;
-
-    /// Defines a command buffer for recording gpu commands.
-    class ALIMER_API CommandBuffer final : public RefCounted
+    /// Defines a command context for recording gpu commands.
+    class ALIMER_API CommandContext : public RefCounted
     {
         friend class GraphicsDevice;
 
+    protected:
+        CommandContext(GraphicsDevice* device, QueueType type);
+
     public:
-        CommandBuffer(GraphicsDevice* device);
-
         /// Destructor.
-        ~CommandBuffer() override;
+        virtual ~CommandContext() = default;
 
-        void Begin();
-        void End();
+        /// Request new command context for recording.
+        static CommandContext& Begin(const std::string& id = "");
 
-        void PushDebugGroup(const std::string& name);
-        void PopDebugGroup();
-        void InsertDebugMarker(const std::string& name);
+        /// Flush existing commands and optionally wait
+        uint64_t Flush(bool waitForCompletion = false);
+
+        virtual void PushDebugGroup(const std::string& name) = 0;
+        virtual void PopDebugGroup() = 0;
+        virtual void InsertDebugMarker(const std::string& name) = 0;
 
         /// Begin rendering to default backbuffer.
         void BeginDefaultRenderPass(const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
@@ -90,14 +92,17 @@ namespace alimer
         void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
+        void SetId(const std::string& id) { _id = id; }
+
+        QueueType GetQueueType() const { return _type; }
+
         /// Return the device used for creation.
         GraphicsDevice* GetDevice() const { return _device.Get(); }
 
-        /// Return backend gpu handle.
-        GPUCommandBuffer* GetGPUCommandBuffer() const { return _handle; }
-
     private:
         // Backend methods
+        virtual void Reset() = 0;
+        virtual uint64_t FlushImpl(bool waitForCompletion) = 0;
         //virtual void PushDebugGroupImpl(const String& name) = 0;
         //virtual void PopDebugGroupImpl() = 0;
         //virtual void InsertDebugMarkerImpl(const String& name) = 0;
@@ -108,15 +113,17 @@ namespace alimer
         //virtual void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
         //virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
-    private:
+    protected:
         /// GPUDevice.
         WeakPtr<GraphicsDevice> _device;
 
-        /// Backend handle.
-        GPUCommandBuffer* _handle = nullptr;
+        /// ID
+        std::string             _id;
 
-        bool            _isRecording = false;
-        bool            _insideRenderPass = false;
-        Shader* _currentShader = nullptr;
+        /// Queue type
+        QueueType               _type;
+
+        bool                    _insideRenderPass = false;
+        Shader*                 _currentShader = nullptr;
     };
 }

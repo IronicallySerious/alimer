@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Base/String.h"
+#include <string>
 #include "../Math/Math.h"
 #include "../Math/Matrix4x4.h"
 

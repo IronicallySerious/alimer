@@ -23,6 +23,8 @@
 #pragma once
 
 #include "BackendVk.h"
+#include "../RenderWindow.h"
+#include "../GraphicsDevice.h"
 #include <vector>
 
 namespace alimer
@@ -30,20 +32,22 @@ namespace alimer
     class TextureVk;
 
 	/// Vulkan SwapChain implementation.
-	class SwapChainVk final : public GPUSwapChain
+	class SwapChainVk final : public RenderWindow
 	{
 	public:
         SwapChainVk(GPUDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
         ~SwapChainVk();
 
-        uint32_t GetTextureCount() const override { return _imageCount; }
-        uint32_t GetCurrentBackBuffer() const override { return _imageIndex; }
-        GPUTexture* GetBackBufferTexture(uint32_t index) const override {
-            return nullptr;
-        }
+        //uint32_t GetTextureCount() const override { return _imageCount; }
+        //uint32_t GetCurrentBackBuffer() const override { return _imageIndex; }
+        //GPUTexture* GetBackBufferTexture(uint32_t index) const override {
+        //    return nullptr;
+        //}
 
         GPUTexture* GetNextTexture();
         VkSwapchainKHR GetVkHandle() const { return _handle; }
+        uint32_t GetImageCount() const { return _imageCount; }
+        uint32_t GetImageIndex() const { return _imageIndex; }
 
         void Resize();
         bool Resize(uint32_t width, uint32_t height);

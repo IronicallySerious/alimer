@@ -23,7 +23,6 @@
 #pragma once
 
 #include <memory>
-#include "../Base/String.h"
 #include "../Graphics/Backend.h"
 #include "../Graphics/VertexFormat.h"
 #include "../Graphics/GPUResource.h"

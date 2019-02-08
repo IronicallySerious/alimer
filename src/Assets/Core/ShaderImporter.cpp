@@ -25,7 +25,7 @@ namespace alimer
         // Read input
         {
             FileStream source(fileName, FileAccess::ReadOnly);
-            String shaderSource = source.ReadAllText();
+            std::string shaderSource = source.ReadAllText();
         }
 
         // Write output

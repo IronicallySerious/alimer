@@ -48,16 +48,6 @@ namespace alimer
         virtual ~GPUBuffer() = default;
     };
 
-    class GPUSwapChain
-    {
-    public:
-        virtual ~GPUSwapChain() = default;
-
-        virtual uint32_t GetTextureCount() const = 0;
-        virtual uint32_t GetCurrentBackBuffer() const = 0;
-        virtual GPUTexture* GetBackBufferTexture(uint32_t index) const = 0;
-    };
-
     class GPUCommandBuffer
     {
     public:

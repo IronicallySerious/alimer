@@ -23,7 +23,6 @@
 #pragma once
 
 #include "Base/Ptr.h"
-#include "Base/String.h"
 #include "Base/StringHash.h"
 
 // Debug

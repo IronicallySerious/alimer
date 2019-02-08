@@ -21,7 +21,7 @@
 //
 
 #include "../Math/Color.h"
-#include <cstdio>
+#include <fmt/printf.h>
 
 namespace alimer
 {
@@ -35,10 +35,8 @@ namespace alimer
     const Color4 Color4::YellowGreen = { 0.603921592f, 0.803921640f, 0.196078449f, 1.0f };
     const Color4 Color4::Lime = { 0.000000000f, 1.000000000f, 0.000000000f, 1.000000000f };
 
-    String Color4::ToString() const
+    std::string Color4::ToString() const
     {
-        char tempBuffer[128];
-        sprintf(tempBuffer, "%g %g %g %g", r, g, b, a);
-        return String(tempBuffer);
+        return fmt::sprintf("%g %g %g %g", r, g, b, a);
     }
 }

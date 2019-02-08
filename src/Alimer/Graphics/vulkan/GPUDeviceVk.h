@@ -32,7 +32,7 @@ namespace alimer
     class CommandBufferVk;
 
     /// Vulkan gpu backend.
-    class GPUDeviceVk final : public GPUDevice
+    class GPUDeviceVk final : public GraphicsDevice
     {
     public:
         /// Is backend supported?
@@ -42,16 +42,17 @@ namespace alimer
         GPUDeviceVk(PhysicalDevicePreference devicePreference, bool validation, bool headless);
 
         /// Destructor.
-        ~GPUDeviceVk();
+        void Finalize() override;
 
         void WaitIdle() override;
-        bool Initialize(const SwapChainDescriptor* descriptor) override;
 
-        bool BeginFrame() override;
-        bool EndFrame() override;
+        SharedPtr<RenderWindow> InitializeImpl(const SwapChainDescriptor* descriptor) override;
+        SharedPtr<RenderWindow> CreateRenderWindow(const SwapChainDescriptor* descriptor) override;
+        bool BeginFrameImpl() override;
+        void Tick() override;
 
-        GPUCommandBuffer* CreateCommandBuffer() override;
-        void SubmitCommandBuffers(uint32_t count, GPUCommandBuffer** commandBuffers) override;
+        CommandContext* CreateCommandContext(QueueType type) override;
+        void SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer);
 
         //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
         //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
@@ -113,7 +114,6 @@ namespace alimer
         std::unique_ptr<CommandQueueVk>         _copyCommandQueue;
 
         DeviceFeaturesVk                        _featuresVk = {};
-        SwapChainVk*                            _mainSwapChain = nullptr;
         std::vector<VkSemaphore>                _semaphores;
         uint32_t                                _frameIndex = 0;
         uint32_t                                _maxInflightFrames = 0u;

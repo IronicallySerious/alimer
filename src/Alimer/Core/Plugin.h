@@ -23,8 +23,8 @@
 
 #pragma once
 
+#include <string>
 #include <foundation/foundation.h>
-#include "../Base/String.h"
 
 #if defined(__CYGWIN32__)
 #   define ALIMER_INTERFACE_EXPORT __declspec(dllexport)

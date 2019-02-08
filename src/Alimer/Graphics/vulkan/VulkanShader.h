@@ -29,7 +29,6 @@
 
 namespace alimer
 {
-    class VulkanGraphicsDevice;
     class VulkanPipelineLayout;
 
     /// Vulkan ShaderModule implementation.

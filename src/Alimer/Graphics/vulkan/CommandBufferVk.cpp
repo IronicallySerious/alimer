@@ -32,10 +32,10 @@
 
 namespace alimer
 {
-    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, CommandQueueVk* commandQueue)
-        : _device(device)
+    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue)
+        : CommandContext(device, type)
+        , _logicalDevice(device->GetVkDevice())
         , _commandQueue(commandQueue)
-        , _semaphore(device->RequestSemaphore())
     {
         VkCommandBufferAllocateInfo commandBufferAllocateInfo;
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -44,21 +44,21 @@ namespace alimer
         commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         commandBufferAllocateInfo.commandBufferCount = 1;
         vkThrowIfFailed(vkAllocateCommandBuffers(
-            _device->GetVkDevice(),
+            _logicalDevice,
             &commandBufferAllocateInfo,
             &_commandBuffer)
         );
+
+        Begin();
     }
 
     CommandBufferVk::~CommandBufferVk()
     {
         if (_commandBuffer != VK_NULL_HANDLE)
         {
-            vkFreeCommandBuffers(_device->GetVkDevice(), _commandQueue->GetVkCommandPool(), 1, &_commandBuffer);
+            vkFreeCommandBuffers(_logicalDevice, _commandQueue->GetVkCommandPool(), 1, &_commandBuffer);
             _commandBuffer = VK_NULL_HANDLE;
         }
-
-        _device->RecycleSemaphore(_semaphore);
     }
 
     void CommandBufferVk::Begin()
@@ -70,7 +70,7 @@ namespace alimer
         beginInfo.pInheritanceInfo = nullptr;
         vkThrowIfFailed(
             vkBeginCommandBuffer(_commandBuffer, &beginInfo)
-            );
+        );
 
         //_graphicsState.Reset();
     }
@@ -79,48 +79,48 @@ namespace alimer
     {
         vkThrowIfFailed(
             vkEndCommandBuffer(_commandBuffer)
-            );
+        );
     }
 
-    void CommandBufferVk::PushDebugGroup(const char* name)
+    void CommandBufferVk::PushDebugGroup(const std::string& name)
     {
-/*if (_device->GetFeaturesVk().supportsDebugUtils)
-        {
-            VkDebugUtilsLabelEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-            //if (color)
-            //{
-            //    for (unsigned i = 0; i < 4; i++)
-            //        info.color[i] = color[i];
-            //}
-            //else
-            {
-                for (unsigned i = 0; i < 4; i++)
-                    info.color[i] = 1.0f;
-            }
-
-            info.pLabelName = name;
-            if (vkCmdBeginDebugUtilsLabelEXT)
-                vkCmdBeginDebugUtilsLabelEXT(_handle, &info);
-        }
-        else if (_device->GetFeaturesVk().supportsDebugMarker)
-        {
-            VkDebugMarkerMarkerInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT };
-            //if (color)
-            //{
-            //    for (unsigned i = 0; i < 4; i++)
-            //        info.color[i] = color[i];
-            //}
-            //else
-            {
-                for (uint32_t i = 0; i < 4u; i++)
+        /*if (_device->GetFeaturesVk().supportsDebugUtils)
                 {
-                    info.color[i] = 1.0f;
-                }
-            }
+                    VkDebugUtilsLabelEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+                    //if (color)
+                    //{
+                    //    for (unsigned i = 0; i < 4; i++)
+                    //        info.color[i] = color[i];
+                    //}
+                    //else
+                    {
+                        for (unsigned i = 0; i < 4; i++)
+                            info.color[i] = 1.0f;
+                    }
 
-            info.pMarkerName = name;
-            vkCmdDebugMarkerBeginEXT(_handle, &info);
-        }*/
+                    info.pLabelName = name;
+                    if (vkCmdBeginDebugUtilsLabelEXT)
+                        vkCmdBeginDebugUtilsLabelEXT(_handle, &info);
+                }
+                else if (_device->GetFeaturesVk().supportsDebugMarker)
+                {
+                    VkDebugMarkerMarkerInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT };
+                    //if (color)
+                    //{
+                    //    for (unsigned i = 0; i < 4; i++)
+                    //        info.color[i] = color[i];
+                    //}
+                    //else
+                    {
+                        for (uint32_t i = 0; i < 4u; i++)
+                        {
+                            info.color[i] = 1.0f;
+                        }
+                    }
+
+                    info.pMarkerName = name;
+                    vkCmdDebugMarkerBeginEXT(_handle, &info);
+                }*/
     }
 
     void CommandBufferVk::PopDebugGroup()
@@ -138,7 +138,7 @@ namespace alimer
         }*/
     }
 
-    void CommandBufferVk::InsertDebugMarker(const char* name)
+    void CommandBufferVk::InsertDebugMarker(const std::string& name)
     {
         /*if (_device->GetFeaturesVk().supportsDebugUtils)
         {
@@ -179,22 +179,28 @@ namespace alimer
         //CommandContext::BeginContext();
     }
 
-    /*void CommandBufferVk::FlushImpl(bool waitForCompletion)
+    void CommandBufferVk::Reset()
+    {
+    }
+
+    uint64_t CommandBufferVk::FlushImpl(bool waitForCompletion)
     {
         End();
 
         if (!waitForCompletion)
         {
-            static_cast<VulkanGraphicsDevice*>(_device)->SubmitCommandBuffer(_handle);
+            StaticCast<GPUDeviceVk>(_device)->SubmitCommandBuffer(_type, _commandBuffer);
         }
         else
         {
-            static_cast<VulkanGraphicsDevice*>(_device)->SubmitCommandBuffer(_handle, _vkFence);
-            Begin();
+            //static_cast<VulkanGraphicsDevice*>(_device)->SubmitCommandBuffer(_handle, _vkFence);
+            //Begin();
         }
+
+        return 0;
     }
 
-    void CommandBufferVk::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    /*void CommandBufferVk::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         _currentFramebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
         _currentRenderPass = _currentFramebuffer->GetRenderPass();
@@ -333,9 +339,9 @@ namespace alimer
         // We've invalidated pipeline state, update the VkPipeline.
         if (_graphicsState.IsDirty()
             || GetAndClear(
-            COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT
-            | COMMAND_BUFFER_DIRTY_PIPELINE_BIT
-            | COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT))
+                COMMAND_BUFFER_DIRTY_STATIC_STATE_BIT
+                | COMMAND_BUFFER_DIRTY_PIPELINE_BIT
+                | COMMAND_BUFFER_DIRTY_STATIC_VERTEX_BIT))
         {
             VkPipeline oldPipeline = _currentPipeline;
             FlushGraphicsPipeline();
@@ -442,7 +448,7 @@ namespace alimer
                 attributeDesc.offset = useAutoOffset ? vertexStride : attributeInfo.offset;
                 vertexStride += GetVertexFormatSize(attributeInfo.format);
             }*/
-            
+
             // Rasterization state
             VkPipelineRasterizationStateCreateInfo rasterizationState = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
             rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;

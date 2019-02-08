@@ -23,6 +23,7 @@
 #pragma once
 
 #include "Alimer.h"
+#include <string>
 
 namespace alimer
 {
@@ -34,7 +35,7 @@ namespace alimer
 		~AssetDatabase();
 
 	private:
-		String _inputPath;
-        String _outputPath;
+		std::string _inputPath;
+        std::string _outputPath;
 	};
 }

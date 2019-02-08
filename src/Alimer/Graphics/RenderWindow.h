@@ -22,57 +22,25 @@
 
 #pragma once
 
-/** @file windows.h
-@brief Safe inclusion of windows.h
+#include "../Application/Window.h"
 
-Safe inclusion of windows.h without collisions with foundation library symbols.
-*/
+namespace alimer
+{
+    class GraphicsDevice;
 
-#include <foundation/platform.h>
-#include <foundation/types.h>
+    /// Defines a Texture class.
+    class ALIMER_API RenderWindow : public Window
+    {
+        ALIMER_OBJECT(RenderWindow, Window);
 
-#if ALIMER_PLATFORM_WINDOWS
+    protected:
+        /// Constructor.
+        RenderWindow(GraphicsDevice* device);
 
-#   define STREAM_SEEK_END _STREAM_SEEK_END
+    public:
+        /// Destructor.
+        virtual ~RenderWindow() override;
 
-#   ifndef NOMINMAX
-#       define NOMINMAX
-#   endif
-
-#   ifndef WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
-
-#   if ALIMER_COMPILER_MSVC
-//Work around broken dbghlp.h header
-#       pragma warning(disable : 4091)
-#   elif ALIMER_COMPILER_CLANG
-#       pragma clang diagnostic push
-#       pragma clang diagnostic ignored "-Wnonportable-system-include-path"
-#   endif
-
-#   include <Windows.h>
-
-#   include <WinSock2.h>
-#   include <IPTypes.h>
-#   include <WS2tcpip.h>
-#   include <iphlpapi.h>
-#   include <share.h>
-#   include <io.h>
-#   include <shellapi.h>
-#   include <stdlib.h>
-#   include <ShlObj.h>
-#   include <DbgHelp.h>
-#   include <crtdbg.h>
-
-#   undef min
-#   undef max
-#   undef STREAM_SEEK_END
-
-#   if ALIMER_COMPILER_CLANG
-#       undef WINAPI
-#       define WINAPI STDCALL
-#       pragma clang diagnostic pop
-#   endif
-
-#endif
+    private:
+    };
+}

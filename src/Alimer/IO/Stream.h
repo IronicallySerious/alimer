@@ -24,7 +24,6 @@
 
 #include <vector>
 #include <string>
-#include "../Base/String.h"
 #include "../Base/StringHash.h"
 
 namespace alimer

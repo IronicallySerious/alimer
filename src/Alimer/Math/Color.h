@@ -22,12 +22,12 @@
 
 #pragma once
 
-#include "../Base/String.h"
+#include <string>
 #include "../Math/Math.h"
 
 #ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4201 4203 4244 4702) 
+#   pragma warning(push)
+#   pragma warning(disable : 4201 4203 4244 4702) 
 #endif
 
 namespace alimer
@@ -139,7 +139,7 @@ namespace alimer
 		bool operator !=(const Color4& rhs) const { return r != rhs.r || g != rhs.g || b != rhs.b || a != rhs.a; }
 
 		/// Return as string.
-		String ToString() const;
+		std::string ToString() const;
 
         /// Return float data.
         const float* Data() const { return &r; }
@@ -163,5 +163,5 @@ namespace alimer
 }
 
 #ifdef _MSC_VER
-#pragma warning(pop)
+#   pragma warning(pop)
 #endif

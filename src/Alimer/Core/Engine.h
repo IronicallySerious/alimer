@@ -32,10 +32,8 @@ namespace alimer
 {
     class PluginManager;
     class ResourceManager;
-    class Window;
     class Input;
     class Audio;
-    class CommandBuffer;
     class SceneManager;
     class Gui;
 
@@ -102,9 +100,6 @@ namespace alimer
         /// Get the audio system.
         inline Audio& GetAudio() { return *_audio.Get(); }
 
-        /// Get the main window.
-        inline Window* GetWindow() { return _window.get(); }
-
         /// Get the graphics device.
         inline GraphicsDevice& GetGraphicsDevice() { return *_graphicsDevice.Get(); }
 
@@ -121,9 +116,7 @@ namespace alimer
         SharedPtr<ResourceManager>  _resources;
         SharedPtr<Input>            _input;
         SharedPtr<Audio>            _audio;
-        std::unique_ptr<Window>     _window;
         SharedPtr<GraphicsDevice>   _graphicsDevice;
-        SharedPtr<CommandBuffer>    _commandBuffer;
         SharedPtr<SceneManager>     _sceneManager;
 
         // ImGui

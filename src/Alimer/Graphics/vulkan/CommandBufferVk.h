@@ -23,30 +23,33 @@
 #pragma once
 
 #include "BackendVk.h"
+#include "../CommandBuffer.h"
 
 namespace alimer
 {
     class CommandQueueVk;
 
 	/// Vulkan CommandBuffer implementation.
-	class CommandBufferVk final : public GPUCommandBuffer
+	class CommandBufferVk final : public CommandContext
 	{
 	public:
-        CommandBufferVk(GPUDeviceVk* device, CommandQueueVk* commandQueue);
+        CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue);
 		~CommandBufferVk() override;
 
-        void Begin() override;
-        void End() override;
+        void Begin();
+        void End();
 
-        void PushDebugGroup(const char* name) override;
+        void PushDebugGroup(const std::string& name) override;
         void PopDebugGroup() override;
-        void InsertDebugMarker(const char* name) override;
+        void InsertDebugMarker(const std::string& name) override;
        
         VkCommandBuffer GetVkCommandBuffer() const { return _commandBuffer; }
-        VkSemaphore GetVkSemaphore() const { return _semaphore; }
 
 	private:
         void BeginContext();
+        void Reset() override;
+        uint64_t FlushImpl(bool waitForCompletion) override;
+
         //void FlushImpl(bool waitForCompletion) override;
         //void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         //void EndRenderPassImpl() override;
@@ -72,10 +75,9 @@ namespace alimer
         void FlushGraphicsPipeline();
 
     private:
-        GPUDeviceVk*    _device;
+        VkDevice        _logicalDevice;
         CommandQueueVk* _commandQueue;
         VkCommandBuffer _commandBuffer;
-        VkSemaphore     _semaphore;
 
         // State
         class GraphicsState

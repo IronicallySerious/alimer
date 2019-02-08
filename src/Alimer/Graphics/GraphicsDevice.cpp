@@ -44,19 +44,33 @@ extern "C"
 
 namespace alimer
 {
-    static GraphicsDevice* __graphicsInstance = nullptr;
+    GraphicsDevice* graphics = nullptr;
 
-    GraphicsDevice::GraphicsDevice(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference, bool validation, bool headless)
-        : _validation(validation)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, PhysicalDevicePreference devicePreference, bool validation, bool headless)
+        : _backend(backend)
+        , _devicePreference(devicePreference)
+        , _validation(validation)
         , _headless(headless)
     {
-        _backend = preferredBackend;
-        if (preferredBackend == GraphicsBackend::Default)
+        graphics = this;
+        AddSubsystem(this);
+    }
+
+    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference, bool validation, bool headless)
+    {
+        if (graphics != nullptr)
         {
-            _backend = GraphicsBackend::Vulkan;
+            ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
+
         }
 
-        switch (_backend)
+        if (preferredBackend == GraphicsBackend::Default)
+        {
+            preferredBackend = GraphicsBackend::Vulkan;
+        }
+
+        GraphicsDevice* device = nullptr;
+        switch (preferredBackend)
         {
         case GraphicsBackend::Null:
             break;
@@ -64,7 +78,7 @@ namespace alimer
 #if defined(ALIMER_VULKAN)
             if (GPUDeviceVk::IsSupported())
             {
-                _device = new GPUDeviceVk(devicePreference, validation, headless);
+                device = new GPUDeviceVk(devicePreference, validation, headless);
                 ALIMER_LOGINFO("Vulkan backend created with success.");
             }
             else
@@ -83,19 +97,7 @@ namespace alimer
             ALIMER_UNREACHABLE();
         }
 
-        AddSubsystem(this);
-    }
-
-    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference, bool validation, bool headless)
-    {
-        if (__graphicsInstance != nullptr)
-        {
-            ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
-
-        }
-
-        __graphicsInstance = new GraphicsDevice(preferredBackend, devicePreference, validation, headless);
-        return __graphicsInstance;
+        return device;
     }
 
     GraphicsDevice::~GraphicsDevice()
@@ -117,28 +119,27 @@ namespace alimer
             _gpuResources.clear();
         }
 
+        for (uint32_t i = 0u; i < 4u; ++i)
+        {
+            _contextPool[i].clear();
+        }
+
         // Destroy backend.
-        SafeDelete(_device);
+        Finalize();
 
         RemoveSubsystem(this);
-        __graphicsInstance = nullptr;
+        graphics = nullptr;
     }
 
-    bool GraphicsDevice::Initialize(Window* window, bool depthStencil, bool vSync, SampleCount samples)
+    bool GraphicsDevice::Initialize(const SwapChainDescriptor* descriptor)
     {
+        ALIMER_ASSERT(descriptor);
         if (_initialized) {
             return true;
         }
 
-        SwapChainDescriptor descriptor = {};
-        descriptor.width = window->GetWidth();
-        descriptor.height = window->GetWidth();
-        descriptor.depthStencil = depthStencil;
-        descriptor.tripleBuffer = true;
-        descriptor.vSync = vSync;
-        descriptor.samples = samples;
-        descriptor.nativeHandle = window->GetNativeHandle();
-        if (!_device->Initialize(&descriptor))
+        _renderWindow = InitializeImpl(descriptor);
+        if (_renderWindow.IsNull())
         {
             ALIMER_LOGERROR("Failed to initialize graphics backend");
             return false;
@@ -167,7 +168,7 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
         }
 
-        if (!_device->BeginFrame())
+        if (!BeginFrameImpl())
         {
             ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
         }
@@ -176,39 +177,59 @@ namespace alimer
         return true;
     }
 
-    uint64_t GraphicsDevice::EndFrame()
+    uint64_t GraphicsDevice::Frame()
     {
         if (!_inBeginFrame)
         {
             ALIMER_LOGCRITICAL("BeginFrame must be called before EndFrame.");
         }
 
-        if (!_device->EndFrame())
+        // Tick backend
+        Tick();
+
+        // Free contexts
+        std::lock_guard<std::mutex> lock(_contextAllocationMutex);
+        for (uint32_t i = 0u; i < 4u; ++i)
         {
-            ALIMER_LOGCRITICAL("Failed to end rendering frame.");
+            if (_contextPool[i].size() > 0)
+            {
+                for (auto& context : _contextPool[i])
+                {
+                    _availableContexts[(uint32_t)context->GetQueueType()].push(context.get());
+                }
+            }
         }
 
         _inBeginFrame = false;
         return ++_frameIndex;
     }
 
-    void GraphicsDevice::WaitIdle()
-    {
-        _device->WaitIdle();
+    void GraphicsDevice::WaitIdle() {
+        /* Do nothing by default */
     }
 
-    void GraphicsDevice::SubmitCommandBuffers(uint32_t count, CommandBuffer** commandBuffers)
-    {
-        ALIMER_ASSERT(count > 0);
-        ALIMER_ASSERT(commandBuffers);
+    CommandContext* GraphicsDevice::AllocateContext(QueueType type) {
+        std::lock_guard<std::mutex> lock(_contextAllocationMutex);
 
-        std::vector<GPUCommandBuffer*> gpuCommandBuffers(count);
+        auto& availableContexts = _availableContexts[(uint32_t)type];
 
-        for (uint32_t i = 0u; i < count; ++i) {
-            gpuCommandBuffers[i] = commandBuffers[i]->GetGPUCommandBuffer();
+        CommandContext* ret = nullptr;
+        if (availableContexts.empty())
+        {
+            ret = CreateCommandContext(type);
+            _contextPool[(uint32_t)type].emplace_back(ret);
+            ALIMER_LOGDEBUG("CommandContext allocated");
         }
+        else
+        {
+            ret = availableContexts.front();
+            availableContexts.pop();
+            ret->Reset();
+        }
+        ALIMER_ASSERT(ret != nullptr);
+        ALIMER_ASSERT(ret->GetQueueType() == type);
 
-        _device->SubmitCommandBuffers(count, gpuCommandBuffers.data());
+        return ret;
     }
 
     void GraphicsDevice::TrackResource(GPUResource* resource)
@@ -221,18 +242,6 @@ namespace alimer
     {
         std::unique_lock<std::mutex> lock(_gpuResourceMutex);
         std::remove(_gpuResources.begin(), _gpuResources.end(), resource);
-    }
-
-    /// Get the backend.
-    GraphicsBackend GraphicsDevice::GetBackend() const
-    {
-        return _backend;
-    }
-
-    /// Get the device features.
-    const GraphicsDeviceFeatures& GraphicsDevice::GetFeatures() const
-    {
-        return _features;
     }
 
     static inline TextureUsage UpdateTextureUsage(TextureUsage usage, bool hasInitData, uint32_t mipLevels)

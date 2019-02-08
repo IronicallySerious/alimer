@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Base/Vector.h"
+#include <vector>
 #include "../Core/Object.h"
 
 namespace alimer
@@ -39,7 +39,7 @@ namespace alimer
         SceneRenderPipeline();
         virtual ~SceneRenderPipeline() = default;
 
-        virtual void Render(const RenderContext &context, Vector<Camera> cameras) = 0;
+        virtual void Render(const RenderContext &context, std::vector<Camera> cameras) = 0;
 
     private:
     };

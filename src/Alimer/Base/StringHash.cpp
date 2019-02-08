@@ -21,6 +21,7 @@
 //
 
 #include "../Base/StringHash.h"
+#include <fmt/printf.h>
 
 namespace alimer
 {
@@ -33,9 +34,7 @@ namespace alimer
 
     std::string StringHash::ToString() const
 	{
-		char tempBuffer[128];
-		sprintf(tempBuffer, "%08X", _value);
-		return std::string(tempBuffer);
+        return fmt::sprintf("%08X", _value);
 	}
 
     uint32_t StringHash::Calculate(void* data, uint32_t length, uint32_t hash)

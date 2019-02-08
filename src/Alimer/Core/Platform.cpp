@@ -20,10 +20,11 @@
 // THE SOFTWARE.
 //
 
+#include <string>
 #include "foundation/StringUtils.h"
 #include "../Core/Platform.h"
-#include "../Base/String.h"
 #include "../Core/Log.h"
+#include <fmt/printf.h>
 
 #if defined(_WIN32)
 #include <foundation/windows.h>
@@ -176,9 +177,10 @@ namespace alimer
 
     const char* GetOSDescription()
     {
-        static String version;
-        if (!version.IsEmpty())
-            return version.CString();
+        static std::string version;
+        if (!version.empty()) {
+            return version.c_str();
+        }
 
 #if ALIMER_PLATFORM_WINDOWS
         RTL_OSVERSIONINFOEXW osvi = { 0 };
@@ -197,29 +199,29 @@ namespace alimer
         {
             if (osvi.szCSDVersion[0] != '\0')
             {
-                version.AppendWithFormat(" %d.%d.%d %s",
+                version += fmt::sprintf(" %d.%d.%d %s",
                     osvi.dwMajorVersion,
                     osvi.dwMinorVersion,
                     osvi.dwBuildNumber,
-                    alimer::String(osvi.szCSDVersion).CString()
+                    ToUtf8(osvi.szCSDVersion)
                 );
             }
             else
             {
-                version.AppendWithFormat(" %d.%d.%d",
+                version += fmt::sprintf(" %d.%d.%d",
                     osvi.dwMajorVersion,
                     osvi.dwMinorVersion,
                     osvi.dwBuildNumber
                 );
             }
-            }
+        }
 
 #elif ALIMER_PLATFORM_UWP
         return "Microsoft Windows";
 #endif
 
-        return version.CString();
-        }
+        return version.c_str();
+    }
 
     void* LoadNativeLibrary(const char* name)
     {
@@ -261,7 +263,7 @@ namespace alimer
 #else
         return ::dlsym(handle, name);
 #endif
-}
+    }
 
     void SetCurrentThreadName(const char* name)
     {
@@ -292,7 +294,7 @@ namespace alimer
         }
 #  endif
 #endif
-        }
+    }
 
     void Sleep(uint32_t milliseconds)
     {

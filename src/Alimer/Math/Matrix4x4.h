@@ -23,8 +23,8 @@
 #pragma once
 
 #include "AlimerConfig.h"
-#include "../Base/String.h"
 #include "../Math/Vector4.h"
+#include <string>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -440,7 +440,7 @@ namespace alimer
         }
 
         /// Return as string.
-        String ToString() const;
+        std::string ToString() const;
 
         Matrix4x4 Transpose() const;
         void Transpose(Matrix4x4& result) const;

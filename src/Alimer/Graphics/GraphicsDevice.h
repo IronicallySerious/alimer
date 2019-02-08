@@ -24,14 +24,17 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
+#include "../Graphics/RenderWindow.h"
+#include "../Graphics/CommandBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Pipeline.h"
+#include <memory>
+#include <vector>
+#include <queue>
 #include <mutex>
 
 namespace alimer
 {
-    class GPUDevice;
-    class CommandBuffer;
     class Window;
     class Shader;
     class Buffer;
@@ -39,8 +42,11 @@ namespace alimer
     class Framebuffer;
 
     /// Low-level graphics module.
-    class ALIMER_API GraphicsDevice final : public Object
+    class ALIMER_API GraphicsDevice : public Object
     {
+        friend class GPUResource;
+        friend class CommandContext;
+
         ALIMER_OBJECT(GraphicsDevice, Object);
 
     public:
@@ -52,22 +58,19 @@ namespace alimer
             bool headless = false);
 
         /// Destructor.
-        ~GraphicsDevice() override;
+        virtual ~GraphicsDevice() override;
 
         /// Initialize device using given window and other settings.
-        bool Initialize(Window* window, bool depthStencil = true, bool vSync = true, SampleCount samples = SampleCount::Count1);
-
-        /// Add a GPUResource to keep track of. 
-        void TrackResource(GPUResource* resource);
-
-        /// Remove a GPUResource.
-        void UntrackResource(GPUResource* resource);
+        bool Initialize(const SwapChainDescriptor* descriptor);
 
         /// Get the backend.
-        GraphicsBackend GetBackend() const;
+        GraphicsBackend GetBackend() const { return _backend; }
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const;
+        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
+
+        /// Get the main rendering window.
+        RenderWindow* GetRenderWindow() const { return _renderWindow; }
 
         /**
         * Get the current backbuffer framebuffer.
@@ -78,13 +81,13 @@ namespace alimer
         bool BeginFrame();
 
         /// Finishes the current frame and advances to next one.
-        uint64_t EndFrame();
+        uint64_t Frame();
 
         /// Wait device to finish all pending operations.
-        void WaitIdle();
+        virtual void WaitIdle();
 
-        /// Submit command buffers
-        void SubmitCommandBuffers(uint32_t count, CommandBuffer** commandBuffers);
+        /// Create new RenderWindow.
+        virtual SharedPtr<RenderWindow> CreateRenderWindow(const SwapChainDescriptor* descriptor) = 0;
 
         /**
         * Create a 1D texture.
@@ -187,30 +190,46 @@ namespace alimer
         */
         Shader* CreateShader(const ShaderDescriptor* descriptor);
 
-        /// Return backend graphics device implementation.
-        GPUDevice* GetGPUDevice() const { return _device; }
-
     private:
+        /// Add a GPUResource to keep track of. 
+        void TrackResource(GPUResource* resource);
+
+        /// Remove a GPUResource.
+        void UntrackResource(GPUResource* resource);
+
         void OnAfterCreated();
 
-    private:
-        /// Constructor.
-        GraphicsDevice(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference, bool validation, bool headless);
+        virtual SharedPtr<RenderWindow> InitializeImpl(const SwapChainDescriptor* descriptor) = 0;
+        virtual void Finalize() {}
+        virtual bool BeginFrameImpl() = 0;
+        virtual void Tick() = 0;
 
-        GraphicsBackend _backend;
-        GPUDevice*      _device = nullptr;
-        bool            _initialized = false;
-        bool            _inBeginFrame = false;
-        uint64_t        _frameIndex = 0;
+        virtual CommandContext* CreateCommandContext(QueueType type) = 0;
+        CommandContext* AllocateContext(QueueType type);
 
     protected:
-        bool _validation;
-        bool _headless;
-        GraphicsDeviceFeatures _features = {};
+        /// Constructor.
+        GraphicsDevice(GraphicsBackend backend, PhysicalDevicePreference devicePreference, bool validation, bool headless);
 
-        std::vector<GPUResource*>       _gpuResources;
-        std::mutex                      _gpuResourceMutex;
-        Sampler*                        _pointSampler = nullptr;
-        Sampler*                        _linearSampler = nullptr;
+        GraphicsBackend             _backend;
+        PhysicalDevicePreference    _devicePreference;
+        bool                        _validation;
+        bool                        _headless;
+        bool                        _initialized = false;
+        bool                        _inBeginFrame = false;
+        uint64_t                    _frameIndex = 0;
+        SharedPtr<RenderWindow>     _renderWindow;
+        
+        GraphicsDeviceFeatures      _features = {};
+
+        std::mutex                  _contextAllocationMutex;
+        std::vector<std::unique_ptr<CommandContext>> _contextPool[4];
+        std::queue<CommandContext*> _availableContexts[4];
+        std::vector<GPUResource*>   _gpuResources;
+        std::mutex                  _gpuResourceMutex;
+        Sampler*                    _pointSampler = nullptr;
+        Sampler*                    _linearSampler = nullptr;
     };
+
+    ALIMER_API extern GraphicsDevice* graphics;
 }

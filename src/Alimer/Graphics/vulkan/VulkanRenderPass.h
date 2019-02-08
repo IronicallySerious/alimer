@@ -29,8 +29,6 @@
 
 namespace alimer
 {
-    class VulkanGraphicsDevice;
-
     class VulkanRenderPass final
     {
     public:

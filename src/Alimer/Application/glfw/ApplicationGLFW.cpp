@@ -66,7 +66,7 @@ namespace alimer
             return;
         }
 
-        while (_engine->GetWindow()->IsOpen())
+        while (_engine->GetGraphicsDevice().GetRenderWindow()->IsOpen())
         {
             if (!_paused)
             {

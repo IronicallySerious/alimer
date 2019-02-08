@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "../Base/String.h"
+#include "../foundation/platform.h"
+#include <string>
 
 #ifdef _WIN32
 typedef unsigned __int64 socket_id;

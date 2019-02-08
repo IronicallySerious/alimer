@@ -22,8 +22,8 @@
 
 #pragma once
 
+#include <string>
 #include <foundation/cpp_macros.h>
-#include "../Base/String.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
 #include "../Graphics/PixelFormat.h"
@@ -52,8 +52,7 @@ namespace alimer
     };
 
     /// Enum describing the Graphics backend.
-    enum class GraphicsBackend : uint32_t
-    {
+    enum class GraphicsBackend : uint32_t {
         /// Default backend for platform.
         Default = 0,
         /// Null backend.
@@ -68,6 +67,12 @@ namespace alimer
         OpenGL,
         /// Count
         Count
+    };
+
+    enum class QueueType : uint32_t {
+        Graphics = 0,
+        Compute,
+        Copy
     };
 
     /// Enum describing the number of samples.
@@ -284,7 +289,7 @@ namespace alimer
 
     struct PipelineResource
     {
-        String name;
+        std::string name;
         ShaderStages stages;
         ResourceParamType resourceType;
         ParamDataType dataType;

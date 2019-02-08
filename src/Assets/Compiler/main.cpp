@@ -77,8 +77,8 @@ int main(int argc, char* argv[])
 
     if (outputPath.empty())
     {
-        String output = Path::Join(options.assetsDirectory, "windows");
-        options.buildDirectory = output.CString();
+        std::string output = Path::Join(options.assetsDirectory, "windows");
+        options.buildDirectory = output;
     }
     else
     {

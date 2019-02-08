@@ -24,7 +24,7 @@
 
 #include "../Math/Matrix4x4.h"
 #include "../Core/Log.h"
-#include <cstdio>
+#include <fmt/printf.h>
 
 #if !defined(ALIMER_SIMD_DISABLED)
 #if defined(__AVX2__)
@@ -192,15 +192,13 @@ namespace alimer
 #endif // TODO
 
 
-    String Matrix4x4::ToString() const
+    std::string Matrix4x4::ToString() const
     {
-        char tempBuffer[256];
-        sprintf(tempBuffer, "%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g",
+        return fmt::sprintf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g",
             m11, m12, m13, m14,
             m21, m22, m23, m24,
             m31, m32, m33, m34,
             m41, m42, m43, m44);
-        return String(tempBuffer);
     }
 
     Matrix4x4 Matrix4x4::Transpose() const

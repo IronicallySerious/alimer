@@ -20,17 +20,18 @@
 // THE SOFTWARE.
 //
 
-#include "../Base/Vector.h"
+#include "Graphics/RenderWindow.h"
+#include "Graphics/GraphicsDevice.h"
+#include "Core/Log.h"
 
 namespace alimer
 {
-    uint8_t* VectorBase::AllocateBuffer(size_t size)
+    RenderWindow::RenderWindow(GraphicsDevice* device)
     {
-        return new uint8_t[size];
     }
 
-    void VectorBase::FreeBuffer(const uint8_t* buffer)
+    RenderWindow::~RenderWindow()
     {
-        delete[] buffer;
+
     }
 }

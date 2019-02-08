@@ -74,11 +74,7 @@ namespace alimer
     {
         PluginManager::Destroy(_pluginManager);
         _gui.Reset();
-        _commandBuffer.Reset();
         _graphicsDevice.Reset();
-
-        // Destroy main window.
-        _window.reset();
 
         RemoveSubsystem(this);
     }
@@ -121,22 +117,6 @@ namespace alimer
         _audio = Audio::Create();
         _audio->Initialize();
 
-        // Create main window
-        _window.reset(new Window());
-        WindowFlags windowFlags = WindowFlags::None;
-        if (_settings.fullscreen) {
-            windowFlags |= WindowFlags::Fullscreen;
-        }
-
-        if (_settings.resizable) {
-            windowFlags |= WindowFlags::Resizable;
-        }
-
-        if (!_window->Define(_settings.title, _settings.size, windowFlags))
-        {
-            return false;
-        }
-
         // Create GraphicsDevice.
         _graphicsDevice = GraphicsDevice::Create(
             _settings.preferredGraphicsBackend,
@@ -149,17 +129,18 @@ namespace alimer
             return false;
         }
 
-        const bool depthStencil = true;
-        const bool vsync = true;
         const SampleCount samples = SampleCount::Count1;
-        if (!_graphicsDevice->Initialize(_window.get(), depthStencil, vsync, samples))
+        SwapChainDescriptor swapchainDescriptor = {};
+        swapchainDescriptor.width = _settings.size.x;
+        swapchainDescriptor.height = _settings.size.y;
+        swapchainDescriptor.depthStencil = true;
+        swapchainDescriptor.vSync = true;
+        swapchainDescriptor.samples = SampleCount::Count1;
+        if (!_graphicsDevice->Initialize(&swapchainDescriptor))
         {
             ALIMER_LOGERROR("Failed to setup GraphicsDevice.");
             return false;
         }
-
-        // Create command buffer for frame rendering.
-        _commandBuffer = new CommandBuffer(_graphicsDevice.Get());
 
         // Create imgui system.
         //_gui = new Gui();
@@ -216,22 +197,21 @@ namespace alimer
         //ALIMER_PROFILE("Render");
 
         // If device is lost, BeginFrame will fail and we skip rendering
-        if (!_graphicsDevice->BeginFrame()) {
+        if (!graphics->BeginFrame()) {
             return;
         }
 
-        _commandBuffer->Begin();
+        CommandContext& context = CommandContext::Begin("Scene Render");
         //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         //context.BeginDefaultRenderPass(clearColor);
         //context.Draw(3, 0);
         //context.EndRenderPass();
-        _commandBuffer->End();
-
-        CommandBuffer* commandBuffer = _commandBuffer.Get();
-        _graphicsDevice->SubmitCommandBuffers(1, &commandBuffer);
+        context.Flush();
 
         // TODO: Scene renderer
         // TODO: UI render.
-        _graphicsDevice->EndFrame();
+
+        // Advance to next frame.
+        graphics->Frame();
     }
 }
