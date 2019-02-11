@@ -30,6 +30,7 @@
 
 namespace alimer
 {
+    class Window;
     class PluginManager;
     class ResourceManager;
     class Input;
@@ -40,12 +41,7 @@ namespace alimer
     struct EngineSettings
     {
         GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Vulkan;
-#if defined(_DEBUG)
-        bool            validation = true;
-#else
-        bool            validation = false;
-#endif
-        bool            headless = false;
+        PhysicalDevicePreference preferredDevice = PhysicalDevicePreference::Discrete;
 
         /// Main window title.
         std::string     title = "Alimer";
@@ -66,9 +62,10 @@ namespace alimer
         Engine();
 
         /// Destructor.
-        ~Engine();
+        ~Engine() override;
 
-        int Initialize(const std::vector<std::string>& args);
+        /// Initializes the engine
+        bool Initialize(const std::vector<std::string>& args);
 
         /// Run one frame.
         void RunFrame();
@@ -85,14 +82,16 @@ namespace alimer
         /// Get the engine settings.
         const EngineSettings& GetSettings() const { return _settings; }
 
-        /// Return whether the engine has been created in headless mode.
-        bool IsHeadless() const { return _settings.headless; }
+        inline bool IsHeadless() const { return _headless; }
 
         /// Get the engine content manager.
         inline PluginManager& GetPluginManager() { return *_pluginManager; }
 
         /// Get the engine resource manager.
         inline ResourceManager& GetResources() { return *_resources.Get(); }
+
+        /// Get the main window.
+        inline Window* GetRenderWindow() const { return _renderWindow.get(); }
 
         /// Get the input system.
         inline Input& GetInput() { return *_input.Get(); }
@@ -101,7 +100,7 @@ namespace alimer
         inline Audio& GetAudio() { return *_audio.Get(); }
 
         /// Get the graphics device.
-        inline GraphicsDevice& GetGraphicsDevice() { return *_graphicsDevice.Get(); }
+        inline GraphicsDevice& GetGraphics() { return *_graphics.Get(); }
 
     private:
         /// Initialized flag.
@@ -110,13 +109,15 @@ namespace alimer
 
         /// Engine settings.
         EngineSettings _settings;
+        bool _headless = false;
 
         std::shared_ptr<spdlog::logger> _logger;
         PluginManager*              _pluginManager;
         SharedPtr<ResourceManager>  _resources;
         SharedPtr<Input>            _input;
         SharedPtr<Audio>            _audio;
-        SharedPtr<GraphicsDevice>   _graphicsDevice;
+        std::unique_ptr<Window>     _renderWindow;
+        SharedPtr<GraphicsDevice>   _graphics;
         SharedPtr<SceneManager>     _sceneManager;
 
         // ImGui

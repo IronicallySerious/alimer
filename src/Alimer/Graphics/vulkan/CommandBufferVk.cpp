@@ -32,41 +32,48 @@
 
 namespace alimer
 {
-    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue)
-        : CommandContext(device, type)
-        , _logicalDevice(device->GetVkDevice())
+    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue, bool default)
+        : _device(device)
         , _commandQueue(commandQueue)
+        , _type(type)
+        , _default(default)
+        , _supportsDebugUtils(device->GetFeaturesVk().supportsDebugUtils)
+        , _supportsDebugMarker(device->GetFeaturesVk().supportsDebugMarker)
     {
         VkCommandBufferAllocateInfo commandBufferAllocateInfo;
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         commandBufferAllocateInfo.pNext = nullptr;
-        commandBufferAllocateInfo.commandPool = commandQueue->GetVkCommandPool();
+        commandBufferAllocateInfo.commandPool = commandQueue->GetCommandPool();
         commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         commandBufferAllocateInfo.commandBufferCount = 1;
         vkThrowIfFailed(vkAllocateCommandBuffers(
-            _logicalDevice,
+            _device->GetVkDevice(),
             &commandBufferAllocateInfo,
             &_commandBuffer)
         );
 
-        Begin();
+        _semaphore = _device->RequestSemaphore();
+
+        //Begin();
     }
 
     CommandBufferVk::~CommandBufferVk()
     {
         if (_commandBuffer != VK_NULL_HANDLE)
         {
-            vkFreeCommandBuffers(_logicalDevice, _commandQueue->GetVkCommandPool(), 1, &_commandBuffer);
+            vkFreeCommandBuffers(_device->GetVkDevice(), _commandQueue->GetCommandPool(), 1, &_commandBuffer);
             _commandBuffer = VK_NULL_HANDLE;
         }
+
+        _device->RecycleSemaphore(_semaphore);
     }
 
-    void CommandBufferVk::Begin()
+    void CommandBufferVk::Begin(VkCommandBufferUsageFlags flags)
     {
         VkCommandBufferBeginInfo beginInfo;
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        beginInfo.flags = flags;
         beginInfo.pInheritanceInfo = nullptr;
         vkThrowIfFailed(
             vkBeginCommandBuffer(_commandBuffer, &beginInfo)
@@ -82,77 +89,114 @@ namespace alimer
         );
     }
 
+    void CommandBufferVk::Flush(bool waitForCompletion) {
+        if (_default) {
+            return;
+        }
+
+        End();
+
+        if (!waitForCompletion)
+        {
+            _device->SubmitCommandBuffer(_type, _commandBuffer, _semaphore);
+        }
+        else
+        {
+            VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &_commandBuffer;
+
+            // Create fence to ensure that the command buffer has finished executing
+            VkFenceCreateInfo fenceCreateInfo = {};
+            fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            fenceCreateInfo.flags = 0;
+            VkFence fence;
+            vkThrowIfFailed(vkCreateFence(_device->GetVkDevice(), &fenceCreateInfo, nullptr, &fence));
+
+            // Submit to the queue
+            vkThrowIfFailed(vkQueueSubmit(_commandQueue->GetQueue(), 1, &submitInfo, fence));
+
+            // Wait for the fence to signal that command buffer has finished executing.
+            vkThrowIfFailed(vkWaitForFences(_device->GetVkDevice(), 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+            vkDestroyFence(_device->GetVkDevice(), fence, nullptr);
+
+            // Reset command buffer for recording.
+            vkResetCommandBuffer(_commandBuffer, 0);
+        }
+    }
+
     void CommandBufferVk::PushDebugGroup(const std::string& name)
     {
-        /*if (_device->GetFeaturesVk().supportsDebugUtils)
-                {
-                    VkDebugUtilsLabelEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-                    //if (color)
-                    //{
-                    //    for (unsigned i = 0; i < 4; i++)
-                    //        info.color[i] = color[i];
-                    //}
-                    //else
-                    {
-                        for (unsigned i = 0; i < 4; i++)
-                            info.color[i] = 1.0f;
-                    }
+        if (_supportsDebugUtils)
+        {
+            VkDebugUtilsLabelEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+            //if (color)
+            //{
+            //    for (unsigned i = 0; i < 4; i++)
+            //        info.color[i] = color[i];
+            //}
+            //else
+            {
+                for (unsigned i = 0; i < 4; i++)
+                    info.color[i] = 1.0f;
+            }
 
-                    info.pLabelName = name;
-                    if (vkCmdBeginDebugUtilsLabelEXT)
-                        vkCmdBeginDebugUtilsLabelEXT(_handle, &info);
+            info.pLabelName = name.c_str();
+            if (vkCmdBeginDebugUtilsLabelEXT) {
+                vkCmdBeginDebugUtilsLabelEXT(_commandBuffer, &info);
+            }
+        }
+        else if (_supportsDebugMarker)
+        {
+            VkDebugMarkerMarkerInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT };
+            //if (color)
+            //{
+            //    for (unsigned i = 0; i < 4; i++)
+            //        info.color[i] = color[i];
+            //}
+            //else
+            {
+                for (uint32_t i = 0; i < 4u; i++)
+                {
+                    info.color[i] = 1.0f;
                 }
-                else if (_device->GetFeaturesVk().supportsDebugMarker)
-                {
-                    VkDebugMarkerMarkerInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT };
-                    //if (color)
-                    //{
-                    //    for (unsigned i = 0; i < 4; i++)
-                    //        info.color[i] = color[i];
-                    //}
-                    //else
-                    {
-                        for (uint32_t i = 0; i < 4u; i++)
-                        {
-                            info.color[i] = 1.0f;
-                        }
-                    }
+            }
 
-                    info.pMarkerName = name;
-                    vkCmdDebugMarkerBeginEXT(_handle, &info);
-                }*/
+            info.pMarkerName = name.c_str();
+            vkCmdDebugMarkerBeginEXT(_commandBuffer, &info);
+        }
     }
 
     void CommandBufferVk::PopDebugGroup()
     {
-        /*if (_device->GetFeaturesVk().supportsDebugUtils)
+        if (_supportsDebugUtils)
         {
             if (vkCmdEndDebugUtilsLabelEXT != nullptr)
             {
-                vkCmdEndDebugUtilsLabelEXT(_handle);
+                vkCmdEndDebugUtilsLabelEXT(_commandBuffer);
             }
         }
-        else if (_device->GetFeaturesVk().supportsDebugMarker)
+        else if (_supportsDebugMarker)
         {
-            vkCmdDebugMarkerEndEXT(_handle);
-        }*/
+            vkCmdDebugMarkerEndEXT(_commandBuffer);
+        }
     }
 
     void CommandBufferVk::InsertDebugMarker(const std::string& name)
     {
-        /*if (_device->GetFeaturesVk().supportsDebugUtils)
+        if (_device->GetFeaturesVk().supportsDebugUtils)
         {
             if (vkCmdInsertDebugUtilsLabelEXT != nullptr)
             {
                 VkDebugUtilsLabelEXT markerInfo = {};
                 markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
                 markerInfo.pNext = nullptr;
-                markerInfo.pLabelName = name;
+                markerInfo.pLabelName = name.c_str();
                 for (uint32_t i = 0; i < 4u; i++)
                 {
                     markerInfo.color[i] = 1.0f;
                 }
-                vkCmdInsertDebugUtilsLabelEXT(_handle, &markerInfo);
+                vkCmdInsertDebugUtilsLabelEXT(_commandBuffer, &markerInfo);
             }
         }
         else if (_device->GetFeaturesVk().supportsDebugMarker)
@@ -160,9 +204,9 @@ namespace alimer
             VkDebugMarkerMarkerInfoEXT markerInfo = {};
             markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
             //memcpy(markerInfo.color, &color[0], sizeof(float) * 4);
-            markerInfo.pMarkerName = name;
-            vkCmdDebugMarkerInsertEXT(_handle, &markerInfo);
-        }*/
+            markerInfo.pMarkerName = name.c_str();
+            vkCmdDebugMarkerInsertEXT(_commandBuffer, &markerInfo);
+        }
     }
 
     void CommandBufferVk::BeginContext()
@@ -177,27 +221,6 @@ namespace alimer
         //memset(bindings.cookies, 0, sizeof(bindings.cookies));
         memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
         //CommandContext::BeginContext();
-    }
-
-    void CommandBufferVk::Reset()
-    {
-    }
-
-    uint64_t CommandBufferVk::FlushImpl(bool waitForCompletion)
-    {
-        End();
-
-        if (!waitForCompletion)
-        {
-            StaticCast<GPUDeviceVk>(_device)->SubmitCommandBuffer(_type, _commandBuffer);
-        }
-        else
-        {
-            //static_cast<VulkanGraphicsDevice*>(_device)->SubmitCommandBuffer(_handle, _vkFence);
-            //Begin();
-        }
-
-        return 0;
     }
 
     /*void CommandBufferVk::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
@@ -708,7 +731,7 @@ namespace alimer
             1, &allocated.first,
             numDynamicOffsets,
             dynamicOffsets);*/
-    }
+}
 #endif // TODO
 }
 

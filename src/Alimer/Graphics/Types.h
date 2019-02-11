@@ -367,6 +367,8 @@ namespace alimer
         SampleCount samples = SampleCount::Count1;
         /// Native window handle (HWND, ANativeWindow, NSWindow).
         uint64_t    nativeHandle;
+        /// Native window display (HMODULE, X11Display, WaylandDisplay).
+        uint64_t    nativeDisplay;
     };
 
     struct TextureDescriptor

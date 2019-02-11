@@ -20,11 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "vgpu.h"
+#define VGPU_IMPLEMENTATION
+#include "vgpu_internal.h"
 
-#if defined(TODO_D3D12) && defined(ALIMER_D3D12)
-#define AGPU_IMPLEMENTATION
-#include "agpu_backend.h"
+#if VGPU_D3D12
+
+#if TODO_D3D12
 #include <wrl/client.h>
 #include <wrl/event.h>
 #include "../Base/HashMap.h"
@@ -586,7 +587,7 @@ namespace d3d12
         Vector<uint8_t> fileData(static_cast<uint32_t>(fileSize));
         dllFile.Read(fileData.Data(), uint32_t(fileSize));
         return GenerateHash(fileData.Data(), int32_t(fileSize));
-    }
+}
 
     static Hash CompilerHash = MakeCompilerHash();
 
@@ -1340,15 +1341,15 @@ namespace d3d12
 
         uint32_t update_vbo_mask = _dirtyVbos & active_vbos;
         ForEachBitRange(update_vbo_mask, [&](uint32_t binding, uint32_t count)
-        {
-#ifdef ALIMER_DEV
-            for (uint32_t i = binding; i < binding + count; i++)
             {
-                ALIMER_ASSERT(_vbo.buffers[i] != nullptr);
-            }
+#ifdef ALIMER_DEV
+                for (uint32_t i = binding; i < binding + count; i++)
+                {
+                    ALIMER_ASSERT(_vbo.buffers[i] != nullptr);
+    }
 #endif
 
-            _commandList->IASetVertexBuffers(binding, count, _d3dVbViews);
+                _commandList->IASetVertexBuffers(binding, count, _d3dVbViews);
         });
 
         _dirtyVbos &= ~update_vbo_mask;
@@ -1433,7 +1434,7 @@ namespace d3d12
             && options.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
         {
             _raytracingSupported = AGPU_TRUE;
-        }
+    }
 #endif
 
         // Create the command queue.
@@ -2252,10 +2253,10 @@ namespace d3d12
 
         // TODO: Cache.
         UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
-            flags |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
-            flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
+        flags |= D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
+        flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
 #ifdef _DEBUG
-            flags |= D3DCOMPILE_DEBUG;
+        flags |= D3DCOMPILE_DEBUG;
 #endif
 
         if (!entryPoint
@@ -2844,15 +2845,90 @@ namespace d3d12
         return renderD3D12;
     }
 }
+#endif // TODO_D3D12
 
-AgpuBool32 agpuIsD3D12Supported()
+struct VgpuRendererD3D12 : public VgpuRendererI
 {
-    return d3d12::isSupported();
+    VgpuRendererD3D12()  {}
+    ~VgpuRendererD3D12() {}
+
+    VgpuResult initialize(const char* applicationName, const VgpuDescriptor* descriptor) override;
+    void shutdown() override;
+    VgpuBackend getBackend() const { return VGPU_BACKEND_D3D12; }
+    VgpuResult beginFrame() override;
+    VgpuResult endFrame() override;
+    VgpuResult waitIdle() override;
+
+    /* Sampler */
+    VgpuSampler createSampler(const VgpuSamplerDescriptor* descriptor) override;
+    void destroySampler(VgpuSampler sampler) override;
+    //VkSampler getVkSampler(VgpuSampler sampler);
+
+    /* Command Buffer */
+    VgpuCommandBuffer createCommandBuffer(const VgpuCommandBufferDescriptor* descriptor) override;
+    void cmdBeginDefaultRenderPass(VgpuCommandBuffer commandBuffer, VgpuColor clearColor, float clearDepth, uint8_t clearStencil) override;
+    void cmdBeginRenderPass(VgpuCommandBuffer commandBuffer, VgpuFramebuffer framebuffer) override;
+    void cmdEndRenderPass(VgpuCommandBuffer commandBuffer) override;
+};
+
+VgpuResult VgpuRendererD3D12::initialize(const char* applicationName, const VgpuDescriptor* descriptor) {
+    return VGPU_ERROR_GENERIC;
 }
 
-AGpuRendererI* agpuCreateD3D12Backend(bool validation)
-{
-    return d3d12::createBackend(validation);
+void VgpuRendererD3D12::shutdown() {
+
 }
 
-#endif /* ALIMER_D3D12 */
+VgpuResult VgpuRendererD3D12::beginFrame() {
+    return VGPU_ERROR_GENERIC;
+}
+
+VgpuResult VgpuRendererD3D12::endFrame() {
+    return VGPU_ERROR_GENERIC;
+}
+
+VgpuResult VgpuRendererD3D12::waitIdle() {
+    return VGPU_ERROR_GENERIC;
+}
+
+
+/* Sampler */
+VgpuSampler VgpuRendererD3D12::createSampler(const VgpuSamplerDescriptor* descriptor) {
+    return {};
+}
+
+void VgpuRendererD3D12::destroySampler(VgpuSampler sampler) {
+
+}
+
+//VkSampler getVkSampler(VgpuSampler sampler);
+
+/* Command Buffer */
+VgpuCommandBuffer VgpuRendererD3D12::createCommandBuffer(const VgpuCommandBufferDescriptor* descriptor) {
+    return nullptr;
+}
+
+void VgpuRendererD3D12::cmdBeginDefaultRenderPass(VgpuCommandBuffer commandBuffer, VgpuColor clearColor, float clearDepth, uint8_t clearStencil) {
+
+}
+
+void VgpuRendererD3D12::cmdBeginRenderPass(VgpuCommandBuffer commandBuffer, VgpuFramebuffer framebuffer) {
+
+}
+
+void VgpuRendererD3D12::cmdEndRenderPass(VgpuCommandBuffer commandBuffer) {
+
+}
+
+
+VgpuBool32 vgpuIsD3D12Supported(VgpuBool32 headless)
+{
+    return false; // d3d12::isSupported();
+}
+
+VgpuRendererI* vgpuCreateD3D12Backend()
+{
+    return new VgpuRendererD3D12();
+}
+
+#endif // VGPU_D3D12

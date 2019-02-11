@@ -31,4 +31,16 @@ namespace alimer
         , _isCompute(true)
     {
     }
+
+    Pipeline::Pipeline()
+        : GPUResource(graphics, Type::Pipeline)
+        , _isCompute(true)
+    {
+        memset(&_descriptor, 0, sizeof(_descriptor));
+    }
+
+    Pipeline::~Pipeline()
+    {
+
+    }
 }

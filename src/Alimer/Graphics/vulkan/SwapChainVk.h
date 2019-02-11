@@ -23,7 +23,6 @@
 #pragma once
 
 #include "BackendVk.h"
-#include "../RenderWindow.h"
 #include "../GraphicsDevice.h"
 #include <vector>
 
@@ -32,7 +31,7 @@ namespace alimer
     class TextureVk;
 
 	/// Vulkan SwapChain implementation.
-	class SwapChainVk final : public RenderWindow
+	class SwapChainVk final 
 	{
 	public:
         SwapChainVk(GPUDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);

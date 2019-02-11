@@ -286,7 +286,7 @@ namespace alimer
     }
 
     GPUDeviceVk::GPUDeviceVk(PhysicalDevicePreference devicePreference, bool validation, bool headless)
-        : GraphicsDevice(GraphicsBackend::Vulkan, devicePreference, validation, headless)
+        : GraphicsImpl(validation, headless)
     {
         VkApplicationInfo appInfo;
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -513,9 +513,11 @@ namespace alimer
         _features.SetMinUniformBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment));
     }
 
-    void GPUDeviceVk::Finalize()
+    GPUDeviceVk::~GPUDeviceVk()
     {
         vkDeviceWaitIdle(_device);
+
+        _swapchain.reset();
 
         _graphicsCommandQueue.reset();
         _computeCommandQueue.reset();
@@ -540,6 +542,7 @@ namespace alimer
             _memoryAllocator = VK_NULL_HANDLE;
         }
 
+        
         if (_debugCallback != VK_NULL_HANDLE)
         {
             vkDestroyDebugReportCallbackEXT(_instance, _debugCallback, nullptr);
@@ -562,7 +565,7 @@ namespace alimer
         );
     }
 
-    SharedPtr<RenderWindow> GPUDeviceVk::InitializeImpl(const SwapChainDescriptor* descriptor)
+    bool GPUDeviceVk::Initialize(const SwapChainDescriptor* descriptor)
     {
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         if (descriptor->nativeHandle != 0)
@@ -570,11 +573,8 @@ namespace alimer
             surface = CreateSurface(descriptor->nativeHandle);
         }
 
-        /*
-        * Create device, code adapted from Granite
-        * https://github.com/Themaister/Granite
-        */
-
+        /// Create surface and logical device,
+        /// some code adapted from https://github.com/Themaister/Granite
         if (_physicalDeviceProperties.apiVersion >= VK_API_VERSION_1_1)
         {
             _featuresVk.supportsVulkan11Device = _featuresVk.supportsVulkan11Instance;
@@ -918,14 +918,13 @@ namespace alimer
         _copyCommandQueue = std::make_unique<CommandQueueVk>(this, _transferQueue, _transferQueueFamily);
 
         // Create main swap chain.
-        SharedPtr<SwapChainVk> renderWindow;
         if (!_headless)
         {
-            renderWindow = new SwapChainVk(this, surface, descriptor);
+            _swapchain.reset(new SwapChainVk(this, surface, descriptor));
         }
 
         _frameIndex = 0;
-        _maxInflightFrames = _headless ? 3u : renderWindow->GetImageCount();
+        _maxInflightFrames = _headless ? 3u : _swapchain->GetImageCount();
         _frameData.clear();
         for (uint32_t i = 0u; i < _maxInflightFrames; ++i)
         {
@@ -933,12 +932,10 @@ namespace alimer
             _frameData.emplace_back(std::move(frame));
         }
 
-        return renderWindow;
-    }
+        // Create default render context
+        _renderContext = new CommandBufferVk(this, QueueType::Graphics, _graphicsCommandQueue.get(), true);
 
-    SharedPtr<RenderWindow> GPUDeviceVk::CreateRenderWindow(const SwapChainDescriptor* descriptor)
-    {
-        return nullptr;
+        return true;
     }
 
     VkSurfaceKHR GPUDeviceVk::CreateSurface(uint64_t nativeHandle)
@@ -995,17 +992,23 @@ namespace alimer
         return surface;
     }
 
-    bool GPUDeviceVk::BeginFrameImpl()
+    bool GPUDeviceVk::BeginFrame()
     {
-        //if (_mainSwapChain != nullptr) {
-        //    _mainSwapChain->GetNextTexture();
-        //}
+        if (!_headless) {
+            _swapchain->GetNextTexture();
+        }
+
+        _renderContext->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
         return true;
     }
 
-    void GPUDeviceVk::Tick()
+    void GPUDeviceVk::EndFrame()
     {
+        _renderContext->End();
+        frame().submittedCmdBuffers.push_back(_renderContext->GetVkCommandBuffer());
+        frame().waitSemaphores.push_back(_renderContext->GetSemaphore());
+
         VkSubmitInfo submitInfo;
         memset(&submitInfo, 0, sizeof(submitInfo));
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1030,9 +1033,9 @@ namespace alimer
         );
 
         // Present swap chain.
-        if (!_renderWindow.IsNull()) {
-            VkSwapchainKHR swapchain = StaticCast<SwapChainVk>(_renderWindow)->GetVkHandle();
-            uint32_t imageIndex = StaticCast<SwapChainVk>(_renderWindow)->GetImageIndex();
+        if (!_headless) {
+            VkSwapchainKHR swapchain = _swapchain->GetVkHandle();
+            uint32_t imageIndex = _swapchain->GetImageIndex();
             VkResult presentResult = VK_SUCCESS;
 
             VkPresentInfoKHR presentInfo = {};
@@ -1063,9 +1066,9 @@ namespace alimer
         frame().ProcessDeferredDelete();
 
         // Recycle semaphores
-        for (uint32_t i = 0u; i < submittedCmdBuffersCount; ++i) {
-            RecycleSemaphore(frame().waitSemaphores[i]);
-        }
+        //for (uint32_t i = 0u; i < submittedCmdBuffersCount; ++i) {
+        //    RecycleSemaphore(frame().waitSemaphores[i]);
+        //}
 
         // Clear queue data.
         graphics.waitSemaphores.clear();
@@ -1079,7 +1082,11 @@ namespace alimer
         _frameIndex = (_frameIndex + 1u) % _maxInflightFrames;
     }
 
-    CommandContext* GPUDeviceVk::CreateCommandContext(QueueType type)
+    CommandContextImpl* GPUDeviceVk::GetRenderContext() const {
+        return _renderContext;
+    }
+
+    CommandContextImpl* GPUDeviceVk::CreateCommandContext(QueueType type)
     {
         CommandQueueVk* queue = nullptr;
         switch (type)
@@ -1096,13 +1103,26 @@ namespace alimer
             break;
         }
 
-        return new CommandBufferVk(this, type, queue);
+        return new CommandBufferVk(this, type, queue, false);
     }
 
-    void GPUDeviceVk::SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer)
+    void GPUDeviceVk::SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer, VkSemaphore semaphore)
     {
         frame().submittedCmdBuffers.push_back(commandBuffer);
-        frame().waitSemaphores.push_back(RequestSemaphore());
+        frame().waitSemaphores.push_back(semaphore);
+    }
+
+    CommandQueueVk* GPUDeviceVk::GetCommandQueue(QueueType type) const {
+        switch (type)
+        {
+        case QueueType::Compute:
+            return _computeCommandQueue.get();
+        case QueueType::Copy:
+            return _copyCommandQueue.get();
+        default:
+        case QueueType::Graphics:
+            return _graphicsCommandQueue.get();
+        }
     }
 
     /*GPUTexture* GPUDeviceVk::CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
@@ -1123,7 +1143,7 @@ namespace alimer
     VkCommandBuffer GPUDeviceVk::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
     {
         VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-        info.commandPool = _graphicsCommandQueue->GetVkCommandPool();
+        info.commandPool = _graphicsCommandQueue->GetCommandPool();
         info.level = level;
         info.commandBufferCount = 1;
 
@@ -1175,7 +1195,7 @@ namespace alimer
 
         if (free)
         {
-            vkFreeCommandBuffers(_device, _graphicsCommandQueue->GetVkCommandPool(), 1, &commandBuffer);
+            vkFreeCommandBuffers(_device, _graphicsCommandQueue->GetCommandPool(), 1, &commandBuffer);
         }
     }
 

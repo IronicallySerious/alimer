@@ -38,9 +38,8 @@ namespace alimer
 
         void ExecuteCommandBuffer(CommandBufferVk* buffer, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore, VkFence fence);
 
-        VkCommandPool GetVkCommandPool() const {
-            return _commandPool;
-        }
+        VkQueue         GetQueue() const { return _queue; }
+        VkCommandPool   GetCommandPool() const { return _commandPool; }
 
 	private:
         GPUDeviceVk* _device;

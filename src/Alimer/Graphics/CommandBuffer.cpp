@@ -28,13 +28,20 @@
 
 namespace alimer
 {
-    CommandContext::CommandContext(GraphicsDevice* device, QueueType type)
+    CommandContext::CommandContext(GraphicsDevice* device, QueueType type, CommandContextImpl* impl)
         : _device(device)
         , _type(type)
+        , _impl(impl)
     {
+        ALIMER_ASSERT(impl);
     }
 
-    CommandContext& CommandContext::Begin(const std::string& id)
+    CommandContext::~CommandContext()
+    {
+        SafeDelete(_impl);
+    }
+
+    /*CommandContext& CommandContext::Begin(const std::string& id)
     {
         CommandContext* newContext = graphics->AllocateContext(QueueType::Graphics);
         newContext->SetId(id);
@@ -43,11 +50,23 @@ namespace alimer
         }
 
         return *newContext;
+    }*/
+
+    void CommandContext::Flush(bool waitForCompletion)
+    {
+        _impl->Flush(waitForCompletion);
     }
 
-    uint64_t CommandContext::Flush(bool waitForCompletion)
-    {
-        return FlushImpl(waitForCompletion);
+    void CommandContext::PushDebugGroup(const std::string& name) {
+        _impl->PushDebugGroup(name);
+    }
+
+    void CommandContext::PopDebugGroup() {
+        _impl->PopDebugGroup();
+    }
+
+    void CommandContext::InsertDebugMarker(const std::string& name) {
+        _impl->InsertDebugMarker(name);
     }
 
     void CommandContext::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)

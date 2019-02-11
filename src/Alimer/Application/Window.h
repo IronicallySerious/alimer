@@ -55,13 +55,10 @@ namespace alimer
 
     public:
         /// Constructor.
-        Window();
+        Window(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Default);
 
         /// Destructor
         ~Window() override;
-
-        /// Defines window.
-        bool Define(const std::string& title, const IntVector2& size, WindowFlags flags = WindowFlags::Default);
 
         /// Show the window.
         void Show();

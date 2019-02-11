@@ -32,7 +32,7 @@ namespace alimer
     class CommandBufferVk;
 
     /// Vulkan gpu backend.
-    class GPUDeviceVk final : public GraphicsDevice
+    class GPUDeviceVk final : public GraphicsImpl
     {
     public:
         /// Is backend supported?
@@ -42,18 +42,18 @@ namespace alimer
         GPUDeviceVk(PhysicalDevicePreference devicePreference, bool validation, bool headless);
 
         /// Destructor.
-        void Finalize() override;
+        ~GPUDeviceVk() override;
 
         void WaitIdle() override;
 
-        SharedPtr<RenderWindow> InitializeImpl(const SwapChainDescriptor* descriptor) override;
-        SharedPtr<RenderWindow> CreateRenderWindow(const SwapChainDescriptor* descriptor) override;
-        bool BeginFrameImpl() override;
-        void Tick() override;
+        bool Initialize(const SwapChainDescriptor* descriptor) override;
+        bool BeginFrame() override;
+        void EndFrame() override;
 
-        CommandContext* CreateCommandContext(QueueType type) override;
-        void SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer);
-
+        CommandContextImpl* GetRenderContext() const override;
+        CommandContextImpl* CreateCommandContext(QueueType type) override;
+        void SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer, VkSemaphore semaphore);
+        CommandQueueVk* GetCommandQueue(QueueType type) const;
         //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
         //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
         //GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) override;
@@ -76,6 +76,7 @@ namespace alimer
         uint32_t GetGraphicsQueueFamily() const { return _graphicsQueueFamily; }
         uint32_t GetComputeQueueFamily() const { return _computeQueueFamily; }
         uint32_t GetTransferQueueFamily() const { return _transferQueueFamily; }
+        const DeviceFeaturesVk& GetFeaturesVk() const { return _featuresVk; }
 
     private:
         VkSurfaceKHR CreateSurface(uint64_t nativeHandle);
@@ -112,7 +113,8 @@ namespace alimer
         std::unique_ptr<CommandQueueVk>         _graphicsCommandQueue;
         std::unique_ptr<CommandQueueVk>         _computeCommandQueue;
         std::unique_ptr<CommandQueueVk>         _copyCommandQueue;
-
+        std::unique_ptr<SwapChainVk>            _swapchain;
+        CommandBufferVk*                        _renderContext;
         DeviceFeaturesVk                        _featuresVk = {};
         std::vector<VkSemaphore>                _semaphores;
         uint32_t                                _frameIndex = 0;

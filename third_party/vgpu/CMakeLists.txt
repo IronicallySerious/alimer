@@ -23,26 +23,27 @@
 cmake_minimum_required(VERSION 3.1)
 project (vgpu)
 
-set(VGPU_HEADER_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu.h)
-set(VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu.cpp)
+set(VGPU_HEADER_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/vgpu/vgpu.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vgpu_internal.h
+    )
 
-if (ALIMER_D3D12)
-    list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu_d3d12.cpp)
-elseif (ALIMER_D3D11)
-    list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu_d3d11.cpp)
-elseif (ALIMER_VULKAN)
-    list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/vgpu_vk.cpp)
-    # volk
-    list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/libs/volk/volk.c)
-endif ()
+set(VGPU_SOURCE_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/vgpu.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vgpu_vk.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vgpu_d3d12.cpp
+    )
 
 add_library (vgpu STATIC ${VGPU_HEADER_FILES} ${VGPU_SOURCE_FILES})
-target_include_directories(vgpu PRIVATE ${CMAKE_CURRENT_LIST_DIR}/libs)
+target_include_directories(vgpu PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}>"
+)
 
-if (ALIMER_D3D12)
-elseif (ALIMER_D3D11)
-elseif (ALIMER_VULKAN)
+if (ALIMER_VULKAN)
     if(NOT MSVC)
         target_link_libraries(vgpu PRIVATE dl)
     endif ()
+
+    target_link_libraries(vgpu PRIVATE volk vk_mem_alloc)
 endif ()

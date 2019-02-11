@@ -34,27 +34,29 @@
 
 namespace alimer
 {
+    class CommandContextImpl;
+
     /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext : public RefCounted
+    class ALIMER_API CommandContext final : public RefCounted
     {
         friend class GraphicsDevice;
 
-    protected:
-        CommandContext(GraphicsDevice* device, QueueType type);
+    private:
+        CommandContext(GraphicsDevice* device, QueueType type, CommandContextImpl* impl);
 
     public:
         /// Destructor.
-        virtual ~CommandContext() = default;
+        ~CommandContext() override;
 
         /// Request new command context for recording.
-        static CommandContext& Begin(const std::string& id = "");
+        //static CommandContext& Begin(const std::string& id = "");
 
         /// Flush existing commands and optionally wait
-        uint64_t Flush(bool waitForCompletion = false);
+        void Flush(bool waitForCompletion = false);
 
-        virtual void PushDebugGroup(const std::string& name) = 0;
-        virtual void PopDebugGroup() = 0;
-        virtual void InsertDebugMarker(const std::string& name) = 0;
+        virtual void PushDebugGroup(const std::string& name);
+        virtual void PopDebugGroup();
+        virtual void InsertDebugMarker(const std::string& name);
 
         /// Begin rendering to default backbuffer.
         void BeginDefaultRenderPass(const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
@@ -101,8 +103,7 @@ namespace alimer
 
     private:
         // Backend methods
-        virtual void Reset() = 0;
-        virtual uint64_t FlushImpl(bool waitForCompletion) = 0;
+        virtual void Reset() {}
         //virtual void PushDebugGroupImpl(const String& name) = 0;
         //virtual void PopDebugGroupImpl() = 0;
         //virtual void InsertDebugMarkerImpl(const String& name) = 0;
@@ -116,12 +117,12 @@ namespace alimer
     protected:
         /// GPUDevice.
         WeakPtr<GraphicsDevice> _device;
-
+        /// Implementation
+        CommandContextImpl* _impl = nullptr;
         /// ID
-        std::string             _id;
-
+        std::string  _id;
         /// Queue type
-        QueueType               _type;
+        QueueType _type;
 
         bool                    _insideRenderPass = false;
         Shader*                 _currentShader = nullptr;

@@ -74,15 +74,17 @@ namespace alimer
     {
         PluginManager::Destroy(_pluginManager);
         _gui.Reset();
-        _graphicsDevice.Reset();
+        _graphics.Reset();
+        _renderWindow = nullptr;
 
         RemoveSubsystem(this);
     }
 
-    int Engine::Initialize(const vector<string>& args)
+    bool Engine::Initialize(const vector<string>& args)
     {
-        if (_initialized)
-            return EXIT_SUCCESS;
+        if (_initialized) {
+            return true;
+        }
 
         ALIMER_LOGINFO("Initializing engine {}", ALIMER_VERSION_STR);
 
@@ -112,38 +114,49 @@ namespace alimer
 #endif // TODO_CLI
 
 
+
         // Register the rest of the subsystems
         _input = new Input();
         _audio = Audio::Create();
         _audio->Initialize();
 
-        // Create GraphicsDevice.
-        _graphicsDevice = GraphicsDevice::Create(
-            _settings.preferredGraphicsBackend,
-            PhysicalDevicePreference::Discrete,
-            _settings.validation,
-            _settings.headless);
-        if (_graphicsDevice == nullptr)
-        {
-            ALIMER_LOGERROR("Failed to create GraphicsDevice instance.");
-            return false;
-        }
+        // Create main window and device if not headless
+        if (!_headless) {
+            _graphics = GraphicsDevice::Create(_settings.preferredGraphicsBackend, _settings.preferredDevice);
+            if (_graphics.IsNull()) {
+                ALIMER_LOGERROR("Failed to create GraphicsDevice instance. Running in headless moder");
+                _headless = true;
+            }
+            else {
+                WindowFlags windowFlags = WindowFlags::Visible;
+                if (_settings.resizable) {
+                    windowFlags |= WindowFlags::Resizable;
+                }
+                if (_settings.fullscreen) {
+                    windowFlags |= WindowFlags::Fullscreen;
+                }
+                _renderWindow.reset(new Window(_settings.title, _settings.size.x, _settings.size.y, windowFlags));
 
-        const SampleCount samples = SampleCount::Count1;
-        SwapChainDescriptor swapchainDescriptor = {};
-        swapchainDescriptor.width = _settings.size.x;
-        swapchainDescriptor.height = _settings.size.y;
-        swapchainDescriptor.depthStencil = true;
-        swapchainDescriptor.vSync = true;
-        swapchainDescriptor.samples = SampleCount::Count1;
-        if (!_graphicsDevice->Initialize(&swapchainDescriptor))
-        {
-            ALIMER_LOGERROR("Failed to setup GraphicsDevice.");
-            return false;
+                // Create GraphicsDevice.
+                SwapChainDescriptor swapchainDescriptor = {};
+                swapchainDescriptor.width = _renderWindow->GetWidth();
+                swapchainDescriptor.height = _renderWindow->GetHeight();
+                swapchainDescriptor.depthStencil = true;
+                swapchainDescriptor.tripleBuffer = true;
+                swapchainDescriptor.vSync = true;
+                swapchainDescriptor.samples = SampleCount::Count1;
+                swapchainDescriptor.nativeHandle = _renderWindow->GetNativeHandle();
+                swapchainDescriptor.nativeDisplay = _renderWindow->GetNativeDisplay();
+                if (!_graphics->Initialize(&swapchainDescriptor))
+                {
+                    ALIMER_LOGERROR("Failed to initialize Graphics system.");
+                    return false;
+                }
+            }
         }
 
         // Create imgui system.
-        //_gui = new Gui();
+        _gui = new Gui();
 
         ALIMER_LOGINFO("Engine initialized with success");
         _initialized = true;
@@ -157,7 +170,7 @@ namespace alimer
             ALIMER_ASSERT(_initialized);
 
             // If not headless, and the graphics subsystem no longer has a window open, assume we should exit
-            if (!IsHeadless() && _graphicsDevice.IsNull())
+            if (!_headless && _graphics.IsNull())
             {
                 _exiting = true;
             }
@@ -201,7 +214,7 @@ namespace alimer
             return;
         }
 
-        CommandContext& context = CommandContext::Begin("Scene Render");
+        CommandContext& context = graphics->GetContext();
         //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         //context.BeginDefaultRenderPass(clearColor);
         //context.Draw(3, 0);

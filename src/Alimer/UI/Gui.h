@@ -26,15 +26,13 @@
 #include "../Core/Object.h"
 #include "../Math/Math.h"
 #include "../Math/Color.h"
+#include "../Graphics/Pipeline.h"
 
 struct ImGuiContext;
 struct ImFont;
 
 namespace alimer
 {
-    class Shader;
-    class Pipeline;
-
 	/// Immediate mode UI (ImGui) class.
 	class ALIMER_API Gui final : public Object
 	{
@@ -51,6 +49,6 @@ namespace alimer
 
 	private:
         ImGuiContext* _imContext;
-        std::unique_ptr<Pipeline> _pipeline;
+        Pipeline _pipeline;
 	};
 }

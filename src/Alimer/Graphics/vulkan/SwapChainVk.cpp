@@ -30,8 +30,7 @@ using namespace std;
 namespace alimer
 {
     SwapChainVk::SwapChainVk(GPUDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor)
-        : RenderWindow(device)
-        , _device(device)
+        : _device(device)
         , _surface(surface)
         , _vSync(descriptor->vSync)
         , _tripleBuffer(descriptor->tripleBuffer)

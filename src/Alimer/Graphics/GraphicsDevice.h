@@ -24,7 +24,6 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
-#include "../Graphics/RenderWindow.h"
 #include "../Graphics/CommandBuffer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Pipeline.h"
@@ -35,14 +34,22 @@
 
 namespace alimer
 {
-    class Window;
     class Shader;
     class Buffer;
     class Sampler;
     class Framebuffer;
+    class GraphicsImpl;
+
+    struct GraphicsDeviceDescriptor {
+        GraphicsBackend             preferredBackend = GraphicsBackend::Default;
+        PhysicalDevicePreference    devicePreference = PhysicalDevicePreference::Discrete;
+        bool                        validation       = false;
+        /// Main swap chain descriptor or null for headless.
+        const SwapChainDescriptor*  swapchain        = nullptr;
+    };
 
     /// Low-level graphics module.
-    class ALIMER_API GraphicsDevice : public Object
+    class ALIMER_API GraphicsDevice final : public Object
     {
         friend class GPUResource;
         friend class CommandContext;
@@ -53,29 +60,13 @@ namespace alimer
         /// Constructor.
         static GraphicsDevice* Create(
             GraphicsBackend preferredBackend = GraphicsBackend::Default,
-            PhysicalDevicePreference devicePreference = PhysicalDevicePreference::Discrete,
-            bool validation = false,
-            bool headless = false);
+            PhysicalDevicePreference devicePreference = PhysicalDevicePreference::Discrete);
 
         /// Destructor.
-        virtual ~GraphicsDevice() override;
+        ~GraphicsDevice() override;
 
-        /// Initialize device using given window and other settings.
+        /// Initialize device with main swap chain descriptor.
         bool Initialize(const SwapChainDescriptor* descriptor);
-
-        /// Get the backend.
-        GraphicsBackend GetBackend() const { return _backend; }
-
-        /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
-
-        /// Get the main rendering window.
-        RenderWindow* GetRenderWindow() const { return _renderWindow; }
-
-        /**
-        * Get the current backbuffer framebuffer.
-        */
-        //virtual Framebuffer* GetBackbufferFramebuffer() const = 0;
 
         /// Begin rendering frame.
         bool BeginFrame();
@@ -84,10 +75,21 @@ namespace alimer
         uint64_t Frame();
 
         /// Wait device to finish all pending operations.
-        virtual void WaitIdle();
+        void WaitIdle();
 
-        /// Create new RenderWindow.
-        virtual SharedPtr<RenderWindow> CreateRenderWindow(const SwapChainDescriptor* descriptor) = 0;
+        /// Get the backend.
+        inline GraphicsBackend GetBackend() const { return _backend; }
+
+        /// Get the device features.
+        const GraphicsDeviceFeatures& GetFeatures() const;
+
+        /**
+        * Get the default command context (immediate on D3D11 and OpenGL).
+        */
+        inline CommandContext& GetContext() { return *_renderContext.Get(); }
+
+        /// Return graphics backend implementation.
+        inline GraphicsImpl* GetImpl() const { return _impl; }
 
         /**
         * Create a 1D texture.
@@ -199,28 +201,21 @@ namespace alimer
 
         void OnAfterCreated();
 
-        virtual SharedPtr<RenderWindow> InitializeImpl(const SwapChainDescriptor* descriptor) = 0;
-        virtual void Finalize() {}
-        virtual bool BeginFrameImpl() = 0;
-        virtual void Tick() = 0;
-
-        virtual CommandContext* CreateCommandContext(QueueType type) = 0;
         CommandContext* AllocateContext(QueueType type);
 
-    protected:
+    private:
         /// Constructor.
-        GraphicsDevice(GraphicsBackend backend, PhysicalDevicePreference devicePreference, bool validation, bool headless);
+        GraphicsDevice(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference);
 
+        GraphicsImpl*               _impl = nullptr;
         GraphicsBackend             _backend;
         PhysicalDevicePreference    _devicePreference;
-        bool                        _validation;
-        bool                        _headless;
+        bool                        _validation = false;
         bool                        _initialized = false;
         bool                        _inBeginFrame = false;
         uint64_t                    _frameIndex = 0;
-        SharedPtr<RenderWindow>     _renderWindow;
-        
-        GraphicsDeviceFeatures      _features = {};
+
+        SharedPtr<CommandContext>   _renderContext;
 
         std::mutex                  _contextAllocationMutex;
         std::vector<std::unique_ptr<CommandContext>> _contextPool[4];

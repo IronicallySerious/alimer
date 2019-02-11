@@ -46,30 +46,19 @@ namespace alimer
 {
     GraphicsDevice* graphics = nullptr;
 
-    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, PhysicalDevicePreference devicePreference, bool validation, bool headless)
-        : _backend(backend)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference)
+        : _backend(preferredBackend)
         , _devicePreference(devicePreference)
-        , _validation(validation)
-        , _headless(headless)
+#if defined(ALIMER_DEV)
+        , _validation(true)
+#endif // !NDEBUG
     {
-        graphics = this;
-        AddSubsystem(this);
-    }
-
-    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference, bool validation, bool headless)
-    {
-        if (graphics != nullptr)
-        {
-            ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
-
-        }
-
         if (preferredBackend == GraphicsBackend::Default)
         {
             preferredBackend = GraphicsBackend::Vulkan;
         }
 
-        GraphicsDevice* device = nullptr;
+        const bool headless = false;
         switch (preferredBackend)
         {
         case GraphicsBackend::Null:
@@ -78,7 +67,7 @@ namespace alimer
 #if defined(ALIMER_VULKAN)
             if (GPUDeviceVk::IsSupported())
             {
-                device = new GPUDeviceVk(devicePreference, validation, headless);
+                _impl = new GPUDeviceVk(devicePreference, _validation, headless);
                 ALIMER_LOGINFO("Vulkan backend created with success.");
             }
             else
@@ -97,7 +86,18 @@ namespace alimer
             ALIMER_UNREACHABLE();
         }
 
-        return device;
+        AddSubsystem(this);
+    }
+
+    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference)
+    {
+        if (graphics != nullptr)
+        {
+            ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
+        }
+
+        graphics = new GraphicsDevice(preferredBackend, devicePreference);
+        return graphics;
     }
 
     GraphicsDevice::~GraphicsDevice()
@@ -124,34 +124,28 @@ namespace alimer
             _contextPool[i].clear();
         }
 
+        _renderContext.Reset();
+
         // Destroy backend.
-        Finalize();
+        SafeDelete(_impl);
 
         RemoveSubsystem(this);
         graphics = nullptr;
     }
 
-    bool GraphicsDevice::Initialize(const SwapChainDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
+    bool GraphicsDevice::Initialize(const SwapChainDescriptor* descriptor) {
         if (_initialized) {
             return true;
         }
 
-        _renderWindow = InitializeImpl(descriptor);
-        if (_renderWindow.IsNull())
-        {
-            ALIMER_LOGERROR("Failed to initialize graphics backend");
-            return false;
-        }
-
+        _initialized = _impl->Initialize(descriptor);
         OnAfterCreated();
-        _initialized = true;
-        return true;
+        return _initialized;
     }
 
     void GraphicsDevice::OnAfterCreated()
     {
+        _renderContext = new CommandContext(this, QueueType::Graphics, _impl->GetRenderContext());
         SamplerDescriptor descriptor = {};
         _pointSampler = CreateSampler(&descriptor);
 
@@ -168,7 +162,7 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
         }
 
-        if (!BeginFrameImpl())
+        if (!_impl->BeginFrame())
         {
             ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
         }
@@ -185,7 +179,7 @@ namespace alimer
         }
 
         // Tick backend
-        Tick();
+        _impl->EndFrame();
 
         // Free contexts
         std::lock_guard<std::mutex> lock(_contextAllocationMutex);
@@ -205,7 +199,11 @@ namespace alimer
     }
 
     void GraphicsDevice::WaitIdle() {
-        /* Do nothing by default */
+        _impl->WaitIdle();
+    }
+
+    const GraphicsDeviceFeatures& GraphicsDevice::GetFeatures() const {
+        return _impl->GetFeatures();
     }
 
     CommandContext* GraphicsDevice::AllocateContext(QueueType type) {
@@ -216,7 +214,8 @@ namespace alimer
         CommandContext* ret = nullptr;
         if (availableContexts.empty())
         {
-            ret = CreateCommandContext(type);
+            CommandContextImpl* impl = _impl->CreateCommandContext(type);
+            ret = new CommandContext(this, type, impl);
             _contextPool[(uint32_t)type].emplace_back(ret);
             ALIMER_LOGDEBUG("CommandContext allocated");
         }

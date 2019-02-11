@@ -60,10 +60,14 @@ namespace alimer
         Pipeline(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor);
 
     public:
+        Pipeline();
+        ~Pipeline() override;
+
         /// Get whether pipeline is compute.
         bool IsCompute() const { return _isCompute; }
 
     private:
+        RenderPipelineDescriptor _descriptor;
         bool _isCompute;
     };
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2019 Amer Koleci and contributors.
+// Copyright (c) 2019 Amer Koleci.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,26 +20,11 @@
 // THE SOFTWARE.
 //
 
-#include "vgpu.h"
+#define VGPU_IMPLEMENTATION
+#include "vgpu_internal.h"
 #include <assert.h>
 
-VgpuBackend vgpuGetBackend()
-{
-#if defined(VGPU_D3D12) || defined(ALIMER_D3D12)
-    return VGPU_BACKEND_D3D12;
-#elif defined(VGPU_D3D11) || defined(ALIMER_D3D11)
-    return VGPU_BACKEND_D3D11;
-#elif defined(VGPU_VK) || defined(ALIMER_VULKAN)
-    return VGPU_BACKEND_VULKAN;
-#elif defined(VGPU_GL) || defined(ALIMER_OPENGL)
-    return VGPU_BACKEND_OPENGL;
-#else
-    return VGPU_BACKEND_INVALID;
-#endif
-}
-
 /* Pixel Format */
-
 typedef struct VgpuPixelFormatDesc
 {
     VgpuPixelFormat         format;
@@ -54,7 +39,7 @@ typedef struct VgpuPixelFormatDesc
         uint8_t             minBlockX;
         uint8_t             minBlockY;
     } compression;
-    
+
     struct
     {
         uint8_t             depth;
@@ -170,7 +155,6 @@ const VgpuPixelFormatDesc FormatDesc[] =
     { VGPU_PIXEL_FORMAT_ASTC8x8,            "ASTC8x8",          VGPU_PIXEL_FORMAT_TYPE_UNORM,       3,          {8, 8, 16, 1, 1},       {0, 0, 0, 0, 0, 0} },
     { VGPU_PIXEL_FORMAT_ASTC10x10,          "ASTC10x10",        VGPU_PIXEL_FORMAT_TYPE_UNORM,       3,          {10, 10, 16, 1, 1},     {0, 0, 0, 0, 0, 0} },
     { VGPU_PIXEL_FORMAT_ASTC12x12,          "ASTC12x12",        VGPU_PIXEL_FORMAT_TYPE_UNORM,       3,          {12, 12, 16, 1, 1},     {0, 0, 0, 0, 0, 0} },
-
 };
 
 uint32_t vgpuGetFormatBitsPerPixel(VgpuPixelFormat format)
@@ -232,273 +216,168 @@ const char* vgpuGetFormatName(VgpuPixelFormat format)
     return FormatDesc[(uint32_t)format].name;
 }
 
-#ifdef TODO_D3D12
-#define AGPU_IMPLEMENTATION
-#include "agpu_backend.h"
-#include "../Core/Log.h"
-#include <vector>
 
-static AGpuRendererI* s_renderer = nullptr;
+static struct VgpuRendererI* s_renderer = NULL;
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4201)   /* nonstandard extension used: nameless struct/union */
+VgpuBackend vgpuGetDefaultPlatformBackend() {
+#if defined(_WIN32) || defined(_WIN64)
+    if (vgpuIsBackendSupported(VGPU_BACKEND_D3D12, VGPU_FALSE)) {
+        return VGPU_BACKEND_D3D12;
+    }
+
+    if (vgpuIsBackendSupported(VGPU_BACKEND_VULKAN, VGPU_FALSE)) {
+        return VGPU_BACKEND_VULKAN;
+    }
+
+    return VGPU_BACKEND_D3D11;
+#elif defined(__linux__) || defined(__ANDROID__)
+    return VGPU_BACKEND_OPENGL;
+#elif defined(__APPLE__) 
+    return VGPU_BACKEND_METAL;
+#else
+    return VGPU_BACKEND_OPENGL;
+#endif
+}
+
+VgpuBool32 vgpuIsBackendSupported(VgpuBackend backend, VgpuBool32 headless) {
+    if (backend == VGPU_BACKEND_DEFAULT)
+    {
+        backend = vgpuGetDefaultPlatformBackend();
+    }
+
+    switch (backend)
+    {
+    case VGPU_BACKEND_NULL:
+        return VGPU_TRUE;
+    case VGPU_BACKEND_VULKAN:
+#if VGPU_VULKAN
+        return vgpuIsVkSupported(headless);
+#else
+        return VGPU_FALSE;
 #endif
 
-static void agpuBufferInitialize(AgpuBuffer buffer, const AgpuBufferDescriptor* descriptor)
-{
-    if (buffer != nullptr)
-    {
-        // Set properties
-        uint64_t size = descriptor->size;
-        //size = alimer::AlignTo(size, uint64_t(descriptor->stride));
-
-        buffer->usage = descriptor->usage;
-        buffer->size = size;
-        buffer->stride = descriptor->stride;
-
-#if defined(ALIMER_DEV)
-        const char* usageStr = "";
-        if (buffer->usage & AGPU_BUFFER_USAGE_VERTEX)
-        {
-            usageStr = "vertex";
-        }
-        else if (buffer->usage & AGPU_BUFFER_USAGE_INDEX)
-        {
-            usageStr = "index";
-        }
-        else if (buffer->usage & AGPU_BUFFER_USAGE_UNIFORM)
-        {
-            usageStr = "uniform";
-        }
-
-        ALIMER_LOGDEBUG("Created {} buffer [size: {}, stride: {}]",
-            usageStr,
-            buffer->size,
-            buffer->stride
-        );
-#endif
-    }
-    else
-    {
-        ALIMER_LOGERROR("Failed to create buffer");
-    }
-}
-
-AgpuBuffer agpuCreateBuffer(const AgpuBufferDescriptor* descriptor, const void* initialData)
-{
-    AgpuBuffer buffer = s_renderer->CreateBuffer(descriptor, initialData, NULL);
-    agpuBufferInitialize(buffer, descriptor);
-    return buffer;
-}
-
-AgpuBuffer agpuCreateExternalBuffer(const AgpuBufferDescriptor* descriptor, void* handle)
-{
-    AgpuBuffer buffer = s_renderer->CreateBuffer(descriptor, NULL, handle);
-    agpuBufferInitialize(buffer, descriptor);
-    return buffer;
-}
-
-void agpuDestroyBuffer(AgpuBuffer buffer)
-{
-    s_renderer->DestroyBuffer(buffer);
-}
-
-static void agpuTextureInitialize(AgpuTexture texture, const AgpuTextureDescriptor* descriptor)
-{
-    if (texture != nullptr)
-    {
-        // Set properties
-        texture->width = descriptor->width;
-        texture->height = descriptor->height;
-        texture->depthOrArraySize = descriptor->depthOrArraySize;
-        texture->mipLevels = descriptor->mipLevels;
-    }
-}
-
-AgpuTexture agpuCreateTexture(const AgpuTextureDescriptor* descriptor)
-{
-    AgpuTexture texture = s_renderer->CreateTexture(descriptor, NULL);
-    agpuTextureInitialize(texture, descriptor);
-    return texture;
-}
-
-AgpuTexture agpuCreateExternalTexture(const AgpuTextureDescriptor* descriptor, void* handle)
-{
-    AgpuTexture texture = s_renderer->CreateTexture(descriptor, handle);
-    agpuTextureInitialize(texture, descriptor);
-    return texture;
-}
-
-void agpuDestroyTexture(AgpuTexture texture)
-{
-    s_renderer->DestroyTexture(texture);
-}
-
-AgpuFramebuffer agpuCreateFramebuffer(const AgpuFramebufferDescriptor* descriptor)
-{
-    return s_renderer->CreateFramebuffer(descriptor);
-}
-
-void agpuDestroyFramebuffer(AgpuFramebuffer framebuffer)
-{
-    s_renderer->DestroyFramebuffer(framebuffer);
-}
-
-AgpuShaderModule agpuCreateShaderModule(const AgpuShaderModuleDescriptor* descriptor)
-{
-    return s_renderer->CreateShaderModule(descriptor);
-}
-
-void agpuDestroyShaderModule(AgpuShaderModule shaderModule)
-{
-    s_renderer->DestroyShaderModule(shaderModule);
-}
-
-AgpuShader agpuCreateShader(const AgpuShaderDescriptor* descriptor)
-{
-    return s_renderer->CreateShader(descriptor);
-}
-
-void agpuDestroyShader(AgpuShader shader)
-{
-    s_renderer->DestroyShader(shader);
-}
-
-AgpuPipeline agpuCreateRenderPipeline(const AgpuRenderPipelineDescriptor* descriptor)
-{
-#if defined(ALIMER_DEV)
-    ALIMER_ASSERT_MSG(descriptor, "Invalid render pipeline descriptor.");
-    ALIMER_ASSERT_MSG(descriptor->shader, "Invalid shader.");
-    //ALIMER_ASSERT_MSG(descriptor->fragment, "Invalid fragment shader.");
-
-    for (int i = 0; i < AGPU_MAX_VERTEX_BUFFER_BINDINGS; i++)
-    {
-        const AgpuVertexBufferLayoutDescriptor* desc = &descriptor->vertexDescriptor.layouts[i];
-        if (desc->stride == 0) {
-            continue;
-        }
-
-        ALIMER_ASSERT_MSG((desc->stride & 3) == 0, "AgpuVertexDescriptor buffer stride must be multiple of 4");
-    }
-
-    ALIMER_ASSERT_MSG(descriptor->vertexDescriptor.attributes[0].format != AGPU_VERTEX_FORMAT_UNKNOWN, "AgpuVertexDescriptor attributes is empty or not continuous");
-    bool attrsContinuous = true;
-
-    for (int i = 0; i < AGPU_MAX_VERTEX_ATTRIBUTES; i++)
-    {
-        const AgpuVertexAttributeDescriptor* desc = &descriptor->vertexDescriptor.attributes[i];
-        if (desc->format == AGPU_VERTEX_FORMAT_UNKNOWN) {
-            attrsContinuous = false;
-            continue;
-        }
-        ALIMER_ASSERT_MSG(attrsContinuous, "AgpuVertexDescriptor buffer stride must be multiple of 4");
-        ALIMER_ASSERT(desc->bufferIndex < AGPU_MAX_VERTEX_BUFFER_BINDINGS);
-    }
+    case VGPU_BACKEND_D3D12:
+#if VGPU_D3D12
+        return vgpuIsD3D12Supported(headless);
+#else
+        return VGPU_FALSE;
 #endif
 
-    return s_renderer->CreateRenderPipeline(descriptor);
-}
-
-AgpuPipeline agpuCreateComputePipeline(const AgpuComputePipelineDescriptor* descriptor)
-{
-#if defined(ALIMER_DEV)
-    ALIMER_ASSERT_MSG(descriptor, "Invalid compute pipeline descriptor.");
-    ALIMER_ASSERT_MSG(descriptor->shader, "Invalid shader");
+    case VGPU_BACKEND_OPENGL:
+#if VGPU_OPENGL
+        return VGPU_TRUE;
+#else
+        return VGPU_FALSE;
 #endif
-
-    return s_renderer->CreateComputePipeline(descriptor);
-}
-
-void agpuDestroyPipeline(AgpuPipeline pipeline)
-{
-    s_renderer->DestroyPipeline(pipeline);
-}
-
-void agpuBeginRenderPass(AgpuFramebuffer framebuffer)
-{
-    ALIMER_ASSERT_MSG(framebuffer, "Invalid framebuffer");
-    s_renderer->CmdBeginRenderPass(framebuffer);
-}
-
-void agpuEndRenderPass()
-{
-    s_renderer->CmdEndRenderPass();
-}
-
-void agpuCmdSetShader(AgpuShader shader)
-{
-    ALIMER_ASSERT_MSG(shader, "Invalid shader");
-    s_renderer->CmdSetShader(shader);
-}
-
-void agpuCmdSetVertexBuffer(uint32_t binding, AgpuBuffer buffer, uint64_t offset, AgpuVertexInputRate inputRate)
-{
-    ALIMER_ASSERT_MSG(buffer, "Invalid buffer");
-    ALIMER_ASSERT(binding < AGPU_MAX_VERTEX_BUFFER_BINDINGS);
-#ifdef ALIMER_DEV
-    if ((buffer->usage & AGPU_BUFFER_USAGE_VERTEX) == 0)
-    {
-        //agpuNotifyValidationError("agpuCmdSetVertexBuffer need buffer with Vertex usage");
-        return;
+    default:
+        return VGPU_FALSE;
     }
-#endif
-
-    s_renderer->CmdSetVertexBuffer(binding, buffer, offset, buffer->stride, inputRate);
 }
 
-void agpuCmdSetIndexBuffer(AgpuBuffer buffer, uint64_t offset, AgpuIndexType indexType)
-{
-    ALIMER_ASSERT_MSG(buffer, "Invalid buffer");
-#ifdef ALIMER_DEV
-    if ((buffer->usage & AGPU_BUFFER_USAGE_INDEX) == 0)
-    {
-        //agpuNotifyValidationError("agpuCmdSetIndexBuffer need buffer with Index usage");
-        return;
+VgpuResult vgpuInitialize(const char* applicationName, const VgpuDescriptor* descriptor) {
+    if (s_renderer != NULL) {
+        return VGPU_ALREADY_INITIALIZED;
     }
+
+    VgpuBackend backend = descriptor->preferredBackend;
+    if (backend == VGPU_BACKEND_DEFAULT)
+    {
+        backend = vgpuGetDefaultPlatformBackend();
+    }
+
+    VgpuRendererI* renderer = NULL;
+    switch (backend)
+    {
+    case VGPU_BACKEND_NULL:
+        break;
+    case VGPU_BACKEND_VULKAN:
+#if VGPU_D3D12
+        renderer = vgpuCreateVkBackend();
+#else
+        //ALIMER_LOGERROR("D3D12 backend is not supported");
 #endif
+        break;
+    case VGPU_BACKEND_D3D12:
+#if VGPU_D3D12
+        renderer = vgpuCreateD3D12Backend();
+#else
+        //ALIMER_LOGERROR("D3D12 backend is not supported");
+#endif
+        break;
+    case VGPU_BACKEND_OPENGL:
+        break;
+    default:
+        break;
+    }
 
-    s_renderer->CmdSetIndexBuffer(buffer, offset, indexType);
+    if (renderer != NULL)
+    {
+        s_renderer = renderer;
+        return renderer->initialize(applicationName, descriptor);
+    }
+
+    //s_logCallback = descriptor->logCallback;
+    return VGPU_ERROR_INITIALIZATION_FAILED;
 }
 
-void agpuCmdSetViewport(AgpuViewport viewport)
+void vgpuShutdown()
 {
-    s_renderer->CmdSetViewport(viewport);
+    if (s_renderer != NULL)
+    {
+        s_renderer->shutdown();
+        delete s_renderer;
+        s_renderer = nullptr;
+    }
 }
 
-void agpuCmdSetViewports(uint32_t viewportCount, const AgpuViewport* pViewports)
-{
-    s_renderer->CmdSetViewports(viewportCount, pViewports);
+VgpuBackend vgpuGetBackend() {
+    return s_renderer->getBackend();
 }
 
-void agpuCmdSetScissor(AgpuRect2D scissor)
-{
-    s_renderer->CmdSetScissor(scissor);
+VgpuResult vgpuBeginFrame() {
+    return s_renderer->beginFrame();
 }
 
-void agpuCmdSetScissors(uint32_t scissorCount, const AgpuRect2D* pScissors)
-{
-    s_renderer->CmdSetScissors(scissorCount, pScissors);
+VgpuResult vgpuEndFrame() {
+    return s_renderer->endFrame();
 }
 
-void CmdSetPrimitiveTopology(AgpuPrimitiveTopology topology)
-{
-    s_renderer->CmdSetPrimitiveTopology(topology);
+VgpuResult vgpuWaitIdle() {
+    return s_renderer->waitIdle();
 }
 
-void agpuCmdDraw(uint32_t vertexCount, uint32_t firstVertex)
-{
-    s_renderer->CmdDraw(vertexCount, 1, firstVertex, 0);
+VgpuFramebuffer vgpuGetCurrentFramebuffer() {
+    return NULL;
 }
 
-void agpuCmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset)
-{
-    ALIMER_ASSERT(indexCount > 1);
-    s_renderer->CmdDrawIndexed(indexCount, 1, firstIndex, vertexOffset, 0);
+/* Sampler */
+VgpuSampler vgpuCreateSampler(const VgpuSamplerDescriptor* descriptor) {
+    VGPU_ASSERT(descriptor);
+    return s_renderer->createSampler(descriptor);
 }
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif  
-#endif // TODO_D3D12
+void vgpuDestroySampler(VgpuSampler sampler) {
+    VGPU_ASSERT(sampler.id != VGPU_INVALID_ID);
+    s_renderer->destroySampler(sampler);
+}
 
+/* CommandBuffer */
+VgpuCommandBuffer vgpuCreateCommandBuffer(const VgpuCommandBufferDescriptor* descriptor) {
+    VGPU_ASSERT(descriptor);
+    return s_renderer->createCommandBuffer(descriptor);
+}
+
+void vgpuCmdBeginDefaultRenderPass(VgpuCommandBuffer commandBuffer, VgpuColor clearColor, float clearDepth, uint8_t clearStencil) {
+    VGPU_ASSERT(commandBuffer);
+    //s_renderer->cmdBeginDefaultRenderPass(commandBuffer, clearColor, clearDepth, clearStencil);
+}
+
+void vgpuCmdBeginRenderPass(VgpuCommandBuffer commandBuffer, VgpuFramebuffer framebuffer) {
+    VGPU_ASSERT(commandBuffer);
+    VGPU_ASSERT(framebuffer);
+    s_renderer->cmdBeginRenderPass(commandBuffer, framebuffer);
+}
+
+void vgpuCmdEndRenderPass(VgpuCommandBuffer commandBuffer) {
+    s_renderer->cmdEndRenderPass(commandBuffer);
+}

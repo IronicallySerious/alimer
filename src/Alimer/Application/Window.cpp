@@ -29,26 +29,21 @@
 #include "SDL2/WindowSDL2.h"
 #endif
 
+using namespace std;
+
 namespace alimer
 {
-    Window::Window()
-        : _title("Alimer")
-        , _size(800, 600)
-        , _flags(WindowFlags::Default)
-    {
-    }
-
     Window::~Window()
     {
         SafeDelete(_impl);
     }
 
-    bool Window::Define(const std::string& title, const IntVector2& size, WindowFlags flags)
+    Window::Window(const string& title, uint32_t width, uint32_t height, WindowFlags flags)
+        : _title(title)
+        , _size(width, height)
+        , _flags(flags)
+        , _impl(new WindowImpl(title, width, height, flags))
     {
-        SafeDelete(_impl);
-        _size = size;
-        _impl = new WindowImpl(title, size.x, size.y, flags);
-        return _impl != nullptr;
     }
 
     void Window::Show()

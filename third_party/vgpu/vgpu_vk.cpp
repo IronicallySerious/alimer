@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2019 Amer Koleci and contributors.
+// Copyright (c) 2019 Amer Koleci.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,95 +20,270 @@
 // THE SOFTWARE.
 //
 
-#include "vgpu.h"
+#define VGPU_IMPLEMENTATION
+#include "vgpu_internal.h"
 
-#if defined(_WIN32)
-#    ifndef VK_USE_PLATFORM_WIN32_KHR
-#        define VK_USE_PLATFORM_WIN32_KHR 1
-#    endif
+#if VGPU_VULKAN
+
+#include <vector>
+#include <stdio.h> /* vsnprintf */
+
+#if defined(_WIN32) || defined(_WIN64)
 #   ifndef NOMINMAX
 #       define NOMINMAX
 #   endif
 #   define WIN32_LEAN_AND_MEAN
+#   include <windows.h>
+#   define VK_SURFACE_EXT               "VK_KHR_win32_surface"
+#   define VK_CREATE_SURFACE_FN         vkCreateWin32SurfaceKHR
+#   define VK_USE_PLATFORM_WIN32_KHR    1
 #elif defined(__ANDROID__)
-#    define VK_USE_PLATFORM_ANDROID_KHR 1
+#   define VK_SURFACE_EXT               "VK_KHR_android_surface"
+#   define VK_CREATE_SURFACE_FN         vkCreateAndroidSurfaceKHR
+#   define VK_USE_PLATFORM_ANDROID_KHR  1
 #elif defined(__linux__)
-#    ifdef VGPU_LINUX_WAYLAND
-#        define VK_USE_PLATFORM_WAYLAND_KHR 1
-#    else
-#        define VK_USE_PLATFORM_XLIB_KHR 1
-#    endif
+#   include <xcb/xcb.h>
+#   include <dlfcn.h>
+#   include <X11/Xlib-xcb.h>
+#   define VK_SURFACE_EXT               "VK_KHR_xcb_surface"
+#   define VK_CREATE_SURFACE_FN         vkCreateXcbSurfaceKHR
+#   define VK_USE_PLATFORM_XCB_KHR      1
 #endif
 
-#include "volk/volk.h"
-#define VMA_IMPLEMENTATION
-#include <vk_mem_alloc/vk_mem_alloc.h>
+#ifndef VMA_STATIC_VULKAN_FUNCTION
+#   define VMA_STATIC_VULKAN_FUNCTION 0
+#endif
+#include "volk.h"
+#include <vk_mem_alloc.h>
 //#include <spirv-cross/spirv_hlsl.hpp>
 
 #if !defined(VGPU_DEBUG) && !defined(NDEBUG)
 #   define VGPU_DEBUG 1
 #endif
 
-#ifndef VGPU_ASSERT
-#   include <assert.h>
-#   define VGPU_ASSERT(c) assert(c)
-#endif
-
-#ifndef VGPU_ALLOC
-#   include <stdlib.h>
-#   include <malloc.h>
-#   define VGPU_ALLOC(type) ((type*) malloc(sizeof(type)))
-#   define VGPU_ALLOCN(type, n) ((type*) malloc(sizeof(type) * n))
-#   define VGPU_FREE(ptr) free(ptr)
-#   define VGPU_ALLOC_HANDLE(type) ((type) malloc(sizeof(type##_T)))
-#endif 
-
-#define _vgpu_min(a,b) ((a<b)?a:b)
-#define _vgpu_max(a,b) ((a>b)?a:b)
-#define _vgpu_clamp(v,v0,v1) ((v<v0)?(v0):((v>v1)?(v1):(v)))
-
 /* Vulkan only handles (ATM) */
 VGPU_DEFINE_HANDLE(VgpuPhysicalDevice);
 VGPU_DEFINE_HANDLE(VgpuCommandQueue);
+#define VGPU_MAX_COMMAND_BUFFER 16u
 
 /* Handle declaration */
 typedef struct VgpuPhysicalDevice_T {
-    VkPhysicalDevice                        device;
-    VkPhysicalDeviceProperties              properties;
-    VkPhysicalDeviceMemoryProperties        memoryProperties;
-    VkPhysicalDeviceFeatures                features;
-    uint32_t                                queueFamilyCount;
-    VkQueueFamilyProperties*                queueFamilyProperties;
-    uint32_t                                extensionsCount;
-    VkExtensionProperties*                  extensions;
+    VkPhysicalDevice                    device;
+    VkPhysicalDeviceProperties          properties;
+    VkPhysicalDeviceMemoryProperties    memoryProperties;
+    VkPhysicalDeviceFeatures            features;
+    uint32_t                            queueFamilyCount;
+    VkQueueFamilyProperties*            queueFamilyProperties;
+    uint32_t                            extensionsCount;
+    VkExtensionProperties*              extensions;
 } VgpuPhysicalDevice_T;
 
 typedef struct VgpuCommandQueue_T {
-    VkQueue                                 vk_queue;
-    uint32_t                                vk_queueFamilyIndex;
-    VkCommandPool                           vk_handle;
+    VkQueue             vk_queue;
+    uint32_t            vk_queueFamilyIndex;
+    VkCommandPool       vk_handle;
+    uint32_t            commandBuffersCount;
+    VgpuCommandBuffer   commandBuffers[VGPU_MAX_COMMAND_BUFFER];
 } VgpuCommandQueue_T;
 
 typedef struct VgpuCommandBuffer_T {
-    VgpuCommandQueue                        queue;
-    VkCommandBuffer                         vk_handle;
+    VgpuCommandQueue    queue;
+    VkCommandBuffer     vk_handle;
+    VkSemaphore         vk_semaphore;
+    bool                recording;
 } VgpuCommandBuffer_T;
 
 typedef struct VgpuSwapchain_T {
-    VkSurfaceKHR                            surface;
-    VkSwapchainKHR                          swapchain;
-    uint32_t                                imageIndex;  // index of currently acquired image.
-    uint32_t                                imageCount;
-    VkImage*                                images;
-    VkSemaphore*                            imageSemaphores;
+    VkSwapchainKHR      vk_handle;
+    VkRenderPass        renderPass;
+    uint32_t            width;
+    uint32_t            height;
+    uint32_t            imageIndex;  // index of currently acquired image.
+    uint32_t            imageCount;
+    VkImage*            images;
+    VkImageView*        imageViews;
+    VkSemaphore*        imageSemaphores;
+    //VgpuTexture*      textures;       /* TODO: Use VgpuTexture */
+    VkFramebuffer*      framebuffers;   /* TODO: Convert to VgpuFramebuffer */
+    VkFormat            depthStencilFormat;
 } VgpuSwapchain_T;
 
 typedef struct VgpuTexture_T {
-    VkImage                                 image;
-    VkFormat                                format;
+    VkImage     image;
+    VkFormat    format;
 } VgpuTexture_T;
 
+typedef struct VgpuFramebuffer_T {
+    uint32_t    width;
+    uint32_t    height;
+} VgpuFramebuffer_T;
+
+typedef struct VgpuShaderModule_T {
+    VkShaderModule  vk_handle;
+} VgpuShaderModule_T;
+
+// Proxy log callback
+#define VGPU_MAX_LOG_MESSAGE 4096
+static vgpu_log_fn s_logCallback = nullptr;
+
+static void vgpu_internal_log(VgpuLogLevel level, const char* context, const char* message)
+{
+    if (s_logCallback) {
+        s_logCallback(level, context, message);
+    }
+}
+
+static void vgpu_internal_log(VgpuLogLevel level, const char* context, const char* format, ...)
+{
+    char logMessage[VGPU_MAX_LOG_MESSAGE];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(logMessage, VGPU_MAX_LOG_MESSAGE, format, args);
+    if (s_logCallback)
+        s_logCallback(level, context, logMessage);
+    va_end(args);
+}
+
+/* Global handles. */
+struct VgpuDeviceFeaturesVk
+{
+    bool supportsPhysicalDeviceProperties2 = false;
+    bool supportsExternal = false;
+    bool supportsDedicated = false;
+    bool supportsImageFormatList = false;
+    bool supportsDebugMarker = false;
+    bool supportsDebugUtils = false;
+    bool supportsMirrorClampToEdge = false;
+    bool supportsGoogleDisplayTiming = false;
+    VkPhysicalDeviceSubgroupProperties subgroupProperties = {};
+    VkPhysicalDevice8BitStorageFeaturesKHR storage8bitFeatures = {};
+    VkPhysicalDevice16BitStorageFeaturesKHR storage_16bitFeatures = {};
+    VkPhysicalDeviceFloat16Int8FeaturesKHR float16Int8Features = {};
+    VkPhysicalDeviceFeatures enabledFeatures = {};
+};
+
+struct VgpuVkFrameData {
+    uint32_t                    submittedCmdBuffersCount;
+    VkCommandBuffer             submittedCmdBuffers[VGPU_MAX_COMMAND_BUFFER];
+    VkSemaphore                 waitSemaphores[VGPU_MAX_COMMAND_BUFFER];
+    VkFence                     fence;
+};
+
+struct {
+    VgpuBool32                  initialized = VGPU_FALSE;
+    VgpuBool32                  available = VGPU_FALSE;
+
+    /* Extensions */
+    bool                        KHR_get_physical_device_properties2;    /* VK_KHR_get_physical_device_properties2 */
+    bool                        KHR_external_memory_capabilities;       /* VK_KHR_external_memory_capabilities */
+    bool                        KHR_external_semaphore_capabilities;    /* VK_KHR_external_semaphore_capabilities */
+
+    bool                        EXT_debug_report;       /* VK_EXT_debug_report */
+    bool                        EXT_debug_utils;        /* VK_EXT_debug_utils */
+
+    bool                        KHR_surface;            /* VK_KHR_surface */
+
+    /* Layers */
+    bool                        VK_LAYER_LUNARG_standard_validation;
+    bool                        VK_LAYER_RENDERDOC_Capture;
+
+    VkInstance                  instance = VK_NULL_HANDLE;
+    VkDevice                    device = VK_NULL_HANDLE;
+
+    VkPhysicalDevice            physicalDevice;
+    VkPhysicalDeviceProperties  physicalDeviceProperties;
+    VgpuDeviceFeaturesVk        features = {};
+
+    uint32_t                    graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+    uint32_t                    computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+    uint32_t                    transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+
+    VkQueue                     graphicsQueue = VK_NULL_HANDLE;
+    VkQueue                     computeQueue = VK_NULL_HANDLE;
+    VkQueue                     transferQueue = VK_NULL_HANDLE;
+} _vk;
+
+struct VgpuVkContext {
+    uint32_t                    maxInflightFrames;
+    uint32_t                    frameIndex;
+    VgpuVkFrameData*            frameData = nullptr;
+    VkSurfaceKHR                surface = VK_NULL_HANDLE;
+    VgpuSwapchain               swapchain = VK_NULL_HANDLE;
+};
+
+VGPU_THREADLOCAL VgpuVkContext *s_current_context = NULL;
+
 /* Conversion functions */
+static const char* vgpuVkVulkanResultString(VkResult result)
+{
+    switch (result)
+    {
+    case VK_SUCCESS:
+        return "Success";
+    case VK_NOT_READY:
+        return "A fence or query has not yet completed";
+    case VK_TIMEOUT:
+        return "A wait operation has not completed in the specified time";
+    case VK_EVENT_SET:
+        return "An event is signaled";
+    case VK_EVENT_RESET:
+        return "An event is unsignaled";
+    case VK_INCOMPLETE:
+        return "A return array was too small for the result";
+    case VK_ERROR_OUT_OF_HOST_MEMORY:
+        return "A host memory allocation has failed";
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+        return "A device memory allocation has failed";
+    case VK_ERROR_INITIALIZATION_FAILED:
+        return "Initialization of an object could not be completed for implementation-specific reasons";
+    case VK_ERROR_DEVICE_LOST:
+        return "The logical or physical device has been lost";
+    case VK_ERROR_MEMORY_MAP_FAILED:
+        return "Mapping of a memory object has failed";
+    case VK_ERROR_LAYER_NOT_PRESENT:
+        return "A requested layer is not present or could not be loaded";
+    case VK_ERROR_EXTENSION_NOT_PRESENT:
+        return "A requested extension is not supported";
+    case VK_ERROR_FEATURE_NOT_PRESENT:
+        return "A requested feature is not supported";
+    case VK_ERROR_INCOMPATIBLE_DRIVER:
+        return "The requested version of Vulkan is not supported by the driver or is otherwise incompatible";
+    case VK_ERROR_TOO_MANY_OBJECTS:
+        return "Too many objects of the type have already been created";
+    case VK_ERROR_FORMAT_NOT_SUPPORTED:
+        return "A requested format is not supported on this device";
+    case VK_ERROR_SURFACE_LOST_KHR:
+        return "A surface is no longer available";
+    case VK_SUBOPTIMAL_KHR:
+        return "A swapchain no longer matches the surface properties exactly, but can still be used";
+    case VK_ERROR_OUT_OF_DATE_KHR:
+        return "A surface has changed in such a way that it is no longer compatible with the swapchain";
+    case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
+        return "The display used by a swapchain does not use the same presentable image layout";
+    case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
+        return "The requested window is already connected to a VkSurfaceKHR, or to some other non-Vulkan API";
+    case VK_ERROR_VALIDATION_FAILED_EXT:
+        return "A validation layer found an error";
+    default:
+        return "ERROR: UNKNOWN VULKAN ERROR";
+    }
+}
+
+// Helper utility converts Vulkan API failures into exceptions.
+static void vgpuVkLogIfFailed(VkResult result)
+{
+    if (result < VK_SUCCESS)
+    {
+        vgpu_internal_log(
+            VGPU_LOG_LEVEL_ERROR,
+            "Vulkan"
+            "Fatal vulkan result is \"%s\" in %u at line %u",
+            vgpuVkVulkanResultString(result),
+            __FILE__,
+            __LINE__);
+    }
+}
+
 static VgpuResult vgpuVkConvertResult(VkResult value)
 {
     switch (value)
@@ -130,6 +305,101 @@ static VgpuResult vgpuVkConvertResult(VkResult value)
     }
 }
 
+static VgpuPixelFormat vgpuGetPixelFormat(VkFormat format, VgpuBool32& srgb) {
+    srgb = VGPU_FALSE;
+    switch (format) {
+    case VK_FORMAT_B8G8R8A8_UNORM:
+        return VGPU_PIXEL_FORMAT_BGRA8_UNORM;
+
+    case VK_FORMAT_B8G8R8A8_SRGB:
+        srgb = VGPU_TRUE;
+        return VGPU_PIXEL_FORMAT_BGRA8_UNORM;
+
+    default:
+        return VGPU_PIXEL_FORMAT_UNKNOWN;
+    }
+}
+
+static VkCompareOp vgpuVkGetCompareOp(VgpuCompareOp op) {
+    switch (op)
+    {
+    case VGPU_COMPARE_OP_NEVER:         return VK_COMPARE_OP_NEVER;
+    case VGPU_COMPARE_OP_LESS:          return VK_COMPARE_OP_LESS;
+    case VGPU_COMPARE_OP_EQUAL:         return VK_COMPARE_OP_EQUAL;
+    case VGPU_COMPARE_OP_LESS_EQUAL:    return VK_COMPARE_OP_LESS_OR_EQUAL;
+    case VGPU_COMPARE_OP_GREATER:       return VK_COMPARE_OP_GREATER;
+    case VGPU_COMPARE_OP_NOT_EQUAL:     return VK_COMPARE_OP_NOT_EQUAL;
+    case VGPU_COMPARE_OP_GREATER_EQUAL: return VK_COMPARE_OP_GREATER_OR_EQUAL;
+    case VGPU_COMPARE_OP_ALWAYS:        return VK_COMPARE_OP_ALWAYS;
+    default:
+        VGPU_UNREACHABLE();
+        return VK_COMPARE_OP_NEVER;
+    }
+}
+
+static VkFilter vgpuVkGetFilter(VgpuSamplerMinMagFilter filter) {
+    switch (filter)
+    {
+    case VGPU_SAMPLER_MIN_MAG_FILTER_NEAREST:   return VK_FILTER_NEAREST;
+    case VGPU_SAMPLER_MIN_MAG_FILTER_LINEAR:    return VK_FILTER_LINEAR;
+    default:
+        VGPU_UNREACHABLE();
+        return VK_FILTER_NEAREST;
+    }
+}
+
+static VkSamplerMipmapMode vgpuVkGetMipMapFilter(VgpuSamplerMipFilter filter) {
+    switch (filter)
+    {
+    case VGPU_SAMPLER_MIP_FILTER_NEAREST:   return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    case VGPU_SAMPLER_MIP_FILTER_LINEAR:    return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    default:
+        VGPU_UNREACHABLE();
+        return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    }
+}
+
+static VkSamplerAddressMode vgpuVkGetAddressMode(VgpuSamplerAddressMode mode, bool supportsMirrorClampToEdge) {
+
+    switch (mode)
+    {
+    case VGPU_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE:
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+    case VGPU_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE:
+        return supportsMirrorClampToEdge ? VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+    case VGPU_SAMPLER_ADDRESS_MODE_REPEAT:
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+    case VGPU_SAMPLER_ADDRESS_MODE_MIRROR_REPEAT:
+        return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+
+    case VGPU_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER_COLOR:
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    default:
+        VGPU_UNREACHABLE();
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    }
+}
+
+static VkBorderColor vgpuVkGetBorderColor(VgpuSamplerBorderColor color) {
+    switch (color)
+    {
+    case VK_SAMPLER_BORDER_COLOR_TRANSPARENT_BLACK:
+        return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+
+    case VK_SAMPLER_BORDER_COLOR_OPAQUE_BLACK:
+        return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+
+    case VK_SAMPLER_BORDER_COLOR_OPAQUE_WHITE:
+        return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+    default:
+        VGPU_UNREACHABLE();
+        return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+    }
+}
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL vgpuVkMessengerCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT                  messageType,
@@ -143,12 +413,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vgpuVkMessengerCallback(
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
         if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
         {
-            //ALIMER_LOGERROR("[Vulkan]: Validation Error: {}", pCallbackData->pMessage);
+            vgpu_internal_log(VGPU_LOG_LEVEL_ERROR, "vulkan", "Validation Error: %s", pCallbackData->pMessage);
             //device->NotifyValidationError(pCallbackData->pMessage);
         }
         else
         {
-            //ALIMER_LOGERROR("[Vulkan]: Other Error: {}", pCallbackData->pMessage);
+            vgpu_internal_log(VGPU_LOG_LEVEL_ERROR, "vulkan", "Other Error: %s", pCallbackData->pMessage);
         }
 
         break;
@@ -156,11 +426,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vgpuVkMessengerCallback(
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
         if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
         {
-            //ALIMER_LOGWARN("[Vulkan]: Validation Warning:{}", pCallbackData->pMessage);
+            vgpu_internal_log(VGPU_LOG_LEVEL_WARN, "vulkan", "Validation Warning: %s", pCallbackData->pMessage);
         }
         else
         {
-            //ALIMER_LOGWARN("[Vulkan]: Other Warning: {}", pCallbackData->pMessage);
+            vgpu_internal_log(VGPU_LOG_LEVEL_WARN, "vulkan", "Other Warning: %s", pCallbackData->pMessage);
         }
         break;
 
@@ -240,23 +510,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vgpuVkDebugCallback(VkDebugReportFlagsEXT 
 
     return VK_FALSE;
 }
-
-struct VgpuDeviceFeaturesVk
-{
-    bool supportsPhysicalDeviceProperties2 = false;
-    bool supportsExternal = false;
-    bool supportsDedicated = false;
-    bool supportsImageFormatList = false;
-    bool supportsDebugMarker = false;
-    bool supportsDebugUtils = false;
-    bool supportsMirrorClampToEdge = false;
-    bool supportsGoogleDisplayTiming = false;
-    VkPhysicalDeviceSubgroupProperties subgroupProperties = {};
-    VkPhysicalDevice8BitStorageFeaturesKHR storage8bitFeatures = {};
-    VkPhysicalDevice16BitStorageFeaturesKHR storage_16bitFeatures = {};
-    VkPhysicalDeviceFloat16Int8FeaturesKHR float16Int8Features = {};
-    VkPhysicalDeviceFeatures enabledFeatures = {};
-};
 
 static VgpuPhysicalDevice vgpuVkAllocateDevice(VkPhysicalDevice physicalDevice)
 {
@@ -449,11 +702,11 @@ static void vgpuVkTransitionImageLayout(
     vgpuVkTransitionImageLayout(commandBuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
 }
 
-static void  vgpuVkClearImageWithColor(
-    VkCommandBuffer commandBuffer, 
-    VkImage image, 
+static void vgpuVkClearImageWithColor(
+    VkCommandBuffer commandBuffer,
+    VkImage image,
     VkImageSubresourceRange range,
-    VkImageAspectFlags aspect, 
+    VkImageAspectFlags aspect,
     VkImageLayout sourceLayout,
     VkImageLayout destLayout,
     VkClearColorValue *clearValue)
@@ -475,125 +728,123 @@ static void  vgpuVkClearImageWithColor(
     vgpuVkTransitionImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
 }
 
-struct VgpuRendererVk
+static void vgpuVkCreateSemaphore(VkDevice device, VkSemaphore* pSemaphore)
 {
-public:
-    VgpuRendererVk();
-    ~VgpuRendererVk();
+    VkSemaphoreCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    createInfo.pNext = nullptr;
+    createInfo.flags = 0;
 
-    void shutdown();
-    VgpuResult initialize(const char* applicationName, const VgpuDescriptor* descriptor);
-    VgpuResult waitIdle();
-    VgpuResult beginFrame();
-    VgpuResult endFrame();
+    vgpuVkLogIfFailed(
+        vkCreateSemaphore(device, &createInfo, NULL, pSemaphore)
+    );
+}
 
-    VkResult initializeExtensionsAndLayers();
+static void vgpuVkCreateFence(VkDevice device, bool signaled, VkFence* pFence)
+{
+    VkFenceCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    createInfo.pNext = NULL;
+    createInfo.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0u;
+    vgpuVkLogIfFailed(
+        vkCreateFence(device, &createInfo, NULL, pFence)
+        );
+}
+
+VkResult vgpuVkCreateSurface(const VgpuSwapchainDescriptor*  descriptor, VkSurfaceKHR* pSurface);
+VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwapchainKHR oldSwapchain, VkSurfaceKHR surface, VgpuSwapchain* pSwapchain);
+void vgpuDestroySwapchain(VgpuSwapchain swapchain);
+VgpuResult vgpuVkFlushCommandBuffer(VgpuCommandBuffer commandBuffer);
+
+struct VgpuRendererVk : public VgpuRendererI
+{
+    VgpuRendererVk() : _samplerId(1) {}
+    ~VgpuRendererVk() {}
+
+    VgpuResult initialize(const char* applicationName, const VgpuDescriptor* descriptor) override;
+    void shutdown() override;
+    VgpuBackend getBackend() const { return VGPU_BACKEND_VULKAN; }
+    VgpuResult beginFrame() override;
+    VgpuResult endFrame() override;
+    VgpuResult waitIdle() override;
+
     VkResult createInstance(const char* applicationName, bool validation, bool headless);
     VkResult detectPhysicalDevice(VgpuDevicePreference preference);
-    VkResult createDevice();
+    VkResult createDevice(VkSurfaceKHR surface);
     void initializeFeatures();
-
-    /* Swapchain */
-    VkResult createSurface(const VgpuSwapchainDescriptor* descriptor, VkSurfaceKHR* pSurface);
-    VgpuResult createSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwapchainKHR oldSwapchain, VkSurfaceKHR surface, VgpuSwapchain* pSwapchain);
-    void destroySwapchain(VgpuSwapchain swapchain);
-    VgpuResult present(VgpuSwapchain swapchain, VkQueue queue);
 
     /* CommandQueue */
     VgpuResult createCommandQueue(VkQueue queue, uint32_t queueFamilyIndex, VgpuCommandQueue* pCommandQueue);
     void destoryCommandQueue(VgpuCommandQueue queue);
 
-    /* CommandBuffer */
-    VgpuResult createCommandBuffer(VgpuCommandQueue queue, VkCommandBufferLevel level, VgpuCommandBuffer* pCommandBuffer);
-    VgpuResult beginCommandBuffer(VgpuCommandBuffer commandBuffer);
-    VgpuResult endCommandBuffer(VgpuCommandBuffer commandBuffer);
-    VgpuResult commitCommandBuffer(VgpuCommandBuffer commandBuffer, bool waitUntilCompleted);
+    VgpuCommandQueue getCommandQueue(VgpuCommandQueueType type) const
+    {
+        switch (type)
+        {
+        case VGPU_COMMAND_QUEUE_TYPE_GRAPHICS:
+            return _graphicsCommandQueue;
+
+        case VGPU_COMMAND_QUEUE_TYPE_COMPUTE:
+            return _computeCommandQueue;
+
+        case VGPU_COMMAND_QUEUE_TYPE_COPY:
+            return _copyCommandQueue;
+
+        default:
+            assert(false && "Invalid command queue type.");
+        }
+
+        return nullptr;
+    }
+
+    /* Sampler */
+    VgpuSampler createSampler(const VgpuSamplerDescriptor* descriptor) override;
+    void destroySampler(VgpuSampler sampler) override;
+    VkSampler getVkSampler(VgpuSampler sampler);
+
+    /* Command Buffer */
+    VgpuCommandBuffer createCommandBuffer(const VgpuCommandBufferDescriptor* descriptor) override;
+    void cmdBeginDefaultRenderPass(VgpuCommandBuffer commandBuffer, VgpuColor clearColor, float clearDepth, uint8_t clearStencil) override;
+    void cmdBeginRenderPass(VgpuCommandBuffer commandBuffer, VgpuFramebuffer framebuffer) override;
+    void cmdEndRenderPass(VgpuCommandBuffer commandBuffer) override;
 
 private:
-    /* Extensions */
-    bool                            KHR_get_physical_device_properties2;    /* VK_KHR_get_physical_device_properties2 */
-    bool                            KHR_external_memory_capabilities;       /* VK_KHR_external_memory_capabilities */
-    bool                            KHR_external_semaphore_capabilities;    /* VK_KHR_external_semaphore_capabilities */
-
-    bool                            EXT_debug_report;       /* VK_EXT_debug_report */
-    bool                            EXT_debug_utils;        /* VK_EXT_debug_utils */
-
-    bool                            KHR_surface;            /* VK_KHR_surface */
-#if defined(_WIN32) || defined(_WIN64)
-    bool                            KHR_win32_surface;      /* VK_KHR_win32_surface*/
-#elif defined(__ANDROID__)
-    bool                            KHR_android_surface;
-#elif defined(__APPLE__)
-    bool                            MVK_macos_surface;    /* VK_MVK_macos_surface */
-#elif defined(__linux__)
-    bool                            KHR_xlib_surface;
-    bool                            KHR_wayland_surface;
-#endif
-
-    /* Layers */
-    bool                            VK_LAYER_LUNARG_standard_validation;
-    bool                            VK_LAYER_RENDERDOC_Capture;
-
-    VkInstance                              _instance = VK_NULL_HANDLE;
     VkDebugReportCallbackEXT                _debugCallback = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT                _debugMessenger = VK_NULL_HANDLE;
+    VgpuPhysicalDevice                      _physicalDevices[VGPU_MAX_PHYSICAL_DEVICES];
     VgpuPhysicalDevice                      _physicalDevice = VK_NULL_HANDLE;
-    VgpuDeviceFeaturesVk                    _featuresVk;
-    uint32_t                                _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-    uint32_t                                _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-    uint32_t                                _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-    VkDevice                                _device = VK_NULL_HANDLE;
-    VkQueue                                 _graphicsQueue = VK_NULL_HANDLE;
-    VkQueue                                 _computeQueue = VK_NULL_HANDLE;
-    VkQueue                                 _transferQueue = VK_NULL_HANDLE;
     VmaAllocator                            _memoryAllocator = VK_NULL_HANDLE;
     VgpuCommandQueue                        _graphicsCommandQueue = VK_NULL_HANDLE;
     VgpuCommandQueue                        _computeCommandQueue = VK_NULL_HANDLE;
     VgpuCommandQueue                        _copyCommandQueue = VK_NULL_HANDLE;
-    VkSurfaceKHR                            _mainWindowSurface = VK_NULL_HANDLE;
-    VgpuSwapchain                           _mainSwapchain = VK_NULL_HANDLE;
-    uint32_t                                _maxInflightFrames;
-    uint32_t                                _frameIndex;
-    uint32_t                                _frameNumber;
-    VkFence*                                _waitFences;
+
+    std::vector<VkSampler>                  _samplers;
+    uint32_t                                _samplerId;
 };
-
-VgpuRendererVk::VgpuRendererVk()
-{
-
-}
-VgpuRendererVk::~VgpuRendererVk()
-{
-
-}
 
 void VgpuRendererVk::shutdown()
 {
-    vkDeviceWaitIdle(_device);
+    vkDeviceWaitIdle(_vk.device);
+
+    for (uint32_t i = 0u; i < s_current_context->maxInflightFrames; i++)
+    {
+        vkDestroyFence(_vk.device, s_current_context->frameData[i].fence, NULL);
+    }
 
     // Delete swap chain if created.
-    if (_mainSwapchain != nullptr)
+    if (s_current_context->swapchain != nullptr)
     {
-        destroySwapchain(_mainSwapchain);
-        _mainSwapchain = nullptr;
+        vgpuDestroySwapchain(s_current_context->swapchain);
+        s_current_context->swapchain = nullptr;
     }
-
-    /*for (uint32_t i = 0; i < RenderLatency; i++)
-    {
-        vkDestroyFence(_device, _waitFences[i], nullptr);
-        vkDestroySemaphore(_device, _renderCompleteSemaphores[i], nullptr);
-        vkDestroySemaphore(_device, _presentCompleteSemaphores[i], nullptr);
-    }
-
-    _commandBuffers.clear();*/
     destoryCommandQueue(_graphicsCommandQueue);
     destoryCommandQueue(_computeCommandQueue);
     destoryCommandQueue(_copyCommandQueue);
 
-    if (_device != VK_NULL_HANDLE)
+    if (_vk.device != VK_NULL_HANDLE)
     {
-        vkDestroyDevice(_device, nullptr);
-        _device = VK_NULL_HANDLE;
+        vkDestroyDevice(_vk.device, nullptr);
+        _vk.device = VK_NULL_HANDLE;
     }
 
     if (_memoryAllocator != VK_NULL_HANDLE)
@@ -604,34 +855,30 @@ void VgpuRendererVk::shutdown()
 
     if (_debugCallback != VK_NULL_HANDLE)
     {
-        vkDestroyDebugReportCallbackEXT(_instance, _debugCallback, nullptr);
+        vkDestroyDebugReportCallbackEXT(_vk.instance, _debugCallback, nullptr);
         _debugCallback = VK_NULL_HANDLE;
     }
 
     if (_debugMessenger != VK_NULL_HANDLE)
     {
-        vkDestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, nullptr);
+        vkDestroyDebugUtilsMessengerEXT(_vk.instance, _debugMessenger, nullptr);
         _debugMessenger = VK_NULL_HANDLE;
     }
 
-    vkDestroyInstance(_instance, nullptr);
+    vkDestroyInstance(_vk.instance, nullptr);
     vgpuVkFreeDevice(_physicalDevice);
 }
 
 VgpuResult VgpuRendererVk::initialize(const char* applicationName, const VgpuDescriptor* descriptor)
 {
-    if (volkInitialize() != VK_SUCCESS)
+    const bool headless = descriptor->swapchain == nullptr;
+    if (!vgpuIsVkSupported(headless))
     {
         return VGPU_ERROR_INITIALIZATION_FAILED;
     }
 
-    VkResult result = initializeExtensionsAndLayers();
-    if (result != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(result);
-    }
-
-    result = createInstance(applicationName, descriptor->validation, descriptor->swapchain == nullptr);
+    VgpuVkContext* context = VGPU_ALLOC(VgpuVkContext);
+    VkResult result = createInstance(applicationName, descriptor->validation, headless);
     if (result != VK_SUCCESS)
     {
         return vgpuVkConvertResult(result);
@@ -643,161 +890,49 @@ VgpuResult VgpuRendererVk::initialize(const char* applicationName, const VgpuDes
         return vgpuVkConvertResult(result);
     }
 
-    result = createSurface(descriptor->swapchain, &_mainWindowSurface);
-    if (result != VK_SUCCESS)
+    if (!headless)
     {
-        return vgpuVkConvertResult(result);
-    }
-
-    result = createDevice();
-    if (result != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(result);
-    }
-
-    // Create command queue's.
-    createCommandQueue(_graphicsQueue, _graphicsQueueFamily, &_graphicsCommandQueue);
-    createCommandQueue(_computeQueue, _computeQueueFamily, &_computeCommandQueue);
-    createCommandQueue(_transferQueue, _transferQueueFamily, &_copyCommandQueue);
-
-    initializeFeatures();
-
-    if (descriptor->swapchain != nullptr)
-    {
-        createSwapchain(
-            descriptor->swapchain,
-            _mainSwapchain != nullptr ? _mainSwapchain->swapchain : VK_NULL_HANDLE,
-            _mainWindowSurface,
-            &_mainSwapchain);
-    }
-
-    // Create per frame resources
-    _frameIndex = 0;
-    _frameNumber = 0;
-    _maxInflightFrames = _mainSwapchain != nullptr ? _mainSwapchain->imageCount : 3u;
-    _waitFences = VGPU_ALLOCN(VkFence, _maxInflightFrames);
-    for (uint32_t i = 0u; i < _maxInflightFrames; i++)
-    {
-        VkFenceCreateInfo fenceCreateInfo;
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.pNext = nullptr;
-        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        result = vkCreateFence(_device, &fenceCreateInfo, nullptr, &_waitFences[i]);
+        result = vgpuVkCreateSurface(descriptor->swapchain, &context->surface);
         if (result != VK_SUCCESS)
         {
             return vgpuVkConvertResult(result);
         }
     }
 
+    result = createDevice(context->surface);
+    if (result != VK_SUCCESS)
+    {
+        return vgpuVkConvertResult(result);
+    }
+
+    // Create command queue's.
+    createCommandQueue(_vk.graphicsQueue, _vk.graphicsQueueFamily, &_graphicsCommandQueue);
+    createCommandQueue(_vk.computeQueue, _vk.computeQueueFamily, &_computeCommandQueue);
+    createCommandQueue(_vk.transferQueue, _vk.transferQueueFamily, &_copyCommandQueue);
+
+    initializeFeatures();
+
+    if (!headless)
+    {
+        vgpuCreateSwapchain(
+            descriptor->swapchain,
+            /*s_current_context->swapchain != nullptr ? s_current_context->swapchain->vk_handle : */VK_NULL_HANDLE,
+            context->surface,
+            &context->swapchain);
+    }
+
+    // Create per frame resources
+    context->frameIndex = 0u;
+    context->maxInflightFrames = headless ? 3u : context->swapchain->imageCount;
+    context->frameData = VGPU_ALLOCN(VgpuVkFrameData, context->maxInflightFrames);
+    for (uint32_t i = 0u; i < context->maxInflightFrames; i++)
+    {
+        context->frameData[i].submittedCmdBuffersCount = 0;
+        vgpuVkCreateFence(_vk.device, false, &context->frameData[i].fence);
+    }
+
+    s_current_context = context;
     return VGPU_SUCCESS;
-}
-
-VkResult VgpuRendererVk::initializeExtensionsAndLayers()
-{
-    uint32_t i, count, layerCount;
-    VkExtensionProperties* queriedExtensions;
-    VkLayerProperties* queriedLayers;
-
-    VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
-    if (result < VK_SUCCESS)
-    {
-        return result;
-    }
-
-    queriedExtensions = (VkExtensionProperties*)calloc(count, sizeof(VkExtensionProperties));
-    result = vkEnumerateInstanceExtensionProperties(nullptr, &count, queriedExtensions);
-    if (result < VK_SUCCESS)
-    {
-        free(queriedExtensions);
-        return result;
-    }
-
-    result = vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-    if (result < VK_SUCCESS)
-    {
-        return result;
-    }
-
-    queriedLayers = (VkLayerProperties*)calloc(layerCount, sizeof(VkLayerProperties));
-    result = vkEnumerateInstanceLayerProperties(&layerCount, queriedLayers);
-    if (result < VK_SUCCESS)
-    {
-        free(queriedLayers);
-        return result;
-    }
-
-    // Initialize extensions.
-    for (i = 0; i < count; i++)
-    {
-        if (strcmp(queriedExtensions[i].extensionName, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
-        {
-            KHR_get_physical_device_properties2 = true;
-        }
-        else if (strcmp(queriedExtensions[i].extensionName, VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME) == 0)
-        {
-            KHR_external_memory_capabilities = true;
-        }
-        else if (strcmp(queriedExtensions[i].extensionName, VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME) == 0)
-        {
-            KHR_external_semaphore_capabilities = true;
-        }
-        else if (strcmp(queriedExtensions[i].extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
-        {
-            EXT_debug_report = true;
-        }
-        else if (strcmp(queriedExtensions[i].extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
-        {
-            EXT_debug_utils = true;
-        }
-        else if (strcmp(queriedExtensions[i].extensionName, VK_KHR_SURFACE_EXTENSION_NAME) == 0)
-        {
-            KHR_surface = true;
-        }
-#if defined(_WIN32) || defined(_WIN64)
-        else if (strcmp(queriedExtensions[i].extensionName, "VK_KHR_win32_surface") == 0)
-        {
-            KHR_win32_surface = true;
-        }
-#elif defined(__ANDROID__)
-        else if (strcmp(queriedExtensions[i].extensionName, "VK_KHR_android_surface") == 0)
-        {
-            KHR_android_surface = true;
-        }
-#elif defined(__APPLE__)
-        else if (strcmp(queriedExtensions[i].extensionName, "VK_MVK_macos_surface") == 0)
-        {
-            MVK_macos_surface = true;
-        }
-#elif defined(__linux__)
-        else if (strcmp(queriedExtensions[i].extensionName, "VK_KHR_xlib_surface") == 0)
-        {
-            KHR_xlib_surface = true;
-        }
-        else if (strcmp(queriedExtensions[i].extensionName, "VK_KHR_wayland_surface") == 0)
-        {
-            KHR_wayland_surface = true;
-        }
-#endif
-    }
-
-    // Initialize layers.
-    for (i = 0; i < layerCount; i++)
-    {
-        if (strcmp(queriedLayers[i].layerName, "VK_LAYER_LUNARG_standard_validation") == 0)
-        {
-            VK_LAYER_LUNARG_standard_validation = true;
-        }
-        else if (strcmp(queriedLayers[i].layerName, "VK_LAYER_RENDERDOC_Capture") == 0)
-        {
-            VK_LAYER_RENDERDOC_Capture = true;
-        }
-    }
-
-    // Free allocated stuff
-    free(queriedExtensions);
-    free(queriedLayers);
-
-    return VK_SUCCESS;
 }
 
 VkResult VgpuRendererVk::createInstance(const char* applicationName, bool validation, bool headless)
@@ -821,21 +956,21 @@ VkResult VgpuRendererVk::createInstance(const char* applicationName, bool valida
     const char* instanceLayers[10];
     const char* instanceExtensions[20];
 
-    if (KHR_get_physical_device_properties2)
+    if (_vk.KHR_get_physical_device_properties2)
     {
         instanceExtensions[instanceExtensionsCount++] = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
     }
 
-    if (KHR_get_physical_device_properties2
-        && KHR_external_memory_capabilities
-        && KHR_external_semaphore_capabilities)
+    if (_vk.KHR_get_physical_device_properties2
+        && _vk.KHR_external_memory_capabilities
+        && _vk.KHR_external_semaphore_capabilities)
     {
         instanceExtensions[instanceExtensionsCount++] = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
         instanceExtensions[instanceExtensionsCount++] = VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME;
         instanceExtensions[instanceExtensionsCount++] = VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME;
     }
 
-    if (EXT_debug_utils)
+    if (_vk.EXT_debug_utils)
     {
         instanceExtensions[instanceExtensionsCount++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
     }
@@ -843,7 +978,7 @@ VkResult VgpuRendererVk::createInstance(const char* applicationName, bool valida
 #ifdef VGPU_DEBUG
     if (validation)
     {
-        if (!EXT_debug_utils && EXT_debug_report)
+        if (!_vk.EXT_debug_utils && _vk.EXT_debug_report)
         {
             instanceExtensions[instanceExtensionsCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
         }
@@ -854,7 +989,7 @@ VkResult VgpuRendererVk::createInstance(const char* applicationName, bool valida
             force_no_validation = true;
         }*/
 
-        if (!force_no_validation && VK_LAYER_LUNARG_standard_validation)
+        if (!force_no_validation && _vk.VK_LAYER_LUNARG_standard_validation)
         {
             instanceLayers[instanceLayersCount++] = "VK_LAYER_LUNARG_standard_validation";
         }
@@ -862,35 +997,10 @@ VkResult VgpuRendererVk::createInstance(const char* applicationName, bool valida
 #endif
 
     if (!headless
-        && KHR_surface)
+        && _vk.KHR_surface)
     {
-        instanceExtensions[instanceExtensionsCount++] = VK_KHR_SURFACE_EXTENSION_NAME;
-
-#if defined(_WIN32) || defined(_WIN64)
-        if (KHR_win32_surface)
-        {
-            instanceExtensions[instanceExtensionsCount++] = "VK_KHR_win32_surface";
-        }
-#elif defined(__ANDROID__)
-        if (KHR_android_surface)
-        {
-            instanceExtensions[instanceExtensionsCount++] = "VK_KHR_android_surface"
-        }
-#elif defined(__APPLE__)
-        if (MVK_macos_surface)
-        {
-            instanceExtensions[instanceExtensionsCount++] = "VK_MVK_macos_surface";
-        }
-#elif defined(__linux__)
-        if (strcmp(KHR_xlib_surface)
-        {
-            instanceExtensions[instanceExtensionsCount++] = "VK_KHR_xlib_surface";
-        }
-        else if (KHR_wayland_surface)
-        {
-            instanceExtensions[instanceExtensionsCount++] = "VK_KHR_wayland_surface";
-        }
-#endif
+        instanceExtensions[instanceExtensionsCount++] = "VK_KHR_surface";
+        instanceExtensions[instanceExtensionsCount++] = VK_SURFACE_EXT;
     }
 
     VkInstanceCreateInfo instanceCreateInfo;
@@ -902,17 +1012,17 @@ VkResult VgpuRendererVk::createInstance(const char* applicationName, bool valida
     instanceCreateInfo.ppEnabledLayerNames = instanceLayers;
     instanceCreateInfo.enabledExtensionCount = instanceExtensionsCount;
     instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions;
-    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
+    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &_vk.instance);
     if (result != VK_SUCCESS)
     {
         return result;
     }
 
-    volkLoadInstance(_instance);
+    volkLoadInstance(_vk.instance);
 
     if (validation)
     {
-        if (EXT_debug_utils)
+        if (_vk.EXT_debug_utils)
         {
             VkDebugUtilsMessengerCreateInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
             info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
@@ -924,16 +1034,16 @@ VkResult VgpuRendererVk::createInstance(const char* applicationName, bool valida
                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
                 VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
             info.pUserData = this;
-            vkCreateDebugUtilsMessengerEXT(_instance, &info, nullptr, &_debugMessenger);
+            vkCreateDebugUtilsMessengerEXT(_vk.instance, &info, nullptr, &_debugMessenger);
         }
-        else if (EXT_debug_report)
+        else if (_vk.EXT_debug_report)
         {
             VkDebugReportCallbackCreateInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
             info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
                 VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
             info.pfnCallback = vgpuVkDebugCallback;
             info.pUserData = this;
-            vkCreateDebugReportCallbackEXT(_instance, &info, nullptr, &_debugCallback);
+            vkCreateDebugReportCallbackEXT(_vk.instance, &info, nullptr, &_debugCallback);
         }
     }
 
@@ -943,7 +1053,7 @@ VkResult VgpuRendererVk::createInstance(const char* applicationName, bool valida
 VkResult VgpuRendererVk::detectPhysicalDevice(VgpuDevicePreference preference)
 {
     uint32_t gpuCount = 0;
-    vkEnumeratePhysicalDevices(_instance, &gpuCount, nullptr);
+    vkEnumeratePhysicalDevices(_vk.instance, &gpuCount, nullptr);
     if (gpuCount == 0)
     {
         //ALIMER_LOGCRITICAL("Vulkan: No physical device detected");
@@ -951,7 +1061,7 @@ VkResult VgpuRendererVk::detectPhysicalDevice(VgpuDevicePreference preference)
     }
 
     VkPhysicalDevice* physicalDevices = (VkPhysicalDevice*)alloca(gpuCount * sizeof(VkPhysicalDevice));
-    vkEnumeratePhysicalDevices(_instance, &gpuCount, physicalDevices);
+    vkEnumeratePhysicalDevices(_vk.instance, &gpuCount, physicalDevices);
     uint32_t bestDeviceScore = 0U;
     uint32_t bestDeviceIndex = ~0u;
     for (uint32_t i = 0; i < gpuCount; ++i)
@@ -998,23 +1108,23 @@ VkResult VgpuRendererVk::detectPhysicalDevice(VgpuDevicePreference preference)
     return VK_SUCCESS;
 }
 
-VkResult VgpuRendererVk::createDevice()
+VkResult VgpuRendererVk::createDevice(VkSurfaceKHR surface)
 {
     VkResult result = VK_SUCCESS;
 
     for (uint32_t i = 0; i < _physicalDevice->queueFamilyCount; i++)
     {
-        VkBool32 supported = _mainWindowSurface == VK_NULL_HANDLE;
-        if (_mainWindowSurface != VK_NULL_HANDLE)
+        VkBool32 supported = surface == VK_NULL_HANDLE;
+        if (surface != VK_NULL_HANDLE)
         {
-            vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice->device, i, _mainWindowSurface, &supported);
+            vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice->device, i, surface, &supported);
         }
 
         static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT;
         if (supported
             && ((_physicalDevice->queueFamilyProperties[i].queueFlags & required) == required))
         {
-            _graphicsQueueFamily = i;
+            _vk.graphicsQueueFamily = i;
             break;
         }
     }
@@ -1022,10 +1132,10 @@ VkResult VgpuRendererVk::createDevice()
     for (uint32_t i = 0; i < _physicalDevice->queueFamilyCount; i++)
     {
         static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT;
-        if (i != _graphicsQueueFamily
+        if (i != _vk.graphicsQueueFamily
             && (_physicalDevice->queueFamilyProperties[i].queueFlags & required) == required)
         {
-            _computeQueueFamily = i;
+            _vk.computeQueueFamily = i;
             break;
         }
     }
@@ -1033,30 +1143,30 @@ VkResult VgpuRendererVk::createDevice()
     for (uint32_t i = 0; i < _physicalDevice->queueFamilyCount; i++)
     {
         static const VkQueueFlags required = VK_QUEUE_TRANSFER_BIT;
-        if (i != _graphicsQueueFamily
-            && i != _computeQueueFamily
+        if (i != _vk.graphicsQueueFamily
+            && i != _vk.computeQueueFamily
             && (_physicalDevice->queueFamilyProperties[i].queueFlags & required) == required)
         {
-            _transferQueueFamily = i;
+            _vk.transferQueueFamily = i;
             break;
         }
     }
 
-    if (_transferQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+    if (_vk.transferQueueFamily == VK_QUEUE_FAMILY_IGNORED)
     {
         for (uint32_t i = 0; i < _physicalDevice->queueFamilyCount; i++)
         {
             static const VkQueueFlags required = VK_QUEUE_TRANSFER_BIT;
-            if (i != _graphicsQueueFamily
+            if (i != _vk.graphicsQueueFamily
                 && (_physicalDevice->queueFamilyProperties[i].queueFlags & required) == required)
             {
-                _transferQueueFamily = i;
+                _vk.transferQueueFamily = i;
                 break;
             }
         }
     }
 
-    if (_graphicsQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+    if (_vk.graphicsQueueFamily == VK_QUEUE_FAMILY_IGNORED)
     {
         //ALIMER_LOGERROR("Vulkan: Invalid graphics queue family");
         return VK_ERROR_INITIALIZATION_FAILED;
@@ -1067,22 +1177,22 @@ VkResult VgpuRendererVk::createDevice()
     uint32_t computeQueueIndex = 0;
     uint32_t transferQueueIndex = 0;
 
-    if (_computeQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+    if (_vk.computeQueueFamily == VK_QUEUE_FAMILY_IGNORED)
     {
-        _computeQueueFamily = _graphicsQueueFamily;
-        computeQueueIndex = _vgpu_min(_physicalDevice->queueFamilyProperties[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
+        _vk.computeQueueFamily = _vk.graphicsQueueFamily;
+        computeQueueIndex = _vgpu_min(_physicalDevice->queueFamilyProperties[_vk.graphicsQueueFamily].queueCount - 1, universalQueueIndex);
         universalQueueIndex++;
     }
 
-    if (_transferQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+    if (_vk.transferQueueFamily == VK_QUEUE_FAMILY_IGNORED)
     {
-        _transferQueueFamily = _graphicsQueueFamily;
-        transferQueueIndex = _vgpu_min(_physicalDevice->queueFamilyProperties[_graphicsQueueFamily].queueCount - 1, universalQueueIndex);
+        _vk.transferQueueFamily = _vk.graphicsQueueFamily;
+        transferQueueIndex = _vgpu_min(_physicalDevice->queueFamilyProperties[_vk.graphicsQueueFamily].queueCount - 1, universalQueueIndex);
         universalQueueIndex++;
     }
-    else if (_transferQueueFamily == _computeQueueFamily)
+    else if (_vk.transferQueueFamily == _vk.computeQueueFamily)
     {
-        transferQueueIndex = _vgpu_min(_physicalDevice->queueFamilyProperties[_computeQueueFamily].queueCount - 1, 1u);
+        transferQueueIndex = _vgpu_min(_physicalDevice->queueFamilyProperties[_vk.computeQueueFamily].queueCount - 1, 1u);
     }
 
     static const float graphicsQueuePriority = 0.5f;
@@ -1097,26 +1207,26 @@ VkResult VgpuRendererVk::createDevice()
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfo;
 
     queueCreateInfo[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo[queueFamilyCount].queueFamilyIndex = _graphicsQueueFamily;
-    queueCreateInfo[queueFamilyCount].queueCount = _vgpu_min(universalQueueIndex, _physicalDevice->queueFamilyProperties[_graphicsQueueFamily].queueCount);
+    queueCreateInfo[queueFamilyCount].queueFamilyIndex = _vk.graphicsQueueFamily;
+    queueCreateInfo[queueFamilyCount].queueCount = _vgpu_min(universalQueueIndex, _physicalDevice->queueFamilyProperties[_vk.graphicsQueueFamily].queueCount);
     queueCreateInfo[queueFamilyCount].pQueuePriorities = queuePriorities;
     queueFamilyCount++;
 
-    if (_computeQueueFamily != _graphicsQueueFamily)
+    if (_vk.computeQueueFamily != _vk.graphicsQueueFamily)
     {
         queueCreateInfo[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo[queueFamilyCount].queueFamilyIndex = _computeQueueFamily;
-        queueCreateInfo[queueFamilyCount].queueCount = _vgpu_min(_transferQueueFamily == _computeQueueFamily ? 2u : 1u,
-            _physicalDevice->queueFamilyProperties[_computeQueueFamily].queueCount);
+        queueCreateInfo[queueFamilyCount].queueFamilyIndex = _vk.computeQueueFamily;
+        queueCreateInfo[queueFamilyCount].queueCount = _vgpu_min(_vk.transferQueueFamily == _vk.computeQueueFamily ? 2u : 1u,
+            _physicalDevice->queueFamilyProperties[_vk.computeQueueFamily].queueCount);
         queueCreateInfo[queueFamilyCount].pQueuePriorities = queuePriorities + 1;
         queueFamilyCount++;
     }
 
-    if (_transferQueueFamily != _graphicsQueueFamily
-        && _transferQueueFamily != _computeQueueFamily)
+    if (_vk.transferQueueFamily != _vk.graphicsQueueFamily
+        && _vk.transferQueueFamily != _vk.computeQueueFamily)
     {
         queueCreateInfo[queueFamilyCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo[queueFamilyCount].queueFamilyIndex = _transferQueueFamily;
+        queueCreateInfo[queueFamilyCount].queueFamilyIndex = _vk.transferQueueFamily;
         queueCreateInfo[queueFamilyCount].queueCount = 1;
         queueCreateInfo[queueFamilyCount].pQueuePriorities = queuePriorities + 2;
         queueFamilyCount++;
@@ -1124,7 +1234,7 @@ VkResult VgpuRendererVk::createDevice()
 
     uint32_t enabledExtensionsCount = 0;
     const char* enabledExtensions[20];
-    if (_mainWindowSurface != VK_NULL_HANDLE)
+    if (surface != VK_NULL_HANDLE)
     {
         enabledExtensions[enabledExtensionsCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
     }
@@ -1138,42 +1248,42 @@ VkResult VgpuRendererVk::createDevice()
     if (vgpuVkIsExtensionSupported(_physicalDevice, VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME)
         && vgpuVkIsExtensionSupported(_physicalDevice, VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME))
     {
-        _featuresVk.supportsDedicated = true;
+        _vk.features.supportsDedicated = true;
         enabledExtensions[enabledExtensionsCount++] = VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME;
         enabledExtensions[enabledExtensionsCount++] = VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME;
     }
 
     if (vgpuVkIsExtensionSupported(_physicalDevice, VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME))
     {
-        _featuresVk.supportsImageFormatList = true;
+        _vk.features.supportsImageFormatList = true;
         enabledExtensions[enabledExtensionsCount++] = VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME;
     }
 
     if (vgpuVkIsExtensionSupported(_physicalDevice, VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME))
     {
-        _featuresVk.supportsGoogleDisplayTiming = true;
+        _vk.features.supportsGoogleDisplayTiming = true;
         enabledExtensions[enabledExtensionsCount++] = VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME;
     }
 
-    if (EXT_debug_utils)
+    if (_vk.EXT_debug_utils)
     {
-        _featuresVk.supportsDebugUtils = true;
+        _vk.features.supportsDebugUtils = true;
     }
 
     if (vgpuVkIsExtensionSupported(_physicalDevice, VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
     {
-        _featuresVk.supportsDebugMarker = true;
+        _vk.features.supportsDebugMarker = true;
         enabledExtensions[enabledExtensionsCount++] = VK_EXT_DEBUG_MARKER_EXTENSION_NAME;
     }
 
     if (vgpuVkIsExtensionSupported(_physicalDevice, VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME))
     {
-        _featuresVk.supportsMirrorClampToEdge = true;
+        _vk.features.supportsMirrorClampToEdge = true;
         enabledExtensions[enabledExtensionsCount++] = VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME;
     }
 
     VkPhysicalDeviceFeatures2KHR features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
-    if (KHR_get_physical_device_properties2)
+    if (_vk.KHR_get_physical_device_properties2)
     {
         vkGetPhysicalDeviceFeatures2KHR(_physicalDevice->device, &features);
     }
@@ -1213,7 +1323,7 @@ VkResult VgpuRendererVk::createDevice()
         features.features = enabled_features;
     }
 
-    if (KHR_get_physical_device_properties2)
+    if (_vk.KHR_get_physical_device_properties2)
     {
         deviceCreateInfo.pNext = &features;
     }
@@ -1229,17 +1339,19 @@ VkResult VgpuRendererVk::createDevice()
     deviceCreateInfo.enabledExtensionCount = enabledExtensionsCount;
     deviceCreateInfo.ppEnabledExtensionNames = enabledExtensions;
 
-    result = vkCreateDevice(_physicalDevice->device, &deviceCreateInfo, nullptr, &_device);
+    _vk.physicalDevice = _physicalDevice->device;
+    _vk.physicalDeviceProperties = _physicalDevice->properties;
+    result = vkCreateDevice(_vk.physicalDevice, &deviceCreateInfo, nullptr, &_vk.device);
     if (result != VK_SUCCESS)
     {
         //ALIMER_LOGERROR("Vulkan: Failed to create device");
         return result;
     }
 
-    volkLoadDevice(_device);
-    vkGetDeviceQueue(_device, _graphicsQueueFamily, graphicsQueueIndex, &_graphicsQueue);
-    vkGetDeviceQueue(_device, _computeQueueFamily, computeQueueIndex, &_computeQueue);
-    vkGetDeviceQueue(_device, _transferQueueFamily, transferQueueIndex, &_transferQueue);
+    volkLoadDevice(_vk.device);
+    vkGetDeviceQueue(_vk.device, _vk.graphicsQueueFamily, graphicsQueueIndex, &_vk.graphicsQueue);
+    vkGetDeviceQueue(_vk.device, _vk.computeQueueFamily, computeQueueIndex, &_vk.computeQueue);
+    vkGetDeviceQueue(_vk.device, _vk.transferQueueFamily, transferQueueIndex, &_vk.transferQueue);
 
     // Set up VMA.
     VmaVulkanFunctions vulkanFunctions = {};
@@ -1267,7 +1379,7 @@ VkResult VgpuRendererVk::createDevice()
 
     VmaAllocatorCreateInfo allocatorCreateInfo = {};
     allocatorCreateInfo.physicalDevice = _physicalDevice->device;
-    allocatorCreateInfo.device = _device;
+    allocatorCreateInfo.device = _vk.device;
     allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
     result = vmaCreateAllocator(&allocatorCreateInfo, &_memoryAllocator);
     if (result != VK_SUCCESS)
@@ -1278,7 +1390,7 @@ VkResult VgpuRendererVk::createDevice()
     return result;
 }
 
-VkResult VgpuRendererVk::createSurface(const VgpuSwapchainDescriptor*  descriptor, VkSurfaceKHR* pSurface)
+VkResult vgpuVkCreateSurface(const VgpuSwapchainDescriptor*  descriptor, VkSurfaceKHR* pSurface)
 {
     VkResult result = VK_SUCCESS;
     if (descriptor == nullptr)
@@ -1286,68 +1398,76 @@ VkResult VgpuRendererVk::createSurface(const VgpuSwapchainDescriptor*  descripto
         return result;
     }
 
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#if defined(_WIN32) || defined(_WIN64)
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
-    memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    if (descriptor->nativeDisplay != 0)
-    {
-        surfaceCreateInfo.hinstance = (HINSTANCE)descriptor->nativeDisplay;
-    }
-    else
-    {
+    surfaceCreateInfo.pNext = nullptr;
+    surfaceCreateInfo.flags = 0;
+    if (descriptor->nativeDisplay == 0) {
         surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
+    }
+    else {
+        surfaceCreateInfo.hinstance = (HMODULE)descriptor->nativeDisplay;
     }
 
     surfaceCreateInfo.hwnd = (HWND)descriptor->nativeHandle;
-    PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHRProc = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(_instance, "vkCreateWin32SurfaceKHR");
-    result = vkCreateWin32SurfaceKHRProc(_instance, &surfaceCreateInfo, nullptr, pSurface);
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+#elif defined(__ANDROID__)
     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo;
-    memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.window = (ANativeWindow)descriptor->nativeHandle;
-    PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHRProc = (PFN_vkCreateAndroidSurfaceKHR)vkGetInstanceProcAddr(_instance, "vkCreateAndroidSurfaceKHR");
-    result = vkCreateAndroidSurfaceKHRProc(_instance, &surfaceCreateInfo, NULL, pSurface);
+    surfaceCreateInfo.pNext = nullptr;
+    surfaceCreateInfo.flags = 0;
+    surfaceCreateInfo.window = (ANativeWindow*)descriptor->nativeHandle;
+#elif defined(__linux__)
+    VkXcbSurfaceCreateInfoKHR surfaceCreateInfo;
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.pNext = nullptr;
+    surfaceCreateInfo.flags = 0;
+
+    if (descriptor->nativeDisplay == 0) {
+        static xcb_connection_t* XCB_CONNECTION = nullptr;
+        if (XCB_CONNECTION == nullptr) {
+            int screenIndex = 0;
+            xcb_screen_t* screen = nullptr;
+            xcb_connection_t* connection = xcb_connect(NULL, &screenIndex);
+            const xcb_setup_t *setup = xcb_get_setup(connection);
+            for (xcb_screen_iterator_t it = xcb_setup_roots_iterator(setup);
+                screen >= 0 && it.rem;
+                xcb_screen_next(&it)) {
+                if (screenIndex-- == 0) {
+                    screen = it.data;
+                }
+            }
+            assert(screen);
+            XCB_CONNECTION = connection;
+        }
+
+        surfaceCreateInfo.connection = XCB_CONNECTION;
+    }
+    else {
+        surfaceCreateInfo.connection = (xcb_connection_t*)descriptor->nativeDisplay;
+    }
+    
+    surfaceCreateInfo.window = (xcb_window_t)descriptor->nativeHandle;
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
     VkIOSSurfaceCreateInfoMVK surfaceCreateInfo;
     memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
     surfaceCreateInfo.pView = descriptor->nativeHandle;
-    PFN_vkCreateIOSSurfaceMVK vkCreateIOSSurfaceMVKProc = (PFN_vkCreateIOSSurfaceMVK)vkGetInstanceProcAddr(_instance, "vkCreateIOSSurfaceMVK");
-    result = vkCreateIOSSurfaceMVKProc(_instance, &surfaceCreateInfo, nullptr, pSurface);
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
     VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo;
     memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
     surfaceCreateInfo.pView = descriptor->nativeHandle;
-    PFN_vkCreateMacOSSurfaceMVK vkCreateMacOSSurfaceMVKProc = (PFN_vkCreateMacOSSurfaceMVK)vkGetInstanceProcAddr(_instance, "vkCreateMacOSSurfaceMVK");
-    result = vkCreateMacOSSurfaceMVKProc(_instance, &surfaceCreateInfo, NULL, pSurface);
-#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-    VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo;
-    memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
-    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.display = (wl_display*)descriptor->display;
-    surfaceCreateInfo.surface = (wl_surface*)descriptor->windowHandle;
-    PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHRProc = (PFN_vkCreateWaylandSurfaceKHR)vkGetInstanceProcAddr(_instance, "vkCreateWaylandSurfaceKHR");
-    result = vkCreateWaylandSurfaceKHRProc(_instance, &surfaceCreateInfo, nullptr, pSurface);
-#elif defined(VK_USE_PLATFORM_XLIB_KHR)
-    VkXlibSurfaceCreateInfoKHR surfaceCreateInfo;
-    memset(&surfaceCreateInfo, 0, sizeof(surfaceCreateInfo));
-    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.dpy = (Display*)descriptor->nativeDisplay;
-    surfaceCreateInfo.window = (Window)descriptor->nativeHandle;
-    PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHRProc = (PFN_vkCreateXlibSurfaceKHR)vkGetInstanceProcAddr(_instance, "vkCreateXlibSurfaceKHR");
-    result = vkCreateXlibSurfaceKHRProc(_instance, &surfaceCreateInfo, nullptr, pSurface);
 #endif
 
+    result = VK_CREATE_SURFACE_FN(_vk.instance, &surfaceCreateInfo, nullptr, pSurface);
     return result;
 }
 
-VgpuResult VgpuRendererVk::createSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwapchainKHR oldSwapchain, VkSurfaceKHR surface, VgpuSwapchain* pSwapchain)
+VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwapchainKHR oldSwapchain, VkSurfaceKHR surface, VgpuSwapchain* pSwapchain)
 {
     VkSurfaceCapabilitiesKHR surfaceCaps;
-    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_physicalDevice->device, surface, &surfaceCaps) != VK_SUCCESS)
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_vk.physicalDevice, surface, &surfaceCaps) != VK_SUCCESS)
     {
         return VGPU_ERROR_INITIALIZATION_FAILED;
     }
@@ -1360,16 +1480,16 @@ VgpuResult VgpuRendererVk::createSwapchain(const VgpuSwapchainDescriptor* descri
     }
 
     VkBool32 supported = VK_FALSE;
-    vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice->device, _graphicsQueueFamily, surface, &supported);
+    vkGetPhysicalDeviceSurfaceSupportKHR(_vk.physicalDevice, _vk.graphicsQueueFamily, surface, &supported);
     if (!supported)
     {
         return VGPU_ERROR_INITIALIZATION_FAILED;
     }
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice->device, surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(_vk.physicalDevice, surface, &formatCount, nullptr);
     VkSurfaceFormatKHR *formats = (VkSurfaceFormatKHR*)alloca(sizeof(VkSurfaceFormatKHR) * formatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice->device, surface, &formatCount, formats);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(_vk.physicalDevice, surface, &formatCount, formats);
 
     VkSurfaceFormatKHR format = { VK_FORMAT_UNDEFINED, VK_COLORSPACE_SRGB_NONLINEAR_KHR };
     if (formatCount == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
@@ -1416,9 +1536,9 @@ VgpuResult VgpuRendererVk::createSwapchain(const VgpuSwapchainDescriptor* descri
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(_physicalDevice->device, surface, &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(_vk.physicalDevice, surface, &presentModeCount, nullptr);
     VkPresentModeKHR *presentModes = (VkPresentModeKHR*)alloca(sizeof(VkPresentModeKHR) * presentModeCount);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(_physicalDevice->device, surface, &presentModeCount, presentModes);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(_vk.physicalDevice, surface, &presentModeCount, presentModes);
 
     VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
     if (!descriptor->vsync)
@@ -1439,8 +1559,7 @@ VgpuResult VgpuRendererVk::createSwapchain(const VgpuSwapchainDescriptor* descri
         desiredNumberOfSwapchainImages = surfaceCaps.minImageCount;
     }
 
-    if ((surfaceCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfaceCaps.maxImageCount))
-    {
+    if ((surfaceCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfaceCaps.maxImageCount)) {
         desiredNumberOfSwapchainImages = surfaceCaps.maxImageCount;
     }
 
@@ -1497,64 +1616,232 @@ VgpuResult VgpuRendererVk::createSwapchain(const VgpuSwapchainDescriptor* descri
     }
 
     VkSwapchainKHR swapchain;
-    VkResult result = vkCreateSwapchainKHR(_device, &createInfo, nullptr, &swapchain);
+    VkResult result = vkCreateSwapchainKHR(_vk.device, &createInfo, nullptr, &swapchain);
     if (result != VK_SUCCESS)
     {
         //ALIMER_LOGCRITICAL("Vulkan: Failed to create swapchain, error: {}", vkGetVulkanResultString(result));
         return vgpuVkConvertResult(result);
     }
 
+    VgpuSwapchain handle = VGPU_ALLOC_HANDLE(VgpuSwapchain);
+    handle->vk_handle = swapchain;
+    handle->depthStencilFormat = VK_FORMAT_UNDEFINED;
+
+    if (descriptor->depthStencil) {
+        VkFormat depthFormats[] = {
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D24_UNORM_S8_UINT,
+            VK_FORMAT_D16_UNORM_S8_UINT,
+            VK_FORMAT_D16_UNORM };
+        for (auto& format : depthFormats) {
+            VkFormatProperties formatProps;
+            vkGetPhysicalDeviceFormatProperties(_vk.physicalDevice, format, &formatProps);
+            if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+                handle->depthStencilFormat = format;
+                break;
+            }
+        }
+    }
     if (oldSwapchain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(_device, oldSwapchain, nullptr);
+        for (uint32_t i = 0u; i < handle->imageCount; i++)
+        {
+            vkDestroyImageView(_vk.device, handle->imageViews[i], nullptr);
+        }
+
+        vkDestroySwapchainKHR(_vk.device, oldSwapchain, nullptr);
     }
 
 
-    VgpuSwapchain handle = VGPU_ALLOC_HANDLE(VgpuSwapchain);
-    handle->surface = surface;
-    handle->swapchain = swapchain;
+    /* Create swap chain render pass */
+    VkAttachmentDescription attachments[4u] = {};
+    uint32_t attachmentCount = 0u;
+    VkAttachmentReference colorReference;
+    VkAttachmentReference resolveReference;
+    VkAttachmentReference depthReference;
 
-    vkGetSwapchainImagesKHR(_device, swapchain, &handle->imageCount, nullptr);
-    handle->images = VGPU_ALLOCN(VkImage, handle->imageCount);
-    vkGetSwapchainImagesKHR(_device, swapchain, &handle->imageCount, handle->images);
+    VkSubpassDescription subpassDescription;
+    subpassDescription.flags = 0u;
+    subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpassDescription.inputAttachmentCount = 0;
+    subpassDescription.pInputAttachments = nullptr;
+    subpassDescription.colorAttachmentCount = 1;
+    subpassDescription.pColorAttachments = &colorReference;
+    subpassDescription.pResolveAttachments = nullptr;
+    subpassDescription.pDepthStencilAttachment = nullptr;
+    subpassDescription.preserveAttachmentCount = 0;
+    subpassDescription.pPreserveAttachments = nullptr;
 
-    // Create semaphores to be signaled when a swapchain image becomes available.
-    handle->imageSemaphores = VGPU_ALLOCN(VkSemaphore, handle->imageCount);
-    for (uint32_t i = 0u; i < handle->imageCount; ++i)
-    {
-        //VkFenceCreateInfo fenceCreateInfo = {};
-        //fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        //fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        //vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_waitFences[i]));
+    /* Optional depth reference */
+    if (descriptor->samples > 1u) {
+        colorReference.attachment = 0;
+        colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkSemaphoreCreateInfo semaphoreCreateInfo;
-        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        semaphoreCreateInfo.pNext = nullptr;
-        semaphoreCreateInfo.flags = 0;
-        result = vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &handle->imageSemaphores[i]);
-        if (result != VK_SUCCESS)
-        {
-            return vgpuVkConvertResult(result);
+        // Multisampled attachment that we render to
+        attachments[attachmentCount].format = format.format;
+        attachments[attachmentCount].samples = (VkSampleCountFlagBits)descriptor->samples;
+        attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        ++attachmentCount;
+
+        // This is the frame buffer attachment to where the multisampled image
+        // will be resolved to and which will be presented to the swapchain
+        attachments[attachmentCount].format = format.format;
+        attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
+        attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        ++attachmentCount;
+
+        // Resolve attachment reference for the color attachment
+        resolveReference.attachment = 1;
+        resolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        subpassDescription.pResolveAttachments = &resolveReference;
+
+        if (handle->depthStencilFormat != VK_FORMAT_UNDEFINED) {
+            // Multisampled depth attachment we render to
+            attachments[attachmentCount].format = handle->depthStencilFormat;
+            attachments[attachmentCount].samples = (VkSampleCountFlagBits)descriptor->samples;
+            attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            ++attachmentCount;
+
+            // Depth resolve attachment
+            attachments[attachmentCount].format = handle->depthStencilFormat;
+            attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            ++attachmentCount;
+
+            depthReference = {};
+            depthReference.attachment = 2;
+            depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            subpassDescription.pDepthStencilAttachment = &depthReference;
+        }
+    }
+    else {
+        colorReference.attachment = 0;
+        colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        // Color attachment
+        attachments[attachmentCount].format = format.format;
+        attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
+        attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        ++attachmentCount;
+
+        // Depth attachment
+        if (handle->depthStencilFormat != VK_FORMAT_UNDEFINED) {
+            attachments[attachmentCount].format = handle->depthStencilFormat;
+            attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            ++attachmentCount;
+
+            depthReference.attachment = 1;
+            depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            subpassDescription.pDepthStencilAttachment = &depthReference;
         }
     }
 
-    // Clear or transition to default image layout
+    // Subpass dependencies for layout transitions
+    VkSubpassDependency dependencies[2u];
+
+    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[0].dstSubpass = 0;
+    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    dependencies[1].srcSubpass = 0;
+    dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    VkRenderPassCreateInfo renderPassCreateInfo;
+    renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassCreateInfo.pNext = nullptr;
+    renderPassCreateInfo.flags = 0u;
+    renderPassCreateInfo.attachmentCount = attachmentCount;
+    renderPassCreateInfo.pAttachments = attachments;
+    renderPassCreateInfo.subpassCount = 1u;
+    renderPassCreateInfo.pSubpasses = &subpassDescription;
+    renderPassCreateInfo.dependencyCount = 2u;
+    renderPassCreateInfo.pDependencies = dependencies;
+    result = vkCreateRenderPass(_vk.device, &renderPassCreateInfo, nullptr, &handle->renderPass);
+
+    vkGetSwapchainImagesKHR(_vk.device, swapchain, &handle->imageCount, nullptr);
+    handle->images = VGPU_ALLOCN(VkImage, handle->imageCount);
+    handle->imageSemaphores = VGPU_ALLOCN(VkSemaphore, handle->imageCount);
+    handle->imageViews = VGPU_ALLOCN(VkImageView, handle->imageCount);
+    //handle->textures = VGPU_ALLOCN(VgpuTexture, handle->imageCount);
+    //handle->framebuffers = VGPU_ALLOCN(VgpuFramebuffer, handle->imageCount);
+    handle->framebuffers = VGPU_ALLOCN(VkFramebuffer, handle->imageCount);
+    vkGetSwapchainImagesKHR(_vk.device, swapchain, &handle->imageCount, handle->images);
+
+    /* Setup texture descriptor */
+    VgpuTextureDescriptor textureDescriptor;
+    memset(&textureDescriptor, 0, sizeof(textureDescriptor));
+    textureDescriptor.type = VGPU_TEXTURE_TYPE_2D;
+    textureDescriptor.width = swapchainSize.width;
+    textureDescriptor.height = swapchainSize.height;
+    textureDescriptor.depthOrArraySize = 1;
+    textureDescriptor.mipLevels = 1;
+    textureDescriptor.usage = textureUsage;
+    textureDescriptor.samples = AGPU_SAMPLE_COUNT1;
+    textureDescriptor.sRGB = false;
+
+    /* Convert pixel format to vgpu */
+    textureDescriptor.format = vgpuGetPixelFormat(createInfo.imageFormat, textureDescriptor.sRGB);
+
+    /* Setup framebuffer descriptor */
+    //VgpuFramebufferDescriptor framebufferDescriptor;
+    //memset(&framebufferDescriptor, 0, sizeof(framebufferDescriptor));
+
+    /* Clear or transition to default image layout */
     const bool canClear = createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    VgpuCommandBuffer clearImageCmdBuffer;
-    createCommandBuffer(_graphicsCommandQueue, VK_COMMAND_BUFFER_LEVEL_PRIMARY, &clearImageCmdBuffer);
-    beginCommandBuffer(clearImageCmdBuffer);
+    VgpuCommandBufferDescriptor commandBufferDescriptor = {};
+    commandBufferDescriptor.type = VGPU_COMMAND_QUEUE_TYPE_GRAPHICS;
+    VgpuCommandBuffer clearImageCmdBuffer = vgpuCreateCommandBuffer(&commandBufferDescriptor);
+    vgpuBeginCommandBuffer(clearImageCmdBuffer);
     for (uint32_t i = 0u; i < handle->imageCount; ++i)
     {
-        // Create backend texture.
-        //_swapchainTextures[i] = std::make_unique<TextureVk>(_device, &textureDescriptor, swapchainImages[i], nullptr);
-
         // Clear with default value if supported.
         if (canClear)
         {
             // Clear images with default color.
             VkClearColorValue clearColor = {};
             clearColor.float32[3] = 1.0f;
-            clearColor.float32[0] = 1.0f;
+            //clearColor.float32[0] = 1.0f;
 
             VkImageSubresourceRange clearRange = {};
             clearRange.layerCount = 1;
@@ -1581,68 +1868,102 @@ VgpuResult VgpuRendererVk::createSwapchain(const VgpuSwapchainDescriptor* descri
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
             );
         }
-    }
-    endCommandBuffer(clearImageCmdBuffer);
-    commitCommandBuffer(clearImageCmdBuffer, true);
 
+        // Create image views from swap chain
+        VkImageViewCreateInfo colorAttachmentView = {};
+        colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        colorAttachmentView.pNext = NULL;
+        colorAttachmentView.format = createInfo.imageFormat;
+        colorAttachmentView.components = {
+            VK_COMPONENT_SWIZZLE_R,
+            VK_COMPONENT_SWIZZLE_G,
+            VK_COMPONENT_SWIZZLE_B,
+            VK_COMPONENT_SWIZZLE_A
+        };
+        colorAttachmentView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        colorAttachmentView.subresourceRange.baseMipLevel = 0;
+        colorAttachmentView.subresourceRange.levelCount = 1;
+        colorAttachmentView.subresourceRange.baseArrayLayer = 0;
+        colorAttachmentView.subresourceRange.layerCount = 1;
+        colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        colorAttachmentView.flags = 0;
+        colorAttachmentView.image = handle->images[i];
+
+        vgpuVkLogIfFailed(
+            vkCreateImageView(_vk.device, &colorAttachmentView, nullptr, &handle->imageViews[i])
+        );
+
+        // Create semaphores to be signaled when a swapchain image becomes available.
+        vgpuVkCreateSemaphore(_vk.device, &handle->imageSemaphores[i]);
+
+        // Create backend texture.
+        //handle->textures[i] = vgpuCreateExternalTexture(&textureDescriptor, handle->images[i]);
+
+        // Create framebuffer.
+        //framebufferDescriptor.colorAttachments[0].texture = handle->textures[i];
+        //handle->framebuffers[i] = vgpuCreateFramebuffer(&framebufferDescriptor);
+
+        VkImageView attachments[4];
+        attachments[0] = handle->imageViews[i];
+
+        VkFramebufferCreateInfo framebufferCreateInfo = {};
+        framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferCreateInfo.renderPass = handle->renderPass;
+        // TODO: Correctly handle multisampling and depth texture
+        framebufferCreateInfo.attachmentCount = 1u;
+        framebufferCreateInfo.pAttachments = attachments;
+        framebufferCreateInfo.width = swapchainSize.width;
+        framebufferCreateInfo.height = swapchainSize.height;
+        framebufferCreateInfo.layers = 1;
+
+        vgpuVkLogIfFailed(
+            vkCreateFramebuffer(_vk.device, &framebufferCreateInfo, nullptr, &handle->framebuffers[i])
+        );
+    }
+
+    vgpuEndCommandBuffer(clearImageCmdBuffer);
+    vgpuVkFlushCommandBuffer(clearImageCmdBuffer);
+
+    handle->width = swapchainSize.width;
+    handle->height = swapchainSize.height;
     handle->imageIndex = 0;
     *pSwapchain = handle;
     return VGPU_SUCCESS;
 }
 
-void VgpuRendererVk::destroySwapchain(VgpuSwapchain swapchain)
+void vgpuDestroySwapchain(VgpuSwapchain swapchain)
 {
     VGPU_ASSERT(swapchain);
     for (uint32_t i = 0u; swapchain->imageSemaphores != NULL && i < swapchain->imageCount; ++i)
     {
-        if (swapchain->imageSemaphores[i] != VK_NULL_HANDLE)
-        {
-            vkDestroySemaphore(_device, swapchain->imageSemaphores[i], NULL);
+        if (swapchain->imageSemaphores[i] != VK_NULL_HANDLE) {
+            vkDestroySemaphore(_vk.device, swapchain->imageSemaphores[i], NULL);
         }
     }
 
-    if (swapchain->imageSemaphores != NULL)
-    {
-        VGPU_FREE(swapchain->imageSemaphores);
+    for (uint32_t i = 0u;
+        swapchain->imageViews != NULL && i < swapchain->imageCount; ++i) {
+        vkDestroyImageView(_vk.device, swapchain->imageViews[i], NULL);
     }
 
-    if (swapchain->swapchain != VK_NULL_HANDLE)
-    {
-        vkDestroySwapchainKHR(_device, swapchain->swapchain, NULL);
+    for (uint32_t i = 0u;
+        swapchain->framebuffers && i < swapchain->imageCount; ++i) {
+        vkDestroyFramebuffer(_vk.device, swapchain->framebuffers[i], NULL);
     }
 
+    if (swapchain->renderPass != VK_NULL_HANDLE) {
+        vkDestroyRenderPass(_vk.device, swapchain->renderPass, NULL);
+    }
+
+    if (swapchain->vk_handle != VK_NULL_HANDLE) {
+        vkDestroySwapchainKHR(_vk.device, swapchain->vk_handle, NULL);
+    }
+
+    VGPU_FREE(swapchain->imageSemaphores);
     VGPU_FREE(swapchain->images);
+    //VGPU_FREE(swapchain->textures);
+    VGPU_FREE(swapchain->framebuffers);
     VGPU_FREE(swapchain);
-}
-
-VgpuResult VgpuRendererVk::present(VgpuSwapchain swapchain, VkQueue queue)
-{
-    VGPU_ASSERT(swapchain);
-    VGPU_ASSERT(queue);
-
-    VkResult presentResult = VK_SUCCESS;
-    VkPresentInfoKHR presentInfo;
-
-    memset(&presentInfo, 0, sizeof(presentInfo));
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.pNext = NULL;
-    // Check if a wait semaphore has been specified to wait for before presenting the image
-    //if (waitSemaphore != VK_NULL_HANDLE)
-    //{
-    //    presentInfo.pWaitSemaphores = &waitSemaphore;
-    //    presentInfo.waitSemaphoreCount = 1;
-    //}
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &swapchain->swapchain;
-    presentInfo.pImageIndices = &swapchain->imageIndex;
-    presentInfo.pResults = &presentResult;
-    vkQueuePresentKHR(queue, &presentInfo);
-    if (presentResult != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(presentResult);
-    }
-
-    return VGPU_SUCCESS;
 }
 
 VgpuResult VgpuRendererVk::createCommandQueue(VkQueue queue, uint32_t queueFamilyIndex, VgpuCommandQueue* pCommandQueue)
@@ -1654,7 +1975,7 @@ VgpuResult VgpuRendererVk::createCommandQueue(VkQueue queue, uint32_t queueFamil
     createInfo.queueFamilyIndex = queueFamilyIndex;
 
     VkCommandPool vk_handle;
-    VkResult result = vkCreateCommandPool(_device, &createInfo, nullptr, &vk_handle);
+    VkResult result = vkCreateCommandPool(_vk.device, &createInfo, nullptr, &vk_handle);
     if (result != VK_SUCCESS)
     {
         return vgpuVkConvertResult(result);
@@ -1674,7 +1995,7 @@ void VgpuRendererVk::destoryCommandQueue(VgpuCommandQueue queue)
 
     if (queue->vk_handle != VK_NULL_HANDLE)
     {
-        vkDestroyCommandPool(_device, queue->vk_handle, nullptr);
+        vkDestroyCommandPool(_vk.device, queue->vk_handle, nullptr);
     }
 
     queue->vk_queue = VK_NULL_HANDLE;
@@ -1682,61 +2003,7 @@ void VgpuRendererVk::destoryCommandQueue(VgpuCommandQueue queue)
     VGPU_FREE(queue);
 }
 
-VgpuResult VgpuRendererVk::createCommandBuffer(VgpuCommandQueue queue, VkCommandBufferLevel level, VgpuCommandBuffer* pCommandBuffer)
-{
-    VkCommandBufferAllocateInfo info;
-    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    info.pNext = nullptr;
-    info.commandPool = queue->vk_handle;
-    info.level = level;
-    info.commandBufferCount = 1;
-
-    VkCommandBuffer vk_handle;
-    VkResult result = vkAllocateCommandBuffers(_device, &info, &vk_handle);
-    if (result != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(result);
-    }
-
-    VgpuCommandBuffer handle = VGPU_ALLOC_HANDLE(VgpuCommandBuffer);
-    handle->queue = queue;
-    handle->vk_handle = vk_handle;
-    *pCommandBuffer = handle;
-    return VGPU_SUCCESS;
-}
-
-VgpuResult VgpuRendererVk::beginCommandBuffer(VgpuCommandBuffer commandBuffer)
-{
-    VGPU_ASSERT(commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo;
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.pNext = nullptr;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    beginInfo.pInheritanceInfo = nullptr;
-    VkResult result = vkBeginCommandBuffer(commandBuffer->vk_handle, &beginInfo);
-    if (result != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(result);
-    }
-
-    return VGPU_SUCCESS;
-}
-
-VgpuResult VgpuRendererVk::endCommandBuffer(VgpuCommandBuffer commandBuffer)
-{
-    VGPU_ASSERT(commandBuffer);
-
-    VkResult result = vkEndCommandBuffer(commandBuffer->vk_handle);
-    if (result != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(result);
-    }
-
-    return VGPU_SUCCESS;
-}
-
-VgpuResult VgpuRendererVk::commitCommandBuffer(VgpuCommandBuffer commandBuffer, bool waitUntilCompleted)
+VgpuResult vgpuVkFlushCommandBuffer(VgpuCommandBuffer commandBuffer)
 {
     VGPU_ASSERT(commandBuffer);
     VkResult result = VK_SUCCESS;
@@ -1748,20 +2015,9 @@ VgpuResult VgpuRendererVk::commitCommandBuffer(VgpuCommandBuffer commandBuffer, 
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer->vk_handle;
 
+    // Create fence to ensure that the command buffer has finished executing
     VkFence fence = VK_NULL_HANDLE;
-    if (waitUntilCompleted)
-    {
-        // Create fence to ensure that the command buffer has finished executing
-        VkFenceCreateInfo fenceCreateInfo;
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.pNext = nullptr;
-        fenceCreateInfo.flags = 0;
-        result = vkCreateFence(_device, &fenceCreateInfo, nullptr, &fence);
-        if (result != VK_SUCCESS)
-        {
-            return vgpuVkConvertResult(result);
-        }
-    }
+    vgpuVkCreateFence(_vk.device, false, &fence);
 
     // Submit to the queue
     result = vkQueueSubmit(commandBuffer->queue->vk_queue, 1, &submitInfo, fence);
@@ -1770,24 +2026,18 @@ VgpuResult VgpuRendererVk::commitCommandBuffer(VgpuCommandBuffer commandBuffer, 
         return vgpuVkConvertResult(result);
     }
 
-    if (waitUntilCompleted)
+    // Wait for the fence to signal that command buffer has finished executing.
+    result = vkWaitForFences(_vk.device, 1, &fence, VK_TRUE, UINT64_MAX);
+    if (result != VK_SUCCESS)
     {
-        // Wait for the fence to signal that command buffer has finished executing.
-        result = vkWaitForFences(_device, 1, &fence, VK_TRUE, UINT64_MAX);
-        if (result != VK_SUCCESS)
-        {
-            return vgpuVkConvertResult(result);
-        }
-
-        vkDestroyFence(_device, fence, nullptr);
-
-        // Free immediatelly the command buffer
-        vkFreeCommandBuffers(_device, commandBuffer->queue->vk_handle, 1, &commandBuffer->vk_handle);
+        return vgpuVkConvertResult(result);
     }
+
+    vkDestroyFence(_vk.device, fence, nullptr);
+    vgpuDestroyCommandBuffer(commandBuffer);
 
     return VGPU_SUCCESS;
 }
-
 
 void VgpuRendererVk::initializeFeatures()
 {
@@ -1823,9 +2073,119 @@ void VgpuRendererVk::initializeFeatures()
     _features.SetMinUniformBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment));*/
 }
 
-VgpuResult VgpuRendererVk::waitIdle()
+VgpuResult VgpuRendererVk::beginFrame()
 {
-    VkResult result = vkDeviceWaitIdle(_device);
+    VkResult result = VK_SUCCESS;
+
+    uint32_t frameIndex = s_current_context->frameIndex;
+    if (s_current_context->swapchain != nullptr)
+    {
+        result = vkAcquireNextImageKHR(
+            _vk.device,
+            s_current_context->swapchain->vk_handle,
+            UINT64_MAX,
+            s_current_context->swapchain->imageSemaphores[frameIndex],
+            VK_NULL_HANDLE,
+            &s_current_context->swapchain->imageIndex);
+
+        if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
+        {
+            //_mainSwapChain->Resize();
+        }
+    }
+
+    if (result != VK_SUCCESS)
+    {
+        return vgpuVkConvertResult(result);
+    }
+    else
+    {
+        s_current_context->frameData[frameIndex].submittedCmdBuffersCount = 0;
+        return VGPU_SUCCESS;
+    }
+}
+
+VgpuResult VgpuRendererVk::endFrame()
+{
+    VkResult result = VK_SUCCESS;
+
+    uint32_t frameIndex = s_current_context->frameIndex;
+    const VgpuVkFrameData *frameData = &s_current_context->frameData[frameIndex];
+
+    // Submit the pending command buffers.
+    const VkPipelineStageFlags colorAttachmentStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    uint32_t waitSemaphoreCount = 0u;
+    VkSemaphore* waitSemaphores = NULL;
+    const VkPipelineStageFlags *waitStageMasks = NULL;
+
+    if (s_current_context->swapchain != nullptr) {
+        waitSemaphoreCount++;
+        waitSemaphores = &s_current_context->swapchain->imageSemaphores[frameIndex];
+        waitStageMasks = &colorAttachmentStage;
+    }
+
+    VkSubmitInfo submitInfo;
+    memset(&submitInfo, 0, sizeof(submitInfo));
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.pNext = nullptr;
+    submitInfo.waitSemaphoreCount = waitSemaphoreCount;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStageMasks;
+    submitInfo.commandBufferCount = frameData->submittedCmdBuffersCount;
+    submitInfo.pCommandBuffers = frameData->submittedCmdBuffers;
+    submitInfo.signalSemaphoreCount = frameData->submittedCmdBuffersCount;
+    submitInfo.pSignalSemaphores = frameData->waitSemaphores;
+
+    // Submit to the queue
+    result = vkQueueSubmit(_graphicsCommandQueue->vk_queue, 1, &submitInfo, frameData->fence);
+    if (result != VK_SUCCESS)
+    {
+        return vgpuVkConvertResult(result);
+    }
+
+    if (s_current_context->swapchain != nullptr) {
+        VkResult presentResult = VK_SUCCESS;
+        VkPresentInfoKHR presentInfo;
+
+        memset(&presentInfo, 0, sizeof(presentInfo));
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.pNext = NULL;
+        presentInfo.waitSemaphoreCount = frameData->submittedCmdBuffersCount;
+        presentInfo.pWaitSemaphores = frameData->waitSemaphores;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &s_current_context->swapchain->vk_handle;
+        presentInfo.pImageIndices = &s_current_context->swapchain->imageIndex;
+        presentInfo.pResults = &presentResult;
+        result = vkQueuePresentKHR(_vk.graphicsQueue, &presentInfo);
+        if (result != VK_SUCCESS)
+        {
+            return vgpuVkConvertResult(presentResult);
+        }
+    }
+
+    // Wait for frame fence.
+    result = vkWaitForFences(_vk.device, 1, &frameData->fence, VK_TRUE, UINT64_MAX);
+    if (result != VK_SUCCESS)
+    {
+        return vgpuVkConvertResult(result);
+    }
+    result = vkResetFences(_vk.device, 1, &frameData->fence);
+    if (result != VK_SUCCESS)
+    {
+        return vgpuVkConvertResult(result);
+    }
+
+    // Advance frame index.
+    s_current_context->frameIndex = (s_current_context->frameIndex + 1u) % s_current_context->maxInflightFrames;
+
+    // TODO: Delete all pending/deferred resources
+    // TODO: Free all command buffers (not submitted).
+
+    return vgpuVkConvertResult(result);
+}
+
+VgpuResult VgpuRendererVk::waitIdle() {
+    VkResult result = vkDeviceWaitIdle(_vk.device);
     if (result < VK_SUCCESS)
     {
         return vgpuVkConvertResult(result);
@@ -1834,98 +2194,465 @@ VgpuResult VgpuRendererVk::waitIdle()
     return VGPU_SUCCESS;
 }
 
-VgpuResult VgpuRendererVk::beginFrame()
-{
-    VkResult result = VK_SUCCESS;
-    
-    if (_mainSwapchain != nullptr)
-    {
-        vkAcquireNextImageKHR(
-            _device,
-            _mainSwapchain->swapchain,
-            UINT64_MAX,
-            _mainSwapchain->imageSemaphores[_frameIndex],
-            VK_NULL_HANDLE,
-            &_mainSwapchain->imageIndex);
-
-        if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
-        {
-            //_mainSwapChain->Resize();
-        }
-        else
-        {
-            if (result < VK_SUCCESS)
-            {
-                return vgpuVkConvertResult(result);
-            }
-        }
-    }
-
-    return VGPU_SUCCESS;
+/* Buffer */
+VgpuBuffer vgpuCreateBuffer(const VgpuBufferDescriptor* descriptor, const void* pInitData) {
+    return nullptr;
 }
 
-VgpuResult VgpuRendererVk::endFrame()
-{
-    VkResult result = VK_SUCCESS;
+VgpuBuffer vgpuCreateExternalBuffer(const VgpuBufferDescriptor* descriptor, void* handle) {
+    return nullptr;
+}
 
-    if (_mainSwapchain != nullptr)
-    {
-        present(_mainSwapchain, _graphicsCommandQueue->vk_queue);
+void vgpuDestroyBuffer(VgpuBuffer buffer) {
+    VGPU_ASSERT(buffer);
+}
+
+/* Texture */
+VgpuTexture vgpuCreateTexture(const VgpuTextureDescriptor* descriptor, const void* pInitData) {
+    return nullptr;
+}
+
+VgpuTexture vgpuCreateExternalTexture(const VgpuTextureDescriptor* descriptor, void* handle) {
+    VgpuTexture texture = VGPU_ALLOC_HANDLE(VgpuTexture);
+    texture->image = (VkImage)handle;
+    return texture;
+}
+
+void vgpuDestroyTexture(VgpuTexture texture) {
+    VGPU_ASSERT(texture);
+}
+
+VgpuFramebuffer vgpuCreateFramebuffer(const VgpuFramebufferDescriptor* descriptor) {
+    VGPU_ASSERT(descriptor);
+    VgpuFramebuffer framebuffer = VGPU_ALLOC_HANDLE(VgpuFramebuffer);
+    for (uint32_t i = 0u; i < VGPU_MAX_COLOR_ATTACHMENTS; ++i) {
+        if (descriptor->colorAttachments[i].texture == nullptr)
+        {
+            continue;
+        }
     }
+    return nullptr;
+}
 
-    // Submit the pending command buffers.
-    /*const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+void vgpuDestroyFramebuffer(VgpuFramebuffer framebuffer) {
+    VGPU_ASSERT(framebuffer);
+    VGPU_FREE(framebuffer);
+}
 
-    result = vkWaitForFences(_device, 1, &_waitFences[_frameIndex], VK_TRUE, UINT64_MAX);
+VgpuShaderModule vgpuCreateShaderModule(const VgpuShaderModuleDescriptor* descriptor) {
+    VGPU_ASSERT(descriptor);
+    VgpuShaderModule shaderModule = VGPU_ALLOC_HANDLE(VgpuShaderModule);
+    VkShaderModuleCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.pNext = NULL;
+    createInfo.flags = 0u;
+    createInfo.codeSize = (size_t)descriptor->codeSize;
+    createInfo.pCode = (uint32_t*)descriptor->pCode;
+    VkResult result = vkCreateShaderModule(_vk.device, &createInfo, nullptr, &shaderModule->vk_handle);
     if (result != VK_SUCCESS)
     {
-        return vgpuVkConvertResult(result);
+        vgpuDestroyShaderModule(shaderModule);
+        return nullptr;
     }
-    result = vkResetFences(_device, 1, &_waitFences[_frameIndex]);
-    if (result != VK_SUCCESS)
+
+    return shaderModule;
+}
+
+void vgpuDestroyShaderModule(VgpuShaderModule shaderModule) {
+    VGPU_ASSERT(shaderModule);
+    if (shaderModule->vk_handle != VK_NULL_HANDLE) {
+        vkDestroyShaderModule(_vk.device, shaderModule->vk_handle, nullptr);
+    }
+    VGPU_FREE(shaderModule);
+}
+
+/* Shader */
+VgpuShader vgpuCreateShader(const VgpuShaderDescriptor* descriptor) {
+    VGPU_ASSERT(descriptor);
+    return nullptr;
+}
+
+void vgpuDestroyShader(VgpuShader shader) {
+    VGPU_ASSERT(shader);
+    VGPU_FREE(shader);
+}
+
+/* Pipeline */
+VgpuPipeline vgpuCreateRenderPipeline(const VgpuRenderPipelineDescriptor* descriptor) {
+    return nullptr;
+}
+
+VgpuPipeline vgpuCreateComputePipeline(const VgpuComputePipelineDescriptor* descriptor) {
+    return nullptr;
+}
+
+void vgpuDestroyPipeline(VgpuPipeline pipeline) {
+    VGPU_ASSERT(pipeline);
+    VGPU_FREE(pipeline);
+}
+
+/* Sampler */
+VgpuSampler VgpuRendererVk::createSampler(const VgpuSamplerDescriptor* descriptor) {
+    VGPU_ASSERT(descriptor);
+    VkSamplerCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    createInfo.pNext = nullptr;
+    createInfo.flags = 0;
+    createInfo.magFilter = vgpuVkGetFilter(descriptor->magFilter);
+    createInfo.minFilter = vgpuVkGetFilter(descriptor->minFilter);
+    createInfo.mipmapMode = vgpuVkGetMipMapFilter(descriptor->mipmapFilter);
+    createInfo.addressModeU = vgpuVkGetAddressMode(descriptor->addressModeU, _vk.features.supportsMirrorClampToEdge);
+    createInfo.addressModeV = vgpuVkGetAddressMode(descriptor->addressModeV, _vk.features.supportsMirrorClampToEdge);
+    createInfo.addressModeW = vgpuVkGetAddressMode(descriptor->addressModeW, _vk.features.supportsMirrorClampToEdge);
+    createInfo.mipLodBias = 0.0f;
+    createInfo.anisotropyEnable = descriptor->maxAnisotropy > 1u;
+    createInfo.maxAnisotropy = _vgpu_clamp((float)descriptor->maxAnisotropy, 1.0f, _vk.physicalDeviceProperties.limits.maxSamplerAnisotropy);
+    createInfo.compareEnable = descriptor->compareOp != VGPU_COMPARE_OP_NEVER;
+    createInfo.compareOp = vgpuVkGetCompareOp(descriptor->compareOp);
+    createInfo.minLod = descriptor->lodMinClamp;
+    createInfo.maxLod = descriptor->lodMaxClamp;
+    createInfo.borderColor = vgpuVkGetBorderColor(descriptor->borderColor);
+    createInfo.unnormalizedCoordinates = VK_FALSE;
+
+    VkSampler vk_handle;
+    vgpuVkLogIfFailed(
+        vkCreateSampler(_vk.device, &createInfo, nullptr, &vk_handle)
+    );
+
+    VgpuSampler sampler;
+    sampler.id = _samplerId++;
+    _samplers.push_back(vk_handle);
+    return sampler;
+}
+
+void VgpuRendererVk::destroySampler(VgpuSampler sampler) {
+    vkDestroySampler(_vk.device, _samplers[sampler.id - 1], nullptr);
+    _samplers[sampler.id - 1] = VK_NULL_HANDLE;
+}
+
+VkSampler VgpuRendererVk::getVkSampler(VgpuSampler sampler) {
+    return _samplers[sampler.id];
+}
+
+VgpuCommandBuffer VgpuRendererVk::createCommandBuffer(const VgpuCommandBufferDescriptor* descriptor) {
+    VGPU_ASSERT(descriptor);
+
+    VgpuCommandQueue commandQueue = getCommandQueue(descriptor->type);
+    /*if (commandQueue->freeCommandBuffersCount > 0)
     {
-        return vgpuVkConvertResult(result);
+        handle = queue->freeCommandBuffers[queue->freeCommandBuffersCount - 1];
+        queue->freeCommandBuffersCount--;
+        vkResetCommandBuffer(handle->vk_handle, 0);
+        *pCommandBuffer = handle;
+        return VGPU_SUCCESS;
     }*/
 
-    // Advance frame index.
-    _frameIndex = (_frameIndex + 1u) % _maxInflightFrames;
-    _frameNumber++;
+    VgpuCommandBuffer handle = VGPU_ALLOC_HANDLE(VgpuCommandBuffer);
+    handle->queue = commandQueue;
+    handle->vk_handle = VK_NULL_HANDLE;
+    handle->recording = false;
+    return handle;
+}
+
+void VgpuRendererVk::cmdBeginDefaultRenderPass(VgpuCommandBuffer commandBuffer, VgpuColor clearColor, float clearDepth, uint8_t clearStencil) {
+    if (s_current_context->swapchain == nullptr) {
+        return;
+    }
+    uint32_t frameIndex = s_current_context->frameIndex;
+    VkClearValue clearValues[2u];
+    clearValues[0].color = { { clearColor.r, clearColor.g, clearColor.b, clearColor.a } };
+    clearValues[1].depthStencil = { clearDepth, clearStencil };
+
+    VkRenderPassBeginInfo beginInfo;
+    memset(&beginInfo, 0, sizeof(beginInfo));
+    beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    beginInfo.renderPass = s_current_context->swapchain->renderPass;
+    beginInfo.framebuffer = s_current_context->swapchain->framebuffers[frameIndex];
+    beginInfo.renderArea.offset.x = 0;
+    beginInfo.renderArea.offset.y = 0;
+    beginInfo.renderArea.extent.width = s_current_context->swapchain->width;
+    beginInfo.renderArea.extent.height = s_current_context->swapchain->height;
+    beginInfo.clearValueCount = 2u;
+    beginInfo.pClearValues = clearValues;
+    vkCmdBeginRenderPass(commandBuffer->vk_handle, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void VgpuRendererVk::cmdBeginRenderPass(VgpuCommandBuffer commandBuffer, VgpuFramebuffer framebuffer) {
+    VkRenderPassBeginInfo beginInfo;
+    memset(&beginInfo, 0, sizeof(beginInfo));
+    beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    //beginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
+    //beginInfo.framebuffer = _currentFramebuffer->GetVkFramebuffer();
+    beginInfo.renderArea.offset.x = 0;
+    beginInfo.renderArea.offset.y = 0;
+    beginInfo.renderArea.extent.width = framebuffer->width;
+    beginInfo.renderArea.extent.height = framebuffer->height;
+    //bassBeginInfo.clearValueCount = 0;
+    //bassBeginInfo.pClearValues = nullptr;
+    vkCmdBeginRenderPass(commandBuffer->vk_handle, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void VgpuRendererVk::cmdEndRenderPass(VgpuCommandBuffer commandBuffer) {
+    vkCmdEndRenderPass(commandBuffer->vk_handle);
+}
+
+void vgpuDestroyCommandBuffer(VgpuCommandBuffer commandBuffer) {
+    VGPU_ASSERT(commandBuffer);
+
+    if (commandBuffer->vk_handle != VK_NULL_HANDLE)
+    {
+        // TODO: Should we recycle the command buffer for later reuse?.
+        //commandBuffer->queue->freeCommandBuffers[commandBuffer->queue->freeCommandBuffersCount++] = commandBuffer;
+        vkFreeCommandBuffers(_vk.device, commandBuffer->queue->vk_handle, 1, &commandBuffer->vk_handle);
+    }
+
+    if (commandBuffer->vk_semaphore != VK_NULL_HANDLE)
+    {
+        vkDestroySemaphore(_vk.device, commandBuffer->vk_semaphore, nullptr);
+    }
+
+    VGPU_FREE(commandBuffer);
+}
+
+VgpuResult vgpuBeginCommandBuffer(VgpuCommandBuffer commandBuffer) {
+    VGPU_ASSERT(commandBuffer);
+
+    // Verify we're not recording.
+    if (commandBuffer->recording) {
+        return VGPU_ERROR_COMMAND_BUFFER_ALREADY_RECORDING;
+    }
+
+    VkResult result = VK_SUCCESS;
+    if (commandBuffer->vk_handle == VK_NULL_HANDLE)
+    {
+        VkCommandBufferAllocateInfo info;
+        info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        info.pNext = nullptr;
+        info.commandPool = commandBuffer->queue->vk_handle;
+        info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        info.commandBufferCount = 1u;
+
+        result = vkAllocateCommandBuffers(_vk.device, &info, &commandBuffer->vk_handle);
+    }
+    else
+    {
+        result = vkResetCommandBuffer(commandBuffer->vk_handle, 0);
+    }
+
+
+    if (result != VK_SUCCESS)
+    {
+        return vgpuVkConvertResult(result);
+    }
+
+    VkCommandBufferBeginInfo beginInfo;
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.pNext = nullptr;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+    result = vkBeginCommandBuffer(commandBuffer->vk_handle, &beginInfo);
+    if (result != VK_SUCCESS)
+    {
+        return vgpuVkConvertResult(result);
+    }
+
+    commandBuffer->recording = true;
     return VGPU_SUCCESS;
 }
 
-/* Implementation */
-static VgpuRendererVk* s_renderer = nullptr;
-
-VgpuResult vgpuInitialize(const char* applicationName, const VgpuDescriptor* descriptor)
+VgpuResult vgpuEndCommandBuffer(VgpuCommandBuffer commandBuffer)
 {
-    if (s_renderer != nullptr)
-        return VGPU_ALREADY_INITIALIZED;
-
-    s_renderer = new VgpuRendererVk();
-    return s_renderer->initialize(applicationName, descriptor);
-}
-
-void vgpuShutdown()
-{
-    if (s_renderer != nullptr)
-    {
-        s_renderer->shutdown();
-        delete s_renderer;
-        s_renderer = nullptr;
+    VGPU_ASSERT(commandBuffer);
+    if (!commandBuffer->recording) {
+        return VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING;
     }
+
+    VkResult result = vkEndCommandBuffer(commandBuffer->vk_handle);
+    if (result != VK_SUCCESS)
+    {
+        return vgpuVkConvertResult(result);
+    }
+
+    commandBuffer->recording = false;
+    return VGPU_SUCCESS;
 }
 
-VgpuResult agpuBeginFrame()
+VgpuResult vgpuSubmitCommandBuffers(uint32_t count, VgpuCommandBuffer *pBuffers)
 {
-    return s_renderer->beginFrame();
+    VGPU_ASSERT(count > 0);
+    VGPU_ASSERT(pBuffers);
+
+    uint32_t frameIndex = s_current_context->frameIndex;
+    VgpuVkFrameData *frameData = &s_current_context->frameData[frameIndex];
+    for (uint32_t i = 0u; i < count; ++i) {
+        if (pBuffers[i]->recording) {
+            return VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING;
+        }
+
+        frameData->submittedCmdBuffers[frameData->submittedCmdBuffersCount] = pBuffers[i]->vk_handle;
+
+        // Create semaphore for command buffer
+        if (pBuffers[i]->vk_semaphore == VK_NULL_HANDLE) {
+            vgpuVkCreateSemaphore(_vk.device, &pBuffers[i]->vk_semaphore);
+        }
+
+        frameData->waitSemaphores[frameData->submittedCmdBuffersCount] = pBuffers[i]->vk_semaphore;
+        ++frameData->submittedCmdBuffersCount;
+    }
+
+    return VGPU_SUCCESS;
 }
 
-VgpuResult agpuEndFrame()
-{
-    return s_renderer->endFrame();
+void vgpuCmdSetShader(VgpuCommandBuffer commandBuffer, VgpuShader shader) {
+    VGPU_ASSERT(commandBuffer);
 }
 
-VgpuResult vgpuWaitIdle()
-{
-    return s_renderer->waitIdle();
+void vgpuCmdSetVertexBuffer(VgpuCommandBuffer commandBuffer, uint32_t binding, VgpuBuffer buffer, uint64_t offset, VgpuVertexInputRate inputRate) {
+    VGPU_ASSERT(commandBuffer);
 }
+
+void vgpuCmdSetIndexBuffer(VgpuCommandBuffer commandBuffer, VgpuBuffer buffer, uint64_t offset, VgpuIndexType indexType) {
+    VGPU_ASSERT(commandBuffer);
+}
+
+void vgpuCmdSetViewport(VgpuCommandBuffer commandBuffer, VgpuViewport viewport) {
+    VGPU_ASSERT(commandBuffer);
+}
+
+void vgpuCmdSetViewports(VgpuCommandBuffer commandBuffer, uint32_t viewportCount, const VgpuViewport* pViewports) {
+    VGPU_ASSERT(commandBuffer);
+}
+
+void vgpuCmdSetScissor(VgpuCommandBuffer commandBuffer, VgpuRect2D scissor) {
+    VGPU_ASSERT(commandBuffer);
+}
+
+void vgpuCmdSetScissors(VgpuCommandBuffer commandBuffer, uint32_t scissorCount, const VgpuRect2D* pScissors) {
+    VGPU_ASSERT(commandBuffer);
+}
+
+void vgpuCmdSetPrimitiveTopology(VgpuCommandBuffer commandBuffer, VgpuPrimitiveTopology topology) {
+    VGPU_ASSERT(commandBuffer);
+}
+
+void vgpuCmdDraw(VgpuCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t firstVertex) {
+    VGPU_ASSERT(commandBuffer);
+}
+
+void vgpuCmdDrawIndexed(VgpuCommandBuffer commandBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset) {
+    VGPU_ASSERT(commandBuffer);
+}
+
+
+VgpuBool32 vgpuIsVkSupported(VgpuBool32 headless)
+{
+    if (_vk.initialized) {
+        return _vk.available;
+    }
+
+    _vk.initialized = VGPU_TRUE;
+    if (volkInitialize() != VK_SUCCESS)
+    {
+        return VGPU_ERROR_INITIALIZATION_FAILED;
+    }
+
+    uint32_t i, count, layerCount;
+    VkExtensionProperties* queriedExtensions;
+    VkLayerProperties* queriedLayers;
+
+    VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+    if (result < VK_SUCCESS)
+    {
+        return result;
+    }
+
+    queriedExtensions = (VkExtensionProperties*)calloc(count, sizeof(VkExtensionProperties));
+    result = vkEnumerateInstanceExtensionProperties(nullptr, &count, queriedExtensions);
+    if (result < VK_SUCCESS)
+    {
+        free(queriedExtensions);
+        return result;
+    }
+
+    result = vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    if (result < VK_SUCCESS)
+    {
+        return result;
+    }
+
+    queriedLayers = (VkLayerProperties*)calloc(layerCount, sizeof(VkLayerProperties));
+    result = vkEnumerateInstanceLayerProperties(&layerCount, queriedLayers);
+    if (result < VK_SUCCESS)
+    {
+        free(queriedLayers);
+        return result;
+    }
+
+    // Initialize extensions.
+    bool surface = false;
+    bool platform_surface = false;
+    for (i = 0; i < count; i++)
+    {
+        if (strcmp(queriedExtensions[i].extensionName, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == 0)
+        {
+            _vk.KHR_get_physical_device_properties2 = true;
+        }
+        else if (strcmp(queriedExtensions[i].extensionName, VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME) == 0)
+        {
+            _vk.KHR_external_memory_capabilities = true;
+        }
+        else if (strcmp(queriedExtensions[i].extensionName, VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME) == 0)
+        {
+            _vk.KHR_external_semaphore_capabilities = true;
+        }
+        else if (strcmp(queriedExtensions[i].extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
+        {
+            _vk.EXT_debug_report = true;
+        }
+        else if (strcmp(queriedExtensions[i].extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+        {
+            _vk.EXT_debug_utils = true;
+        }
+        else if (strcmp(queriedExtensions[i].extensionName, VK_KHR_SURFACE_EXTENSION_NAME) == 0)
+        {
+            surface = true;
+        }
+        else if (strcmp(queriedExtensions[i].extensionName, VK_SURFACE_EXT) == 0)
+        {
+            platform_surface = true;
+        }
+    }
+
+    _vk.KHR_surface = surface && platform_surface;
+
+    // Initialize layers.
+    for (i = 0; i < layerCount; i++)
+    {
+        if (strcmp(queriedLayers[i].layerName, "VK_LAYER_LUNARG_standard_validation") == 0)
+        {
+            _vk.VK_LAYER_LUNARG_standard_validation = true;
+        }
+        else if (strcmp(queriedLayers[i].layerName, "VK_LAYER_RENDERDOC_Capture") == 0)
+        {
+            _vk.VK_LAYER_RENDERDOC_Capture = true;
+        }
+    }
+
+    // Free allocated stuff
+    free(queriedExtensions);
+    free(queriedLayers);
+    if (result != VK_SUCCESS)
+    {
+        return vgpuVkConvertResult(result);
+    }
+
+    _vk.available = true;
+    return true;
+}
+
+VgpuRendererI* vgpuCreateVkBackend()
+{
+    return new VgpuRendererVk();
+}
+
+#endif // VGPU_VULKAN

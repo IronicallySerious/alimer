@@ -27,6 +27,7 @@
 #include "../Graphics/PixelFormat.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
 #include "../Core/Log.h"
+#include <string>
 
 namespace alimer
 {
@@ -48,30 +49,29 @@ namespace alimer
         virtual ~GPUBuffer() = default;
     };
 
-    class GPUCommandBuffer
+    class CommandContextImpl
     {
     public:
-        virtual ~GPUCommandBuffer() = default;
+        virtual ~CommandContextImpl() = default;
 
-        virtual void Begin() = 0;
-        virtual void End() = 0;
+        virtual void Flush(bool waitForCompletion) = 0;
 
-        virtual void PushDebugGroup(const char* name) = 0;
+        virtual void PushDebugGroup(const std::string& name) = 0;
         virtual void PopDebugGroup() = 0;
-        virtual void InsertDebugMarker(const char* name) = 0;
+        virtual void InsertDebugMarker(const std::string& name) = 0;
     };
 
-    class GPUDevice
+    class GraphicsImpl
     {
     protected:
-        GPUDevice(bool validation, bool headless)
+        GraphicsImpl(bool validation, bool headless)
             : _validation(validation)
             , _headless(headless)
         {
         }
 
     public:
-        virtual ~GPUDevice() = default;
+        virtual ~GraphicsImpl() = default;
 
         virtual void WaitIdle() = 0;
         virtual bool Initialize(const SwapChainDescriptor* descriptor) = 0;
@@ -79,10 +79,12 @@ namespace alimer
         inline const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
 
         virtual bool BeginFrame() = 0;
-        virtual bool EndFrame() = 0;
+        virtual void EndFrame() = 0;
 
-        virtual GPUCommandBuffer* CreateCommandBuffer() = 0;
-        virtual void SubmitCommandBuffers(uint32_t count, GPUCommandBuffer** commandBuffers) = 0;
+        virtual CommandContextImpl* GetRenderContext() const = 0;
+        virtual CommandContextImpl* CreateCommandContext(QueueType type) = 0;
+        //virtual GPUCommandBuffer* CreateCommandBuffer() = 0;
+        //virtual void SubmitCommandBuffers(uint32_t count, GPUCommandBuffer** commandBuffers) = 0;
 
         //virtual GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) = 0;
         //virtual GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) = 0;
