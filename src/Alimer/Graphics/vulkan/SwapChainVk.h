@@ -43,10 +43,11 @@ namespace alimer
         //    return nullptr;
         //}
 
-        GPUTexture* GetNextTexture();
+        void BeginFrame();
         VkSwapchainKHR GetVkHandle() const { return _handle; }
         uint32_t GetImageCount() const { return _imageCount; }
         uint32_t GetImageIndex() const { return _imageIndex; }
+        Framebuffer* GetFramebuffer() const { return _framebuffers[_imageIndex].Get(); };
 
         void Resize();
         bool Resize(uint32_t width, uint32_t height);
@@ -57,7 +58,7 @@ namespace alimer
         VkSwapchainKHR              _handle = VK_NULL_HANDLE;
         uint32_t                    _width = 0;
         uint32_t                    _height = 0;
-        VkFormat                    _colorFormat = VK_FORMAT_UNDEFINED;
+        PixelFormat                 _colorFormat = PixelFormat::Unknown;
         bool                        _vSync;
         bool                        _tripleBuffer;
         PixelFormat                 _depthStencilFormat;
@@ -67,5 +68,6 @@ namespace alimer
         std::vector<VkImage>        _images;
         std::vector<VkSemaphore>    _imageSemaphores;
         std::vector<std::unique_ptr<TextureVk>> _swapchainTextures;
+        std::vector<SharedPtr<Framebuffer>> _framebuffers;
 	};
 }

@@ -28,8 +28,15 @@ namespace alimer
 {
     Pipeline::Pipeline(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor)
         : GPUResource(device, Type::Pipeline)
+        , _isCompute(false)
+    {
+    }
+
+    Pipeline::Pipeline(GraphicsDevice* device, const ComputePipelineDescriptor* descriptor)
+        : GPUResource(device, Type::Pipeline)
         , _isCompute(true)
     {
+
     }
 
     Pipeline::Pipeline()

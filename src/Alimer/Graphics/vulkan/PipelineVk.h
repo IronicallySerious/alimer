@@ -23,20 +23,21 @@
 #pragma once
 
 #include "BackendVk.h"
+#include "../Pipeline.h"
 
 namespace alimer
 {
-	/// Vulkan Sampler implementation.
-	class SamplerVk final : public GPUSampler
-	{
-	public:
-        SamplerVk(GPUDeviceVk* device, const SamplerDescriptor* descriptor);
-        ~SamplerVk();
+    class PipelineVk final : public Pipeline
+    {
+    public:
+        PipelineVk(GPUDeviceVk* device, const RenderPipelineDescriptor* descriptor);
+        PipelineVk(GPUDeviceVk* device, const ComputePipelineDescriptor* descriptor);
+        ~PipelineVk() override;
+        void Destroy() override;
 
-        VkSampler GetVkSampler() const { return _handle; }
+        VkPipeline GetHandle() const { return _handle; }
 
-	private:
-        GPUDeviceVk* _device;
-        VkSampler _handle = VK_NULL_HANDLE;
-	};
+    private:
+        VkPipeline _handle = VK_NULL_HANDLE;
+    };
 }

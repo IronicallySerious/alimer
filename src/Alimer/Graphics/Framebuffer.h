@@ -60,7 +60,7 @@ namespace alimer
         ///Get the layers of the framebuffer.
         uint32_t GetLayers() const { return _layers; }
 
-    private:
+    protected:
         std::vector<FramebufferAttachment> _colorAttachments;
         FramebufferAttachment _depthStencilAttachment;
 

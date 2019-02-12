@@ -547,12 +547,10 @@ extern "C"
         vgpu_log_fn                     logCallback;
     } VgpuDescriptor;
 
-    VGPU_API VgpuBackend vgpuGetDefaultPlatformBackend();
-    VGPU_API VgpuBool32 vgpuIsBackendSupported(VgpuBackend backend, VgpuBool32 headless);
+    VGPU_API VgpuBackend vgpuGetBackend();
 
     VGPU_API VgpuResult vgpuInitialize(const char* applicationName, const VgpuDescriptor* descriptor);
     VGPU_API void vgpuShutdown();
-    VGPU_API VgpuBackend vgpuGetBackend();
     VGPU_API VgpuResult vgpuBeginFrame();
     VGPU_API VgpuResult vgpuEndFrame();
     VGPU_API VgpuResult vgpuWaitIdle();

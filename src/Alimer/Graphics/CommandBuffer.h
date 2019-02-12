@@ -34,29 +34,28 @@
 
 namespace alimer
 {
-    class CommandContextImpl;
-
     /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext final : public RefCounted
+    class ALIMER_API CommandContext : public RefCounted
     {
         friend class GraphicsDevice;
 
-    private:
-        CommandContext(GraphicsDevice* device, QueueType type, CommandContextImpl* impl);
+    protected:
+        /// Constructor.
+        CommandContext(GraphicsDevice* device, QueueType type);
 
     public:
         /// Destructor.
-        ~CommandContext() override;
+        virtual ~CommandContext() = default;
 
         /// Request new command context for recording.
-        //static CommandContext& Begin(const std::string& id = "");
+        static CommandContext& Begin(const std::string& id = "");
 
         /// Flush existing commands and optionally wait
         void Flush(bool waitForCompletion = false);
 
-        virtual void PushDebugGroup(const std::string& name);
+        virtual void PushDebugGroup(const std::string& name, const Color4& color = Color4::White);
         virtual void PopDebugGroup();
-        virtual void InsertDebugMarker(const std::string& name);
+        virtual void InsertDebugMarker(const std::string& name, const Color4& color = Color4::White);
 
         /// Begin rendering to default backbuffer.
         void BeginDefaultRenderPass(const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
@@ -103,10 +102,11 @@ namespace alimer
 
     private:
         // Backend methods
-        virtual void Reset() {}
-        //virtual void PushDebugGroupImpl(const String& name) = 0;
-        //virtual void PopDebugGroupImpl() = 0;
-        //virtual void InsertDebugMarkerImpl(const String& name) = 0;
+        virtual void Reset() = 0;
+        virtual void FlushImpl(bool waitForCompletion) = 0;
+        virtual void PushDebugGroupImpl(const std::string& name, const Color4& color) = 0;
+        virtual void PopDebugGroupImpl() = 0;
+        virtual void InsertDebugMarkerImpl(const std::string& name, const Color4& color) = 0;
 
         //virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
         //virtual void EndRenderPassImpl() = 0;
@@ -117,8 +117,6 @@ namespace alimer
     protected:
         /// GPUDevice.
         WeakPtr<GraphicsDevice> _device;
-        /// Implementation
-        CommandContextImpl* _impl = nullptr;
         /// ID
         std::string  _id;
         /// Queue type

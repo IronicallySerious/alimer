@@ -22,21 +22,20 @@
 
 #include "CommandBufferVk.h"
 #include "CommandQueueVk.h"
-#include "GPUDeviceVk.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
-#include "VulkanRenderPass.h"
-#include "BackendVk.h"
+#include "FramebufferVk.h"
+#include "GPUDeviceVk.h"
 #include "../../Math/Math.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue, bool default)
-        : _device(device)
+    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue)
+        : CommandContext(device, type)
+        , _device(device)
         , _commandQueue(commandQueue)
         , _type(type)
-        , _default(default)
         , _supportsDebugUtils(device->GetFeaturesVk().supportsDebugUtils)
         , _supportsDebugMarker(device->GetFeaturesVk().supportsDebugMarker)
     {
@@ -54,7 +53,8 @@ namespace alimer
 
         _semaphore = _device->RequestSemaphore();
 
-        //Begin();
+        // Init recording
+        Begin();
     }
 
     CommandBufferVk::~CommandBufferVk()
@@ -68,12 +68,12 @@ namespace alimer
         _device->RecycleSemaphore(_semaphore);
     }
 
-    void CommandBufferVk::Begin(VkCommandBufferUsageFlags flags)
+    void CommandBufferVk::Begin()
     {
         VkCommandBufferBeginInfo beginInfo;
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
-        beginInfo.flags = flags;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
         beginInfo.pInheritanceInfo = nullptr;
         vkThrowIfFailed(
             vkBeginCommandBuffer(_commandBuffer, &beginInfo)
@@ -89,11 +89,8 @@ namespace alimer
         );
     }
 
-    void CommandBufferVk::Flush(bool waitForCompletion) {
-        if (_default) {
-            return;
-        }
-
+    void CommandBufferVk::FlushImpl(bool waitForCompletion)
+    {
         End();
 
         if (!waitForCompletion)
@@ -119,55 +116,40 @@ namespace alimer
             // Wait for the fence to signal that command buffer has finished executing.
             vkThrowIfFailed(vkWaitForFences(_device->GetVkDevice(), 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
             vkDestroyFence(_device->GetVkDevice(), fence, nullptr);
-
-            // Reset command buffer for recording.
-            vkResetCommandBuffer(_commandBuffer, 0);
         }
     }
 
-    void CommandBufferVk::PushDebugGroup(const std::string& name)
+    void CommandBufferVk::Reset()
+    {
+        // Begin recording
+        Begin();
+    }
+
+    void CommandBufferVk::PushDebugGroupImpl(const std::string& name, const Color4& color)
     {
         if (_supportsDebugUtils)
         {
-            VkDebugUtilsLabelEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-            //if (color)
-            //{
-            //    for (unsigned i = 0; i < 4; i++)
-            //        info.color[i] = color[i];
-            //}
-            //else
-            {
-                for (unsigned i = 0; i < 4; i++)
-                    info.color[i] = 1.0f;
-            }
-
-            info.pLabelName = name.c_str();
+            VkDebugUtilsLabelEXT markerInfo;
+            markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+            markerInfo.pNext = nullptr;
+            markerInfo.pLabelName = name.c_str();
+            memcpy(markerInfo.color, color.Data(), sizeof(float) * 4);
             if (vkCmdBeginDebugUtilsLabelEXT) {
-                vkCmdBeginDebugUtilsLabelEXT(_commandBuffer, &info);
+                vkCmdBeginDebugUtilsLabelEXT(_commandBuffer, &markerInfo);
             }
         }
         else if (_supportsDebugMarker)
         {
-            VkDebugMarkerMarkerInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT };
-            //if (color)
-            //{
-            //    for (unsigned i = 0; i < 4; i++)
-            //        info.color[i] = color[i];
-            //}
-            //else
-            {
-                for (uint32_t i = 0; i < 4u; i++)
-                {
-                    info.color[i] = 1.0f;
-                }
-            }
-
-            info.pMarkerName = name.c_str();
-            vkCmdDebugMarkerBeginEXT(_commandBuffer, &info);
+            VkDebugMarkerMarkerInfoEXT markerInfo;
+            markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+            markerInfo.pNext = nullptr;
+            markerInfo.pMarkerName = name.c_str();
+            memcpy(markerInfo.color, color.Data(), sizeof(float) * 4);
+            vkCmdDebugMarkerBeginEXT(_commandBuffer, &markerInfo);
         }
     }
 
-    void CommandBufferVk::PopDebugGroup()
+    void CommandBufferVk::PopDebugGroupImpl()
     {
         if (_supportsDebugUtils)
         {
@@ -182,29 +164,27 @@ namespace alimer
         }
     }
 
-    void CommandBufferVk::InsertDebugMarker(const std::string& name)
+    void CommandBufferVk::InsertDebugMarkerImpl(const std::string& name, const Color4& color)
     {
         if (_device->GetFeaturesVk().supportsDebugUtils)
         {
             if (vkCmdInsertDebugUtilsLabelEXT != nullptr)
             {
-                VkDebugUtilsLabelEXT markerInfo = {};
+                VkDebugUtilsLabelEXT markerInfo;
                 markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
                 markerInfo.pNext = nullptr;
                 markerInfo.pLabelName = name.c_str();
-                for (uint32_t i = 0; i < 4u; i++)
-                {
-                    markerInfo.color[i] = 1.0f;
-                }
+                memcpy(markerInfo.color, color.Data(), sizeof(float) * 4);
                 vkCmdInsertDebugUtilsLabelEXT(_commandBuffer, &markerInfo);
             }
         }
         else if (_device->GetFeaturesVk().supportsDebugMarker)
         {
-            VkDebugMarkerMarkerInfoEXT markerInfo = {};
+            VkDebugMarkerMarkerInfoEXT markerInfo;
             markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-            //memcpy(markerInfo.color, &color[0], sizeof(float) * 4);
+            markerInfo.pNext = nullptr;
             markerInfo.pMarkerName = name.c_str();
+            memcpy(markerInfo.color, color.Data(), sizeof(float) * 4);
             vkCmdDebugMarkerInsertEXT(_commandBuffer, &markerInfo);
         }
     }

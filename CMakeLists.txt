@@ -96,19 +96,6 @@ else ()
     option (ALIMER_NETWORK "Enable network support" TRUE)
 endif ()
 
-if (NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
-    set (ALIMER_SDL2 ON CACHE INTERNAL "Enable SDL2 support" FORCE)
-else ()
-    set (ALIMER_SDL2 OFF CACHE INTERNAL "Disable SDL2 support" FORCE)
-endif ()
-
-# OpenGL backend
-if (WIN32 OR LINUX OR ANDROID)
-    set (ALIMER_OPENGL ON CACHE INTERNAL "Enable OpenGL backend" FORCE)
-else ()
-    set (ALIMER_OPENGL OFF CACHE INTERNAL "Disable OpenGL backend" FORCE)
-endif ()
-
 # Graphics
 if (ALIMER_WINDOWS)
     #set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11 | D3D12 | Vulkan | OpenGL")
@@ -198,8 +185,7 @@ else()
 endif()
 
 message(STATUS "  Threading       ${ALIMER_THREADING}")
-message(STATUS "  Vulkan          ${ALIMER_VULKAN}")
-message(STATUS "  OpenGL          ${ALIMER_OPENGL}")
+message(STATUS "  Renderer        ${ALIMER_RENDERER}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")
 message(STATUS "  Lua             ${ALIMER_SCRIPTING_LUA}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")

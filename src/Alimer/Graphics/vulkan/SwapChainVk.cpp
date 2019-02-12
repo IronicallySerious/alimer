@@ -22,6 +22,7 @@
 
 #include "SwapChainVk.h"
 #include "TextureVk.h"
+#include "FramebufferVk.h"
 #include "GPUDeviceVk.h"
 #include "../../Core/Log.h"
 
@@ -249,7 +250,18 @@ namespace alimer
 
         _width = swapchainSize.width;
         _height = swapchainSize.height;
-        _colorFormat = format.format;
+        if (format.format == VK_FORMAT_B8G8R8A8_UNORM) {
+            _colorFormat = PixelFormat::BGRA8UNorm;
+        }
+        else if (format.format == VK_FORMAT_B8G8R8A8_SRGB) {
+            _colorFormat = PixelFormat::BGRA8UNormSrgb;
+        }
+        else if (format.format == VK_FORMAT_R8G8B8A8_UNORM) {
+            _colorFormat = PixelFormat::RGBA8UNorm;
+        }
+        else if (format.format == VK_FORMAT_R8G8B8A8_SRGB) {
+            _colorFormat = PixelFormat::RGBA8UNormSrgb;
+        }
 
         // Create command buffer for transition or clear 
         VkCommandBuffer setupSwapchainCmdBuffer = _device->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -291,64 +303,32 @@ namespace alimer
                     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
                 );
             }
+
+            // Create backend texture.
+            TextureDescriptor textureDescriptor = {};
+            textureDescriptor.width = _width;
+            textureDescriptor.height = _height;
+            textureDescriptor.depth = 1;
+            textureDescriptor.arraySize = 1;
+            textureDescriptor.mipLevels = 1;
+            textureDescriptor.samples = SampleCount::Count1;
+            textureDescriptor.type = TextureType::Type2D;
+            textureDescriptor.format = _colorFormat;
+            textureDescriptor.usage = textureUsage;
+            _swapchainTextures[i].reset(new TextureVk(_device, &textureDescriptor, _images[i], nullptr));
+
+            // Create backend framebuffer.
+            FramebufferDescriptor fboDescriptor = {};
+            fboDescriptor.colorAttachments[0].texture = _swapchainTextures[i].get();;
+            _framebuffers[i] = new FramebufferVk(_device, &fboDescriptor);
         }
 
         _device->FlushCommandBuffer(setupSwapchainCmdBuffer, true);
 
-        /*
-
-        // Create backend textures
-        _swapchainTextures.resize(_imageCount);
-        TextureDescriptor textureDescriptor = {};
-        textureDescriptor.width = _width;
-        textureDescriptor.height = _height;
-        textureDescriptor.depth = 1;
-        textureDescriptor.arraySize = 1;
-        textureDescriptor.mipLevels = 1;
-        textureDescriptor.samples = SampleCount::Count1;
-        textureDescriptor.type = TextureType::Type2D;
-        textureDescriptor.format = vk::Convert(_colorFormat);
-        textureDescriptor.usage = textureUsage;
-
-        const bool canClear = createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        VkCommandBuffer clearImageCmdBuffer = canClear ? _device->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true) : VK_NULL_HANDLE;
-        for (uint32_t i = 0; i < _imageCount; ++i)
-        {
-            _swapchainTextures[i] = std::make_unique<TextureVk>(_device, &textureDescriptor, swapchainImages[i], nullptr);
-            
-            // Clear with default value if supported.
-            if (canClear)
-            {
-                // Clear images with default color.
-                VkClearColorValue clearColor = {};
-                clearColor.float32[3] = 1.0f;
-                //clearColor.float32[0] = 1.0f;
-
-                VkImageSubresourceRange clearRange = {};
-                clearRange.layerCount = 1;
-                clearRange.levelCount = 1;
-
-                // Clear with default color.
-                _device->ClearImageWithColor(
-                    clearImageCmdBuffer,
-                    swapchainImages[i],
-                    clearRange,
-                    VK_IMAGE_ASPECT_COLOR_BIT,
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    &clearColor);
-            }
-        }
-
-        if (canClear)
-        {
-            _device->FlushCommandBuffer(clearImageCmdBuffer, true);
-        }*/
-
         return true;
     }
 
-    GPUTexture* SwapChainVk::GetNextTexture()
+    void SwapChainVk::BeginFrame()
     {
         VkSemaphore semaphore = _imageSemaphores[_imageIndex];
         VkResult result = vkAcquireNextImageKHR(
@@ -368,6 +348,5 @@ namespace alimer
         }
 
         _device->AddWaitSemaphore(semaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-        return _swapchainTextures[_imageIndex].get();
     }
 }

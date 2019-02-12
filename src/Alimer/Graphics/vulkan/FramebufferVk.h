@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2019 Amer Koleci and contributors.
+// Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,26 +20,23 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/Texture.h"
-#include "../Graphics/GraphicsDevice.h"
-#include "../IO/Stream.h"
-#include "../Math/MathUtil.h"
-#include "../Graphics/Backend.h"
-#include "Core/Log.h"
+#pragma once
+
+#include "BackendVk.h"
+#include "../Framebuffer.h"
 
 namespace alimer
 {
-    Texture::Texture(GraphicsDevice* device, const TextureDescriptor* descriptor)
-        : GPUResource(device, Type::Texture)
-        , _width(descriptor->width)
-        , _height(descriptor->height)
-        , _depth(descriptor->depth)
-        , _arraySize(descriptor->arraySize)
-        , _mipLevels(descriptor->mipLevels)
-        , _samples(descriptor->samples)
-        , _type(descriptor->type)
-        , _format(descriptor->format)
-        , _usage(descriptor->usage)
+    class FramebufferVk final : public Framebuffer
     {
-    }
+    public:
+        FramebufferVk(GPUDeviceVk* device, const FramebufferDescriptor* descriptor);
+        ~FramebufferVk() override;
+        void Destroy() override;
+
+        VkFramebuffer GetHandle() const { return _handle; }
+
+    private:
+        VkFramebuffer _handle = VK_NULL_HANDLE;
+    };
 }

@@ -29,10 +29,8 @@
 
 namespace alimer
 {
-    class GPUTexture;
-
     /// Defines a Texture class.
-    class ALIMER_API Texture final : public Resource, public GPUResource
+    class ALIMER_API Texture : public Resource, public GPUResource
     {
         ALIMER_OBJECT(Texture, Resource);
     protected:
@@ -42,29 +40,8 @@ namespace alimer
     public:
         static const uint32_t MaxPossible = ~0U;
 
-        /// Constructor.
-        Texture(GraphicsDevice* device);
-
         /// Destructor.
-        ~Texture() override;
-
-        /// Destroy the backend handle.
-        void Destroy() override;
-
-        /// Defines texture from an existing API-handle
-        void DefineFromHandle(GPUTexture* handle,
-            TextureType type, 
-            uint32_t width, 
-            uint32_t height, 
-            uint32_t depth,
-            uint32_t arraySize,
-            uint32_t mipLevels,
-            PixelFormat format,
-            TextureUsage usage,
-            SampleCount sampleCount);
-
-        /// Return backend handle.
-        GPUTexture* GetHandle() const { return _handle; }
+        virtual ~Texture() = default;
 
         /// Get the type of the texture.
         TextureType GetTextureType() const { return _type; }
@@ -102,13 +79,8 @@ namespace alimer
         /// Get the sample count.
         SampleCount GetSamples() const { return _samples; }
 
-    private:
-        bool PlatformCreate(const void* pInitData);
-        void PlatformDestroy();
-
-    private:
+    protected:
         bool            _externalHandle = false;
-        GPUTexture*   _handle = nullptr;
 
         TextureType     _type = TextureType::Type1D;
         uint32_t        _width = 0;

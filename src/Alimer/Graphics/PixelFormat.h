@@ -69,10 +69,12 @@ namespace alimer
         RG16SInt,
         RG16Float,
         RGBA8UNorm,
+        RGBA8UNormSrgb,
         RGBA8SNorm,
         RGBA8UInt,
         RGBA8SInt,
         BGRA8UNorm,
+        BGRA8UNormSrgb,
 
         // Packed 32-Bit Pixel formats
         RGB10A2UNorm,
@@ -107,9 +109,12 @@ namespace alimer
         Stencil8,
 
         // Compressed formats
-        BC1UNorm,     
+        BC1UNorm,
+        BC1UNormSrgb,
         BC2UNorm,
+        BC2UNormSrgb,
         BC3UNorm,
+        BC3UNormSrgb,
         BC4UNorm,
         BC4SNorm,
         BC5UNorm,
@@ -117,6 +122,7 @@ namespace alimer
         BC6HS16,
         BC6HU16,
         BC7UNorm,
+        BC7UNormSrgb,
 
         // Compressed PVRTC Pixel Formats
         PVRTC_RGB2,
@@ -152,6 +158,8 @@ namespace alimer
         Float,
         /// Unsigned normalized formats.
         UNorm,
+        /// Unsigned normalized SRGB formats
+        UNormSrgb,
         /// Signed normalized formats.
         SNorm,
         /// Unsigned integer formats.

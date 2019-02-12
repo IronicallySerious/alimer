@@ -23,21 +23,23 @@
 #pragma once
 
 #include "BackendVk.h"
+#include "../Texture.h"
 
 namespace alimer
 {
 	/// Vulkan Texture implementation.
-	class TextureVk final : public GPUTexture
+	class TextureVk final : public Texture
 	{
 	public:
         TextureVk(GPUDeviceVk* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData);
-        ~TextureVk();
+        ~TextureVk() override;
+        void Destroy() override;
 
         VkImage GetVkImage() const { return _handle; }
 
 	private:
         GPUDeviceVk* _device;
         VkImage _handle = VK_NULL_HANDLE;
-        bool _externalHandle = false;
+        
 	};
 }

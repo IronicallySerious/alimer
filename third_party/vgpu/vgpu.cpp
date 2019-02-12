@@ -20,8 +20,7 @@
 // THE SOFTWARE.
 //
 
-#define VGPU_IMPLEMENTATION
-#include "vgpu_internal.h"
+#include "vgpu/vgpu.h"
 #include <assert.h>
 
 /* Pixel Format */
@@ -219,60 +218,6 @@ const char* vgpuGetFormatName(VgpuPixelFormat format)
 
 static struct VgpuRendererI* s_renderer = NULL;
 
-VgpuBackend vgpuGetDefaultPlatformBackend() {
-#if defined(_WIN32) || defined(_WIN64)
-    if (vgpuIsBackendSupported(VGPU_BACKEND_D3D12, VGPU_FALSE)) {
-        return VGPU_BACKEND_D3D12;
-    }
-
-    if (vgpuIsBackendSupported(VGPU_BACKEND_VULKAN, VGPU_FALSE)) {
-        return VGPU_BACKEND_VULKAN;
-    }
-
-    return VGPU_BACKEND_D3D11;
-#elif defined(__linux__) || defined(__ANDROID__)
-    return VGPU_BACKEND_OPENGL;
-#elif defined(__APPLE__) 
-    return VGPU_BACKEND_METAL;
-#else
-    return VGPU_BACKEND_OPENGL;
-#endif
-}
-
-VgpuBool32 vgpuIsBackendSupported(VgpuBackend backend, VgpuBool32 headless) {
-    if (backend == VGPU_BACKEND_DEFAULT)
-    {
-        backend = vgpuGetDefaultPlatformBackend();
-    }
-
-    switch (backend)
-    {
-    case VGPU_BACKEND_NULL:
-        return VGPU_TRUE;
-    case VGPU_BACKEND_VULKAN:
-#if VGPU_VULKAN
-        return vgpuIsVkSupported(headless);
-#else
-        return VGPU_FALSE;
-#endif
-
-    case VGPU_BACKEND_D3D12:
-#if VGPU_D3D12
-        return vgpuIsD3D12Supported(headless);
-#else
-        return VGPU_FALSE;
-#endif
-
-    case VGPU_BACKEND_OPENGL:
-#if VGPU_OPENGL
-        return VGPU_TRUE;
-#else
-        return VGPU_FALSE;
-#endif
-    default:
-        return VGPU_FALSE;
-    }
-}
 
 VgpuResult vgpuInitialize(const char* applicationName, const VgpuDescriptor* descriptor) {
     if (s_renderer != NULL) {

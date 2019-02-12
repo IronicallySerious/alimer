@@ -29,11 +29,11 @@ namespace alimer
     class GPUDeviceVk;
 
 	/// Vulkan Buffer implementation.
-	class BufferVk final : public GPUBuffer
+	class BufferVk final //: public GPUBuffer
 	{
 	public:
         BufferVk(GPUDeviceVk* device, const BufferDescriptor* descriptor, const void* pInitData);
-        ~BufferVk() override;
+        ~BufferVk();
 
         //bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
 

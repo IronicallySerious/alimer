@@ -42,22 +42,34 @@ extern "C"
 }
 #endif /* defined(_WIN32) */
 
+using namespace std;
+
 namespace alimer
 {
     GraphicsDevice* graphics = nullptr;
 
-    GraphicsDevice::GraphicsDevice(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference)
-        : _backend(preferredBackend)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, PhysicalDevicePreference devicePreference, bool validation)
+        : _backend(backend)
         , _devicePreference(devicePreference)
-#if defined(ALIMER_DEV)
-        , _validation(true)
-#endif // !NDEBUG
+        , _validation(validation)
     {
-        if (preferredBackend == GraphicsBackend::Default)
+        graphics = this;
+        AddSubsystem(this);
+    }
+
+    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference)
+    {
+        if (graphics != nullptr)
         {
-            preferredBackend = GraphicsBackend::Vulkan;
+            ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
         }
 
+        GraphicsDevice* device = nullptr;
+#if defined(ALIMER_DEV)
+        const bool validation = true;
+#else
+        const bool validation = false;
+#endif
         const bool headless = false;
         switch (preferredBackend)
         {
@@ -67,7 +79,7 @@ namespace alimer
 #if defined(ALIMER_VULKAN)
             if (GPUDeviceVk::IsSupported())
             {
-                _impl = new GPUDeviceVk(devicePreference, _validation, headless);
+                device = new GPUDeviceVk(devicePreference, validation, headless);
                 ALIMER_LOGINFO("Vulkan backend created with success.");
             }
             else
@@ -86,23 +98,12 @@ namespace alimer
             ALIMER_UNREACHABLE();
         }
 
-        AddSubsystem(this);
-    }
-
-    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference)
-    {
-        if (graphics != nullptr)
-        {
-            ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
-        }
-
-        graphics = new GraphicsDevice(preferredBackend, devicePreference);
-        return graphics;
+        return device;
     }
 
     GraphicsDevice::~GraphicsDevice()
     {
-        WaitIdle();
+        //WaitIdle();
 
         // Destroy undestroyed resources.
         SafeDelete(_pointSampler);
@@ -110,7 +111,7 @@ namespace alimer
 
         if (_gpuResources.size() > 0)
         {
-            std::lock_guard<std::mutex> lock(_gpuResourceMutex);
+            lock_guard<mutex> lock(_gpuResourceMutex);
             for (auto it = _gpuResources.begin(); it != _gpuResources.end(); ++it)
             {
                 (*it)->Destroy();
@@ -124,10 +125,8 @@ namespace alimer
             _contextPool[i].clear();
         }
 
-        _renderContext.Reset();
-
         // Destroy backend.
-        SafeDelete(_impl);
+        Finalize();
 
         RemoveSubsystem(this);
         graphics = nullptr;
@@ -138,21 +137,21 @@ namespace alimer
             return true;
         }
 
-        _initialized = _impl->Initialize(descriptor);
+        _initialized = InitializeImpl(descriptor);
         OnAfterCreated();
         return _initialized;
     }
 
     void GraphicsDevice::OnAfterCreated()
     {
-        _renderContext = new CommandContext(this, QueueType::Graphics, _impl->GetRenderContext());
-        SamplerDescriptor descriptor = {};
-        _pointSampler = CreateSampler(&descriptor);
+        // TODO: add stock samplers
+        //SamplerDescriptor descriptor = {};
+        //_pointSampler = CreateSampler(&descriptor);
 
-        descriptor.magFilter = SamplerMinMagFilter::Linear;
-        descriptor.minFilter = SamplerMinMagFilter::Linear;
-        descriptor.mipmapFilter = SamplerMipFilter::Linear;
-        _linearSampler = CreateSampler(&descriptor);
+        //descriptor.magFilter = SamplerMinMagFilter::Linear;
+        //descriptor.minFilter = SamplerMinMagFilter::Linear;
+        //descriptor.mipmapFilter = SamplerMipFilter::Linear;
+        //_linearSampler = CreateSampler(&descriptor);
     }
 
     bool GraphicsDevice::BeginFrame()
@@ -162,7 +161,7 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
         }
 
-        if (!_impl->BeginFrame())
+        if (!BeginFrameImpl())
         {
             ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
         }
@@ -179,43 +178,26 @@ namespace alimer
         }
 
         // Tick backend
-        _impl->EndFrame();
-
-        // Free contexts
-        std::lock_guard<std::mutex> lock(_contextAllocationMutex);
-        for (uint32_t i = 0u; i < 4u; ++i)
-        {
-            if (_contextPool[i].size() > 0)
-            {
-                for (auto& context : _contextPool[i])
-                {
-                    _availableContexts[(uint32_t)context->GetQueueType()].push(context.get());
-                }
-            }
-        }
+        EndFrameImpl();
 
         _inBeginFrame = false;
         return ++_frameIndex;
     }
 
-    void GraphicsDevice::WaitIdle() {
-        _impl->WaitIdle();
-    }
-
-    const GraphicsDeviceFeatures& GraphicsDevice::GetFeatures() const {
-        return _impl->GetFeatures();
+    void GraphicsDevice::WaitIdle()
+    {
+        WaitIdleImpl();
     }
 
     CommandContext* GraphicsDevice::AllocateContext(QueueType type) {
-        std::lock_guard<std::mutex> lock(_contextAllocationMutex);
+        lock_guard<mutex> lock(_contextAllocationMutex);
 
         auto& availableContexts = _availableContexts[(uint32_t)type];
 
         CommandContext* ret = nullptr;
         if (availableContexts.empty())
         {
-            CommandContextImpl* impl = _impl->CreateCommandContext(type);
-            ret = new CommandContext(this, type, impl);
+            ret = CreateCommandContext(type);
             _contextPool[(uint32_t)type].emplace_back(ret);
             ALIMER_LOGDEBUG("CommandContext allocated");
         }
@@ -231,16 +213,26 @@ namespace alimer
         return ret;
     }
 
+    void GraphicsDevice::FreeContext(CommandContext* context)
+    {
+        ALIMER_ASSERT(context != nullptr);
+        lock_guard<mutex> lock(_contextAllocationMutex);
+        _availableContexts[(uint32_t)context->GetQueueType()].push(context);
+    }
+
     void GraphicsDevice::TrackResource(GPUResource* resource)
     {
-        std::unique_lock<std::mutex> lock(_gpuResourceMutex);
+        unique_lock<mutex> lock(_gpuResourceMutex);
         _gpuResources.push_back(resource);
     }
 
     void GraphicsDevice::UntrackResource(GPUResource* resource)
     {
-        std::unique_lock<std::mutex> lock(_gpuResourceMutex);
-        std::remove(_gpuResources.begin(), _gpuResources.end(), resource);
+        unique_lock<mutex> lock(_gpuResourceMutex);
+        _gpuResources.erase(
+            std::remove(_gpuResources.begin(), _gpuResources.end(), resource),
+            end(_gpuResources)
+            );
     }
 
     static inline TextureUsage UpdateTextureUsage(TextureUsage usage, bool hasInitData, uint32_t mipLevels)
@@ -503,13 +495,6 @@ namespace alimer
         }
         return nullptr;
         //return CreateBufferImpl(descriptor, pInitData);
-    }
-
-    Sampler* GraphicsDevice::CreateSampler(const SamplerDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-        return nullptr;
-        //return CreateSamplerImpl(descriptor);
     }
 
     Shader* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)

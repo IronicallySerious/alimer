@@ -32,7 +32,7 @@ namespace alimer
     class CommandBufferVk;
 
     /// Vulkan gpu backend.
-    class GPUDeviceVk final : public GraphicsImpl
+    class GPUDeviceVk final : public GraphicsDevice
     {
     public:
         /// Is backend supported?
@@ -44,14 +44,17 @@ namespace alimer
         /// Destructor.
         ~GPUDeviceVk() override;
 
-        void WaitIdle() override;
+        void Finalize() override;
 
-        bool Initialize(const SwapChainDescriptor* descriptor) override;
-        bool BeginFrame() override;
-        void EndFrame() override;
+        void WaitIdleImpl() override;
 
-        CommandContextImpl* GetRenderContext() const override;
-        CommandContextImpl* CreateCommandContext(QueueType type) override;
+        bool InitializeImpl(const SwapChainDescriptor* descriptor) override;
+        bool BeginFrameImpl() override;
+        void EndFrameImpl() override;
+
+        Framebuffer* GetDefaultFramebuffer() const override;
+
+        CommandContext* CreateCommandContext(QueueType type) override;
         void SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer, VkSemaphore semaphore);
         CommandQueueVk* GetCommandQueue(QueueType type) const;
         //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
@@ -66,7 +69,9 @@ namespace alimer
         void RecycleSemaphore(VkSemaphore semaphore);
         void AddWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags stages);
 
-        void DestroySampler(VkSampler sampler);
+        void DestroySampler(VkSampler handle);
+        void DestroyPipeline(VkPipeline handle);
+        void DestroyImage(VkImage handle);
 
         VkInstance GetVkInstance() const { return _instance; }
         VkPhysicalDevice GetVkPhysicalDevice() const { return _physicalDevice; }
@@ -92,29 +97,11 @@ namespace alimer
         }
 
     private:
-        VkInstance                              _instance = VK_NULL_HANDLE;
-        VkDebugReportCallbackEXT                _debugCallback = VK_NULL_HANDLE;
-        VkDebugUtilsMessengerEXT                _debugMessenger = VK_NULL_HANDLE;
-        VkPhysicalDevice                        _physicalDevice = VK_NULL_HANDLE;
-        VkPhysicalDeviceProperties              _physicalDeviceProperties;
-        VkPhysicalDeviceMemoryProperties        _physicalDeviceMemoryProperties;
-        VkPhysicalDeviceFeatures                _physicalDeviceFeatures;
-        std::vector<VkQueueFamilyProperties>    _physicalDeviceQueueFamilyProperties;
-        std::vector<std::string>                _physicalDeviceExtensions;
-        std::vector<std::string>                _physicalDeviceLayers;
-        uint32_t                                _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t                                _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t                                _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        VkDevice                                _device = VK_NULL_HANDLE;
-        VkQueue                                 _graphicsQueue = VK_NULL_HANDLE;
-        VkQueue                                 _computeQueue = VK_NULL_HANDLE;
-        VkQueue                                 _transferQueue = VK_NULL_HANDLE;
-        VmaAllocator                            _memoryAllocator = VK_NULL_HANDLE;
+        bool                                    _headless;
         std::unique_ptr<CommandQueueVk>         _graphicsCommandQueue;
         std::unique_ptr<CommandQueueVk>         _computeCommandQueue;
         std::unique_ptr<CommandQueueVk>         _copyCommandQueue;
         std::unique_ptr<SwapChainVk>            _swapchain;
-        CommandBufferVk*                        _renderContext;
         DeviceFeaturesVk                        _featuresVk = {};
         std::vector<VkSemaphore>                _semaphores;
         uint32_t                                _frameIndex = 0;
@@ -136,6 +123,8 @@ namespace alimer
             std::vector<VkSemaphore>        waitSemaphores;
             VkFence                         fence;
             std::vector<VkSampler>          destroyedSamplers;
+            std::vector<VkPipeline>         destroyedPipelines;
+            std::vector<VkImage>            destroyedImages;
         };
 
         std::vector<std::unique_ptr<FrameData>> _frameData;

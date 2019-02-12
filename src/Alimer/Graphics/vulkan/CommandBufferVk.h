@@ -30,28 +30,29 @@ namespace alimer
     class CommandQueueVk;
 
 	/// Vulkan CommandBuffer implementation.
-	class CommandBufferVk final : public CommandContextImpl
+	class CommandBufferVk final : public CommandContext
 	{
 	public:
-        CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue, bool default);
+        CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue);
 		~CommandBufferVk() override;
 
-        void Begin(VkCommandBufferUsageFlags flags);
+        void Begin();
         void End();
-        void Flush(bool waitForCompletion) override;
 
-        void PushDebugGroup(const std::string& name) override;
-        void PopDebugGroup() override;
-        void InsertDebugMarker(const std::string& name) override;
+       
        
         VkCommandBuffer GetVkCommandBuffer() const { return _commandBuffer; }
         VkSemaphore GetSemaphore() const { return _semaphore; }
 
 	private:
         void BeginContext();
-        //void Reset() override;
+        void FlushImpl(bool waitForCompletion) override;
+        void Reset() override;
 
-        //void FlushImpl(bool waitForCompletion) override;
+        void PushDebugGroupImpl(const std::string& name, const Color4& color) override;
+        void PopDebugGroupImpl() override;
+        void InsertDebugMarkerImpl(const std::string& name, const Color4& color) override;
+
         //void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
         //void EndRenderPassImpl() override;
 
@@ -79,7 +80,6 @@ namespace alimer
         GPUDeviceVk*    _device;
         CommandQueueVk* _commandQueue;
         QueueType       _type;
-        bool            _default;
         VkCommandBuffer _commandBuffer;
         VkSemaphore     _semaphore;
         bool            _supportsDebugUtils;

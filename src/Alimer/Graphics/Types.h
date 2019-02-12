@@ -388,11 +388,11 @@ namespace alimer
     struct FramebufferAttachment
     {
         /// The texture attachment.
-        Texture* texture;
+        Texture* texture = nullptr;
         /// The mipmap level of the texture used for rendering to the attachment.
-        uint32_t level;
+        uint32_t level = 0;
         /// The slice of the texture used for rendering to the attachment.
-        uint32_t slice;
+        uint32_t slice = 0;
     };
 
     struct FramebufferDescriptor
@@ -500,61 +500,38 @@ namespace alimer
         uint32_t offset;
     };
 
+    struct VertexBufferLayoutDescriptor {
+        uint32_t                        stride;
+        VertexInputRate                 inputRate;
+    };
+
+    struct VertexAttributeDescriptor {
+        VertexFormat                    format;
+        uint32_t                        offset;
+        uint32_t                        bufferIndex;
+    };
+
+    struct VertexDescriptor {
+        VertexBufferLayoutDescriptor    layouts[MaxVertexBufferBindings];
+        VertexAttributeDescriptor       attributes[MaxVertexAttributes];
+    };
+
+    class Shader;
+    struct RenderPipelineDescriptor {
+        Shader*                         shader;
+        RasterizationStateDescriptor    rasterizationState;
+        //BlendStateDescriptor            blendStates;
+        //DepthStencilStateDescriptor     depthStencilState;
+        VertexDescriptor                vertexDescriptor;
+        PrimitiveTopology               primitiveTopology = PrimitiveTopology::TriangleList;
+    };
+
+
+    struct ComputePipelineDescriptor {
+    };
+
     ALIMER_API uint32_t GetVertexElementSize(VertexFormat format);
 
     ALIMER_API const char* EnumToString(ResourceUsage usage);
     ALIMER_API const char* EnumToString(VertexElementSemantic semantic);
 }
-
-/* Backend types */
-#if defined(ALIMER_D3D11)
-struct ID3D11Buffer;
-#elif defined(ALIMER_D3D12)
-struct ID3D12Resource;
-#elif defined(ALIMER_VULKAN)
-
-/* Took from vulkan_core.h */
-#ifndef VK_NULL_HANDLE
-#define VK_NULL_HANDLE 0
-#endif
-
-#ifndef VK_DEFINE_HANDLE
-#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
-#endif
-
-#if !defined(VK_DEFINE_NON_DISPATCHABLE_HANDLE)
-#   if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) && !defined(__ILP32__) ) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
-#       define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
-#   else
-#       define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef uint64_t object;
-#   endif
-#endif
-
-VK_DEFINE_HANDLE(VkDevice)
-VK_DEFINE_HANDLE(VkQueue)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSemaphore)
-VK_DEFINE_HANDLE(VkCommandBuffer)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkFence)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDeviceMemory)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkBuffer)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkImage)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkEvent)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkQueryPool)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkBufferView)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkImageView)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkShaderModule)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkPipelineCache)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkPipelineLayout)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkRenderPass)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkPipeline)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDescriptorSetLayout)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSampler)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDescriptorPool)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDescriptorSet)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkFramebuffer)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkCommandPool)
-#elif defined(ALIMER_OPENGL)
-#ifndef GL_INVALID_VALUE
-#   define GL_INVALID_VALUE			0x0501
-#endif 
-#endif

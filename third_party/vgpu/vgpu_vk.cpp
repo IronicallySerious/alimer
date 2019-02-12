@@ -20,13 +20,52 @@
 // THE SOFTWARE.
 //
 
-#define VGPU_IMPLEMENTATION
-#include "vgpu_internal.h"
-
-#if VGPU_VULKAN
+#include "vgpu/vgpu.h"
+#include <assert.h>
+#include <string.h>
+#if defined(_WIN32) || defined(_WIN64)
+#   include <malloc.h>
+#   undef    alloca
+#   define   alloca _malloca
+#   define   freea  _freea
+#else
+#   include <alloca.h>
+#endif
 
 #include <vector>
 #include <stdio.h> /* vsnprintf */
+
+#ifndef VGPU_ASSERT
+#   define VGPU_ASSERT(c) assert(c)
+#endif
+
+
+
+#ifndef VGPU_ALLOC
+#   define VGPU_ALLOC(type) ((type*) malloc(sizeof(type)))
+#   define VGPU_ALLOCN(type, n) ((type*) malloc(sizeof(type) * n))
+#   define VGPU_FREE(ptr) free(ptr)
+#   define VGPU_ALLOC_HANDLE(type) ((type) calloc(1, sizeof(type##_T)))
+#endif
+
+
+#if defined( __clang__ )
+#   define VGPU_UNREACHABLE() __builtin_unreachable()
+#   define VGPU_THREADLOCAL _Thread_local
+#elif defined(__GNUC__)
+#   define VGPU_UNREACHABLE() __builtin_unreachable()
+#   define VGPU_THREADLOCAL __thread
+#elif defined(_MSC_VER)
+#   define VGPU_UNREACHABLE() __assume(false)
+#   define VGPU_THREADLOCAL __declspec(thread)
+#else
+#   define VGPU_UNREACHABLE()((void)0)
+#   define VGPU_THREADLOCAL
+#endif
+
+#define _vgpu_min(a,b) ((a<b)?a:b)
+#define _vgpu_max(a,b) ((a>b)?a:b)
+#define _vgpu_clamp(v,v0,v1) ((v<v0)?(v0):((v>v1)?(v1):(v)))
 
 #if defined(_WIN32) || defined(_WIN64)
 #   ifndef NOMINMAX
@@ -2650,9 +2689,11 @@ VgpuBool32 vgpuIsVkSupported(VgpuBool32 headless)
     return true;
 }
 
+VgpuBackend vgpuGetBackend() {
+    return VGPU_BACKEND_VULKAN;
+}
+
 VgpuRendererI* vgpuCreateVkBackend()
 {
     return new VgpuRendererVk();
 }
-
-#endif // VGPU_VULKAN

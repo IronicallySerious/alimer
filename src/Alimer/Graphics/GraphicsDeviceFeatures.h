@@ -93,11 +93,14 @@ namespace alimer
             _maxBindGroups = value;
         }
 
-        uint32_t GetMinUniformBufferOffsetAlignment() const {
-            return _minUniformBufferOffsetAlignment;
-        }
+        uint32_t GetMinUniformBufferOffsetAlignment() const { return _minUniformBufferOffsetAlignment; }
         void SetMinUniformBufferOffsetAlignment(uint32_t value) {
             _minUniformBufferOffsetAlignment = value;
+        }
+
+        uint32_t GetMinStorageBufferOffsetAlignment() const { return _minStorageBufferOffsetAlignment; }
+        void SetMinStorageBufferOffsetAlignment(uint32_t value) {
+            _minStorageBufferOffsetAlignment = value;
         }
 
     private:
@@ -111,5 +114,6 @@ namespace alimer
         uint32_t        _maxColorAttachments = 0;
         uint32_t        _maxBindGroups = 0;
         uint32_t        _minUniformBufferOffsetAlignment = 0;
+        uint32_t        _minStorageBufferOffsetAlignment = 0;
 	};
 }

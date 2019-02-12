@@ -26,7 +26,7 @@
 
 namespace alimer
 {
-    VkImageUsageFlags VkImageUsage(TextureUsage usage, PixelFormat format)
+    static VkImageUsageFlags VkImageUsage(TextureUsage usage, PixelFormat format)
     {
         VkImageUsageFlags flags = 0;
 
@@ -59,8 +59,8 @@ namespace alimer
     }
 
     TextureVk::TextureVk(GPUDeviceVk* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
-        : _device(device)
-        , _externalHandle(false)
+        : Texture(device, descriptor)
+        , _device(device)
     {
         if (nativeTexture != nullptr)
         {
@@ -75,10 +75,15 @@ namespace alimer
 
     TextureVk::~TextureVk()
     {
+        Destroy();
+    }
+
+    void TextureVk::Destroy()
+    {
         if (!_externalHandle
             && _handle != VK_NULL_HANDLE)
         {
-            //vkDestroyImage(_graphicsDevice->GetVkDevice(), _handle, nullptr);
+            _device->DestroyImage(_handle);
             _handle = VK_NULL_HANDLE;
         }
     }

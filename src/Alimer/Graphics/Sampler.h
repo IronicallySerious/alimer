@@ -22,20 +22,25 @@
 
 #pragma once
 
+#include "../Graphics/Backend.h"
 #include "../Graphics/GPUResource.h"
 
 namespace alimer
 {
     /// Defines a Sampler class.
-    class ALIMER_API Sampler : public GPUResource
+    class ALIMER_API Sampler final : public GPUResource
     {
         friend class GraphicsDevice;
 
-    protected:
+    public:
         /// Constructor.
         Sampler(GraphicsDevice* device, const SamplerDescriptor* descriptor);
 
-    public:
+        /// Destructor.
+        ~Sampler();
+
+        void Destroy() override;
+
         /// Get the addressing mode for the U texcoord.
         SamplerAddressMode GetAddressModeU() const { return _descriptor.addressModeU; }
 
@@ -49,6 +54,11 @@ namespace alimer
         const SamplerDescriptor &GetDescriptor() const { return _descriptor; }
 
     private:
+        /// Create backend instance.
+        bool Create();
+
+        SamplerHandle _handle = 0;
+
         SamplerDescriptor _descriptor{};
     };
 }

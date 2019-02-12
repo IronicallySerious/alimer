@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.0)
 project(volk)
 
 add_library(volk STATIC
-    ${CMAKE_CURRENT_LIST_DIR}/volk.h
-    ${CMAKE_CURRENT_LIST_DIR}/volk.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/volk.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/volk.c
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -16,4 +16,4 @@ else()
     message(FATAL_ERROR "Volk can't be cofigured for " ${CMAKE_SYSTEM_NAME})
 endif()
 
-target_include_directories(volk PUBLIC ${CMAKE_CURRENT_LIST_DIR} ${ALIMER_THIRD_PARTY_DIR}/khronos)
+target_include_directories(volk PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ALIMER_THIRD_PARTY_DIR}/khronos)

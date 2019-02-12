@@ -34,6 +34,7 @@ namespace alimer
         VkCommandPoolCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         createInfo.pNext = nullptr;
+        //createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.queueFamilyIndex = queueFamilyIndex;
         if (vkCreateCommandPool(device->GetVkDevice(), &createInfo, nullptr, &_commandPool) != VK_SUCCESS)

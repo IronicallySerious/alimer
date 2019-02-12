@@ -214,7 +214,7 @@ namespace alimer
             return;
         }
 
-        CommandContext& context = graphics->GetContext();
+        CommandContext& context = CommandContext::Begin("Scene Render");
         //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         //context.BeginDefaultRenderPass(clearColor);
         //context.Draw(3, 0);

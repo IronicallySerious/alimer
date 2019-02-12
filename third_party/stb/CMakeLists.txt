@@ -21,12 +21,12 @@
 #
 
 set(STB_HEADER_FILES
-    ${CMAKE_CURRENT_LIST_DIR}/stb_image.h
-    ${CMAKE_CURRENT_LIST_DIR}/stb_image_write.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/stb_image.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/stb_image_write.h
     )
 set(STB_SOURCE_FILES
-    ${CMAKE_CURRENT_LIST_DIR}/stb_image.c
-    ${CMAKE_CURRENT_LIST_DIR}/stb_image_write.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/stb_image.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/stb_image_write.c
     )
 
 add_library(stb STATIC ${STB_HEADER_FILES} ${STB_SOURCE_FILES})

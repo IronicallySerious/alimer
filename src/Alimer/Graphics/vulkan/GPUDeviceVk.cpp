@@ -25,7 +25,6 @@
 #include "CommandQueueVk.h"
 #include "CommandBufferVk.h"
 #include "TextureVk.h"
-#include "SamplerVk.h"
 #include "BufferVk.h"
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -286,7 +285,8 @@ namespace alimer
     }
 
     GPUDeviceVk::GPUDeviceVk(PhysicalDevicePreference devicePreference, bool validation, bool headless)
-        : GraphicsImpl(validation, headless)
+        : GraphicsDevice(GraphicsBackend::Vulkan, devicePreference, validation)
+        , _headless(headless)
     {
         VkApplicationInfo appInfo;
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -511,9 +511,15 @@ namespace alimer
         _features.SetMaxColorAttachments(_physicalDeviceProperties.limits.maxColorAttachments);
         _features.SetMaxBindGroups(_physicalDeviceProperties.limits.maxBoundDescriptorSets);
         _features.SetMinUniformBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment));
+        _features.SetMinStorageBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minStorageBufferOffsetAlignment));
     }
 
     GPUDeviceVk::~GPUDeviceVk()
+    {
+        vkDeviceWaitIdle(_device);
+    }
+
+    void GPUDeviceVk::Finalize()
     {
         vkDeviceWaitIdle(_device);
 
@@ -558,14 +564,14 @@ namespace alimer
         vkDestroyInstance(_instance, nullptr);
     }
 
-    void GPUDeviceVk::WaitIdle()
+    void GPUDeviceVk::WaitIdleImpl()
     {
         vkThrowIfFailed(
             vkDeviceWaitIdle(_device)
         );
     }
 
-    bool GPUDeviceVk::Initialize(const SwapChainDescriptor* descriptor)
+    bool GPUDeviceVk::InitializeImpl(const SwapChainDescriptor* descriptor)
     {
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         if (descriptor->nativeHandle != 0)
@@ -932,8 +938,8 @@ namespace alimer
             _frameData.emplace_back(std::move(frame));
         }
 
-        // Create default render context
-        _renderContext = new CommandBufferVk(this, QueueType::Graphics, _graphicsCommandQueue.get(), true);
+        // Trigger of after created.
+        OnAfterCreated();
 
         return true;
     }
@@ -992,23 +998,17 @@ namespace alimer
         return surface;
     }
 
-    bool GPUDeviceVk::BeginFrame()
+    bool GPUDeviceVk::BeginFrameImpl()
     {
         if (!_headless) {
-            _swapchain->GetNextTexture();
+            _swapchain->BeginFrame();
         }
-
-        _renderContext->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
         return true;
     }
 
-    void GPUDeviceVk::EndFrame()
+    void GPUDeviceVk::EndFrameImpl()
     {
-        _renderContext->End();
-        frame().submittedCmdBuffers.push_back(_renderContext->GetVkCommandBuffer());
-        frame().waitSemaphores.push_back(_renderContext->GetSemaphore());
-
         VkSubmitInfo submitInfo;
         memset(&submitInfo, 0, sizeof(submitInfo));
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1082,11 +1082,12 @@ namespace alimer
         _frameIndex = (_frameIndex + 1u) % _maxInflightFrames;
     }
 
-    CommandContextImpl* GPUDeviceVk::GetRenderContext() const {
-        return _renderContext;
+    Framebuffer* GPUDeviceVk::GetDefaultFramebuffer() const
+    {
+        return _swapchain->GetFramebuffer();
     }
 
-    CommandContextImpl* GPUDeviceVk::CreateCommandContext(QueueType type)
+    CommandContext* GPUDeviceVk::CreateCommandContext(QueueType type)
     {
         CommandQueueVk* queue = nullptr;
         switch (type)
@@ -1103,7 +1104,7 @@ namespace alimer
             break;
         }
 
-        return new CommandBufferVk(this, type, queue, false);
+        return new CommandBufferVk(this, type, queue);
     }
 
     void GPUDeviceVk::SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer, VkSemaphore semaphore)
@@ -1232,13 +1233,29 @@ namespace alimer
         // Sanity check.
         ALIMER_ASSERT(graphics.waitSemaphores.size() < 16 * 1024);
     }
-
-    void GPUDeviceVk::DestroySampler(VkSampler sampler)
+    
+    void GPUDeviceVk::DestroySampler(VkSampler handle)
     {
 #if !defined(NDEBUG)
-        ALIMER_ASSERT(std::find(frame().destroyedSamplers.begin(), frame().destroyedSamplers.end(), sampler) == frame().destroyedSamplers.end());
+        ALIMER_ASSERT(std::find(frame().destroyedSamplers.begin(), frame().destroyedSamplers.end(), handle) == frame().destroyedSamplers.end());
 #endif
-        frame().destroyedSamplers.push_back(sampler);
+        frame().destroyedSamplers.push_back(handle);
+    }
+
+    void GPUDeviceVk::DestroyPipeline(VkPipeline handle)
+    {
+#if !defined(NDEBUG)
+        ALIMER_ASSERT(std::find(frame().destroyedPipelines.begin(), frame().destroyedPipelines.end(), handle) == frame().destroyedPipelines.end());
+#endif
+        frame().destroyedPipelines.push_back(handle);
+    }
+
+    void GPUDeviceVk::DestroyImage(VkImage handle)
+    {
+#if !defined(NDEBUG)
+        ALIMER_ASSERT(std::find(frame().destroyedImages.begin(), frame().destroyedImages.end(), handle) == frame().destroyedImages.end());
+#endif
+        frame().destroyedImages.push_back(handle);
     }
 
     GPUDeviceVk::FrameData::FrameData(GPUDeviceVk* device_)
@@ -1260,8 +1277,16 @@ namespace alimer
     void GPUDeviceVk::FrameData::ProcessDeferredDelete()
     {
         for (auto &sampler : destroyedSamplers)
-        {
             vkDestroySampler(logicalDevice, sampler, nullptr);
-        }
+
+        for (auto &pipeline : destroyedPipelines)
+            vkDestroyPipeline(logicalDevice, pipeline, nullptr);
+
+        for (auto &image : destroyedImages)
+            vkDestroyImage(logicalDevice, image, nullptr);
+
+        destroyedSamplers.clear();
+        destroyedPipelines.clear();
+        destroyedImages.clear();
     }
 }

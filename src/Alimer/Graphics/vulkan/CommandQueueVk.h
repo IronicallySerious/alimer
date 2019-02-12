@@ -35,7 +35,6 @@ namespace alimer
 	public:
         CommandQueueVk(GPUDeviceVk* device, VkQueue queue, uint32_t queueFamilyIndex);
         ~CommandQueueVk();
-
         void ExecuteCommandBuffer(CommandBufferVk* buffer, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore, VkFence fence);
 
         VkQueue         GetQueue() const { return _queue; }

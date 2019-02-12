@@ -30,4 +30,11 @@ namespace alimer
     {
         memcpy(&_descriptor, descriptor, sizeof(SamplerDescriptor));
     }
+
+    Sampler::~Sampler()
+    {
+        Destroy();
+    }
+
+   
 }

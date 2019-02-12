@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "SamplerVk.h"
+#include "../Sampler.h"
 #include "GPUDeviceVk.h"
 #include "../../Core/Log.h"
 
@@ -86,36 +86,38 @@ namespace alimer
         return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
     }
 
-    SamplerVk::SamplerVk(GPUDeviceVk* device, const SamplerDescriptor* descriptor)
-        : _device(device)
+    bool Sampler::Create()
     {
         VkSamplerCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.magFilter = GetVkSamplerMinMagFilter(descriptor->magFilter);
-        createInfo.minFilter = GetVkSamplerMinMagFilter(descriptor->minFilter);
-        createInfo.mipmapMode = GetVkSamplerMipFilter(descriptor->mipmapFilter);
-        createInfo.addressModeU = GetVkSamplerAddressMode(descriptor->addressModeU);
-        createInfo.addressModeV = GetVkSamplerAddressMode(descriptor->addressModeV);
-        createInfo.addressModeW = GetVkSamplerAddressMode(descriptor->addressModeW);
+        createInfo.magFilter = GetVkSamplerMinMagFilter(_descriptor.magFilter);
+        createInfo.minFilter = GetVkSamplerMinMagFilter(_descriptor.minFilter);
+        createInfo.mipmapMode = GetVkSamplerMipFilter(_descriptor.mipmapFilter);
+        createInfo.addressModeU = GetVkSamplerAddressMode(_descriptor.addressModeU);
+        createInfo.addressModeV = GetVkSamplerAddressMode(_descriptor.addressModeV);
+        createInfo.addressModeW = GetVkSamplerAddressMode(_descriptor.addressModeW);
         createInfo.mipLodBias = 0.0f;
-        createInfo.anisotropyEnable = descriptor->maxAnisotropy > 1;
-        createInfo.maxAnisotropy = static_cast<float>(descriptor->maxAnisotropy);
-        createInfo.compareEnable = descriptor->compareFunction == CompareFunction::Never ? VK_FALSE : VK_TRUE;
-        createInfo.compareOp = GetVkCompareOp(descriptor->compareFunction);
-        createInfo.minLod = descriptor->lodMinClamp;
-        createInfo.maxLod = descriptor->lodMaxClamp;
-        createInfo.borderColor = GetVkBorderColor(descriptor->borderColor);
+        createInfo.anisotropyEnable = _descriptor.maxAnisotropy > 1;
+        createInfo.maxAnisotropy = static_cast<float>(_descriptor.maxAnisotropy);
+        createInfo.compareEnable = _descriptor.compareFunction == CompareFunction::Never ? VK_FALSE : VK_TRUE;
+        createInfo.compareOp = GetVkCompareOp(_descriptor.compareFunction);
+        createInfo.minLod = _descriptor.lodMinClamp;
+        createInfo.maxLod = _descriptor.lodMaxClamp;
+        createInfo.borderColor = GetVkBorderColor(_descriptor.borderColor);
         createInfo.unnormalizedCoordinates = VK_FALSE;
 
-        if (vkCreateSampler(device->GetVkDevice(), &createInfo, nullptr, &_handle) != VK_SUCCESS)
+        if (vkCreateSampler(_device->GetVkDevice(), &createInfo, nullptr, &_handle) != VK_SUCCESS)
         {
             ALIMER_LOGERROR("Vulkan: Failed to create sampler");
+            return false;
         }
+
+        return true;
     }
 
-    SamplerVk::~SamplerVk()
+    void Sampler::Destroy()
     {
         if (_handle != VK_NULL_HANDLE)
         {
@@ -123,5 +125,4 @@ namespace alimer
             _handle = VK_NULL_HANDLE;
         }
     }
-
 }

@@ -29,12 +29,13 @@ namespace alimer
     Framebuffer::Framebuffer(GraphicsDevice* device, const FramebufferDescriptor* descriptor)
         : GPUResource(device, Type::Framebuffer)
     {
-        _colorAttachments.resize(MaxColorAttachments);
+        const uint32_t colorAttachmentsCount = Max(MaxColorAttachments, device->GetFeatures().GetMaxColorAttachments());
+        _colorAttachments.resize(colorAttachmentsCount);
         _width = UINT32_MAX;
         _height = UINT32_MAX;
         _layers = 1;
 
-        for (uint32_t i = 0; i < MaxColorAttachments; ++i)
+        for (uint32_t i = 0; i < colorAttachmentsCount; ++i)
         {
             if (descriptor->colorAttachments[i].texture == nullptr)
             {

@@ -38,18 +38,17 @@ namespace alimer
     class Buffer;
     class Sampler;
     class Framebuffer;
-    class GraphicsImpl;
 
     struct GraphicsDeviceDescriptor {
         GraphicsBackend             preferredBackend = GraphicsBackend::Default;
         PhysicalDevicePreference    devicePreference = PhysicalDevicePreference::Discrete;
-        bool                        validation       = false;
+        bool                        validation = false;
         /// Main swap chain descriptor or null for headless.
-        const SwapChainDescriptor*  swapchain        = nullptr;
+        const SwapChainDescriptor*  swapchain = nullptr;
     };
 
     /// Low-level graphics module.
-    class ALIMER_API GraphicsDevice final : public Object
+    class ALIMER_API GraphicsDevice : public Object
     {
         friend class GPUResource;
         friend class CommandContext;
@@ -63,7 +62,7 @@ namespace alimer
             PhysicalDevicePreference devicePreference = PhysicalDevicePreference::Discrete);
 
         /// Destructor.
-        ~GraphicsDevice() override;
+        virtual ~GraphicsDevice() override;
 
         /// Initialize device with main swap chain descriptor.
         bool Initialize(const SwapChainDescriptor* descriptor);
@@ -77,19 +76,14 @@ namespace alimer
         /// Wait device to finish all pending operations.
         void WaitIdle();
 
+        /// Get the default framebuffer.
+        virtual Framebuffer* GetDefaultFramebuffer() const = 0;
+
         /// Get the backend.
         inline GraphicsBackend GetBackend() const { return _backend; }
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const;
-
-        /**
-        * Get the default command context (immediate on D3D11 and OpenGL).
-        */
-        inline CommandContext& GetContext() { return *_renderContext.Get(); }
-
-        /// Return graphics backend implementation.
-        inline GraphicsImpl* GetImpl() const { return _impl; }
+        inline const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
 
         /**
         * Create a 1D texture.
@@ -177,14 +171,6 @@ namespace alimer
         Buffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData);
 
         /**
-        * Create new Sampler with given descriptor.
-        *
-        * @param descriptor The sampler descriptor.
-        * @return A pointer to a new Sampler, or nullptr if creation failed.
-        */
-        Sampler* CreateSampler(const SamplerDescriptor* descriptor);
-
-        /**
         * Create new Shader with given descriptor.
         *
         * @param descriptor The shader descriptor.
@@ -192,7 +178,16 @@ namespace alimer
         */
         Shader* CreateShader(const ShaderDescriptor* descriptor);
 
-    private:
+        /// Deferr destroy sampler handle.
+        void DestroySampler(SamplerHandle handle);
+
+#ifdef ALIMER_VULKAN
+        VkInstance GetVkInstance() const { return _instance; }
+        VkPhysicalDevice GetVkPhysicalDevice() const { return _physicalDevice; }
+        VkDevice GetVkDevice() const { return _device; }
+#endif
+
+    protected:
         /// Add a GPUResource to keep track of. 
         void TrackResource(GPUResource* resource);
 
@@ -201,21 +196,28 @@ namespace alimer
 
         void OnAfterCreated();
 
-        CommandContext* AllocateContext(QueueType type);
-
     private:
-        /// Constructor.
-        GraphicsDevice(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference);
+        virtual void WaitIdleImpl() = 0;
+        virtual bool InitializeImpl(const SwapChainDescriptor* descriptor) = 0;
+        virtual void Finalize() {}
+        virtual bool BeginFrameImpl() = 0;
+        virtual void EndFrameImpl() = 0;
 
-        GraphicsImpl*               _impl = nullptr;
+        CommandContext* AllocateContext(QueueType type);
+        void FreeContext(CommandContext* context);
+        virtual CommandContext* CreateCommandContext(QueueType type) = 0;
+
+    protected:
+        /// Constructor.
+        GraphicsDevice(GraphicsBackend backend, PhysicalDevicePreference devicePreference, bool validation);
+
         GraphicsBackend             _backend;
         PhysicalDevicePreference    _devicePreference;
         bool                        _validation = false;
         bool                        _initialized = false;
         bool                        _inBeginFrame = false;
         uint64_t                    _frameIndex = 0;
-
-        SharedPtr<CommandContext>   _renderContext;
+        GraphicsDeviceFeatures      _features = {};
 
         std::mutex                  _contextAllocationMutex;
         std::vector<std::unique_ptr<CommandContext>> _contextPool[4];
@@ -224,6 +226,28 @@ namespace alimer
         std::mutex                  _gpuResourceMutex;
         Sampler*                    _pointSampler = nullptr;
         Sampler*                    _linearSampler = nullptr;
+
+        // Backend types
+#ifdef ALIMER_VULKAN
+        VkInstance                              _instance = VK_NULL_HANDLE;
+        VkDebugReportCallbackEXT                _debugCallback = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT                _debugMessenger = VK_NULL_HANDLE;
+        VkPhysicalDevice                        _physicalDevice = VK_NULL_HANDLE;
+        VkPhysicalDeviceProperties              _physicalDeviceProperties;
+        VkPhysicalDeviceMemoryProperties        _physicalDeviceMemoryProperties;
+        VkPhysicalDeviceFeatures                _physicalDeviceFeatures;
+        std::vector<VkQueueFamilyProperties>    _physicalDeviceQueueFamilyProperties;
+        std::vector<std::string>                _physicalDeviceExtensions;
+        std::vector<std::string>                _physicalDeviceLayers;
+        uint32_t                                _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t                                _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t                                _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        VkDevice                                _device = VK_NULL_HANDLE;
+        VkQueue                                 _graphicsQueue = VK_NULL_HANDLE;
+        VkQueue                                 _computeQueue = VK_NULL_HANDLE;
+        VkQueue                                 _transferQueue = VK_NULL_HANDLE;
+        VmaAllocator                            _memoryAllocator = VK_NULL_HANDLE;
+#endif
     };
 
     ALIMER_API extern GraphicsDevice* graphics;

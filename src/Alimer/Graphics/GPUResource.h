@@ -50,6 +50,9 @@ namespace alimer
         /// Unconditionally destroy the GPU resource.
         virtual void Destroy() {}
 
+        /// Get the creation device.
+        GraphicsDevice* GetDevice() const { return _device.Get(); }
+
         /// Get the resource type.
         Type GetResourceType() const { return _resourceType; }
 
@@ -58,7 +61,7 @@ namespace alimer
         GPUResource(GraphicsDevice* device, Type resourceType);
 
         /// Graphics subsystem.
-        WeakPtr<GraphicsDevice> _graphicsDevice;
+        WeakPtr<GraphicsDevice> _device;
 
         Type _resourceType;
 	};

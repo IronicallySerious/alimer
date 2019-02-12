@@ -25,14 +25,15 @@ project (vgpu)
 
 set(VGPU_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/vgpu/vgpu.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/vgpu_internal.h
     )
 
 set(VGPU_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/vgpu.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vgpu_vk.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vgpu_d3d12.cpp
     )
+
+if (ALIMER_VULKAN)
+    list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/vgpu_vk.cpp)
+endif()
 
 add_library (vgpu STATIC ${VGPU_HEADER_FILES} ${VGPU_SOURCE_FILES})
 target_include_directories(vgpu PUBLIC
