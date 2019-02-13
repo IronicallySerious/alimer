@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#include <vaudio/vaudio.h>
 #include "../Audio/Audio.h"
 #include "../Core/Log.h"
 #if defined(_MSC_VER)
@@ -36,6 +37,7 @@ namespace alimer
 
     Audio::~Audio()
     {
+        vaudioShutdown();
         Shutdown();
         RemoveSubsystem(this);
     }
@@ -46,6 +48,11 @@ namespace alimer
         {
             prefferedBackend = GetPlatformDefaultBackend();
         }
+
+        VAudioDescriptor descriptor = {};
+        descriptor.channels = VAUDIO_CHANNELS_STEREO;
+        descriptor.sampleRate = 44100;
+        vaudioInitialize(&descriptor);
 
         Audio* audio = nullptr;
         switch (prefferedBackend)

@@ -57,7 +57,7 @@ namespace alimer
         /// Create backend instance.
         bool Create();
 
-        SamplerHandle _handle = 0;
+        VgpuSampler _handle = 0;
 
         SamplerDescriptor _descriptor{};
     };

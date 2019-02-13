@@ -24,6 +24,7 @@
 
 #include <string>
 #include <foundation/cpp_macros.h>
+#include <vgpu/vgpu.h>
 #include "../Math/Math.h"
 #include "../Math/Color.h"
 #include "../Graphics/PixelFormat.h"
@@ -44,52 +45,52 @@ namespace alimer
     /* Enums */
     enum class PhysicalDevicePreference : uint32_t {
         /// Prefer discrete GPU.
-        Discrete = 0,
+        Discrete    = VGPU_DEVICE_PREFERENCE_DISCRETE,
         /// Prefer integrated GPU.
-        Integrated,
+        Integrated  = VGPU_DEVICE_PREFERENCE_INTEGRATED,
         /// No GPU preference.
-        DontCare
+        DontCare    = VGPU_DEVICE_PREFERENCE_DONT_CARE
     };
 
     /// Enum describing the Graphics backend.
     enum class GraphicsBackend : uint32_t {
-        /// Default backend for platform.
-        Default = 0,
+        /// Invalid backend.
+        Invalid = VGPU_BACKEND_INVALID,
         /// Null backend.
-        Null,
+        Null    = VGPU_BACKEND_NULL,
         /// Vulkan backend.
-        Vulkan,
+        Vulkan  = VGPU_BACKEND_VULKAN,
         /// Direct3D 12 backend.
-        D3D12,
+        D3D12   = VGPU_BACKEND_D3D12,
         /// Direct3D 11 backend.
-        D3D11,
+        D3D11   = VGPU_BACKEND_D3D11,
         /// OpenGL backend.
-        OpenGL,
+        OpenGL  = VGPU_BACKEND_OPENGL,
         /// Count
-        Count
+        Count   = VGPU_BACKEND_COUNT
     };
 
     enum class QueueType : uint32_t {
-        Graphics = 0,
-        Compute,
-        Copy
+        Graphics    = VGPU_COMMAND_QUEUE_TYPE_GRAPHICS,
+        Compute     = VGPU_COMMAND_QUEUE_TYPE_COMPUTE,
+        Copy        = VGPU_COMMAND_QUEUE_TYPE_COPY
     };
 
     /// Enum describing the number of samples.
     enum class SampleCount : uint32_t
     {
         /// 1 sample (no multi-sampling).
-        Count1 = 1,
+        Count1 = AGPU_SAMPLE_COUNT1,
         /// 2 Samples.
-        Count2 = 2,
+        Count2 = AGPU_SAMPLE_COUNT2,
         /// 4 Samples.
-        Count4 = 4,
+        Count4 = AGPU_SAMPLE_COUNT4,
         /// 8 Samples.
-        Count8 = 8,
+        Count8 = AGPU_SAMPLE_COUNT8,
         /// 16 Samples.
-        Count16 = 16,
+        Count16 = AGPU_SAMPLE_COUNT16,
         /// 32 Samples.
-        Count32 = 32,
+        Count32 = AGPU_SAMPLE_COUNT32,
     };
 
     enum class ResourceUsage : unsigned
@@ -160,16 +161,16 @@ namespace alimer
         UInt32 = 1
     };
 
-    enum class CompareFunction : uint32_t
+    enum class CompareOp : uint32_t
     {
-        Never = 0,
-        Less = 1,
-        Equal = 2,
-        LessEqual = 3,
-        Greater = 4,
-        NotEqual = 5,
-        GreaterEqual = 6,
-        Always = 7
+        Never = VGPU_COMPARE_OP_NEVER,
+        Less = VGPU_COMPARE_OP_LESS,
+        Equal = VGPU_COMPARE_OP_EQUAL,
+        LessEqual = VGPU_COMPARE_OP_LESS_EQUAL,
+        Greater = VGPU_COMPARE_OP_GREATER,
+        NotEqual = VGPU_COMPARE_OP_NOT_EQUAL,
+        GreaterEqual = VGPU_COMPARE_OP_GREATER_EQUAL,
+        Always = VGPU_COMPARE_OP_ALWAYS
     };
 
     enum class ShaderStage : uint32_t
@@ -227,35 +228,35 @@ namespace alimer
     /* Sampler */
     enum class SamplerAddressMode : uint32_t
     {
-        /// Texture coordinates wrap to the other side of the texture, effectively keeping only the fractional part of the texture coordinate.
-        Repeat,
-        /// Between -1.0 and 1.0, the texture coordinates are mirrored across the axis. Outside -1.0 and 1.0, the image is repeated.
-        MirrorRepeat,
         /// Texture coordinates are clamped between 0.0 and 1.0, inclusive.
-        ClampToEdge,
-        /// Out-of-range texture coordinates return the value specified by the sampler's border color.
-        ClampToBorder,
+        ClampToEdge         = VGPU_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         /// Between -1.0 and 1.0, the texture coordinates are mirrored across the axis. Outside -1.0 and 1.0, the texture coordinates are clamped.
-        MirrorClampToEdge
+        MirrorClampToEdge   = VGPU_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE,
+        /// Texture coordinates wrap to the other side of the texture, effectively keeping only the fractional part of the texture coordinate.
+        Repeat              = VGPU_SAMPLER_ADDRESS_MODE_REPEAT,
+        /// Between -1.0 and 1.0, the texture coordinates are mirrored across the axis. Outside -1.0 and 1.0, the image is repeated.
+        MirrorRepeat        = VGPU_SAMPLER_ADDRESS_MODE_MIRROR_REPEAT,
+        /// Out-of-range texture coordinates return the value specified by the sampler's border color.
+        ClampToBorder       = VGPU_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER_COLOR,
     };
 
     enum class SamplerMinMagFilter
     {
-        Nearest,
-        Linear,
+        Nearest = VGPU_SAMPLER_MIN_MAG_FILTER_NEAREST,
+        Linear  = VGPU_SAMPLER_MIN_MAG_FILTER_LINEAR,
     };
 
     enum class SamplerMipFilter
     {
-        Nearest,
-        Linear,
+        Nearest = VGPU_SAMPLER_MIP_FILTER_NEAREST,
+        Linear  = VGPU_SAMPLER_MIP_FILTER_LINEAR,
     };
 
     enum class SamplerBorderColor
     {
-        TransparentBlack,
-        OpaqueBlack,
-        OpaqueWhite
+        TransparentBlack    = VK_SAMPLER_BORDER_COLOR_TRANSPARENT_BLACK,
+        OpaqueBlack         = VK_SAMPLER_BORDER_COLOR_OPAQUE_BLACK,
+        OpaqueWhite         = VK_SAMPLER_BORDER_COLOR_OPAQUE_WHITE
     };
 
     enum class ParamDataType
@@ -362,7 +363,7 @@ namespace alimer
         bool        depthStencil = true;
         bool        tripleBuffer = true;
         /// Vertical sync
-        bool        vSync = true;
+        bool        vsync = true;
         /// Preferred sample count
         SampleCount samples = SampleCount::Count1;
         /// Native window handle (HWND, ANativeWindow, NSWindow).
@@ -423,17 +424,17 @@ namespace alimer
 
     struct SamplerDescriptor
     {
-        SamplerAddressMode addressModeU = SamplerAddressMode::Repeat;
-        SamplerAddressMode addressModeV = SamplerAddressMode::Repeat;
-        SamplerAddressMode addressModeW = SamplerAddressMode::Repeat;
+        SamplerAddressMode  addressModeU = SamplerAddressMode::Repeat;
+        SamplerAddressMode  addressModeV = SamplerAddressMode::Repeat;
+        SamplerAddressMode  addressModeW = SamplerAddressMode::Repeat;
         SamplerMinMagFilter magFilter = SamplerMinMagFilter::Nearest;
         SamplerMinMagFilter minFilter = SamplerMinMagFilter::Nearest;
-        SamplerMipFilter mipmapFilter = SamplerMipFilter::Nearest;
-        float lodMinClamp = 0;
-        float lodMaxClamp = 3.402823466e+38F; // FLT_MAX
-        uint32_t maxAnisotropy = 1;
-        CompareFunction compareFunction = CompareFunction::Never;
-        SamplerBorderColor borderColor = SamplerBorderColor::TransparentBlack;
+        SamplerMipFilter    mipmapFilter = SamplerMipFilter::Nearest;
+        uint32_t            maxAnisotropy = 1;
+        CompareOp           compareOp = CompareOp::Never;
+        SamplerBorderColor  borderColor = SamplerBorderColor::TransparentBlack;
+        float               lodMinClamp = 0;
+        float               lodMaxClamp = 3.402823466e+38F; // FLT_MAX
     };
 
     struct RasterizationStateDescriptor {

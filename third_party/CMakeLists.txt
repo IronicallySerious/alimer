@@ -32,6 +32,9 @@ endforeach ()
 # vgpu (vortice gpu)
 add_subdirectory(vgpu)
 
+# vaudio (vortice audio)
+add_subdirectory(vaudio)
+
 # SPIRV-Cross
 add_subdirectory(spirv-cross)
 

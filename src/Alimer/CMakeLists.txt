@@ -140,7 +140,7 @@ if (ALIMER_OPENGL AND ALIMER_DESKTOP)
 endif ()
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES stb freetype fmt spdlog ImGui spirv_cross)
+set (THIRD_PARTY_DEPENDENCIES vgpu vaudio stb freetype fmt spdlog ImGui spirv_cross)
 
 if (ALIMER_DESKTOP)
     list (APPEND THIRD_PARTY_DEPENDENCIES glfw)

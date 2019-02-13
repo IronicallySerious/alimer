@@ -48,62 +48,28 @@ namespace alimer
 {
     GraphicsDevice* graphics = nullptr;
 
-    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, PhysicalDevicePreference devicePreference, bool validation)
-        : _backend(backend)
-        , _devicePreference(devicePreference)
+    GraphicsDevice::GraphicsDevice(PhysicalDevicePreference devicePreference, bool validation)
+        : _devicePreference(devicePreference)
         , _validation(validation)
     {
+        _backend = (GraphicsBackend)vgpuGetBackend();
         graphics = this;
         AddSubsystem(this);
     }
 
-    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference)
+    GraphicsDevice* GraphicsDevice::Create(PhysicalDevicePreference devicePreference, bool validation)
     {
         if (graphics != nullptr)
         {
             ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
         }
 
-        GraphicsDevice* device = nullptr;
-#if defined(ALIMER_DEV)
-        const bool validation = true;
-#else
-        const bool validation = false;
-#endif
-        const bool headless = false;
-        switch (preferredBackend)
-        {
-        case GraphicsBackend::Null:
-            break;
-        case GraphicsBackend::Vulkan:
-#if defined(ALIMER_VULKAN)
-            if (GPUDeviceVk::IsSupported())
-            {
-                device = new GPUDeviceVk(devicePreference, validation, headless);
-                ALIMER_LOGINFO("Vulkan backend created with success.");
-            }
-            else
-#else
-            {
-                ALIMER_LOGERROR("Vulkan backend is not supported.");
-            }
-#endif
-        case GraphicsBackend::D3D12:
-            break;
-        case GraphicsBackend::D3D11:
-            break;
-        case GraphicsBackend::OpenGL:
-            break;
-        default:
-            ALIMER_UNREACHABLE();
-        }
-
-        return device;
+        return new GraphicsDevice(devicePreference, validation);
     }
 
     GraphicsDevice::~GraphicsDevice()
     {
-        //WaitIdle();
+        vgpuWaitIdle();
 
         // Destroy undestroyed resources.
         SafeDelete(_pointSampler);
@@ -126,7 +92,7 @@ namespace alimer
         }
 
         // Destroy backend.
-        Finalize();
+        vgpuShutdown();
 
         RemoveSubsystem(this);
         graphics = nullptr;
@@ -137,7 +103,25 @@ namespace alimer
             return true;
         }
 
-        _initialized = InitializeImpl(descriptor);
+        VgpuSwapchainDescriptor vgpuSwapchainDescriptor = {};
+        vgpuSwapchainDescriptor.width = descriptor->width;
+        vgpuSwapchainDescriptor.height = descriptor->height;
+        vgpuSwapchainDescriptor.depthStencil = descriptor->depthStencil;
+        vgpuSwapchainDescriptor.tripleBuffer = descriptor->tripleBuffer;
+        vgpuSwapchainDescriptor.vsync = descriptor->vsync;
+        vgpuSwapchainDescriptor.samples = (VgpuSampleCount)descriptor->samples;
+        vgpuSwapchainDescriptor.nativeHandle = descriptor->nativeHandle;
+        vgpuSwapchainDescriptor.nativeDisplay = descriptor->nativeDisplay;
+
+        VgpuDescriptor vgpuDescriptor = {};
+        vgpuDescriptor.devicePreference = (VgpuDevicePreference)_devicePreference;
+        vgpuDescriptor.validation = _validation;
+        vgpuDescriptor.swapchain = &vgpuSwapchainDescriptor;
+        if (vgpuInitialize("Alimer", &vgpuDescriptor)) {
+            return false;
+        }
+
+        _initialized = true;
         OnAfterCreated();
         return _initialized;
     }
@@ -161,7 +145,7 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
         }
 
-        if (!BeginFrameImpl())
+        if (vgpuBeginFrame() != VGPU_SUCCESS)
         {
             ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
         }
@@ -178,7 +162,7 @@ namespace alimer
         }
 
         // Tick backend
-        EndFrameImpl();
+        vgpuEndFrame();
 
         _inBeginFrame = false;
         return ++_frameIndex;
@@ -186,7 +170,11 @@ namespace alimer
 
     void GraphicsDevice::WaitIdle()
     {
-        WaitIdleImpl();
+        vgpuWaitIdle();
+    }
+
+    Framebuffer* GraphicsDevice::GetDefaultFramebuffer() const {
+        return nullptr;
     }
 
     CommandContext* GraphicsDevice::AllocateContext(QueueType type) {
@@ -197,7 +185,7 @@ namespace alimer
         CommandContext* ret = nullptr;
         if (availableContexts.empty())
         {
-            ret = CreateCommandContext(type);
+            ret = nullptr; // CreateCommandContext(type);
             _contextPool[(uint32_t)type].emplace_back(ret);
             ALIMER_LOGDEBUG("CommandContext allocated");
         }

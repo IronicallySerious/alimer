@@ -33,7 +33,7 @@ namespace alimer
     SwapChainVk::SwapChainVk(GPUDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor)
         : _device(device)
         , _surface(surface)
-        , _vSync(descriptor->vSync)
+        , _vSync(descriptor->vsync)
         , _tripleBuffer(descriptor->tripleBuffer)
         , _depthStencilFormat(descriptor->depthStencil ? PixelFormat::Depth24Stencil8 : PixelFormat::Unknown)
         , _samples(descriptor->samples)

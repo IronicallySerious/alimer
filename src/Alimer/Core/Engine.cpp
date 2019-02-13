@@ -122,7 +122,7 @@ namespace alimer
 
         // Create main window and device if not headless
         if (!_headless) {
-            _graphics = GraphicsDevice::Create(_settings.preferredGraphicsBackend, _settings.preferredDevice);
+            _graphics = GraphicsDevice::Create(_settings.preferredDevice, _settings.gpuValidation);
             if (_graphics.IsNull()) {
                 ALIMER_LOGERROR("Failed to create GraphicsDevice instance. Running in headless moder");
                 _headless = true;
@@ -143,7 +143,7 @@ namespace alimer
                 swapchainDescriptor.height = _renderWindow->GetHeight();
                 swapchainDescriptor.depthStencil = true;
                 swapchainDescriptor.tripleBuffer = true;
-                swapchainDescriptor.vSync = true;
+                swapchainDescriptor.vsync = true;
                 swapchainDescriptor.samples = SampleCount::Count1;
                 swapchainDescriptor.nativeHandle = _renderWindow->GetNativeHandle();
                 swapchainDescriptor.nativeDisplay = _renderWindow->GetNativeDisplay();
@@ -214,12 +214,12 @@ namespace alimer
             return;
         }
 
-        CommandContext& context = CommandContext::Begin("Scene Render");
+        //CommandContext& context = CommandContext::Begin("Scene Render");
         //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         //context.BeginDefaultRenderPass(clearColor);
         //context.Draw(3, 0);
         //context.EndRenderPass();
-        context.Flush();
+        //context.Flush();
 
         // TODO: Scene renderer
         // TODO: UI render.

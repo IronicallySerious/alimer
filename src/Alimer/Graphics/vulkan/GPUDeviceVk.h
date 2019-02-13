@@ -44,17 +44,16 @@ namespace alimer
         /// Destructor.
         ~GPUDeviceVk() override;
 
-        void Finalize() override;
+        //void Finalize() override;
 
-        void WaitIdleImpl() override;
+        //void WaitIdleImpl() override;
 
-        bool InitializeImpl(const SwapChainDescriptor* descriptor) override;
-        bool BeginFrameImpl() override;
-        void EndFrameImpl() override;
+        //bool InitializeImpl(const SwapChainDescriptor* descriptor) override;
+        //bool BeginFrameImpl() override;
+        //void EndFrameImpl() override;
+        //Framebuffer* GetDefaultFramebuffer() const override;
 
-        Framebuffer* GetDefaultFramebuffer() const override;
-
-        CommandContext* CreateCommandContext(QueueType type) override;
+        //CommandContext* CreateCommandContext(QueueType type) override;
         void SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer, VkSemaphore semaphore);
         CommandQueueVk* GetCommandQueue(QueueType type) const;
         //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
@@ -98,6 +97,24 @@ namespace alimer
 
     private:
         bool                                    _headless;
+        VkInstance                              _instance = VK_NULL_HANDLE;
+        VkDebugReportCallbackEXT                _debugCallback = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT                _debugMessenger = VK_NULL_HANDLE;
+        VkPhysicalDevice                        _physicalDevice = VK_NULL_HANDLE;
+        VkPhysicalDeviceProperties              _physicalDeviceProperties;
+        VkPhysicalDeviceMemoryProperties        _physicalDeviceMemoryProperties;
+        VkPhysicalDeviceFeatures                _physicalDeviceFeatures;
+        std::vector<VkQueueFamilyProperties>    _physicalDeviceQueueFamilyProperties;
+        std::vector<std::string>                _physicalDeviceExtensions;
+        std::vector<std::string>                _physicalDeviceLayers;
+        uint32_t                                _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t                                _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t                                _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        VkDevice                                _device = VK_NULL_HANDLE;
+        VkQueue                                 _graphicsQueue = VK_NULL_HANDLE;
+        VkQueue                                 _computeQueue = VK_NULL_HANDLE;
+        VkQueue                                 _transferQueue = VK_NULL_HANDLE;
+        VmaAllocator                            _memoryAllocator = VK_NULL_HANDLE;
         std::unique_ptr<CommandQueueVk>         _graphicsCommandQueue;
         std::unique_ptr<CommandQueueVk>         _computeCommandQueue;
         std::unique_ptr<CommandQueueVk>         _copyCommandQueue;

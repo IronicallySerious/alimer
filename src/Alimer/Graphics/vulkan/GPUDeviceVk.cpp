@@ -285,7 +285,7 @@ namespace alimer
     }
 
     GPUDeviceVk::GPUDeviceVk(PhysicalDevicePreference devicePreference, bool validation, bool headless)
-        : GraphicsDevice(GraphicsBackend::Vulkan, devicePreference, validation)
+        : GraphicsDevice(devicePreference, validation)
         , _headless(headless)
     {
         VkApplicationInfo appInfo;
@@ -519,6 +519,7 @@ namespace alimer
         vkDeviceWaitIdle(_device);
     }
 
+#if TODO
     void GPUDeviceVk::Finalize()
     {
         vkDeviceWaitIdle(_device);
@@ -548,7 +549,7 @@ namespace alimer
             _memoryAllocator = VK_NULL_HANDLE;
         }
 
-        
+
         if (_debugCallback != VK_NULL_HANDLE)
         {
             vkDestroyDebugReportCallbackEXT(_instance, _debugCallback, nullptr);
@@ -807,7 +808,7 @@ namespace alimer
         }
         else {
             _featuresVk.supportsExternal = false;
-        }
+    }
 #endif
 
         VkPhysicalDeviceFeatures2KHR features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
@@ -943,9 +944,13 @@ namespace alimer
 
         return true;
     }
+#endif // TODO
+
 
     VkSurfaceKHR GPUDeviceVk::CreateSurface(uint64_t nativeHandle)
     {
+        return VK_NULL_HANDLE;
+        /*
 #if defined(_WIN32) || defined(_WIN64)
         VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
         surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -995,9 +1000,10 @@ namespace alimer
             return VK_NULL_HANDLE;
         }
 
-        return surface;
+        return surface;*/
     }
 
+#if TODO
     bool GPUDeviceVk::BeginFrameImpl()
     {
         if (!_headless) {
@@ -1106,6 +1112,8 @@ namespace alimer
 
         return new CommandBufferVk(this, type, queue);
     }
+
+#endif // TODO
 
     void GPUDeviceVk::SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer, VkSemaphore semaphore)
     {

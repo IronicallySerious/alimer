@@ -40,8 +40,8 @@ namespace alimer
 
     struct EngineSettings
     {
-        GraphicsBackend preferredGraphicsBackend = GraphicsBackend::Vulkan;
-        PhysicalDevicePreference preferredDevice = PhysicalDevicePreference::Discrete;
+        PhysicalDevicePreference    preferredDevice = PhysicalDevicePreference::Discrete;
+        bool                        gpuValidation = false;
 
         /// Main window title.
         std::string     title = "Alimer";

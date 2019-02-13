@@ -36,5 +36,37 @@ namespace alimer
         Destroy();
     }
 
-   
+    void Sampler::Destroy()
+    {
+        if (_handle != nullptr)
+        {
+            //_device->DestroySampler(_handle);
+            vgpuDestroySampler(_handle);
+            _handle = nullptr;
+        }
+    }
+
+    bool Sampler::Create()
+    {
+        VgpuSamplerDescriptor descriptor = {};
+        descriptor.addressModeU = (VgpuSamplerAddressMode)_descriptor.addressModeU;
+        descriptor.addressModeV = (VgpuSamplerAddressMode)_descriptor.addressModeV;
+        descriptor.addressModeW = (VgpuSamplerAddressMode)_descriptor.addressModeW;
+        descriptor.magFilter = (VgpuSamplerMinMagFilter)_descriptor.magFilter;
+        descriptor.minFilter = (VgpuSamplerMinMagFilter)_descriptor.minFilter;
+        descriptor.mipmapFilter = (VgpuSamplerMipFilter)_descriptor.mipmapFilter;
+        descriptor.maxAnisotropy = _descriptor.maxAnisotropy;
+        descriptor.compareOp = (VgpuCompareOp)_descriptor.compareOp;
+        descriptor.borderColor = (VgpuSamplerBorderColor) _descriptor.borderColor;
+        descriptor.lodMinClamp = _descriptor.lodMinClamp;
+        descriptor.lodMaxClamp = _descriptor.lodMaxClamp;
+
+        if (vgpuCreateSampler(&descriptor, &_handle) != VGPU_SUCCESS)
+        {
+            ALIMER_LOGERROR("Vulkan: Failed to create sampler");
+            return false;
+        }
+
+        return true;
+    }
 }
