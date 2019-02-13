@@ -35,7 +35,12 @@ if (ALIMER_VULKAN)
     list (APPEND VGPU_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/vgpu_vk.cpp)
 endif()
 
-add_library (vgpu STATIC ${VGPU_HEADER_FILES} ${VGPU_SOURCE_FILES})
+if (VGPU_BUILD_SHARED)
+    add_library(vgpu SHARED ${VGPU_HEADER_FILES} ${VGPU_SOURCE_FILES})
+    target_compile_definitions(vgpu PRIVATE VGPU_BUILD_SHARED_LIBRARY)
+else()
+    add_library (vgpu STATIC ${VGPU_HEADER_FILES} ${VGPU_SOURCE_FILES})
+endif ()
 target_include_directories(vgpu PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}>"
