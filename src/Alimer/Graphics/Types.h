@@ -71,9 +71,10 @@ namespace alimer
     };
 
     enum class QueueType : uint32_t {
-        Graphics    = VGPU_COMMAND_QUEUE_TYPE_GRAPHICS,
-        Compute     = VGPU_COMMAND_QUEUE_TYPE_COMPUTE,
-        Copy        = VGPU_COMMAND_QUEUE_TYPE_COPY
+        Graphics        = VGPU_COMMAND_BUFFER_TYPE_GRAPHICS,
+        AsyncGraphics   = VGPU_COMMAND_BUFFER_TYPE_ASYNC_GRAPHICS,
+        Compute         = VGPU_COMMAND_BUFFER_TYPE_COMPUTE,
+        Transfer        = VGPU_COMMAND_BUFFER_TYPE_TRANSFER
     };
 
     /// Enum describing the number of samples.

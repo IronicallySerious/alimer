@@ -29,6 +29,7 @@
 
 namespace alimer
 {
+    static VAudioDevice s_AudioDevice = nullptr;
 	Audio::Audio(AudioBackend backend)
         : _backend(backend)
 	{
@@ -37,7 +38,7 @@ namespace alimer
 
     Audio::~Audio()
     {
-        vaudioShutdown();
+        vaudioDeviceShutdown(s_AudioDevice);
         Shutdown();
         RemoveSubsystem(this);
     }
@@ -49,10 +50,11 @@ namespace alimer
             prefferedBackend = GetPlatformDefaultBackend();
         }
 
-        VAudioDescriptor descriptor = {};
-        descriptor.channels = VAUDIO_CHANNELS_STEREO;
+        VAudioDeviceDescriptor descriptor = {};
+        descriptor.deviceType = VAUDIO_DEVICE_TYPE_PLAYBACK;
+        descriptor.channels = 2;
         descriptor.sampleRate = 44100;
-        vaudioInitialize(&descriptor);
+        vaudioDeviceInitialize(&descriptor, &s_AudioDevice);
 
         Audio* audio = nullptr;
         switch (prefferedBackend)

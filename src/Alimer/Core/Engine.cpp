@@ -214,12 +214,15 @@ namespace alimer
             return;
         }
 
+        VgpuCommandBuffer commandBuffer = vgpuRequestCommandBuffer(VGPU_COMMAND_BUFFER_TYPE_GRAPHICS);
+        vgpuCmdBeginDefaultRenderPass(commandBuffer, { 0.0f, 0.2f, 0.4f, 1.0f }, 1.0f, 0);
         //CommandContext& context = CommandContext::Begin("Scene Render");
         //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         //context.BeginDefaultRenderPass(clearColor);
         //context.Draw(3, 0);
         //context.EndRenderPass();
-        //context.Flush();
+        vgpuCmdEndRenderPass(commandBuffer);
+        vgpuSubmitCommandBuffer(commandBuffer);
 
         // TODO: Scene renderer
         // TODO: UI render.

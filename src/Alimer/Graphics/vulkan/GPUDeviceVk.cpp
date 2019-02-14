@@ -1126,7 +1126,7 @@ namespace alimer
         {
         case QueueType::Compute:
             return _computeCommandQueue.get();
-        case QueueType::Copy:
+        case QueueType::Transfer:
             return _copyCommandQueue.get();
         default:
         case QueueType::Graphics:

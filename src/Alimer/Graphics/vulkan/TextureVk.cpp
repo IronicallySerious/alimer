@@ -26,38 +26,6 @@
 
 namespace alimer
 {
-    static VkImageUsageFlags VkImageUsage(TextureUsage usage, PixelFormat format)
-    {
-        VkImageUsageFlags flags = 0;
-
-        if (any(usage & TextureUsage::TransferSrc)) {
-            flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        }
-
-        if (any(usage & TextureUsage::TransferDest)) {
-            flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        }
-
-        if (any(usage & TextureUsage::Sampled)) {
-            flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
-        }
-        if (any(usage & TextureUsage::Storage)) {
-            flags |= VK_IMAGE_USAGE_STORAGE_BIT;
-        }
-
-        if (any(usage & TextureUsage::RenderTarget))
-        {
-            if (IsDepthStencilFormat(format)) {
-                flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-            }
-            else {
-                flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-            }
-        }
-
-        return flags;
-    }
-
     TextureVk::TextureVk(GPUDeviceVk* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
         : Texture(device, descriptor)
         , _device(device)
