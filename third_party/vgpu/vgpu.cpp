@@ -121,7 +121,7 @@ const VgpuPixelFormatDesc FormatDesc[] =
     { VGPU_PIXEL_FORMAT_D32_FLOAT_S8_UINT,      "Depth32FloatStencil8", VGPU_PIXEL_FORMAT_TYPE_FLOAT,       32,         {1, 1, 4, 1, 1},        {32, 8, 0, 0, 0, 0}},
     { VGPU_PIXEL_FORMAT_S8,                     "Stencil8",             VGPU_PIXEL_FORMAT_TYPE_UNORM,       8,          {1, 1, 1, 1, 1},        {0, 8, 0, 0, 0, 0}},
 
-    // Compressed formats
+    // Compressed BC formats
     { VGPU_PIXEL_FORMAT_BC1_UNORM,              "BC1",                  VGPU_PIXEL_FORMAT_TYPE_UNORM,       4,          {4, 4, 8, 1, 1},        {0, 0, 0, 0, 0, 0}},
     { VGPU_PIXEL_FORMAT_BC1_UNORM_SRGB,         "BC1Srgb",              VGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  4,          {4, 4, 8, 1, 1},        {0, 0, 0, 0, 0, 0}},
     { VGPU_PIXEL_FORMAT_BC2_UNORM,              "BC2",                  VGPU_PIXEL_FORMAT_TYPE_UNORM,       8,          {4, 4, 16, 1, 1},       {0, 0, 0, 0, 0, 0}},
@@ -145,7 +145,9 @@ const VgpuPixelFormatDesc FormatDesc[] =
 
     // Compressed ETC Pixel Formats
     { VGPU_PIXEL_FORMAT_ETC2_RGB8,              "ETC2_RGB8",            VGPU_PIXEL_FORMAT_TYPE_UNORM,       4,          {4, 4, 8, 1, 1},        {0, 0, 0, 0, 0, 0}},
+    { VGPU_PIXEL_FORMAT_ETC2_RGB8_SRGB,         "ETC2_RGB8_SRGB",       VGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  4,          {4, 4, 8, 1, 1},        {0, 0, 0, 0, 0, 0}},
     { VGPU_PIXEL_FORMAT_ETC2_RGB8A1,            "ETC2_RGB8A1",          VGPU_PIXEL_FORMAT_TYPE_UNORM,       4,          {4, 4, 8, 1, 1},        {0, 0, 0, 0, 0, 0}},
+    { VGPU_PIXEL_FORMAT_ETC2_RGB8A1_SRGB,       "ETC2_RGB8A1_SRGB",     VGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,  4,          {4, 4, 8, 1, 1},        {0, 0, 0, 0, 0, 0}},
 
     // Compressed ASTC Pixel Formats
     { VGPU_PIXEL_FORMAT_ASTC4x4,                "ASTC4x4",              VGPU_PIXEL_FORMAT_TYPE_UNORM,       8,          {4, 4, 16, 1, 1},       {0, 0, 0, 0, 0, 0}},

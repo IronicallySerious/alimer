@@ -25,6 +25,7 @@ project (vgpu)
 
 set(VGPU_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/vgpu/vgpu.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vgpu_internal.h
     )
 
 set(VGPU_SOURCE_FILES

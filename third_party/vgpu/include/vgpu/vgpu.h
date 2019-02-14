@@ -87,8 +87,6 @@ extern "C"
         VGPU_ERROR_INITIALIZATION_FAILED = -4,
         VGPU_ERROR_DEVICE_LOST = -5,
         VGPU_ERROR_TOO_MANY_OBJECTS = -6,
-        VGPU_ERROR_COMMAND_BUFFER_ALREADY_RECORDING = -7,
-        VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING = -8,
     } VgpuResult;
 
     typedef enum VgpuBackend {
@@ -132,6 +130,17 @@ extern "C"
         VGPU_FEATURE_TEXTURE_2D_ARRAY,
         VGPU_FEATURE_TEXTURE_CUBE_ARRAY,
     } VgpuFeature;
+
+    typedef enum VgpuMemoryFlagsBits
+    {
+        VGPU_MEMORY_GPU_ONLY = 0x00000000,
+        VGPU_MEMORY_CPU_ONLY = 0x00000001,
+        VGPU_MEMORY_CPU_TO_GPU = 0x00000002,
+        VGPU_MEMORY_GPU_TO_CPU = 0x00000004,
+        VGPU_MEMORY_DEDICATED_ALLOCATION = 0x00000008,
+        VGPU_MEMORY_NO_ALLOCATION = 0x000000010,
+    } VgpuMemoryFlagsBits;
+    typedef VgpuFlags VgpuMemoryFlags;
 
     typedef enum VgpuSampleCount {
         /// 1 sample (no multi-sampling).
@@ -218,7 +227,7 @@ extern "C"
         VGPU_PIXEL_FORMAT_D32_FLOAT_S8_UINT,
         VGPU_PIXEL_FORMAT_S8,
 
-        // Compressed formats
+        // Compressed BC formats
         VGPU_PIXEL_FORMAT_BC1_UNORM,        // DXT1
         VGPU_PIXEL_FORMAT_BC1_UNORM_SRGB,   // DXT1
         VGPU_PIXEL_FORMAT_BC2_UNORM,        // DXT3
@@ -242,7 +251,9 @@ extern "C"
 
         // Compressed ETC Pixel Formats
         VGPU_PIXEL_FORMAT_ETC2_RGB8,
+        VGPU_PIXEL_FORMAT_ETC2_RGB8_SRGB,
         VGPU_PIXEL_FORMAT_ETC2_RGB8A1,
+        VGPU_PIXEL_FORMAT_ETC2_RGB8A1_SRGB,
 
         // Compressed ASTC Pixel Formats
         VGPU_PIXEL_FORMAT_ASTC4x4,
@@ -287,14 +298,15 @@ extern "C"
         VGPU_TEXTURE_TYPE_CUBE = 4,
     } VgpuTextureType;
 
-    typedef enum VgpuTextureUsage {
+    typedef enum VgpuTextureUsageFlagBits {
         VGPU_TEXTURE_USAGE_NONE             = 0,
         VGPU_TEXTURE_USAGE_TRANSFER_SRC     = 1 << 0,
         VGPU_TEXTURE_USAGE_TRANSFER_DEST    = 1 << 1,
         VGPU_TEXTURE_USAGE_SAMPLED          = 1 << 2,
         VGPU_TEXTURE_USAGE_STORAGE          = 1 << 3,
         VGPU_TEXTURE_USAGE_RENDER_TARGET    = 1 << 4
-    } VgpuTextureUsage;
+    } VgpuTextureUsageFlagBits;
+    typedef VgpuFlags VgpuTextureUsageFlags;
 
     typedef enum VgpuBufferUsage {
         AGPU_BUFFER_USAGE_NONE = 0,
@@ -318,7 +330,6 @@ extern "C"
         VGPU_SHADER_STAGE_ALL_GRAPHICS = 0x0000001F,
         VGPU_SHADER_STAGE_ALL = 0x7FFFFFFF,
     } VgpuShaderStageFlagBits;
-
     typedef VgpuFlags VgpuShaderStageFlags;
 
     typedef enum VgpuVertexFormat {
@@ -408,12 +419,26 @@ extern "C"
         _VK_SAMPLER_BORDER_COLOR_MAX_ENUM = 0x7FFFFFFF
     } VgpuSamplerBorderColor;
 
-    typedef enum VgpuCommandQueueType {
-        VGPU_COMMAND_QUEUE_TYPE_GRAPHICS    = 0,
-        VGPU_COMMAND_QUEUE_TYPE_COMPUTE     = 1,
-        VGPU_COMMAND_QUEUE_TYPE_COPY        = 2,
+    typedef enum VgpuCommandBufferType {
+        VGPU_COMMAND_BUFFER_TYPE_GRAPHICS,
+        VGPU_COMMAND_BUFFER_TYPE_ASYNC_GRAPHICS,
+        VGPU_COMMAND_BUFFER_TYPE_COMPUTE,
+        VGPU_COMMAND_BUFFER_TYPE_TRANSFER,
+        VGPU_COMMAND_BUFFER_TYPE_COUNT,
         _VGPU_COMMAND_QUEUE_TYPE_MAX_ENUM = 0x7FFFFFFF
-    } VgpuCommandQueueType;
+    } VgpuCommandBufferType;
+
+    typedef enum VgpuLoadAction {
+        VGPU_LOAD_ACTION_CLEAR = 0,
+        VGPU_LOAD_ACTION_LOAD = 1,
+    } VgpuLoadAction;
+
+    typedef enum VgpuStoreAction {
+        VGPU_STORE_ACTION_STORE = 0,
+        VGPU_STORE_ACTION_MULTISAMPLE_RESOLVE = 1,
+        VGPU_STORE_ACTION_STORE_AND_MULTISAMPLE_RESOLVE = 2
+    };
+
 
     /* Callbacks */
     typedef void(*vgpu_log_fn)(VgpuLogLevel level, const char* context, const char* message);
@@ -450,11 +475,11 @@ extern "C"
         uint32_t              maxTextureArrayLayers;
     } VgpuLimits;
 
-    typedef struct VgpuFramebufferAttachment {
+    typedef struct VgpuAttachment {
         VgpuTexture                 texture;
         uint32_t                    mipLevel;
         uint32_t                    slice;
-    } VgpuFramebufferAttachment;
+    } VgpuAttachment;
 
     typedef struct VgpuBufferDescriptor {
         VgpuBufferUsage             usage;
@@ -470,15 +495,38 @@ extern "C"
         uint32_t                    depthOrArraySize;
         uint32_t                    mipLevels;
         VgpuPixelFormat             format;
-        VgpuTextureUsage            usage;
+        VgpuTextureUsageFlags       usage;
         VgpuSampleCount             samples;
-        VgpuBool32                  sRGB;
     } VgpuTextureDescriptor;
 
     typedef struct VgpuFramebufferDescriptor {
-        VgpuFramebufferAttachment   colorAttachments[VGPU_MAX_COLOR_ATTACHMENTS];
-        VgpuFramebufferAttachment   depthStencilAttachment;
+        VgpuAttachment   colorAttachments[VGPU_MAX_COLOR_ATTACHMENTS];
+        VgpuAttachment   depthStencilAttachment;
     } VgpuFramebufferDescriptor;
+
+    typedef struct VgpuRenderPassColorAttachmentDescriptor {
+        VgpuAttachment          attachment;
+        const VgpuAttachment*   resolveAttachment;
+        VgpuLoadAction          loadAction;
+        VgpuStoreAction         storeAction;
+        VgpuColor               clearColor;
+    } VgpuRenderPassColorAttachmentDescriptor;
+
+    typedef struct VgpuRenderPassDepthStencilAttachmentDescriptor {
+        VgpuAttachment          attachment;
+        VgpuLoadAction          depthLoadAction;
+        VgpuStoreAction         depthStoreAction;
+        float                   clearDepth;
+
+        VgpuLoadAction          stencilLoadAction;
+        VgpuStoreAction         stencilStoreAction;
+        uint8_t                 clearStencil;
+    } RenderPassDepthStencilAttachmentDescriptor;
+
+    typedef struct VgpuRenderPassDescriptor {
+        VgpuRenderPassColorAttachmentDescriptor         colorAttachments[VGPU_MAX_COLOR_ATTACHMENTS];
+        VgpuRenderPassDepthStencilAttachmentDescriptor  depthStencilAttachment;
+    } VgpuRenderPassDescriptor;
 
     typedef struct VgpuVertexBufferLayoutDescriptor {
         uint32_t                    stride;
@@ -552,10 +600,6 @@ extern "C"
         uint64_t                    nativeDisplay;
     } VgpuSwapchainDescriptor;
 
-    typedef struct VgpuCommandBufferDescriptor {
-        VgpuCommandQueueType       type;
-    } VgpuCommandBufferDescriptor;
-
     typedef struct VgpuDescriptor {
         VgpuDevicePreference            devicePreference;
         VgpuBool32                      validation;
@@ -585,7 +629,7 @@ extern "C"
     VGPU_API void vgpuDestroyBuffer(VgpuBuffer buffer);
 
     /* Texture */
-    VGPU_API VgpuResult vgpuCreateTexture(const VgpuTextureDescriptor* descriptor, const void* pInitData, VgpuTexture* pTexture);
+    VGPU_API VgpuResult vgpuCreateTexture(VgpuMemoryFlags memoryFlags, const VgpuTextureDescriptor* descriptor, const void* pInitData, VgpuTexture* pTexture);
     VGPU_API VgpuResult vgpuCreateExternalTexture(const VgpuTextureDescriptor* descriptor, void* handle, VgpuTexture* pTexture);
     VGPU_API void vgpuDestroyTexture(VgpuTexture texture);
 
@@ -594,7 +638,7 @@ extern "C"
     VGPU_API void vgpuDestroyFramebuffer(VgpuFramebuffer framebuffer);
 
     /* ShaderModule */
-    VGPU_API VgpuShaderModule vgpuCreateShaderModule(const VgpuShaderModuleDescriptor* descriptor);
+    VGPU_API VgpuResult vgpuCreateShaderModule(const VgpuShaderModuleDescriptor* descriptor, VgpuShaderModule* pShaderModule);
     VGPU_API void vgpuDestroyShaderModule(VgpuShaderModule shaderModule);
 
     /* Shader */
@@ -611,14 +655,11 @@ extern "C"
     VGPU_API void vgpuDestroySampler(VgpuSampler sampler);
 
     /* CommandBuffer */
-    VGPU_API VgpuCommandBuffer vgpuCreateCommandBuffer(const VgpuCommandBufferDescriptor* descriptor);
-    VGPU_API void vgpuDestroyCommandBuffer(VgpuCommandBuffer commandBuffer);
-    VGPU_API VgpuResult vgpuBeginCommandBuffer(VgpuCommandBuffer commandBuffer);
-    VGPU_API VgpuResult vgpuEndCommandBuffer(VgpuCommandBuffer commandBuffer);
-    VGPU_API VgpuResult vgpuSubmitCommandBuffers(uint32_t count, VgpuCommandBuffer *pBuffers);
+    VGPU_API VgpuCommandBuffer vgpuRequestCommandBuffer(VgpuCommandBufferType type);
+    VGPU_API VgpuResult vgpuSubmitCommandBuffer(VgpuCommandBuffer commandBuffer);
 
     VGPU_API void vgpuCmdBeginDefaultRenderPass(VgpuCommandBuffer commandBuffer, VgpuColor clearColor, float clearDepth, uint8_t clearStencil);
-    VGPU_API void vgpuCmdBeginRenderPass(VgpuCommandBuffer commandBuffer, VgpuFramebuffer framebuffer);
+    VGPU_API void vgpuCmdBeginRenderPass(VgpuCommandBuffer commandBuffer, const VgpuRenderPassDescriptor* descriptor);
     VGPU_API void vgpuCmdEndRenderPass(VgpuCommandBuffer commandBuffer);
     VGPU_API void vgpuCmdSetShader(VgpuCommandBuffer commandBuffer, VgpuShader shader);
     VGPU_API void vgpuCmdSetVertexBuffer(VgpuCommandBuffer commandBuffer, uint32_t binding, VgpuBuffer buffer, uint64_t offset, VgpuVertexInputRate inputRate);

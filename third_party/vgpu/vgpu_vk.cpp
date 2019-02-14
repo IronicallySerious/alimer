@@ -20,7 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "vgpu/vgpu.h"
+#include "vgpu_internal.h"
+
 #include <assert.h>
 #include <string.h>
 #if defined(_WIN32) || defined(_WIN64)
@@ -91,6 +92,18 @@
 #include "volk.h"
 #include <vk_mem_alloc.h>
 //#include <spirv-cross/spirv_hlsl.hpp>
+#include <unordered_map>
+
+struct UnityHasher
+{
+    inline size_t operator()(uint64_t hash) const
+    {
+        return hash;
+    }
+};
+
+template <typename T>
+using HashMap = std::unordered_map<uint64_t, T, UnityHasher>;
 
 #if !defined(VGPU_DEBUG) && !defined(NDEBUG)
 #   define VGPU_DEBUG 1
@@ -99,6 +112,7 @@
 /* Vulkan only handles (ATM) */
 VGPU_DEFINE_HANDLE(VgpuPhysicalDevice);
 VGPU_DEFINE_HANDLE(VgpuSwapchain);
+VGPU_DEFINE_HANDLE(VgpuRenderPass);
 VGPU_DEFINE_HANDLE(VgpuCommandQueue);
 #define VGPU_MAX_COMMAND_BUFFER 16u
 
@@ -118,18 +132,21 @@ typedef struct VgpuCommandQueue_T {
     VkQueue             vk_queue;
     uint32_t            vk_queueFamilyIndex;
     VkCommandPool       vk_handle;
-    uint32_t            commandBuffersCount;
-    VgpuCommandBuffer   commandBuffers[VGPU_MAX_COMMAND_BUFFER];
+    uint32_t            buffersIndex;
+    uint32_t            buffersCount;
+    uint32_t            secondaryBuffersCount;
+    VgpuCommandBuffer   buffers[VGPU_MAX_COMMAND_BUFFER];
+    VkCommandBuffer     vkBuffers[VGPU_MAX_COMMAND_BUFFER];
 } VgpuCommandQueue_T;
 
 typedef struct VgpuCommandBuffer_T {
     VgpuCommandQueue    queue;
     VkCommandBuffer     vk_handle;
     VkSemaphore         vk_semaphore;
-    bool                recording;
 } VgpuCommandBuffer_T;
 
 typedef struct VgpuSwapchain_T {
+    VkSurfaceKHR        surface;
     VkSwapchainKHR      vk_handle;
     VkRenderPass        renderPass;
     uint32_t            width;
@@ -141,12 +158,16 @@ typedef struct VgpuSwapchain_T {
     VkSemaphore*        imageSemaphores;
     //VgpuTexture*      textures;       /* TODO: Use VgpuTexture */
     VkFramebuffer*      framebuffers;   /* TODO: Convert to VgpuFramebuffer */
-    VkFormat            depthStencilFormat;
+    VgpuPixelFormat     depthStencilFormat;
+    VgpuTexture         depthStencilTexture;
+    VkImageView         depthStencilTextureView;
 } VgpuSwapchain_T;
 
 typedef struct VgpuTexture_T {
-    VkImage     image;
-    VkFormat    format;
+    bool            externalHandle;
+    VkImage         vk_handle;
+    VmaAllocation   allocation;
+    VkFormat        format;
 } VgpuTexture_T;
 
 typedef struct VgpuSampler_T {
@@ -161,6 +182,10 @@ typedef struct VgpuFramebuffer_T {
 typedef struct VgpuShaderModule_T {
     VkShaderModule  vk_handle;
 } VgpuShaderModule_T;
+
+typedef struct VgpuRenderPass_T {
+    VkRenderPass    vk_handle;
+} VgpuRenderPass_T;
 
 // Proxy log callback
 #define VGPU_MAX_LOG_MESSAGE 4096
@@ -249,14 +274,15 @@ struct {
     VmaAllocator                memoryAllocator = VK_NULL_HANDLE;
     VgpuCommandQueue            graphicsCommandQueue = VK_NULL_HANDLE;
     VgpuCommandQueue            computeCommandQueue = VK_NULL_HANDLE;
-    VgpuCommandQueue            copyCommandQueue = VK_NULL_HANDLE;
+    VgpuCommandQueue            transferCommandQueue = VK_NULL_HANDLE;
+
+    HashMap<VgpuRenderPass>     renderPasses;
 } _vk;
 
 struct VgpuVkContext {
     uint32_t                    maxInflightFrames;
     uint32_t                    frameIndex;
     VgpuVkFrameData*            frameData = nullptr;
-    VkSurfaceKHR                surface = VK_NULL_HANDLE;
     VgpuSwapchain               swapchain = VK_NULL_HANDLE;
 };
 
@@ -357,19 +383,133 @@ static VgpuResult vgpuVkConvertResult(VkResult value)
     }
 }
 
-static VgpuPixelFormat vgpuGetPixelFormat(VkFormat format, VgpuBool32& srgb) {
-    srgb = VGPU_FALSE;
+static VgpuPixelFormat vgpuVkToPixelFormat(VkFormat format) {
     switch (format) {
     case VK_FORMAT_B8G8R8A8_UNORM:
         return VGPU_PIXEL_FORMAT_BGRA8_UNORM;
 
     case VK_FORMAT_B8G8R8A8_SRGB:
-        srgb = VGPU_TRUE;
-        return VGPU_PIXEL_FORMAT_BGRA8_UNORM;
+        return VGPU_PIXEL_FORMAT_BGRA8_UNORM_SRGB;
+
+    case VK_FORMAT_R8G8B8A8_UNORM:
+        return VGPU_PIXEL_FORMAT_RGBA8_UNORM;
+
+    case VK_FORMAT_R8G8B8A8_SRGB:
+        return VGPU_PIXEL_FORMAT_RGBA8_UNORM_SRGB;
 
     default:
+        VGPU_UNREACHABLE();
         return VGPU_PIXEL_FORMAT_UNDEFINED;
     }
+}
+
+static VkFormat vgpuVkGetPixelFormat(VgpuPixelFormat format) {
+    switch (format)
+    {
+    case VGPU_PIXEL_FORMAT_A8_UNORM:            return VK_FORMAT_R8_UNORM;
+    case VGPU_PIXEL_FORMAT_R8_UNORM:            return VK_FORMAT_R8_UNORM;
+    case VGPU_PIXEL_FORMAT_R8_SNORM:            return VK_FORMAT_R8_SNORM;
+    case VGPU_PIXEL_FORMAT_R8_UINT:             return VK_FORMAT_R8_UINT;
+    case VGPU_PIXEL_FORMAT_R8_SINT:             return VK_FORMAT_R8_SINT;
+    case VGPU_PIXEL_FORMAT_R16_UNORM:           return VK_FORMAT_R16_UNORM;
+    case VGPU_PIXEL_FORMAT_R16_SNORM:           return VK_FORMAT_R16_SNORM;
+    case VGPU_PIXEL_FORMAT_R16_UINT:            return VK_FORMAT_R16_UINT;
+    case VGPU_PIXEL_FORMAT_R16_SINT:            return VK_FORMAT_R16_SINT;
+    case VGPU_PIXEL_FORMAT_R16_FLOAT:           return VK_FORMAT_R16_SFLOAT;
+    case VGPU_PIXEL_FORMAT_RG8_UNORM:           return VK_FORMAT_R8G8_UNORM;
+    case VGPU_PIXEL_FORMAT_RG8_SNORM:           return VK_FORMAT_R8G8_SNORM;
+    case VGPU_PIXEL_FORMAT_RG8_UINT:            return VK_FORMAT_R8G8_UINT;
+    case VGPU_PIXEL_FORMAT_RG8_SINT:            return VK_FORMAT_R8G8_SINT;
+    case VGPU_PIXEL_FORMAT_R5G6B5_UNORM:        return VK_FORMAT_R5G6B5_UNORM_PACK16;
+    case VGPU_PIXEL_FORMAT_RGBA4_UNORM:         return VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+    case VGPU_PIXEL_FORMAT_R32_UINT:            return VK_FORMAT_R32_UINT;
+    case VGPU_PIXEL_FORMAT_R32_SINT:            return VK_FORMAT_R32_SINT;
+    case VGPU_PIXEL_FORMAT_R32_FLOAT:           return VK_FORMAT_R32_SFLOAT;
+    case VGPU_PIXEL_FORMAT_RG16_UNORM:          return VK_FORMAT_R16G16_UNORM;
+    case VGPU_PIXEL_FORMAT_RG16_SNORM:          return VK_FORMAT_R16G16_SNORM;
+    case VGPU_PIXEL_FORMAT_RG16_UINT:           return VK_FORMAT_R16G16_UINT;
+    case VGPU_PIXEL_FORMAT_RG16_SINT:           return VK_FORMAT_R16G16_SINT;
+    case VGPU_PIXEL_FORMAT_RG16_FLOAT:          return VK_FORMAT_R16G16_SFLOAT;
+    case VGPU_PIXEL_FORMAT_RGBA8_UNORM:         return VK_FORMAT_R8G8B8A8_UNORM;
+    case VGPU_PIXEL_FORMAT_RGBA8_UNORM_SRGB:    return VK_FORMAT_R8G8B8A8_SRGB;
+    case VGPU_PIXEL_FORMAT_RGBA8_SNORM:         return VK_FORMAT_R8G8B8A8_SNORM;
+    case VGPU_PIXEL_FORMAT_RGBA8_UINT:          return VK_FORMAT_R8G8B8A8_UINT;
+    case VGPU_PIXEL_FORMAT_RGBA8_SINT:          return VK_FORMAT_R8G8B8A8_SINT;
+    case VGPU_PIXEL_FORMAT_BGRA8_UNORM:         return VK_FORMAT_B8G8R8A8_UNORM;
+    case VGPU_PIXEL_FORMAT_BGRA8_UNORM_SRGB:    return VK_FORMAT_B8G8R8A8_SRGB;
+
+        // Packed 32-Bit Pixel formats
+    case VGPU_PIXEL_FORMAT_RGB10A2_UNORM:       return VK_FORMAT_A2R10G10B10_UNORM_PACK32; /* TODO: Check order */
+    case VGPU_PIXEL_FORMAT_RGB10A2_UINT:        return VK_FORMAT_A2R10G10B10_UINT_PACK32;  /* TODO: Check order */
+    case VGPU_PIXEL_FORMAT_RG11B10_FLOAT:       return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+    case VGPU_PIXEL_FORMAT_RGB9E5_FLOAT:        return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+
+        // 64-Bit Pixel Formats
+    case VGPU_PIXEL_FORMAT_RG32_UINT:           return VK_FORMAT_R32G32_UINT;
+    case VGPU_PIXEL_FORMAT_RG32_SINT:           return VK_FORMAT_R32G32_SINT;
+    case VGPU_PIXEL_FORMAT_RG32_FLOAT:          return VK_FORMAT_R32G32_SFLOAT;
+    case VGPU_PIXEL_FORMAT_RGBA16_UNORM:        return VK_FORMAT_R16G16B16A16_UNORM;
+    case VGPU_PIXEL_FORMAT_RGBA16_SNORM:        return VK_FORMAT_R16G16B16A16_SNORM;
+    case VGPU_PIXEL_FORMAT_RGBA16_UINT:         return VK_FORMAT_R16G16B16A16_UINT;
+    case VGPU_PIXEL_FORMAT_RGBA16_SINT:         return VK_FORMAT_R16G16B16A16_SINT;
+    case VGPU_PIXEL_FORMAT_RGBA16_FLOAT:        return VK_FORMAT_R16G16B16A16_SFLOAT;
+
+        // 128-Bit Pixel Formats
+    case VGPU_PIXEL_FORMAT_RGBA32_UINT:         return VK_FORMAT_R32G32B32A32_UINT;
+    case VGPU_PIXEL_FORMAT_RGBA32_SINT:         return VK_FORMAT_R32G32B32A32_SINT;
+    case VGPU_PIXEL_FORMAT_RGBA32_FLOAT:        return VK_FORMAT_R32G32B32A32_SFLOAT;
+
+        // Depth-stencil
+    case VGPU_PIXEL_FORMAT_D16_UNORM:           return VK_FORMAT_D16_UNORM;
+    case VGPU_PIXEL_FORMAT_D32_FLOAT:           return VK_FORMAT_D32_SFLOAT;
+    case VGPU_PIXEL_FORMAT_D24_UNORM_S8_UINT:   return VK_FORMAT_D24_UNORM_S8_UINT;
+    case VGPU_PIXEL_FORMAT_D32_FLOAT_S8_UINT:   return VK_FORMAT_D32_SFLOAT_S8_UINT;
+    case VGPU_PIXEL_FORMAT_S8:                  return VK_FORMAT_S8_UINT;
+
+        // Compressed BC formats
+    case VGPU_PIXEL_FORMAT_BC1_UNORM:           return VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC1_UNORM_SRGB:      return VK_FORMAT_BC1_RGB_SRGB_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC2_UNORM:           return VK_FORMAT_BC2_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC2_UNORM_SRGB:      return VK_FORMAT_BC2_SRGB_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC3_UNORM:           return VK_FORMAT_BC3_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC3_UNORM_SRGB:      return VK_FORMAT_BC3_SRGB_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC4_UNORM:           return VK_FORMAT_BC4_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC4_SNORM:           return VK_FORMAT_BC4_SNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC5_UNORM:           return VK_FORMAT_BC5_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC5_SNORM:           return VK_FORMAT_BC5_SNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC6HS16:             return VK_FORMAT_BC6H_SFLOAT_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC6HU16:             return VK_FORMAT_BC6H_UFLOAT_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC7_UNORM:           return VK_FORMAT_BC7_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_BC7_UNORM_SRGB:      return VK_FORMAT_BC7_SRGB_BLOCK;
+
+        // TODO: map pvrtc
+    case VGPU_PIXEL_FORMAT_PVRTC_RGB2:
+    case VGPU_PIXEL_FORMAT_PVRTC_RGBA2:
+    case VGPU_PIXEL_FORMAT_PVRTC_RGB4:
+    case VGPU_PIXEL_FORMAT_PVRTC_RGBA4:
+        return VK_FORMAT_UNDEFINED;
+
+        // Compressed ETC Pixel Formats
+    case VGPU_PIXEL_FORMAT_ETC2_RGB8:           return VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_ETC2_RGB8_SRGB:      return VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK;
+    case VGPU_PIXEL_FORMAT_ETC2_RGB8A1:         return VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_ETC2_RGB8A1_SRGB:    return VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK;
+
+        // Compressed ASTC Pixel Formats
+    case VGPU_PIXEL_FORMAT_ASTC4x4:             return VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_ASTC5x5:             return VK_FORMAT_ASTC_5x5_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_ASTC6x6:             return VK_FORMAT_ASTC_6x6_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_ASTC8x5:             return VK_FORMAT_ASTC_8x5_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_ASTC8x6:             return VK_FORMAT_ASTC_8x6_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_ASTC8x8:             return VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_ASTC10x10:           return VK_FORMAT_ASTC_10x10_UNORM_BLOCK;
+    case VGPU_PIXEL_FORMAT_ASTC12x12:           return VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
+
+    default:
+        VGPU_UNREACHABLE();
+        return VK_FORMAT_UNDEFINED;
+    }
+
 }
 
 static VkCompareOp vgpuVkGetCompareOp(VgpuCompareOp op) {
@@ -387,6 +527,53 @@ static VkCompareOp vgpuVkGetCompareOp(VgpuCompareOp op) {
         VGPU_UNREACHABLE();
         return VK_COMPARE_OP_NEVER;
     }
+}
+
+static VkImageType vgpuVkGetImageType(VgpuTextureType type) {
+    switch (type) {
+    case VGPU_TEXTURE_TYPE_1D:
+        return VK_IMAGE_TYPE_1D;
+
+    case VGPU_TEXTURE_TYPE_2D:
+    case VGPU_TEXTURE_TYPE_CUBE:
+        return VK_IMAGE_TYPE_2D;
+
+    case VGPU_TEXTURE_TYPE_3D:
+        return VK_IMAGE_TYPE_3D;
+    default:
+        VGPU_UNREACHABLE();
+        return VK_IMAGE_TYPE_MAX_ENUM;
+    }
+}
+
+static VkImageUsageFlags vgpuVkGetVkTextureUsage(VgpuTextureUsageFlags usage, VgpuPixelFormat format) {
+    VkImageUsageFlags flags = 0;
+
+    if (usage & VGPU_TEXTURE_USAGE_TRANSFER_SRC) {
+        flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    if (usage & VGPU_TEXTURE_USAGE_TRANSFER_DEST) {
+        flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
+
+    if (usage & VGPU_TEXTURE_USAGE_SAMPLED) {
+        flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+    if (usage & VGPU_TEXTURE_USAGE_STORAGE) {
+        flags |= VK_IMAGE_USAGE_STORAGE_BIT;
+    }
+
+    if (usage & VGPU_TEXTURE_USAGE_RENDER_TARGET) {
+        if (vgpuIsDepthStencilFormat(format)) {
+            flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        }
+        else {
+            flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        }
+    }
+
+    return flags;
 }
 
 static VkFilter vgpuVkGetFilter(VgpuSamplerMinMagFilter filter) {
@@ -808,23 +995,47 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
 void vgpuDestroySwapchain(VgpuSwapchain swapchain);
 VgpuResult vgpuVkFlushCommandBuffer(VgpuCommandBuffer commandBuffer);
 
-VgpuCommandQueue vgpuVkGetCommandQueue(VgpuCommandQueueType type) {
-    switch (type)
+VgpuCommandBufferType vgpuVkGetPhysicalQueueType(VgpuCommandBufferType type) {
+    if (type != VGPU_COMMAND_BUFFER_TYPE_ASYNC_GRAPHICS)
     {
-    case VGPU_COMMAND_QUEUE_TYPE_GRAPHICS:
+        return type;
+    }
+    else
+    {
+        if (_vk.graphicsQueueFamily == _vk.computeQueueFamily
+            && _vk.graphicsQueue != _vk.computeQueue) {
+            return VGPU_COMMAND_BUFFER_TYPE_COMPUTE;
+        }
+        else {
+            return VGPU_COMMAND_BUFFER_TYPE_GRAPHICS;
+        }
+    }
+}
+
+VgpuCommandQueue vgpuVkGetCommandQueue(VgpuCommandBufferType type) {
+    switch (vgpuVkGetPhysicalQueueType(type))
+    {
+    default:
+    case VGPU_COMMAND_BUFFER_TYPE_GRAPHICS:
         return _vk.graphicsCommandQueue;
 
-    case VGPU_COMMAND_QUEUE_TYPE_COMPUTE:
+    case VGPU_COMMAND_BUFFER_TYPE_COMPUTE:
         return _vk.computeCommandQueue;
 
-    case VGPU_COMMAND_QUEUE_TYPE_COPY:
-        return _vk.copyCommandQueue;
-
-    default:
-        assert(false && "Invalid command queue type.");
+    case VGPU_COMMAND_BUFFER_TYPE_TRANSFER:
+        return _vk.transferCommandQueue;
     }
 
     return nullptr;
+}
+
+void vgpuVkCommandQueueBeginFrame(VgpuCommandQueue queue) {
+    if (queue->buffersCount > 0 || queue->secondaryBuffersCount > 0) {
+        //vkResetCommandPool(_vk.device, queue->vk_handle, 0);
+    }
+
+    queue->buffersIndex = 0;
+    queue->secondaryBuffersCount = 0;
 }
 
 VkResult vgpuVkCreateInstance(const char* applicationName, bool validation, bool headless)
@@ -1503,18 +1714,18 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = oldSwapchain;
 
-    VgpuTextureUsage textureUsage = VGPU_TEXTURE_USAGE_RENDER_TARGET;
+    VgpuTextureUsageFlags textureUsage = VGPU_TEXTURE_USAGE_RENDER_TARGET;
 
     // Enable transfer source on swap chain images if supported.
     if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
         createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        textureUsage = (VgpuTextureUsage)(textureUsage | VGPU_TEXTURE_USAGE_TRANSFER_SRC);
+        textureUsage |= VGPU_TEXTURE_USAGE_TRANSFER_SRC;
     }
 
     // Enable transfer destination on swap chain images if supported
     if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
         createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        textureUsage = (VgpuTextureUsage)(textureUsage | VGPU_TEXTURE_USAGE_TRANSFER_DEST);
+        textureUsage |= VGPU_TEXTURE_USAGE_TRANSFER_DEST;
     }
 
     VkSwapchainKHR swapchain;
@@ -1526,25 +1737,17 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
     }
 
     VgpuSwapchain handle = VGPU_ALLOC_HANDLE(VgpuSwapchain);
+    handle->surface = surface;
     handle->vk_handle = swapchain;
-    handle->depthStencilFormat = VK_FORMAT_UNDEFINED;
+    handle->depthStencilFormat = VGPU_PIXEL_FORMAT_UNDEFINED;
 
     if (descriptor->depthStencil) {
-        VkFormat depthFormats[] = {
-            VK_FORMAT_D32_SFLOAT_S8_UINT,
-            VK_FORMAT_D32_SFLOAT,
-            VK_FORMAT_D24_UNORM_S8_UINT,
-            VK_FORMAT_D16_UNORM_S8_UINT,
-            VK_FORMAT_D16_UNORM };
-        for (auto& format : depthFormats) {
-            VkFormatProperties formatProps;
-            vkGetPhysicalDeviceFormatProperties(_vk.physicalDevice->vk_handle, format, &formatProps);
-            if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
-                handle->depthStencilFormat = format;
-                break;
-            }
+        handle->depthStencilFormat = vgpuGetDefaultDepthStencilFormat();
+        if (handle->depthStencilFormat == VGPU_PIXEL_FORMAT_UNDEFINED) {
+            handle->depthStencilFormat = vgpuGetDefaultDepthFormat();
         }
     }
+
     if (oldSwapchain != VK_NULL_HANDLE)
     {
         for (uint32_t i = 0u; i < handle->imageCount; i++)
@@ -1555,6 +1758,36 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
         vkDestroySwapchainKHR(_vk.device, oldSwapchain, nullptr);
     }
 
+    if (handle->depthStencilFormat != VK_FORMAT_UNDEFINED)
+    {
+        VgpuTextureDescriptor depthStencilTextureDescriptor;
+        memset(&depthStencilTextureDescriptor, 0, sizeof(depthStencilTextureDescriptor));
+        depthStencilTextureDescriptor.type = VGPU_TEXTURE_TYPE_2D;
+        depthStencilTextureDescriptor.width = swapchainSize.width;
+        depthStencilTextureDescriptor.height = swapchainSize.height;
+        depthStencilTextureDescriptor.depthOrArraySize = 1;
+        depthStencilTextureDescriptor.mipLevels = 1;
+        depthStencilTextureDescriptor.format = handle->depthStencilFormat;
+        depthStencilTextureDescriptor.usage = VGPU_TEXTURE_USAGE_RENDER_TARGET | VGPU_TEXTURE_USAGE_TRANSFER_SRC;
+        depthStencilTextureDescriptor.samples = AGPU_SAMPLE_COUNT1;
+        vgpuCreateTexture(VGPU_MEMORY_GPU_ONLY, &depthStencilTextureDescriptor, nullptr, &handle->depthStencilTexture);
+
+        VkImageViewCreateInfo depthStencilView = {};
+        depthStencilView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        depthStencilView.pNext = NULL;
+        depthStencilView.flags = 0;
+        depthStencilView.image = handle->depthStencilTexture->vk_handle;
+        depthStencilView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        depthStencilView.format = vgpuVkGetPixelFormat(handle->depthStencilFormat);
+        depthStencilView.subresourceRange = {};
+        depthStencilView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        depthStencilView.subresourceRange.baseMipLevel = 0;
+        depthStencilView.subresourceRange.levelCount = 1;
+        depthStencilView.subresourceRange.baseArrayLayer = 0;
+        depthStencilView.subresourceRange.layerCount = 1;
+
+        vgpuVkLogIfFailed(vkCreateImageView(_vk.device, &depthStencilView, nullptr, &handle->depthStencilTextureView));
+    }
 
     /* Create swap chain render pass */
     VkAttachmentDescription attachments[4u] = {};
@@ -1608,9 +1841,9 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
         resolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         subpassDescription.pResolveAttachments = &resolveReference;
 
-        if (handle->depthStencilFormat != VK_FORMAT_UNDEFINED) {
+        if (handle->depthStencilFormat != VGPU_PIXEL_FORMAT_UNDEFINED) {
             // Multisampled depth attachment we render to
-            attachments[attachmentCount].format = handle->depthStencilFormat;
+            attachments[attachmentCount].format = vgpuVkGetPixelFormat(handle->depthStencilFormat);
             attachments[attachmentCount].samples = (VkSampleCountFlagBits)descriptor->samples;
             attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -1621,7 +1854,7 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
             ++attachmentCount;
 
             // Depth resolve attachment
-            attachments[attachmentCount].format = handle->depthStencilFormat;
+            attachments[attachmentCount].format = vgpuVkGetPixelFormat(handle->depthStencilFormat);
             attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
             attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1653,8 +1886,8 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
         ++attachmentCount;
 
         // Depth attachment
-        if (handle->depthStencilFormat != VK_FORMAT_UNDEFINED) {
-            attachments[attachmentCount].format = handle->depthStencilFormat;
+        if (handle->depthStencilFormat != VGPU_PIXEL_FORMAT_UNDEFINED) {
+            attachments[attachmentCount].format = vgpuVkGetPixelFormat(handle->depthStencilFormat);
             attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
             attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1720,10 +1953,9 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
     textureDescriptor.mipLevels = 1;
     textureDescriptor.usage = textureUsage;
     textureDescriptor.samples = AGPU_SAMPLE_COUNT1;
-    textureDescriptor.sRGB = false;
 
     /* Convert pixel format to vgpu */
-    textureDescriptor.format = vgpuGetPixelFormat(createInfo.imageFormat, textureDescriptor.sRGB);
+    textureDescriptor.format = vgpuVkToPixelFormat(createInfo.imageFormat);
 
     /* Setup framebuffer descriptor */
     //VgpuFramebufferDescriptor framebufferDescriptor;
@@ -1731,10 +1963,7 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
 
     /* Clear or transition to default image layout */
     const bool canClear = createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    VgpuCommandBufferDescriptor commandBufferDescriptor = {};
-    commandBufferDescriptor.type = VGPU_COMMAND_QUEUE_TYPE_GRAPHICS;
-    VgpuCommandBuffer clearImageCmdBuffer = vgpuCreateCommandBuffer(&commandBufferDescriptor);
-    vgpuBeginCommandBuffer(clearImageCmdBuffer);
+    VgpuCommandBuffer clearImageCmdBuffer = vgpuRequestCommandBuffer(VGPU_COMMAND_BUFFER_TYPE_GRAPHICS);
     for (uint32_t i = 0u; i < handle->imageCount; ++i)
     {
         // Clear with default value if supported.
@@ -1805,15 +2034,18 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
         //framebufferDescriptor.colorAttachments[0].texture = handle->textures[i];
         //handle->framebuffers[i] = vgpuCreateFramebuffer(&framebufferDescriptor);
 
-        VkImageView attachments[4];
-        attachments[0] = handle->imageViews[i];
+        VkImageView fboAttachments[4];
+        fboAttachments[0] = handle->imageViews[i];
+        if (handle->depthStencilFormat != VGPU_PIXEL_FORMAT_UNDEFINED) {
+            fboAttachments[1] = handle->depthStencilTextureView;
+        }
 
         VkFramebufferCreateInfo framebufferCreateInfo = {};
         framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferCreateInfo.renderPass = handle->renderPass;
         // TODO: Correctly handle multisampling and depth texture
-        framebufferCreateInfo.attachmentCount = 1u;
-        framebufferCreateInfo.pAttachments = attachments;
+        framebufferCreateInfo.attachmentCount = attachmentCount;
+        framebufferCreateInfo.pAttachments = fboAttachments;
         framebufferCreateInfo.width = swapchainSize.width;
         framebufferCreateInfo.height = swapchainSize.height;
         framebufferCreateInfo.layers = 1;
@@ -1823,7 +2055,6 @@ VgpuResult vgpuCreateSwapchain(const VgpuSwapchainDescriptor* descriptor, VkSwap
         );
     }
 
-    vgpuEndCommandBuffer(clearImageCmdBuffer);
     vgpuVkFlushCommandBuffer(clearImageCmdBuffer);
 
     handle->width = swapchainSize.width;
@@ -1844,13 +2075,18 @@ void vgpuDestroySwapchain(VgpuSwapchain swapchain)
     }
 
     for (uint32_t i = 0u;
+        swapchain->framebuffers && i < swapchain->imageCount; ++i) {
+        vkDestroyFramebuffer(_vk.device, swapchain->framebuffers[i], NULL);
+    }
+
+    for (uint32_t i = 0u;
         swapchain->imageViews != NULL && i < swapchain->imageCount; ++i) {
         vkDestroyImageView(_vk.device, swapchain->imageViews[i], NULL);
     }
 
-    for (uint32_t i = 0u;
-        swapchain->framebuffers && i < swapchain->imageCount; ++i) {
-        vkDestroyFramebuffer(_vk.device, swapchain->framebuffers[i], NULL);
+    if (swapchain->depthStencilTexture != nullptr) {
+        vkDestroyImageView(_vk.device, swapchain->depthStencilTextureView, nullptr);
+        vgpuDestroyTexture(swapchain->depthStencilTexture);
     }
 
     if (swapchain->renderPass != VK_NULL_HANDLE) {
@@ -1859,6 +2095,7 @@ void vgpuDestroySwapchain(VgpuSwapchain swapchain)
 
     if (swapchain->vk_handle != VK_NULL_HANDLE) {
         vkDestroySwapchainKHR(_vk.device, swapchain->vk_handle, NULL);
+        vkDestroySurfaceKHR(_vk.instance, swapchain->surface, nullptr);
     }
 
     VGPU_FREE(swapchain->imageSemaphores);
@@ -1895,8 +2132,11 @@ void vgpuVkDestoryCommandQueue(VgpuCommandQueue queue)
 {
     VGPU_ASSERT(queue);
 
-    if (queue->vk_handle != VK_NULL_HANDLE)
-    {
+    if (queue->buffersCount > 0) {
+        vkFreeCommandBuffers(_vk.device, queue->vk_handle, queue->buffersCount, queue->vkBuffers);
+    }
+
+    if (queue->vk_handle != VK_NULL_HANDLE) {
         vkDestroyCommandPool(_vk.device, queue->vk_handle, nullptr);
     }
 
@@ -1905,10 +2145,53 @@ void vgpuVkDestoryCommandQueue(VgpuCommandQueue queue)
     VGPU_FREE(queue);
 }
 
+VgpuCommandBuffer vgpuVkRequestCommandBuffer(VgpuCommandQueue queue) {
+    VgpuCommandBuffer result;
+    if (queue->buffersIndex < queue->buffersCount)
+    {
+        result = queue->buffers[queue->buffersIndex++];
+        vkResetCommandBuffer(result->vk_handle, 0);
+        VGPU_ASSERT(result->queue == queue);
+    }
+    else
+    {
+        result = VGPU_ALLOC_HANDLE(VgpuCommandBuffer);
+        result->queue = queue;
+
+        VkCommandBufferAllocateInfo allocateInfo;
+        allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocateInfo.pNext = nullptr;
+        allocateInfo.commandPool = queue->vk_handle;
+        allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocateInfo.commandBufferCount = 1;
+
+        vkAllocateCommandBuffers(_vk.device, &allocateInfo, &result->vk_handle);
+        queue->buffers[queue->buffersCount] = result;
+        queue->vkBuffers[queue->buffersCount] = result->vk_handle;
+        queue->buffersCount++;
+        queue->buffersIndex++;
+    }
+
+    VkCommandBufferBeginInfo beginInfo;
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.pNext = nullptr;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+    vgpuVkLogIfFailed(vkBeginCommandBuffer(result->vk_handle, &beginInfo));
+    return result;
+}
+
+
+void vgpuVkEndCommandBuffer(VgpuCommandBuffer commandBuffer) {
+    vgpuVkLogIfFailed(vkEndCommandBuffer(commandBuffer->vk_handle));
+}
+
 VgpuResult vgpuVkFlushCommandBuffer(VgpuCommandBuffer commandBuffer)
 {
     VGPU_ASSERT(commandBuffer);
     VkResult result = VK_SUCCESS;
+
+    vgpuVkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo;
     memset(&submitInfo, 0, sizeof(submitInfo));
@@ -1929,14 +2212,8 @@ VgpuResult vgpuVkFlushCommandBuffer(VgpuCommandBuffer commandBuffer)
     }
 
     // Wait for the fence to signal that command buffer has finished executing.
-    result = vkWaitForFences(_vk.device, 1, &fence, VK_TRUE, UINT64_MAX);
-    if (result != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(result);
-    }
-
+    vgpuVkLogIfFailed(vkWaitForFences(_vk.device, 1, &fence, VK_TRUE, UINT64_MAX));
     vkDestroyFence(_vk.device, fence, nullptr);
-    vgpuDestroyCommandBuffer(commandBuffer);
 
     return VGPU_SUCCESS;
 }
@@ -1995,12 +2272,69 @@ void vgpuDestroyBuffer(VgpuBuffer buffer) {
 }
 
 /* Texture */
-VgpuResult vgpuCreateTexture(const VgpuTextureDescriptor* descriptor, const void* pInitData, VgpuTexture* pTexture) {
+VgpuResult vgpuCreateTexture(VgpuMemoryFlags memoryFlags, const VgpuTextureDescriptor* descriptor, const void* pInitData, VgpuTexture* pTexture) {
     VGPU_ASSERT(descriptor);
     VGPU_ASSERT(pTexture);
 
-    *pTexture = nullptr;
-    return VGPU_ERROR_GENERIC;
+    VgpuTexture texture = VGPU_ALLOC_HANDLE(VgpuTexture);
+    texture->externalHandle = false;
+    VkImageCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    createInfo.pNext = nullptr;
+    createInfo.flags = 0u;
+    createInfo.imageType = vgpuVkGetImageType(descriptor->type);
+    createInfo.format = texture->format = vgpuVkGetPixelFormat(descriptor->format);
+    createInfo.extent.width = descriptor->width;
+    createInfo.extent.height = descriptor->height;
+    createInfo.extent.depth = descriptor->depthOrArraySize;
+    createInfo.mipLevels = descriptor->mipLevels;
+    createInfo.arrayLayers = descriptor->depthOrArraySize;
+    createInfo.samples = (VkSampleCountFlagBits)descriptor->samples;
+    createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    createInfo.usage = vgpuVkGetVkTextureUsage(descriptor->usage, descriptor->format);
+    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.queueFamilyIndexCount = 0;
+    createInfo.pQueueFamilyIndices = nullptr;
+    createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    /* Cube maps */
+    if (descriptor->type == VGPU_TEXTURE_TYPE_CUBE && descriptor->width == descriptor->height) {
+        createInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        createInfo.arrayLayers *= 6u;
+    }
+
+    VkResult result = VK_SUCCESS;
+    if ((memoryFlags & VGPU_MEMORY_NO_ALLOCATION) == 0) {
+        // Determine appropriate memory usage flags.
+        VmaAllocationCreateInfo allocCreateInfo = {};
+        allocCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+        allocCreateInfo.flags = 0u;
+
+        if (memoryFlags == VGPU_MEMORY_GPU_ONLY) {
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        }
+        else if (memoryFlags == VGPU_MEMORY_CPU_ONLY) {
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+        }
+        else if (memoryFlags == VGPU_MEMORY_CPU_TO_GPU) {
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+        }
+        else if (memoryFlags == VGPU_MEMORY_GPU_TO_CPU) {
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+        }
+
+        if (memoryFlags & VGPU_MEMORY_DEDICATED_ALLOCATION) {
+            allocCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        }
+
+        vmaCreateImage(_vk.memoryAllocator, &createInfo, &allocCreateInfo, &texture->vk_handle, &texture->allocation, nullptr);
+    }
+    else {
+        result = vkCreateImage(_vk.device, &createInfo, nullptr, &texture->vk_handle);
+    }
+
+    *pTexture = texture;
+    return VGPU_SUCCESS;
 }
 
 VgpuResult vgpuCreateExternalTexture(const VgpuTextureDescriptor* descriptor, void* handle, VgpuTexture* pTexture) {
@@ -2008,12 +2342,22 @@ VgpuResult vgpuCreateExternalTexture(const VgpuTextureDescriptor* descriptor, vo
     VGPU_ASSERT(pTexture);
 
     *pTexture = VGPU_ALLOC_HANDLE(VgpuTexture);
-    (*pTexture)->image = (VkImage)handle;
+    (*pTexture)->externalHandle = true;
+    (*pTexture)->vk_handle = (VkImage)handle;
     return VGPU_SUCCESS;
 }
 
 void vgpuDestroyTexture(VgpuTexture texture) {
     VGPU_ASSERT(texture);
+
+    if (!texture->externalHandle) {
+        if (texture->allocation != VK_NULL_HANDLE) {
+            vmaDestroyImage(_vk.memoryAllocator, texture->vk_handle, texture->allocation);
+        }
+        else {
+            vkDestroyImage(_vk.device, texture->vk_handle, nullptr);
+        }
+    }
 }
 
 VgpuFramebuffer vgpuCreateFramebuffer(const VgpuFramebufferDescriptor* descriptor) {
@@ -2033,23 +2377,25 @@ void vgpuDestroyFramebuffer(VgpuFramebuffer framebuffer) {
     VGPU_FREE(framebuffer);
 }
 
-VgpuShaderModule vgpuCreateShaderModule(const VgpuShaderModuleDescriptor* descriptor) {
+VgpuResult vgpuCreateShaderModule(const VgpuShaderModuleDescriptor* descriptor, VgpuShaderModule* pShaderModule) {
     VGPU_ASSERT(descriptor);
-    VgpuShaderModule shaderModule = VGPU_ALLOC_HANDLE(VgpuShaderModule);
     VkShaderModuleCreateInfo createInfo;
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.pNext = NULL;
     createInfo.flags = 0u;
     createInfo.codeSize = (size_t)descriptor->codeSize;
     createInfo.pCode = (uint32_t*)descriptor->pCode;
-    VkResult result = vkCreateShaderModule(_vk.device, &createInfo, nullptr, &shaderModule->vk_handle);
+
+    VkShaderModule vk_handle;
+    VkResult result = vkCreateShaderModule(_vk.device, &createInfo, nullptr, &vk_handle);
     if (result != VK_SUCCESS)
     {
-        vgpuDestroyShaderModule(shaderModule);
-        return nullptr;
+        return vgpuVkConvertResult(result);
     }
 
-    return shaderModule;
+    *pShaderModule = VGPU_ALLOC_HANDLE(VgpuShaderModule);
+    (*pShaderModule)->vk_handle = vk_handle;
+    return VGPU_SUCCESS;
 }
 
 void vgpuDestroyShaderModule(VgpuShaderModule shaderModule) {
@@ -2219,16 +2565,17 @@ VgpuResult vgpuInitialize(const char* applicationName, const VgpuDescriptor* des
         return vgpuVkConvertResult(result);
     }
 
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
     if (!headless)
     {
-        result = vgpuVkCreateSurface(descriptor->swapchain, &context->surface);
+        result = vgpuVkCreateSurface(descriptor->swapchain, &surface);
         if (result != VK_SUCCESS)
         {
             return vgpuVkConvertResult(result);
         }
     }
 
-    result = vgpuVkCreateDevice(context->surface);
+    result = vgpuVkCreateDevice(surface);
     if (result != VK_SUCCESS)
     {
         return vgpuVkConvertResult(result);
@@ -2237,7 +2584,7 @@ VgpuResult vgpuInitialize(const char* applicationName, const VgpuDescriptor* des
     // Create command queue's.
     vgpuVkCreateCommandQueue(_vk.graphicsQueue, _vk.graphicsQueueFamily, &_vk.graphicsCommandQueue);
     vgpuVkCreateCommandQueue(_vk.computeQueue, _vk.computeQueueFamily, &_vk.computeCommandQueue);
-    vgpuVkCreateCommandQueue(_vk.transferQueue, _vk.transferQueueFamily, &_vk.copyCommandQueue);
+    vgpuVkCreateCommandQueue(_vk.transferQueue, _vk.transferQueueFamily, &_vk.transferCommandQueue);
 
     vgpuVkInitializeFeatures();
 
@@ -2246,7 +2593,7 @@ VgpuResult vgpuInitialize(const char* applicationName, const VgpuDescriptor* des
         vgpuCreateSwapchain(
             descriptor->swapchain,
             /*s_current_context->swapchain != nullptr ? s_current_context->swapchain->vk_handle : */VK_NULL_HANDLE,
-            context->surface,
+            surface,
             &context->swapchain);
     }
 
@@ -2288,18 +2635,18 @@ void vgpuShutdown()
 
     vgpuVkDestoryCommandQueue(_vk.graphicsCommandQueue);
     vgpuVkDestoryCommandQueue(_vk.computeCommandQueue);
-    vgpuVkDestoryCommandQueue(_vk.copyCommandQueue);
-
-    if (_vk.device != VK_NULL_HANDLE)
-    {
-        vkDestroyDevice(_vk.device, nullptr);
-        _vk.device = VK_NULL_HANDLE;
-    }
+    vgpuVkDestoryCommandQueue(_vk.transferCommandQueue);
 
     if (_vk.memoryAllocator != VK_NULL_HANDLE)
     {
         vmaDestroyAllocator(_vk.memoryAllocator);
         _vk.memoryAllocator = VK_NULL_HANDLE;
+    }
+
+    if (_vk.device != VK_NULL_HANDLE)
+    {
+        vkDestroyDevice(_vk.device, nullptr);
+        _vk.device = VK_NULL_HANDLE;
     }
 
     if (_vk.debugCallback != VK_NULL_HANDLE)
@@ -2343,11 +2690,12 @@ VgpuResult vgpuBeginFrame() {
     {
         return vgpuVkConvertResult(result);
     }
-    else
-    {
-        s_current_context->frameData[frameIndex].submittedCmdBuffersCount = 0;
-        return VGPU_SUCCESS;
-    }
+
+    s_current_context->frameData[frameIndex].submittedCmdBuffersCount = 0;
+    vgpuVkCommandQueueBeginFrame(_vk.graphicsCommandQueue);
+    vgpuVkCommandQueueBeginFrame(_vk.computeCommandQueue);
+    vgpuVkCommandQueueBeginFrame(_vk.transferCommandQueue);
+    return VGPU_SUCCESS;
 }
 
 VgpuResult vgpuEndFrame() {
@@ -2624,130 +2972,69 @@ void vgpuDestroySampler(VgpuSampler sampler) {
     vkDestroySampler(_vk.device, sampler->vk_handle, nullptr);
 }
 
+/* Render Pass (Vulkan only) */
+VgpuRenderPass vgpuRequestRenderPass(const VgpuRenderPassDescriptor* descriptor) {
+
+    Hasher h;
+    uint32_t colorAttachments = 0u;
+    VkFormat colorFormats[VGPU_MAX_COLOR_ATTACHMENTS];
+    VkFormat depthStencilFormat = VK_FORMAT_UNDEFINED;;
+
+    for (uint32_t i = 0u; i < VGPU_MAX_COLOR_ATTACHMENTS; i++)
+    {
+        if (!descriptor->colorAttachments[i].attachment.texture) {
+            continue;
+        }
+
+        colorFormats[colorAttachments++] = descriptor->colorAttachments[i].attachment.texture->format;
+    }
+
+    if (descriptor->depthStencilAttachment.attachment.texture)
+    {
+        depthStencilFormat = descriptor->depthStencilAttachment.attachment.texture->format;
+    }
+
+
+    h.data(colorFormats, colorAttachments * sizeof(VkFormat));
+    h.u32(colorAttachments);
+    h.u32(depthStencilFormat);
+
+    uint64_t hash = h.get();
+    auto it = _vk.renderPasses.find(hash);
+    if (it != end(_vk.renderPasses)) {
+        return it->second;
+    }
+
+    VkRenderPass vk_handle = VK_NULL_HANDLE;
+    VgpuRenderPass renderPass = VGPU_ALLOC_HANDLE(VgpuRenderPass);
+    renderPass->vk_handle = vk_handle;
+    return renderPass;
+}
+
 /* CommandBuffer */
-VgpuCommandBuffer vgpuCreateCommandBuffer(const VgpuCommandBufferDescriptor* descriptor) {
-    VGPU_ASSERT(descriptor);
+VgpuCommandBuffer vgpuRequestCommandBuffer(VgpuCommandBufferType type) {
 
-    VGPU_ASSERT(descriptor);
-
-    VgpuCommandQueue commandQueue = vgpuVkGetCommandQueue(descriptor->type);
-    /*if (commandQueue->freeCommandBuffersCount > 0)
-    {
-        handle = queue->freeCommandBuffers[queue->freeCommandBuffersCount - 1];
-        queue->freeCommandBuffersCount--;
-        vkResetCommandBuffer(handle->vk_handle, 0);
-        *pCommandBuffer = handle;
-        return VGPU_SUCCESS;
-    }*/
-
-    VgpuCommandBuffer handle = VGPU_ALLOC_HANDLE(VgpuCommandBuffer);
-    handle->queue = commandQueue;
-    handle->vk_handle = VK_NULL_HANDLE;
-    handle->recording = false;
-    return handle;
+    VgpuCommandQueue commandQueue = vgpuVkGetCommandQueue(type);
+    return vgpuVkRequestCommandBuffer(commandQueue);
 }
 
-void vgpuDestroyCommandBuffer(VgpuCommandBuffer commandBuffer) {
+
+VgpuResult vgpuSubmitCommandBuffer(VgpuCommandBuffer commandBuffer) {
     VGPU_ASSERT(commandBuffer);
-
-    if (commandBuffer->vk_handle != VK_NULL_HANDLE)
-    {
-        // TODO: Should we recycle the command buffer for later reuse?.
-        //commandBuffer->queue->freeCommandBuffers[commandBuffer->queue->freeCommandBuffersCount++] = commandBuffer;
-        vkFreeCommandBuffers(_vk.device, commandBuffer->queue->vk_handle, 1, &commandBuffer->vk_handle);
-    }
-
-    if (commandBuffer->vk_semaphore != VK_NULL_HANDLE)
-    {
-        vkDestroySemaphore(_vk.device, commandBuffer->vk_semaphore, nullptr);
-    }
-
-    VGPU_FREE(commandBuffer);
-}
-
-VgpuResult vgpuBeginCommandBuffer(VgpuCommandBuffer commandBuffer) {
-    VGPU_ASSERT(commandBuffer);
-
-    // Verify we're not recording.
-    if (commandBuffer->recording) {
-        return VGPU_ERROR_COMMAND_BUFFER_ALREADY_RECORDING;
-    }
-
-    VkResult result = VK_SUCCESS;
-    if (commandBuffer->vk_handle == VK_NULL_HANDLE)
-    {
-        VkCommandBufferAllocateInfo info;
-        info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        info.pNext = nullptr;
-        info.commandPool = commandBuffer->queue->vk_handle;
-        info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        info.commandBufferCount = 1u;
-
-        result = vkAllocateCommandBuffers(_vk.device, &info, &commandBuffer->vk_handle);
-    }
-    else
-    {
-        result = vkResetCommandBuffer(commandBuffer->vk_handle, 0);
-    }
-
-
-    if (result != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(result);
-    }
-
-    VkCommandBufferBeginInfo beginInfo;
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.pNext = nullptr;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    beginInfo.pInheritanceInfo = nullptr;
-    result = vkBeginCommandBuffer(commandBuffer->vk_handle, &beginInfo);
-    if (result != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(result);
-    }
-
-    commandBuffer->recording = true;
-    return VGPU_SUCCESS;
-}
-
-VgpuResult vgpuEndCommandBuffer(VgpuCommandBuffer commandBuffer) {
-    VGPU_ASSERT(commandBuffer);
-    if (!commandBuffer->recording) {
-        return VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING;
-    }
-
-    VkResult result = vkEndCommandBuffer(commandBuffer->vk_handle);
-    if (result != VK_SUCCESS)
-    {
-        return vgpuVkConvertResult(result);
-    }
-
-    commandBuffer->recording = false;
-    return VGPU_SUCCESS;
-}
-
-VgpuResult vgpuSubmitCommandBuffers(uint32_t count, VgpuCommandBuffer *pBuffers) {
-    VGPU_ASSERT(count > 0);
-    VGPU_ASSERT(pBuffers);
+    vgpuVkEndCommandBuffer(commandBuffer);
 
     uint32_t frameIndex = s_current_context->frameIndex;
     VgpuVkFrameData *frameData = &s_current_context->frameData[frameIndex];
-    for (uint32_t i = 0u; i < count; ++i) {
-        if (pBuffers[i]->recording) {
-            return VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING;
-        }
 
-        frameData->submittedCmdBuffers[frameData->submittedCmdBuffersCount] = pBuffers[i]->vk_handle;
+    frameData->submittedCmdBuffers[frameData->submittedCmdBuffersCount] = commandBuffer->vk_handle;
 
-        // Create semaphore for command buffer
-        if (pBuffers[i]->vk_semaphore == VK_NULL_HANDLE) {
-            vgpuVkCreateSemaphore(_vk.device, &pBuffers[i]->vk_semaphore);
-        }
-
-        frameData->waitSemaphores[frameData->submittedCmdBuffersCount] = pBuffers[i]->vk_semaphore;
-        ++frameData->submittedCmdBuffersCount;
+    // Create semaphore for command buffer
+    if (commandBuffer->vk_semaphore == VK_NULL_HANDLE) {
+        vgpuVkCreateSemaphore(_vk.device, &commandBuffer->vk_semaphore);
     }
+
+    frameData->waitSemaphores[frameData->submittedCmdBuffersCount] = commandBuffer->vk_semaphore;
+    ++frameData->submittedCmdBuffersCount;
 
     return VGPU_SUCCESS;
 }
@@ -2778,21 +3065,25 @@ void vgpuCmdBeginDefaultRenderPass(VgpuCommandBuffer commandBuffer, VgpuColor cl
     vkCmdBeginRenderPass(commandBuffer->vk_handle, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void vgpuCmdBeginRenderPass(VgpuCommandBuffer commandBuffer, VgpuFramebuffer framebuffer) {
+void vgpuCmdBeginRenderPass(VgpuCommandBuffer commandBuffer, const VgpuRenderPassDescriptor* descriptor) {
     VGPU_ASSERT(commandBuffer);
-    VGPU_ASSERT(framebuffer);
+    VGPU_ASSERT(descriptor);
+
+    VgpuRenderPass renderPass = vgpuRequestRenderPass(descriptor);
+
+    VkClearValue clearValues[VGPU_MAX_COLOR_ATTACHMENTS + 1];
 
     VkRenderPassBeginInfo beginInfo;
     memset(&beginInfo, 0, sizeof(beginInfo));
     beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    //beginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
+    beginInfo.renderPass = renderPass->vk_handle;
     //beginInfo.framebuffer = _currentFramebuffer->GetVkFramebuffer();
     beginInfo.renderArea.offset.x = 0;
     beginInfo.renderArea.offset.y = 0;
-    beginInfo.renderArea.extent.width = framebuffer->width;
-    beginInfo.renderArea.extent.height = framebuffer->height;
-    //bassBeginInfo.clearValueCount = 0;
-    //bassBeginInfo.pClearValues = nullptr;
+    //beginInfo.renderArea.extent.width = framebuffer->width;
+    //beginInfo.renderArea.extent.height = framebuffer->height;
+    beginInfo.clearValueCount = 0;
+    beginInfo.pClearValues = clearValues;
     vkCmdBeginRenderPass(commandBuffer->vk_handle, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
