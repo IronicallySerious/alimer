@@ -47,6 +47,8 @@ extern "C"
 #define VAUDIO_VERSION_MAJOR                  0
 #define VAUDIO_VERSION_MINOR                  1
 
+    VAUDIO_DEFINE_HANDLE(VAudioDevice);
+
     typedef enum VAudioLogLevel {
         VAUDIO_LOG_LEVEL_INFO = 0,
         VAUDIO_LOG_LEVEL_WARN,
@@ -59,26 +61,25 @@ extern "C"
         VAUDIO_NOT_READY = 1,
         VAUDIO_TIMEOUT = 2,
         VAUDIO_INCOMPLETE = 3,
-        VAUDIO_ALREADY_INITIALIZED = 4,
         VAUDIO_ERROR_GENERIC = -1,
         VAUDIO_ERROR_INITIALIZATION_FAILED = -2,
         VAUDIO_ERROR_TOO_MANY_OBJECTS = -3,
     } VAudioResult;
 
-    typedef enum VAudioChannels {
-        VAUDIO_CHANNELS_MONO = 0,
-        VAUDIO_CHANNELS_STEREO,
-    } VAudioChannels;
+    typedef enum VAudioSampleFormat {
+        VAUDIO_SAMPLE_FORMAT_UNKNOWN = 0,
+        VAUDIO_SAMPLE_FORMAT_UINT8,
+        VAUDIO_SAMPLE_FORMAT_SINT16, 
+        VAUDIO_SAMPLE_FORMAT_SINT24,
+        VAUDIO_SAMPLE_FORMAT_SINT32,
+        VAUDIO_SAMPLE_FORMAT_FLOAT32,
+        VAUDIO_SAMPLE_FORMAT_COUNT
+    } VAudioSampleFormat;
 
-    typedef enum VAudioFormat {
-        VAUDIO_FORMAT_UNKNOWN = 0,
-        VAUDIO_FORMAT_UINT8,
-        VAUDIO_FORMAT_SINT16, 
-        VAUDIO_FORMAT_SINT24,
-        VAUDIO_FORMAT_SINT32,
-        VAUDIO_FORMAT_FLOAT32,
-        VAUDIO_FORMAT_COUNT
-    } VAudioFormat;
+    typedef enum VAudioDeviceType {
+        VAUDIO_DEVICE_TYPE_PLAYBACK = 0,
+        VAUDIO_DEVICE_TYPE_CAPTURE,
+    } VAudioDeviceType;
 
     typedef enum VAudioBackend {
         VAUDIO_BACKEND_INVALID = 0,
@@ -90,14 +91,15 @@ extern "C"
     /* Callbacks */
     typedef void(*vaudio_log_fn)(VAudioLogLevel level, const char* context, const char* message);
 
-    typedef struct VAudioDescriptor {
-        uint32_t        sampleRate;
-        VAudioChannels  channels;
-    } VAudioDescriptor;
+    typedef struct VAudioDeviceDescriptor {
+        VAudioDeviceType    deviceType;
+        uint32_t            sampleRate;
+        uint32_t            channels;
+    } VAudioDeviceDescriptor;
 
     VAUDIO_API VAudioBackend vaudioGetBackend();
-    VAUDIO_API VAudioResult vaudioInitialize(VAudioDescriptor* descriptor);
-    VAUDIO_API void vaudioShutdown();
+    VAUDIO_API VAudioResult vaudioDeviceInitialize(VAudioDeviceDescriptor* descriptor, VAudioDevice* pDevice);
+    VAUDIO_API void vaudioDeviceShutdown(VAudioDevice device);
 
 #ifdef __cplusplus
 }

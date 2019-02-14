@@ -37,7 +37,6 @@
 
 #define VAUDIO_ASSERT(c) assert(c)
 #define VAUDIO_ALLOC(type) ((type*) malloc(sizeof(type)))
-#define VAUDIO_ALLOCN(type, n) ((type*) malloc(sizeof(type) * n))
 #define VAUDIO_FREE(ptr) free(ptr)
 #define VAUDIO_ALLOC_HANDLE(type) ((type) calloc(1, sizeof(type##_T)))
 
@@ -77,30 +76,29 @@ void vaudioWinCoUninitialize(void) {
 #endif
 }
 
-static bool s_initialized = false;
 // Proxy log callback
 #define VGPU_MAX_LOG_MESSAGE 4096
 static vaudio_log_fn s_logCallback = nullptr;
 
-static void vaudio_log(VAudioLogLevel level, const char* context, const char* message) {
+static void vaudio_log(VAudioLogLevel level, const char* message) {
     if (s_logCallback) {
-        s_logCallback(level, context, message);
+        s_logCallback(level, "WASAPI", message);
     }
 }
 
-static void vaudio_log_format(VAudioLogLevel level, const char* context, const char* format, ...) {
+static void vaudio_log_format(VAudioLogLevel level, const char* format, ...) {
     char logMessage[VGPU_MAX_LOG_MESSAGE];
     va_list args;
     va_start(args, format);
     vsnprintf(logMessage, VGPU_MAX_LOG_MESSAGE, format, args);
     if (s_logCallback) {
-        s_logCallback(level, context, logMessage);
+        s_logCallback(level, "WASAPI", logMessage);
     }
     va_end(args);
 }
 
 static VAudioResult vaudio_post_error(const char* message, VAudioResult result) {
-    vaudio_log(VAUDIO_LOG_LEVEL_ERROR, "WASAPI", message);
+    vaudio_log(VAUDIO_LOG_LEVEL_ERROR, message);
     return result;
 }
 
@@ -196,10 +194,10 @@ struct {
     IMMNotificationClient*  notificationClient = nullptr;
 } _wasapi;
 
-typedef struct VAudioContext {
-    IMMDevice*              device = nullptr;
+/* Handle declaration */
+typedef struct VAudioDevice_T {
     IAudioClient*           audioClient = nullptr;
-    VAudioFormat            sampleFormat = VAUDIO_FORMAT_UNKNOWN;
+    VAudioSampleFormat      sampleFormat = VAUDIO_SAMPLE_FORMAT_UNKNOWN;
     uint32_t                sampleSize = 0;
     UINT32                  bufferFrameCount = 0;
     uint32_t                bufferSize = 0;
@@ -208,33 +206,31 @@ typedef struct VAudioContext {
     HANDLE                  thread = nullptr;
     bool                    started = false;
     bool                    running = false;
-} VAudioContext;
-
-static VAudioContext *s_current_context = NULL;
+} VAudioDevice_T;
 
 static DWORD WINAPI vaudio_worker_thread(LPVOID param) {
-    (void)param;
+    VAudioDevice device = (VAudioDevice)param;
 
-    while (s_current_context->running)
+    while (device->running)
     {
-        WaitForSingleObject(s_current_context->notifyEvent, INFINITE);
+        WaitForSingleObject(device->notifyEvent, INFINITE);
 
-        if (!s_current_context->running) {
+        if (!device->running) {
             break;
         }
 
         UINT32 padding = 0;
-        if (FAILED(s_current_context->audioClient->GetCurrentPadding(&padding))) {
+        if (FAILED(device->audioClient->GetCurrentPadding(&padding))) {
             continue;
         }
 
-        UINT32 frameCount = s_current_context->bufferFrameCount - padding;
+        UINT32 frameCount = device->bufferFrameCount - padding;
         BYTE* renderBuffer;
-        if (FAILED(s_current_context->renderClient->GetBuffer(frameCount, &renderBuffer))) {
+        if (FAILED(device->renderClient->GetBuffer(frameCount, &renderBuffer))) {
             return 0;
         }
 
-        s_current_context->renderClient->ReleaseBuffer(frameCount, 0);
+        device->renderClient->ReleaseBuffer(frameCount, 0);
     }
 
     return 0;
@@ -244,10 +240,9 @@ VAudioBackend vaudioGetBackend() {
     return VAUDIO_BACKEND_WASAPI;
 }
 
-VAudioResult vaudioInitialize(VAudioDescriptor* descriptor) {
-    if (s_initialized) {
-        return VAUDIO_ALREADY_INITIALIZED;
-    }
+VAudioResult vaudioDeviceInitialize(VAudioDeviceDescriptor* descriptor, VAudioDevice* pDevice) {
+    VAUDIO_ASSERT(descriptor);
+    VAUDIO_ASSERT(pDevice);
 
     HRESULT hr = S_OK;
     if (_wasapi.enumerator == nullptr) {
@@ -264,12 +259,19 @@ VAudioResult vaudioInitialize(VAudioDescriptor* descriptor) {
         }
     }
 
-    VAudioContext* context = VAUDIO_ALLOC(VAudioContext);
-    if (FAILED(hr = _wasapi.enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &context->device))) {
+    VAudioDevice context = VAUDIO_ALLOC_HANDLE(VAudioDevice);
+
+    IMMDevice* device = nullptr;
+    EDataFlow deviceType = eRender;
+    if (descriptor->deviceType == VAUDIO_DEVICE_TYPE_CAPTURE) {
+        deviceType = eCapture;
+    }
+
+    if (FAILED(hr = _wasapi.enumerator->GetDefaultAudioEndpoint(deviceType, eConsole, &device))) {
         return vaudio_post_error("Failed to get audio endpoint", VAUDIO_ERROR_INITIALIZATION_FAILED);
     }
 
-    if (FAILED(hr = context->device->Activate(IID_IAudioClient, CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&context->audioClient)))) {
+    if (FAILED(hr = device->Activate(IID_IAudioClient, CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&context->audioClient)))) {
         return vaudio_post_error("Failed to activate audio device", VAUDIO_ERROR_INITIALIZATION_FAILED);
     }
 
@@ -282,7 +284,7 @@ VAudioResult vaudioInitialize(VAudioDescriptor* descriptor) {
     WAVEFORMATEX waveFormat;
     memset(&waveFormat, 0, sizeof(waveFormat));
     waveFormat.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
-    waveFormat.nChannels = descriptor->channels == VAUDIO_CHANNELS_MONO ? 1 : 2;
+    waveFormat.nChannels = descriptor->channels > 0 ? descriptor->channels : audioClientWaveFormat->nChannels;
     waveFormat.nSamplesPerSec = descriptor->sampleRate > 0 ? descriptor->sampleRate : 44100;
     waveFormat.wBitsPerSample = 32;
     waveFormat.nBlockAlign = waveFormat.nChannels * (waveFormat.wBitsPerSample / 8);
@@ -305,12 +307,12 @@ VAudioResult vaudioInitialize(VAudioDescriptor* descriptor) {
             return vaudio_post_error("Failed to initialize audio client", VAUDIO_ERROR_INITIALIZATION_FAILED);
         }
 
-        context->sampleFormat = VAUDIO_FORMAT_SINT16;
+        context->sampleFormat = VAUDIO_SAMPLE_FORMAT_SINT16;
         context->sampleSize = sizeof(int16_t);
     }
     else
     {
-        context->sampleFormat = VAUDIO_FORMAT_FLOAT32;
+        context->sampleFormat = VAUDIO_SAMPLE_FORMAT_FLOAT32;
         context->sampleSize = sizeof(float);
     }
 
@@ -318,6 +320,9 @@ VAudioResult vaudioInitialize(VAudioDescriptor* descriptor) {
     if (FAILED(hr = context->audioClient->GetBufferSize(&context->bufferFrameCount))) {
         return vaudio_post_error("Failed to get audio buffer size", VAUDIO_ERROR_INITIALIZATION_FAILED);
     }
+
+    vaudio_log_format(VAUDIO_LOG_LEVEL_INFO, "Detected %u channels", waveFormat.nChannels);
+    vaudio_log_format(VAUDIO_LOG_LEVEL_INFO, "Audio buffer frames: %u", context->bufferFrameCount);
 
     context->bufferSize = context->bufferFrameCount * waveFormat.nChannels;
 
@@ -339,49 +344,45 @@ VAudioResult vaudioInitialize(VAudioDescriptor* descriptor) {
 
     context->started = true;
     context->running = true;
-    s_current_context = context;
+    device->Release();
 
     /* create streaming thread */
-    context->thread = CreateThread(NULL, 0, vaudio_worker_thread, 0, 0, 0);
+    context->thread = CreateThread(NULL, 0, vaudio_worker_thread, context, 0, 0);
     if (!context->thread) {
         return vaudio_post_error("CreateThread failed", VAUDIO_ERROR_INITIALIZATION_FAILED);
     }
 
-    s_initialized = true;
+    *pDevice = context;
     return VAUDIO_SUCCESS;
 }
 
-void vaudioShutdown() {
-    if (!s_initialized) {
+void vaudioDeviceShutdown(VAudioDevice device) {
+    if (!device->started) {
         return;
     }
 
-    if (s_current_context->notifyEvent) {
-        SetEvent(s_current_context->notifyEvent);
-        WaitForSingleObject(s_current_context->thread, INFINITE);
-        CloseHandle(s_current_context->thread);
-        CloseHandle(s_current_context->notifyEvent);
+    device->running = false;
+    if (device->notifyEvent) {
+        SetEvent(device->notifyEvent);
+        WaitForSingleObject(device->thread, INFINITE);
+        CloseHandle(device->thread);
+        CloseHandle(device->notifyEvent);
 
-        s_current_context->notifyEvent = nullptr;
-        s_current_context->thread = nullptr;
+        device->notifyEvent = nullptr;
+        device->thread = nullptr;
     }
 
-    if (s_current_context->renderClient) {
-        s_current_context->renderClient->Release();
+    if (device->renderClient) {
+        device->renderClient->Release();
     }
 
-    if (s_current_context->audioClient)
+    if (device->audioClient)
     {
-        if (s_current_context->started) {
-            s_current_context->audioClient->Stop();
+        if (device->started) {
+            device->audioClient->Stop();
         }
 
-        s_current_context->audioClient->Release();
-    }
-
-    if (s_current_context->device) {
-        s_current_context->device->Release();
-        s_current_context->device = nullptr;
+        device->audioClient->Release();
     }
 
     if (_wasapi.enumerator) {
@@ -391,8 +392,6 @@ void vaudioShutdown() {
         _wasapi.enumerator = nullptr;
     }
 
+    device->started = false;
     vaudioWinCoUninitialize();
-    s_current_context->running = false;
-    s_current_context->started = false;
-    s_initialized = false;
 }
