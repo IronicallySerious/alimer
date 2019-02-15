@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Base/Ptr.h"
-#include "../Graphics/Backend.h"
 #include "../Graphics/Types.h"
 #include "../Graphics/Buffer.h"
 #include "../Graphics/Framebuffer.h"
@@ -98,7 +97,7 @@ namespace alimer
         QueueType GetQueueType() const { return _type; }
 
         /// Return the device used for creation.
-        GraphicsDevice* GetDevice() const { return _device.Get(); }
+        GraphicsDevice* GetGraphicsDevice() const { return _device.Get(); }
 
     private:
         // Backend methods

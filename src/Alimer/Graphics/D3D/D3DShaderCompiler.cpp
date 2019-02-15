@@ -22,14 +22,14 @@
 
 #include "AlimerConfig.h"
 #include "D3DShaderCompiler.h"
-#include "../../Base/String.h"
 #include "../../Core/Log.h"
 #include <d3dcompiler.h>
 #include <fmt/printf.h>
+using namespace std;
 
 namespace alimer
 {
-    PODVector<uint8_t> D3DShaderCompiler::Compile(const String& source, ShaderStages stage, const String& entryPoint, uint32_t major, uint32_t minor)
+    vector<uint8_t> D3DShaderCompiler::Compile(const string& source, ShaderStages stage, const string& entryPoint, uint32_t major, uint32_t minor)
     {
 #if ALIMER_D3D_DYNAMIC_LIB
         static pD3DCompile D3DCompile = nullptr;
@@ -91,8 +91,8 @@ namespace alimer
         ID3DBlob* shaderBlob;
         ID3DBlob* errorsBlob;
         if (FAILED(D3DCompile(
-            source.CString(),
-            source.Length(),
+            source.c_str(),
+            source.length(),
             nullptr,
             nullptr,
             nullptr,
@@ -102,15 +102,15 @@ namespace alimer
             &shaderBlob,
             &errorsBlob)))
         {
-            String errorMessage = String((const char*)errorsBlob->GetBufferPointer(), (uint32_t)errorsBlob->GetBufferSize() - 1);
-            ALIMER_LOGERROR("D3DCompile failed with error: {}", errorMessage.CString());
+            string errorMessage = string((const char*)errorsBlob->GetBufferPointer(), (uint32_t)errorsBlob->GetBufferSize() - 1);
+            ALIMER_LOGERROR("D3DCompile failed with error: {}", errorMessage);
             return {};
         }
 
         SafeRelease(errorsBlob);
 
-        PODVector<uint8_t> blob(static_cast<uint32_t>(shaderBlob->GetBufferSize()));
-        memcpy(blob.Data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
+        vector<uint8_t> blob(static_cast<uint32_t>(shaderBlob->GetBufferSize()));
+        memcpy(blob.data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
         return blob;
     }
 }

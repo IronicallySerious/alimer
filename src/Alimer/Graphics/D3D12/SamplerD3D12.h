@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,21 +22,27 @@
 
 #pragma once
 
-#include "../GraphicsImpl.h"
-#include "D3D12Prerequisites.h"
+#include "BackendD3D12.h"
+#include "../Sampler.h"
 
-namespace Alimer
+namespace alimer
 {
-	class D3D12Graphics;
+    /// D3D12 Sampler implementation.
+    class SamplerD3D12 final : public Sampler
+    {
+    public:
+        /// Constructor.
+        SamplerD3D12(GraphicsDeviceD3D12* device, const SamplerDescriptor* descriptor);
 
-	/// D3D12 GpuBuffer implementation.
-	class D3D12Buffer final : public GpuBufferImpl, public D3D12Resource
-	{
-	public:
-		/// Constructor.
-        D3D12Buffer(D3D12Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData, void* externalHandle);
+        /// Destructor.
+        ~SamplerD3D12() override;
+
+        const D3D12_SAMPLER_DESC& GetDescriptor() const { return _samplerDesc; }
 
     private:
-        D3D12Graphics* _graphics;
-	};
+        bool Create() override;
+        void Destroy() override;
+
+        D3D12_SAMPLER_DESC _samplerDesc;
+    };
 }

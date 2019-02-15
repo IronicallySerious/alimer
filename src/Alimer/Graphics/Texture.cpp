@@ -24,11 +24,16 @@
 #include "../Graphics/GraphicsDevice.h"
 #include "../IO/Stream.h"
 #include "../Math/MathUtil.h"
-#include "../Graphics/Backend.h"
 #include "Core/Log.h"
 
 namespace alimer
 {
+    Texture::Texture(GraphicsDevice* device)
+        : GPUResource(device, Type::Texture)
+    {
+
+    }
+
     Texture::Texture(GraphicsDevice* device, const TextureDescriptor* descriptor)
         : GPUResource(device, Type::Texture)
         , _width(descriptor->width)

@@ -76,9 +76,6 @@ namespace alimer
         static Mesh* CreateBox(const vec3& size = vec3(1.0f));
 
     private:
-        /// Graphics subsystem.
-        WeakPtr<GraphicsDevice> _device;
-
         MeshAttributeLayout _attributes[ecast(MeshAttribute::Count)];
 
         SharedPtr<Buffer> _vertexBuffer;

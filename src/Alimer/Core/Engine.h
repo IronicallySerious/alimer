@@ -100,7 +100,7 @@ namespace alimer
         inline Audio& GetAudio() { return *_audio.Get(); }
 
         /// Get the graphics device.
-        inline GraphicsDevice& GetGraphics() { return *_graphics.Get(); }
+        inline GraphicsDevice& GetGraphicsDevice() { return *_graphicsDevice.Get(); }
 
     private:
         /// Initialized flag.
@@ -117,7 +117,7 @@ namespace alimer
         SharedPtr<Input>            _input;
         SharedPtr<Audio>            _audio;
         std::unique_ptr<Window>     _renderWindow;
-        SharedPtr<GraphicsDevice>   _graphics;
+        SharedPtr<GraphicsDevice>   _graphicsDevice;
         SharedPtr<SceneManager>     _sceneManager;
 
         // ImGui

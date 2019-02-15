@@ -74,7 +74,7 @@ namespace alimer
     {
         PluginManager::Destroy(_pluginManager);
         _gui.Reset();
-        _graphics.Reset();
+        _graphicsDevice.Reset();
         _renderWindow = nullptr;
 
         RemoveSubsystem(this);
@@ -122,8 +122,8 @@ namespace alimer
 
         // Create main window and device if not headless
         if (!_headless) {
-            _graphics = GraphicsDevice::Create(_settings.preferredDevice, _settings.gpuValidation);
-            if (_graphics.IsNull()) {
+            _graphicsDevice = GraphicsDevice::Create(GraphicsBackend::Default, _settings.preferredDevice, _settings.gpuValidation);
+            if (_graphicsDevice.IsNull()) {
                 ALIMER_LOGERROR("Failed to create GraphicsDevice instance. Running in headless moder");
                 _headless = true;
             }
@@ -147,7 +147,7 @@ namespace alimer
                 swapchainDescriptor.samples = SampleCount::Count1;
                 swapchainDescriptor.nativeHandle = _renderWindow->GetNativeHandle();
                 swapchainDescriptor.nativeDisplay = _renderWindow->GetNativeDisplay();
-                if (!_graphics->Initialize(&swapchainDescriptor))
+                if (!_graphicsDevice->Initialize(&swapchainDescriptor))
                 {
                     ALIMER_LOGERROR("Failed to initialize Graphics system.");
                     return false;
@@ -170,7 +170,7 @@ namespace alimer
             ALIMER_ASSERT(_initialized);
 
             // If not headless, and the graphics subsystem no longer has a window open, assume we should exit
-            if (!_headless && _graphics.IsNull())
+            if (!_headless && _graphicsDevice.IsNull())
             {
                 _exiting = true;
             }
@@ -210,11 +210,16 @@ namespace alimer
         //ALIMER_PROFILE("Render");
 
         // If device is lost, BeginFrame will fail and we skip rendering
-        if (!graphics->BeginFrame()) {
+        if (!_graphicsDevice->BeginFrame()) {
             return;
         }
 
-        VgpuCommandBuffer commandBuffer = vgpuRequestCommandBuffer(VGPU_COMMAND_BUFFER_TYPE_GRAPHICS);
+        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        auto& context = _graphicsDevice->GetContext();
+        context.BeginDefaultRenderPass(clearColor, 1.0f, 0);
+        context.EndRenderPass();
+
+        /*VgpuCommandBuffer commandBuffer = vgpuRequestCommandBuffer(VGPU_COMMAND_BUFFER_TYPE_GRAPHICS);
         vgpuCmdBeginDefaultRenderPass(commandBuffer, { 0.0f, 0.2f, 0.4f, 1.0f }, 1.0f, 0);
         //CommandContext& context = CommandContext::Begin("Scene Render");
         //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
@@ -222,12 +227,12 @@ namespace alimer
         //context.Draw(3, 0);
         //context.EndRenderPass();
         vgpuCmdEndRenderPass(commandBuffer);
-        vgpuSubmitCommandBuffer(commandBuffer);
+        vgpuSubmitCommandBuffer(commandBuffer);*/
 
         // TODO: Scene renderer
         // TODO: UI render.
 
         // Advance to next frame.
-        graphics->Frame();
+        _graphicsDevice->Frame();
     }
 }

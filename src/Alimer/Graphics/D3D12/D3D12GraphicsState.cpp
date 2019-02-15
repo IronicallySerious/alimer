@@ -24,12 +24,12 @@
 //#include "D3D12Shader.h"
 #include "D3D12Graphics.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
-    D3D12GraphicsState::D3D12GraphicsState(D3D12Graphics* graphics)
-        : _graphics(graphics)
+    D3D12GraphicsState::D3D12GraphicsState(GraphicsDeviceD3D12* device)
+        : _device(device)
     {
         Reset();
     }

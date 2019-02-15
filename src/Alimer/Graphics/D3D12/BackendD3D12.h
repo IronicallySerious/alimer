@@ -22,26 +22,51 @@
 
 #pragma once
 
-#   include <dxgi.h>
-#   if defined(NTDDI_WIN10_RS2)
-#       include <dxgi1_5.h>
-#   else
-#   include <dxgi1_4.h>
-#   endif
-#   include <d3d12.h>
-#   include <d3dcompiler.h>
-#   ifdef _DEBUG
-#       include <dxgidebug.h>
-#   endif
+#include "../Types.h"
+
+#if defined(_WIN32) || defined(_WIN64)
+#ifndef NOMINMAX
+#    define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
+
+#include <wrl/client.h>
+
+#include <dxgi.h>
+#if defined(NTDDI_WIN10_RS2)
+#    include <dxgi1_5.h>
+#else
+#include <dxgi1_4.h>
+#endif
+#include <d3d12.h>
 
 #include "../Types.h"
 #include "../PixelFormat.h"
+#include "../../Debug/Debug.h"
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
 
+#ifndef D3D12_DEBUG
+#   ifndef NDEBUG
+#       define D3D12_DEBUG 1
+#   else
+#       define D3D12_DEBUG 0
+#   endif
+#endif
+
+#ifdef D3D12_DEBUG
+#    include <dxgidebug.h>
+#endif
+
 namespace alimer
 {
+    class GraphicsDeviceD3D12;
+
     static constexpr uint32_t RenderLatency = 2u;
 
     struct D3D12Fence
@@ -84,4 +109,30 @@ namespace alimer
         D3D12_GPU_VIRTUAL_ADDRESS _gpuVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
         uint8_t* _cpuAddress = nullptr;
     };
+
+    static inline D3D12_COMPARISON_FUNC GetD3D12ComparisonFunc(CompareOp op)
+    {
+        switch (op)
+        {
+        case CompareOp::Never:
+            return D3D12_COMPARISON_FUNC_NEVER;
+        case CompareOp::Less:
+            return D3D12_COMPARISON_FUNC_LESS;
+        case CompareOp::Equal:
+            return D3D12_COMPARISON_FUNC_EQUAL;
+        case CompareOp::LessEqual:
+            return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+        case CompareOp::Greater:
+            return D3D12_COMPARISON_FUNC_GREATER;
+        case CompareOp::NotEqual:
+            return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+        case CompareOp::GreaterEqual:
+            return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+        case CompareOp::Always:
+            return D3D12_COMPARISON_FUNC_ALWAYS;
+        default:
+            ALIMER_UNREACHABLE();
+            return (D3D12_COMPARISON_FUNC)0;
+        }
+    }
 }

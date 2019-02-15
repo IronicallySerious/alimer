@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Resource/Resource.h"
-#include "../Graphics/Backend.h"
 #include "../Graphics/GPUResource.h"
 #include "../Math/MathUtil.h"
 
@@ -34,6 +33,9 @@ namespace alimer
     {
         ALIMER_OBJECT(Texture, Resource);
     protected:
+        /// Constructor.
+        Texture(GraphicsDevice* device);
+
         /// Constructor.
         Texture(GraphicsDevice* device, const TextureDescriptor* descriptor);
 
@@ -79,17 +81,19 @@ namespace alimer
         /// Get the sample count.
         SampleCount GetSamples() const { return _samples; }
 
-    protected:
-        bool            _externalHandle = false;
+    private:
+        virtual bool Create(const void* pInitData) = 0;
 
-        TextureType     _type = TextureType::Type1D;
-        uint32_t        _width = 0;
-        uint32_t        _height = 0;
-        uint32_t        _depth = 0;
-        uint32_t        _arraySize = 0;
-        uint32_t        _mipLevels = 0;
+    protected:
+        TextureType     _type = TextureType::Type2D;
+        uint32_t        _width = 1;
+        uint32_t        _height = 1;
+        uint32_t        _depth = 1;
+        uint32_t        _arraySize = 1;
+        uint32_t        _mipLevels = 1;
         SampleCount     _samples = SampleCount::Count1;
-        PixelFormat     _format = PixelFormat::Unknown;
-        TextureUsage    _usage = TextureUsage::None;
+        PixelFormat     _format = PixelFormat::RGBA8UNorm;
+        TextureUsage    _usage = TextureUsage::ShaderRead;
+        bool            _externalHandle = false;
     };
 }

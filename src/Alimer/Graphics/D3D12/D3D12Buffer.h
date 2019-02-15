@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2019 Amer Koleci and contributors.
+// Copyright (c) 2018 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,5 +22,24 @@
 
 #pragma once
 
-#include "../Graphics/Types.h"
-#include "../Core/Log.h"
+#include "BackendD3D12.h"
+#include "../Buffer.h"
+
+namespace alimer
+{
+	/// D3D12 GpuBuffer implementation.
+	class BufferD3D12 final : public Buffer, public D3D12Resource
+	{
+	public:
+		/// Constructor.
+        BufferD3D12(GraphicsDeviceD3D12* device, const BufferDescriptor* descriptor, const void* initialData, void* externalHandle);
+
+        /// Destructor.
+        ~BufferD3D12();
+
+        void Destroy() override;
+
+    private:
+        bool _externalHandle = false;
+	};
+}

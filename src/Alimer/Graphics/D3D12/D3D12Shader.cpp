@@ -27,7 +27,7 @@
 #include <spirv-cross/spirv_hlsl.hpp>
 #include <d3dcompiler.h>
 
-namespace Alimer
+namespace alimer
 {
     static std::vector<uint8_t> CompileHLSL(const std::string& hlslSource, ShaderStage stage)
     {

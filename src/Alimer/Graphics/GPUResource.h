@@ -51,14 +51,14 @@ namespace alimer
         virtual void Destroy() {}
 
         /// Get the creation device.
-        GraphicsDevice* GetDevice() const { return _device.Get(); }
+        GraphicsDevice* GetGraphicsDevice() const;
 
         /// Get the resource type.
-        Type GetResourceType() const { return _resourceType; }
+        Type GetResourceType() const;
 
     protected:
         /// Constructor.
-        GPUResource(GraphicsDevice* device, Type resourceType);
+        explicit GPUResource(GraphicsDevice* device, Type resourceType);
 
         /// Graphics subsystem.
         WeakPtr<GraphicsDevice> _device;

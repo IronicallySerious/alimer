@@ -46,14 +46,20 @@ namespace alimer
     {
         switch (format)
         {
-        case PixelFormat::D16UNorm:
+        case PixelFormat::Depth16UNorm:
             return DXGI_FORMAT_R16_TYPELESS;
-        case PixelFormat::D32FloatS8:
-            return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
-        case PixelFormat::D24UNormS8:
-            return DXGI_FORMAT_R24G8_TYPELESS;
-        case PixelFormat::D32Float:
+
+        case PixelFormat::Depth32Float:
             return DXGI_FORMAT_R32_TYPELESS;
+
+        case PixelFormat::Depth24UNormStencil8:
+            return DXGI_FORMAT_R24G8_TYPELESS;
+
+        case PixelFormat::Depth32FloatStencil8:
+            return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        case PixelFormat::Stencil8:
+            return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        
         default:
             assert(IsDepthStencilFormat(format) == false);
             assert(s_DxgiFormatDesc[(uint32_t)format].format == format);
@@ -83,7 +89,7 @@ namespace alimer
         case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
             return PixelFormat::BGRA8UNormSrgb;
         default:
-            return PixelFormat::Unknown;
+            return PixelFormat::Undefined;
         }
     }
 

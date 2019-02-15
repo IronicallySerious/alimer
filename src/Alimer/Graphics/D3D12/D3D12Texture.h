@@ -22,23 +22,23 @@
 
 #pragma once
 
-#include "../GraphicsImpl.h"
-#include "D3D12Prerequisites.h"
+#include "BackendD3D12.h"
+#include "../Texture.h"
 
-namespace Alimer
+namespace alimer
 {
-	class D3D12Graphics;
-
 	/// D3D12 Texture implementation.
-	class D3D12Texture final : public TextureImpl, public D3D12Resource
+	class TextureD3D12 final : public Texture, public D3D12Resource
 	{
 	public:
 		/// Constructor.
-		D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource);
+        TextureD3D12(GraphicsDeviceD3D12* device, ID3D12Resource* resource);
 
 		/// Destructor.
-		~D3D12Texture();
+		~TextureD3D12();
 
 	private:
+        bool Create(const void* pInitData) override;
+        void Destroy() override;
 	};
 }

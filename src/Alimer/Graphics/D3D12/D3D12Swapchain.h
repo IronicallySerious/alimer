@@ -22,29 +22,28 @@
 
 #pragma once
 
-#include "../Graphics.h"
-#include "../RenderWindow.h"
+#include "BackendD3D12.h"
+#include "../../Application/Window.h"
 #include "../Framebuffer.h"
-#include "D3D12Prerequisites.h"
 
-namespace Alimer
+namespace alimer
 {
     class D3D12Texture;
     class D3D12Framebuffer;
-	class D3D12Graphics;
 
 	/// D3D12 Swapchain.
-	class D3D12Swapchain final : public RenderWindow
+	class SwapChainD3D12 final
 	{
 	public:
 		/// Constructor.
-        D3D12Swapchain(D3D12Graphics* graphics, const RenderWindowDescriptor* descriptor);
+        SwapChainD3D12(GraphicsDeviceD3D12* device, const SwapChainDescriptor* descriptor);
 
 		/// Destructor.
-		~D3D12Swapchain() override = default;
+		~SwapChainD3D12();
 
+        void Resize(uint32_t width, uint32_t height);
         void AfterReset();
-        void SwapBuffers() override;
+        void Present();
 
         Framebuffer* GetFramebuffer() const {
             return _backBufferFramebuffers[_backBufferIndex];
@@ -53,11 +52,16 @@ namespace Alimer
 	private:
         static constexpr uint32_t   NumBackBuffers = 2;
 
-        D3D12Graphics*              _graphics;
+        GraphicsDeviceD3D12*        _device;
+        HWND                        _hwnd = nullptr;
+        IUnknown*                   _window = nullptr;
         PixelFormat                 _backBufferFormat = PixelFormat::BGRA8UNorm;
         DXGI_FORMAT                 _dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+        UINT                        _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+        UINT                        _syncInterval = 1;
+        UINT                        _presentFlags = 0;
 
-        Microsoft::WRL::ComPtr<IDXGISwapChain3>     _swapChain;
+        IDXGISwapChain3*            _swapChain = nullptr;
         uint32_t                    _backBufferIndex = 0;
         SharedPtr<Texture>          _backBufferTextures[NumBackBuffers];
         SharedPtr<Framebuffer>      _backBufferFramebuffers[NumBackBuffers];

@@ -54,8 +54,8 @@ namespace alimer
 
     /// Enum describing the Graphics backend.
     enum class GraphicsBackend : uint32_t {
-        /// Invalid backend.
-        Invalid = VGPU_BACKEND_INVALID,
+        /// Default platform backend.
+        Default = VGPU_BACKEND_INVALID,
         /// Null backend.
         Null    = VGPU_BACKEND_NULL,
         /// Vulkan backend.
@@ -164,14 +164,14 @@ namespace alimer
 
     enum class CompareOp : uint32_t
     {
-        Never = VGPU_COMPARE_OP_NEVER,
-        Less = VGPU_COMPARE_OP_LESS,
-        Equal = VGPU_COMPARE_OP_EQUAL,
-        LessEqual = VGPU_COMPARE_OP_LESS_EQUAL,
-        Greater = VGPU_COMPARE_OP_GREATER,
-        NotEqual = VGPU_COMPARE_OP_NOT_EQUAL,
-        GreaterEqual = VGPU_COMPARE_OP_GREATER_EQUAL,
-        Always = VGPU_COMPARE_OP_ALWAYS
+        Never = 0,
+        Less,
+        Equal,
+        LessEqual,
+        Greater,
+        NotEqual,
+        GreaterEqual,
+        Always
     };
 
     enum class ShaderStage : uint32_t
@@ -212,17 +212,14 @@ namespace alimer
     /// Defines texture usage enum.
     enum class TextureUsage : uint32_t
     {
-        None = 0,
-        /// Specifies that the buffer can be used as the source of a transfer command
-        TransferSrc     = 1 << 0,
-        /// Specifies that the buffer can be used as the destination of a transfer command.
-        TransferDest    = 1 << 1,
-        /// Specifies that the image can be used for reading or sampling from the shader.
-        Sampled         = 1 << 2,
-        /// Specifies that the image can be written from shader.
-        Storage         = 1 << 3,
-        /// Specifies that the image can be used as a color, depth, or stencil render target in a render pass descriptor.
-        RenderTarget    = 1 << 4,
+        /// Unknown usage.
+        Unknown = 0,
+        /// Specifies an option that enables reading or sampling from the texture.
+        ShaderRead = 1 << 0,
+        /// Specifies an option that enables writing to the texture.
+        ShaderWrite = 1 << 1,
+        /// Specifies an option that enables using the texture as a color, depth, or stencil render target 
+        RenderTarget = 1 << 2,
     };
     ALIMER_BITMASK(TextureUsage);
 
@@ -361,6 +358,8 @@ namespace alimer
         uint32_t    width = 800;
         /// Height.
         uint32_t    height = 600;
+        /// srgb pixel format
+        bool        srgb = true;
         bool        depthStencil = true;
         bool        tripleBuffer = true;
         /// Vertical sync
@@ -528,8 +527,15 @@ namespace alimer
         PrimitiveTopology               primitiveTopology = PrimitiveTopology::TriangleList;
     };
 
-
     struct ComputePipelineDescriptor {
+    };
+
+    struct GraphicsDeviceLimits {
+        uint32_t              maxTextureDimension1D;
+        uint32_t              maxTextureDimension2D;
+        uint32_t              maxTextureDimension3D;
+        uint32_t              maxTextureDimensionCube;
+        uint32_t              maxTextureArrayLayers;
     };
 
     ALIMER_API uint32_t GetVertexElementSize(VertexFormat format);

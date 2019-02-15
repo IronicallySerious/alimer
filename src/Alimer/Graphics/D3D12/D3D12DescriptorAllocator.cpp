@@ -22,9 +22,9 @@
 
 #include "D3D12DescriptorAllocator.h"
 #include "D3D12Graphics.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
     D3D12DescriptorAllocator::D3D12DescriptorAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type)
         : _type(type)

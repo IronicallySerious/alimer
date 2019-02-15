@@ -22,21 +22,19 @@
 
 #pragma once
 
+#include "BackendD3D12.h"
 #include "Graphics/Shader.h"
-#include "D3D12Prerequisites.h"
 
-namespace Alimer
+namespace alimer
 {
-	class D3D12Graphics;
-
 	/// D3D12 Shader implementation.
 	class D3D12Shader final : public Shader
 	{
 	public:
 		/// Constructor.
-		D3D12Shader(D3D12Graphics* graphics, const ShaderStageDescription& desc);
+		D3D12Shader(GraphicsDeviceD3D12* device, const ShaderStageDescription& desc);
 		/// Constructor.
-		D3D12Shader(D3D12Graphics* graphics, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
+		D3D12Shader(GraphicsDeviceD3D12* device, const ShaderStageDescription& vertex, const ShaderStageDescription& fragment);
 
 		/// Destructor.
 		~D3D12Shader() override;

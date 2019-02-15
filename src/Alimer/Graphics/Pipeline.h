@@ -26,9 +26,6 @@
 
 namespace alimer
 {
-    
-    
-
     /// Defines a Pipeline class.
     class ALIMER_API Pipeline : public GPUResource
     {

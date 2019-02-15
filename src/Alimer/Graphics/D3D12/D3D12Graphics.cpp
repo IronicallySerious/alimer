@@ -23,25 +23,18 @@
 #include "D3D12Graphics.h"
 #include "D3D12CommandListManager.h"
 #include "D3D12Swapchain.h"
-#include "D3D12CommandBuffer.h"
+#include "D3D12CommandContext.h"
 #include "D3D12Texture.h"
 #include "D3D12Framebuffer.h"
-#include "D3D12GpuBuffer.h"
-#include "../../Debug/Log.h"
+#include "D3D12Buffer.h"
+#include "../D3D/D3DConvert.h"
+#include "../../foundation/StringUtils.h"
+#include "../../Core/Log.h"
 
-#if defined(_DEBUG)
-#include <dxgidebug.h>
-#endif
-
-#if defined(_DEBUG) || defined(PROFILE)
-#if !defined(_XBOX_ONE) || !defined(_TITLE) || !defined(_DURANGO)
-#   pragma comment(lib,"dxguid.lib")
-#endif
-#endif
-
-#include <d3dcompiler.h>
-#if !(defined(WINAPI_FAMILY_PARTITION) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP))
-#   pragma comment (lib, "d3dcompiler.lib")
+#if D3D12_DEBUG
+#   if !defined(_XBOX_ONE) || !defined(_TITLE) || !defined(_DURANGO)
+#       pragma comment(lib,"dxguid.lib")
+#   endif
 #endif
 
 #if ALIMER_D3D_DYNAMIC_LIB
@@ -49,7 +42,7 @@ typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY2)(UINT flags, REFIID _riid, void
 typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE1)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
 #endif
 
-namespace Alimer
+namespace alimer
 {
 #ifdef ALIMER_D3D_DYNAMIC_LIB
     HMODULE s_dxgiLib = nullptr;
@@ -222,7 +215,7 @@ namespace Alimer
         *ppAdapter = adapter.Detach();
     }
 
-    bool D3D12Graphics::IsSupported()
+    bool GraphicsDeviceD3D12::IsSupported()
     {
         static bool availableCheck = false;
         static bool isAvailable = false;
@@ -253,8 +246,9 @@ namespace Alimer
         return isAvailable;
     }
 
-    D3D12Graphics::D3D12Graphics(bool validation)
-        : _descriptorAllocator{
+    GraphicsDeviceD3D12::GraphicsDeviceD3D12(PhysicalDevicePreference devicePreference, bool validation)
+        : GraphicsDevice(GraphicsBackend::D3D12, devicePreference, validation)
+        , _descriptorAllocator{
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
         D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
         D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
@@ -268,7 +262,7 @@ namespace Alimer
 
         UINT dxgiFactoryFlags = 0;
 
-#if defined(_DEBUG)
+#if D3D12_DEBUG
         // Enable the debug layer (requires the Graphics Tools "optional feature").
         if (validation)
         {
@@ -313,7 +307,7 @@ namespace Alimer
 
         GetD3D12HardwareAdapter(_factory.Get(), _adapter.ReleaseAndGetAddressOf());
 
-#ifdef _DEBUG
+#if D3D12_DEBUG
         DXGI_ADAPTER_DESC1 desc = { };
         _adapter->GetDesc1(&desc);
         wchar_t buff[256] = {};
@@ -323,17 +317,15 @@ namespace Alimer
 
         ThrowIfFailed(D3D12CreateDevice(_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&_d3dDevice)));
 
-#ifndef NDEBUG
+#if D3D12_DEBUG
         if (validation)
         {
             // Configure debug device (if active).
             ComPtr<ID3D12InfoQueue> d3dInfoQueue;
             if (SUCCEEDED(_d3dDevice.As(&d3dInfoQueue)))
             {
-#ifdef _DEBUG
                 d3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
                 d3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
-#endif
                 D3D12_MESSAGE_ID hide[] =
                 {
                     D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
@@ -351,24 +343,29 @@ namespace Alimer
 #endif
 
         InitializeFeatures();
+        InitializeUpload();
 
         // Create the command list manager class.
         _commandListManager = new D3D12CommandListManager(_d3dDevice.Get());
+        _context = CreateCommandContext(QueueType::Graphics);
 
         // Init heaps.
         for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
         {
-            _descriptorAllocator[i].SetGraphics(this);
+            _descriptorAllocator[i].SetDevice(this);
         }
+
+        OnAfterCreated();
     }
 
-    D3D12Graphics::~D3D12Graphics()
+    GraphicsDeviceD3D12::~GraphicsDeviceD3D12()
     {
         // Ensure that the GPU is no longer referencing resources that are about to be
         // cleaned up by the destructor.
-        WaitIdle();
+        WaitIdleImpl();
 
         // Destroy all command contexts.
+        _context.Reset();
         for (uint32_t i = 0; i < 4; ++i)
         {
             _contextPool[i].clear();
@@ -378,7 +375,7 @@ namespace Alimer
         SafeDelete(_commandListManager);
 
         // Delete main swap chain if created.
-        _mainSwapChain.Reset();
+        SafeDelete(_mainSwapChain);
 
         // Shutdown upload logic.
         ShutdownUpload();
@@ -390,31 +387,41 @@ namespace Alimer
         }
     }
 
-    void D3D12Graphics::InitializeFeatures()
+    void GraphicsDeviceD3D12::Finalize()
+    {
+    }
+
+    bool GraphicsDeviceD3D12::InitializeImpl(const char* applicationName, const SwapChainDescriptor* descriptor)
+    {
+        ALIMER_UNUSED(applicationName);
+
+        // Create Swapchain.
+        _mainSwapChain = new SwapChainD3D12(this, descriptor);
+        
+        return true;
+    }
+
+    void GraphicsDeviceD3D12::InitializeFeatures()
     {
         DXGI_ADAPTER_DESC1 desc = { };
         _adapter->GetDesc1(&desc);
 
-        features.SetDeviceId(desc.DeviceId);
-        features.SetVendorId(desc.VendorId);
-        features.SetDeviceName(String(desc.Description));
-        features.SetMultithreading(true);
-        features.SetMaxColorAttachments(D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
+        _features.SetDeviceId(desc.DeviceId);
+        _features.SetVendorId(desc.VendorId);
+        _features.SetDeviceName(ToUtf8(desc.Description));
+        _features.SetMultithreading(true);
+        _features.SetMaxColorAttachments(D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
 
         // https://github.com/Microsoft/DirectX-Graphics-Samples/blob/master/TechniqueDemos/D3D12MemoryManagement/src/Framework.cpp
         D3D12_FEATURE_DATA_D3D12_OPTIONS options;
-        HRESULT hr = _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
-        if (FAILED(hr))
-        {
-            ALIMER_LOGERRORF("Failed to acquire D3D12 options for ID3D12Device 0x%p, hr=0x%.8x", _d3dDevice.Get(), hr);
-        }
+        ThrowIfFailed(
+            _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options))
+        );
 
         D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT gpuVaSupport;
-        hr = _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &gpuVaSupport, sizeof(gpuVaSupport));
-        if (FAILED(hr))
-        {
-            ALIMER_LOGERRORF("Failed to acquire GPU virtual address support for ID3D12Device 0x%p, hr=0x%.8x", _d3dDevice.Get(), hr);
-        }
+        ThrowIfFailed(
+            _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &gpuVaSupport, sizeof(gpuVaSupport))
+        );
 
         // Determine maximum supported feature level for this device
         static const D3D_FEATURE_LEVEL s_featureLevels[] =
@@ -430,8 +437,7 @@ namespace Alimer
             _countof(s_featureLevels), s_featureLevels, D3D_FEATURE_LEVEL_11_0
         };
 
-        hr = _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featLevels, sizeof(featLevels));
-        if (SUCCEEDED(hr))
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featLevels, sizeof(featLevels))))
         {
             _d3dFeatureLevel = featLevels.MaxSupportedFeatureLevel;
         }
@@ -459,23 +465,17 @@ namespace Alimer
             _raytracingSupported = true;
         }
 #endif
+
+        // Init limits
+        _limits.maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
+        _limits.maxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
+        _limits.maxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION;
+        _limits.maxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION;
+        _limits.maxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
     }
 
-    bool D3D12Graphics::Initialize(const RenderWindowDescriptor* mainWindowDescriptor)
-    {
-        if (mainWindowDescriptor)
-        {
-            // Create Swapchain.
-            _mainSwapChain = new D3D12Swapchain(this, mainWindowDescriptor);
-        }
 
-        InitializeUpload();
-
-        return true;
-    }
-
-   
-    void D3D12Graphics::InitializeUpload()
+    void GraphicsDeviceD3D12::InitializeUpload()
     {
         for (uint64_t i = 0; i < MaxUploadSubmissions; ++i)
         {
@@ -522,7 +522,7 @@ namespace Alimer
         ThrowIfFailed(_uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&_uploadBufferCPUAddress)));
     }
 
-    void D3D12Graphics::ShutdownUpload()
+    void GraphicsDeviceD3D12::ShutdownUpload()
     {
         //for (uint64_t i = 0; i < ArraySize_(TempFrameBuffers); ++i)
         //    Release(TempFrameBuffers[i]);
@@ -550,7 +550,7 @@ namespace Alimer
         readbackFence.Shutdown();*/
     }
 
-    void D3D12Graphics::EndFrameUpload()
+    void GraphicsDeviceD3D12::EndFrameUpload()
     {
         // If we can grab the lock, try to clear out any completed submissions
         if (TryAcquireSRWLockExclusive(&_uploadSubmissionLock))
@@ -573,7 +573,7 @@ namespace Alimer
         //TempFrameUsed = 0;
     }
 
-    void D3D12Graphics::FlushUpload()
+    void GraphicsDeviceD3D12::FlushUpload()
     {
         AcquireSRWLockExclusive(&_uploadSubmissionLock);
 
@@ -582,7 +582,7 @@ namespace Alimer
         ReleaseSRWLockExclusive(&_uploadSubmissionLock);
     }
 
-    void D3D12Graphics::ClearFinishedUploads(uint64_t flushCount)
+    void GraphicsDeviceD3D12::ClearFinishedUploads(uint64_t flushCount)
     {
         const uint64_t start = _uploadSubmissionStart;
         const uint64_t used = _uploadSubmissionUsed;
@@ -619,7 +619,7 @@ namespace Alimer
         }
     }
 
-    D3D12Graphics::UploadSubmission* D3D12Graphics::AllocUploadSubmission(uint64_t size)
+    GraphicsDeviceD3D12::UploadSubmission* GraphicsDeviceD3D12::AllocUploadSubmission(uint64_t size)
     {
         ALIMER_ASSERT(_uploadSubmissionUsed <= MaxUploadSubmissions);
         if (_uploadSubmissionUsed == MaxUploadSubmissions)
@@ -673,7 +673,7 @@ namespace Alimer
         return submission;
     }
 
-    UploadContext D3D12Graphics::ResourceUploadBegin(uint64_t size)
+    UploadContext GraphicsDeviceD3D12::ResourceUploadBegin(uint64_t size)
     {
         ALIMER_ASSERT(_d3dDevice != nullptr);
 
@@ -712,7 +712,7 @@ namespace Alimer
 
     }
 
-    void D3D12Graphics::ResourceUploadEnd(UploadContext& context)
+    void GraphicsDeviceD3D12::ResourceUploadEnd(UploadContext& context)
     {
         ALIMER_ASSERT(context.commandList != nullptr);
         ALIMER_ASSERT(context.submission != nullptr);
@@ -736,37 +736,42 @@ namespace Alimer
         context = UploadContext();
     }
 
-    bool D3D12Graphics::WaitIdle()
+    void GraphicsDeviceD3D12::WaitIdleImpl()
     {
         _commandListManager->WaitIdle();
+    }
+
+    bool GraphicsDeviceD3D12::BeginFrameImpl()
+    {
         return true;
     }
-    
-    void D3D12Graphics::Frame()
+
+    void GraphicsDeviceD3D12::EndFrameImpl()
     {
         /* End frame for upload */
         EndFrameUpload();
 
+        //
+        _context->Flush(true);
+
         // Present the frame.
         if (_mainSwapChain)
         {
-            _mainSwapChain->SwapBuffers();
+            _mainSwapChain->Present();
         }
-
     }
 
-    D3D12CommandContext* D3D12Graphics::AllocateContext(D3D12_COMMAND_LIST_TYPE type)
+    CommandContext* GraphicsDeviceD3D12::CreateCommandContext(QueueType type)
     {
         std::lock_guard<std::mutex> lock(_contextAllocationMutex);
 
-        auto& availableContexts = _availableCommandContexts[type];
+        auto& availableContexts = _availableCommandContexts[(uint32_t)type];
 
         D3D12CommandContext* context = nullptr;
         if (availableContexts.empty())
         {
             context = new D3D12CommandContext(this, type);
-            _contextPool[type].emplace_back(context);
-            context->Initialize();
+            _contextPool[(uint32_t)type].emplace_back(context);
         }
         else
         {
@@ -775,27 +780,18 @@ namespace Alimer
             context->Reset();
         }
         ALIMER_ASSERT(context != nullptr);
-        ALIMER_ASSERT(context->GetCommandListType() == type);
+        ALIMER_ASSERT(context->GetQueueType() == type);
         return context;
     }
 
-    void D3D12Graphics::FreeContext(D3D12CommandContext* context)
+    void GraphicsDeviceD3D12::FreeContext(D3D12CommandContext* context)
     {
         ALIMER_ASSERT(context != nullptr);
         std::lock_guard<std::mutex> lock(_contextAllocationMutex);
         _availableCommandContexts[context->GetCommandListType()].push(context);
     }
 
-    CommandContext* D3D12Graphics::AllocateContext()
-    {
-        return AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    }
-
-    RenderWindow* D3D12Graphics::GetMainWindow() const
-    {
-        return _mainSwapChain;
-    }
-
+    /*
     Framebuffer* D3D12Graphics::GetSwapchainFramebuffer() const
     {
         return _mainSwapChain->GetFramebuffer();
@@ -809,9 +805,9 @@ namespace Alimer
     GpuBufferImpl* D3D12Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData, void* externalHandle)
     {
         return new D3D12Buffer(this, descriptor, initialData, externalHandle);
-    }
+    }*/
 
-    ID3D12DescriptorHeap* D3D12Graphics::RequestNewHeap(
+    ID3D12DescriptorHeap* GraphicsDeviceD3D12::RequestNewHeap(
         D3D12_DESCRIPTOR_HEAP_TYPE type,
         uint32_t numDescriptors)
     {
@@ -885,4 +881,4 @@ namespace Alimer
         D3DFence->Signal(fenceValue);
     }
 
-}
+    }

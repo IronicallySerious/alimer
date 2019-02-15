@@ -23,77 +23,188 @@
 #include "D3D12Texture.h"
 #include "D3D12Graphics.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
-    D3D12Texture::D3D12Texture(D3D12Graphics* graphics, ID3D12Resource* resource)
-        : TextureImpl()
+    D3D12_RESOURCE_DIMENSION GetD3D12ResourceDimension(TextureType type)
+    {
+        switch (type)
+        {
+        case TextureType::Type1D:
+            return D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+
+        case TextureType::Type2D:
+        case TextureType::TypeCube:
+            return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+        case TextureType::Type3D:
+            return D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+        default:
+            ALIMER_UNREACHABLE();
+            return D3D12_RESOURCE_DIMENSION_UNKNOWN;
+        }
+    }
+
+
+    D3D12_RESOURCE_FLAGS GetD3D12TextureUsage(TextureUsage usage, PixelFormat format)
+    {
+        D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+
+        bool uavRequired = any(usage & TextureUsage::ShaderWrite)/* || any(usage & TextureUsage::AccelerationStructure)*/;
+
+        if (uavRequired)
+        {
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        }
+
+        if (any(usage & TextureUsage::RenderTarget))
+        {
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+            if (IsDepthStencilFormat(format)) {
+                flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+            }
+        }
+
+        if (!any(usage & TextureUsage::ShaderRead))
+        {
+            flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+        }
+
+        return flags;
+    }
+
+    TextureD3D12::TextureD3D12(GraphicsDeviceD3D12* device, ID3D12Resource* resource)
+        : Texture(device)
     {
         if (resource)
         {
+            _externalHandle = true;
             _resource = resource;
             D3D12_RESOURCE_DESC desc = resource->GetDesc();
             switch (desc.Dimension)
             {
             case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
-                type = TextureType::Type1D;
+                _type = TextureType::Type1D;
                 break;
             case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-                if (desc.DepthOrArraySize == 6)
+                if ((desc.DepthOrArraySize % 6) == 0)
                 {
-                    type = TextureType::TypeCube;
+                    _type = TextureType::TypeCube;
                 }
-                else 
+                else
                 {
-                    type = TextureType::Type2D;
+                    _type = TextureType::Type2D;
                 }
                 break;
 
             case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
-                type = TextureType::Type3D;
+                _type = TextureType::Type3D;
                 break;
 
             default:
                 break;
             }
 
-            format = GetPixelFormatDxgiFormat(desc.Format);
-            width = static_cast<uint32_t>(desc.Width);
-            height = static_cast<uint32_t>(desc.Height);
+            _format = GetPixelFormatDxgiFormat(desc.Format);
+            _width = static_cast<uint32_t>(desc.Width);
+            _height = static_cast<uint32_t>(desc.Height);
             if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
             {
-                depth = desc.DepthOrArraySize;
-                arrayLayers = 1;
+                _depth = desc.DepthOrArraySize;
+                _arraySize = 1;
             }
             else
             {
-                depth = 1;
-                arrayLayers = desc.DepthOrArraySize;
+                _depth = 1;
+                _arraySize = desc.DepthOrArraySize;
             }
-            mipLevels = desc.MipLevels;
-            samples = static_cast<SampleCount>(desc.SampleDesc.Count);
+            _mipLevels = desc.MipLevels;
+            _samples = static_cast<SampleCount>(desc.SampleDesc.Count);
 
-            usage = TextureUsage::Unknown;
+            _usage = TextureUsage::Unknown;
             if (!(desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE))
             {
-                usage |= TextureUsage::ShaderRead;
+                _usage |= TextureUsage::ShaderRead;
             }
 
             if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
             {
-                usage |= TextureUsage::ShaderWrite;
+                _usage |= TextureUsage::ShaderWrite;
             }
 
             if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
                 || desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
             {
-                usage |= TextureUsage::RenderTarget;
+                _usage |= TextureUsage::RenderTarget;
             }
         }
     }
 
-    D3D12Texture::~D3D12Texture()
+    TextureD3D12::~TextureD3D12()
     {
+        Destroy();
+    }
+
+    bool TextureD3D12::Create(const void* pInitData)
+    {
+        if (_externalHandle) {
+            return true;
+        }
+
+        D3D12_RESOURCE_DESC resourceDescriptor;
+        resourceDescriptor.Dimension = GetD3D12ResourceDimension(_type);
+        resourceDescriptor.Alignment = 0;
+
+        resourceDescriptor.Width = _width;
+        resourceDescriptor.Height = _height;
+        if (_type == TextureType::TypeCube)
+        {
+            resourceDescriptor.DepthOrArraySize = static_cast<UINT16>(_arraySize * 6);
+        }
+        else if (_type == TextureType::Type3D)
+        {
+            resourceDescriptor.DepthOrArraySize = static_cast<UINT16>(_depth);
+        }
+        else
+        {
+            resourceDescriptor.DepthOrArraySize = static_cast<UINT16>(_arraySize);
+        }
+
+        resourceDescriptor.MipLevels = static_cast<UINT16>(_mipLevels);
+        resourceDescriptor.Format = GetDxgiFormat(_format);
+        resourceDescriptor.SampleDesc.Count = static_cast<UINT>(_samples);
+        resourceDescriptor.SampleDesc.Quality = 0;
+        resourceDescriptor.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        resourceDescriptor.Flags = GetD3D12TextureUsage(_usage, _format);
+
+        HRESULT hr = StaticCast<GraphicsDeviceD3D12>(_device)->GetD3DDevice()
+            ->CreateCommittedResource(
+                GetDefaultHeapProps(),
+                D3D12_HEAP_FLAG_NONE,
+                &resourceDescriptor,
+                D3D12_RESOURCE_STATE_COMMON,
+                nullptr,
+                IID_PPV_ARGS(&_resource));
+
+        if (FAILED(hr)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    void TextureD3D12::Destroy()
+    {
+        if (_externalHandle) {
+            return;
+        }
+
+#if !defined(NDEBUG)
+        ULONG refCount = _resource.Reset();
+        ALIMER_ASSERT_MSG(refCount == 0, "TextureD3D12 leakage");
+#else
+        _resource.Reset();
+#endif
     }
 }

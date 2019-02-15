@@ -30,10 +30,6 @@
 #define D3D11_NO_HELPERS
 #include <d3d11_1.h>
 
-#ifdef _DEBUG
-#   include <dxgidebug.h>
-#endif
-
 #pragma warning(push)
 #pragma warning(disable : 4467 5038)
 #   include <wrl.h>
@@ -57,7 +53,7 @@ namespace alimer
 #define ThrowIfFailed(hr) \
     do \
     { \
-        ALIMER_ASSERT_MSG(SUCCEEDED(hr), alimer::GetDXErrorStringAnsi(hr).CString()); \
+        ALIMER_ASSERT_MSG(SUCCEEDED(hr), alimer::GetDXErrorStringAnsi(hr).c_str()); \
     } \
     while(0)
 #else
@@ -66,7 +62,7 @@ namespace alimer
     {
         if (FAILED(hr))
         {
-            ALIMER_LOGCRITICAL("DirectX Error: {}", alimer::GetDXErrorStringAnsi(hr).CString());
+            ALIMER_LOGCRITICAL("DirectX Error: {}", alimer::GetDXErrorStringAnsi(hr).c_str());
         }
     }
 #endif

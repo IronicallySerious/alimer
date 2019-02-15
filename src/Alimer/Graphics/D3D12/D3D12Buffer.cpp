@@ -20,14 +20,16 @@
 // THE SOFTWARE.
 //
 
-#include "D3D12GpuBuffer.h"
+#include "D3D12Buffer.h"
 #include "D3D12Graphics.h"
-#include "../../Debug/Log.h"
+#include "../D3D/D3DConvert.h"
+#include "../../Math/MathUtil.h"
+#include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
-    D3D12Buffer::D3D12Buffer(D3D12Graphics* graphics, const BufferDescriptor* descriptor, const void* initialData, void* externalHandle)
-        : _graphics(graphics)
+    BufferD3D12::BufferD3D12(GraphicsDeviceD3D12* device, const BufferDescriptor* descriptor, const void* initialData, void* externalHandle)
+        : Buffer(device, descriptor)
     {
         _usageState = D3D12_RESOURCE_STATE_GENERIC_READ;
 
@@ -67,7 +69,7 @@ namespace Alimer
             const uint64_t heapOffset = 0;
             if (heap)
             {
-                ThrowIfFailed(_graphics->GetD3DDevice()->CreatePlacedResource(
+                ThrowIfFailed(device->GetD3DDevice()->CreatePlacedResource(
                     heap,
                     heapOffset,
                     &resourceDesc,
@@ -78,7 +80,7 @@ namespace Alimer
             }
             else
             {
-                ThrowIfFailed(_graphics->GetD3DDevice()->CreateCommittedResource(
+                ThrowIfFailed(device->GetD3DDevice()->CreateCommittedResource(
                     heapProps,
                     D3D12_HEAP_FLAG_NONE,
                     &resourceDesc,
@@ -95,10 +97,10 @@ namespace Alimer
         }
 
 #if defined(ALIMER_DEV)
-        if (!descriptor->name.IsEmpty())
-        {
-            _resource->SetName(WString(descriptor->name).CString());
-        }
+        //if (!descriptor->name.IsEmpty())
+        //{
+        //    _resource->SetName(WString(descriptor->name).CString());
+        //}
 #endif
 
         _gpuVirtualAddress = _resource->GetGPUVirtualAddress();
@@ -119,7 +121,7 @@ namespace Alimer
         }
         else if (initialData)
         {
-            UploadContext uploadContext = graphics->ResourceUploadBegin(resourceDesc.Width);
+            UploadContext uploadContext = device->ResourceUploadBegin(resourceDesc.Width);
 
             memcpy(uploadContext.CPUAddress, initialData, size);
             if (dynamic)
@@ -132,7 +134,26 @@ namespace Alimer
                 uploadContext.resourceOffset,
                 size);
 
-            graphics->ResourceUploadEnd(uploadContext);
+            device->ResourceUploadEnd(uploadContext);
         }
+    }
+
+    BufferD3D12::~BufferD3D12()
+    {
+        Destroy();
+    }
+
+    void BufferD3D12::Destroy()
+    {
+        if (_externalHandle) {
+            return;
+        }
+
+#if !defined(NDEBUG)
+        ULONG refCount = _resource.Reset();
+        ALIMER_ASSERT_MSG(refCount == 0, "TextureD3D12 leakage");
+#else
+        _resource.Reset();
+#endif
     }
 }

@@ -23,26 +23,28 @@
 #include "D3D12Framebuffer.h"
 #include "D3D12Graphics.h"
 #include "D3D12Texture.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
-namespace Alimer
+using namespace std;
+using namespace Microsoft::WRL;
+
+namespace alimer
 {
-    using namespace Microsoft::WRL;
 
-    D3D12Framebuffer::D3D12Framebuffer(D3D12Graphics* graphics, const Vector<FramebufferAttachment>& colorAttachments)
-        : _graphics(graphics)
+    D3D12Framebuffer::D3D12Framebuffer(GraphicsDeviceD3D12* device, const vector<FramebufferAttachment>& colorAttachments)
+       // : _device(device)
     {
-        if (colorAttachments.Size() > 0)
+        if (colorAttachments.size() > 0)
         {
-            _rtvHandle = graphics->AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, colorAttachments.Size());
+            _rtvHandle = device->AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, UINT(colorAttachments.size()));
 
-            for (uint32_t i = 0, count = colorAttachments.Size(); i < count; ++i)
+            for (size_t i = 0, count = colorAttachments.size(); i < count; ++i)
             {
-                D3D12Texture* d3dTexture = static_cast<D3D12Texture*>(colorAttachments[i].texture->GetImpl());
+                auto textureD3D12 = static_cast<TextureD3D12*>(colorAttachments[i].texture);
 
-                D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = _rtvHandle.GetCpuHandle(i);
-                graphics->GetD3DDevice()->CreateRenderTargetView(
-                    d3dTexture->GetResource(),
+                D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = _rtvHandle.GetCpuHandle(uint32_t(i));
+                device->GetD3DDevice()->CreateRenderTargetView(
+                    textureD3D12->GetResource(),
                     nullptr,
                     rtvHandle);
             }
@@ -51,6 +53,6 @@ namespace Alimer
 
     D3D12Framebuffer::~D3D12Framebuffer()
     {
-        
+
     }
 }

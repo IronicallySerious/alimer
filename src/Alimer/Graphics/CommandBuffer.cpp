@@ -22,7 +22,6 @@
 
 #include "../Graphics/CommandBuffer.h"
 #include "../Graphics/GraphicsDevice.h"
-#include "../Graphics/Backend.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 

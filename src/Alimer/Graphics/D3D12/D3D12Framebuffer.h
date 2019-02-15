@@ -22,19 +22,17 @@
 
 #pragma once
 
-#include "../GraphicsImpl.h"
 #include "D3D12DescriptorAllocator.h"
+#include <vector>
 
-namespace Alimer
+namespace alimer
 {
-	class D3D12Graphics;
-
 	/// D3D12 Framebuffer.
-	class D3D12Framebuffer final : public FramebufferImpl
+	class D3D12Framebuffer final //: public FramebufferImpl
 	{
 	public:
 		/// Constructor.
-        D3D12Framebuffer(D3D12Graphics* graphics, const Vector<FramebufferAttachment>& colorAttachments);
+        D3D12Framebuffer(GraphicsDeviceD3D12* device, const std::vector<FramebufferAttachment>& colorAttachments);
 
 		/// Destructor.
 		~D3D12Framebuffer();
@@ -43,7 +41,6 @@ namespace Alimer
         D3D12_CPU_DESCRIPTOR_HANDLE GetDSV() const { return _dsvHandle.GetCpuHandle(0); }
 
 	private:
-        D3D12Graphics* _graphics;
         D3D12DescriptorHandle _rtvHandle = {};
         D3D12DescriptorHandle _dsvHandle = {};
 	};

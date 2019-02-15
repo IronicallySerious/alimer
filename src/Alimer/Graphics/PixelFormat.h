@@ -36,7 +36,7 @@ namespace alimer
     /// Defines pixel format.
     enum class PixelFormat : uint32_t
     {
-        Unknown = 0,
+        Undefined = 0,
         // 8-bit pixel formats
         A8UNorm,
         R8UNorm,
@@ -90,7 +90,7 @@ namespace alimer
         RGBA16SNorm,
         RGBA16UInt,
         RGBA16SInt,
-        RGBA16F,
+        RGBA16Float,
 
         // 128-Bit Pixel Formats
         RGBA32UInt,
@@ -98,17 +98,13 @@ namespace alimer
         RGBA32Float,
 
         // Depth-stencil formats
-        Depth16,
-        Depth24,
-        Depth24Stencil8,
-        Depth32,
-        Depth16F,
-        Depth24F,
-        Depth32F,
-        Depth32FStencil8,
+        Depth16UNorm,
+        Depth32Float,
+        Depth24UNormStencil8,
+        Depth32FloatStencil8,
         Stencil8,
 
-        // Compressed formats
+        // Compressed BC formats
         BC1UNorm,
         BC1UNormSrgb,
         BC2UNorm,
@@ -131,8 +127,10 @@ namespace alimer
         PVRTC_RGBA4,
 
         // Compressed ETC Pixel Formats
-        ETC2_RGB8 ,
+        ETC2_RGB8,
+        ETC2_RGB8Srgb,
         ETC2_RGB8A1,
+        ETC2_RGB8A1Srgb,
 
         // Compressed ASTC Pixel Formats
         ASTC4x4,

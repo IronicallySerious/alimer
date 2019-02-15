@@ -20,14 +20,14 @@
 // THE SOFTWARE.
 //
 
-#include "D3D12CommandBuffer.h"
+#include "D3D12CommandContext.h"
 #include "D3D12Graphics.h"
 #include "D3D12CommandListManager.h"
 #include "D3D12Texture.h"
 #include "D3D12Framebuffer.h"
-#include "D3D12GpuBuffer.h"
+#include "D3D12Buffer.h"
 #include "../D3D/D3DConvert.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
 #define VALID_COMPUTE_QUEUE_RESOURCE_STATES \
 	( D3D12_RESOURCE_STATE_UNORDERED_ACCESS \
@@ -35,25 +35,42 @@
 	| D3D12_RESOURCE_STATE_COPY_DEST \
 	| D3D12_RESOURCE_STATE_COPY_SOURCE )
 
-namespace Alimer
+namespace alimer
 {
-    D3D12CommandContext::D3D12CommandContext(D3D12Graphics* graphics, D3D12_COMMAND_LIST_TYPE type)
-        : _graphics(graphics)
-        , _manager(graphics->GetCommandListManager())
+    D3D12_COMMAND_LIST_TYPE GetD3D12CommandListType(QueueType type)
+    {
+        switch (type)
+        {
+        case QueueType::Graphics:
+        case QueueType::AsyncGraphics:
+            return D3D12_COMMAND_LIST_TYPE_DIRECT;
+
+        case QueueType::Compute:
+            return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+
+        case QueueType::Transfer:
+            return D3D12_COMMAND_LIST_TYPE_COPY;
+
+        default:
+            ALIMER_UNREACHABLE();
+            return D3D12_COMMAND_LIST_TYPE_DIRECT;
+        }
+    }
+
+    D3D12CommandContext::D3D12CommandContext(GraphicsDeviceD3D12* device, QueueType type)
+        : CommandContext(device, type)
+        , _manager(device->GetCommandListManager())
         , _commandList(nullptr)
         , _currentAllocator(nullptr)
-        , _type(type)
-        , _graphicsState(graphics)
+        , _type(GetD3D12CommandListType(type))
+        , _graphicsState(device)
     {
+        device->GetCommandListManager()->CreateNewCommandList(_type, &_commandList, &_currentAllocator);
     }
 
     D3D12CommandContext::~D3D12CommandContext()
     {
-    }
-
-    void D3D12CommandContext::Initialize()
-    {
-        _manager->CreateNewCommandList(_type, &_commandList, &_currentAllocator);
+        SafeRelease(_commandList);
     }
 
     void D3D12CommandContext::Reset()
@@ -69,29 +86,30 @@ namespace Alimer
         _currentD3DPipeline = nullptr;
     }
 
-    uint64_t D3D12CommandContext::Finish(bool waitForCompletion, bool releaseContext)
+    void D3D12CommandContext::FlushImpl(bool waitForCompletion)
     {
         FlushResourceBarriers();
 
-        if (!_name.IsEmpty())
-        {
-            //GpuProfiler::EndBlock(this);
-        }
+        //if (!_name.IsEmpty())
+        //{
+        //    //GpuProfiler::EndBlock(this);
+        //}
 
         ALIMER_ASSERT(_currentAllocator != nullptr);
 
         // Execute the command list.
         auto& queue = _manager->GetQueue(_type);
-        uint64_t fenceValue = queue.ExecuteCommandList(_commandList);
+        _fenceValue = queue.ExecuteCommandList(_commandList);
+        const bool releaseContext = false;
         if (releaseContext)
         {
-            queue.DiscardAllocator(fenceValue, _currentAllocator);
+            queue.DiscardAllocator(_fenceValue, _currentAllocator);
             _currentAllocator = nullptr;
         }
 
         if (waitForCompletion)
         {
-            _manager->WaitForFence(fenceValue);
+            _manager->WaitForFence(_fenceValue);
         }
 
         // Reset the command list and restore previous state
@@ -102,10 +120,23 @@ namespace Alimer
         else
         {
             // Free context.
-            _graphics->FreeContext(this);
+            //_device->FreeContext(this);
         }
+    }
 
-        return fenceValue;
+    void D3D12CommandContext::PushDebugGroupImpl(const std::string& name, const Color4& color)
+    {
+        /* TODO: Use pix3 */
+    }
+
+    void D3D12CommandContext::PopDebugGroupImpl()
+    {
+        /* TODO: Use pix3 */
+    }
+
+    void D3D12CommandContext::InsertDebugMarkerImpl(const std::string& name, const Color4& color)
+    {
+        /* TODO: Use pix3 */
     }
 
     void D3D12CommandContext::TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
@@ -202,6 +233,7 @@ namespace Alimer
         }
     }
 
+#if TODO_D3D12
     void D3D12CommandContext::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         _currentFramebuffer = static_cast<D3D12Framebuffer*>(framebuffer->GetImpl());
@@ -323,7 +355,6 @@ namespace Alimer
         _dirtyVbos &= ~update_vbo_mask;
     }
 
-#if TODO_D3D12
     void D3D12CommandContext::SetPipeline(const SharedPtr<PipelineState>& pipeline)
     {
         _currentPipeline = StaticCast<D3D12PipelineState>(pipeline);

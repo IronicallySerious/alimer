@@ -25,15 +25,13 @@
 #include "../Types.h"
 #include "D3D12DescriptorAllocator.h"
 
-namespace Alimer
+namespace alimer
 {
-	class D3D12Graphics;
-
 	class D3D12GraphicsState final 
 	{
 	public:
 		/// Constructor.
-        D3D12GraphicsState(D3D12Graphics* graphics);
+        D3D12GraphicsState(GraphicsDeviceD3D12* device);
 
         void Reset();
 
@@ -45,7 +43,7 @@ namespace Alimer
         void SetDirty() { _dirty = true; }
 
 	private:
-        D3D12Graphics* _graphics;
+        GraphicsDeviceD3D12* _device;
         PrimitiveTopology _primitiveTopology;
         bool _dirty;
 	};

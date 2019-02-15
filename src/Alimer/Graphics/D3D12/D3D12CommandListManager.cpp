@@ -21,10 +21,11 @@
 //
 
 #include "D3D12CommandListManager.h"
+#include "../D3D/D3DConvert.h"
 #include "D3D12Graphics.h"
-#include "../../Debug/Log.h"
+#include "../../Core/Log.h"
 
-namespace Alimer
+namespace alimer
 {
     /* D3D12CommandAllocatorPool */
     D3D12CommandAllocatorPool::D3D12CommandAllocatorPool(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type)
@@ -41,12 +42,12 @@ namespace Alimer
 
     void D3D12CommandAllocatorPool::Shutdown()
     {
-        for (uint32_t i = 0; i < _allocatorPool.Size(); ++i)
+        for (size_t i = 0; i < _allocatorPool.size(); ++i)
         {
             _allocatorPool[i]->Release();
         }
 
-        _allocatorPool.Clear();
+        _allocatorPool.clear();
     }
 
     ID3D12CommandAllocator* D3D12CommandAllocatorPool::RequestAllocator(uint64_t completedFenceValue)
@@ -72,9 +73,9 @@ namespace Alimer
         {
             ThrowIfFailed(_device->CreateCommandAllocator(_type, IID_PPV_ARGS(&result)));
             wchar_t name[32];
-            swprintf(name, 32, L"CommandAllocator %u", _allocatorPool.Size());
+            swprintf(name, 32, L"CommandAllocator %zu", _allocatorPool.size());
             result->SetName(name);
-            _allocatorPool.Push(result);
+            _allocatorPool.push_back(result);
         }
 
         return result;
@@ -114,13 +115,13 @@ namespace Alimer
         switch (type)
         {
         case D3D12_COMMAND_LIST_TYPE_DIRECT:
-            _d3dCommandQueue->SetName(L"Main Gfx Queue");
+            _d3dCommandQueue->SetName(L"Direct Command Queue");
             break;
         case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-            _d3dCommandQueue->SetName(L"Main Compute Queue");
+            _d3dCommandQueue->SetName(L"Compute Command Queue");
             break;
         case D3D12_COMMAND_LIST_TYPE_COPY:
-            _d3dCommandQueue->SetName(L"Main Copy Queue");
+            _d3dCommandQueue->SetName(L"Copy Command Queue");
             break;
         default:
             break;

@@ -22,12 +22,11 @@
 
 #pragma once
 
-#include "../CommandContext.h"
+#include "../CommandBuffer.h"
 #include "D3D12GraphicsState.h"
 
-namespace Alimer
+namespace alimer
 {
-	class D3D12Graphics;
 	class D3D12Texture;
     class D3D12Framebuffer;
 	class D3D12CommandListManager;
@@ -37,13 +36,16 @@ namespace Alimer
 	{
 	public:
 		/// Constructor.
-        D3D12CommandContext(D3D12Graphics* graphics, D3D12_COMMAND_LIST_TYPE type);
+        D3D12CommandContext(GraphicsDeviceD3D12* device, QueueType type);
 
 		/// Destructor.
 		~D3D12CommandContext() override;
 
-        void Initialize();
-		void Reset();
+		void Reset() override;
+        void FlushImpl(bool waitForCompletion) override;
+        void PushDebugGroupImpl(const std::string& name, const Color4& color) override;
+        void PopDebugGroupImpl() override;
+        void InsertDebugMarkerImpl(const std::string& name, const Color4& color) override;
 
 		void TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
 		void BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
@@ -54,21 +56,21 @@ namespace Alimer
 
 	private:
         /// Commit for execution and optionally wait for completion.
-        uint64_t Finish(bool waitForCompletion, bool releaseContext) override;
+        //uint64_t Finish(bool waitForCompletion, bool releaseContext) override;
 
-        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
-        void EndRenderPassImpl() override;
-        void SetIndexBufferImpl(IndexBuffer* buffer, uint32_t offset, IndexType indexType) override;
+        //void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
+        //void EndRenderPassImpl() override;
+        //void SetIndexBufferImpl(IndexBuffer* buffer, uint32_t offset, IndexType indexType) override;
 
-        void SetPrimitiveTopologyImpl(PrimitiveTopology topology) override;
-        void DrawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+        //void SetPrimitiveTopologyImpl(PrimitiveTopology topology) override;
+        //void DrawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
         void FlushGraphicsState();
 
-        D3D12Graphics*              _graphics;
 		D3D12CommandListManager*    _manager;
 		ID3D12GraphicsCommandList*  _commandList;
 		ID3D12CommandAllocator*     _currentAllocator;
 		D3D12_COMMAND_LIST_TYPE     _type;
+        uint64_t                    _fenceValue;
 
         D3D12_RESOURCE_BARRIER      _resourceBarrierBuffer[16] = {};
 		uint32_t                    _numBarriersToFlush = 0;

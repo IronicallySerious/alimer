@@ -22,15 +22,16 @@
 
 #pragma once
 
-#include "../GPUDevice.h"
 #include "D3D12DescriptorAllocator.h"
+#include "../../Base/Ptr.h"
+#include "../GraphicsDevice.h"
 #include <queue>
 #include <mutex>
 
 namespace alimer
 {
     class D3D12CommandListManager;
-    class D3D12Swapchain;
+    class SwapChainD3D12;
     class D3D12CommandContext;
 
     // Heap helpers
@@ -49,26 +50,26 @@ namespace alimer
 
 
     /// D3D12 Low-level 3D graphics API class.
-    class D3D12Graphics final : public GPUDevice
+    class GraphicsDeviceD3D12 final : public GraphicsDevice
     {
     public:
         /// Is backend supported?
         static bool IsSupported();
 
         /// Constructor.
-        D3D12Graphics(bool validation);
+        GraphicsDeviceD3D12(PhysicalDevicePreference devicePreference, bool validation);
 
         /// Destructor.
-        ~D3D12Graphics();
+        ~GraphicsDeviceD3D12();
 
-        //bool Initialize(const RenderWindowDescriptor* mainWindowDescriptor) override;
+        void Finalize() override;
+        bool InitializeImpl(const char* applicationName, const SwapChainDescriptor* descriptor) override;
+        void WaitIdleImpl() override;
+        bool BeginFrameImpl() override;
+        void EndFrameImpl() override;
 
-        //bool WaitIdle() override;
-        //void Frame() override;
-
-        D3D12CommandContext* AllocateContext(D3D12_COMMAND_LIST_TYPE type);
+        CommandContext* CreateCommandContext(QueueType type);
         void FreeContext(D3D12CommandContext* context);
-        //CommandContext* AllocateContext() override;
 
         UploadContext ResourceUploadBegin(uint64_t size);
         void ResourceUploadEnd(UploadContext& context);
@@ -81,6 +82,7 @@ namespace alimer
         inline IDXGIAdapter1* GetAdapter() const { return _adapter.Get(); }
         inline ID3D12Device* GetD3DDevice() const { return _d3dDevice.Get(); }
         inline D3D12CommandListManager* GetCommandListManager() const { return _commandListManager; }
+        bool AllowTearing() const { return _allowTearing; }
 
         inline D3D12DescriptorHandle AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT count = 1)
         {
@@ -109,7 +111,7 @@ namespace alimer
         D3D12_FEATURE_DATA_ROOT_SIGNATURE       _featureDataRootSignature;
         bool                                    _raytracingSupported = false;
 
-        SharedPtr<D3D12Swapchain>               _mainSwapChain;
+        SwapChainD3D12*                         _mainSwapChain = nullptr;
         
         std::mutex                              _heapAllocationMutex;
         std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> _descriptorHeapPool;

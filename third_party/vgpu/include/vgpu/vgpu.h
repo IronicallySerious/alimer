@@ -437,7 +437,7 @@ extern "C"
         VGPU_STORE_ACTION_STORE = 0,
         VGPU_STORE_ACTION_MULTISAMPLE_RESOLVE = 1,
         VGPU_STORE_ACTION_STORE_AND_MULTISAMPLE_RESOLVE = 2
-    };
+    } VgpuStoreAction;
 
 
     /* Callbacks */

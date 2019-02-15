@@ -22,12 +22,10 @@
 
 #pragma once
 
-#include "D3D12Prerequisites.h"
+#include "BackendD3D12.h"
 
 namespace alimer
 {
-	class D3D12Graphics;
-
     class D3D12DescriptorHandle
     {
     public:
@@ -91,8 +89,8 @@ namespace alimer
 		D3D12DescriptorAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type);
 		~D3D12DescriptorAllocator();
 
-        void SetGraphics(D3D12Graphics* graphics) {
-            _graphics = graphics;
+        void SetDevice(GraphicsDeviceD3D12* device) {
+            _graphics = device;
         }
 
         D3D12DescriptorHandle Allocate(uint32_t count);
@@ -100,7 +98,7 @@ namespace alimer
 	protected:
 		static constexpr uint32_t NumDescriptorsPerHeap = 256;
 
-		D3D12Graphics* _graphics = nullptr;
+        GraphicsDeviceD3D12* _graphics = nullptr;
 		D3D12_DESCRIPTOR_HEAP_TYPE _type;
 		ID3D12DescriptorHeap* _currentHeap;
 		D3D12_CPU_DESCRIPTOR_HANDLE _currentCpuHandle;
