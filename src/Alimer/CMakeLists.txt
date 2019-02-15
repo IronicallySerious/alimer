@@ -70,7 +70,7 @@ if (ALIMER_INSTALL)
 endif ()
 
 # Add source files from subdirectories
-define_engine_source_files (NORECURSE . foundation Base Core Debug IO Math Graphics Input Audio Application)
+define_engine_source_files (NORECURSE . foundation Base Core IO Math Graphics Input Audio Application)
 define_engine_source_files (Resource Serialization Scene Renderer)
 define_engine_source_files (NORECURSE UI)
 
@@ -91,15 +91,15 @@ if (ALIMER_WINDOWS OR ALIMER_UWP)
 endif()
 
 if (ALIMER_D3D11 OR ALIMER_D3D12)
-    define_engine_source_files(Graphics/D3D)
+    define_engine_source_files(Graphics/d3d)
 endif ()
 
 if (ALIMER_D3D11)
-    #define_engine_source_files(Graphics/D3D11)
+    #define_engine_source_files(Graphics/d3d11)
 endif ()
 
 if (ALIMER_D3D12)
-    define_engine_source_files(Graphics/D3D12)
+    define_engine_source_files(Graphics/d3d12)
 endif ()
 
 if (ALIMER_VULKAN)
