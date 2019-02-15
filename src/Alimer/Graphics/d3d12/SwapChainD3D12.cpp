@@ -20,11 +20,11 @@
 // THE SOFTWARE.
 //
 
-#include "D3D12Swapchain.h"
-#include "D3D12Graphics.h"
+#include "SwapChainD3D12.h"
+#include "GraphicsDeviceD3D12.h"
 #include "D3D12CommandListManager.h"
-#include "D3D12Framebuffer.h"
-#include "D3D12Texture.h"
+#include "FramebufferD3D12.h"
+#include "TextureD3D12.h"
 #include "../D3D/D3DConvert.h"
 
 using namespace Microsoft::WRL;

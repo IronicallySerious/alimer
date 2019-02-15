@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../Types.h"
-#include "D3D12DescriptorAllocator.h"
+#include "DescriptorAllocatorD3D12.h"
 
 namespace alimer
 {

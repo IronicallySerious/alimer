@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "D3D12DescriptorAllocator.h"
+#include "DescriptorAllocatorD3D12.h"
 #include "../../Base/Ptr.h"
 #include "../GraphicsDevice.h"
 #include <queue>

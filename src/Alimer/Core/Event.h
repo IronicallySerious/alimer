@@ -27,7 +27,7 @@
 #pragma once
 
 #include "../Base/Ptr.h"
-#include "../Debug/Debug.h"
+#include "../Core/Debug.h"
 #include <mutex>
 #include <memory>
 #include <functional>

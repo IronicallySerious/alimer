@@ -22,7 +22,7 @@
 
 #include "D3D12GraphicsState.h"
 //#include "D3D12Shader.h"
-#include "D3D12Graphics.h"
+#include "GraphicsDeviceD3D12.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
 

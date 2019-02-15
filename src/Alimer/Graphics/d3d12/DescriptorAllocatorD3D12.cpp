@@ -20,8 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "D3D12DescriptorAllocator.h"
-#include "D3D12Graphics.h"
+#include "DescriptorAllocatorD3D12.h"
+#include "GraphicsDeviceD3D12.h"
 #include "../../Core/Log.h"
 
 namespace alimer

@@ -21,7 +21,7 @@
 //
 
 #include "../Graphics/GraphicsDevice.h"
-#include "../Graphics/CommandBuffer.h"
+#include "../Graphics/CommandContext.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Sampler.h"
 #include "../Application/Window.h"
@@ -32,7 +32,7 @@
 #endif
 
 #if defined(ALIMER_D3D12)
-#   include "D3D12/D3D12Graphics.h"
+#   include "d3d12/GraphicsDeviceD3D12.h"
 #endif
 
 #if defined(_WIN32)

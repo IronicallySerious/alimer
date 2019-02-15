@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../CommandBuffer.h"
+#include "../CommandContext.h"
 #include "D3D12GraphicsState.h"
 
 namespace alimer

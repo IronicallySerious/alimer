@@ -24,7 +24,7 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
-#include "../Graphics/CommandBuffer.h"
+#include "../Graphics/CommandContext.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Pipeline.h"
 #include <memory>

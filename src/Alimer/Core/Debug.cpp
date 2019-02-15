@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "../Debug/Debug.h"
+#include "../Core/Debug.h"
 #include <stdio.h>
 #include <cstdio>
 #include <cstdarg>

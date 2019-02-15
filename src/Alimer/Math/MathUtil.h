@@ -23,7 +23,7 @@
 #pragma once
 
 #include <foundation/platform.h>
-#include "../Debug/Debug.h"
+#include "../Core/Debug.h"
 
 #ifdef _MSC_VER
 #   pragma warning(push)

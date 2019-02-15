@@ -25,11 +25,9 @@
 #include "Base/Ptr.h"
 #include "Base/StringHash.h"
 
-// Debug
-#include "Debug/Debug.h"
-#include "Core/Log.h"
-
 // Core
+#include "Core/Debug.h"
+#include "Core/Log.h"
 #include "Core/Platform.h"
 #include "Core/Plugin.h"
 
@@ -51,7 +49,7 @@
 #include "Graphics/Buffer.h"
 #include "Graphics/Texture.h"
 #include "Graphics/Shader.h"
-#include "Graphics/CommandBuffer.h"
+#include "Graphics/CommandContext.h"
 #include "Graphics/GraphicsDevice.h"
 
 // Resource

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Debug/Debug.h"
+#include "../Core/Debug.h"
 
 #if ALIMER_PLATFORM_WINDOWS
 #if ALIMER_COMPILER_MSVC

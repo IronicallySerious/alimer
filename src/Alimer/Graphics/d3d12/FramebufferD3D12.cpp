@@ -20,9 +20,9 @@
 // THE SOFTWARE.
 //
 
-#include "D3D12Framebuffer.h"
-#include "D3D12Graphics.h"
-#include "D3D12Texture.h"
+#include "FramebufferD3D12.h"
+#include "GraphicsDeviceD3D12.h"
+#include "TextureD3D12.h"
 #include "../../Core/Log.h"
 
 using namespace std;

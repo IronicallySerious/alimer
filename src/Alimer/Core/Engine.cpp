@@ -26,7 +26,7 @@
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
 #include "../Application/Window.h"
-#include "../Graphics/CommandBuffer.h"
+#include "../Graphics/CommandContext.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Scene/SceneManager.h"
 #include "../UI/Gui.h"
@@ -122,6 +122,9 @@ namespace alimer
 
         // Create main window and device if not headless
         if (!_headless) {
+#if defined(_DEBUG)
+            _settings.gpuValidation = true;
+#endif
             _graphicsDevice = GraphicsDevice::Create(GraphicsBackend::Default, _settings.preferredDevice, _settings.gpuValidation);
             if (_graphicsDevice.IsNull()) {
                 ALIMER_LOGERROR("Failed to create GraphicsDevice instance. Running in headless moder");
