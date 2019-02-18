@@ -103,7 +103,7 @@ if (ALIMER_D3D12)
 endif ()
 
 if (ALIMER_VULKAN)
-    #define_engine_source_files(Graphics/vulkan)
+    define_engine_source_files(Graphics/vulkan)
     #set(GLSLANG_HEADER_FILES
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.h
@@ -218,7 +218,7 @@ endif ()
 
 
 if (ALIMER_VULKAN)
-    #target_link_libraries(${TARGET_NAME} PRIVATE volk vk_mem_alloc)
+    target_link_libraries(${TARGET_NAME} PRIVATE volk vk_mem_alloc)
 endif ()
 
 # SDK installation

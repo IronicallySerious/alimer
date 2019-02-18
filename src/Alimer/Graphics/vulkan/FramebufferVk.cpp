@@ -22,11 +22,10 @@
 
 #include "FramebufferVk.h"
 #include "GPUDeviceVk.h"
-#include "../../Core/Log.h"
 
 namespace alimer
 {
-    FramebufferVk::FramebufferVk(GPUDeviceVk* device, const FramebufferDescriptor* descriptor)
+    FramebufferVk::FramebufferVk(GraphicsDeviceVk* device, const FramebufferDescriptor* descriptor)
         : Framebuffer(device, descriptor)
     {
         VkImageView attachments[MaxColorAttachments + 1u];

@@ -27,7 +27,7 @@
 
 namespace alimer
 {
-    VulkanPipelineLayout::VulkanPipelineLayout(GPUDeviceVk* device, uint64_t hash, const VulkanResourceLayout* layout)
+    VulkanPipelineLayout::VulkanPipelineLayout(GraphicsDeviceVk* device, uint64_t hash, const VulkanResourceLayout* layout)
         : _device(device)
         , _hash(hash)
         , _layout(*layout)

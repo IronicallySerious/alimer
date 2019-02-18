@@ -32,17 +32,15 @@ namespace alimer
 	class D3D12CommandListManager;
 
 	/// D3D12 CommandContext implementation.
-	class D3D12CommandContext final : public CommandContext
+	class CommandContextD3D12 final : public CommandContext
 	{
 	public:
 		/// Constructor.
-        D3D12CommandContext(GraphicsDeviceD3D12* device, QueueType type);
+        CommandContextD3D12(GraphicsDeviceD3D12* device, const SwapChainDescriptor* descriptor);
 
 		/// Destructor.
-		~D3D12CommandContext() override;
+		~CommandContextD3D12() override;
 
-		void Reset() override;
-        void FlushImpl(bool waitForCompletion) override;
         void PushDebugGroupImpl(const std::string& name, const Color4& color) override;
         void PopDebugGroupImpl() override;
         void InsertDebugMarkerImpl(const std::string& name, const Color4& color) override;

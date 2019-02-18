@@ -55,43 +55,43 @@ namespace alimer
     /// Enum describing the Graphics backend.
     enum class GraphicsBackend : uint32_t {
         /// Default platform backend.
-        Default = VGPU_BACKEND_INVALID,
+        Default = 0,
         /// Null backend.
-        Null    = VGPU_BACKEND_NULL,
+        Null,
         /// Vulkan backend.
-        Vulkan  = VGPU_BACKEND_VULKAN,
+        Vulkan,
         /// Direct3D 12 backend.
-        D3D12   = VGPU_BACKEND_D3D12,
+        Direct3D12,
         /// Direct3D 11 backend.
-        D3D11   = VGPU_BACKEND_D3D11,
+        Direct3D11,
         /// OpenGL backend.
-        OpenGL  = VGPU_BACKEND_OPENGL,
+        OpenGL,
         /// Count
-        Count   = VGPU_BACKEND_COUNT
+        Count
     };
 
     enum class QueueType : uint32_t {
-        Graphics        = VGPU_COMMAND_BUFFER_TYPE_GRAPHICS,
-        AsyncGraphics   = VGPU_COMMAND_BUFFER_TYPE_ASYNC_GRAPHICS,
-        Compute         = VGPU_COMMAND_BUFFER_TYPE_COMPUTE,
-        Transfer        = VGPU_COMMAND_BUFFER_TYPE_TRANSFER
+        Graphics,
+        AsyncGraphics,
+        Compute,
+        Transfer
     };
 
     /// Enum describing the number of samples.
     enum class SampleCount : uint32_t
     {
         /// 1 sample (no multi-sampling).
-        Count1 = AGPU_SAMPLE_COUNT1,
+        Count1 = 1,
         /// 2 Samples.
-        Count2 = AGPU_SAMPLE_COUNT2,
+        Count2 = 2,
         /// 4 Samples.
-        Count4 = AGPU_SAMPLE_COUNT4,
+        Count4 = 4,
         /// 8 Samples.
-        Count8 = AGPU_SAMPLE_COUNT8,
+        Count8 = 8,
         /// 16 Samples.
-        Count16 = AGPU_SAMPLE_COUNT16,
+        Count16 = 16,
         /// 32 Samples.
-        Count32 = AGPU_SAMPLE_COUNT32,
+        Count32 = 32,
     };
 
     enum class ResourceUsage : unsigned
@@ -205,8 +205,8 @@ namespace alimer
     {
         Type1D,
         Type2D,
+        Type3D,
         TypeCube,
-        Type3D
     };
 
     /// Defines texture usage enum.

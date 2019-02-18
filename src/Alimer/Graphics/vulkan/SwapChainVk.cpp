@@ -30,14 +30,20 @@ using namespace std;
 
 namespace alimer
 {
-    SwapChainVk::SwapChainVk(GPUDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor)
+    SwapChainVk::SwapChainVk(GraphicsDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor)
         : _device(device)
         , _surface(surface)
         , _vSync(descriptor->vsync)
         , _tripleBuffer(descriptor->tripleBuffer)
-        , _depthStencilFormat(descriptor->depthStencil ? PixelFormat::Depth24Stencil8 : PixelFormat::Unknown)
         , _samples(descriptor->samples)
     {
+        if (descriptor->depthStencil) {
+            _depthStencilFormat = device->GetDefaultDepthStencilFormat();
+            if (_depthStencilFormat == PixelFormat::Undefined) {
+                _depthStencilFormat = device->GetDefaultDepthFormat();
+            }
+        }
+
         Resize(descriptor->width, descriptor->height);
     }
 
@@ -47,7 +53,6 @@ namespace alimer
         {
             for (uint32_t i = 0u; i < _imageCount; i++)
             {
-                _device->RecycleSemaphore(_imageSemaphores[i]);
             //    vkDestroyImageView(_device->GetVkDevice(), buffers[i].view, nullptr);
             }
 
@@ -65,6 +70,7 @@ namespace alimer
 
     void SwapChainVk::Resize()
     {
+        vkDeviceWaitIdle(_device->GetVkDevice());
         Resize(_width, _height);
     }
 
@@ -214,13 +220,13 @@ namespace alimer
         // Enable transfer source on swap chain images if supported.
         if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
             createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-            textureUsage |= TextureUsage::TransferSrc;
+            //textureUsage |= TextureUsage::TransferSrc;
         }
 
         // Enable transfer destination on swap chain images if supported
         if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
             createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-            textureUsage |= TextureUsage::TransferDest;
+            //textureUsage |= TextureUsage::TransferDest;
         }
 
         VkResult result = vkCreateSwapchainKHR(_device->GetVkDevice(), &createInfo, nullptr, &_handle);
@@ -234,7 +240,7 @@ namespace alimer
         {
             for (uint32_t i = 0u; i < _imageCount; ++i)
             {
-                _device->RecycleSemaphore(_imageSemaphores[i]);
+                _swapchainTextures[i].reset(nullptr);
                 //vkDestroyImageView(_device->GetVkDevice(), buffers[i].view, nullptr);
             }
 
@@ -244,7 +250,6 @@ namespace alimer
         _imageIndex = 0;
         vkGetSwapchainImagesKHR(_device->GetVkDevice(), _handle, &_imageCount, nullptr);
         _images.resize(_imageCount);
-        _imageSemaphores.resize(_imageCount);
         _swapchainTextures.resize(_imageCount);
         vkGetSwapchainImagesKHR(_device->GetVkDevice(), _handle, &_imageCount, _images.data());
 
@@ -268,8 +273,6 @@ namespace alimer
 
         for (uint32_t i = 0u; i < _imageCount; ++i)
         {
-            _imageSemaphores[i] = _device->RequestSemaphore();
-
             // Clear with default value if supported.
             if (createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
             {
@@ -318,9 +321,9 @@ namespace alimer
             _swapchainTextures[i].reset(new TextureVk(_device, &textureDescriptor, _images[i], nullptr));
 
             // Create backend framebuffer.
-            FramebufferDescriptor fboDescriptor = {};
-            fboDescriptor.colorAttachments[0].texture = _swapchainTextures[i].get();;
-            _framebuffers[i] = new FramebufferVk(_device, &fboDescriptor);
+            //FramebufferDescriptor fboDescriptor = {};
+            //fboDescriptor.colorAttachments[0].texture = _swapchainTextures[i].get();;
+            //_framebuffers[i] = new FramebufferVk(_device, &fboDescriptor);
         }
 
         _device->FlushCommandBuffer(setupSwapchainCmdBuffer, true);
@@ -328,25 +331,26 @@ namespace alimer
         return true;
     }
 
-    void SwapChainVk::BeginFrame()
+    VkResult SwapChainVk::AcquireNextImage(VkSemaphore semaphore, uint32_t *imageIndex)
     {
-        VkSemaphore semaphore = _imageSemaphores[_imageIndex];
-        VkResult result = vkAcquireNextImageKHR(
-            _device->GetVkDevice(),
-            _handle,
-            UINT64_MAX,
-            semaphore,
-            VK_NULL_HANDLE,
-            &_imageIndex);
+        return vkAcquireNextImageKHR(_device->GetVkDevice(), _handle, UINT64_MAX, semaphore, (VkFence)nullptr, imageIndex);
+    }
 
-        if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
+    VkResult SwapChainVk::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
+    {
+        VkPresentInfoKHR presentInfo = {};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.pNext = NULL;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &_handle;
+        presentInfo.pImageIndices = &imageIndex;
+        // Check if a wait semaphore has been specified to wait for before presenting the image
+        if (waitSemaphore != VK_NULL_HANDLE)
         {
-            Resize();
-        }
-        else {
-            vkThrowIfFailed(result);
+            presentInfo.pWaitSemaphores = &waitSemaphore;
+            presentInfo.waitSemaphoreCount = 1;
         }
 
-        _device->AddWaitSemaphore(semaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        return vkQueuePresentKHR(queue, &presentInfo);
     }
 }

@@ -22,8 +22,6 @@
 
 #pragma once
 
-#include "../Backend.h"
-
 #if defined(_WIN32) || defined(_WIN64)
 #   ifndef NOMINMAX
 #       define NOMINMAX
@@ -49,10 +47,13 @@
 
 #include "volk.h"
 #include "vk_mem_alloc.h"
+#include "../Types.h"
+#include "../PixelFormat.h"
+#include "../../Core/Log.h"
 
 namespace alimer
 {
-    class GPUDeviceVk;
+    class GraphicsDeviceVk;
 
     inline const char* vkGetVulkanResultString(VkResult result)
     {

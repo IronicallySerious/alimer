@@ -37,7 +37,7 @@
 
 namespace alimer
 {
-    D3D12_COMMAND_LIST_TYPE GetD3D12CommandListType(QueueType type)
+    static inline D3D12_COMMAND_LIST_TYPE GetD3D12CommandListType(QueueType type)
     {
         switch (type)
         {
@@ -57,89 +57,39 @@ namespace alimer
         }
     }
 
-    D3D12CommandContext::D3D12CommandContext(GraphicsDeviceD3D12* device, QueueType type)
-        : CommandContext(device, type)
+    CommandContextD3D12::CommandContextD3D12(GraphicsDeviceD3D12* device, const SwapChainDescriptor* descriptor)
+        : CommandContext(device)
         , _manager(device->GetCommandListManager())
         , _commandList(nullptr)
         , _currentAllocator(nullptr)
-        , _type(GetD3D12CommandListType(type))
+        , _type(GetD3D12CommandListType(QueueType::Graphics))
         , _graphicsState(device)
     {
         device->GetCommandListManager()->CreateNewCommandList(_type, &_commandList, &_currentAllocator);
     }
 
-    D3D12CommandContext::~D3D12CommandContext()
+    CommandContextD3D12::~CommandContextD3D12()
     {
+        // Release command list.
         SafeRelease(_commandList);
     }
 
-    void D3D12CommandContext::Reset()
-    {
-        ALIMER_ASSERT(_commandList != nullptr && _currentAllocator == nullptr);
-        _currentAllocator = _manager->GetQueue(_type).RequestAllocator();
-        _commandList->Reset(_currentAllocator, nullptr);
-
-        /* Reset cache states.*/
-        _graphicsState.Reset();
-        _numBarriersToFlush = _boundRTVCount = 0;
-        _currentFramebuffer = nullptr;
-        _currentD3DPipeline = nullptr;
-    }
-
-    void D3D12CommandContext::FlushImpl(bool waitForCompletion)
-    {
-        FlushResourceBarriers();
-
-        //if (!_name.IsEmpty())
-        //{
-        //    //GpuProfiler::EndBlock(this);
-        //}
-
-        ALIMER_ASSERT(_currentAllocator != nullptr);
-
-        // Execute the command list.
-        auto& queue = _manager->GetQueue(_type);
-        _fenceValue = queue.ExecuteCommandList(_commandList);
-        const bool releaseContext = false;
-        if (releaseContext)
-        {
-            queue.DiscardAllocator(_fenceValue, _currentAllocator);
-            _currentAllocator = nullptr;
-        }
-
-        if (waitForCompletion)
-        {
-            _manager->WaitForFence(_fenceValue);
-        }
-
-        // Reset the command list and restore previous state
-        if (!releaseContext)
-        {
-            _commandList->Reset(_currentAllocator, nullptr);
-        }
-        else
-        {
-            // Free context.
-            //_device->FreeContext(this);
-        }
-    }
-
-    void D3D12CommandContext::PushDebugGroupImpl(const std::string& name, const Color4& color)
+    void CommandContextD3D12::PushDebugGroupImpl(const std::string& name, const Color4& color)
     {
         /* TODO: Use pix3 */
     }
 
-    void D3D12CommandContext::PopDebugGroupImpl()
+    void CommandContextD3D12::PopDebugGroupImpl()
     {
         /* TODO: Use pix3 */
     }
 
-    void D3D12CommandContext::InsertDebugMarkerImpl(const std::string& name, const Color4& color)
+    void CommandContextD3D12::InsertDebugMarkerImpl(const std::string& name, const Color4& color)
     {
         /* TODO: Use pix3 */
     }
 
-    void D3D12CommandContext::TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
+    void CommandContextD3D12::TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
     {
         D3D12_RESOURCE_STATES oldState = resource->GetUsageState();
 
@@ -184,11 +134,12 @@ namespace alimer
         }
     }
 
-    void D3D12CommandContext::BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
+    void CommandContextD3D12::BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
     {
         // If it's already transitioning, finish that transition
-        if (resource->GetTransitioningState() != (D3D12_RESOURCE_STATES)-1)
+        if (resource->GetTransitioningState() != (D3D12_RESOURCE_STATES)-1) {
             TransitionResource(resource, resource->GetTransitioningState());
+        }
 
         D3D12_RESOURCE_STATES oldState = resource->GetUsageState();
 
@@ -211,7 +162,7 @@ namespace alimer
             FlushResourceBarriers();
     }
 
-    void D3D12CommandContext::InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate)
+    void CommandContextD3D12::InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate)
     {
         ALIMER_ASSERT(_numBarriersToFlush < 16 && "Exceeded arbitrary limit on buffered barriers");
         D3D12_RESOURCE_BARRIER& barrierDesc = _resourceBarrierBuffer[_numBarriersToFlush++];
@@ -224,7 +175,7 @@ namespace alimer
             FlushResourceBarriers();
     }
 
-    void D3D12CommandContext::FlushResourceBarriers()
+    void CommandContextD3D12::FlushResourceBarriers()
     {
         if (_numBarriersToFlush > 0)
         {
@@ -234,7 +185,7 @@ namespace alimer
     }
 
 #if TODO_D3D12
-    void D3D12CommandContext::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    void CommandContextD3D12::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         _currentFramebuffer = static_cast<D3D12Framebuffer*>(framebuffer->GetImpl());
         _boundRTVCount = framebuffer->GetColorAttachmentsCount();
@@ -275,7 +226,7 @@ namespace alimer
         CmdSetScissor(scissorRect);*/
     }
 
-    void D3D12CommandContext::EndRenderPassImpl()
+    void CommandContextD3D12::EndRenderPassImpl()
     {
         for (uint32_t i = 0; i < _boundRTVCount; ++i)
         {
@@ -283,7 +234,7 @@ namespace alimer
         }
     }
 
-    void D3D12CommandContext::SetIndexBufferImpl(IndexBuffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandContextD3D12::SetIndexBufferImpl(IndexBuffer* buffer, uint32_t offset, IndexType indexType)
     {
         D3D12Buffer* d3d12Buffer = static_cast<D3D12Buffer*>(buffer->GetImpl());
 
@@ -294,18 +245,18 @@ namespace alimer
         _commandList->IASetIndexBuffer(&bufferView);
     }
 
-    void D3D12CommandContext::SetPrimitiveTopologyImpl(PrimitiveTopology topology)
+    void CommandContextD3D12::SetPrimitiveTopologyImpl(PrimitiveTopology topology)
     {
         _graphicsState.SetPrimitiveTopology(topology);
     }
 
-    void D3D12CommandContext::DrawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    void CommandContextD3D12::DrawImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
         FlushGraphicsState();
         _commandList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    void D3D12CommandContext::FlushGraphicsState()
+    void CommandContextD3D12::FlushGraphicsState()
     {
         uint32_t active_vbos = 1;
 

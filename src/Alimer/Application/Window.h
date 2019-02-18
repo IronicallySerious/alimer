@@ -36,8 +36,7 @@ namespace alimer
         None = 0,
         Resizable = 1 << 0,
         Fullscreen = 1 << 1,
-        Visible = 1 << 2,
-        Default = Resizable | Visible
+        Default = Resizable
     };
     ALIMER_BITMASK(WindowFlags);
 

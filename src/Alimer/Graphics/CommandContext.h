@@ -40,17 +40,11 @@ namespace alimer
 
     protected:
         /// Constructor.
-        CommandContext(GraphicsDevice* device, QueueType type);
+        CommandContext(GraphicsDevice* device);
 
     public:
         /// Destructor.
         virtual ~CommandContext() = default;
-
-        /// Request new command context for recording.
-        static CommandContext& Begin(const std::string& id = "");
-
-        /// Flush existing commands and optionally wait
-        void Flush(bool waitForCompletion = false);
 
         virtual void PushDebugGroup(const std::string& name, const Color4& color = Color4::White);
         virtual void PopDebugGroup();
@@ -92,17 +86,11 @@ namespace alimer
         void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
-        void SetId(const std::string& id) { _id = id; }
-
-        QueueType GetQueueType() const { return _type; }
-
         /// Return the device used for creation.
         GraphicsDevice* GetGraphicsDevice() const { return _device.Get(); }
 
     private:
         // Backend methods
-        virtual void Reset() = 0;
-        virtual void FlushImpl(bool waitForCompletion) = 0;
         virtual void PushDebugGroupImpl(const std::string& name, const Color4& color) = 0;
         virtual void PopDebugGroupImpl() = 0;
         virtual void InsertDebugMarkerImpl(const std::string& name, const Color4& color) = 0;
@@ -116,10 +104,6 @@ namespace alimer
     protected:
         /// GPUDevice.
         WeakPtr<GraphicsDevice> _device;
-        /// ID
-        std::string  _id;
-        /// Queue type
-        QueueType _type;
 
         bool                    _insideRenderPass = false;
         Shader*                 _currentShader = nullptr;

@@ -23,16 +23,15 @@
 #pragma once
 
 #include "BackendVk.h"
+#include "../Buffer.h"
 
 namespace alimer
 {
-    class GPUDeviceVk;
-
 	/// Vulkan Buffer implementation.
-	class BufferVk final //: public GPUBuffer
+	class BufferVk final : public Buffer
 	{
 	public:
-        BufferVk(GPUDeviceVk* device, const BufferDescriptor* descriptor, const void* pInitData);
+        BufferVk(GraphicsDeviceVk* device, const BufferDescriptor* descriptor, const void* pInitData);
         ~BufferVk();
 
         //bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
@@ -40,9 +39,9 @@ namespace alimer
 		VkBuffer GetVkBuffer() const { return _handle; }
         VmaAllocation GetAllocation() const { return _allocation; }
 	private:
-        GPUDeviceVk* _device;
-        VkBuffer _handle = VK_NULL_HANDLE;
-        VmaAllocator _allocator;
-        VmaAllocation _allocation = VK_NULL_HANDLE;
+        VkDevice        _vkDevice;
+        VkBuffer        _handle = VK_NULL_HANDLE;
+        VmaAllocator    _allocator;
+        VmaAllocation   _allocation = VK_NULL_HANDLE;
 	};
 }

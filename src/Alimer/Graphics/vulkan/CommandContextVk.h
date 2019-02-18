@@ -23,32 +23,38 @@
 #pragma once
 
 #include "BackendVk.h"
-#include "../CommandBuffer.h"
+#include "../CommandContext.h"
 
 namespace alimer
 {
-    class CommandQueueVk;
-
-	/// Vulkan CommandBuffer implementation.
-	class CommandBufferVk final : public CommandContext
+	/// Vulkan CommandContext implementation.
+	class CommandContextVk final : public CommandContext
 	{
 	public:
-        CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue);
-		~CommandBufferVk() override;
+        CommandContextVk(GraphicsDeviceVk* device, VkCommandBuffer commandBuffer);
+		~CommandContextVk() override;
 
-        void Begin();
+        void Begin(VkCommandBufferUsageFlags flags);
         void End();
-
-       
        
         VkCommandBuffer GetVkCommandBuffer() const { return _commandBuffer; }
-        VkSemaphore GetSemaphore() const { return _semaphore; }
+
+        inline bool IsInsideRenderPass() const
+        {
+            return _state == State::InsideRenderPass;
+        }
+
+        inline bool IsOutsideRenderPass() const
+        {
+            return _state == State::InsideBegin;
+        }
+
+        inline bool IsSubmitted() const
+        {
+            return _state == State::Submitted;
+        }
 
 	private:
-        void BeginContext();
-        void FlushImpl(bool waitForCompletion) override;
-        void Reset() override;
-
         void PushDebugGroupImpl(const std::string& name, const Color4& color) override;
         void PopDebugGroupImpl() override;
         void InsertDebugMarkerImpl(const std::string& name, const Color4& color) override;
@@ -77,13 +83,19 @@ namespace alimer
         void FlushGraphicsPipeline();
 
     private:
-        GPUDeviceVk*    _device;
-        CommandQueueVk* _commandQueue;
-        QueueType       _type;
+        VkDevice        _vkDevice;
         VkCommandBuffer _commandBuffer;
-        VkSemaphore     _semaphore;
         bool            _supportsDebugUtils;
         bool            _supportsDebugMarker;
+
+        enum class State : uint8_t
+        {
+            Ready,
+            InsideBegin,
+            InsideRenderPass,
+            Ended,
+            Submitted
+        };
 
         // State
         class GraphicsState
@@ -104,7 +116,8 @@ namespace alimer
             bool _dirty;
         };
 
-        //GraphicsState _graphicsState;
+        State _state = State::Ready;
+        GraphicsState _graphicsState;
         //const VulkanFramebuffer* _currentFramebuffer = nullptr;
         //const VulkanRenderPass* _currentRenderPass = nullptr;
         

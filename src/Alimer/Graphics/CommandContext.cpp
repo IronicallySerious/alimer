@@ -27,27 +27,9 @@
 
 namespace alimer
 {
-    CommandContext::CommandContext(GraphicsDevice* device, QueueType type)
+    CommandContext::CommandContext(GraphicsDevice* device)
         : _device(device)
-        , _type(type)
     {
-    }
-
-    CommandContext& CommandContext::Begin(const std::string& id)
-    {
-        CommandContext* newContext = graphics->AllocateContext(QueueType::Graphics);
-        newContext->SetId(id);
-        if (id.length() > 0) {
-            //GPUProfiling::BeginBlock(id, NewContext);
-        }
-
-        return *newContext;
-    }
-
-    void CommandContext::Flush(bool waitForCompletion)
-    {
-        FlushImpl(waitForCompletion);
-        _device->FreeContext(this);
     }
 
     void CommandContext::PushDebugGroup(const std::string& name, const Color4& color)

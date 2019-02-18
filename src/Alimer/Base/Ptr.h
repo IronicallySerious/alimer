@@ -231,9 +231,6 @@ namespace alimer
         /// Check if the pointer is null.
         bool IsNull() const { return ptr_ == nullptr; }
 
-        /// Check if the pointer is not null.
-        bool IsNotNull() const { return ptr_ != nullptr; }
-
         /// Return the raw pointer.
         T* Get() const { return ptr_; }
 
@@ -483,9 +480,6 @@ namespace alimer
 
         /// Check if the pointer is null.
         bool IsNull() const { return _refCount == nullptr; }
-
-        /// Check if the pointer is not null.
-        bool IsNotNull() const { return _refCount != nullptr; }
 
         /// Return the object's reference count, or 0 if null pointer or if object has expired.
         int Refs() const { return (_refCount && _refCount->refs >= 0) ? _refCount->refs : 0; }

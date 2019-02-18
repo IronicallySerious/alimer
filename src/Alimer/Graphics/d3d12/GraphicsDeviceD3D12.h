@@ -31,8 +31,8 @@
 namespace alimer
 {
     class D3D12CommandListManager;
+    class CommandContextD3D12;
     class SwapChainD3D12;
-    class D3D12CommandContext;
 
     // Heap helpers
     const D3D12_HEAP_PROPERTIES* GetDefaultHeapProps();
@@ -48,7 +48,6 @@ namespace alimer
         void* submission = nullptr;
     };
 
-
     /// D3D12 Low-level 3D graphics API class.
     class GraphicsDeviceD3D12 final : public GraphicsDevice
     {
@@ -63,20 +62,16 @@ namespace alimer
         ~GraphicsDeviceD3D12();
 
         void Finalize() override;
-        bool InitializeImpl(const char* applicationName, const SwapChainDescriptor* descriptor) override;
-        void WaitIdleImpl() override;
-        bool BeginFrameImpl() override;
-        void EndFrameImpl() override;
+        bool InitializeImpl(const SwapChainDescriptor* descriptor) override;
+        void WaitIdle();
 
-        CommandContext* CreateCommandContext(QueueType type);
-        void FreeContext(D3D12CommandContext* context);
+        bool BeginFrameImpl() override;
+        void EndFrame(uint32_t frameId) override;
+        SharedPtr<CommandContext> GetContext() const override;
 
         UploadContext ResourceUploadBegin(uint64_t size);
         void ResourceUploadEnd(UploadContext& context);
 
-        //Framebuffer* GetSwapchainFramebuffer() const override;
-        //FramebufferImpl* CreateFramebuffer(const Vector<FramebufferAttachment>& colorAttachments) override;
-        //GpuBufferImpl* CreateBuffer(const BufferDescriptor* descriptor, const void* initialData, void* externalHandle) override;
 
         inline IDXGIFactory4* GetFactory() const { return _factory.Get(); }
         inline IDXGIAdapter1* GetAdapter() const { return _adapter.Get(); }
@@ -110,17 +105,13 @@ namespace alimer
         D3D_FEATURE_LEVEL                       _d3dFeatureLevel = D3D_FEATURE_LEVEL_11_0;
         D3D12_FEATURE_DATA_ROOT_SIGNATURE       _featureDataRootSignature;
         bool                                    _raytracingSupported = false;
-
-        SwapChainD3D12*                         _mainSwapChain = nullptr;
         
         std::mutex                              _heapAllocationMutex;
         std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> _descriptorHeapPool;
         D3D12DescriptorAllocator                _descriptorAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
-        D3D12CommandListManager*                            _commandListManager;
-        std::vector<std::unique_ptr<D3D12CommandContext> >  _contextPool[4];
-        std::queue<D3D12CommandContext*>                    _availableCommandContexts[4];
-        std::mutex                                          _contextAllocationMutex;
+        D3D12CommandListManager*                _commandListManager;
+        SwapChainD3D12*                         _swapChain = nullptr;
 
         struct UploadSubmission
         {

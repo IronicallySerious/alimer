@@ -73,21 +73,9 @@ namespace alimer
 #endif
     }
 
-    static void Glfw_WindowSizeCallback(GLFWwindow* glfwWindow, int width, int height)
-    {
-        // We also get here in case the window was minimized, so we need to ignore it
-        if (width == 0 || height == 0)
-        {
-            return;
-        }
-
-        Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
-        window->Resize(width, height);
-    }
-
     static void Glfw_KeyCallback(GLFWwindow* glfwWindow, int key, int scanCode, int action, int modifiers)
     {
-        //Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+        //WindowImpl* window = static_cast<WindowImpl*>(glfwGetWindowUserPointer(glfwWindow));
         if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
         {
             glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
@@ -96,17 +84,17 @@ namespace alimer
 
     static void Glfw_MouseButtonCallback(GLFWwindow* glfwWindow, int button, int action, int)
     {
-        //Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+        //WindowImpl* window = static_cast<WindowImpl*>(glfwGetWindowUserPointer(glfwWindow));
     }
 
     static void Glfw_MouseMoveCallback(GLFWwindow* glfwWindow, double mouseX, double mouseY)
     {
-        //Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+        //WindowImpl* window = static_cast<WindowImpl*>(glfwGetWindowUserPointer(glfwWindow));
     }
 
     void Glfw_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     {
-        //Window* window = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+        //WindowImpl* window = static_cast<WindowImpl*>(glfwGetWindowUserPointer(glfwWindow));
         //ImGuiIO& io = ImGui::GetIO();
         //io.MouseWheelH += (float)xoffset;
         //io.MouseWheel += (float)yoffset;
@@ -141,7 +129,11 @@ namespace alimer
             nullptr);
 
         glfwSetWindowUserPointer(_window, this);
-        glfwSetWindowSizeCallback(_window, Glfw_WindowSizeCallback);
+        glfwSetWindowSizeCallback(_window, [](GLFWwindow* window, int w, int h) {
+            WindowImpl* impl = reinterpret_cast<WindowImpl*>(glfwGetWindowUserPointer(window));
+            impl->Resize(w, h);
+        });
+
         glfwSetKeyCallback(_window, Glfw_KeyCallback);
         glfwSetMouseButtonCallback(_window, Glfw_MouseButtonCallback);
         glfwSetCursorPosCallback(_window, Glfw_MouseMoveCallback);
@@ -235,7 +227,7 @@ namespace alimer
 
     void WindowImpl::SetFullscreen(bool value)
     {
-       
+
     }
 
     bool WindowImpl::IsCursorVisible() const

@@ -22,11 +22,10 @@
 
 #include "PipelineVk.h"
 #include "GPUDeviceVk.h"
-#include "../../Core/Log.h"
 
 namespace alimer
 {
-    PipelineVk::PipelineVk(GPUDeviceVk* device, const RenderPipelineDescriptor* descriptor)
+    PipelineVk::PipelineVk(GraphicsDeviceVk* device, const RenderPipelineDescriptor* descriptor)
         : Pipeline(device, descriptor)
     {
         VkGraphicsPipelineCreateInfo createInfo;
@@ -40,7 +39,7 @@ namespace alimer
         }
     }
 
-    PipelineVk::PipelineVk(GPUDeviceVk* device, const ComputePipelineDescriptor* descriptor)
+    PipelineVk::PipelineVk(GraphicsDeviceVk* device, const ComputePipelineDescriptor* descriptor)
         : Pipeline(device, descriptor)
     {
         VkComputePipelineCreateInfo createInfo;
@@ -75,7 +74,7 @@ namespace alimer
     {
         if (_handle != VK_NULL_HANDLE)
         {
-            StaticCast<GPUDeviceVk>(_device)->DestroyPipeline(_handle);
+            StaticCast<GraphicsDeviceVk>(_device)->DestroyPipeline(_handle);
             _handle = VK_NULL_HANDLE;
         }
     }

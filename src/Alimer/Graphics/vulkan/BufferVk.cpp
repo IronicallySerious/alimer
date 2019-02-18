@@ -26,8 +26,9 @@
 
 namespace alimer
 {
-    BufferVk::BufferVk(GPUDeviceVk* device, const BufferDescriptor* descriptor, const void* pInitData)
-        : _device(device)
+    BufferVk::BufferVk(GraphicsDeviceVk* device, const BufferDescriptor* descriptor, const void* pInitData)
+        : Buffer(device, descriptor)
+        , _vkDevice(device->GetVkDevice())
     {
         VkBufferCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -86,7 +87,7 @@ namespace alimer
         VmaAllocationInfo allocationInfo = {};
         if (noAllocation)
         {
-            result = vkCreateBuffer(_device->GetVkDevice(), &createInfo, nullptr, &_handle);
+            result = vkCreateBuffer(device->GetVkDevice(), &createInfo, nullptr, &_handle);
         }
         else
         {
@@ -158,7 +159,7 @@ namespace alimer
         }
         else if (_handle != VK_NULL_HANDLE)
         {
-            vkDestroyBuffer(_device->GetVkDevice(), _handle, nullptr);
+            vkDestroyBuffer(_vkDevice, _handle, nullptr);
             _handle = VK_NULL_HANDLE;
         }
     }

@@ -247,7 +247,7 @@ namespace alimer
     }
 
     GraphicsDeviceD3D12::GraphicsDeviceD3D12(PhysicalDevicePreference devicePreference, bool validation)
-        : GraphicsDevice(GraphicsBackend::D3D12, devicePreference, validation)
+        : GraphicsDevice(GraphicsBackend::Direct3D12, devicePreference, validation)
         , _descriptorAllocator{
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
         D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
@@ -347,7 +347,6 @@ namespace alimer
 
         // Create the command list manager class.
         _commandListManager = new D3D12CommandListManager(_d3dDevice.Get());
-        _context = CreateCommandContext(QueueType::Graphics);
 
         // Init heaps.
         for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
@@ -362,20 +361,13 @@ namespace alimer
     {
         // Ensure that the GPU is no longer referencing resources that are about to be
         // cleaned up by the destructor.
-        WaitIdleImpl();
+        WaitIdle();
 
-        // Destroy all command contexts.
-        _context.Reset();
-        for (uint32_t i = 0; i < 4; ++i)
-        {
-            _contextPool[i].clear();
-        }
+        // Delete swap chain if created.
+        SafeDelete(_swapChain);
 
         // Delete command list manager.
         SafeDelete(_commandListManager);
-
-        // Delete main swap chain if created.
-        SafeDelete(_mainSwapChain);
 
         // Shutdown upload logic.
         ShutdownUpload();
@@ -389,16 +381,6 @@ namespace alimer
 
     void GraphicsDeviceD3D12::Finalize()
     {
-    }
-
-    bool GraphicsDeviceD3D12::InitializeImpl(const char* applicationName, const SwapChainDescriptor* descriptor)
-    {
-        ALIMER_UNUSED(applicationName);
-
-        // Create Swapchain.
-        _mainSwapChain = new SwapChainD3D12(this, descriptor);
-        
-        return true;
     }
 
     void GraphicsDeviceD3D12::InitializeFeatures()
@@ -736,76 +718,41 @@ namespace alimer
         context = UploadContext();
     }
 
-    void GraphicsDeviceD3D12::WaitIdleImpl()
+    void GraphicsDeviceD3D12::WaitIdle()
     {
         _commandListManager->WaitIdle();
     }
 
     bool GraphicsDeviceD3D12::BeginFrameImpl()
     {
+        ALIMER_ASSERT(_d3dDevice.Get());
+
+        //SetDescriptorHeaps(CmdList);
         return true;
     }
 
-    void GraphicsDeviceD3D12::EndFrameImpl()
+    void GraphicsDeviceD3D12::EndFrame(uint32_t frameId)
     {
+        ALIMER_ASSERT(_d3dDevice.Get());
+
+        //ThrowIfFailed(CmdList->Close());
+
         /* End frame for upload */
         EndFrameUpload();
-
-        //
-        _context->Flush(true);
-
-        // Present the frame.
-        if (_mainSwapChain)
-        {
-            _mainSwapChain->Present();
-        }
     }
 
-    CommandContext* GraphicsDeviceD3D12::CreateCommandContext(QueueType type)
+    SharedPtr<CommandContext> GraphicsDeviceD3D12::GetContext() const
     {
-        std::lock_guard<std::mutex> lock(_contextAllocationMutex);
-
-        auto& availableContexts = _availableCommandContexts[(uint32_t)type];
-
-        D3D12CommandContext* context = nullptr;
-        if (availableContexts.empty())
-        {
-            context = new D3D12CommandContext(this, type);
-            _contextPool[(uint32_t)type].emplace_back(context);
-        }
-        else
-        {
-            context = availableContexts.front();
-            availableContexts.pop();
-            context->Reset();
-        }
-        ALIMER_ASSERT(context != nullptr);
-        ALIMER_ASSERT(context->GetQueueType() == type);
-        return context;
+        return SharedPtr<CommandContext>();
     }
 
-    void GraphicsDeviceD3D12::FreeContext(D3D12CommandContext* context)
+    bool GraphicsDeviceD3D12::InitializeImpl(const SwapChainDescriptor* descriptor)
     {
-        ALIMER_ASSERT(context != nullptr);
-        std::lock_guard<std::mutex> lock(_contextAllocationMutex);
-        _availableCommandContexts[context->GetCommandListType()].push(context);
-    }
+        // Create Swapchain.
+        _swapChain = new SwapChainD3D12(this, descriptor);
 
-    /*
-    Framebuffer* D3D12Graphics::GetSwapchainFramebuffer() const
-    {
-        return _mainSwapChain->GetFramebuffer();
+        return true;
     }
-
-    FramebufferImpl* D3D12Graphics::CreateFramebuffer(const Vector<FramebufferAttachment>& colorAttachments)
-    {
-        return new D3D12Framebuffer(this, colorAttachments);
-    }
-
-    GpuBufferImpl* D3D12Graphics::CreateBuffer(const BufferDescriptor* descriptor, const void* initialData, void* externalHandle)
-    {
-        return new D3D12Buffer(this, descriptor, initialData, externalHandle);
-    }*/
 
     ID3D12DescriptorHeap* GraphicsDeviceD3D12::RequestNewHeap(
         D3D12_DESCRIPTOR_HEAP_TYPE type,
@@ -881,4 +828,4 @@ namespace alimer
         D3DFence->Signal(fenceValue);
     }
 
-    }
+}

@@ -30,7 +30,7 @@ namespace alimer
     class FramebufferVk final : public Framebuffer
     {
     public:
-        FramebufferVk(GPUDeviceVk* device, const FramebufferDescriptor* descriptor);
+        FramebufferVk(GraphicsDeviceVk* device, const FramebufferDescriptor* descriptor);
         ~FramebufferVk() override;
         void Destroy() override;
 

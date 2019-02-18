@@ -31,15 +31,20 @@ namespace alimer
 	class TextureVk final : public Texture
 	{
 	public:
-        TextureVk(GPUDeviceVk* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData);
+        TextureVk(GraphicsDeviceVk* device, const TextureDescriptor* descriptor, VkImage nativeTexture, const void* pInitData);
         ~TextureVk() override;
-        void Destroy() override;
 
         VkImage GetVkImage() const { return _handle; }
+        VkImageView GetVkImageView() const { return _imageView; }
 
 	private:
-        GPUDeviceVk* _device;
-        VkImage _handle = VK_NULL_HANDLE;
-        
+        bool Create(const void* pInitData) override;
+        void Destroy() override;
+
+        VkImage         _handle = VK_NULL_HANDLE;
+        VmaAllocation   _allocation = VK_NULL_HANDLE;
+        VkImageView     _imageView = VK_NULL_HANDLE;
+        VkFormat        _vkFormat = VK_FORMAT_UNDEFINED;
+        VkImageUsageFlags _vkUsage = 0;
 	};
 }

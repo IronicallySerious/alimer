@@ -28,37 +28,40 @@
 namespace alimer
 {
     class SwapChainVk;
-    class CommandQueueVk;
-    class CommandBufferVk;
+    class CommandContextVk;
 
     /// Vulkan gpu backend.
-    class GPUDeviceVk final : public GraphicsDevice
+    class GraphicsDeviceVk final : public GraphicsDevice
     {
     public:
         /// Is backend supported?
         static bool IsSupported();
 
         /// Constructor.
-        GPUDeviceVk(PhysicalDevicePreference devicePreference, bool validation, bool headless);
+        GraphicsDeviceVk(const char* applicationName, PhysicalDevicePreference devicePreference, bool validation);
 
         /// Destructor.
-        ~GPUDeviceVk() override;
+        ~GraphicsDeviceVk() override;
 
-        //void Finalize() override;
+        void Finalize() override;
+        void WaitIdle();
+        
+        void CreateInstance(const char* applicationName);
+        void SelectPhysicalDevice(PhysicalDevicePreference devicePreference);
+        void CreateLogicalDevice(VkSurfaceKHR surface);
+        void InitializeFeatures();
 
-        //void WaitIdleImpl() override;
+        bool InitializeImpl(const SwapChainDescriptor* descriptor) override;
+        bool BeginFrameImpl() override;
+        void EndFrame(uint32_t frameId) override;
 
-        //bool InitializeImpl(const SwapChainDescriptor* descriptor) override;
-        //bool BeginFrameImpl() override;
-        //void EndFrameImpl() override;
-        //Framebuffer* GetDefaultFramebuffer() const override;
+        VkSurfaceKHR CreateSurface(const SwapChainDescriptor* descriptor);
 
-        //CommandContext* CreateCommandContext(QueueType type) override;
-        void SubmitCommandBuffer(QueueType type, VkCommandBuffer commandBuffer, VkSemaphore semaphore);
-        CommandQueueVk* GetCommandQueue(QueueType type) const;
-        //GPUTexture* CreateTexture(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData) override;
-        //GPUSampler* CreateSampler(const SamplerDescriptor* descriptor) override;
-        //GPUBuffer* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData) override;
+        SharedPtr<CommandContext> GetContext() const override;
+
+        bool ImageFormatIsSupported(VkFormat format, VkFormatFeatureFlags required, VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL) const;
+        PixelFormat GetDefaultDepthStencilFormat() const;
+        PixelFormat GetDefaultDepthFormat() const;
 
         VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
         void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
@@ -66,12 +69,14 @@ namespace alimer
 
         VkSemaphore RequestSemaphore();
         void RecycleSemaphore(VkSemaphore semaphore);
-        void AddWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags stages);
+
+        VkFence RequestFence();
+        void RecycleFence(VkFence fence);
 
         void DestroySampler(VkSampler handle);
         void DestroyPipeline(VkPipeline handle);
         void DestroyImage(VkImage handle);
-
+        
         VkInstance GetVkInstance() const { return _instance; }
         VkPhysicalDevice GetVkPhysicalDevice() const { return _physicalDevice; }
         VkDevice GetVkDevice() const { return _device; }
@@ -83,8 +88,6 @@ namespace alimer
         const DeviceFeaturesVk& GetFeaturesVk() const { return _featuresVk; }
 
     private:
-        VkSurfaceKHR CreateSurface(uint64_t nativeHandle);
-
         bool HasExtension(const std::string& extension)
         {
             return (std::find(_physicalDeviceExtensions.begin(), _physicalDeviceExtensions.end(), extension) != _physicalDeviceExtensions.end());
@@ -115,26 +118,32 @@ namespace alimer
         VkQueue                                 _computeQueue = VK_NULL_HANDLE;
         VkQueue                                 _transferQueue = VK_NULL_HANDLE;
         VmaAllocator                            _memoryAllocator = VK_NULL_HANDLE;
-        std::unique_ptr<CommandQueueVk>         _graphicsCommandQueue;
-        std::unique_ptr<CommandQueueVk>         _computeCommandQueue;
-        std::unique_ptr<CommandQueueVk>         _copyCommandQueue;
-        std::unique_ptr<SwapChainVk>            _swapchain;
         DeviceFeaturesVk                        _featuresVk = {};
-        std::vector<VkSemaphore>                _semaphores;
-        uint32_t                                _frameIndex = 0;
+        SwapChainVk*                            _swapChain = nullptr;
+        std::vector<VkFence>                    _waitFences;
+        std::vector<VkSemaphore>                _renderCompleteSemaphores;
+        std::vector<VkSemaphore>                _presentCompleteSemaphores;
+        uint32_t                                _frameIndex = 0u;
         uint32_t                                _maxInflightFrames = 0u;
+        uint32_t                                _swapchainImageIndex = 0u;
+        VkCommandPool                           _graphicsCommandPool = VK_NULL_HANDLE;
+        VkPipelineCache                         _pipelineCache = VK_NULL_HANDLE;
+        std::vector<SharedPtr<CommandContextVk>> _commandBuffers;
+        std::vector<VkFence>                    _fences;
+        std::vector<VkSemaphore>                _semaphores;
+        
 
         /* Per Frame data */
-        struct FrameData
+        /*struct FrameData
         {
-            FrameData(GPUDeviceVk* device_);
+            FrameData(GraphicsDeviceVk* device_);
             ~FrameData();
             void operator=(const FrameData&) = delete;
             FrameData(const FrameData&) = delete;
 
             void ProcessDeferredDelete();
 
-            GPUDeviceVk* device;
+            GraphicsDeviceVk* device;
             VkDevice logicalDevice;
             std::vector<VkCommandBuffer>    submittedCmdBuffers;
             std::vector<VkSemaphore>        waitSemaphores;
@@ -164,6 +173,6 @@ namespace alimer
         {
             std::vector<VkSemaphore> waitSemaphores;
             std::vector<VkPipelineStageFlags> waitStages;
-        } graphics, compute, transfer;
+        } _graphics, _compute, _transfer;*/
     };
 }

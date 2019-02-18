@@ -21,13 +21,13 @@
 //
 
 #include "CommandQueueVk.h"
-#include "CommandBufferVk.h"
+#include "CommandContextVk.h"
 #include "GPUDeviceVk.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    CommandQueueVk::CommandQueueVk(GPUDeviceVk* device, VkQueue queue, uint32_t queueFamilyIndex)
+    CommandQueueVk::CommandQueueVk(GraphicsDeviceVk* device, VkQueue queue, uint32_t queueFamilyIndex)
         : _device(device)
         , _queue(queue)
     {
@@ -50,24 +50,5 @@ namespace alimer
             vkDestroyCommandPool(_device->GetVkDevice(), _commandPool, nullptr);
             _commandPool = VK_NULL_HANDLE;
         }
-    }
-
-    void CommandQueueVk::ExecuteCommandBuffer(CommandBufferVk* commandBuffer, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore, VkFence fence)
-    {
-        commandBuffer->End();
-
-        const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        VkCommandBuffer vkCommandBuffer = commandBuffer->GetVkCommandBuffer();
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pNext = nullptr;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &waitSemaphore;
-        submitInfo.pWaitDstStageMask = &waitDstStageMask;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &vkCommandBuffer;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &signalSemaphore;
-        vkThrowIfFailed(vkQueueSubmit(_queue, 1, &submitInfo, fence));
     }
 }

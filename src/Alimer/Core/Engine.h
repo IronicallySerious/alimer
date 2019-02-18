@@ -40,16 +40,15 @@ namespace alimer
 
     struct EngineSettings
     {
-        PhysicalDevicePreference    preferredDevice = PhysicalDevicePreference::Discrete;
-        bool                        gpuValidation = false;
+        GraphicsDeviceDescriptor    gpuSettings = {};
 
         /// Main window title.
-        std::string     title = "Alimer";
+        std::string                 title = "Alimer";
 
-        /// Main window size.
-        IntVector2      size = { 800, 600 };
-        bool            fullscreen = false;
-        bool            resizable = false;
+        /// Main window             size.
+        IntVector2                  size = { 800, 600 };
+        bool                        fullscreen = false;
+        bool                        resizable = true;
     };
 
     /// Alimer engine. Manages module setup and all engine logic.

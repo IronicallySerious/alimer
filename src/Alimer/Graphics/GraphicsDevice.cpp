@@ -28,11 +28,11 @@
 #include "Core/Log.h"
 
 #if defined(ALIMER_VULKAN)
-//#   include "vulkan/GPUDeviceVk.h"
+#include "vulkan/GPUDeviceVk.h"
 #endif
 
 #if defined(ALIMER_D3D12)
-#   include "d3d12/GraphicsDeviceD3D12.h"
+#include "d3d12/GraphicsDeviceD3D12.h"
 #endif
 
 #if defined(_WIN32)
@@ -61,41 +61,6 @@ namespace alimer
         AddSubsystem(this);
     }
 
-    GraphicsDevice* GraphicsDevice::Create(GraphicsBackend preferredBackend, PhysicalDevicePreference devicePreference, bool validation)
-    {
-        if (graphics != nullptr)
-        {
-            ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
-        }
-
-        if (preferredBackend == GraphicsBackend::Default) {
-            preferredBackend = GraphicsBackend::D3D12;
-        }
-
-        GraphicsDevice* device = nullptr;
-        switch (preferredBackend)
-        {
-        case GraphicsBackend::D3D12:
-#if defined(ALIMER_D3D12)
-            if (GraphicsDeviceD3D12::IsSupported())
-            {
-                device = new GraphicsDeviceD3D12(devicePreference, validation);
-                ALIMER_LOGINFO("Direct3D12 backend created with success.");
-            }
-            else
-#else
-            {
-                ALIMER_LOGERROR("Direct3D12 backend is not supported.");
-            }
-#endif
-
-        default:
-            break;
-        }
-
-        return device;
-    }
-
     GraphicsDevice::~GraphicsDevice()
     {
         // Destroy undestroyed resources.
@@ -113,16 +78,142 @@ namespace alimer
             _gpuResources.clear();
         }
 
-        for (uint32_t i = 0u; i < 4u; ++i)
-        {
-            _contextPool[i].clear();
-        }
-
         // Destroy backend.
         Finalize();
 
         RemoveSubsystem(this);
         graphics = nullptr;
+    }
+
+    GraphicsDevice* GraphicsDevice::Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor)
+    {
+        if (graphics != nullptr)
+        {
+            ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
+        }
+
+        GraphicsBackend preferredBackend = descriptor->preferredBackend;
+        if (preferredBackend == GraphicsBackend::Default) {
+            preferredBackend = GetDefaultPlatformBackend();
+        }
+
+        GraphicsDevice* device = nullptr;
+        switch (preferredBackend)
+        {
+        case GraphicsBackend::Vulkan:
+#if defined(ALIMER_VULKAN)
+            if (GraphicsDeviceVk::IsSupported())
+            {
+                device = new GraphicsDeviceVk(applicationName, descriptor->devicePreference, descriptor->validation);
+                ALIMER_LOGINFO("Vulkan backend created with success.");
+            }
+            else
+#else
+            {
+                ALIMER_LOGERROR("Vulkan backend is not supported.");
+            }
+#endif
+
+        case GraphicsBackend::Direct3D12:
+#if defined(ALIMER_D3D12)
+            if (GraphicsDeviceD3D12::IsSupported())
+            {
+                device = new GraphicsDeviceD3D12(descriptor->devicePreference, descriptor->validation);
+                ALIMER_LOGINFO("Direct3D12 backend created with success.");
+            }
+            else
+#else
+            {
+                ALIMER_LOGERROR("Direct3D12 backend is not supported.");
+            }
+#endif
+
+        default:
+            break;
+        }
+
+        return device;
+    }
+
+    GraphicsBackend GraphicsDevice::GetDefaultPlatformBackend()
+    {
+        switch (GetPlatformType())
+        {
+        case PlatformType::Windows:
+        case PlatformType::UWP:
+        case PlatformType::XboxOne:
+            //if (IsBackendSupported(GraphicsBackend::Direct3D12))
+            //{
+            //    return GraphicsBackend::Direct3D12;
+            //}
+
+            if (IsBackendSupported(GraphicsBackend::Vulkan))
+            {
+                return GraphicsBackend::Vulkan;
+            }
+
+            return GraphicsBackend::Direct3D11;
+
+        case PlatformType::Android:
+        case PlatformType::Linux:
+            if (IsBackendSupported(GraphicsBackend::Vulkan))
+            {
+                return GraphicsBackend::Vulkan;
+            }
+            return GraphicsBackend::OpenGL;
+
+        case PlatformType::iOS:
+        case PlatformType::MacOS:
+        case PlatformType::AppleTV:
+            return GraphicsBackend::OpenGL;
+
+        case PlatformType::Web:
+            return GraphicsBackend::OpenGL;
+
+        default:
+            return GraphicsBackend::Null;
+        }
+    }
+
+    bool GraphicsDevice::IsBackendSupported(GraphicsBackend backend)
+    {
+        if (backend == GraphicsBackend::Default)
+        {
+            backend = GetDefaultPlatformBackend();
+        }
+
+        switch (backend)
+        {
+        case GraphicsBackend::Null:
+            return true;
+
+        case GraphicsBackend::Vulkan:
+#if defined(ALIMER_VULKAN)
+            return GraphicsDeviceVk::IsSupported();
+#else
+            return false;
+#endif
+
+        case GraphicsBackend::Direct3D12:
+#if defined(ALIMER_D3D12)
+            return GraphicsDeviceD3D12::IsSupported();
+#else
+            return false;
+#endif
+
+        case GraphicsBackend::Direct3D11:
+#if defined(ALIMER_D3D11)
+            return false; // GraphicsDeviceD3D11::IsSupported();
+#else
+            return false;
+#endif
+
+        case GraphicsBackend::OpenGL:
+            return false;
+
+        default:
+            return false;
+        }
     }
 
     bool GraphicsDevice::Initialize(const SwapChainDescriptor* descriptor)
@@ -131,13 +222,29 @@ namespace alimer
             return true;
         }
 
-        if (!InitializeImpl("Alimer", descriptor))
+        if (!InitializeImpl(descriptor))
         {
             return false;
         }
 
         _initialized = true;
         return _initialized;
+    }
+
+    bool GraphicsDevice::BeginFrame()
+    {
+        if (!BeginFrameImpl()) {
+            return false;
+        }
+
+        _frameId++;
+        return true;
+    }
+
+    uint32_t GraphicsDevice::EndFrame()
+    {
+        EndFrame(_frameId);
+        return _frameId;
     }
 
     void GraphicsDevice::OnAfterCreated()
@@ -150,76 +257,6 @@ namespace alimer
         //descriptor.minFilter = SamplerMinMagFilter::Linear;
         //descriptor.mipmapFilter = SamplerMipFilter::Linear;
         //_linearSampler = CreateSampler(&descriptor);
-    }
-
-    bool GraphicsDevice::BeginFrame()
-    {
-        if (_inBeginFrame)
-        {
-            ALIMER_LOGCRITICAL("Cannot nest BeginFrame calls, call EndFrame first.");
-        }
-
-        if (!BeginFrameImpl())
-        {
-            ALIMER_LOGCRITICAL("Failed to begin rendering frame.");
-        }
-
-        _inBeginFrame = true;
-        return true;
-    }
-
-    uint64_t GraphicsDevice::Frame()
-    {
-        if (!_inBeginFrame)
-        {
-            ALIMER_LOGCRITICAL("BeginFrame must be called before EndFrame.");
-        }
-
-        // Tick backend
-        EndFrameImpl();
-
-        _inBeginFrame = false;
-        return ++_frameIndex;
-    }
-
-    void GraphicsDevice::WaitIdle()
-    {
-        WaitIdleImpl();
-    }
-
-    Framebuffer* GraphicsDevice::GetDefaultFramebuffer() const {
-        return nullptr;
-    }
-
-    CommandContext* GraphicsDevice::AllocateContext(QueueType type) {
-        lock_guard<mutex> lock(_contextAllocationMutex);
-
-        auto& availableContexts = _availableContexts[(uint32_t)type];
-
-        CommandContext* ret = nullptr;
-        if (availableContexts.empty())
-        {
-            ret = nullptr; // CreateCommandContext(type);
-            _contextPool[(uint32_t)type].emplace_back(ret);
-            ALIMER_LOGDEBUG("CommandContext allocated");
-        }
-        else
-        {
-            ret = availableContexts.front();
-            availableContexts.pop();
-            ret->Reset();
-        }
-        ALIMER_ASSERT(ret != nullptr);
-        ALIMER_ASSERT(ret->GetQueueType() == type);
-
-        return ret;
-    }
-
-    void GraphicsDevice::FreeContext(CommandContext* context)
-    {
-        ALIMER_ASSERT(context != nullptr);
-        lock_guard<mutex> lock(_contextAllocationMutex);
-        _availableContexts[(uint32_t)context->GetQueueType()].push(context);
     }
 
     void GraphicsDevice::TrackResource(GPUResource* resource)

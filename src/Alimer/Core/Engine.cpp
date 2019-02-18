@@ -123,15 +123,15 @@ namespace alimer
         // Create main window and device if not headless
         if (!_headless) {
 #if defined(_DEBUG)
-            _settings.gpuValidation = true;
+            _settings.gpuSettings.validation = true;
 #endif
-            _graphicsDevice = GraphicsDevice::Create(GraphicsBackend::Default, _settings.preferredDevice, _settings.gpuValidation);
+            _graphicsDevice = GraphicsDevice::Create("Alimer", &_settings.gpuSettings);
             if (_graphicsDevice.IsNull()) {
                 ALIMER_LOGERROR("Failed to create GraphicsDevice instance. Running in headless moder");
                 _headless = true;
             }
             else {
-                WindowFlags windowFlags = WindowFlags::Visible;
+                WindowFlags windowFlags = WindowFlags::None;
                 if (_settings.resizable) {
                     windowFlags |= WindowFlags::Resizable;
                 }
@@ -152,7 +152,7 @@ namespace alimer
                 swapchainDescriptor.nativeDisplay = _renderWindow->GetNativeDisplay();
                 if (!_graphicsDevice->Initialize(&swapchainDescriptor))
                 {
-                    ALIMER_LOGERROR("Failed to initialize Graphics system.");
+                    ALIMER_LOGERROR("Failed to create command context.");
                     return false;
                 }
             }
@@ -217,10 +217,11 @@ namespace alimer
             return;
         }
 
+        auto context = _graphicsDevice->GetContext();
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-        auto& context = _graphicsDevice->GetContext();
-        context.BeginDefaultRenderPass(clearColor, 1.0f, 0);
-        context.EndRenderPass();
+        context->BeginDefaultRenderPass(clearColor, 1.0f, 0);
+        context->EndRenderPass();
+        //context->EndFrame();
 
         /*VgpuCommandBuffer commandBuffer = vgpuRequestCommandBuffer(VGPU_COMMAND_BUFFER_TYPE_GRAPHICS);
         vgpuCmdBeginDefaultRenderPass(commandBuffer, { 0.0f, 0.2f, 0.4f, 1.0f }, 1.0f, 0);
@@ -235,7 +236,7 @@ namespace alimer
         // TODO: Scene renderer
         // TODO: UI render.
 
-        // Advance to next frame.
-        _graphicsDevice->Frame();
+        // Tick gpu frame.
+        _graphicsDevice->EndFrame();
     }
 }

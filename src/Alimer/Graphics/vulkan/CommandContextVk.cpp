@@ -20,8 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "CommandBufferVk.h"
-#include "CommandQueueVk.h"
+#include "CommandContextVk.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "FramebufferVk.h"
@@ -31,101 +30,75 @@
 
 namespace alimer
 {
-    CommandBufferVk::CommandBufferVk(GPUDeviceVk* device, QueueType type, CommandQueueVk* commandQueue)
-        : CommandContext(device, type)
-        , _device(device)
-        , _commandQueue(commandQueue)
-        , _type(type)
+    CommandContextVk::CommandContextVk(GraphicsDeviceVk* device, VkCommandBuffer commandBuffer)
+        : CommandContext(device)
+        , _vkDevice(device->GetVkDevice())
+        , _commandBuffer(commandBuffer)
         , _supportsDebugUtils(device->GetFeaturesVk().supportsDebugUtils)
         , _supportsDebugMarker(device->GetFeaturesVk().supportsDebugMarker)
     {
-        VkCommandBufferAllocateInfo commandBufferAllocateInfo;
-        commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        commandBufferAllocateInfo.pNext = nullptr;
-        commandBufferAllocateInfo.commandPool = commandQueue->GetCommandPool();
-        commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        commandBufferAllocateInfo.commandBufferCount = 1;
-        vkThrowIfFailed(vkAllocateCommandBuffers(
-            _device->GetVkDevice(),
-            &commandBufferAllocateInfo,
-            &_commandBuffer)
-        );
-
-        _semaphore = _device->RequestSemaphore();
-
-        // Init recording
-        Begin();
     }
 
-    CommandBufferVk::~CommandBufferVk()
+    CommandContextVk::~CommandContextVk()
     {
-        if (_commandBuffer != VK_NULL_HANDLE)
+        /*auto deviceVk = StaticCast<GraphicsDeviceVk>(_device);
+        if (_state == State::Submitted)
         {
-            vkFreeCommandBuffers(_device->GetVkDevice(), _commandQueue->GetCommandPool(), 1, &_commandBuffer);
-            _commandBuffer = VK_NULL_HANDLE;
+            vkWaitForFences(_vkDevice, 1, &_fence, VK_TRUE, UINT64_MAX);
+        }
+        else
+        {
+            deviceVk->RecycleFence(_fence);
         }
 
-        _device->RecycleSemaphore(_semaphore);
+        if (_commandBuffer != VK_NULL_HANDLE)
+        {
+            vkFreeCommandBuffers(StaticCast<GraphicsDeviceVk>(_device)->GetVkDevice(), _commandQueue->GetCommandPool(), 1, &_commandBuffer);
+            _commandBuffer = VK_NULL_HANDLE;
+        }*/
     }
 
-    void CommandBufferVk::Begin()
+
+    void CommandContextVk::Begin(VkCommandBufferUsageFlags flags)
     {
         VkCommandBufferBeginInfo beginInfo;
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        beginInfo.flags = flags;
         beginInfo.pInheritanceInfo = nullptr;
         vkThrowIfFailed(
             vkBeginCommandBuffer(_commandBuffer, &beginInfo)
         );
 
-        //_graphicsState.Reset();
+        _state = State::InsideBegin;
+        _graphicsState.Reset();
+        _dirtyFlags = ~0u;
+        _currentPipeline = VK_NULL_HANDLE;
+        _currentPipelineLayout = VK_NULL_HANDLE;
+        _currentTopology = PrimitiveTopology::Count;
+        _currentSubpass = 0;
+        //_currentLayout = nullptr;
+        //_currentVkProgram = nullptr;
+        //memset(bindings.cookies, 0, sizeof(bindings.cookies));
+        memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
     }
 
-    void CommandBufferVk::End()
+    void CommandContextVk::End()
     {
+        // Manually end render pass.
+        if (IsInsideRenderPass())
+        {
+            EndRenderPass();
+        }
+
         vkThrowIfFailed(
             vkEndCommandBuffer(_commandBuffer)
         );
+
+        _state = State::Ended;
     }
 
-    void CommandBufferVk::FlushImpl(bool waitForCompletion)
-    {
-        End();
-
-        if (!waitForCompletion)
-        {
-            _device->SubmitCommandBuffer(_type, _commandBuffer, _semaphore);
-        }
-        else
-        {
-            VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-            submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &_commandBuffer;
-
-            // Create fence to ensure that the command buffer has finished executing
-            VkFenceCreateInfo fenceCreateInfo = {};
-            fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            fenceCreateInfo.flags = 0;
-            VkFence fence;
-            vkThrowIfFailed(vkCreateFence(_device->GetVkDevice(), &fenceCreateInfo, nullptr, &fence));
-
-            // Submit to the queue
-            vkThrowIfFailed(vkQueueSubmit(_commandQueue->GetQueue(), 1, &submitInfo, fence));
-
-            // Wait for the fence to signal that command buffer has finished executing.
-            vkThrowIfFailed(vkWaitForFences(_device->GetVkDevice(), 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
-            vkDestroyFence(_device->GetVkDevice(), fence, nullptr);
-        }
-    }
-
-    void CommandBufferVk::Reset()
-    {
-        // Begin recording
-        Begin();
-    }
-
-    void CommandBufferVk::PushDebugGroupImpl(const std::string& name, const Color4& color)
+    void CommandContextVk::PushDebugGroupImpl(const std::string& name, const Color4& color)
     {
         if (_supportsDebugUtils)
         {
@@ -149,7 +122,7 @@ namespace alimer
         }
     }
 
-    void CommandBufferVk::PopDebugGroupImpl()
+    void CommandContextVk::PopDebugGroupImpl()
     {
         if (_supportsDebugUtils)
         {
@@ -164,9 +137,9 @@ namespace alimer
         }
     }
 
-    void CommandBufferVk::InsertDebugMarkerImpl(const std::string& name, const Color4& color)
+    void CommandContextVk::InsertDebugMarkerImpl(const std::string& name, const Color4& color)
     {
-        if (_device->GetFeaturesVk().supportsDebugUtils)
+        if (_supportsDebugUtils)
         {
             if (vkCmdInsertDebugUtilsLabelEXT != nullptr)
             {
@@ -178,7 +151,7 @@ namespace alimer
                 vkCmdInsertDebugUtilsLabelEXT(_commandBuffer, &markerInfo);
             }
         }
-        else if (_device->GetFeaturesVk().supportsDebugMarker)
+        else if (_supportsDebugMarker)
         {
             VkDebugMarkerMarkerInfoEXT markerInfo;
             markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
@@ -189,21 +162,8 @@ namespace alimer
         }
     }
 
-    void CommandBufferVk::BeginContext()
-    {
-        _dirtyFlags = ~0u;
-        _currentPipeline = VK_NULL_HANDLE;
-        _currentPipelineLayout = VK_NULL_HANDLE;
-        _currentTopology = PrimitiveTopology::Count;
-        _currentSubpass = 0;
-        //_currentLayout = nullptr;
-        //_currentVkProgram = nullptr;
-        //memset(bindings.cookies, 0, sizeof(bindings.cookies));
-        memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
-        //CommandContext::BeginContext();
-    }
-
-    /*void CommandBufferVk::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    
+    /*void CommandContextVk::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
     {
         _currentFramebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
         _currentRenderPass = _currentFramebuffer->GetRenderPass();
@@ -252,9 +212,17 @@ namespace alimer
         vkCmdEndRenderPass(_handle);
     }*/
 
-    //void VulkanCommandBuffer::SetPipelineImpl(Pipeline* pipeline)
-    //{
-    //}
+
+    CommandContextVk::GraphicsState::GraphicsState()
+    {
+        Reset();
+    }
+
+    void CommandContextVk::GraphicsState::Reset()
+    {
+        _dirty = false;
+    }
+
 
 #if TODO
     void VulkanCommandBuffer::SetShaderImpl(Shader* shader)
@@ -605,16 +573,8 @@ namespace alimer
         return (memcmp(&a, &b, sizeof(T)) != 0);
     }
 
-    VulkanCommandBuffer::GraphicsState::GraphicsState()
-    {
-        Reset();
-    }
 
-    void VulkanCommandBuffer::GraphicsState::Reset()
-    {
-        _dirty = false;
-    }
-
+    
     void VulkanCommandBuffer::GraphicsState::SetVertexDescriptor(const VertexDescriptor* descriptor)
     {
         if (_vertexDescriptor != *descriptor)

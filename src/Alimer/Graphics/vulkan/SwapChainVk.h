@@ -34,16 +34,13 @@ namespace alimer
 	class SwapChainVk final 
 	{
 	public:
-        SwapChainVk(GPUDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
+        SwapChainVk(GraphicsDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
         ~SwapChainVk();
 
-        //uint32_t GetTextureCount() const override { return _imageCount; }
-        //uint32_t GetCurrentBackBuffer() const override { return _imageIndex; }
-        //GPUTexture* GetBackBufferTexture(uint32_t index) const override {
-        //    return nullptr;
-        //}
 
-        void BeginFrame();
+        VkResult AcquireNextImage(VkSemaphore semaphore, uint32_t *imageIndex);
+        VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore);
+
         VkSwapchainKHR GetVkHandle() const { return _handle; }
         uint32_t GetImageCount() const { return _imageCount; }
         uint32_t GetImageIndex() const { return _imageIndex; }
@@ -53,20 +50,19 @@ namespace alimer
         bool Resize(uint32_t width, uint32_t height);
 
 	private:
-        GPUDeviceVk*                _device;
+        GraphicsDeviceVk*           _device;
         VkSurfaceKHR                _surface = VK_NULL_HANDLE;
         VkSwapchainKHR              _handle = VK_NULL_HANDLE;
         uint32_t                    _width = 0;
         uint32_t                    _height = 0;
-        PixelFormat                 _colorFormat = PixelFormat::Unknown;
+        PixelFormat                 _colorFormat = PixelFormat::Undefined;
         bool                        _vSync;
         bool                        _tripleBuffer;
-        PixelFormat                 _depthStencilFormat;
+        PixelFormat                 _depthStencilFormat = PixelFormat::Undefined;
         SampleCount                 _samples;
         uint32_t                    _imageIndex = 0;
         uint32_t                    _imageCount = 0;
         std::vector<VkImage>        _images;
-        std::vector<VkSemaphore>    _imageSemaphores;
         std::vector<std::unique_ptr<TextureVk>> _swapchainTextures;
         std::vector<SharedPtr<Framebuffer>> _framebuffers;
 	};

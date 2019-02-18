@@ -22,18 +22,17 @@
 
 #pragma once
 
+#include "BackendVk.h"
 #include "../../Base/HashMap.h"
 #include "VulkanShader.h"
 #include <vector>
 
 namespace alimer
 {
-    class GPUDeviceVk;
-
     class VulkanPipelineLayout final
     {
     public:
-        VulkanPipelineLayout(GPUDeviceVk* device, uint64_t hash, const VulkanResourceLayout* layout);
+        VulkanPipelineLayout(GraphicsDeviceVk* device, uint64_t hash, const VulkanResourceLayout* layout);
         ~VulkanPipelineLayout();
 
         uint64_t GetHash() const { return _hash; }
@@ -41,7 +40,7 @@ namespace alimer
         VkPipelineLayout GetHandle() const { return _handle; }
 
     private:
-        GPUDeviceVk* _device;
+        GraphicsDeviceVk* _device;
         uint64_t _hash;
         VkPipelineLayout _handle = VK_NULL_HANDLE;
         VulkanResourceLayout _layout;
