@@ -23,22 +23,23 @@
 #pragma once
 
 #if defined(_WIN32) || defined(_WIN64)
-#ifndef NOMINMAX
-#    define NOMINMAX
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#   ifndef WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#   endif
+#   include <windows.h>
 #endif
 
 #include <wrl/client.h>
 
-#include <dxgi.h>
 #if defined(NTDDI_WIN10_RS2)
+#    include <dxgi1_6.h>
+#elif defined(NTDDI_WIN10_RS2)
 #    include <dxgi1_5.h>
 #else
-#include <dxgi1_4.h>
+#   include <dxgi1_4.h>
 #endif
 #include <d3d12.h>
 

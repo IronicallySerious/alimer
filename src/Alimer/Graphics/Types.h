@@ -43,13 +43,11 @@ namespace alimer
     static constexpr uint32_t MaxColorAttachments = 8u;
 
     /* Enums */
-    enum class PhysicalDevicePreference : uint32_t {
-        /// Prefer discrete GPU.
-        Discrete    = VGPU_DEVICE_PREFERENCE_DISCRETE,
-        /// Prefer integrated GPU.
-        Integrated  = VGPU_DEVICE_PREFERENCE_INTEGRATED,
+    enum class GpuPreference : uint32_t {
         /// No GPU preference.
-        DontCare    = VGPU_DEVICE_PREFERENCE_DONT_CARE
+        Unspecified = 0,
+        MinimumPower,
+        HighPerformance,
     };
 
     /// Enum describing the Graphics backend.
@@ -467,6 +465,32 @@ namespace alimer
     {
         ColorAttachmentAction           colors[MaxColorAttachments];
         DepthStencilAttachmentAction    depthStencil;
+    };
+
+    class TextureView;
+    struct RenderPassColorAttachmentDescriptor {
+        TextureView* attachment;
+        TextureView* resolveTarget;
+
+        LoadAction  loadAction;
+        StoreAction storeAction;
+        Color4      clearColor;
+    };
+
+    struct RenderPassDepthStencilAttachmentDescriptor {
+        TextureView* attachment;
+
+        LoadAction  depthLoadAction;
+        StoreAction depthStoreAction;
+        LoadAction  stencilLoadAction;
+        StoreAction stencilStoreAction;
+        float       clearDepth;
+        uint8_t     clearStencil;
+    };
+
+    struct RenderPassDescriptor {
+        RenderPassColorAttachmentDescriptor colorAttachments[MaxColorAttachments];
+        const RenderPassDepthStencilAttachmentDescriptor* depthStencilAttachment;
     };
 
     struct VertexElement

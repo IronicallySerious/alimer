@@ -21,11 +21,11 @@
 //
 
 #include "PipelineVk.h"
-#include "GPUDeviceVk.h"
+#include "GraphicsDeviceVk.h"
 
 namespace alimer
 {
-    PipelineVk::PipelineVk(GraphicsDeviceVk* device, const RenderPipelineDescriptor* descriptor)
+    PipelineVk::PipelineVk(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor)
         : Pipeline(device, descriptor)
     {
         VkGraphicsPipelineCreateInfo createInfo;
@@ -33,13 +33,13 @@ namespace alimer
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
 
-        if (vkCreateGraphicsPipelines(device->GetVkDevice(), VK_NULL_HANDLE, 1,
+        if (vkCreateGraphicsPipelines(device->GetImpl()->GetVkDevice(), VK_NULL_HANDLE, 1,
             &createInfo, nullptr, &_handle) != VK_SUCCESS) {
             ALIMER_LOGERROR("Vulkan: Failed to create render pipeline");
         }
     }
 
-    PipelineVk::PipelineVk(GraphicsDeviceVk* device, const ComputePipelineDescriptor* descriptor)
+    PipelineVk::PipelineVk(GraphicsDevice* device, const ComputePipelineDescriptor* descriptor)
         : Pipeline(device, descriptor)
     {
         VkComputePipelineCreateInfo createInfo;
@@ -59,7 +59,7 @@ namespace alimer
         createInfo.basePipelineHandle = VK_NULL_HANDLE;
         createInfo.basePipelineIndex = -1;
 
-        if (vkCreateComputePipelines(device->GetVkDevice(), VK_NULL_HANDLE, 1, &createInfo,
+        if (vkCreateComputePipelines(device->GetImpl()->GetVkDevice(), VK_NULL_HANDLE, 1, &createInfo,
             nullptr, &_handle) != VK_SUCCESS) {
             ALIMER_LOGERROR("Vulkan: Failed to create render pipeline");
         }
@@ -74,7 +74,7 @@ namespace alimer
     {
         if (_handle != VK_NULL_HANDLE)
         {
-            StaticCast<GraphicsDeviceVk>(_device)->DestroyPipeline(_handle);
+            _device->GetImpl()->DestroyPipeline(_handle);
             _handle = VK_NULL_HANDLE;
         }
     }

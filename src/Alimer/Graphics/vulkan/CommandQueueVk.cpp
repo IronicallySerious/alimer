@@ -22,12 +22,12 @@
 
 #include "CommandQueueVk.h"
 #include "CommandContextVk.h"
-#include "GPUDeviceVk.h"
+#include "GraphicsDeviceVk.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    CommandQueueVk::CommandQueueVk(GraphicsDeviceVk* device, VkQueue queue, uint32_t queueFamilyIndex)
+    CommandQueueVk::CommandQueueVk(GraphicsDevice* device, VkQueue queue, uint32_t queueFamilyIndex)
         : _device(device)
         , _queue(queue)
     {
@@ -37,7 +37,7 @@ namespace alimer
         //createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.queueFamilyIndex = queueFamilyIndex;
-        if (vkCreateCommandPool(device->GetVkDevice(), &createInfo, nullptr, &_commandPool) != VK_SUCCESS)
+        if (vkCreateCommandPool(device->GetImpl()->GetVkDevice(), &createInfo, nullptr, &_commandPool) != VK_SUCCESS)
         {
             ALIMER_LOGCRITICAL("Vulkan: Failed to create command pool");
         }
@@ -47,7 +47,7 @@ namespace alimer
     {
         if (_commandPool != VK_NULL_HANDLE)
         {
-            vkDestroyCommandPool(_device->GetVkDevice(), _commandPool, nullptr);
+            vkDestroyCommandPool(_device->GetImpl()->GetVkDevice(), _commandPool, nullptr);
             _commandPool = VK_NULL_HANDLE;
         }
     }

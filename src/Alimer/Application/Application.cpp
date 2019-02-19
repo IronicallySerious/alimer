@@ -33,8 +33,6 @@ namespace alimer
         : _exitCode(EXIT_SUCCESS)
         , _running(false)
         , _paused(false)
-        //, _entities{}
-        //, _systems(_entities)
         , _scene()
     {
         PlatformConstruct();

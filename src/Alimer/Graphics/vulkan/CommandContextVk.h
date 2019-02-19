@@ -31,7 +31,7 @@ namespace alimer
 	class CommandContextVk final : public CommandContext
 	{
 	public:
-        CommandContextVk(GraphicsDeviceVk* device, VkCommandBuffer commandBuffer);
+        CommandContextVk(GraphicsDevice* device, VkCommandBuffer commandBuffer);
 		~CommandContextVk() override;
 
         void Begin(VkCommandBufferUsageFlags flags);
@@ -59,8 +59,8 @@ namespace alimer
         void PopDebugGroupImpl() override;
         void InsertDebugMarkerImpl(const std::string& name, const Color4& color) override;
 
-        //void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
-        //void EndRenderPassImpl() override;
+        void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) override;
+        void EndRenderPassImpl() override;
 
         //void SetPipelineImpl(Pipeline* pipeline) override;
 

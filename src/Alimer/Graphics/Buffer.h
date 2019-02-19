@@ -23,6 +23,7 @@
 #pragma once
 
 #include <memory>
+#include "../Graphics/GPUBackend.h"
 #include "../Graphics/VertexFormat.h"
 #include "../Graphics/GPUResource.h"
 
@@ -33,9 +34,13 @@ namespace alimer
 	{
     protected:
         /// Constructor.
-        Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor);
+        Buffer(GraphicsDevice* device);
 
     public:
+        ~Buffer() override;
+
+        void Destroy() override;
+
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 
@@ -52,11 +57,21 @@ namespace alimer
         uint32_t GetStride() const { return _stride; }
         
     private:
+        bool Create(const void* pInitData);
+        void SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData);
+
         uint64_t _size = 0;
         BufferUsage _usage = BufferUsage::None;
-        uint32_t  _stride = 0;
+        uint32_t _stride = 0;
 
         /// CPU-side shadow data.
         std::unique_ptr<uint8_t[]> _shadowData;
+
+#if defined(ALIMER_VULKAN)
+        VkBuffer        _handle = VK_NULL_HANDLE;
+        VmaAllocation   _allocation = VK_NULL_HANDLE;
+#elif defined(ALIMER_D3D11)
+        ID3D11Buffer*   _handle = nullptr;
+#endif
 	};
 }

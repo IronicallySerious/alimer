@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,26 +22,41 @@
 
 #pragma once
 
-#include "BackendVk.h"
-#include "../Buffer.h"
+#include <cstddef>
+#include <type_traits>
 
-namespace alimer
-{
-	/// Vulkan Buffer implementation.
-	class BufferVk final : public Buffer
-	{
-	public:
-        BufferVk(GraphicsDeviceVk* device, const BufferDescriptor* descriptor, const void* pInitData);
-        ~BufferVk();
+#include <assert.h>
+#include <stddef.h>
+#include <stdlib.h>
 
-        //bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
+#if defined(_WIN32) || defined(_WIN64)
+#   include <malloc.h>
+#endif
 
-		VkBuffer GetVkBuffer() const { return _handle; }
-        VmaAllocation GetAllocation() const { return _allocation; }
-	private:
-        VkDevice        _vkDevice;
-        VkBuffer        _handle = VK_NULL_HANDLE;
-        VmaAllocator    _allocator;
-        VmaAllocation   _allocation = VK_NULL_HANDLE;
-	};
+namespace utils {
+    inline void* aligned_alloc(size_t size, size_t align) noexcept {
+        assert(align && !(align & align - 1));
+
+        void* p = nullptr;
+
+        // must be a power of two and >= sizeof(void*)
+        while (align < sizeof(void*)) {
+            align <<= 1;
+        }
+
+#if defined(WIN32)
+        p = ::_aligned_malloc(size, align);
+#else
+        ::posix_memalign(&p, align, size);
+#endif
+        return p;
+    }
+
+    inline void aligned_free(void* p) noexcept {
+#if defined(WIN32)
+        ::_aligned_free(p);
+#else
+        ::free(p);
+#endif
+    }
 }

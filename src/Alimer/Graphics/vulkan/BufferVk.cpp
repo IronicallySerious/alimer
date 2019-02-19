@@ -20,45 +20,48 @@
 // THE SOFTWARE.
 //
 
-#include "BufferVk.h"
-#include "GPUDeviceVk.h"
+#include "../Buffer.h"
+#include "GraphicsDeviceVk.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    BufferVk::BufferVk(GraphicsDeviceVk* device, const BufferDescriptor* descriptor, const void* pInitData)
-        : Buffer(device, descriptor)
-        , _vkDevice(device->GetVkDevice())
+    bool Buffer::Create(const void* pInitData)
     {
         VkBufferCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         createInfo.pNext = nullptr;
         createInfo.flags = 0;
-        createInfo.size = descriptor->size;
-        createInfo.usage = 0;
+        createInfo.size = _size;
+        createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.queueFamilyIndexCount = 0;
         createInfo.pQueueFamilyIndices = nullptr;
 
-        if (any(descriptor->usage & BufferUsage::Vertex))
+        if (any(_usage & BufferUsage::Vertex)) {
             createInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        }
 
-        if (any(descriptor->usage & BufferUsage::Index))
+        if (any(_usage & BufferUsage::Index)) {
             createInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        }
 
-        if (any(descriptor->usage & BufferUsage::Uniform))
+        if (any(_usage & BufferUsage::Uniform)) {
             createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        }
 
-        if (any(descriptor->usage & BufferUsage::Storage))
+        if (any(_usage & BufferUsage::Storage)) {
             createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        }
 
-        if (any(descriptor->usage & BufferUsage::Indirect))
+        if (any(_usage & BufferUsage::Indirect)) {
             createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+        }
 
         uint32_t sharing_indices[3];
-        const uint32_t graphics_queue_family_index = device->GetGraphicsQueueFamily();
-        const uint32_t compute_queue_family_index = device->GetComputeQueueFamily();
-        const uint32_t transfer_queue_family_index = device->GetTransferQueueFamily();
+        const uint32_t graphics_queue_family_index = _device->GetImpl()->GetGraphicsQueueFamily();
+        const uint32_t compute_queue_family_index = _device->GetImpl()->GetComputeQueueFamily();
+        const uint32_t transfer_queue_family_index = _device->GetImpl()->GetTransferQueueFamily();
         if (graphics_queue_family_index != compute_queue_family_index
             || graphics_queue_family_index != transfer_queue_family_index)
         {
@@ -87,7 +90,7 @@ namespace alimer
         VmaAllocationInfo allocationInfo = {};
         if (noAllocation)
         {
-            result = vkCreateBuffer(device->GetVkDevice(), &createInfo, nullptr, &_handle);
+            result = vkCreateBuffer(_device->GetImpl()->GetVkDevice(), &createInfo, nullptr, &_handle);
         }
         else
         {
@@ -119,7 +122,7 @@ namespace alimer
             }
 
             result = vmaCreateBuffer(
-                _allocator,
+                _device->GetImpl()->GetVmaAllocator(),
                 &createInfo,
                 &allocCreateInfo,
                 &_handle,
@@ -130,7 +133,7 @@ namespace alimer
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERROR("[Vulkan] - Failed to create buffer");
-            return;
+            return false;
         }
 
         // Handle
@@ -148,24 +151,24 @@ namespace alimer
                 vmaUnmapMemory(_allocator, _allocation);
             }
         }*/
+
+        return true;
     }
 
-    BufferVk::~BufferVk()
+    void Buffer::Destroy()
     {
-        if (_allocation != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(_allocator, _handle, _allocation);
+        if (_allocation != VK_NULL_HANDLE) {
+            vmaDestroyBuffer(_device->GetImpl()->GetVmaAllocator(), _handle, _allocation);
             _allocation = VK_NULL_HANDLE;
         }
         else if (_handle != VK_NULL_HANDLE)
         {
-            vkDestroyBuffer(_vkDevice, _handle, nullptr);
+            vkDestroyBuffer(_device->GetImpl()->GetVkDevice(), _handle, nullptr);
             _handle = VK_NULL_HANDLE;
         }
     }
 
-    /*bool VulkanBuffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
-    {
-        return static_cast<VulkanGraphicsDevice*>(_device)->BufferSubData(this, offset, size, pData) == VK_SUCCESS;
-    }*/
+    void Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) {
+
+    }
 }

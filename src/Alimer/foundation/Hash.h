@@ -22,27 +22,40 @@
 
 #pragma once
 
-#include <foundation/foundation.h>
-#include <string>
+#include <stdint.h>
+#include <stddef.h>
 
-namespace alimer
+namespace utils
 {
-    struct Hash
+    namespace hash
     {
-        uint64_t A;
-        uint64_t B;
-
-        Hash() : A(0), B(0) {}
-        Hash(uint64_t a, uint64_t b) : A(a), B(b) {}
-
-        std::string ToString() const;
-
-        bool operator==(const Hash& other)
-        {
-            return A == other.A && B == other.B;
+        inline uint32_t murmur3(const uint32_t* key, size_t wordCount, uint32_t seed) {
+            uint32_t h = seed;
+            size_t i = wordCount;
+            do {
+                uint32_t k = *key++;
+                k *= 0xcc9e2d51;
+                k = (k << 15) | (k >> 17);
+                k *= 0x1b873593;
+                h ^= k;
+                h = (h << 13) | (h >> 19);
+                h = (h * 5) + 0xe6546b64;
+            } while (--i);
+            h ^= wordCount;
+            h ^= h >> 16;
+            h *= 0x85ebca6b;
+            h ^= h >> 13;
+            h *= 0xc2b2ae35;
+            h ^= h >> 16;
+            return h;
         }
-    };
 
-    ALIMER_API Hash GenerateHash(const void* key, int32_t len, uint32_t seed = 0);
-    ALIMER_API Hash CombineHashes(Hash a, Hash b);
-}
+        template<typename T>
+        struct MurmurHashFn {
+            uint32_t operator()(const T& key) const {
+                static_assert(0 == (sizeof(key) & 3), "Hashing requires a size that is a multiple of 4.");
+                return murmur3((const uint32_t*)&key, sizeof(key) / 4, 0);
+            }
+        };
+    } 
+} 

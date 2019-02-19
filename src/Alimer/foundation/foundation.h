@@ -23,5 +23,4 @@
 #pragma once
 
 #include <foundation/platform.h>
-#include <foundation/log.h>
 #include <foundation/version.h>

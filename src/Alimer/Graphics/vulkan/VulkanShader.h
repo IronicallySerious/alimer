@@ -25,7 +25,7 @@
 #include "../Shader.h"
 #include "../Types.h"
 #include "BackendVk.h"
-#include "../../Base/HashMap.h"
+#include "../../foundation/HashMap.h"
 
 namespace alimer
 {

@@ -49,34 +49,20 @@ namespace alimer
 
     void CommandContext::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
-        /*RenderPassBeginDescriptor descriptor = {};
-        descriptor.colors[0].loadAction = LoadAction::Clear;
-        descriptor.colors[0].storeAction = StoreAction::Store;
-        descriptor.colors[0].clearColor = clearColor;
-
-        Framebuffer* framebuffer = _device->GetBackbufferFramebuffer();
-        if (framebuffer->HasDepthStencilAttachment())
-        {
-            descriptor.depthStencil.depthLoadAction = LoadAction::Clear;
-            descriptor.depthStencil.depthStoreAction = StoreAction::Store;
-            descriptor.depthStencil.stencilLoadAction = LoadAction::DontCare;
-            descriptor.depthStencil.stencilStoreAction = StoreAction::DontCare;
-            descriptor.depthStencil.clearDepth = clearDepth;
-            descriptor.depthStencil.clearStencil = clearStencil;
-        }
-
-        BeginRenderPass(_device->GetBackbufferFramebuffer(), &descriptor);*/
+        _insideRenderPass = true;
+        BeginRenderPassImpl(nullptr);
     }
 
-    void CommandContext::BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    void CommandContext::BeginRenderPass(const RenderPassDescriptor* descriptor)
     {
+        ALIMER_ASSERT(descriptor);
         _insideRenderPass = true;
-        //BeginRenderPassImpl(framebuffer, descriptor);
+        BeginRenderPassImpl(descriptor);
     }
 
     void CommandContext::EndRenderPass()
     {
-        //EndRenderPassImpl();
+        EndRenderPassImpl();
         _insideRenderPass = false;
     }
 

@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Core/Object.h"
+#include "../Graphics/GPUBackend.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
 #include "../Graphics/CommandContext.h"
 #include "../Graphics/Texture.h"
@@ -41,10 +42,12 @@ namespace alimer
 
     struct GraphicsDeviceDescriptor
     {
-        GraphicsBackend preferredBackend = GraphicsBackend::Default;
-        PhysicalDevicePreference devicePreference = PhysicalDevicePreference::Discrete;
+        GpuPreference devicePreference = GpuPreference::HighPerformance;
         bool validation = false;
+        bool headless = false;
     };
+
+    class GraphicsImpl;
 
     /// Low-level graphics module.
     class ALIMER_API GraphicsDevice : public Object
@@ -55,11 +58,11 @@ namespace alimer
         ALIMER_OBJECT(GraphicsDevice, Object);
 
     public:
+        /// Is backend supported?
+        static bool IsSupported();
+
         /// Create factory.
         static GraphicsDevice* Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
-
-        static GraphicsBackend GetDefaultPlatformBackend();
-        static bool IsBackendSupported(GraphicsBackend backend);
 
         /// Destructor.
         virtual ~GraphicsDevice() override;
@@ -77,16 +80,26 @@ namespace alimer
         inline GraphicsBackend GetBackend() const { return _backend; }
 
         /// Get the device features.
-        inline const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
+        const GraphicsDeviceFeatures& GetFeatures() const;
 
         /// Get the device limits
-        inline const GraphicsDeviceLimits& GetLimits() const { return _limits; }
+        const GraphicsDeviceLimits& GetLimits() const;
 
         /// Get the frame command context.
-        virtual SharedPtr<CommandContext> GetContext() const = 0;
+        SharedPtr<CommandContext> GetContext() const;
 
         /// Return whether rendering initialized.
         bool IsInitialized() const { return _initialized; }
+
+        /// Return graphics implementation, which holds the actual API-specific resources.
+        GraphicsImpl* GetImpl() const { return _impl; }
+
+        /// Get the current backbuffer texture;
+        //virtual SharedPtr<Texture> GetCurrentColorTexture() const = 0;
+        /// Get the current backbuffer texture;
+        //virtual SharedPtr<Texture> GetCurrentDepthStencilTexture() const = 0;
+        /// Get the current backbuffer texture;
+        //virtual SharedPtr<Texture> GetCurrentMultisampleColorTexture() const = 0;
 
     protected:
         /// Add a GPUResource to keep track of. 
@@ -98,20 +111,15 @@ namespace alimer
         void OnAfterCreated();
 
     private:
-        virtual void Finalize() {}
-        virtual bool BeginFrameImpl() = 0;
-        virtual void EndFrame(uint32_t frameId) = 0;
-        virtual bool InitializeImpl(const SwapChainDescriptor* descriptor) = 0;
-
-    protected:
         /// Constructor.
-        GraphicsDevice(GraphicsBackend backend, PhysicalDevicePreference devicePreference, bool validation);
+        GraphicsDevice(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
 
+        /// Implementation.
+        GraphicsImpl*               _impl = nullptr;
         GraphicsBackend             _backend;
-        PhysicalDevicePreference    _devicePreference;
+        GpuPreference               _devicePreference;
+        bool                        _headless = false;
         bool                        _validation = false;
-        GraphicsDeviceFeatures      _features = {};
-        GraphicsDeviceLimits        _limits = {};
         bool                        _initialized = false;
         std::vector<GPUResource*>   _gpuResources;
         std::mutex                  _gpuResourceMutex;

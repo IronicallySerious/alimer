@@ -21,16 +21,15 @@
 //
 
 #include "SwapChainVk.h"
-#include "TextureVk.h"
 #include "FramebufferVk.h"
-#include "GPUDeviceVk.h"
+#include "GraphicsDeviceVk.h"
 #include "../../Core/Log.h"
 
 using namespace std;
 
 namespace alimer
 {
-    SwapChainVk::SwapChainVk(GraphicsDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor)
+    SwapChainVk::SwapChainVk(GraphicsDevice* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor)
         : _device(device)
         , _surface(surface)
         , _vSync(descriptor->vsync)
@@ -38,9 +37,9 @@ namespace alimer
         , _samples(descriptor->samples)
     {
         if (descriptor->depthStencil) {
-            _depthStencilFormat = device->GetDefaultDepthStencilFormat();
+            _depthStencilFormat = device->GetImpl()->GetDefaultDepthStencilFormat();
             if (_depthStencilFormat == PixelFormat::Undefined) {
-                _depthStencilFormat = device->GetDefaultDepthFormat();
+                _depthStencilFormat = device->GetImpl()->GetDefaultDepthFormat();
             }
         }
 
@@ -56,13 +55,13 @@ namespace alimer
             //    vkDestroyImageView(_device->GetVkDevice(), buffers[i].view, nullptr);
             }
 
-            vkDestroySwapchainKHR(_device->GetVkDevice(), _handle, nullptr);
+            //vkDestroySwapchainKHR(_device->GetVkDevice(), _handle, nullptr);
             _handle = VK_NULL_HANDLE;
         }
 
         if (_surface != VK_NULL_HANDLE)
         {
-            vkDestroySurfaceKHR(_device->GetVkInstance(), _surface, nullptr);
+            //vkDestroySurfaceKHR(_device->GetVkInstance(), _surface, nullptr);
             _surface = VK_NULL_HANDLE;
         }
 
@@ -70,13 +69,13 @@ namespace alimer
 
     void SwapChainVk::Resize()
     {
-        vkDeviceWaitIdle(_device->GetVkDevice());
+        //vkDeviceWaitIdle(_device->GetVkDevice());
         Resize(_width, _height);
     }
 
     bool SwapChainVk::Resize(uint32_t width, uint32_t height)
     {
-        VkPhysicalDevice physicalDevice = _device->GetVkPhysicalDevice();
+        /*VkPhysicalDevice physicalDevice = _device->GetVkPhysicalDevice();
 
         VkSurfaceCapabilitiesKHR surfaceCaps;
         if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, _surface, &surfaceCaps) != VK_SUCCESS)
@@ -175,7 +174,7 @@ namespace alimer
             desiredNumberOfSwapchainImages = surfaceCaps.maxImageCount;
         }
 
-        ALIMER_LOGINFO("Vulkan: Targeting {} swapchain images.", desiredNumberOfSwapchainImages);
+        ALIMER_LOGDEBUG("Vulkan: Targeting {} swapchain images.", desiredNumberOfSwapchainImages);
 
         VkSurfaceTransformFlagBitsKHR preTransform;
         if (surfaceCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
@@ -220,19 +219,17 @@ namespace alimer
         // Enable transfer source on swap chain images if supported.
         if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
             createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-            //textureUsage |= TextureUsage::TransferSrc;
         }
 
         // Enable transfer destination on swap chain images if supported
         if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
             createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-            //textureUsage |= TextureUsage::TransferDest;
         }
 
         VkResult result = vkCreateSwapchainKHR(_device->GetVkDevice(), &createInfo, nullptr, &_handle);
         if (result != VK_SUCCESS)
         {
-            ALIMER_LOGCRITICAL("Vulkan: Failed to create swapchain, error: {}", vkGetVulkanResultString(result));
+            ALIMER_LOGCRITICAL("Vulkan: Failed to create swapchain, error: {}", GetVkResultString(result));
             return false;
         }
 
@@ -241,7 +238,6 @@ namespace alimer
             for (uint32_t i = 0u; i < _imageCount; ++i)
             {
                 _swapchainTextures[i].reset(nullptr);
-                //vkDestroyImageView(_device->GetVkDevice(), buffers[i].view, nullptr);
             }
 
             vkDestroySwapchainKHR(_device->GetVkDevice(), oldSwapchain, nullptr);
@@ -267,6 +263,9 @@ namespace alimer
         else if (format.format == VK_FORMAT_R8G8B8A8_SRGB) {
             _colorFormat = PixelFormat::RGBA8UNormSrgb;
         }
+
+        // Create render pass
+        CreateRenderPass();
 
         // Create command buffer for transition or clear 
         VkCommandBuffer setupSwapchainCmdBuffer = _device->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -323,17 +322,81 @@ namespace alimer
             // Create backend framebuffer.
             //FramebufferDescriptor fboDescriptor = {};
             //fboDescriptor.colorAttachments[0].texture = _swapchainTextures[i].get();;
-            //_framebuffers[i] = new FramebufferVk(_device, &fboDescriptor);
+            //_framebuffers[i] = new FramebufferVk(_device, _renderPass, &fboDescriptor);
         }
 
         _device->FlushCommandBuffer(setupSwapchainCmdBuffer, true);
-
+        */
         return true;
+    }
+
+    void SwapChainVk::CreateRenderPass()
+    {
+        if (_renderPass != VK_NULL_HANDLE) {
+            //vkDestroyRenderPass(_device->GetVkDevice(), _renderPass, nullptr);
+        }
+
+        /*VkAttachmentDescription attachments[4u] = {};
+        uint32_t attachmentCount = 0u;
+        VkAttachmentReference colorReference;
+        VkAttachmentReference resolveReference;
+        VkAttachmentReference depthReference;
+
+        VkSubpassDescription subpassDescription;
+        subpassDescription.flags = 0u;
+        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpassDescription.inputAttachmentCount = 0;
+        subpassDescription.pInputAttachments = nullptr;
+        subpassDescription.colorAttachmentCount = 1;
+        subpassDescription.pColorAttachments = &colorReference;
+        subpassDescription.pResolveAttachments = nullptr;
+        subpassDescription.pDepthStencilAttachment = nullptr;
+        subpassDescription.preserveAttachmentCount = 0;
+        subpassDescription.pPreserveAttachments = nullptr;
+
+        // Subpass dependencies for layout transitions
+        VkSubpassDependency dependencies[2u];
+
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        dependencies[1].srcSubpass = 0;
+        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        VkRenderPassCreateInfo createInfo;
+        createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0u;
+        createInfo.attachmentCount = attachmentCount;
+        createInfo.pAttachments = attachments;
+        createInfo.subpassCount = 1u;
+        createInfo.pSubpasses = &subpassDescription;
+        createInfo.dependencyCount = 2u;
+        createInfo.pDependencies = dependencies;
+        VkResult result = vkCreateRenderPass(_device->GetVkDevice(), &createInfo, nullptr, &_renderPass);
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("Vulkan: Failed to create render pass: '{}'", GetVkResultString(result));
+        }
+        else
+        {
+            ALIMER_LOGDEBUG("Vulkan: Created render pass with success");
+        }*/
     }
 
     VkResult SwapChainVk::AcquireNextImage(VkSemaphore semaphore, uint32_t *imageIndex)
     {
-        return vkAcquireNextImageKHR(_device->GetVkDevice(), _handle, UINT64_MAX, semaphore, (VkFence)nullptr, imageIndex);
+        return vkAcquireNextImageKHR(_device->GetImpl()->GetVkDevice(), _handle, UINT64_MAX, semaphore, (VkFence)nullptr, imageIndex);
     }
 
     VkResult SwapChainVk::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)

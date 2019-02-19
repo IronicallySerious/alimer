@@ -27,18 +27,20 @@
 
 namespace alimer
 {
+    class GraphicsDevice;
+
 	/// Vulkan CommandQueue implementation.
 	class CommandQueueVk final
 	{
 	public:
-        CommandQueueVk(GraphicsDeviceVk* device, VkQueue queue, uint32_t queueFamilyIndex);
+        CommandQueueVk(GraphicsDevice* device, VkQueue queue, uint32_t queueFamilyIndex);
         ~CommandQueueVk();
 
         VkQueue         GetQueue() const { return _queue; }
         VkCommandPool   GetCommandPool() const { return _commandPool; }
 
 	private:
-        GraphicsDeviceVk* _device;
+        GraphicsDevice* _device;
         VkQueue _queue;
         VkCommandPool _commandPool = VK_NULL_HANDLE;
 	};

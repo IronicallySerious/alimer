@@ -20,11 +20,9 @@
 // THE SOFTWARE.
 //
 
-#include "GPUDeviceVk.h"
+#include "GraphicsDeviceVk.h"
 #include "CommandQueueVk.h"
 #include "CommandContextVk.h"
-#include "TextureVk.h"
-#include "BufferVk.h"
 #include "SwapChainVk.h"
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -77,7 +75,7 @@ namespace alimer
         const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
         void *pUserData)
     {
-        //GPUDeviceVk* device = static_cast<GPUDeviceVk*>(pUserData);
+        //auto device = static_cast<GraphicsDeviceVk*>(pUserData);
 
         switch (messageSeverity)
         {
@@ -147,7 +145,7 @@ namespace alimer
         size_t, int32_t messageCode, const char *pLayerPrefix,
         const char *pMessage, void *pUserData)
     {
-        //GPUDeviceVk* device = static_cast<GPUDeviceVk*>(pUserData);
+        //auto device = static_cast<GraphicsDeviceVk*>(pUserData);
 
         // False positives about lack of srcAccessMask/dstAccessMask.
         if (strcmp(pLayerPrefix, "DS") == 0 && messageCode == 10)
@@ -176,7 +174,7 @@ namespace alimer
         return VK_FALSE;
     }
 
-    static VkBool32 QueryPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
+    /*static VkBool32 QueryPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
     {
         // TODO: @see: glfwGetPhysicalDevicePresentationSupport
 #if defined(_WIN32) || defined(_WIN64)
@@ -187,9 +185,9 @@ namespace alimer
         // TODO:
         return VK_TRUE;
 #endif
-    }
+    }*/
 
-    bool GraphicsDeviceVk::IsSupported()
+    bool GraphicsDevice::IsSupported()
     {
         VkResult result;
         uint32_t extensionsCount;
@@ -297,16 +295,16 @@ namespace alimer
         return true;
     }
 
-    GraphicsDeviceVk::GraphicsDeviceVk(const char* applicationName, PhysicalDevicePreference devicePreference, bool validation)
-        : GraphicsDevice(GraphicsBackend::Vulkan, devicePreference, validation)
-        , _headless(false)
+    GraphicsImpl::GraphicsImpl(const char* applicationName, const GraphicsDeviceDescriptor* descriptor)
+        : _validation(descriptor->validation)
+        , _headless(descriptor->headless)
     {
         CreateInstance(applicationName);
-        SelectPhysicalDevice(devicePreference);
+        SelectPhysicalDevice(descriptor->devicePreference);
         InitializeFeatures();
     }
 
-    GraphicsDeviceVk::~GraphicsDeviceVk()
+    GraphicsImpl::~GraphicsImpl()
     {
         WaitIdle();
 
@@ -344,11 +342,6 @@ namespace alimer
             vmaDestroyAllocator(_memoryAllocator);
             _memoryAllocator = VK_NULL_HANDLE;
         }
-    }
-
-    void GraphicsDeviceVk::Finalize()
-    {
-        WaitIdle();
 
         if (_debugCallback != VK_NULL_HANDLE)
         {
@@ -365,7 +358,7 @@ namespace alimer
         vkDestroyInstance(_instance, nullptr);
     }
 
-    void GraphicsDeviceVk::CreateInstance(const char* applicationName)
+    void GraphicsImpl::CreateInstance(const char* applicationName)
     {
         VkApplicationInfo appInfo;
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -475,7 +468,7 @@ namespace alimer
         }
     }
 
-    void GraphicsDeviceVk::SelectPhysicalDevice(PhysicalDevicePreference devicePreference)
+    void GraphicsImpl::SelectPhysicalDevice(GpuPreference devicePreference)
     {
         uint32_t gpuCount = 0;
         vkEnumeratePhysicalDevices(_instance, &gpuCount, nullptr);
@@ -509,13 +502,13 @@ namespace alimer
             {
             case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
                 score += 100u;
-                if (devicePreference == PhysicalDevicePreference::Discrete) {
+                if (devicePreference == GpuPreference::HighPerformance) {
                     score += 1000u;
                 }
                 break;
             case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
                 score += 90u;
-                if (devicePreference == PhysicalDevicePreference::Integrated) {
+                if (devicePreference == GpuPreference::MinimumPower) {
                     score += 1000u;
                 }
                 break;
@@ -586,7 +579,7 @@ namespace alimer
         ALIMER_LOGDEBUG("Selected Vulkan GPU: {}", _physicalDeviceProperties.deviceName);
     }
 
-    void GraphicsDeviceVk::CreateLogicalDevice(VkSurfaceKHR surface)
+    void GraphicsImpl::CreateLogicalDevice(VkSurfaceKHR surface)
     {
         /// Create surface and logical device,
         /// some code adapted from https://github.com/Themaister/Granite
@@ -930,7 +923,7 @@ namespace alimer
         vkGetDeviceQueue(_device, _transferQueueFamily, transferQueueIndex, &_transferQueue);
     }
 
-    void GraphicsDeviceVk::InitializeFeatures()
+    void GraphicsImpl::InitializeFeatures()
     {
         _features.SetBackend(GraphicsBackend::Vulkan);
         _features.SetVendorId(_physicalDeviceProperties.vendorID);
@@ -943,15 +936,14 @@ namespace alimer
         _features.SetMinStorageBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minStorageBufferOffsetAlignment));
     }
 
-    void GraphicsDeviceVk::WaitIdle()
+    void GraphicsImpl::WaitIdle()
     {
         vkThrowIfFailed(
             vkDeviceWaitIdle(_device)
         );
     }
 
-
-    VkSurfaceKHR GraphicsDeviceVk::CreateSurface(const SwapChainDescriptor* descriptor)
+    VkSurfaceKHR GraphicsImpl::CreateSurface(const SwapChainDescriptor* descriptor)
     {
 #if defined(_WIN32) || defined(_WIN64)
         VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
@@ -1023,7 +1015,7 @@ namespace alimer
         return surface;
     }
 
-    bool GraphicsDeviceVk::InitializeImpl(const SwapChainDescriptor* descriptor)
+    bool GraphicsImpl::InitializeImpl(const SwapChainDescriptor* descriptor)
     {
         VkSurfaceKHR surface = _headless ? VK_NULL_HANDLE : CreateSurface(descriptor);
         CreateLogicalDevice(surface);
@@ -1042,7 +1034,7 @@ namespace alimer
         );
 
         // Create swap chain.
-        _swapChain = new SwapChainVk(this, surface, descriptor);
+        //_swapChain = new SwapChainVk(this, surface, descriptor);
 
         _frameIndex = _swapchainImageIndex = 0u;
         _maxInflightFrames = _swapChain != nullptr ? _swapChain->GetImageCount() : 3u;
@@ -1090,17 +1082,17 @@ namespace alimer
             cmdBufAllocateInfo.commandBufferCount = _maxInflightFrames;
             vkThrowIfFailed(vkAllocateCommandBuffers(_device, &cmdBufAllocateInfo, vkCommandBuffers.data()));
 
-            for (uint32_t i = 0u; i < _maxInflightFrames; i++)
+            /*for (uint32_t i = 0u; i < _maxInflightFrames; i++)
             {
                 _commandBuffers[i] = new CommandContextVk(this, vkCommandBuffers[i]);
-            }
+            }*/
         }
 
-        OnAfterCreated();
+        //OnAfterCreated();
         return true;
     }
 
-    bool GraphicsDeviceVk::BeginFrameImpl()
+    bool GraphicsImpl::BeginFrameImpl()
     {
         // Wait to end previous frame.
         VkFence fence = _waitFences[_frameIndex];
@@ -1119,14 +1111,14 @@ namespace alimer
             vkThrowIfFailed(result);
         }
 
-        _commandBuffers[_swapchainImageIndex]->Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+        //_commandBuffers[_swapchainImageIndex]->Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
         return true;
     }
 
-    void GraphicsDeviceVk::EndFrame(uint32_t frameId)
+    void GraphicsImpl::EndFrame(uint32_t frameId)
     {
-        _commandBuffers[_swapchainImageIndex]->End();
+        /*_commandBuffers[_swapchainImageIndex]->End();
 
         VkCommandBuffer commandBuffer = _commandBuffers[_swapchainImageIndex]->GetVkCommandBuffer();
         const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1139,7 +1131,7 @@ namespace alimer
         submitInfo.signalSemaphoreCount = 1u;
         submitInfo.pCommandBuffers = &commandBuffer;
         submitInfo.commandBufferCount = 1u;
-        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _waitFences[_frameIndex]));
+        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _waitFences[_frameIndex]));*/
 
         VkResult result = _swapChain->QueuePresent(_graphicsQueue, _swapchainImageIndex, _renderCompleteSemaphores[_frameIndex]);
         if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
@@ -1157,12 +1149,27 @@ namespace alimer
         _frameIndex = (_frameIndex + 1u) % _maxInflightFrames;
     }
 
-    SharedPtr<CommandContext> GraphicsDeviceVk::GetContext() const
+    SharedPtr<CommandContext> GraphicsImpl::GetContext() const
     {
         return _commandBuffers[_swapchainImageIndex];
     }
 
-    bool GraphicsDeviceVk::ImageFormatIsSupported(VkFormat format, VkFormatFeatureFlags required, VkImageTiling tiling) const
+    SharedPtr<Texture> GraphicsImpl::GetCurrentColorTexture() const
+    {
+        return nullptr;
+    }
+
+    SharedPtr<Texture> GraphicsImpl::GetCurrentDepthStencilTexture() const
+    {
+        return nullptr;
+    }
+
+    SharedPtr<Texture> GraphicsImpl::GetCurrentMultisampleColorTexture() const
+    {
+        return nullptr;
+    }
+
+    bool GraphicsImpl::ImageFormatIsSupported(VkFormat format, VkFormatFeatureFlags required, VkImageTiling tiling) const
     {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(_physicalDevice, format, &props);
@@ -1170,7 +1177,7 @@ namespace alimer
         return (flags & required) == required;
     }
     
-    PixelFormat GraphicsDeviceVk::GetDefaultDepthStencilFormat() const
+    PixelFormat GraphicsImpl::GetDefaultDepthStencilFormat() const
     {
         if (ImageFormatIsSupported(VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL)) {
             return PixelFormat::Depth24UNormStencil8;
@@ -1183,7 +1190,7 @@ namespace alimer
         return PixelFormat::Undefined;
     }
 
-    PixelFormat GraphicsDeviceVk::GetDefaultDepthFormat() const
+    PixelFormat GraphicsImpl::GetDefaultDepthFormat() const
     {
         if (ImageFormatIsSupported(VK_FORMAT_D32_SFLOAT, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL)) {
             return PixelFormat::Depth32Float;
@@ -1200,7 +1207,7 @@ namespace alimer
         return PixelFormat::Undefined;
     }
 
-    VkCommandBuffer GraphicsDeviceVk::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
+    VkCommandBuffer GraphicsImpl::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
     {
         VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         info.commandPool = _graphicsCommandPool;
@@ -1222,12 +1229,12 @@ namespace alimer
         return vkCommandBuffer;
     }
 
-    void GraphicsDeviceVk::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
+    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
     {
         FlushCommandBuffer(commandBuffer, _graphicsQueue, free);
     }
 
-    void GraphicsDeviceVk::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
+    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
     {
         if (commandBuffer == VK_NULL_HANDLE) {
             return;
@@ -1258,7 +1265,7 @@ namespace alimer
         }
     }
 
-    VkSemaphore GraphicsDeviceVk::RequestSemaphore()
+    VkSemaphore GraphicsImpl::RequestSemaphore()
     {
         VkSemaphore semaphore;
         if (_semaphores.empty())
@@ -1278,12 +1285,12 @@ namespace alimer
         return semaphore;
     }
 
-    void GraphicsDeviceVk::RecycleSemaphore(VkSemaphore semaphore)
+    void GraphicsImpl::RecycleSemaphore(VkSemaphore semaphore)
     {
         _semaphores.push_back(semaphore);
     }
 
-    VkFence GraphicsDeviceVk::RequestFence()
+    VkFence GraphicsImpl::RequestFence()
     {
         VkFence fence;
         if (_fences.empty())
@@ -1304,12 +1311,12 @@ namespace alimer
         return fence;
     }
 
-    void GraphicsDeviceVk::RecycleFence(VkFence fence)
+    void GraphicsImpl::RecycleFence(VkFence fence)
     {
         _fences.push_back(fence);
     }
 
-    void GraphicsDeviceVk::DestroySampler(VkSampler handle)
+    void GraphicsImpl::DestroySampler(VkSampler handle)
     {
 #if !defined(NDEBUG)
         //ALIMER_ASSERT(std::find(frame().destroyedSamplers.begin(), frame().destroyedSamplers.end(), handle) == frame().destroyedSamplers.end());
@@ -1317,7 +1324,7 @@ namespace alimer
         //frame().destroyedSamplers.push_back(handle);
     }
 
-    void GraphicsDeviceVk::DestroyPipeline(VkPipeline handle)
+    void GraphicsImpl::DestroyPipeline(VkPipeline handle)
     {
 #if !defined(NDEBUG)
         //ALIMER_ASSERT(std::find(frame().destroyedPipelines.begin(), frame().destroyedPipelines.end(), handle) == frame().destroyedPipelines.end());
@@ -1325,7 +1332,7 @@ namespace alimer
         //frame().destroyedPipelines.push_back(handle);
     }
 
-    void GraphicsDeviceVk::DestroyImage(VkImage handle)
+    void GraphicsImpl::DestroyImage(VkImage handle)
     {
 #if !defined(NDEBUG)
         //ALIMER_ASSERT(std::find(frame().destroyedImages.begin(), frame().destroyedImages.end(), handle) == frame().destroyedImages.end());

@@ -30,8 +30,8 @@ namespace alimer
     class PipelineVk final : public Pipeline
     {
     public:
-        PipelineVk(GraphicsDeviceVk* device, const RenderPipelineDescriptor* descriptor);
-        PipelineVk(GraphicsDeviceVk* device, const ComputePipelineDescriptor* descriptor);
+        PipelineVk(GraphicsDevice* device, const RenderPipelineDescriptor* descriptor);
+        PipelineVk(GraphicsDevice* device, const ComputePipelineDescriptor* descriptor);
         ~PipelineVk() override;
         void Destroy() override;
 

@@ -36,7 +36,7 @@ namespace alimer
 	{
 	public:
 		/// Constructor.
-        CommandContextD3D12(GraphicsDeviceD3D12* device, const SwapChainDescriptor* descriptor);
+        CommandContextD3D12(GraphicsDeviceD3D12* device);
 
 		/// Destructor.
 		~CommandContextD3D12() override;
@@ -44,6 +44,12 @@ namespace alimer
         void PushDebugGroupImpl(const std::string& name, const Color4& color) override;
         void PopDebugGroupImpl() override;
         void InsertDebugMarkerImpl(const std::string& name, const Color4& color) override;
+
+        // Flush existing commands to the GPU but keep the context alive
+        uint64_t Flush(bool waitForCompletion = false);
+
+        // Flush existing commands and release the current context
+        uint64_t Finish(bool waitForCompletion = false);
 
 		void TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);
 		void BeginResourceTransition(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate = false);

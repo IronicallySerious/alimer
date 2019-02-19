@@ -26,6 +26,7 @@ namespace alimer
 {
     Editor::Editor()
     {
+        //_engine->GetSettings().gpuSettings = { GraphicsBackend::Vulkan, GpuPreference::HighPerformance, false };
     }
 
     Editor::~Editor()

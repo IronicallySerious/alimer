@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "GPUDeviceVk.h"
+#include "GraphicsDeviceVk.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 

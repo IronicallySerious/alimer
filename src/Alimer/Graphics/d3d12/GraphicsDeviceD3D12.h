@@ -56,7 +56,7 @@ namespace alimer
         static bool IsSupported();
 
         /// Constructor.
-        GraphicsDeviceD3D12(PhysicalDevicePreference devicePreference, bool validation);
+        GraphicsDeviceD3D12(GpuPreference devicePreference, bool validation);
 
         /// Destructor.
         ~GraphicsDeviceD3D12();
@@ -112,6 +112,7 @@ namespace alimer
 
         D3D12CommandListManager*                _commandListManager;
         SwapChainD3D12*                         _swapChain = nullptr;
+        SharedPtr<CommandContextD3D12>          _context;
 
         struct UploadSubmission
         {

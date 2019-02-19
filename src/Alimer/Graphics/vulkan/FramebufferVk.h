@@ -30,13 +30,15 @@ namespace alimer
     class FramebufferVk final : public Framebuffer
     {
     public:
-        FramebufferVk(GraphicsDeviceVk* device, const FramebufferDescriptor* descriptor);
+        FramebufferVk(GraphicsDevice* device, VkRenderPass renderPass, const FramebufferDescriptor* descriptor);
         ~FramebufferVk() override;
         void Destroy() override;
 
         VkFramebuffer GetHandle() const { return _handle; }
+        VkRenderPass GetRenderPass() const { return _renderPass; }
 
     private:
         VkFramebuffer _handle = VK_NULL_HANDLE;
+        VkRenderPass _renderPass = VK_NULL_HANDLE;
     };
 }

@@ -29,12 +29,13 @@
 namespace alimer
 {
     class TextureVk;
+    class FramebufferVk;
 
 	/// Vulkan SwapChain implementation.
 	class SwapChainVk final 
 	{
 	public:
-        SwapChainVk(GraphicsDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
+        SwapChainVk(GraphicsDevice* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
         ~SwapChainVk();
 
 
@@ -44,13 +45,14 @@ namespace alimer
         VkSwapchainKHR GetVkHandle() const { return _handle; }
         uint32_t GetImageCount() const { return _imageCount; }
         uint32_t GetImageIndex() const { return _imageIndex; }
-        Framebuffer* GetFramebuffer() const { return _framebuffers[_imageIndex].Get(); };
+        FramebufferVk* GetFramebuffer() const { return _framebuffers[_imageIndex].Get(); };
 
         void Resize();
         bool Resize(uint32_t width, uint32_t height);
+        void CreateRenderPass();
 
 	private:
-        GraphicsDeviceVk*           _device;
+        GraphicsDevice*             _device;
         VkSurfaceKHR                _surface = VK_NULL_HANDLE;
         VkSwapchainKHR              _handle = VK_NULL_HANDLE;
         uint32_t                    _width = 0;
@@ -64,6 +66,7 @@ namespace alimer
         uint32_t                    _imageCount = 0;
         std::vector<VkImage>        _images;
         std::vector<std::unique_ptr<TextureVk>> _swapchainTextures;
-        std::vector<SharedPtr<Framebuffer>> _framebuffers;
+        std::vector<SharedPtr<FramebufferVk>> _framebuffers;
+        VkRenderPass                _renderPass = VK_NULL_HANDLE;
 	};
 }

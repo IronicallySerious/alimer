@@ -56,11 +56,13 @@ namespace alimer
     PFN_D3D12_SERIALIZE_ROOT_SIGNATURE              D3D12SerializeRootSignature = nullptr;
     PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE    D3D12SerializeVersionedRootSignature = nullptr;
 
-    HRESULT D3D12LoadLibraries()
+    static inline HRESULT D3D12LoadLibraries()
     {
         static bool loaded = false;
-        if (loaded)
+        if (loaded) {
             return S_OK;
+        }
+
         loaded = true;
 
         // Load libraries first.
@@ -153,7 +155,21 @@ namespace alimer
         return &heapProps;
     }
 
-    static void GetD3D12HardwareAdapter(_In_ IDXGIFactory2* factory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
+#if defined(__dxgi1_6_h__) && defined(NTDDI_WIN10_RS4)
+    static DXGI_GPU_PREFERENCE GetDXGIGpuPreference(GpuPreference preference) {
+        switch (preference)
+        {
+        case GpuPreference::MinimumPower:
+            return DXGI_GPU_PREFERENCE_MINIMUM_POWER;
+        case GpuPreference::HighPerformance:
+            return DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+        default:
+            return DXGI_GPU_PREFERENCE_UNSPECIFIED;
+        }
+    }
+#endif
+
+    static void GetD3D12HardwareAdapter(_In_ IDXGIFactory2* factory, GpuPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
     {
         ComPtr<IDXGIAdapter1> adapter;
         *ppAdapter = nullptr;
@@ -162,12 +178,8 @@ namespace alimer
         ComPtr<IDXGIFactory6> factory6;
         if (SUCCEEDED(factory->QueryInterface(factory6.ReleaseAndGetAddressOf())))
         {
-            for (UINT adapterIndex = 0;
-                DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
-                    adapterIndex,
-                    DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                    IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
-                adapterIndex++)
+            auto dxgiGpuPreference = GetDXGIGpuPreference(preference);
+            for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex, dxgiGpuPreference, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())); adapterIndex++)
             {
                 DXGI_ADAPTER_DESC1 desc;
                 adapter->GetDesc1(&desc);
@@ -186,29 +198,28 @@ namespace alimer
             }
         }
         else
-#endif
-            for (UINT adapterIndex = 0;
-                DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(
-                    adapterIndex,
-                    adapter.ReleaseAndGetAddressOf());
-                ++adapterIndex)
         {
-            DXGI_ADAPTER_DESC1 desc;
-            if (FAILED(adapter->GetDesc1(&desc)))
+#endif
+            ALIMER_UNUSED(preference);
+            for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, adapter.ReleaseAndGetAddressOf()); ++adapterIndex)
             {
-                ALIMER_LOGERROR("DXGI - Failed to get desc");
-            }
+                DXGI_ADAPTER_DESC1 desc;
+                if (FAILED(adapter->GetDesc1(&desc)))
+                {
+                    ALIMER_LOGERROR("DXGI - Failed to get desc");
+                }
 
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-            {
-                // Don't select the Basic Render Driver adapter.
-                continue;
-            }
+                if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+                {
+                    // Don't select the Basic Render Driver adapter.
+                    continue;
+                }
 
-            // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-            if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
-            {
-                break;
+                // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
+                if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+                {
+                    break;
+                }
             }
         }
 
@@ -241,12 +252,12 @@ namespace alimer
         }
 
         ComPtr<IDXGIAdapter1> hardwareAdapter;
-        GetD3D12HardwareAdapter(factory.Get(), &hardwareAdapter);
+        GetD3D12HardwareAdapter(factory.Get(), GpuPreference::Unspecified, &hardwareAdapter);
         isAvailable = hardwareAdapter != nullptr;
         return isAvailable;
     }
 
-    GraphicsDeviceD3D12::GraphicsDeviceD3D12(PhysicalDevicePreference devicePreference, bool validation)
+    GraphicsDeviceD3D12::GraphicsDeviceD3D12(GpuPreference devicePreference, bool validation)
         : GraphicsDevice(GraphicsBackend::Direct3D12, devicePreference, validation)
         , _descriptorAllocator{
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
@@ -305,7 +316,7 @@ namespace alimer
             }
         }
 
-        GetD3D12HardwareAdapter(_factory.Get(), _adapter.ReleaseAndGetAddressOf());
+        GetD3D12HardwareAdapter(_factory.Get(), _devicePreference, _adapter.ReleaseAndGetAddressOf());
 
 #if D3D12_DEBUG
         DXGI_ADAPTER_DESC1 desc = { };
@@ -347,6 +358,7 @@ namespace alimer
 
         // Create the command list manager class.
         _commandListManager = new D3D12CommandListManager(_d3dDevice.Get());
+        _context = new CommandContextD3D12(this);
 
         // Init heaps.
         for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
@@ -439,14 +451,12 @@ namespace alimer
             _featureDataRootSignature.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
         }
 
-#if ALIMER_DXR
-        D3D12_FEATURE_DATA_D3D12_OPTIONS5 options;
-        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options, sizeof(options)))
-            && options.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5;
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5)))
+            && options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
         {
             _raytracingSupported = true;
         }
-#endif
 
         // Init limits
         _limits.maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
@@ -739,11 +749,16 @@ namespace alimer
 
         /* End frame for upload */
         EndFrameUpload();
+
+        _context->Flush(true);
+
+        // Present the frame.
+        _swapChain->Present();
     }
 
     SharedPtr<CommandContext> GraphicsDeviceD3D12::GetContext() const
     {
-        return SharedPtr<CommandContext>();
+        return _context;
     }
 
     bool GraphicsDeviceD3D12::InitializeImpl(const SwapChainDescriptor* descriptor)

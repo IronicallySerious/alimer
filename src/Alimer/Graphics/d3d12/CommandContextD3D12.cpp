@@ -57,7 +57,7 @@ namespace alimer
         }
     }
 
-    CommandContextD3D12::CommandContextD3D12(GraphicsDeviceD3D12* device, const SwapChainDescriptor* descriptor)
+    CommandContextD3D12::CommandContextD3D12(GraphicsDeviceD3D12* device)
         : CommandContext(device)
         , _manager(device->GetCommandListManager())
         , _commandList(nullptr)
@@ -87,6 +87,68 @@ namespace alimer
     void CommandContextD3D12::InsertDebugMarkerImpl(const std::string& name, const Color4& color)
     {
         /* TODO: Use pix3 */
+    }
+
+    uint64_t CommandContextD3D12::Flush(bool waitForCompletion)
+    {
+        FlushResourceBarriers();
+
+        ALIMER_ASSERT(_currentAllocator != nullptr);
+
+        uint64_t fenceValue = _manager->GetQueue(_type).ExecuteCommandList(_commandList);
+
+        if (waitForCompletion) {
+            _manager->WaitForFence(fenceValue);
+        }
+
+        // Reset the command list and restore previous state
+        _commandList->Reset(_currentAllocator, nullptr);
+
+        /*if (m_CurGraphicsRootSignature)
+        {
+            _commandList->SetGraphicsRootSignature(m_CurGraphicsRootSignature);
+            _commandList->SetPipelineState(m_CurGraphicsPipelineState);
+        }
+        if (m_CurComputeRootSignature)
+        {
+            m_CommandList->SetComputeRootSignature(m_CurComputeRootSignature);
+            m_CommandList->SetPipelineState(m_CurComputePipelineState);
+        }
+
+        BindDescriptorHeaps();*/
+
+        return fenceValue;
+    }
+
+    uint64_t CommandContextD3D12::Finish(bool waitForCompletion)
+    {
+        ALIMER_ASSERT(_type == D3D12_COMMAND_LIST_TYPE_DIRECT || _type == D3D12_COMMAND_LIST_TYPE_COMPUTE);
+
+        FlushResourceBarriers();
+
+        //if (m_ID.length() > 0)
+        //    GPUProfiling::EndBlock(this);
+
+        ALIMER_ASSERT(_currentAllocator != nullptr);
+
+        D3D12CommandQueue& queue = _manager->GetQueue(_type);
+
+        uint64_t fenceValue = queue.ExecuteCommandList(_commandList);
+        queue.DiscardAllocator(fenceValue, _currentAllocator);
+        _currentAllocator = nullptr;
+
+        //m_CpuLinearAllocator.CleanupUsedPages(fenceValue);
+        //m_GpuLinearAllocator.CleanupUsedPages(fenceValue);
+        //m_DynamicViewDescriptorHeap.CleanupUsedHeaps(fenceValue);
+        //m_DynamicSamplerDescriptorHeap.CleanupUsedHeaps(fenceValue);
+
+        if (waitForCompletion) {
+            _manager->WaitForFence(fenceValue);
+        }
+
+        //FreeContext(this);
+
+        return fenceValue;
     }
 
     void CommandContextD3D12::TransitionResource(D3D12Resource* resource, D3D12_RESOURCE_STATES newState, bool flushImmediate)
@@ -158,8 +220,9 @@ namespace alimer
             resource->SetTransitioningState(newState);
         }
 
-        if (flushImmediate || _numBarriersToFlush == 16)
+        if (flushImmediate || _numBarriersToFlush == 16) {
             FlushResourceBarriers();
+        }
     }
 
     void CommandContextD3D12::InsertUAVBarrier(D3D12Resource* resource, bool flushImmediate)
@@ -171,8 +234,9 @@ namespace alimer
         barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
         barrierDesc.UAV.pResource = resource->GetResource();
 
-        if (flushImmediate)
+        if (flushImmediate) {
             FlushResourceBarriers();
+        }
     }
 
     void CommandContextD3D12::FlushResourceBarriers()

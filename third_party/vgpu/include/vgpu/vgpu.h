@@ -521,7 +521,7 @@ extern "C"
         VgpuLoadAction          stencilLoadAction;
         VgpuStoreAction         stencilStoreAction;
         uint8_t                 clearStencil;
-    } RenderPassDepthStencilAttachmentDescriptor;
+    } VgpuRenderPassDepthStencilAttachmentDescriptor;
 
     typedef struct VgpuRenderPassDescriptor {
         VgpuRenderPassColorAttachmentDescriptor         colorAttachments[VGPU_MAX_COLOR_ATTACHMENTS];

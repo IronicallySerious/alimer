@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Graphics/GPUBackend.h"
 #include "../Resource/Resource.h"
 #include "../Graphics/GPUResource.h"
 #include "../Math/MathUtil.h"
@@ -43,7 +44,9 @@ namespace alimer
         static const uint32_t MaxPossible = ~0U;
 
         /// Destructor.
-        virtual ~Texture() = default;
+        ~Texture() override;
+
+        void Destroy() override;
 
         /// Get the type of the texture.
         TextureType GetTextureType() const { return _type; }
@@ -81,8 +84,12 @@ namespace alimer
         /// Get the sample count.
         SampleCount GetSamples() const { return _samples; }
 
+#if defined(ALIMER_VULKAN)
+        VkImageView GetView(uint32_t level, uint32_t slice) const;
+#endif
+
     private:
-        virtual bool Create(const void* pInitData) = 0;
+        bool Create(const void* pInitData);
 
     protected:
         TextureType     _type = TextureType::Type2D;
@@ -95,5 +102,14 @@ namespace alimer
         PixelFormat     _format = PixelFormat::RGBA8UNorm;
         TextureUsage    _usage = TextureUsage::ShaderRead;
         bool            _externalHandle = false;
+
+    private:
+#if defined(ALIMER_VULKAN)
+        VkImage         _handle = VK_NULL_HANDLE;
+        VmaAllocation   _allocation = VK_NULL_HANDLE;
+        VkImageView     _defaultImageView = VK_NULL_HANDLE;
+        VkFormat        _vkFormat = VK_FORMAT_UNDEFINED;
+#elif defined(ALIMER_D3D11)
+#endif
     };
 }

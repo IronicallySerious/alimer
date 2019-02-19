@@ -21,12 +21,14 @@
 //
 
 #include "FramebufferVk.h"
-#include "GPUDeviceVk.h"
+#include "TextureVk.h"
+#include "GraphicsDeviceVk.h"
 
 namespace alimer
 {
-    FramebufferVk::FramebufferVk(GraphicsDeviceVk* device, const FramebufferDescriptor* descriptor)
+    FramebufferVk::FramebufferVk(GraphicsDevice* device, VkRenderPass renderPass, const FramebufferDescriptor* descriptor)
         : Framebuffer(device, descriptor)
+        , _renderPass(renderPass)
     {
         VkImageView attachments[MaxColorAttachments + 1u];
         uint32_t attachmentCount = 0;
@@ -39,33 +41,38 @@ namespace alimer
             }
 
             const uint32_t level = descriptor->colorAttachments[i].level;
-            //attachments[attachmentCount++] = _colorAttachments[i].texture->GetView(level, descriptor->colorAttachments[i].slice);
+            const uint32_t slice = descriptor->colorAttachments[i].slice;
+            attachments[attachmentCount++] = static_cast<TextureVk*>(_colorAttachments[i].texture)->GetView(level, slice);
         }
 
         if (_depthStencilAttachment.texture != nullptr) {
             const uint32_t level = descriptor->depthStencilAttachment.level;
+            const uint32_t slice = descriptor->depthStencilAttachment.slice;
             //attachments[attachmentCount++] = _depthStencilAttachment.texture->GetView(level, _depthStencilAttachment.slice);
         }
 
-        VkFramebufferCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        createInfo.pNext = nullptr;
-        createInfo.flags = 0;
-        //createInfo.renderPass = _renderPass->GetVkRenderPass();
-        createInfo.attachmentCount = attachmentCount;
-        createInfo.pAttachments = attachments;
-        createInfo.width = _width;
-        createInfo.height = _height;
-        createInfo.layers = _layers;
-
-        VkResult result = vkCreateFramebuffer(device->GetVkDevice(), &createInfo, nullptr, &_handle);
-        if (result != VK_SUCCESS)
+        if (renderPass != VK_NULL_HANDLE)
         {
-            ALIMER_LOGERROR("[Vulkan] - Failed to create framebuffer.");
-            return;
-        }
+            VkFramebufferCreateInfo createInfo = {};
+            createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            createInfo.pNext = nullptr;
+            createInfo.flags = 0;
+            //createInfo.renderPass = _renderPass->GetVkRenderPass();
+            createInfo.attachmentCount = attachmentCount;
+            createInfo.pAttachments = attachments;
+            createInfo.width = _width;
+            createInfo.height = _height;
+            createInfo.layers = _layers;
 
-        ALIMER_LOGDEBUG("[Vulkan] - Created framebuffer");
+            VkResult result = vkCreateFramebuffer(device->GetImpl()->GetVkDevice(), &createInfo, nullptr, &_handle);
+            if (result != VK_SUCCESS)
+            {
+                ALIMER_LOGERROR("[Vulkan] - Failed to create framebuffer.");
+                return;
+            }
+
+            ALIMER_LOGDEBUG("[Vulkan] - Created framebuffer");
+        }
     }
 
     FramebufferVk::~FramebufferVk()

@@ -54,7 +54,7 @@ namespace alimer
         void BeginDefaultRenderPass(const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
 
         /// Begin pass with given descriptor.
-        void BeginRenderPass(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
+        void BeginRenderPass(const RenderPassDescriptor* descriptor);
 
         /// End current pass.
         void EndRenderPass();
@@ -95,8 +95,8 @@ namespace alimer
         virtual void PopDebugGroupImpl() = 0;
         virtual void InsertDebugMarkerImpl(const std::string& name, const Color4& color) = 0;
 
-        //virtual void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) = 0;
-        //virtual void EndRenderPassImpl() = 0;
+        virtual void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) = 0;
+        virtual void EndRenderPassImpl() = 0;
 
         //virtual void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
         //virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;

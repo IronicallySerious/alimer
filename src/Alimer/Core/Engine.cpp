@@ -207,8 +207,9 @@ namespace alimer
 
     void Engine::Render()
     {
-        if (IsHeadless())
+        if (IsHeadless()) {
             return;
+        }
 
         //ALIMER_PROFILE("Render");
 
@@ -217,10 +218,10 @@ namespace alimer
             return;
         }
 
-        auto context = _graphicsDevice->GetContext();
-        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-        context->BeginDefaultRenderPass(clearColor, 1.0f, 0);
-        context->EndRenderPass();
+        //auto context = _graphicsDevice->GetContext();
+        //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        //context->BeginDefaultRenderPass(clearColor, 1.0f, 0);
+        //context->EndRenderPass();
         //context->EndFrame();
 
         /*VgpuCommandBuffer commandBuffer = vgpuRequestCommandBuffer(VGPU_COMMAND_BUFFER_TYPE_GRAPHICS);

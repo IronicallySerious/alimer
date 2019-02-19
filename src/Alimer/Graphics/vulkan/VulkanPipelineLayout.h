@@ -23,7 +23,7 @@
 #pragma once
 
 #include "BackendVk.h"
-#include "../../Base/HashMap.h"
+#include "../../foundation/HashMap.h"
 #include "VulkanShader.h"
 #include <vector>
 

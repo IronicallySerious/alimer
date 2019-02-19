@@ -20,8 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "TextureVk.h"
-#include "GPUDeviceVk.h"
+#include "../Texture.h"
+#include "GraphicsDeviceVk.h"
 #include "../../Core/Log.h"
 
 namespace alimer
@@ -117,7 +117,7 @@ namespace alimer
         }
     }
 
-    TextureVk::TextureVk(GraphicsDeviceVk* device, const TextureDescriptor* descriptor, VkImage nativeTexture, const void* pInitData)
+    /*TextureVk::TextureVk(GraphicsDevice* device, const TextureDescriptor* descriptor, VkImage nativeTexture, const void* pInitData)
         : Texture(device, descriptor)
         , _vkFormat(GetVkFormat(descriptor->format))
     {
@@ -126,19 +126,11 @@ namespace alimer
             _handle = nativeTexture;
             _externalHandle = true;
         }
+    }*/
 
-        Create(pInitData);
-    }
-
-    TextureVk::~TextureVk()
+    bool Texture::Create(const void* pInitData)
     {
-        Destroy();
-    }
-
-    bool TextureVk::Create(const void* pInitData)
-    {
-        auto deviceVk = StaticCast<GraphicsDeviceVk>(_device);
-        _vkUsage = GetVkTextureUsage(_usage, _format);
+        VkImageUsageFlags vkUsage = GetVkTextureUsage(_usage, _format);
 
         if (!_externalHandle)
         {
@@ -156,7 +148,7 @@ namespace alimer
             createInfo.arrayLayers = _arraySize;
             createInfo.samples = (VkSampleCountFlagBits)_samples;
             createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-            createInfo.usage = _vkUsage;
+            createInfo.usage = vkUsage;
             createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             createInfo.queueFamilyIndexCount = 0;
             createInfo.pQueueFamilyIndices = nullptr;
@@ -194,7 +186,7 @@ namespace alimer
                 //}
 
                     vkThrowIfFailed(
-                        vmaCreateImage(deviceVk->GetVmaAllocator(), &createInfo, &allocCreateInfo, &_handle, &_allocation, nullptr)
+                        vmaCreateImage(_device->GetImpl()->GetVmaAllocator(), &createInfo, &allocCreateInfo, &_handle, &_allocation, nullptr)
                         );
             //}
             //else {
@@ -204,7 +196,7 @@ namespace alimer
             //}
         }
 
-        if (_vkUsage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+        if (vkUsage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))
         {
             VkImageViewCreateInfo viewCreateInfo = {};
@@ -224,7 +216,7 @@ namespace alimer
             viewCreateInfo.subresourceRange.baseArrayLayer = 0;
             viewCreateInfo.subresourceRange.layerCount = _arraySize;
 
-            if (vkCreateImageView(deviceVk->GetVkDevice(), &viewCreateInfo, nullptr, &_imageView) != VK_SUCCESS)
+            if (vkCreateImageView(_device->GetImpl()->GetVkDevice(), &viewCreateInfo, nullptr, &_defaultImageView) != VK_SUCCESS)
             {
                 ALIMER_LOGERROR("[Vulkan] - Failed to create ImageView.");
             }
@@ -234,28 +226,36 @@ namespace alimer
         return true;
     }
 
-    void TextureVk::Destroy()
+    void Texture::Destroy()
     {
-        auto deviceVk = StaticCast<GraphicsDeviceVk>(_device);
-
-        if (_imageView != VK_NULL_HANDLE)
+        if (_defaultImageView != VK_NULL_HANDLE)
         {
             //deviceVk->DestroyImageView(_vkImageView);
-            vkDestroyImageView(deviceVk->GetVkDevice(), _imageView, nullptr);
-            _imageView = VK_NULL_HANDLE;
+            vkDestroyImageView(_device->GetImpl()->GetVkDevice(), _defaultImageView, nullptr);
+            _defaultImageView = VK_NULL_HANDLE;
         }
 
         if (!_externalHandle
             && _handle != VK_NULL_HANDLE)
         {
             if (_allocation != VK_NULL_HANDLE) {
-                vmaDestroyImage(deviceVk->GetVmaAllocator(), _handle, _allocation);
+                vmaDestroyImage(_device->GetImpl()->GetVmaAllocator(), _handle, _allocation);
             }
             else {
-                deviceVk->DestroyImage(_handle);
+                _device->GetImpl()->DestroyImage(_handle);
             }
             
             _handle = VK_NULL_HANDLE;
         }
+    }
+
+    VkImageView Texture::GetView(uint32_t level, uint32_t slice) const
+    {
+        if (level == 0 && slice == 0) {
+            return _defaultImageView;
+        }
+
+        /* TODO : handle level and slice. */
+        return VK_NULL_HANDLE;
     }
 }

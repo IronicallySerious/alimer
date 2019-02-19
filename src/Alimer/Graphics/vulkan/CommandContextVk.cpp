@@ -24,18 +24,18 @@
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
 #include "FramebufferVk.h"
-#include "GPUDeviceVk.h"
+#include "GraphicsDeviceVk.h"
 #include "../../Math/Math.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    CommandContextVk::CommandContextVk(GraphicsDeviceVk* device, VkCommandBuffer commandBuffer)
+    CommandContextVk::CommandContextVk(GraphicsDevice* device, VkCommandBuffer commandBuffer)
         : CommandContext(device)
-        , _vkDevice(device->GetVkDevice())
+        , _vkDevice(device->GetImpl()->GetVkDevice())
         , _commandBuffer(commandBuffer)
-        , _supportsDebugUtils(device->GetFeaturesVk().supportsDebugUtils)
-        , _supportsDebugMarker(device->GetFeaturesVk().supportsDebugMarker)
+        , _supportsDebugUtils(device->GetImpl()->GetFeaturesVk().supportsDebugUtils)
+        , _supportsDebugMarker(device->GetImpl()->GetFeaturesVk().supportsDebugMarker)
     {
     }
 
@@ -163,9 +163,18 @@ namespace alimer
     }
 
     
-    /*void CommandContextVk::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    void CommandContextVk::BeginRenderPassImpl(const RenderPassDescriptor* descriptor)
     {
-        _currentFramebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
+        uint32_t width = 0u;
+        uint32_t height = 0u;
+        if (descriptor)
+        {
+        }
+        else
+        {
+        }
+
+        /*_currentFramebuffer = static_cast<VulkanGraphicsDevice*>(_device)->RequestFramebuffer(descriptor);
         _currentRenderPass = _currentFramebuffer->GetRenderPass();
 
         VkRect2D renderArea = { { 0, 0 }, { UINT32_MAX, UINT32_MAX } };
@@ -189,28 +198,31 @@ namespace alimer
             && (any(descriptor->depthOperation & RenderPassDepthOperation::ClearDepthStencil)))
         {
             clearValues[clearValueCount++].depthStencil = { descriptor->clearDepth, descriptor->clearStencil };
-        }
+        }*/
 
-        VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-        renderPassBeginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
-        renderPassBeginInfo.framebuffer = _currentFramebuffer->GetVkFramebuffer();
-        renderPassBeginInfo.renderArea = renderArea;
-        renderPassBeginInfo.clearValueCount = clearValueCount;
-        renderPassBeginInfo.pClearValues = clearValues;
+        VkRenderPassBeginInfo beginInfo;
+        beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        beginInfo.pNext = nullptr;
+        //beginInfo.renderPass = _currentRenderPass->GetVkRenderPass();
+        //beginInfo.framebuffer = _currentFramebuffer->GetVkFramebuffer();
+        beginInfo.renderArea.offset.x = 0;
+        beginInfo.renderArea.offset.y = 0;
+        //beginInfo.clearValueCount = clearValueCount;
+        //beginInfo.pClearValues = clearValues;
 
-        vkCmdBeginRenderPass(_handle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(_commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        rect viewport(float(_currentFramebuffer->GetWidth()), float(_currentFramebuffer->GetHeight()));
+        /*rect viewport(float(_currentFramebuffer->GetWidth()), float(_currentFramebuffer->GetHeight()));
         irect scissor(_currentFramebuffer->GetWidth(), _currentFramebuffer->GetHeight());
         SetViewport(viewport);
         SetScissor(scissor);
-        BeginGraphics();
+        BeginGraphics();*/
     }
 
-    void CommandBufferVk::EndRenderPassImpl()
+    void CommandContextVk::EndRenderPassImpl()
     {
-        vkCmdEndRenderPass(_handle);
-    }*/
+        vkCmdEndRenderPass(_commandBuffer);
+    }
 
 
     CommandContextVk::GraphicsState::GraphicsState()

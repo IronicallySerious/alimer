@@ -55,7 +55,7 @@ namespace alimer
 {
     class GraphicsDeviceVk;
 
-    inline const char* vkGetVulkanResultString(VkResult result)
+    inline const char* GetVkResultString(VkResult result)
     {
         switch (result)
         {
@@ -117,7 +117,7 @@ namespace alimer
         {
             ALIMER_LOGCRITICAL(
                 "Fatal Vulkan result is \"{}\" in {} at line {}",
-                vkGetVulkanResultString(result),
+                GetVkResultString(result),
                 __FILE__,
                 __LINE__);
         }

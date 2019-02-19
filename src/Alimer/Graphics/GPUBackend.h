@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,29 +22,9 @@
 
 #pragma once
 
-#include "BackendVk.h"
-#include "../Texture.h"
-
-namespace alimer
-{
-	/// Vulkan Texture implementation.
-	class TextureVk final : public Texture
-	{
-	public:
-        TextureVk(GraphicsDeviceVk* device, const TextureDescriptor* descriptor, VkImage nativeTexture, const void* pInitData);
-        ~TextureVk() override;
-
-        VkImage GetVkImage() const { return _handle; }
-        VkImageView GetVkImageView() const { return _imageView; }
-
-	private:
-        bool Create(const void* pInitData) override;
-        void Destroy() override;
-
-        VkImage         _handle = VK_NULL_HANDLE;
-        VmaAllocation   _allocation = VK_NULL_HANDLE;
-        VkImageView     _imageView = VK_NULL_HANDLE;
-        VkFormat        _vkFormat = VK_FORMAT_UNDEFINED;
-        VkImageUsageFlags _vkUsage = 0;
-	};
-}
+#include "AlimerConfig.h"
+#if defined(ALIMER_VULKAN)
+#include "vulkan/BackendVk.h"
+#elif defined(ALIMER_D3D11)
+#include "d3d11/BackendD3D11.h"
+#endif

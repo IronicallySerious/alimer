@@ -99,7 +99,7 @@ if (ALIMER_D3D11)
 endif ()
 
 if (ALIMER_D3D12)
-    define_engine_source_files(Graphics/d3d12)
+    # define_engine_source_files(Graphics/d3d12)
 endif ()
 
 if (ALIMER_VULKAN)
@@ -218,7 +218,7 @@ endif ()
 
 
 if (ALIMER_VULKAN)
-    target_link_libraries(${TARGET_NAME} PRIVATE volk vk_mem_alloc)
+    target_link_libraries(${TARGET_NAME} PUBLIC volk vk_mem_alloc)
 endif ()
 
 # SDK installation

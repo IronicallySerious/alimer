@@ -31,33 +31,34 @@ namespace alimer
     class CommandContextVk;
 
     /// Vulkan gpu backend.
-    class GraphicsDeviceVk final : public GraphicsDevice
+    class GraphicsImpl final 
     {
     public:
-        /// Is backend supported?
-        static bool IsSupported();
-
         /// Constructor.
-        GraphicsDeviceVk(const char* applicationName, PhysicalDevicePreference devicePreference, bool validation);
+        GraphicsImpl(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
 
         /// Destructor.
-        ~GraphicsDeviceVk() override;
+        ~GraphicsImpl();
 
-        void Finalize() override;
+        GraphicsBackend GetBackend() const { return GraphicsBackend::Vulkan; }
+
         void WaitIdle();
         
         void CreateInstance(const char* applicationName);
-        void SelectPhysicalDevice(PhysicalDevicePreference devicePreference);
+        void SelectPhysicalDevice(GpuPreference devicePreference);
         void CreateLogicalDevice(VkSurfaceKHR surface);
         void InitializeFeatures();
 
-        bool InitializeImpl(const SwapChainDescriptor* descriptor) override;
-        bool BeginFrameImpl() override;
-        void EndFrame(uint32_t frameId) override;
+        bool InitializeImpl(const SwapChainDescriptor* descriptor);
+        bool BeginFrameImpl();
+        void EndFrame(uint32_t frameId);
 
         VkSurfaceKHR CreateSurface(const SwapChainDescriptor* descriptor);
 
-        SharedPtr<CommandContext> GetContext() const override;
+        SharedPtr<CommandContext> GetContext() const;
+        SharedPtr<Texture> GetCurrentColorTexture() const;
+        SharedPtr<Texture> GetCurrentDepthStencilTexture() const;
+        SharedPtr<Texture> GetCurrentMultisampleColorTexture() const;
 
         bool ImageFormatIsSupported(VkFormat format, VkFormatFeatureFlags required, VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL) const;
         PixelFormat GetDefaultDepthStencilFormat() const;
@@ -76,7 +77,7 @@ namespace alimer
         void DestroySampler(VkSampler handle);
         void DestroyPipeline(VkPipeline handle);
         void DestroyImage(VkImage handle);
-        
+
         VkInstance GetVkInstance() const { return _instance; }
         VkPhysicalDevice GetVkPhysicalDevice() const { return _physicalDevice; }
         VkDevice GetVkDevice() const { return _device; }
@@ -87,6 +88,12 @@ namespace alimer
         uint32_t GetTransferQueueFamily() const { return _transferQueueFamily; }
         const DeviceFeaturesVk& GetFeaturesVk() const { return _featuresVk; }
 
+        /// Get the device features.
+        inline const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
+
+        /// Get the device limits
+        inline const GraphicsDeviceLimits& GetLimits() const { return _limits; }
+        
     private:
         bool HasExtension(const std::string& extension)
         {
@@ -99,7 +106,11 @@ namespace alimer
         }
 
     private:
-        bool                                    _headless;
+        bool                                    _headless = false;
+        bool                                    _validation = false;
+        GraphicsDeviceFeatures                  _features = {};
+        GraphicsDeviceLimits                    _limits = {};
+
         VkInstance                              _instance = VK_NULL_HANDLE;
         VkDebugReportCallbackEXT                _debugCallback = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT                _debugMessenger = VK_NULL_HANDLE;
@@ -119,7 +130,7 @@ namespace alimer
         VkQueue                                 _transferQueue = VK_NULL_HANDLE;
         VmaAllocator                            _memoryAllocator = VK_NULL_HANDLE;
         DeviceFeaturesVk                        _featuresVk = {};
-        SwapChainVk*                            _swapChain = nullptr;
+
         std::vector<VkFence>                    _waitFences;
         std::vector<VkSemaphore>                _renderCompleteSemaphores;
         std::vector<VkSemaphore>                _presentCompleteSemaphores;
@@ -128,51 +139,9 @@ namespace alimer
         uint32_t                                _swapchainImageIndex = 0u;
         VkCommandPool                           _graphicsCommandPool = VK_NULL_HANDLE;
         VkPipelineCache                         _pipelineCache = VK_NULL_HANDLE;
-        std::vector<SharedPtr<CommandContextVk>> _commandBuffers;
+        std::vector<SharedPtr<CommandContext>> _commandBuffers;
         std::vector<VkFence>                    _fences;
         std::vector<VkSemaphore>                _semaphores;
-        
-
-        /* Per Frame data */
-        /*struct FrameData
-        {
-            FrameData(GraphicsDeviceVk* device_);
-            ~FrameData();
-            void operator=(const FrameData&) = delete;
-            FrameData(const FrameData&) = delete;
-
-            void ProcessDeferredDelete();
-
-            GraphicsDeviceVk* device;
-            VkDevice logicalDevice;
-            std::vector<VkCommandBuffer>    submittedCmdBuffers;
-            std::vector<VkSemaphore>        waitSemaphores;
-            VkFence                         fence;
-            std::vector<VkSampler>          destroyedSamplers;
-            std::vector<VkPipeline>         destroyedPipelines;
-            std::vector<VkImage>            destroyedImages;
-        };
-
-        std::vector<std::unique_ptr<FrameData>> _frameData;
-
-        FrameData &frame()
-        {
-            ALIMER_ASSERT(_frameIndex < _frameData.size());
-            ALIMER_ASSERT(_frameData[_frameIndex]);
-            return *_frameData[_frameIndex];
-        }
-
-        const FrameData &frame() const
-        {
-            ALIMER_ASSERT(_frameIndex < _frameData.size());
-            ALIMER_ASSERT(_frameData[_frameIndex]);
-            return *_frameData[_frameIndex];
-        }
-
-        struct QueueData
-        {
-            std::vector<VkSemaphore> waitSemaphores;
-            std::vector<VkPipelineStageFlags> waitStages;
-        } _graphics, _compute, _transfer;*/
+        SwapChainVk*                            _swapChain = nullptr;
     };
 }
