@@ -69,10 +69,9 @@ namespace alimer
     };
 
     enum class QueueType : uint32_t {
-        Graphics,
-        AsyncGraphics,
+        Direct,
         Compute,
-        Transfer
+        Copy
     };
 
     /// Enum describing the number of samples.
@@ -359,7 +358,6 @@ namespace alimer
         /// srgb pixel format
         bool        srgb = true;
         bool        depthStencil = true;
-        bool        tripleBuffer = true;
         /// Vertical sync
         bool        vsync = true;
         /// Preferred sample count

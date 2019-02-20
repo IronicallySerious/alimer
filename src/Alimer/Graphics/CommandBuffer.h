@@ -33,22 +33,29 @@
 
 namespace alimer
 {
-    /// Defines a command context for recording gpu commands.
-    class ALIMER_API CommandContext : public RefCounted
-    {
-        friend class GraphicsDevice;
+    enum class CommandBufferStatus {
+        Initial,
+        Committed,
+        Completed,
+        Error
+    };
 
-    protected:
+    /// Defines a command buffer for recording gpu commands.
+    class ALIMER_API CommandBuffer final : public RefCounted
+    {
+        friend class CommandQueue;
+
+    private:
         /// Constructor.
-        CommandContext(GraphicsDevice* device);
+        CommandBuffer(CommandQueue* commandQueue);
 
     public:
         /// Destructor.
-        virtual ~CommandContext() = default;
+        ~CommandBuffer() override;
 
-        virtual void PushDebugGroup(const std::string& name, const Color4& color = Color4::White);
-        virtual void PopDebugGroup();
-        virtual void InsertDebugMarker(const std::string& name, const Color4& color = Color4::White);
+        void PushDebugGroup(const std::string& name, const Color4& color = Color4::White);
+        void PopDebugGroup();
+        void InsertDebugMarker(const std::string& name, const Color4& color = Color4::White);
 
         /// Begin rendering to default backbuffer.
         void BeginDefaultRenderPass(const Color4& clearColor, float clearDepth = 1.0f, uint8_t clearStencil = 0);
@@ -86,26 +93,47 @@ namespace alimer
         void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
-        /// Return the device used for creation.
-        GraphicsDevice* GetGraphicsDevice() const { return _device.Get(); }
+        CommandQueue* GetCommandQueue() const { return _commandQueue; }
+        CommandBufferStatus GetStatus() const { return _status; };
+
+#if defined(ALIMER_VULKAN)
+        VkCommandBuffer GetHandle() const { return _handle; }
+        VkFence         GetFence() const { return _fence; }
+#elif defined(ALIMER_D3D12)
+
+#endif
 
     private:
         // Backend methods
-        virtual void PushDebugGroupImpl(const std::string& name, const Color4& color) = 0;
-        virtual void PopDebugGroupImpl() = 0;
-        virtual void InsertDebugMarkerImpl(const std::string& name, const Color4& color) = 0;
+        void Create();
+        void Destroy();
 
-        virtual void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) = 0;
-        virtual void EndRenderPassImpl() = 0;
+        void PushDebugGroupImpl(const std::string& name, const Color4& color);
+        void PopDebugGroupImpl();
+        void InsertDebugMarkerImpl(const std::string& name, const Color4& color);
+
+        void BeginRenderPassImpl(const RenderPassDescriptor* descriptor);
+        void EndRenderPassImpl();
 
         //virtual void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
         //virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
-    protected:
-        /// GPUDevice.
-        WeakPtr<GraphicsDevice> _device;
+    private:
+        SharedPtr<CommandQueue> _commandQueue;
+        CommandBufferStatus _status;
+        bool            _insideRenderPass = false;
+        Shader*         _currentShader = nullptr;
 
-        bool                    _insideRenderPass = false;
-        Shader*                 _currentShader = nullptr;
+#if defined(ALIMER_VULKAN)
+        void Begin();
+        void End();
+
+        VkCommandBuffer _handle = VK_NULL_HANDLE;
+        VkFence _fence = VK_NULL_HANDLE;
+        bool _supportsDebugUtils = false;
+        bool _supportsDebugMarker = false;
+#elif defined(ALIMER_D3D12)
+#elif defined(ALIMER_D3D11)
+#endif
     };
 }

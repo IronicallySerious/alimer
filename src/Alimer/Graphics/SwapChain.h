@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,48 +22,52 @@
 
 #pragma once
 
-#include "BackendVk.h"
-#include "../Texture.h"
-#include "../GraphicsDevice.h"
+#include "../Graphics/GPUBackend.h"
+#include "../Graphics/CommandBuffer.h"
+#include "../Graphics/GPUResource.h"
+#include "../Math/MathUtil.h"
 #include <vector>
 
 namespace alimer
 {
-    class FramebufferVk;
+    /// Defines a queue that organizes command buffers to be executed by a GPU.
+    class ALIMER_API SwapChain : public GPUResource, public RefCounted
+    {
+        friend class GraphicsDevice;
 
-	/// Vulkan SwapChain implementation.
-	class SwapChainVk final 
-	{
-	public:
-        SwapChainVk(GraphicsImpl* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
+    private:
+        /// Constructor.
+        SwapChain(GraphicsDevice* device, const SwapChainDescriptor* descriptor);
 
-        void AcquireNextTexture();
-        VkResult QueuePresent(VkQueue queue);
+    public:
+        /// Destructor.
+        ~SwapChain() override;
 
-        VkSwapchainKHR GetVkHandle() const { return _handle; }
-        uint32_t GetImageCount() const { return _imageCount; }
-        uint32_t GetImageIndex() const { return _imageIndex; }
-        //FramebufferVk* GetFramebuffer() const { return _framebuffers[_imageIndex].Get(); };
+        /// Unconditionally destroy the GPU resource.
+        void Destroy() override;
 
-        void CreateRenderPass();
+        bool Resize(uint32_t width, uint32_t height);
 
-	private:
-        GraphicsImpl*               _device;
+    private:
+        bool ResizeImpl(uint32_t width, uint32_t height);
+
+        uint32_t _width = 0;
+        uint32_t _height = 0;
+        bool _vsync;
+        PixelFormat _colorFormat = PixelFormat::Undefined;
+        uint64_t _nativeHandle = 0;
+
+#if defined(ALIMER_VULKAN)
         VkSurfaceKHR                _surface = VK_NULL_HANDLE;
         VkSwapchainKHR              _handle = VK_NULL_HANDLE;
-        uint32_t                    _width = 0;
-        uint32_t                    _height = 0;
-        PixelFormat                 _colorFormat = PixelFormat::Undefined;
-        bool                        _vSync;
-        PixelFormat                 _depthStencilFormat = PixelFormat::Undefined;
-        SampleCount                 _samples;
+        uint32_t                    _presentQueueIndex;
+        VkQueue                     _presentQueue = VK_NULL_HANDLE;
         uint32_t                    _imageIndex = 0;
         uint32_t                    _semaphoreIndex = 0;
         uint32_t                    _imageCount = 0;
         std::vector<VkImage>        _images;
         std::vector<VkSemaphore>    _imageSemaphores;
-        std::vector<std::unique_ptr<Texture>> _swapchainTextures;
-        //std::vector<SharedPtr<FramebufferVk>> _framebuffers;
-        VkRenderPass                _renderPass = VK_NULL_HANDLE;
-	};
+#elif defined(ALIMER_D3D12)
+#endif
+    };
 }

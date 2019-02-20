@@ -26,7 +26,6 @@
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
 #include "../Application/Window.h"
-#include "../Graphics/CommandContext.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Scene/SceneManager.h"
 #include "../UI/Gui.h"
@@ -145,7 +144,6 @@ namespace alimer
                 swapchainDescriptor.width = _renderWindow->GetWidth();
                 swapchainDescriptor.height = _renderWindow->GetHeight();
                 swapchainDescriptor.depthStencil = true;
-                swapchainDescriptor.tripleBuffer = true;
                 swapchainDescriptor.vsync = true;
                 swapchainDescriptor.samples = SampleCount::Count1;
                 swapchainDescriptor.nativeHandle = _renderWindow->GetNativeHandle();
@@ -217,6 +215,9 @@ namespace alimer
         if (!_graphicsDevice->BeginFrame()) {
             return;
         }
+
+        auto commandBuffer =  _graphicsDevice->GetCommandQueue()->GetCommandBuffer();
+        _graphicsDevice->GetCommandQueue()->Submit(commandBuffer);
 
         //auto context = _graphicsDevice->GetContext();
         //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);

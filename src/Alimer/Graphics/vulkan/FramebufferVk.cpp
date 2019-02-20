@@ -21,7 +21,7 @@
 //
 
 #include "FramebufferVk.h"
-#include "TextureVk.h"
+#include "../Texture.h"
 #include "GraphicsDeviceVk.h"
 
 namespace alimer
@@ -42,7 +42,7 @@ namespace alimer
 
             const uint32_t level = descriptor->colorAttachments[i].level;
             const uint32_t slice = descriptor->colorAttachments[i].slice;
-            attachments[attachmentCount++] = static_cast<TextureVk*>(_colorAttachments[i].texture)->GetView(level, slice);
+            attachments[attachmentCount++] = static_cast<Texture*>(_colorAttachments[i].texture)->GetView(level, slice);
         }
 
         if (_depthStencilAttachment.texture != nullptr) {

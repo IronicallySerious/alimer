@@ -108,7 +108,6 @@ namespace alimer
         VkImage         _handle = VK_NULL_HANDLE;
         VmaAllocation   _allocation = VK_NULL_HANDLE;
         VkImageView     _defaultImageView = VK_NULL_HANDLE;
-        VkFormat        _vkFormat = VK_FORMAT_UNDEFINED;
 #elif defined(ALIMER_D3D11)
 #endif
     };

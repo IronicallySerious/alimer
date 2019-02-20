@@ -21,16 +21,9 @@
 //
 
 #include "GraphicsDeviceVk.h"
-#include "CommandQueueVk.h"
-#include "CommandContextVk.h"
 #include "SwapChainVk.h"
 
 #if defined(_WIN32) || defined(_WIN64)
-#   ifndef NOMINMAX
-#       define NOMINMAX
-#   endif
-#   define WIN32_LEAN_AND_MEAN
-#   include <windows.h>
 #   define VK_SURFACE_EXT               "VK_KHR_win32_surface"
 #   define VK_CREATE_SURFACE_FN         vkCreateWin32SurfaceKHR
 #   define VK_USE_PLATFORM_WIN32_KHR    1
@@ -174,7 +167,7 @@ namespace alimer
         return VK_FALSE;
     }
 
-    /*static VkBool32 QueryPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
+    static VkBool32 QueryPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
     {
         // TODO: @see: glfwGetPhysicalDevicePresentationSupport
 #if defined(_WIN32) || defined(_WIN64)
@@ -185,7 +178,7 @@ namespace alimer
         // TODO:
         return VK_TRUE;
 #endif
-    }*/
+    }
 
     bool GraphicsDevice::IsSupported()
     {
@@ -301,15 +294,20 @@ namespace alimer
     {
         CreateInstance(applicationName);
         SelectPhysicalDevice(descriptor->devicePreference);
+        CreateLogicalDevice();
         InitializeFeatures();
+
+        // Pipeline cache
+        VkPipelineCacheCreateInfo pipelineCacheCreateInfo{};
+        pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+        vkThrowIfFailed(
+            vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache)
+        );
     }
 
     GraphicsImpl::~GraphicsImpl()
     {
         WaitIdle();
-
-        // Delete swap chain if created.
-        SafeDelete(_swapChain);
 
         for (auto &fence : _fences)
         {
@@ -321,15 +319,7 @@ namespace alimer
         }
         _fences.clear();
         _semaphores.clear();
-        //_frameData.clear();
-
-        for (uint32_t i = 0u; i < _maxInflightFrames; i++) {
-            vkDestroyFence(_device, _waitFences[i], nullptr);
-            vkDestroySemaphore(_device, _renderCompleteSemaphores[i], nullptr);
-            vkDestroySemaphore(_device, _presentCompleteSemaphores[i], nullptr);
-        }
         vkDestroyPipelineCache(_device, _pipelineCache, nullptr);
-        vkDestroyCommandPool(_device, _graphicsCommandPool, nullptr);
 
         if (_device != VK_NULL_HANDLE)
         {
@@ -579,7 +569,7 @@ namespace alimer
         ALIMER_LOGDEBUG("Selected Vulkan GPU: {}", _physicalDeviceProperties.deviceName);
     }
 
-    void GraphicsImpl::CreateLogicalDevice(VkSurfaceKHR surface)
+    void GraphicsImpl::CreateLogicalDevice()
     {
         /// Create surface and logical device,
         /// some code adapted from https://github.com/Themaister/Granite
@@ -616,15 +606,16 @@ namespace alimer
         const uint32_t queueCount = (uint32_t)_physicalDeviceQueueFamilyProperties.size();
         for (uint32_t i = 0u; i < queueCount; i++)
         {
-            //VkBool32 supported = QueryPresentationSupport(_physicalDevice, i);
-            VkBool32 supported = surface == VK_NULL_HANDLE;
-            if (surface != VK_NULL_HANDLE)
+            VkBool32 supportPresent = QueryPresentationSupport(_physicalDevice, i);
+
+            if (_presentQueueFamily == VK_QUEUE_FAMILY_IGNORED &&
+                supportPresent)
             {
-                vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, surface, &supported);
+                _presentQueueFamily = i;
             }
 
             static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT;
-            if (supported && ((_physicalDeviceQueueFamilyProperties[i].queueFlags & required) == required))
+            if (supportPresent && ((_physicalDeviceQueueFamilyProperties[i].queueFlags & required) == required))
             {
                 _graphicsQueueFamily = i;
                 break;
@@ -668,14 +659,13 @@ namespace alimer
             }
         }
 
-        if (_graphicsQueueFamily == VK_QUEUE_FAMILY_IGNORED)
+        if (_presentQueueFamily == VK_QUEUE_FAMILY_IGNORED && _graphicsQueueFamily == VK_QUEUE_FAMILY_IGNORED)
         {
             return;
         }
 
         // Setup queues
         uint32_t universalQueueIndex = 1;
-        const uint32_t graphicsQueueIndex = 0;
         uint32_t computeQueueIndex = 0;
         uint32_t transferQueueIndex = 0;
 
@@ -918,7 +908,7 @@ namespace alimer
         }
 
         volkLoadDevice(_device);
-        vkGetDeviceQueue(_device, _graphicsQueueFamily, graphicsQueueIndex, &_graphicsQueue);
+        vkGetDeviceQueue(_device, _graphicsQueueFamily, 0, &_graphicsQueue);
         vkGetDeviceQueue(_device, _computeQueueFamily, computeQueueIndex, &_computeQueue);
         vkGetDeviceQueue(_device, _transferQueueFamily, transferQueueIndex, &_transferQueue);
     }
@@ -943,25 +933,19 @@ namespace alimer
         );
     }
 
-    VkSurfaceKHR GraphicsImpl::CreateSurface(const SwapChainDescriptor* descriptor)
+    VkSurfaceKHR GraphicsImpl::CreateSurface(uint64_t nativeHandle)
     {
 #if defined(_WIN32) || defined(_WIN64)
         VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
         surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
         surfaceCreateInfo.pNext = nullptr;
         surfaceCreateInfo.flags = 0;
-        if (descriptor->nativeDisplay == 0) {
-            surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-        }
-        else {
-            surfaceCreateInfo.hinstance = reinterpret_cast<HINSTANCE>(descriptor->nativeDisplay);
-        }
-
-        surfaceCreateInfo.hwnd = reinterpret_cast<HWND>(descriptor->nativeHandle);
+        surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
+        surfaceCreateInfo.hwnd = reinterpret_cast<HWND>(nativeHandle);
 #elif defined(__ANDROID__)
         VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
         surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.window = reinterpret_cast<ANativeWindow>(descriptor->nativeHandle);
+        surfaceCreateInfo.window = reinterpret_cast<ANativeWindow>(nativeHandle);
 #elif defined(__linux__)
         VkXcbSurfaceCreateInfoKHR surfaceCreateInfo;
         surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
@@ -993,7 +977,7 @@ namespace alimer
             surfaceCreateInfo.connection = = (xcb_connection_t*)descriptor->nativeDisplay;
         }
 
-        surfaceCreateInfo.window = (xcb_window_t)descriptor->nativeHandle;
+        surfaceCreateInfo.window = (xcb_window_t)nativeHandle;
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
         VkIOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
         surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
@@ -1015,158 +999,39 @@ namespace alimer
         return surface;
     }
 
-    bool GraphicsImpl::InitializeImpl(const SwapChainDescriptor* descriptor)
-    {
-        VkSurfaceKHR surface = _headless ? VK_NULL_HANDLE : CreateSurface(descriptor);
-        CreateLogicalDevice(surface);
-
-        VkCommandPoolCreateInfo cmdPoolInfo = {};
-        cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        cmdPoolInfo.queueFamilyIndex = _graphicsQueueFamily;
-        cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        vkThrowIfFailed(vkCreateCommandPool(_device, &cmdPoolInfo, nullptr, &_graphicsCommandPool));
-
-        // Pipeline cache
-        VkPipelineCacheCreateInfo pipelineCacheCreateInfo{};
-        pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        vkThrowIfFailed(
-            vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache)
-        );
-
-        // Create swap chain.
-        //_swapChain = new SwapChainVk(this, surface, descriptor);
-
-        _frameIndex = _swapchainImageIndex = 0u;
-        _maxInflightFrames = _swapChain != nullptr ? _swapChain->GetImageCount() : 3u;
-        _waitFences.resize(_maxInflightFrames);
-        _presentCompleteSemaphores.resize(_maxInflightFrames);
-        _renderCompleteSemaphores.resize(_maxInflightFrames);
-        _commandBuffers.resize(_maxInflightFrames);
-
-        // Command buffer execution fences
-        for (uint32_t i = 0u; i < _maxInflightFrames; i++)
-        {
-            VkFenceCreateInfo fenceCreateInfo;
-            fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            fenceCreateInfo.pNext = nullptr;
-            fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-            vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_waitFences[i]));
-        }
-
-        // Queue ordering semaphores
-        for (auto &semaphore : _presentCompleteSemaphores) {
-            VkSemaphoreCreateInfo semaphoreCreateInfo;
-            semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            semaphoreCreateInfo.pNext = nullptr;
-            semaphoreCreateInfo.flags = 0;
-            vkThrowIfFailed(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &semaphore));
-        }
-
-        for (auto &semaphore : _renderCompleteSemaphores) {
-            VkSemaphoreCreateInfo semaphoreCreateInfo;
-            semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            semaphoreCreateInfo.pNext = nullptr;
-            semaphoreCreateInfo.flags = 0;
-            vkThrowIfFailed(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &semaphore));
-        }
-
-        // Command buffers
-        {
-            std::vector<VkCommandBuffer> vkCommandBuffers(_maxInflightFrames);
-
-            VkCommandBufferAllocateInfo cmdBufAllocateInfo;
-            cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            cmdBufAllocateInfo.pNext = nullptr;
-            cmdBufAllocateInfo.commandPool = _graphicsCommandPool;
-            cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            cmdBufAllocateInfo.commandBufferCount = _maxInflightFrames;
-            vkThrowIfFailed(vkAllocateCommandBuffers(_device, &cmdBufAllocateInfo, vkCommandBuffers.data()));
-
-            /*for (uint32_t i = 0u; i < _maxInflightFrames; i++)
-            {
-                _commandBuffers[i] = new CommandContextVk(this, vkCommandBuffers[i]);
-            }*/
-        }
-
-        //OnAfterCreated();
-        return true;
-    }
-
-    bool GraphicsImpl::BeginFrameImpl()
+    bool GraphicsImpl::BeginFrame()
     {
         // Wait to end previous frame.
-        VkFence fence = _waitFences[_frameIndex];
-        vkThrowIfFailed(vkWaitForFences(_device, 1, &fence, VK_TRUE, UINT64_MAX));
-        vkThrowIfFailed(vkResetFences(_device, 1, &fence));
+        //VkFence fence = _waitFences[_frameIndex];
+        //vkThrowIfFailed(vkWaitForFences(_device, 1, &fence, VK_TRUE, UINT64_MAX));
+        //vkThrowIfFailed(vkResetFences(_device, 1, &fence));
 
         // Delete all pending/deferred resources
         //frame().ProcessDeferredDelete();
 
         // Acquire the next image from the swap chain
-        VkResult result =  _swapChain->AcquireNextImage(_presentCompleteSemaphores[_frameIndex], &_swapchainImageIndex);
-        if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-            _swapChain->Resize();
-        }
-        else {
-            vkThrowIfFailed(result);
-        }
-
-        //_commandBuffers[_swapchainImageIndex]->Begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+        //_swapChain->AcquireNextTexture();
 
         return true;
     }
 
-    void GraphicsImpl::EndFrame(uint32_t frameId)
+    void GraphicsImpl::EndFrame()
     {
-        /*_commandBuffers[_swapchainImageIndex]->End();
-
-        VkCommandBuffer commandBuffer = _commandBuffers[_swapchainImageIndex]->GetVkCommandBuffer();
-        const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pWaitDstStageMask = &waitDstStageMask;
-        submitInfo.pWaitSemaphores = &_presentCompleteSemaphores[_frameIndex];
-        submitInfo.waitSemaphoreCount = 1u;
-        submitInfo.pSignalSemaphores = &_renderCompleteSemaphores[_frameIndex];
-        submitInfo.signalSemaphoreCount = 1u;
-        submitInfo.pCommandBuffers = &commandBuffer;
-        submitInfo.commandBufferCount = 1u;
-        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _waitFences[_frameIndex]));*/
-
-        VkResult result = _swapChain->QueuePresent(_graphicsQueue, _swapchainImageIndex, _renderCompleteSemaphores[_frameIndex]);
-        if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
-            if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-                _swapChain->Resize();
+        /*VkResult result = _swapChain->QueuePresent(_graphicsQueue);
+        if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR)))
+        {
+            if (result == VK_ERROR_OUT_OF_DATE_KHR)
+            {
+                //_swapChain->Resize();
                 return;
             }
             else {
                 vkThrowIfFailed(result);
             }
-        }
-
+        }*/
 
         // Advance frame index.
-        _frameIndex = (_frameIndex + 1u) % _maxInflightFrames;
-    }
-
-    SharedPtr<CommandContext> GraphicsImpl::GetContext() const
-    {
-        return _commandBuffers[_swapchainImageIndex];
-    }
-
-    SharedPtr<Texture> GraphicsImpl::GetCurrentColorTexture() const
-    {
-        return nullptr;
-    }
-
-    SharedPtr<Texture> GraphicsImpl::GetCurrentDepthStencilTexture() const
-    {
-        return nullptr;
-    }
-
-    SharedPtr<Texture> GraphicsImpl::GetCurrentMultisampleColorTexture() const
-    {
-        return nullptr;
+        //_frameIndex = (_frameIndex + 1u) % _maxInflightFrames;
     }
 
     bool GraphicsImpl::ImageFormatIsSupported(VkFormat format, VkFormatFeatureFlags required, VkImageTiling tiling) const
@@ -1176,7 +1041,7 @@ namespace alimer
         VkFormatFeatureFlags flags = tiling == VK_IMAGE_TILING_OPTIMAL ? props.optimalTilingFeatures : props.linearTilingFeatures;
         return (flags & required) == required;
     }
-    
+
     PixelFormat GraphicsImpl::GetDefaultDepthStencilFormat() const
     {
         if (ImageFormatIsSupported(VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL)) {
@@ -1205,64 +1070,6 @@ namespace alimer
         }
 
         return PixelFormat::Undefined;
-    }
-
-    VkCommandBuffer GraphicsImpl::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
-    {
-        VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-        info.commandPool = _graphicsCommandPool;
-        info.level = level;
-        info.commandBufferCount = 1;
-
-        VkCommandBuffer vkCommandBuffer;
-        vkThrowIfFailed(vkAllocateCommandBuffers(_device, &info, &vkCommandBuffer));
-
-        // If requested, also start recording for the new command buffer
-        if (begin)
-        {
-            VkCommandBufferBeginInfo beginInfo = {};
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            vkThrowIfFailed(vkBeginCommandBuffer(vkCommandBuffer, &beginInfo));
-        }
-
-        return vkCommandBuffer;
-    }
-
-    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
-    {
-        FlushCommandBuffer(commandBuffer, _graphicsQueue, free);
-    }
-
-    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
-    {
-        if (commandBuffer == VK_NULL_HANDLE) {
-            return;
-        }
-
-        vkThrowIfFailed(vkEndCommandBuffer(commandBuffer));
-
-        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-
-        VkFenceCreateInfo fenceCreateInfo = {};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.flags = 0;
-        VkFence fence;
-        vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &fence));
-
-        // Submit to the queue
-        vkThrowIfFailed(vkQueueSubmit(queue, 1, &submitInfo, fence));
-
-        // Wait for the fence to signal that command buffer has finished executing.
-        vkThrowIfFailed(vkWaitForFences(_device, 1, &fence, VK_TRUE, UINT64_MAX));
-        vkDestroyFence(_device, fence, nullptr);
-
-        if (free)
-        {
-            vkFreeCommandBuffers(_device, _graphicsCommandPool, 1, &commandBuffer);
-        }
     }
 
     VkSemaphore GraphicsImpl::RequestSemaphore()

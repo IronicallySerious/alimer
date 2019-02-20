@@ -130,6 +130,7 @@ namespace alimer
 
     bool Texture::Create(const void* pInitData)
     {
+        VkFormat vkFormat = GetVkFormat(_format);
         VkImageUsageFlags vkUsage = GetVkTextureUsage(_usage, _format);
 
         if (!_externalHandle)
@@ -140,7 +141,7 @@ namespace alimer
             createInfo.pNext = nullptr;
             createInfo.flags = 0u;
             createInfo.imageType = GetVkImageType(_type);
-            createInfo.format = _vkFormat;
+            createInfo.format = vkFormat;
             createInfo.extent.width = _width;
             createInfo.extent.height = _height;
             createInfo.extent.depth = _depth;
@@ -205,12 +206,12 @@ namespace alimer
             viewCreateInfo.flags = 0u;
             viewCreateInfo.image = _handle;
             viewCreateInfo.viewType = GetVkImageViewType(_type, _arraySize > 1);
-            viewCreateInfo.format = _vkFormat;
+            viewCreateInfo.format = vkFormat;
             viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
             viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
             viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
             viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-            viewCreateInfo.subresourceRange.aspectMask = GetVkAspectFlags(_vkFormat);
+            viewCreateInfo.subresourceRange.aspectMask = GetVkAspectFlags(vkFormat);
             viewCreateInfo.subresourceRange.baseMipLevel = 0;
             viewCreateInfo.subresourceRange.levelCount = _mipLevels;
             viewCreateInfo.subresourceRange.baseArrayLayer = 0;

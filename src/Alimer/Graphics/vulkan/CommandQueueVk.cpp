@@ -20,35 +20,93 @@
 // THE SOFTWARE.
 //
 
-#include "CommandQueueVk.h"
-#include "CommandContextVk.h"
+#include "../CommandQueue.h"
+//#include "CommandContextVk.h"
 #include "GraphicsDeviceVk.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    CommandQueueVk::CommandQueueVk(GraphicsDevice* device, VkQueue queue, uint32_t queueFamilyIndex)
-        : _device(device)
-        , _queue(queue)
+    void CommandQueue::Create()
     {
-        VkCommandPoolCreateInfo createInfo;
+        VkCommandPoolCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        createInfo.pNext = nullptr;
-        //createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        createInfo.queueFamilyIndex = queueFamilyIndex;
-        if (vkCreateCommandPool(device->GetImpl()->GetVkDevice(), &createInfo, nullptr, &_commandPool) != VK_SUCCESS)
+        switch (_queueType)
+        {
+        case QueueType::Direct:
+        default:
+            createInfo.queueFamilyIndex = _device->GetImpl()->GetGraphicsQueueFamily();
+            break;
+
+        case QueueType::Compute:
+            createInfo.queueFamilyIndex = _device->GetImpl()->GetComputeQueueFamily();
+            break;
+
+        case QueueType::Copy:
+            createInfo.queueFamilyIndex = _device->GetImpl()->GetTransferQueueFamily();
+            break;
+        }
+
+        if (vkCreateCommandPool(_device->GetImpl()->GetVkDevice(), &createInfo, nullptr, &_handle) != VK_SUCCESS)
         {
             ALIMER_LOGCRITICAL("Vulkan: Failed to create command pool");
         }
+
+        _fence = _device->GetImpl()->RequestFence();
     }
 
-    CommandQueueVk::~CommandQueueVk()
+    void CommandQueue::Destroy()
     {
-        if (_commandPool != VK_NULL_HANDLE)
+        if (_handle != VK_NULL_HANDLE)
         {
-            vkDestroyCommandPool(_device->GetImpl()->GetVkDevice(), _commandPool, nullptr);
-            _commandPool = VK_NULL_HANDLE;
+            _device->GetImpl()->RecycleFence(_fence);
+            vkDestroyCommandPool(_device->GetImpl()->GetVkDevice(), _handle, nullptr);
+            _handle = VK_NULL_HANDLE;
         }
+    }
+
+    void CommandQueue::Submit(SharedPtr<CommandBuffer> commandBuffer, bool waitForCompletion)
+    {
+        ALIMER_ASSERT(commandBuffer->GetCommandQueue() == this);
+
+        if (commandBuffer.IsNull()) {
+            return;
+        }
+
+        if (commandBuffer->GetStatus() == CommandBufferStatus::Committed) {
+            return;
+        }
+
+        // End command buffer recording.
+        commandBuffer->End();
+
+        VkCommandBuffer vkCommandBuffer = commandBuffer->GetHandle();
+        VkDevice vkDevice = _device->GetImpl()->GetVkDevice();
+        VkQueue vkQueue = _device->GetImpl()->GetQueue(_queueType);
+        VkFence vkFence = waitForCompletion ? commandBuffer->GetFence() : _fence;
+
+        //const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        //submitInfo.pWaitDstStageMask = &waitDstStageMask;
+        //submitInfo.pWaitSemaphores = &_presentCompleteSemaphores[_frameIndex];
+        //submitInfo.waitSemaphoreCount = 1u;
+        submitInfo.pSignalSemaphores = nullptr;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pCommandBuffers = &vkCommandBuffer;
+        submitInfo.commandBufferCount = 1u;
+        vkThrowIfFailed(vkQueueSubmit(vkQueue, 1, &submitInfo, vkFence));
+
+        if (waitForCompletion)
+        {
+            // Wait for the fence to signal that command buffer has finished executing.
+            vkThrowIfFailed(vkWaitForFences(vkDevice, 1, &vkFence, VK_TRUE, UINT64_MAX));
+            vkThrowIfFailed(vkResetFences(vkDevice, 1, &vkFence));
+            _availableCommandBuffers.Push(commandBuffer);
+        }
+        
+        //_status = waitForCompletion ? CommandBufferStatus::Completed : CommandBufferStatus::Committed;
     }
 }

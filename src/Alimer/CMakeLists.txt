@@ -218,7 +218,7 @@ endif ()
 
 
 if (ALIMER_VULKAN)
-    target_link_libraries(${TARGET_NAME} PUBLIC volk vk_mem_alloc)
+    target_link_libraries(${TARGET_NAME} PRIVATE volk vk_mem_alloc)
 endif ()
 
 # SDK installation

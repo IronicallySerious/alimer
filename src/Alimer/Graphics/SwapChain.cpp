@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,28 +20,39 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "BackendVk.h"
-#include <vector>
+#include "../Graphics/SwapChain.h"
+#include "../Graphics/GraphicsDevice.h"
 
 namespace alimer
 {
-    class GraphicsDevice;
+    SwapChain::SwapChain(GraphicsDevice* device, const SwapChainDescriptor* descriptor)
+        : GPUResource(device, Type::SwapChain)
+        , _vsync(descriptor->vsync)
+        , _nativeHandle(descriptor->nativeHandle)
+    {
+        Resize(descriptor->width, descriptor->height);
+    }
 
-	/// Vulkan CommandQueue implementation.
-	class CommandQueueVk final
-	{
-	public:
-        CommandQueueVk(GraphicsDevice* device, VkQueue queue, uint32_t queueFamilyIndex);
-        ~CommandQueueVk();
+    SwapChain::~SwapChain()
+    {
+        Destroy();
+    }
 
-        VkQueue         GetQueue() const { return _queue; }
-        VkCommandPool   GetCommandPool() const { return _commandPool; }
+    bool SwapChain::Resize(uint32_t width, uint32_t height)
+    {
+        if (_width == width
+            && _height == height)
+        {
+            return true;
+        }
 
-	private:
-        GraphicsDevice* _device;
-        VkQueue _queue;
-        VkCommandPool _commandPool = VK_NULL_HANDLE;
-	};
+        if (ResizeImpl(width, height))
+        {
+            _width = width;
+            _height = height;
+            return true;
+        }
+
+        return false;
+    }
 }

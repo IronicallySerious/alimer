@@ -24,8 +24,9 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/GPUBackend.h"
+#include "../Graphics/CommandQueue.h"
+#include "../Graphics/SwapChain.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
-#include "../Graphics/CommandContext.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Pipeline.h"
 #include <memory>
@@ -50,10 +51,9 @@ namespace alimer
     class GraphicsImpl;
 
     /// Low-level graphics module.
-    class ALIMER_API GraphicsDevice : public Object
+    class ALIMER_API GraphicsDevice final : public Object
     {
         friend class GPUResource;
-        friend class CommandContext;
 
         ALIMER_OBJECT(GraphicsDevice, Object);
 
@@ -65,7 +65,7 @@ namespace alimer
         static GraphicsDevice* Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
 
         /// Destructor.
-        virtual ~GraphicsDevice() override;
+        ~GraphicsDevice() override;
 
         /// Initialize device with given swap chain descriptor.
         bool Initialize(const SwapChainDescriptor* descriptor);
@@ -85,21 +85,17 @@ namespace alimer
         /// Get the device limits
         const GraphicsDeviceLimits& GetLimits() const;
 
-        /// Get the frame command context.
-        SharedPtr<CommandContext> GetContext() const;
-
         /// Return whether rendering initialized.
         bool IsInitialized() const { return _initialized; }
 
+        /// Gets command queue
+        SharedPtr<CommandQueue> GetCommandQueue(QueueType queueType = QueueType::Direct) const;
+
+        /// Get the main swap chain.
+        SharedPtr<SwapChain> GetSwapChain() const { return _swapChain; }
+
         /// Return graphics implementation, which holds the actual API-specific resources.
         GraphicsImpl* GetImpl() const { return _impl; }
-
-        /// Get the current backbuffer texture;
-        //virtual SharedPtr<Texture> GetCurrentColorTexture() const = 0;
-        /// Get the current backbuffer texture;
-        //virtual SharedPtr<Texture> GetCurrentDepthStencilTexture() const = 0;
-        /// Get the current backbuffer texture;
-        //virtual SharedPtr<Texture> GetCurrentMultisampleColorTexture() const = 0;
 
     protected:
         /// Add a GPUResource to keep track of. 
@@ -108,11 +104,11 @@ namespace alimer
         /// Remove a GPUResource.
         void UntrackResource(GPUResource* resource);
 
-        void OnAfterCreated();
-
     private:
         /// Constructor.
         GraphicsDevice(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
+
+        void OnAfterCreated();
 
         /// Implementation.
         GraphicsImpl*               _impl = nullptr;
@@ -126,6 +122,10 @@ namespace alimer
         Sampler*                    _pointSampler = nullptr;
         Sampler*                    _linearSampler = nullptr;
         uint32_t                    _frameId = 0;
+        SharedPtr<CommandQueue>     _directCommandQueue;
+        SharedPtr<CommandQueue>     _computeCommandQueue;
+        SharedPtr<CommandQueue>     _copyCommandQueue;
+        SharedPtr<SwapChain>        _swapChain;
     };
 
     ALIMER_API extern GraphicsDevice* graphics;

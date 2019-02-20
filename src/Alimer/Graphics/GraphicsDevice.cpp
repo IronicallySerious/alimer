@@ -21,7 +21,6 @@
 //
 
 #include "../Graphics/GraphicsDevice.h"
-#include "../Graphics/CommandContext.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Sampler.h"
 #include "../Application/Window.h"
@@ -57,6 +56,12 @@ namespace alimer
         , _impl(new GraphicsImpl(applicationName, descriptor))
     {
         _backend = _impl->GetBackend();
+
+        // Create command queue's
+        _directCommandQueue = MakeShared<CommandQueue>(this, QueueType::Direct);
+        _computeCommandQueue = MakeShared<CommandQueue>(this, QueueType::Compute);
+        _copyCommandQueue = MakeShared<CommandQueue>(this, QueueType::Copy);
+
         graphics = this;
         AddSubsystem(this);
     }
@@ -64,6 +69,11 @@ namespace alimer
     GraphicsDevice::~GraphicsDevice()
     {
         _impl->WaitIdle();
+
+        _swapChain.Reset();
+        _directCommandQueue.Reset();
+        _computeCommandQueue.Reset();
+        _copyCommandQueue.Reset();
 
         // Destroy undestroyed resources.
         SafeDelete(_pointSampler);
@@ -111,20 +121,18 @@ namespace alimer
             return true;
         }
 
-        //if (!InitializeImpl(descriptor))
-        //{
-        //    return false;
-        //}
+        _swapChain = new SwapChain(this, descriptor);
 
+        OnAfterCreated();
         _initialized = true;
         return _initialized;
     }
 
     bool GraphicsDevice::BeginFrame()
     {
-        //if (!BeginFrameImpl()) {
-         //   return false;
-        ///}
+        if (!_impl->BeginFrame()) {
+           return false;
+        }
 
         _frameId++;
         return true;
@@ -132,7 +140,8 @@ namespace alimer
 
     uint32_t GraphicsDevice::EndFrame()
     {
-        //EndFrame(_frameId);
+        _impl->EndFrame();
+        _frameId++;
         return _frameId;
     }
 
@@ -163,15 +172,34 @@ namespace alimer
         );
     }
 
-    const GraphicsDeviceFeatures& GraphicsDevice::GetFeatures() const {
+    const GraphicsDeviceFeatures& GraphicsDevice::GetFeatures() const
+    {
         return _impl->GetFeatures();
     }
 
-    const GraphicsDeviceLimits& GraphicsDevice::GetLimits() const {
+    const GraphicsDeviceLimits& GraphicsDevice::GetLimits() const
+    {
         return _impl->GetLimits();
     }
 
-    SharedPtr<CommandContext> GraphicsDevice::GetContext() const {
-        return nullptr;
+    SharedPtr<CommandQueue> GraphicsDevice::GetCommandQueue(QueueType queueType) const
+    {
+        SharedPtr<CommandQueue> commandQueue;
+        switch (queueType)
+        {
+        case QueueType::Direct:
+            commandQueue = _directCommandQueue;
+            break;
+        case QueueType::Compute:
+            commandQueue = _computeCommandQueue;
+            break;
+        case QueueType::Copy:
+            commandQueue = _copyCommandQueue;
+            break;
+        default:
+            assert(false && "Invalid command queue type.");
+        }
+
+        return commandQueue;
     }
 }

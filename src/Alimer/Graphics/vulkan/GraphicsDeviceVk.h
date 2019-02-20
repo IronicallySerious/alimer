@@ -27,7 +27,6 @@
 
 namespace alimer
 {
-    class SwapChainVk;
     class CommandContextVk;
 
     /// Vulkan gpu backend.
@@ -46,27 +45,17 @@ namespace alimer
         
         void CreateInstance(const char* applicationName);
         void SelectPhysicalDevice(GpuPreference devicePreference);
-        void CreateLogicalDevice(VkSurfaceKHR surface);
+        void CreateLogicalDevice();
         void InitializeFeatures();
 
-        bool InitializeImpl(const SwapChainDescriptor* descriptor);
-        bool BeginFrameImpl();
-        void EndFrame(uint32_t frameId);
+        bool BeginFrame();
+        void EndFrame();
 
-        VkSurfaceKHR CreateSurface(const SwapChainDescriptor* descriptor);
-
-        SharedPtr<CommandContext> GetContext() const;
-        SharedPtr<Texture> GetCurrentColorTexture() const;
-        SharedPtr<Texture> GetCurrentDepthStencilTexture() const;
-        SharedPtr<Texture> GetCurrentMultisampleColorTexture() const;
+        VkSurfaceKHR CreateSurface(uint64_t nativeHandle);
 
         bool ImageFormatIsSupported(VkFormat format, VkFormatFeatureFlags required, VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL) const;
         PixelFormat GetDefaultDepthStencilFormat() const;
         PixelFormat GetDefaultDepthFormat() const;
-
-        VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
-        void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
-        void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
 
         VkSemaphore RequestSemaphore();
         void RecycleSemaphore(VkSemaphore semaphore);
@@ -93,6 +82,22 @@ namespace alimer
 
         /// Get the device limits
         inline const GraphicsDeviceLimits& GetLimits() const { return _limits; }
+
+        VkQueue GetQueue(QueueType type) const
+        {
+            switch (type)
+            {
+            default:
+            case QueueType::Direct:
+                return _graphicsQueue;
+
+            case QueueType::Compute:
+                return _computeQueue;
+
+            case QueueType::Copy:
+                return _transferQueue;
+            }
+        }
         
     private:
         bool HasExtension(const std::string& extension)
@@ -121,27 +126,20 @@ namespace alimer
         std::vector<VkQueueFamilyProperties>    _physicalDeviceQueueFamilyProperties;
         std::vector<std::string>                _physicalDeviceExtensions;
         std::vector<std::string>                _physicalDeviceLayers;
+        uint32_t                                _presentQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t                                _graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t                                _computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t                                _transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         VkDevice                                _device = VK_NULL_HANDLE;
+        
         VkQueue                                 _graphicsQueue = VK_NULL_HANDLE;
         VkQueue                                 _computeQueue = VK_NULL_HANDLE;
         VkQueue                                 _transferQueue = VK_NULL_HANDLE;
         VmaAllocator                            _memoryAllocator = VK_NULL_HANDLE;
         DeviceFeaturesVk                        _featuresVk = {};
-
-        std::vector<VkFence>                    _waitFences;
-        std::vector<VkSemaphore>                _renderCompleteSemaphores;
-        std::vector<VkSemaphore>                _presentCompleteSemaphores;
-        uint32_t                                _frameIndex = 0u;
-        uint32_t                                _maxInflightFrames = 0u;
-        uint32_t                                _swapchainImageIndex = 0u;
-        VkCommandPool                           _graphicsCommandPool = VK_NULL_HANDLE;
         VkPipelineCache                         _pipelineCache = VK_NULL_HANDLE;
-        std::vector<SharedPtr<CommandContext>> _commandBuffers;
+        
         std::vector<VkFence>                    _fences;
         std::vector<VkSemaphore>                _semaphores;
-        SwapChainVk*                            _swapChain = nullptr;
     };
 }

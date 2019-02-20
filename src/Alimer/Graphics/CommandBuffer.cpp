@@ -20,70 +20,77 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/CommandContext.h"
+#include "../Graphics/CommandBuffer.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Math/MathUtil.h"
 #include "../Core/Log.h"
 
 namespace alimer
 {
-    CommandContext::CommandContext(GraphicsDevice* device)
-        : _device(device)
+    CommandBuffer::CommandBuffer(CommandQueue* commandQueue)
+        : _commandQueue(commandQueue)
+        , _status(CommandBufferStatus::Initial)
     {
+        Create();
     }
 
-    void CommandContext::PushDebugGroup(const std::string& name, const Color4& color)
+    CommandBuffer::~CommandBuffer()
+    {
+        Destroy();
+    }
+
+    void CommandBuffer::PushDebugGroup(const std::string& name, const Color4& color)
     {
         PushDebugGroupImpl(name, color);
     }
 
-    void CommandContext::PopDebugGroup()
+    void CommandBuffer::PopDebugGroup()
     {
         PopDebugGroupImpl();
     }
 
-    void CommandContext::InsertDebugMarker(const std::string& name, const Color4& color)
+    void CommandBuffer::InsertDebugMarker(const std::string& name, const Color4& color)
     {
         InsertDebugMarkerImpl(name, color);
     }
 
-    void CommandContext::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
+    void CommandBuffer::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
         _insideRenderPass = true;
         BeginRenderPassImpl(nullptr);
     }
 
-    void CommandContext::BeginRenderPass(const RenderPassDescriptor* descriptor)
+    void CommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
         _insideRenderPass = true;
         BeginRenderPassImpl(descriptor);
     }
 
-    void CommandContext::EndRenderPass()
+    void CommandBuffer::EndRenderPass()
     {
         EndRenderPassImpl();
         _insideRenderPass = false;
     }
 
-    void CommandContext::SetViewport(const RectangleF& viewport)
+    void CommandBuffer::SetViewport(const RectangleF& viewport)
     {
         //SetViewport(1, &viewport);
     }
 
-    void CommandContext::SetScissor(const Rectangle& scissor)
+    void CommandBuffer::SetScissor(const Rectangle& scissor)
     {
         //SetScissor(1, &scissor);
     }
 
-    void CommandContext::SetShader(Shader* shader)
+    void CommandBuffer::SetShader(Shader* shader)
     {
         ALIMER_ASSERT(shader);
         _currentShader = shader;
         //SetShaderImpl(shader);
     }
 
-    void CommandContext::SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
+    void CommandBuffer::SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
@@ -103,7 +110,7 @@ namespace alimer
             inputRate);*/
     }
 
-    void CommandContext::SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandBuffer::SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType)
     {
         ALIMER_ASSERT(buffer);
 
@@ -118,17 +125,17 @@ namespace alimer
         //SetIndexBufferImpl(buffer, offset, indexType);
     }
 
-    void CommandContext::SetPrimitiveTopology(PrimitiveTopology topology)
+    void CommandBuffer::SetPrimitiveTopology(PrimitiveTopology topology)
     {
         //SetPrimitiveTopologyCore(topology);
     }
 
-    void CommandContext::Draw(uint32_t vertexCount, uint32_t firstVertex)
+    void CommandBuffer::Draw(uint32_t vertexCount, uint32_t firstVertex)
     {
         DrawInstanced(vertexCount, 1, firstVertex, 0);
     }
 
-    void CommandContext::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    void CommandBuffer::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
 #if defined(ALIMER_DEV)
         ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
@@ -140,7 +147,7 @@ namespace alimer
         //DrawInstancedImpl(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    void CommandContext::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
+    void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
     {
         ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
@@ -148,7 +155,7 @@ namespace alimer
         //DrawIndexedImpl(topology, indexCount, startIndexLocation, baseVertexLocation);
     }
 
-    void CommandContext::DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
+    void CommandBuffer::DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
     {
         ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
@@ -156,18 +163,18 @@ namespace alimer
         //DrawIndexedInstancedImpl(topology, indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
     }
 
-    void CommandContext::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         ALIMER_ASSERT(_currentShader && _currentShader->IsCompute());
         //DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
 
-    void CommandContext::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
+    void CommandBuffer::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), 1, 1);
     }
 
-    void CommandContext::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
+    void CommandBuffer::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
     {
         Dispatch(
             DivideByMultiple(threadCountX, groupSizeX),
@@ -175,7 +182,7 @@ namespace alimer
             1);
     }
 
-    void CommandContext::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
+    void CommandBuffer::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
     {
         Dispatch(
             DivideByMultiple(threadCountX, groupSizeX),
@@ -183,10 +190,7 @@ namespace alimer
             DivideByMultiple(threadCountZ, groupSizeZ));
     }
 
-
 #if TODO
-
-
     void CommandBuffer::BindBuffer(GPUBuffer* buffer, uint32_t set, uint32_t binding)
     {
         ALIMER_ASSERT(buffer);
