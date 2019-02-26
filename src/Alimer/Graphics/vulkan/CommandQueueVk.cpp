@@ -84,7 +84,7 @@ namespace alimer
         VkCommandBuffer vkCommandBuffer = commandBuffer->GetHandle();
         VkDevice vkDevice = _device->GetImpl()->GetVkDevice();
         VkQueue vkQueue = _device->GetImpl()->GetQueue(_queueType);
-        VkFence vkFence = waitForCompletion ? commandBuffer->GetFence() : _fence;
+        VkFence vkFence = waitForCompletion ? _fence : commandBuffer->GetFence();
 
         //const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
@@ -105,8 +105,25 @@ namespace alimer
             vkThrowIfFailed(vkWaitForFences(vkDevice, 1, &vkFence, VK_TRUE, UINT64_MAX));
             vkThrowIfFailed(vkResetFences(vkDevice, 1, &vkFence));
             _availableCommandBuffers.Push(commandBuffer);
+            commandBuffer->SetStatus(CommandBufferStatus::Completed);
         }
-        
-        //_status = waitForCompletion ? CommandBufferStatus::Completed : CommandBufferStatus::Committed;
+        else
+        {
+            commandBuffer->SetStatus(CommandBufferStatus::Committed);
+            _submittedCommandBuffers.Push(commandBuffer);
+        }
+    }
+
+    bool CommandQueue::IsCompletted(const SharedPtr<CommandBuffer>& commandBuffer)
+    {
+        VkDevice vkDevice = _device->GetImpl()->GetVkDevice();
+        VkFence vkFence = commandBuffer->GetFence();
+        if (vkGetFenceStatus(vkDevice, vkFence) == VK_SUCCESS)
+        {
+            vkThrowIfFailed(vkResetFences(vkDevice, 1, &vkFence));
+            return true;
+        }
+
+        return false;
     }
 }

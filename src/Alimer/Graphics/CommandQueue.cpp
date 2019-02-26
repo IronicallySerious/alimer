@@ -40,6 +40,12 @@ namespace alimer
 
     CommandQueue::~CommandQueue()
     {
+#ifdef ALIMER_THREADING
+        _runThread = false;
+        if (_thread.joinable()) {
+            _thread.join();
+        }
+#endif
         Destroy();
     }
 
@@ -70,10 +76,18 @@ namespace alimer
 
         while (_runThread)
         {
+            SharedPtr<CommandBuffer> commandBuffer;
             lock.lock();
+            while(_submittedCommandBuffers.TryPop(commandBuffer))
+            {
+                if (IsCompletted(commandBuffer)) {
+                    commandBuffer->Reset();
+                    _availableCommandBuffers.Push(commandBuffer);
+                }
+            }
 
-            _threadCV.notify_one();
             lock.unlock();
+            _threadCV.notify_one();
             std::this_thread::yield();
         }
     }

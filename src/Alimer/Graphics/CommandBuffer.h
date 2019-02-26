@@ -102,6 +102,11 @@ namespace alimer
 #elif defined(ALIMER_D3D12)
 
 #endif
+    private:
+        void Reset();
+        void SetStatus(CommandBufferStatus status) {
+            _status = status;
+        }
 
     private:
         // Backend methods

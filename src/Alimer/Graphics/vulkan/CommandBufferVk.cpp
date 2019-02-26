@@ -60,6 +60,12 @@ namespace alimer
         }
     }
 
+    void CommandBuffer::Reset()
+    {
+        _status = CommandBufferStatus::Initial;
+        vkResetCommandBuffer(_handle, 0);
+    }
+
     void CommandBuffer::Begin()
     {
         VkCommandBufferBeginInfo beginInfo;

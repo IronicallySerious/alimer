@@ -64,12 +64,12 @@ namespace alimer
 #ifdef ALIMER_THREADING
         void CheckSubmittedCommandBuffers();
 #endif
-
-
         void Create();
+        bool IsCompletted(const SharedPtr<CommandBuffer>& commandBuffer);
 
         QueueType _queueType;
         ThreadSafeQueue<SharedPtr<CommandBuffer>> _availableCommandBuffers;
+        ThreadSafeQueue<SharedPtr<CommandBuffer>> _submittedCommandBuffers;
         uint64_t _fenceValue;
 
 #ifdef ALIMER_THREADING

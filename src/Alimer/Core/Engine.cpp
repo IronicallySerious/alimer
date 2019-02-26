@@ -216,7 +216,7 @@ namespace alimer
             return;
         }
 
-        auto commandBuffer =  _graphicsDevice->GetCommandQueue()->GetCommandBuffer();
+        SharedPtr<CommandBuffer> commandBuffer =  _graphicsDevice->GetCommandQueue()->GetCommandBuffer();
         _graphicsDevice->GetCommandQueue()->Submit(commandBuffer);
 
         //auto context = _graphicsDevice->GetContext();
