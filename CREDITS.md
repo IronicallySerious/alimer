@@ -3,11 +3,13 @@
 Alimer uses the following open-source and third-party libraries:
 
 - [Nothings](https://github.com/nothings/stb) single file libs.
-  - [stb_image.h 2.19](https://github.com/nothings/stb/blob/master/stb_image.h)
-  - [stb_image_write.h 1.09](https://github.com/nothings/stb/blob/master/stb_image_write.h)
-  - [stb_rect_pack.h 0.11](https://github.com/nothings/stb/blob/master/stb_rect_pack.h)
-  - [stb_textedit.h 1.12](https://github.com/nothings/stb/blob/master/stb_textedit.h)
-  - [stb_truetype.h 1.19](https://github.com/nothings/stb/blob/master/stb_truetype.h)
+  - [stb_image.h 2.21](https://github.com/nothings/stb/blob/master/stb_image.h)
+  - [stb_image_write.h 1.11](https://github.com/nothings/stb/blob/master/stb_image_write.h)
+  - [stb_image_resize.h 0.95](https://github.com/nothings/stb/blob/master/stb_image_resize.h)
+  - [stb_rect_pack.h 1.00](https://github.com/nothings/stb/blob/master/stb_rect_pack.h)
+  - [stb_textedit.h 1.13](https://github.com/nothings/stb/blob/master/stb_textedit.h)
+  - [stb_truetype.h 1.21](https://github.com/nothings/stb/blob/master/stb_truetype.h)
+  - [stb_vorbis.c 1.15](https://github.com/nothings/stb/blob/master/stb_vorbis.c)
 - [Vulkan SDK](https://lunarg.com/vulkan-sdk/)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 - [volk Metaloader for Vulkan](https://github.com/zeux/volk)

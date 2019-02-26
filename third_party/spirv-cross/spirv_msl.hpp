@@ -48,6 +48,7 @@ struct MSLVertexAttr
 	uint32_t msl_stride = 0;
 	bool per_instance = false;
 	MSLVertexFormat format = MSL_VERTEX_FORMAT_OTHER;
+	spv::BuiltIn builtin = spv::BuiltInMax;
 	bool used_by_shader = false;
 };
 
@@ -177,6 +178,7 @@ public:
 		bool disable_rasterization = false;
 		bool capture_output_to_buffer = false;
 		bool swizzle_texture_samples = false;
+		bool tess_domain_origin_lower_left = false;
 
 		// Fragment output in MSL must have at least as many components as the render pass.
 		// Add support to explicit pad out components.
@@ -235,7 +237,8 @@ public:
 	bool get_is_rasterization_disabled() const
 	{
 		return is_rasterization_disabled && (get_entry_point().model == spv::ExecutionModelVertex ||
-		                                     get_entry_point().model == spv::ExecutionModelTessellationControl);
+		                                     get_entry_point().model == spv::ExecutionModelTessellationControl ||
+		                                     get_entry_point().model == spv::ExecutionModelTessellationEvaluation);
 	}
 
 	// Provide feedback to calling API to allow it to pass an auxiliary
@@ -419,6 +422,7 @@ protected:
 	                                                      SPIRType &ib_type, SPIRVariable &var, uint32_t index,
 	                                                      bool strip_array);
 	uint32_t get_accumulated_member_location(const SPIRVariable &var, uint32_t mbr_idx, bool strip_array);
+	void add_tess_level_input_to_interface_block(const std::string &ib_var_ref, SPIRType &ib_type, SPIRVariable &var);
 
 	void fix_up_interface_member_indices(spv::StorageClass storage, uint32_t ib_type_id);
 
@@ -487,10 +491,12 @@ protected:
 	void analyze_sampled_image_usage();
 
 	bool emit_tessellation_access_chain(const uint32_t *ops, uint32_t length);
+	bool is_out_of_bounds_tessellation_level(uint32_t id_lhs);
 
 	Options msl_options;
 	std::set<SPVFuncImpl> spv_function_implementations;
 	std::unordered_map<uint32_t, MSLVertexAttr *> vtx_attrs_by_location;
+	std::unordered_map<uint32_t, MSLVertexAttr *> vtx_attrs_by_builtin;
 	std::unordered_map<uint32_t, uint32_t> fragment_output_components;
 	std::unordered_map<MSLStructMemberKey, uint32_t> struct_member_padding;
 	std::set<std::string> pragma_lines;
@@ -511,6 +517,7 @@ protected:
 	bool capture_output_to_buffer = false;
 	bool needs_aux_buffer_def = false;
 	bool used_aux_buffer = false;
+	bool added_builtin_tess_level = false;
 	std::string qual_pos_var_name;
 	std::string stage_in_var_name = "in";
 	std::string stage_out_var_name = "out";
