@@ -24,17 +24,6 @@
 
 #include <foundation/windows.h>
 
-#include <dxgi.h>
-#include <d3dcompiler.h>
-
-#define D3D11_NO_HELPERS
-#include <d3d11_1.h>
-
-#pragma warning(push)
-#pragma warning(disable : 4467 5038)
-#   include <wrl.h>
-#pragma warning(pop)
-
 #if defined(_DURANGO) || defined(_XBOX_ONE)
 #   define ALIMER_D3D_DYNAMIC_LIB 0
 #elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)

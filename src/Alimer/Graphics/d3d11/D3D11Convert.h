@@ -47,32 +47,32 @@ namespace alimer
             }
         }
 
-        static inline D3D11_COMPARISON_FUNC Convert(CompareFunction function)
+        static inline D3D11_COMPARISON_FUNC Convert(CompareOp function)
         {
             switch (function)
             {
-            case CompareFunction::Never:
+            case CompareOp::Never:
                 return D3D11_COMPARISON_NEVER;
 
-            case CompareFunction::Less:
+            case CompareOp::Less:
                 return D3D11_COMPARISON_LESS;
 
-            case CompareFunction::Equal:
+            case CompareOp::Equal:
                 return D3D11_COMPARISON_EQUAL;
 
-            case CompareFunction::LessEqual:
+            case CompareOp::LessEqual:
                 return D3D11_COMPARISON_LESS_EQUAL;
 
-            case CompareFunction::Greater:
+            case CompareOp::Greater:
                 return D3D11_COMPARISON_GREATER;
 
-            case CompareFunction::NotEqual:
+            case CompareOp::NotEqual:
                 return D3D11_COMPARISON_NOT_EQUAL;
 
-            case CompareFunction::GreaterEqual:
+            case CompareOp::GreaterEqual:
                 return D3D11_COMPARISON_GREATER_EQUAL;
 
-            case CompareFunction::Always:
+            case CompareOp::Always:
                 return D3D11_COMPARISON_ALWAYS;
 
             default:
@@ -154,7 +154,7 @@ namespace alimer
 
         static inline TextureUsage GetTextureUsage(UINT bindFlags)
         {
-            TextureUsage usage = TextureUsage::None;
+            TextureUsage usage = TextureUsage::Unknown;
             if (bindFlags & D3D11_BIND_SHADER_RESOURCE)
             {
                 usage |= TextureUsage::ShaderRead;

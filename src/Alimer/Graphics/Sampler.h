@@ -50,9 +50,6 @@ namespace alimer
         const SamplerDescriptor &GetDescriptor() const { return _descriptor; }
 
     protected:
-        /// Create backend instance.
-        virtual bool Create() = 0;
-
         SamplerDescriptor _descriptor = {};
     };
 }

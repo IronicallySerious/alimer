@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "SwapChainD3D11.h"
 #include "CommandContextD3D11.h"
 #include "TextureD3D11.h"
@@ -29,9 +29,9 @@
 #include "BufferD3D11.h"
 #include "ShaderD3D11.h"
 //#include "D3D11Pipeline.h"
-#include "../../Core/Platform.h"
-#include "../../Core/Log.h"
-#include <STB/stb_image_write.h>
+#include "foundation/StringUtils.h"
+#include "Core/Platform.h"
+#include "Core/Log.h"
 
 using namespace Microsoft::WRL;
 
@@ -143,7 +143,7 @@ namespace alimer
     }
 
 
-    bool DeviceD3D11::IsSupported()
+    bool GraphicsDeviceD3D11::IsSupported()
     {
         static bool availableCheck = false;
         static bool isAvailable = false;
@@ -174,8 +174,8 @@ namespace alimer
         return isAvailable;
     }
 
-    DeviceD3D11::DeviceD3D11(const GraphicsDeviceDescriptor* descriptor)
-        : GraphicsDevice(GraphicsBackend::D3D11, descriptor->validation)
+    GraphicsDeviceD3D11::GraphicsDeviceD3D11(const GraphicsDeviceDescriptor* descriptor)
+        : GraphicsDevice(GraphicsBackend::Direct3D11, descriptor)
         , _cache(this)
     {
         if (FAILED(D3D11LoadLibraries()))
@@ -230,7 +230,7 @@ namespace alimer
             D3D11_SDK_VERSION,
             _d3dDevice.ReleaseAndGetAddressOf(),
             &_d3dFeatureLevel,
-            _d3dContext.ReleaseAndGetAddressOf()
+            &_d3dContext
         );
 
         if (hr == E_INVALIDARG && featLevelCount > 1)
@@ -248,7 +248,7 @@ namespace alimer
                 D3D11_SDK_VERSION,
                 _d3dDevice.ReleaseAndGetAddressOf(),
                 &_d3dFeatureLevel,
-                _d3dContext.ReleaseAndGetAddressOf()
+                &_d3dContext
             );
         }
         ThrowIfFailed(hr);
@@ -293,146 +293,40 @@ namespace alimer
 
         InitializeCaps();
 
-        // Create main render context..
+        // Create main render context.
         _renderContext = new CommandContextD3D11(this);
-
-        // Create SwapChain if not headless
-        if (!descriptor->headless)
-        {
-            _swapChain = CreateSwapChain(&descriptor->swapchain);
-        }
-
-        OnAfterCreated();
     }
 
-    DeviceD3D11::~DeviceD3D11()
+    GraphicsDeviceD3D11::~GraphicsDeviceD3D11()
     {
-        SafeDelete(_swapChain);
+        Finalize();
         _cache.Clear();
 
-        _d3dContext.Reset();
+        SafeRelease(_d3dContext);
         _d3dDevice1.Reset();
 
 #ifdef _DEBUG
+        ComPtr<ID3D11Debug> d3dDebug;
+        if (SUCCEEDED(_d3dDevice.As(&d3dDebug)))
         {
-            ComPtr<ID3D11Debug> d3dDebug;
-            if (SUCCEEDED(_d3dDevice.As(&d3dDebug)))
-            {
-                d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY);
-            }
+            d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY);
         }
 #endif
         _d3dDevice.Reset();
     }
 
-#if TODO_D3D11
-    void DeviceD3D11::GenerateScreenshot(const std::string& fileName)
+    bool GraphicsDeviceD3D11::InitializeImpl(const SwapChainDescriptor* descriptor)
     {
-        /*HRESULT hr = S_OK;
-
-        TextureD3D11* backBufferTexture = _swapChain->GetBackbufferTexture();
-        const DXGI_FORMAT format = backBufferTexture->GetDXGIFormat();
-
-        D3D11_TEXTURE2D_DESC textureDesc;
-        textureDesc.Width = backBufferTexture->GetWidth();
-        textureDesc.Height = backBufferTexture->GetHeight();
-        textureDesc.MipLevels = 1;
-        textureDesc.ArraySize = 1;
-        textureDesc.Format = format;
-        textureDesc.SampleDesc.Count = 1;
-        textureDesc.SampleDesc.Quality = 0;
-        textureDesc.Usage = D3D11_USAGE_STAGING;
-        textureDesc.BindFlags = 0;
-        textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        textureDesc.MiscFlags = 0;
-
-        ID3D11Texture2D* texture;
-        hr = _d3dDevice->CreateTexture2D(&textureDesc, nullptr, &texture);
-
-        if (FAILED(hr))
-        {
-            ALIMER_LOGCRITICALF("D3D11 - Failed to create texture, error: %08X", static_cast<uint32_t>(hr));
-        }
-
-        // Resolve multisample texture.
-        if (backBufferTexture->GetSamples() > SampleCount::Count1)
-        {
-            D3D11_TEXTURE2D_DESC resolveTextureDesc;
-            resolveTextureDesc.Width = backBufferTexture->GetWidth();
-            resolveTextureDesc.Height = backBufferTexture->GetHeight();
-            resolveTextureDesc.MipLevels = 1;
-            resolveTextureDesc.ArraySize = 1;
-            resolveTextureDesc.Format = format;
-            resolveTextureDesc.SampleDesc.Count = 1;
-            resolveTextureDesc.SampleDesc.Quality = 0;
-            resolveTextureDesc.Usage = D3D11_USAGE_DEFAULT;
-            resolveTextureDesc.BindFlags = 0;
-            resolveTextureDesc.CPUAccessFlags = 0;
-            resolveTextureDesc.MiscFlags = 0;
-
-            ID3D11Texture2D* resolveTexture;
-            hr = _d3dDevice->CreateTexture2D(&resolveTextureDesc, nullptr, &resolveTexture);
-
-            if (FAILED(hr))
-            {
-                texture->Release();
-                ALIMER_LOGCRITICALF("D3D11 - Failed to create texture, error: %08X", static_cast<uint32_t>(hr));
-            }
-
-            _d3dImmediateContext->ResolveSubresource(resolveTexture, 0, backBufferTexture->GetResource(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
-            _d3dImmediateContext->CopyResource(texture, resolveTexture);
-            resolveTexture->Release();
-        }
-        else
-        {
-            _d3dImmediateContext->CopyResource(texture, backBufferTexture->GetResource());
-        }
-
-        D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-        hr = _d3dImmediateContext->Map(texture, 0, D3D11_MAP_READ, 0, &mappedSubresource);
-        if (FAILED(hr))
-        {
-            texture->Release();
-            ALIMER_LOGCRITICALF("D3D11 - Failed to map resource, error: %08X", static_cast<uint32_t>(hr));
-        }
-
-        if (!stbi_write_png(fileName.c_str(), textureDesc.Width, textureDesc.Height, 4, mappedSubresource.pData, static_cast<int>(mappedSubresource.RowPitch)))
-        {
-            _d3dImmediateContext->Unmap(texture, 0);
-            texture->Release();
-            ALIMER_LOGCRITICAL("D3D11 - Failed to save screenshot to file");
-        }
-
-        _d3dImmediateContext->Unmap(texture, 0);
-        texture->Release();*/
+        _renderWindow.reset(new SwapChainD3D11(this, descriptor));
+        return _renderWindow != nullptr;
     }
 
-#endif // TODO_D3D11
-
-    bool DeviceD3D11::BeginFrameImpl()
+    void GraphicsDeviceD3D11::Tick()
     {
-        return true;
+        _d3dContext->Flush();
     }
 
-    void DeviceD3D11::EndFrameImpl()
-    {
-        if (_swapChain)
-        {
-            _swapChain->Present();
-        }
-    }
-
-    bool DeviceD3D11::WaitIdle()
-    {
-        return true;
-    }
-
-    Framebuffer* DeviceD3D11::GetBackbufferFramebuffer() const
-    {
-        return _swapChain->GetCurrentFramebuffer();
-    }
-
-    void DeviceD3D11::InitializeCaps()
+    void GraphicsDeviceD3D11::InitializeCaps()
     {
         DXGI_ADAPTER_DESC desc;
         _adapter->GetDesc(&desc);
@@ -444,7 +338,7 @@ namespace alimer
 #endif
         _features.SetVendorId(desc.VendorId);
         _features.SetDeviceId(desc.DeviceId);
-        _features.SetDeviceName(String(desc.Description));
+        _features.SetDeviceName(ToUtf8(desc.Description));
 
         switch (_d3dFeatureLevel)
         {
@@ -485,9 +379,9 @@ namespace alimer
             _features.SetMultithreading(true);
         }
 
-        _limits.maxColorAttachments = D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;
-        _limits.maxBindGroups = MaxDescriptorSets;
-        _limits.minUniformBufferOffsetAlignment = 16;
+        //_limits.maxColorAttachments = D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;
+        //_limits.maxBindGroups = MaxDescriptorSets;
+        //_limits.minUniformBufferOffsetAlignment = 16;
 
         IDXGIFactory5* factory5;
         if (SUCCEEDED(_factory->QueryInterface(&factory5)))
@@ -503,42 +397,37 @@ namespace alimer
         }
     }
 
-    void DeviceD3D11::HandleDeviceLost()
+    void GraphicsDeviceD3D11::HandleDeviceLost()
     {
         // TODO
     }
 
-    D3D11Cache &DeviceD3D11::GetCache()
+    D3D11Cache &GraphicsDeviceD3D11::GetCache()
     {
         return _cache;
     }
 
-    SwapChainD3D11* DeviceD3D11::CreateSwapChain(const SwapChainDescriptor* descriptor)
-    {
-        return new SwapChainD3D11(this, descriptor, 2);
-    }
-
-    Texture* DeviceD3D11::CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
+    Texture* GraphicsDeviceD3D11::CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData)
     {
         return new TextureD3D11(this, descriptor, nativeTexture, pInitData);
     }
 
-    Framebuffer* DeviceD3D11::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
+    Framebuffer* GraphicsDeviceD3D11::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
     {
         return new FramebufferD3D11(this, descriptor);
     }
 
-    Buffer* DeviceD3D11::CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData)
+    Buffer* GraphicsDeviceD3D11::CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData)
     {
         return new BufferD3D11(this, descriptor, pInitData);
     }
 
-    Sampler* DeviceD3D11::CreateSamplerImpl(const SamplerDescriptor* descriptor)
+    Sampler* GraphicsDeviceD3D11::CreateSamplerImpl(const SamplerDescriptor* descriptor)
     {
         return new SamplerD3D11(this, descriptor);
     }
 
-    Shader* DeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
+    Shader* GraphicsDeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
     {
         return new ShaderD3D11(this, descriptor);
     }

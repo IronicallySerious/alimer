@@ -33,7 +33,7 @@ namespace alimer
     {
     public:
         /// Constructor.
-        TextureD3D11(DeviceD3D11* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData);
+        TextureD3D11(GraphicsDeviceD3D11* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData);
 
         /// Destructor.
         ~TextureD3D11() override;

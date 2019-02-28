@@ -32,7 +32,7 @@ namespace alimer
     {
     public:
         /// Constructor.
-        ShaderD3D11(DeviceD3D11* device, const ShaderDescriptor* descriptor);
+        ShaderD3D11(GraphicsDeviceD3D11* device, const ShaderDescriptor* descriptor);
 
         /// Destructor.
         ~ShaderD3D11() override;
@@ -46,7 +46,7 @@ namespace alimer
         ID3D11PixelShader* GetPixelShader() const { return _pixelShader.Get(); }
         ID3D11ComputeShader* GetComputeShader() const { return _computeShader.Get(); }
 
-        const PODVector<uint8_t>& GetVertexShaderBlob() const { return _vertexShaderBlob; }
+        const std::vector<uint8_t>& GetVertexShaderBlob() const { return _vertexShaderBlob; }
 
     private:
         Microsoft::WRL::ComPtr<ID3D11VertexShader>      _vertexShader;
@@ -55,6 +55,6 @@ namespace alimer
         Microsoft::WRL::ComPtr<ID3D11GeometryShader>    _geometryShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader>       _pixelShader;
         Microsoft::WRL::ComPtr<ID3D11ComputeShader>     _computeShader;
-        PODVector<uint8_t>                              _vertexShaderBlob;
+        std::vector<uint8_t>                              _vertexShaderBlob;
     };
 }

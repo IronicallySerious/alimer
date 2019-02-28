@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "../../Base/HashMap.h"
-#include "../../Base/MurmurHash.h"
+#include "../../foundation/HashMap.h"
+//#include "../../Base/MurmurHash.h"
 #include "../Pipeline.h"
 #include "BackendD3D11.h"
 #include <unordered_map>
@@ -31,14 +31,13 @@
 namespace alimer
 {
     class ShaderModule;
-    class DeviceD3D11;
 
     /// D3D11 cache.
     class D3D11Cache final 
     {
     public:
         /// Constructor.
-        D3D11Cache(DeviceD3D11* device);
+        D3D11Cache(GraphicsDeviceD3D11* device);
 
         /// Destructor.
         ~D3D11Cache();
@@ -50,14 +49,14 @@ namespace alimer
         ID3D11InputLayout* GetInputLayout(ShaderModule* shader, const RenderPipelineDescriptor* descriptor);
 
     private:
-        DeviceD3D11* _device;
+        GraphicsDeviceD3D11* _device;
         HashMap<std::vector<uint8_t>> _vsBytecodes;
         HashMap<Microsoft::WRL::ComPtr<ID3D11BlendState>>   _blendStates;
 
         struct CachedSamplerState
         {
             ID3D11SamplerState* state = nullptr;
-            Hash hash;
+            uint32_t hash;
         };
 
         std::vector<CachedSamplerState> _samplerStates;

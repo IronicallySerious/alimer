@@ -26,6 +26,7 @@ namespace alimer
 {
     Editor::Editor()
     {
+        _engine->GetSettings().title = "Alimer Studio 2018";
         //_engine->GetSettings().gpuSettings = { GraphicsBackend::Vulkan, GpuPreference::HighPerformance, false };
     }
 
@@ -36,7 +37,7 @@ namespace alimer
 
     void Editor::Initialize()
     {
-        _engine->GetRenderWindow()->SetTitle("Alimer Studio 2018");
+        //_engine->GetRenderWindow()->SetTitle("Alimer Studio 2018");
     }
 
     void Editor::OnRenderFrame(double frameTime, double elapsedTime)

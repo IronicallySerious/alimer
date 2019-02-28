@@ -33,25 +33,16 @@
 
 namespace alimer
 {
-    enum class CommandBufferStatus {
-        Initial,
-        Committed,
-        Completed,
-        Error
-    };
-
     /// Defines a command buffer for recording gpu commands.
-    class ALIMER_API CommandBuffer final : public RefCounted
+    class ALIMER_API CommandBuffer : public RefCounted
     {
-        friend class CommandQueue;
-
-    private:
+    protected:
         /// Constructor.
-        CommandBuffer(CommandQueue* commandQueue);
+        CommandBuffer(GraphicsDevice* device);
 
     public:
         /// Destructor.
-        ~CommandBuffer() override;
+        virtual ~CommandBuffer() = default;
 
         void PushDebugGroup(const std::string& name, const Color4& color = Color4::White);
         void PopDebugGroup();
@@ -66,26 +57,21 @@ namespace alimer
         /// End current pass.
         void EndRenderPass();
 
-        void SetViewport(const RectangleF& viewport);
-        void SetViewport(uint32_t viewportCount, const RectangleF* viewports);
-        void SetScissor(const Rectangle& scissor);
-        void SetScissor(uint32_t scissorCount, const Rectangle* scissors);
+        virtual void SetViewport(const RectangleF& viewport);
+        virtual void SetViewport(uint32_t viewportCount, const RectangleF* viewports) = 0;
+        virtual void SetScissor(const Rectangle& scissor);
+        virtual void SetScissor(uint32_t scissorCount, const Rectangle* scissors) = 0;
 
-        void SetBlendColor(const Color4& color);
-        void SetStencilReference(uint32_t reference);
+        virtual void SetBlendColor(const Color4& color) = 0;
+        virtual void SetStencilReference(uint32_t reference) = 0;
 
         void SetShader(Shader* shader);
 
         void SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType);
 
-        void SetPrimitiveTopology(PrimitiveTopology topology);
-
-        void Draw(uint32_t vertexCount, uint32_t firstVertex);
-        void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
-
-        void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation);
-        void DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation);
+        void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
+        void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t baseVertex = 0, uint32_t firstInstance = 0);
 
         // Compute
         void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
@@ -93,52 +79,24 @@ namespace alimer
         void Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX = 8, uint32_t groupSizeY = 8);
         void Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ);
 
-        CommandQueue* GetCommandQueue() const { return _commandQueue; }
-        CommandBufferStatus GetStatus() const { return _status; };
-
-#if defined(ALIMER_VULKAN)
-        VkCommandBuffer GetHandle() const { return _handle; }
-        VkFence         GetFence() const { return _fence; }
-#elif defined(ALIMER_D3D12)
-
-#endif
-    private:
-        void Reset();
-        void SetStatus(CommandBufferStatus status) {
-            _status = status;
-        }
+        GraphicsDevice* GetDevice() const { return _device; }
 
     private:
         // Backend methods
-        void Create();
-        void Destroy();
+        virtual void PushDebugGroupImpl(const std::string& name, const Color4& color) = 0;
+        virtual void PopDebugGroupImpl() = 0;
+        virtual void InsertDebugMarkerImpl(const std::string& name, const Color4& color) = 0;
 
-        void PushDebugGroupImpl(const std::string& name, const Color4& color);
-        void PopDebugGroupImpl();
-        void InsertDebugMarkerImpl(const std::string& name, const Color4& color);
+        //virtual void BeginRenderPassImpl(const RenderPassDescriptor* descriptor) = 0;
+        //virtual void EndRenderPassImpl() = 0;
 
-        void BeginRenderPassImpl(const RenderPassDescriptor* descriptor);
-        void EndRenderPassImpl();
-
-        //virtual void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
-        //virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+        virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
+        virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;
+        virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
     private:
-        SharedPtr<CommandQueue> _commandQueue;
-        CommandBufferStatus _status;
+        GraphicsDevice* _device;
         bool            _insideRenderPass = false;
         Shader*         _currentShader = nullptr;
-
-#if defined(ALIMER_VULKAN)
-        void Begin();
-        void End();
-
-        VkCommandBuffer _handle = VK_NULL_HANDLE;
-        VkFence _fence = VK_NULL_HANDLE;
-        bool _supportsDebugUtils = false;
-        bool _supportsDebugMarker = false;
-#elif defined(ALIMER_D3D12)
-#elif defined(ALIMER_D3D11)
-#endif
     };
 }

@@ -44,7 +44,6 @@ namespace alimer
             Pipeline,
             SwapChain,
             CommandBuffer,
-            CommandQueue
         };
 
 		/// Destructor.
@@ -64,7 +63,7 @@ namespace alimer
         explicit GPUResource(GraphicsDevice* device, Type resourceType);
 
         /// Graphics subsystem.
-        WeakPtr<GraphicsDevice> _device;
+        GraphicsDevice* _device;
 
         Type _resourceType;
 	};

@@ -21,7 +21,6 @@
 //
 
 #include "../Application.h"
-#include "WindowImplGLFW.h"
 #define GLFW_INCLUDE_NONE 
 #include <GLFW/glfw3.h>
 
@@ -50,28 +49,13 @@ namespace alimer
 
     void Application::PlatformRun()
     {
-        if (vgpuGetBackend() == VGPU_BACKEND_OPENGL)
-        {
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
-            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-           
-        }
-        else
-        {
-            // Disable opengl context creation.
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        }
-
         if (!InitializeBeforeRun())
         {
             _exitCode = EXIT_FAILURE;
             return;
         }
 
-        while (_engine->GetRenderWindow()->IsOpen())
+        while (_engine->GetGraphicsDevice()->GetRenderWindow()->IsOpen())
         {
             if (!_paused)
             {

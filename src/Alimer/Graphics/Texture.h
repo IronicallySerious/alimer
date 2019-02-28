@@ -43,11 +43,6 @@ namespace alimer
     public:
         static const uint32_t MaxPossible = ~0U;
 
-        /// Destructor.
-        ~Texture() override;
-
-        void Destroy() override;
-
         /// Get the type of the texture.
         TextureType GetTextureType() const { return _type; }
 
@@ -108,7 +103,6 @@ namespace alimer
         VkImage         _handle = VK_NULL_HANDLE;
         VmaAllocation   _allocation = VK_NULL_HANDLE;
         VkImageView     _defaultImageView = VK_NULL_HANDLE;
-#elif defined(ALIMER_D3D11)
 #endif
     };
 }

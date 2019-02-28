@@ -25,7 +25,6 @@
 #include "../Resource/ResourceManager.h"
 #include "../Input/Input.h"
 #include "../Audio/Audio.h"
-#include "../Application/Window.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Scene/SceneManager.h"
 #include "../UI/Gui.h"
@@ -73,8 +72,7 @@ namespace alimer
     {
         PluginManager::Destroy(_pluginManager);
         _gui.Reset();
-        _graphicsDevice.Reset();
-        _renderWindow = nullptr;
+        _graphicsDevice = nullptr;
 
         RemoveSubsystem(this);
     }
@@ -124,30 +122,24 @@ namespace alimer
 #if defined(_DEBUG)
             _settings.gpuSettings.validation = true;
 #endif
-            _graphicsDevice = GraphicsDevice::Create("Alimer", &_settings.gpuSettings);
-            if (_graphicsDevice.IsNull()) {
+            auto newDevice = GraphicsDevice::Create("Alimer", &_settings.gpuSettings);
+            if (newDevice == nullptr)
+            {
                 ALIMER_LOGERROR("Failed to create GraphicsDevice instance. Running in headless moder");
                 _headless = true;
             }
-            else {
-                WindowFlags windowFlags = WindowFlags::None;
-                if (_settings.resizable) {
-                    windowFlags |= WindowFlags::Resizable;
-                }
-                if (_settings.fullscreen) {
-                    windowFlags |= WindowFlags::Fullscreen;
-                }
-                _renderWindow.reset(new Window(_settings.title, _settings.size.x, _settings.size.y, windowFlags));
+            else
+            {
+                _graphicsDevice.reset(newDevice);
 
-                // Create GraphicsDevice.
+                // Initialize main window and device.
                 SwapChainDescriptor swapchainDescriptor = {};
-                swapchainDescriptor.width = _renderWindow->GetWidth();
-                swapchainDescriptor.height = _renderWindow->GetHeight();
+                swapchainDescriptor.title = _settings.title;
+                swapchainDescriptor.width = _settings.size.x;
+                swapchainDescriptor.height = _settings.size.y;
                 swapchainDescriptor.depthStencil = true;
                 swapchainDescriptor.vsync = true;
                 swapchainDescriptor.samples = SampleCount::Count1;
-                swapchainDescriptor.nativeHandle = _renderWindow->GetNativeHandle();
-                swapchainDescriptor.nativeDisplay = _renderWindow->GetNativeDisplay();
                 if (!_graphicsDevice->Initialize(&swapchainDescriptor))
                 {
                     ALIMER_LOGERROR("Failed to create command context.");
@@ -171,7 +163,7 @@ namespace alimer
             ALIMER_ASSERT(_initialized);
 
             // If not headless, and the graphics subsystem no longer has a window open, assume we should exit
-            if (!_headless && _graphicsDevice.IsNull())
+            if (!_headless && !_graphicsDevice)
             {
                 _exiting = true;
             }
@@ -216,24 +208,11 @@ namespace alimer
             return;
         }
 
-        SharedPtr<CommandBuffer> commandBuffer =  _graphicsDevice->GetCommandQueue()->GetCommandBuffer();
-        _graphicsDevice->GetCommandQueue()->Submit(commandBuffer);
+        auto context =  _graphicsDevice->GetRenderContext();
 
-        //auto context = _graphicsDevice->GetContext();
-        //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-        //context->BeginDefaultRenderPass(clearColor, 1.0f, 0);
-        //context->EndRenderPass();
-        //context->EndFrame();
-
-        /*VgpuCommandBuffer commandBuffer = vgpuRequestCommandBuffer(VGPU_COMMAND_BUFFER_TYPE_GRAPHICS);
-        vgpuCmdBeginDefaultRenderPass(commandBuffer, { 0.0f, 0.2f, 0.4f, 1.0f }, 1.0f, 0);
-        //CommandContext& context = CommandContext::Begin("Scene Render");
-        //Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
-        //context.BeginDefaultRenderPass(clearColor);
-        //context.Draw(3, 0);
-        //context.EndRenderPass();
-        vgpuCmdEndRenderPass(commandBuffer);
-        vgpuSubmitCommandBuffer(commandBuffer);*/
+        Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
+        context->BeginDefaultRenderPass(clearColor, 1.0f, 0);
+        context->EndRenderPass();
 
         // TODO: Scene renderer
         // TODO: UI render.

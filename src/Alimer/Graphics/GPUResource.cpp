@@ -29,10 +29,8 @@ namespace alimer
         : _device(device)
         , _resourceType(resourceType)
     {
-        if (graphics)
-        {
-            graphics->TrackResource(this);
-        }
+        ALIMER_ASSERT(device);
+        graphics->TrackResource(this);
     }
 
     GPUResource::~GPUResource()

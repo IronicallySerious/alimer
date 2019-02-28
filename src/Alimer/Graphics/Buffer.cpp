@@ -26,23 +26,21 @@
 
 namespace alimer
 {
-    Buffer::Buffer(GraphicsDevice* device)
+    Buffer::Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor)
         : GPUResource(device, Type::Buffer)
+        , _usage(descriptor->usage)
+        , _size(descriptor->size)
+        , _stride(descriptor->stride)
     {
 
-    }
-
-    Buffer::~Buffer()
-    {
-        Destroy();
     }
 
     bool Buffer::SetSubData(const void* pData)
     {
-        return false;
+        return SetSubData(0, _size, pData);
     }
 
-    bool Buffer::SetSubData(uint32_t offset, uint32_t size, const void* pData)
+    bool Buffer::SetSubData(uint64_t offset, uint64_t size, const void* pData)
     {
         if (offset + size > GetSize())
         {

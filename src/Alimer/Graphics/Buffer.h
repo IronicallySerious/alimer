@@ -34,18 +34,14 @@ namespace alimer
 	{
     protected:
         /// Constructor.
-        Buffer(GraphicsDevice* device);
+        Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor);
 
     public:
-        ~Buffer() override;
-
-        void Destroy() override;
-
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 
         /// Replace buffer data in synchronous way.
-        bool SetSubData(uint32_t offset, uint32_t size, const void* pData);
+        bool SetSubData(uint64_t offset, uint64_t size, const void* pData);
 
         /// Get size in bytes of the buffer.
         uint64_t GetSize() const { return _size; }
@@ -57,21 +53,13 @@ namespace alimer
         uint32_t GetStride() const { return _stride; }
         
     private:
-        bool Create(const void* pInitData);
-        void SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData);
+        virtual bool SetSubDataImpl(uint64_t offset, uint64_t size, const void* pData) = 0;
 
-        uint64_t _size = 0;
         BufferUsage _usage = BufferUsage::None;
+        uint64_t _size = 0;
         uint32_t _stride = 0;
 
         /// CPU-side shadow data.
         std::unique_ptr<uint8_t[]> _shadowData;
-
-#if defined(ALIMER_VULKAN)
-        VkBuffer        _handle = VK_NULL_HANDLE;
-        VmaAllocation   _allocation = VK_NULL_HANDLE;
-#elif defined(ALIMER_D3D11)
-        ID3D11Buffer*   _handle = nullptr;
-#endif
 	};
 }

@@ -22,34 +22,33 @@
 
 #pragma once
 
-#include "../CommandContext.h"
+#include "../CommandBuffer.h"
 #include "BackendD3D11.h"
 
 namespace alimer
 {
     class FramebufferD3D11;
     class PipelineD3D11;
-    class DeviceD3D11;
 
-    class CommandContextD3D11 final : public CommandContext
+    class CommandContextD3D11 final : public CommandBuffer
     {
     public:
-        CommandContextD3D11(DeviceD3D11* device);
+        CommandContextD3D11(GraphicsDeviceD3D11* device);
         ~CommandContextD3D11() override;
 
     private:
-        uint64_t FlushImpl(bool waitForCompletion) override;
+        uint64_t FlushImpl(bool waitForCompletion);
 
-        void PushDebugGroupImpl(const String& name) override;
+        void PushDebugGroupImpl(const std::string& name, const Color4& color) override;
         void PopDebugGroupImpl() override;
-        void InsertDebugMarkerImpl(const String& name) override;
+        void InsertDebugMarkerImpl(const std::string& name, const Color4& color) override;
 
-        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor) override;
-        void EndRenderPassImpl() override;
+        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
+        void EndRenderPassImpl();
 
         void SetViewport(const RectangleF& viewport) override;
         void SetViewport(uint32_t viewportCount, const RectangleF* viewports) override;
-        void SetScissor(const Rectangle& scissor)  override;
+        void SetScissor(const Rectangle& scissor) override;
         void SetScissor(uint32_t scissorCount, const Rectangle* scissors) override;
         void SetBlendColor(const Color4& color) override;
         void SetStencilReference(uint32_t reference) override;
@@ -59,11 +58,12 @@ namespace alimer
         //void SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
         //void SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType) override;
 
-        void DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+        void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+        void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
         void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
         void BeginContext();
-        void FlushRenderState();
+        void FlushRenderState(PrimitiveTopology topology);
         void FlushComputeState();
         void FlushDescriptorSet(uint32_t set);
         void FlushDescriptorSets();

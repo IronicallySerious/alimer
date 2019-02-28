@@ -52,8 +52,6 @@ namespace alimer
 
     /// Enum describing the Graphics backend.
     enum class GraphicsBackend : uint32_t {
-        /// Default platform backend.
-        Default = 0,
         /// Null backend.
         Null,
         /// Vulkan backend.
@@ -64,7 +62,7 @@ namespace alimer
         Direct3D11,
         /// OpenGL backend.
         OpenGL,
-        /// Count
+        /// Count - Default platform backend
         Count
     };
 
@@ -351,10 +349,19 @@ namespace alimer
     /// Describes SwapChain
     struct SwapChainDescriptor
     {
+        /// Title of the window.
+        std::string title = "Alimer";
+
         /// Width.
         uint32_t    width = 800;
         /// Height.
         uint32_t    height = 600;
+
+        /// Fullscreen.
+        bool fullscreen = false;
+
+        bool resizable = true;
+
         /// srgb pixel format
         bool        srgb = true;
         bool        depthStencil = true;
@@ -413,9 +420,11 @@ namespace alimer
 
     struct BufferDescriptor
     {
-        uint64_t size;
-        BufferUsage usage;
-        uint32_t stride;
+        BufferUsage     usage;
+        ResourceUsage   resourceUsage;
+        uint64_t        size;
+        uint32_t        stride;
+        bool            cpuAccessible;
     };
 
     struct SamplerDescriptor

@@ -72,8 +72,9 @@ namespace alimer
         // Mark object as expired, release the self weak ref and delete the refcount if no other weak refs exist
         _refCount->refs = -1;
         (_refCount->weakRefs)--;
-        if (!_refCount->weakRefs)
+        if (!_refCount->weakRefs) {
             delete _refCount;
+        }
 
         _refCount = nullptr;
     }

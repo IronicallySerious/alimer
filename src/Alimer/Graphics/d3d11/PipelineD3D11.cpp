@@ -21,14 +21,14 @@
 //
 
 #include "PipelineD3D11.h"
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    PipelineD3D11::PipelineD3D11(DeviceD3D11* device, const RenderPipelineDescriptor* descriptor)
+    PipelineD3D11::PipelineD3D11(GraphicsDeviceD3D11* device, const RenderPipelineDescriptor* descriptor)
         : Pipeline(device, descriptor)
         , _d3dDevice(device->GetD3DDevice())
     {

@@ -21,7 +21,7 @@
 //
 
 #include "BufferD3D11.h"
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "D3D11Convert.h"
 #include "../../Math/MathUtil.h"
 #include "../../Core/Log.h"
@@ -29,13 +29,14 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    BufferD3D11::BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* pInitData)
+    BufferD3D11::BufferD3D11(GraphicsDeviceD3D11* device, const BufferDescriptor* descriptor, const void* pInitData)
         : Buffer(device, descriptor)
+        , _deviceContext(device->GetD3DDeviceContext())
     {
         D3D11_BUFFER_DESC bufferDesc = {};
         bufferDesc.ByteWidth = static_cast<UINT>(descriptor->size);
         bufferDesc.StructureByteStride = static_cast<UINT>(descriptor->stride);
-        bufferDesc.Usage = D3D11_USAGE_DEFAULT; // d3d11::Convert(descriptor->resourceUsage);
+        bufferDesc.Usage = d3d11::Convert(descriptor->resourceUsage);
         bufferDesc.CPUAccessFlags = 0;
 
         if (any(descriptor->usage & BufferUsage::Dynamic))
@@ -84,7 +85,8 @@ namespace alimer
         initData.pSysMem = pInitData;
         HRESULT hr = device->GetD3DDevice()->CreateBuffer(
             &bufferDesc, 
-            pInitData != nullptr ? &initData : nullptr, &_handle);
+            pInitData != nullptr ? &initData : nullptr,
+            &_handle);
         if (FAILED(hr))
         {
             ALIMER_LOGERROR("Failed to create D3D11 buffer");
@@ -102,12 +104,12 @@ namespace alimer
 
     void BufferD3D11::Destroy()
     {
-        ALIMER_ASSERT(_handle.Reset() == 0);
+        SafeRelease(_handle);
     }
 
-    /*bool D3D11Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData)
+    bool BufferD3D11::SetSubDataImpl(uint64_t offset, uint64_t size, const void* pData)
     {
-        if (_resourceUsage == ResourceUsage::Dynamic)
+        if (_mappable)
         {
             D3D11_MAPPED_SUBRESOURCE mappedResource;
             HRESULT hr = _deviceContext->Map(
@@ -133,8 +135,8 @@ namespace alimer
         else
         {
             D3D11_BOX destBox;
-            destBox.left = offset;
-            destBox.right = size;
+            destBox.left = static_cast<UINT>(offset);
+            destBox.right = static_cast<UINT>(size);
             destBox.top = destBox.front = 0;
             destBox.bottom = destBox.back = 1;
 
@@ -148,5 +150,5 @@ namespace alimer
         }
 
         return true;
-    }*/
+    }
 }

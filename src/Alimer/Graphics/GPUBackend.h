@@ -69,7 +69,4 @@ VK_DEFINE_HANDLE(VmaAllocation)
 #ifndef VK_NULL_HANDLE
 #   define VK_NULL_HANDLE 0
 #endif
-
-#elif defined(ALIMER_D3D11)
-#include "d3d11/BackendD3D11.h"
 #endif

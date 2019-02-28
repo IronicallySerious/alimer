@@ -32,18 +32,20 @@ namespace alimer
 	{
 	public:
 		/// Constructor.
-        BufferD3D11(DeviceD3D11* device, const BufferDescriptor* descriptor, const void* pInitData);
+        BufferD3D11(GraphicsDeviceD3D11* device, const BufferDescriptor* descriptor, const void* pInitData);
 
 		/// Destructor.
 		~BufferD3D11() override;
 
-        void Destroy();
+        void Destroy() override;
 
-        //bool SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) override;
+        bool SetSubDataImpl(uint64_t offset, uint64_t size, const void* pData) override;
 
-        ID3D11Buffer* GetHandle() const { return _handle.Get(); }
+        ID3D11Buffer* GetHandle() const { return _handle; }
 
 	private:
-        Microsoft::WRL::ComPtr<ID3D11Buffer>  _handle;
+        ID3D11DeviceContext* _deviceContext;
+        ID3D11Buffer* _handle;
+        bool _mappable;
 	};
 }

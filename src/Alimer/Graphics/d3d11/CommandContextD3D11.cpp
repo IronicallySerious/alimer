@@ -21,21 +21,22 @@
 //
 
 #include "CommandContextD3D11.h"
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "TextureD3D11.h"
 #include "FramebufferD3D11.h"
 #include "BufferD3D11.h"
 #include "ShaderD3D11.h"
 #include "PipelineD3D11.h"
 #include "../D3D/D3DConvert.h"
+#include "foundation/StringUtils.h"
 #include "../../Math/MathUtil.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    CommandContextD3D11::CommandContextD3D11(DeviceD3D11* device)
-        : CommandContext(device)
+    CommandContextD3D11::CommandContextD3D11(GraphicsDeviceD3D11* device)
+        : CommandBuffer(device)
         , _immediate(true)
         , _context(device->GetD3DDeviceContext())
         , _fenceValue(0)
@@ -106,10 +107,11 @@ namespace alimer
         return ++_fenceValue;
     }
 
-    void CommandContextD3D11::PushDebugGroupImpl(const String& name)
+    void CommandContextD3D11::PushDebugGroupImpl(const std::string& name, const Color4& color)
     {
-        WString wideString(name);
-        _annotation->BeginEvent(wideString.CString());
+        /* TODO: Use pix3 headers */
+        std::wstring wideString = ToUtf16(name);
+        _annotation->BeginEvent(wideString.c_str());
     }
 
     void CommandContextD3D11::PopDebugGroupImpl()
@@ -117,10 +119,10 @@ namespace alimer
         _annotation->EndEvent();
     }
 
-    void CommandContextD3D11::InsertDebugMarkerImpl(const String& name)
+    void CommandContextD3D11::InsertDebugMarkerImpl(const std::string& name, const Color4& color)
     {
-        WString wideString(name);
-        _annotation->SetMarker(wideString.CString());
+        std::wstring wideString = ToUtf16(name);
+        _annotation->SetMarker(wideString.c_str());
     }
 
     void CommandContextD3D11::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
@@ -336,9 +338,9 @@ namespace alimer
         _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
     }*/
 
-    void CommandContextD3D11::DrawInstancedImpl(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    void CommandContextD3D11::DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
-        FlushRenderState();
+        FlushRenderState(topology);
         if (instanceCount <= 1)
         {
             _context->Draw(vertexCount, firstVertex);
@@ -349,23 +351,24 @@ namespace alimer
         }
     }
 
+    void CommandContextD3D11::DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
+    {
+        FlushRenderState(topology);
+        if (instanceCount <= 1)
+        {
+            _context->DrawIndexed(indexCount, firstIndex, baseVertex);
+        }
+        else
+        {
+            _context->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+        }
+    }
+
     void CommandContextD3D11::DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         FlushComputeState();
         _context->Dispatch(groupCountX, groupCountY, groupCountZ);
     }
-
-#if TODO_D3D11
-    void CommandContextD3D11::SetPrimitiveTopologyCore(PrimitiveTopology topology)
-    {
-        if (_currentTopology != topology)
-        {
-            _d3dContext->IASetPrimitiveTopology(d3d::Convert(topology, 1));
-            _currentTopology = topology;
-        }
-    }
-
-#endif // TODO_D3D11
 
     /*void CommandContextD3D11::BindBufferImpl(GpuBuffer* buffer, uint32_t offset, uint32_t range, uint32_t set, uint32_t binding)
     {
@@ -406,8 +409,14 @@ namespace alimer
         }
     }*/
 
-    void CommandContextD3D11::FlushRenderState()
+    void CommandContextD3D11::FlushRenderState(PrimitiveTopology topology)
     {
+        if (_currentTopology != topology)
+        {
+            _context->IASetPrimitiveTopology(d3d::Convert(topology, 1));
+            _currentTopology = topology;
+        }
+
         // Viewports
         if (_viewportsDirty)
         {

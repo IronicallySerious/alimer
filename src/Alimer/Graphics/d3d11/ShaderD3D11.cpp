@@ -21,15 +21,15 @@
 //
 
 #include "ShaderD3D11.h"
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "../D3D/D3DShaderCompiler.h"
 #include "../../Core/Log.h"
-#include <spirv-cross/spirv_hlsl.hpp>
+#include <spirv_hlsl.hpp>
 using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    ShaderD3D11::ShaderD3D11(DeviceD3D11* device, const ShaderDescriptor* descriptor)
+    ShaderD3D11::ShaderD3D11(GraphicsDeviceD3D11* device, const ShaderDescriptor* descriptor)
         : Shader(device, descriptor)
     {
         if (_compute)

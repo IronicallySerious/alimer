@@ -27,14 +27,12 @@
 
 namespace alimer
 {
-    class DeviceD3D11;
-
     /// D3D11 Sampler implementation.
     class SamplerD3D11 final : public Sampler
     {
     public:
         /// Constructor.
-        SamplerD3D11(DeviceD3D11* device, const SamplerDescriptor* descriptor);
+        SamplerD3D11(GraphicsDeviceD3D11* device, const SamplerDescriptor* descriptor);
 
         /// Destructor.
         ~SamplerD3D11() override;

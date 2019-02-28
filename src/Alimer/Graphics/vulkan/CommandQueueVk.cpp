@@ -66,11 +66,11 @@ namespace alimer
         }
     }
 
-    void CommandQueue::Submit(SharedPtr<CommandBuffer> commandBuffer, bool waitForCompletion)
+    void CommandQueue::Submit(std::shared_ptr<CommandBuffer> commandBuffer, bool waitForCompletion)
     {
         ALIMER_ASSERT(commandBuffer->GetCommandQueue() == this);
 
-        if (commandBuffer.IsNull()) {
+        if (!commandBuffer) {
             return;
         }
 
@@ -114,7 +114,7 @@ namespace alimer
         }
     }
 
-    bool CommandQueue::IsCompletted(const SharedPtr<CommandBuffer>& commandBuffer)
+    bool CommandQueue::IsCompletted(CommandBuffer* commandBuffer)
     {
         VkDevice vkDevice = _device->GetImpl()->GetVkDevice();
         VkFence vkFence = commandBuffer->GetFence();

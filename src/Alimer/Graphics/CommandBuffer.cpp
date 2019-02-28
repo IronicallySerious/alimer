@@ -27,16 +27,9 @@
 
 namespace alimer
 {
-    CommandBuffer::CommandBuffer(CommandQueue* commandQueue)
-        : _commandQueue(commandQueue)
-        , _status(CommandBufferStatus::Initial)
+    CommandBuffer::CommandBuffer(GraphicsDevice* device)
+        : _device(device)
     {
-        Create();
-    }
-
-    CommandBuffer::~CommandBuffer()
-    {
-        Destroy();
     }
 
     void CommandBuffer::PushDebugGroup(const std::string& name, const Color4& color)
@@ -57,19 +50,20 @@ namespace alimer
     void CommandBuffer::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
         _insideRenderPass = true;
-        BeginRenderPassImpl(nullptr);
+        RenderPassDescriptor passDescriptor = {};
+        //BeginRenderPassImpl(nullptr);
     }
 
     void CommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
         _insideRenderPass = true;
-        BeginRenderPassImpl(descriptor);
+        //BeginRenderPassImpl(descriptor);
     }
 
     void CommandBuffer::EndRenderPass()
     {
-        EndRenderPassImpl();
+        //EndRenderPassImpl();
         _insideRenderPass = false;
     }
 
@@ -125,17 +119,7 @@ namespace alimer
         //SetIndexBufferImpl(buffer, offset, indexType);
     }
 
-    void CommandBuffer::SetPrimitiveTopology(PrimitiveTopology topology)
-    {
-        //SetPrimitiveTopologyCore(topology);
-    }
-
-    void CommandBuffer::Draw(uint32_t vertexCount, uint32_t firstVertex)
-    {
-        DrawInstanced(vertexCount, 1, firstVertex, 0);
-    }
-
-    void CommandBuffer::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
 #if defined(ALIMER_DEV)
         ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
@@ -144,29 +128,25 @@ namespace alimer
         ALIMER_ASSERT(instanceCount >= 1);
 #endif
 
-        //DrawInstancedImpl(vertexCount, instanceCount, firstVertex, firstInstance);
+        DrawImpl(topology, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
+    void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
     {
+#if defined(ALIMER_DEV)
         ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(indexCount > 1);
-        //DrawIndexedImpl(topology, indexCount, startIndexLocation, baseVertexLocation);
-    }
-
-    void CommandBuffer::DrawIndexedInstanced(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
-    {
-        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
-        ALIMER_ASSERT(_insideRenderPass);
-        ALIMER_ASSERT(indexCount > 1);
-        //DrawIndexedInstancedImpl(topology, indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
+#endif
+        DrawIndexedImpl(topology, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
     void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
+#if defined(ALIMER_DEV)
         ALIMER_ASSERT(_currentShader && _currentShader->IsCompute());
-        //DispatchImpl(groupCountX, groupCountY, groupCountZ);
+#endif
+        DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
 
     void CommandBuffer::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)

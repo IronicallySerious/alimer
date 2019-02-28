@@ -32,7 +32,7 @@ namespace alimer
     class PipelineD3D11 final : public Pipeline
     {
     public:
-        PipelineD3D11(DeviceD3D11* device, const RenderPipelineDescriptor* descriptor);
+        PipelineD3D11(GraphicsDeviceD3D11* device, const RenderPipelineDescriptor* descriptor);
         ~PipelineD3D11() override;
 
         void Destroy() override;

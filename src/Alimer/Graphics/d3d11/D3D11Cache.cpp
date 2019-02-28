@@ -21,7 +21,7 @@
 //
 
 #include "D3D11Cache.h"
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "D3D11Convert.h"
 #include "Graphics/Shader.h"
 #include "Graphics/D3D/D3DShaderCompiler.h"
@@ -31,7 +31,7 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    D3D11Cache::D3D11Cache(DeviceD3D11* device)
+    D3D11Cache::D3D11Cache(GraphicsDeviceD3D11* device)
         : _device(device)
     {
     }
@@ -88,7 +88,8 @@ namespace alimer
 
     ID3D11SamplerState* D3D11Cache::GetSamplerState(const SamplerDescriptor* descriptor)
     {
-        Hash stateHash = GenerateHash(descriptor, sizeof(SamplerDescriptor));
+        return nullptr;
+        /*Hash stateHash = GenerateHash(descriptor, sizeof(SamplerDescriptor));
 
         const size_t numStates = _samplerStates.size();
         for (size_t i = 0; i < numStates; ++i)
@@ -129,7 +130,7 @@ namespace alimer
         cachedState.hash = stateHash;
         cachedState.state = samplerState;
         _samplerStates.push_back(cachedState);
-        return samplerState;
+        return samplerState;*/
     }
 
     ID3D11InputLayout* D3D11Cache::GetInputLayout(ShaderModule* shader, const RenderPipelineDescriptor* descriptor)

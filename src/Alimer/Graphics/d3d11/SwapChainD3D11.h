@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../SwapChain.h"
+#include "../Window.h"
 #include "BackendD3D11.h"
 
 namespace alimer
@@ -31,29 +31,35 @@ namespace alimer
     class FramebufferD3D11;
 
     /// D3D11 SwapChain implementation.
-    class SwapChainD3D11 final : public SwapChain
+    class SwapChainD3D11 final : public Window
     {
     public:
         /// Constructor.
-        SwapChainD3D11(DeviceD3D11* device, const SwapChainDescriptor* descriptor, uint32_t backBufferCount = 2);
+        SwapChainD3D11(GraphicsDeviceD3D11* device, const SwapChainDescriptor* descriptor);
 
         /// Destructor.
         ~SwapChainD3D11() override;
 
-        void Destroy() override;
+        void Destroy();
 
-        void ResizeImpl(uint32_t width, uint32_t height) override;
-        void PresentImpl() override;
+        void OnHandleCreated() override;
+        void OnSizeChanged(const IntVector2& newSize) override;
+        void ResizeImpl(uint32_t width, uint32_t height);
+        void SwapBuffers() override;
 
     private:
-        uint32_t                                _backBufferCount = 2u;
-        HWND                                    _hwnd;
-        IUnknown*                               _window;
+        static constexpr uint32_t   NumBackBuffers = 2;
 
-        UINT                                    _swapChainFlags = 0;
-        UINT                                    _syncInterval = 1;
-        UINT                                    _presentFlags = 0;
+        GraphicsDeviceD3D11*    _device;
+        WindowHandle            _handle;
+
+        PixelFormat     _backBufferFormat;
+        DXGI_FORMAT     _dxgiBackBufferFormat;
+        UINT            _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+        UINT            _syncInterval = 1;
+        UINT            _presentFlags = 0;
         Microsoft::WRL::ComPtr<IDXGISwapChain>  _swapChain;
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain1;
+        TextureD3D11*  _backbufferTexture = nullptr;
     };
 }

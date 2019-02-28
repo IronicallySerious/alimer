@@ -21,7 +21,7 @@
 //
 
 #include "SwapChainD3D11.h"
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "TextureD3D11.h"
 #include "FramebufferD3D11.h"
 #include "D3D11Convert.h"
@@ -30,19 +30,23 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    SwapChainD3D11::SwapChainD3D11(DeviceD3D11* device, const SwapChainDescriptor* descriptor, uint32_t backBufferCount)
-        : SwapChain(device, descriptor)
-        , _backBufferCount(backBufferCount)
+    SwapChainD3D11::SwapChainD3D11(GraphicsDeviceD3D11* device, const SwapChainDescriptor* descriptor)
+        : Window(descriptor->title, descriptor->width, descriptor->height, descriptor->resizable, descriptor->fullscreen)
+        , _device(device)
+        , _handle(nullptr)
     {
-#if ALIMER_PLATFORM_UWP
-        _window = static_cast<IUnknown*>(descriptor->nativeHandle);
-        _hwnd = nullptr;
-#else
-        _hwnd = static_cast<HWND>(descriptor->nativeHandle);
-        _window = nullptr;
-#endif
+        _backBufferFormat = PixelFormat::BGRA8UNorm;
+        _dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
 
-        ResizeImpl(descriptor->width, descriptor->height);
+        if (descriptor->srgb)
+        {
+            _backBufferFormat = PixelFormat::BGRA8UNormSrgb;
+            _dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+        }
+
+        if (IsOpen()) {
+            OnHandleCreated();
+        }
     }
 
     SwapChainD3D11::~SwapChainD3D11()
@@ -52,107 +56,112 @@ namespace alimer
 
     void SwapChainD3D11::Destroy()
     {
-        SwapChain::Destroy();
         _swapChain->SetFullscreenState(false, nullptr);
         _swapChain.Reset();
         _swapChain1.Reset();
     }
 
+    void SwapChainD3D11::OnHandleCreated()
+    {
+        _handle = GetNativeHandle();
+        ResizeImpl(_size.x, _size.y);
+    }
+
+    void SwapChainD3D11::OnSizeChanged(const IntVector2& newSize)
+    {
+        ResizeImpl(newSize.x, newSize.y);
+    }
 
     void SwapChainD3D11::ResizeImpl(uint32_t width, uint32_t height)
     {
         HRESULT hr = S_OK;
 
-        DeviceD3D11* deviceD3D11 = static_cast<DeviceD3D11*>(_graphicsDevice.Get());
-
         if (_swapChain)
         {
-            SwapChain::Destroy();
+            SafeDelete(_backbufferTexture);
 
-            hr = _swapChain->ResizeBuffers(_backBufferCount, width, height, DXGI_FORMAT_UNKNOWN, _swapChainFlags);
+            hr = _swapChain->ResizeBuffers(NumBackBuffers, width, height, DXGI_FORMAT_UNKNOWN, _swapChainFlags);
 
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
             {
+                // If the device was removed for any reason, a new device and swap chain will need to be created.
+                _device->HandleDeviceLost();
+
+                return;
             }
         }
         else
         {
-            DXGI_FORMAT backBufferFormat = GetDxgiFormat(_colorFormat);
-
             // Check tearing.
             IDXGIFactory2* dxgiFactory2;
-            if (SUCCEEDED(deviceD3D11->GetFactory()->QueryInterface(&dxgiFactory2)))
+            if (SUCCEEDED(_device->GetFactory()->QueryInterface(&dxgiFactory2)))
             {
                 DXGI_SWAP_EFFECT swapEffect = DXGI_SWAP_EFFECT_DISCARD;
-                if (deviceD3D11->AllowTearing())
+                if (_device->AllowTearing())
                 {
                     _syncInterval = 0;
                     _presentFlags = DXGI_PRESENT_ALLOW_TEARING;
                     _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
                     // Cannot use srgb format with flip swap effect.
                     swapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-                    backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+                    _dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
                 }
 
                 // DirectX 11.1 or later.
                 DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
                 swapChainDesc.Width = width;
                 swapChainDesc.Height = height;
-                swapChainDesc.Format = backBufferFormat;
+                swapChainDesc.Format = _dxgiBackBufferFormat;
                 swapChainDesc.SampleDesc.Count = 1;
                 swapChainDesc.SampleDesc.Quality = 0;
                 swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-                swapChainDesc.BufferCount = _backBufferCount;
+                swapChainDesc.BufferCount = NumBackBuffers;
                 swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
                 swapChainDesc.SwapEffect = swapEffect;
                 swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
                 swapChainDesc.Flags = _swapChainFlags;
 
-                if (!_window)
+#if !ALIMER_PLATFORM_UWP
+                DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
+                fsSwapChainDesc.Windowed = TRUE;
+
+                hr = dxgiFactory2->CreateSwapChainForHwnd(
+                    _device->GetD3DDevice(),
+                    _handle,
+                    &swapChainDesc,
+                    &fsSwapChainDesc,
+                    nullptr,
+                    _swapChain1.ReleaseAndGetAddressOf()
+                );
+
+                if (FAILED(hr))
                 {
-                    DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
-                    fsSwapChainDesc.Windowed = TRUE;
-
-                    hr = dxgiFactory2->CreateSwapChainForHwnd(
-                        deviceD3D11->GetD3DDevice(),
-                        _hwnd,
-                        &swapChainDesc,
-                        &fsSwapChainDesc,
-                        nullptr,
-                        _swapChain1.ReleaseAndGetAddressOf()
-                    );
-
-                    if (FAILED(hr))
-                    {
-                        ALIMER_LOGCRITICAL("Failed to create DXGI SwapChain, HRESULT {}", static_cast<unsigned int>(hr));
-                    }
-
-                    ThrowIfFailed(_swapChain1.As(&_swapChain));
-
+                    ALIMER_LOGCRITICAL("Failed to create DXGI SwapChain, HRESULT {}", static_cast<unsigned int>(hr));
                 }
-                else
-                {
-                    swapChainDesc.Scaling = DXGI_SCALING_ASPECT_RATIO_STRETCH;
-                    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-                    swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
-                    ThrowIfFailed(dxgiFactory2->CreateSwapChainForCoreWindow(
-                        deviceD3D11->GetD3DDevice(),
-                        _window,
-                        &swapChainDesc,
-                        nullptr,
-                        &_swapChain1
-                    ));
+                ThrowIfFailed(_swapChain1.As(&_swapChain));
+#else
+                swapChainDesc.Scaling = DXGI_SCALING_ASPECT_RATIO_STRETCH;
+                swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+                swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
-                    // Ensure that DXGI does not queue more than one frame at a time. This both reduces latency and
-                    // ensures that the application will only render after each VSync, minimizing power consumption.
-                    ComPtr<IDXGIDevice3> dxgiDevice3;
-                    ThrowIfFailed(deviceD3D11->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&dxgiDevice3)));
-                    ThrowIfFailed(dxgiDevice3->SetMaximumFrameLatency(1));
+                ThrowIfFailed(dxgiFactory2->CreateSwapChainForCoreWindow(
+                    _device->GetD3DDevice(),
+                    _handle,
+                    &swapChainDesc,
+                    nullptr,
+                    &_swapChain1
+                ));
 
-                    // TODO: Handle rotation.
-                    ThrowIfFailed(_swapChain1->SetRotation(DXGI_MODE_ROTATION_IDENTITY));
-                }
+                // Ensure that DXGI does not queue more than one frame at a time. This both reduces latency and
+                // ensures that the application will only render after each VSync, minimizing power consumption.
+                //ComPtr<IDXGIDevice3> dxgiDevice3;
+                //ThrowIfFailed(_device->GetD3DDevice()->QueryInterface(IID_PPV_ARGS(&dxgiDevice3)));
+                //ThrowIfFailed(dxgiDevice3->SetMaximumFrameLatency(1));
+
+                // TODO: Handle rotation.
+                ThrowIfFailed(_swapChain1->SetRotation(DXGI_MODE_ROTATION_IDENTITY));
+#endif
 
                 dxgiFactory2->Release();
             }
@@ -162,27 +171,26 @@ namespace alimer
                 DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
                 swapChainDesc.BufferDesc.Width = width;
                 swapChainDesc.BufferDesc.Height = height;
-                swapChainDesc.BufferDesc.Format = backBufferFormat;
+                swapChainDesc.BufferDesc.Format = _dxgiBackBufferFormat;
                 swapChainDesc.SampleDesc.Count = 1;
                 swapChainDesc.SampleDesc.Quality = 0;
                 swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-                swapChainDesc.BufferCount = _backBufferCount;
-                swapChainDesc.OutputWindow = _hwnd;
+                swapChainDesc.BufferCount = NumBackBuffers;
+                swapChainDesc.OutputWindow = _handle;
                 swapChainDesc.Windowed = TRUE;
                 swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
-                ThrowIfFailed(deviceD3D11->GetFactory()->CreateSwapChain(
-                    deviceD3D11->GetD3DDevice(),
+                ThrowIfFailed(_device->GetFactory()->CreateSwapChain(
+                    _device->GetD3DDevice(),
                     &swapChainDesc,
                     _swapChain.ReleaseAndGetAddressOf()
                 ));
             }
         }
 
-        if (_hwnd)
-        {
-            ThrowIfFailed(deviceD3D11->GetFactory()->MakeWindowAssociation(_hwnd, DXGI_MWA_NO_ALT_ENTER));
-        }
+#if !ALIMER_PLATFORM_UWP
+        ThrowIfFailed(_device->GetFactory()->MakeWindowAssociation(_handle, DXGI_MWA_NO_ALT_ENTER));
+#endif
 
         ID3D11Texture2D* renderTarget;
         ThrowIfFailed(_swapChain->GetBuffer(0, IID_PPV_ARGS(&renderTarget)));
@@ -192,12 +200,11 @@ namespace alimer
         renderTarget->GetDesc(&textureDesc);
         TextureDescriptor descriptor = d3d11::Convert(textureDesc);
 
-        _backbufferTextures.Resize(1);
-        _backbufferTextures[0] = new TextureD3D11(deviceD3D11, &descriptor, renderTarget, nullptr);
-        InitializeFramebuffer();
+        _backbufferTexture = new TextureD3D11(_device, &descriptor, renderTarget, nullptr);
+        //InitializeFramebuffer();
     }
 
-    void SwapChainD3D11::PresentImpl()
+    void SwapChainD3D11::SwapBuffers()
     {
         HRESULT hr = _swapChain->Present(_syncInterval, _presentFlags);
         //m_d3dContext->DiscardView(m_d3dRenderTargetView.Get());
@@ -207,15 +214,7 @@ namespace alimer
         if (hr == DXGI_ERROR_DEVICE_REMOVED
             || hr == DXGI_ERROR_DEVICE_RESET)
         {
-            DeviceD3D11* deviceD3D11 = static_cast<DeviceD3D11*>(_graphicsDevice.Get());
-
-#ifdef _DEBUG
-            char buff[64] = {};
-            sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n", (hr == DXGI_ERROR_DEVICE_REMOVED) ? deviceD3D11->GetD3DDevice()->GetDeviceRemovedReason() : hr);
-            OutputDebugStringA(buff);
-#endif
-
-            deviceD3D11->HandleDeviceLost();
+            _device->HandleDeviceLost();
         }
         else
         {

@@ -21,14 +21,14 @@
 //
 
 #include "TextureD3D11.h"
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "D3D11Convert.h"
 #include "../../Core/Log.h"
 using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    TextureD3D11::TextureD3D11(DeviceD3D11* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData)
+    TextureD3D11::TextureD3D11(GraphicsDeviceD3D11* device, const TextureDescriptor* descriptor, void* nativeTexture, const void* initialData)
         : Texture(device, descriptor)
         , _d3dDevice(device->GetD3DDevice())
         , _resource(nullptr)
@@ -47,13 +47,13 @@ namespace alimer
         if (nativeTexture == nullptr)
         {
             // Setup initial data.
-            PODVector<D3D11_SUBRESOURCE_DATA> subResourceData;
+            std::vector<D3D11_SUBRESOURCE_DATA> subResourceData;
             if (initialData)
             {
-                subResourceData.Resize(descriptor->arraySize * descriptor->mipLevels);
+                subResourceData.resize(descriptor->arraySize * descriptor->mipLevels);
                 for (uint32_t mipLevel = 0; mipLevel < descriptor->arraySize * descriptor->mipLevels; ++mipLevel)
                 {
-                    uint32_t rowPitch;
+                    /*uint32_t rowPitch;
                     const uint32_t mipWidth = Max(1u, descriptor->width >> mipLevel);
                     const uint32_t mipHeight = Max(1u, descriptor->height >> mipLevel);
 
@@ -63,10 +63,10 @@ namespace alimer
                         mipHeight,
                         descriptor->format,
                         &rows,
-                        &rowPitch);
+                        &rowPitch);*/
 
                     subResourceData[mipLevel].pSysMem = initialData;
-                    subResourceData[mipLevel].SysMemPitch = rowPitch;
+                    //subResourceData[mipLevel].SysMemPitch = rowPitch;
                     subResourceData[mipLevel].SysMemSlicePitch = 0;
                 }
             }
@@ -123,7 +123,7 @@ namespace alimer
                     d3d11Desc.MiscFlags = d3dMiscFlags;
                 };
 
-                if (FAILED(_d3dDevice->CreateTexture1D(&d3d11Desc, subResourceData.Data(), &_texture1D)))
+                if (FAILED(_d3dDevice->CreateTexture1D(&d3d11Desc, subResourceData.data(), &_texture1D)))
                 {
                     ALIMER_LOGCRITICAL("[D3D11]: Failed to create 1D texture.");
                 }
@@ -145,7 +145,7 @@ namespace alimer
                 d3d11Desc.BindFlags = d3dBindFlags;
                 d3d11Desc.CPUAccessFlags = d3dCPUAccessFlags;
                 d3d11Desc.MiscFlags = d3dMiscFlags;
-                if (FAILED(_d3dDevice->CreateTexture2D(&d3d11Desc, subResourceData.Data(), &_texture2D)))
+                if (FAILED(_d3dDevice->CreateTexture2D(&d3d11Desc, subResourceData.data(), &_texture2D)))
                 {
                     ALIMER_LOGCRITICAL("[D3D11]: Failed to create 2D texture.");
                 }

@@ -29,12 +29,25 @@
 #   ifndef WIN32_LEAN_AND_MEAN
 #       define WIN32_LEAN_AND_MEAN
 #   endif
+#   include <windows.h>
 #endif
 
-#include <dxgi.h>
+#include "../D3D/D3DPrerequisites.h"
+
 #define D3D11_NO_HELPERS
 #include <d3d11_1.h>
-#include <d3dcompiler.h>
+
+#if defined(NTDDI_WIN10_RS2)
+#   include <dxgi1_6.h>
+#else
+#   include <dxgi1_5.h>
+#endif
+
+#pragma warning(push)
+#pragma warning(disable : 4467 5038)
+#include <wrl.h>
+#pragma warning(pop)
+
 #ifdef _DEBUG
 #   include <dxgidebug.h>
 #endif
@@ -45,7 +58,7 @@
 
 namespace alimer
 {
-    class DeviceD3D11;
+    class GraphicsDeviceD3D11;
 
     // Helper sets a D3D resource name string (used by PIX and debug layer leak reporting).
     inline void SetDebugObjectName(_In_ ID3D11DeviceChild* resource, _In_z_ const char* name, size_t length)

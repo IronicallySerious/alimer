@@ -30,7 +30,6 @@
 
 namespace alimer
 {
-    class Window;
     class PluginManager;
     class ResourceManager;
     class Input;
@@ -79,7 +78,7 @@ namespace alimer
         bool IsExiting() const { return _exiting; }
 
         /// Get the engine settings.
-        const EngineSettings& GetSettings() const { return _settings; }
+        EngineSettings& GetSettings() { return _settings; }
 
         inline bool IsHeadless() const { return _headless; }
 
@@ -89,9 +88,6 @@ namespace alimer
         /// Get the engine resource manager.
         inline ResourceManager& GetResources() { return *_resources.Get(); }
 
-        /// Get the main window.
-        inline Window* GetRenderWindow() const { return _renderWindow.get(); }
-
         /// Get the input system.
         inline Input& GetInput() { return *_input.Get(); }
 
@@ -99,7 +95,7 @@ namespace alimer
         inline Audio& GetAudio() { return *_audio.Get(); }
 
         /// Get the graphics device.
-        inline GraphicsDevice& GetGraphicsDevice() { return *_graphicsDevice.Get(); }
+        inline GraphicsDevice* GetGraphicsDevice() { return _graphicsDevice.get(); }
 
     private:
         /// Initialized flag.
@@ -115,8 +111,7 @@ namespace alimer
         SharedPtr<ResourceManager>  _resources;
         SharedPtr<Input>            _input;
         SharedPtr<Audio>            _audio;
-        std::unique_ptr<Window>     _renderWindow;
-        SharedPtr<GraphicsDevice>   _graphicsDevice;
+        std::unique_ptr<GraphicsDevice>   _graphicsDevice;
         SharedPtr<SceneManager>     _sceneManager;
 
         // ImGui

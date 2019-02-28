@@ -95,7 +95,7 @@ if (ALIMER_D3D11 OR ALIMER_D3D12)
 endif ()
 
 if (ALIMER_D3D11)
-    #define_engine_source_files(Graphics/d3d11)
+    define_engine_source_files(Graphics/d3d11)
 endif ()
 
 if (ALIMER_D3D12)
@@ -103,7 +103,7 @@ if (ALIMER_D3D12)
 endif ()
 
 if (ALIMER_VULKAN)
-    define_engine_source_files(Graphics/vulkan)
+    #define_engine_source_files(Graphics/vulkan)
     #set(GLSLANG_HEADER_FILES
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/DirStackFileIncluder.h
 	#    ${ALIMER_THIRD_PARTY_DIR}/glslang/StandAlone/ResourceLimits.h
@@ -185,6 +185,10 @@ if (ALIMER_DESKTOP)
     target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_GLFW)
 #elseif (ALIMER_SDL2)
 #    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_SDL2)
+endif ()
+
+if (ALIMER_D3D11)
+    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_D3D11)
 endif ()
 
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)

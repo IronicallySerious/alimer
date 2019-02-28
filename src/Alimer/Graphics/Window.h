@@ -29,16 +29,69 @@
 #include "../Math/Vector2.h"
 #include <string>
 
+#if defined(ALIMER_GLFW)
+struct GLFWwindow;
+#endif
+
+#if defined(_WIN32)
+struct HWND__;
+struct HINSTANCE__;
+#elif defined(__ANDROID__)
+struct ANativeWindow;
+#endif
+
 namespace alimer
 {
-    enum class WindowFlags : uint32_t
-    {
-        None = 0,
-        Resizable = 1 << 0,
-        Fullscreen = 1 << 1,
-        Default = Resizable
-    };
-    ALIMER_BITMASK(WindowFlags);
+
+#if defined(_WIN32)
+
+    // Window handle is HWND (HWND__*) on Windows
+    using WindowHandle = HWND__ * ;
+
+    // Window connection is HINSTANCE (HINSTANCE__*) on Windows
+    using WindowConnection = HINSTANCE__ * ;
+
+#elif VORTICE_PLATFORM_LINUX || VORTICE_PLATFORM_BSD
+
+    // Window handle is Window (unsigned long) on Unix - X11
+    using WindowHandle = unsigned long;
+
+    // Window connection is Display (unsigned long) on Unix - X11
+    using WindowConnection = unsigned long;
+
+#elif defined(VORTICE_PLATFORM_MACOS)
+
+    // Window handle is NSWindow or NSView (void*) on MacOS - Cocoa
+    using WindowHandle = void*;
+
+    // Window connection is dummy uint on MacOS
+    using WindowConnection = unsigned;
+
+#elif VORTICE_PLATFORM_IOS || VORTICE_PLATFORM_TVOS || VORTICE_PLATFORM_WATCHOS
+
+    // Window handle is UIWindow (void*) on iOS/TVOS/WatchOS - UIKit
+    using WindowHandle = void*;
+
+    // Window connection is dummy uint on iOS/TVOS/WatchOS
+    using WindowConnection = unsigned;
+
+#elif defined(__ANDROID__)
+
+    // Window handle is ANativeWindow* (void*) on Android
+    using WindowHandle = struct ANativeWindow*;
+
+    // Window connection is dummy uint on Android
+    using WindowConnection = unsigned;
+
+#elif VORTICE_PLATFORM_EMSCRIPTEN
+
+    // Window handle is dummy uint on emscripten
+    using WindowHandle = unsigned;
+
+    // Window connection is dummy uint on emscripten
+    using WindowConnection = unsigned;
+
+#endif
 
     /// Window resized event.
     struct WindowResizeEvent 
@@ -54,7 +107,7 @@ namespace alimer
 
     public:
         /// Constructor.
-        Window(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Default);
+        Window(const std::string& title, uint32_t width, uint32_t height, bool resizable = true, bool fullscreen = false);
 
         /// Destructor
         ~Window() override;
@@ -102,7 +155,6 @@ namespace alimer
         int GetHeight() const { return _size.y; }
 
         float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
-        WindowFlags GetFlags() const { return _flags; }
 
         /// Is cursor visible.
         bool IsCursorVisible() const { return true; }
@@ -110,28 +162,35 @@ namespace alimer
         /// Set cursor visibility.
         void SetCursorVisible(bool visible);
 
+        virtual void SwapBuffers();
+
         /// Gets the native window or view handle.
-        uint64_t GetNativeHandle() const;
+        WindowHandle GetNativeHandle() const;
 
         /// Gets the native display, connection or instance handle.
-        uint64_t GetNativeDisplay() const;
+        WindowConnection GetNativeConnection() const;
 
         /// Size changed event.
         Event<void(const WindowResizeEvent&)> resizeEvent;
 
-    private:
-        void OnSizeChanged(const IntVector2& newSize);
-
-        /// Backend implementation.
-        class WindowImpl* _impl = nullptr;
+    protected:
+        virtual void OnHandleCreated() {}
+        virtual void OnHandleDestroyed() {}
+        virtual void OnSizeChanged(const IntVector2& newSize);
         /// Window title.
         std::string _title;
-        /// Window size.
+        /// Window height.
         IntVector2 _size;
-        /// Flags
-        WindowFlags _flags = WindowFlags::Default;
-        /// Visibility flag.
+        /// Fullscreen flag.
+        bool _fullscreen;
+        bool _visible = true;
         bool _focused = false;
+
+    private:
+#if defined(ALIMER_GLFW)
+        /// Backend implementation.
+        GLFWwindow* _window;
+#endif
 
     private:
         Window(const Window&) = delete;

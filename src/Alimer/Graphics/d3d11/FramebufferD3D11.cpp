@@ -21,14 +21,14 @@
 //
 
 #include "FramebufferD3D11.h"
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "TextureD3D11.h"
 #include "D3D11Convert.h"
 #include "../../Core/Log.h"
 
 namespace alimer
 {
-    FramebufferD3D11::FramebufferD3D11(DeviceD3D11* device, const FramebufferDescriptor* descriptor)
+    FramebufferD3D11::FramebufferD3D11(GraphicsDeviceD3D11* device, const FramebufferDescriptor* descriptor)
         : Framebuffer(device, descriptor)
     {
         for (uint32_t i = 0; i < MaxColorAttachments; ++i)

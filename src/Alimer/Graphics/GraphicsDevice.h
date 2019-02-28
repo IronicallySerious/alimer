@@ -24,8 +24,8 @@
 
 #include "../Core/Object.h"
 #include "../Graphics/GPUBackend.h"
-#include "../Graphics/CommandQueue.h"
-#include "../Graphics/SwapChain.h"
+#include "../Graphics/Window.h"
+#include "../Graphics/CommandBuffer.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Pipeline.h"
@@ -43,59 +43,48 @@ namespace alimer
 
     struct GraphicsDeviceDescriptor
     {
+        GraphicsBackend preferredBackend = GraphicsBackend::Count;
         GpuPreference devicePreference = GpuPreference::HighPerformance;
         bool validation = false;
-        bool headless = false;
     };
 
-    class GraphicsImpl;
-
     /// Low-level graphics module.
-    class ALIMER_API GraphicsDevice final : public Object
+    class ALIMER_API GraphicsDevice 
     {
         friend class GPUResource;
-
-        ALIMER_OBJECT(GraphicsDevice, Object);
-
     public:
-        /// Is backend supported?
-        static bool IsSupported();
-
         /// Create factory.
         static GraphicsDevice* Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
 
         /// Destructor.
-        ~GraphicsDevice() override;
+        virtual ~GraphicsDevice();
 
         /// Initialize device with given swap chain descriptor.
         bool Initialize(const SwapChainDescriptor* descriptor);
 
         /// Begin rendering frame and returns command buffer for recording.
-        bool BeginFrame();
+        virtual bool BeginFrame();
 
-        /// End frame.
-        uint32_t EndFrame();
+        /// End frame rendering and swap buffers.
+        void EndFrame();
 
         /// Get the backend.
         inline GraphicsBackend GetBackend() const { return _backend; }
 
         /// Get the device features.
-        const GraphicsDeviceFeatures& GetFeatures() const;
+        inline const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
 
         /// Get the device limits
-        const GraphicsDeviceLimits& GetLimits() const;
+        inline const GraphicsDeviceLimits& GetLimits() const { return _limits; }
 
         /// Return whether rendering initialized.
         bool IsInitialized() const { return _initialized; }
 
-        /// Gets command queue
-        SharedPtr<CommandQueue> GetCommandQueue(QueueType queueType = QueueType::Direct) const;
+        /// Get the main rendering window.
+        Window* GetRenderWindow() const { return _renderWindow.get(); }
 
-        /// Get the main swap chain.
-        SharedPtr<SwapChain> GetSwapChain() const { return _swapChain; }
-
-        /// Return graphics implementation, which holds the actual API-specific resources.
-        GraphicsImpl* GetImpl() const { return _impl; }
+        /// Get the main rendering context.
+        CommandBuffer* GetRenderContext() const { return _renderContext.Get(); }
 
     protected:
         /// Add a GPUResource to keep track of. 
@@ -104,28 +93,30 @@ namespace alimer
         /// Remove a GPUResource.
         void UntrackResource(GPUResource* resource);
 
-    private:
-        /// Constructor.
-        GraphicsDevice(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
+        void Finalize();
 
-        void OnAfterCreated();
+    private:
+        // Backend methods
+        virtual bool InitializeImpl(const SwapChainDescriptor* descriptor) = 0;
+        virtual void Tick() = 0;
+
+    protected:
+        /// Constructor.
+        GraphicsDevice(GraphicsBackend backend, const GraphicsDeviceDescriptor* descriptor);
 
         /// Implementation.
-        GraphicsImpl*               _impl = nullptr;
         GraphicsBackend             _backend;
         GpuPreference               _devicePreference;
-        bool                        _headless = false;
         bool                        _validation = false;
         bool                        _initialized = false;
+        GraphicsDeviceFeatures      _features = {};
+        GraphicsDeviceLimits        _limits = {};
         std::vector<GPUResource*>   _gpuResources;
         std::mutex                  _gpuResourceMutex;
         Sampler*                    _pointSampler = nullptr;
         Sampler*                    _linearSampler = nullptr;
-        uint32_t                    _frameId = 0;
-        SharedPtr<CommandQueue>     _directCommandQueue;
-        SharedPtr<CommandQueue>     _computeCommandQueue;
-        SharedPtr<CommandQueue>     _copyCommandQueue;
-        SharedPtr<SwapChain>        _swapChain;
+        SharedPtr<CommandBuffer>    _renderContext;
+        std::unique_ptr<Window>     _renderWindow;
     };
 
     ALIMER_API extern GraphicsDevice* graphics;

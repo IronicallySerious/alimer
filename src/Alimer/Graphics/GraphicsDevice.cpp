@@ -23,14 +23,7 @@
 #include "../Graphics/GraphicsDevice.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Sampler.h"
-#include "../Application/Window.h"
 #include "Core/Log.h"
-
-#if defined(ALIMER_VULKAN)
-#include "vulkan/GraphicsDeviceVk.h"
-#elif defined(ALIMER_D3D12)
-#include "d3d12/GraphicsDeviceD3D12.h"
-#endif
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -43,37 +36,52 @@ extern "C"
 }
 #endif /* defined(_WIN32) */
 
+#if ALIMER_D3D11
+#   include "d3d11/GraphicsDeviceD3D11.h"
+#endif
+
+#if defined(ALIMER_D3D12)
+#include "d3d12/GraphicsDeviceD3D12.h"
+#endif
+
+#if defined(ALIMER_VULKAN)
+#   include "vulkan/GraphicsDeviceVk.h"
+#endif
+
+#if defined(ALIMER_GLFW)
+#   define GLFW_INCLUDE_NONE 
+#   include <GLFW/glfw3.h>
+#endif
+
 using namespace std;
 
 namespace alimer
 {
     GraphicsDevice* graphics = nullptr;
 
-    GraphicsDevice::GraphicsDevice(const char* applicationName, const GraphicsDeviceDescriptor* descriptor)
-        : _devicePreference(descriptor->devicePreference)
+    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, const GraphicsDeviceDescriptor* descriptor)
+        : _backend(backend)
+        , _devicePreference(descriptor->devicePreference)
         , _validation(descriptor->validation)
-        , _headless(descriptor->headless)
-        , _impl(new GraphicsImpl(applicationName, descriptor))
     {
-        _backend = _impl->GetBackend();
-
-        // Create command queue's
-        _directCommandQueue = MakeShared<CommandQueue>(this, QueueType::Direct);
-        _computeCommandQueue = MakeShared<CommandQueue>(this, QueueType::Compute);
-        _copyCommandQueue = MakeShared<CommandQueue>(this, QueueType::Copy);
-
         graphics = this;
-        AddSubsystem(this);
     }
 
     GraphicsDevice::~GraphicsDevice()
     {
-        _impl->WaitIdle();
+        Finalize();
+        graphics = nullptr;
+    }
 
-        _swapChain.Reset();
-        _directCommandQueue.Reset();
-        _computeCommandQueue.Reset();
-        _copyCommandQueue.Reset();
+    void GraphicsDevice::Finalize()
+    {
+        if (!_initialized) {
+            return;
+        }
+
+        _initialized = false;
+        _renderContext.Reset();
+        _renderWindow.reset();
 
         // Destroy undestroyed resources.
         SafeDelete(_pointSampler);
@@ -89,12 +97,6 @@ namespace alimer
 
             _gpuResources.clear();
         }
-
-        // Destroy backend.
-        SafeDelete(_impl);
-
-        RemoveSubsystem(this);
-        graphics = nullptr;
     }
 
     GraphicsDevice* GraphicsDevice::Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor)
@@ -104,14 +106,49 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
         }
 
-        if (!GraphicsDevice::IsSupported())
-        {
-            ALIMER_LOGERROR("Vulkan backend is not supported.");
-            return nullptr;
+        GraphicsBackend preferredBackend = descriptor->preferredBackend;
+        if (preferredBackend == GraphicsBackend::Count) {
+            preferredBackend = GraphicsBackend::Direct3D11;
         }
 
-        GraphicsDevice* device = new GraphicsDevice(applicationName, descriptor);
-        ALIMER_LOGINFO("Vulkan backend created with success.");
+#if defined(ALIMER_GLFW)
+        if (preferredBackend != GraphicsBackend::OpenGL)
+        {
+            // Disable opengl context by default creation.
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        }
+        else
+        {
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        }
+#endif
+
+        GraphicsDevice* device = nullptr;
+        switch (preferredBackend)
+        {
+        case GraphicsBackend::Direct3D11:
+#if ALIMER_D3D11
+            if (!GraphicsDeviceD3D11::IsSupported())
+            {
+                ALIMER_LOGERROR("Direct3D11 backend is not supported.");
+                return nullptr;
+            }
+
+            device = new GraphicsDeviceD3D11(descriptor);
+            ALIMER_LOGINFO("Direct3D11 backend created with success.");
+#else
+            ALIMER_LOGERROR("Direct3D11 backend is not supported.");
+#endif
+            break;
+
+        default:
+            break;
+        }
+        
         return device;
     }
 
@@ -121,40 +158,21 @@ namespace alimer
             return true;
         }
 
-        _swapChain = new SwapChain(this, descriptor);
-
-        OnAfterCreated();
-        _initialized = true;
+        _initialized = InitializeImpl(descriptor);
         return _initialized;
     }
 
     bool GraphicsDevice::BeginFrame()
     {
-        if (!_impl->BeginFrame()) {
-           return false;
-        }
-
-        _frameId++;
         return true;
     }
 
-    uint32_t GraphicsDevice::EndFrame()
+    void GraphicsDevice::EndFrame()
     {
-        _impl->EndFrame();
-        _frameId++;
-        return _frameId;
-    }
+        Tick();
 
-    void GraphicsDevice::OnAfterCreated()
-    {
-        // TODO: add stock samplers
-        //SamplerDescriptor descriptor = {};
-        //_pointSampler = CreateSampler(&descriptor);
-
-        //descriptor.magFilter = SamplerMinMagFilter::Linear;
-        //descriptor.minFilter = SamplerMinMagFilter::Linear;
-        //descriptor.mipmapFilter = SamplerMipFilter::Linear;
-        //_linearSampler = CreateSampler(&descriptor);
+        // Present to screen.
+        _renderWindow->SwapBuffers();
     }
 
     void GraphicsDevice::TrackResource(GPUResource* resource)
@@ -170,36 +188,5 @@ namespace alimer
             std::remove(_gpuResources.begin(), _gpuResources.end(), resource),
             end(_gpuResources)
         );
-    }
-
-    const GraphicsDeviceFeatures& GraphicsDevice::GetFeatures() const
-    {
-        return _impl->GetFeatures();
-    }
-
-    const GraphicsDeviceLimits& GraphicsDevice::GetLimits() const
-    {
-        return _impl->GetLimits();
-    }
-
-    SharedPtr<CommandQueue> GraphicsDevice::GetCommandQueue(QueueType queueType) const
-    {
-        SharedPtr<CommandQueue> commandQueue;
-        switch (queueType)
-        {
-        case QueueType::Direct:
-            commandQueue = _directCommandQueue;
-            break;
-        case QueueType::Compute:
-            commandQueue = _computeCommandQueue;
-            break;
-        case QueueType::Copy:
-            commandQueue = _copyCommandQueue;
-            break;
-        default:
-            assert(false && "Invalid command queue type.");
-        }
-
-        return commandQueue;
     }
 }

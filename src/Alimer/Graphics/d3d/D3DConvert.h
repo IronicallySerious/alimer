@@ -25,6 +25,8 @@
 #include "D3DPrerequisites.h"
 #include "../Types.h"
 #include "../PixelFormat.h"
+#include <dxgiformat.h>
+#include <d3dcommon.h>
 
 namespace alimer
 {
@@ -130,7 +132,7 @@ namespace alimer
             }
         }
 
-        static inline D3D11_INPUT_CLASSIFICATION Convert(VertexInputRate rate)
+        /*static inline D3D11_INPUT_CLASSIFICATION Convert(VertexInputRate rate)
         {
             switch (rate)
             {
@@ -139,7 +141,7 @@ namespace alimer
             default:
                 ALIMER_UNREACHABLE();
             }
-        }
+        }*/
 
         static inline D3D_PRIMITIVE_TOPOLOGY Convert(PrimitiveTopology topology, uint32_t patchCount)
         {

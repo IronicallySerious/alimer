@@ -32,7 +32,7 @@ namespace alimer
     class FramebufferD3D11 final : public Framebuffer
     {
     public:
-        FramebufferD3D11(DeviceD3D11* device, const FramebufferDescriptor* descriptor);
+        FramebufferD3D11(GraphicsDeviceD3D11* device, const FramebufferDescriptor* descriptor);
         ~FramebufferD3D11() override;
 
         void Destroy();

@@ -37,7 +37,11 @@ namespace alimer
     struct RefCount
     {
         /// Construct.
-        RefCount() = default;
+        RefCount()
+            : refs(0)
+            , weakRefs(0)
+        {
+        }
 
         /// Destruct.
         ~RefCount()
@@ -46,9 +50,10 @@ namespace alimer
             weakRefs = -1;
         }
 
-        int refs{};
+        /// Reference count. If below zero, the object has been destroyed.
+        int refs;
         /// Weak reference count.
-        int weakRefs{};
+        int weakRefs;
     };
 
     /// Base class for intrusively reference counted objects that can be pointed to with SharedPtr and WeakPtr. These are not copy-constructible and not assignable.
@@ -194,7 +199,7 @@ namespace alimer
         /// Convert to a raw pointer.
         operator T*() const { return ptr_; }    // NOLINT(google-explicit-constructor)
 
-                                                /// Swap with another SharedPtr.
+        /// Swap with another SharedPtr.
         void Swap(SharedPtr& rhs) { std::swap(ptr_, rhs.ptr_); }
 
         /// Reset to null and release the object reference.

@@ -21,7 +21,7 @@
 //
 
 #include "SamplerD3D11.h"
-#include "DeviceD3D11.h"
+#include "GraphicsDeviceD3D11.h"
 #include "Graphics/D3D/D3DConvert.h"
 #include "D3D11Convert.h"
 #include "Core/Log.h"
@@ -29,7 +29,7 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    SamplerD3D11::SamplerD3D11(DeviceD3D11* device, const SamplerDescriptor* descriptor)
+    SamplerD3D11::SamplerD3D11(GraphicsDeviceD3D11* device, const SamplerDescriptor* descriptor)
         : Sampler(device, descriptor)
     {
         auto &cache = device->GetCache();

@@ -97,6 +97,15 @@ else ()
 endif ()
 
 # Graphics
+# Direct3D11 and  Direct3D12 backend
+if (WIN32 OR ALIMER_UWP OR ALIMER_XBOX_ONE)
+    option (ALIMER_D3D11 "Enable D3D11 backend" ON)
+    #option (ALIMER_D3D12 "Enable D3D12 backend" ON)
+else ()
+    option (ALIMER_D3D11 "Enable D3D11 backend" OFF)
+    #option (ALIMER_D3D12 "Enable D3D12 backend" ON)
+endif ()
+
 if (ALIMER_WINDOWS)
     #set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11 | D3D12 | Vulkan | OpenGL")
     set (ALIMER_RENDERER Vulkan CACHE STRING "Select renderer: D3D11 | D3D12 | Vulkan | OpenGL")
@@ -186,6 +195,8 @@ endif()
 
 message(STATUS "  Threading       ${ALIMER_THREADING}")
 message(STATUS "  Renderer        ${ALIMER_RENDERER}")
+message(STATUS "  Direct3D11      ${ALIMER_D3D11}")
+message(STATUS "  Direct3D12      ${ALIMER_D3D12}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")
 message(STATUS "  Lua             ${ALIMER_SCRIPTING_LUA}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")
