@@ -26,11 +26,6 @@
 #include <cassert>
 #include <string>
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4201) 
-#endif
-
 namespace alimer
 {
     /// Defines pixel format.
@@ -260,9 +255,4 @@ namespace alimer
         assert(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].name;
     }
-
 }
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif

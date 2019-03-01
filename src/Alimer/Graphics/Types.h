@@ -30,6 +30,11 @@
 #include "../Graphics/PixelFormat.h"
 #include "fmt/format.h"
 
+#ifdef _MSC_VER
+#   pragma warning(push)
+#   pragma warning(disable : 4201) 
+#endif
+
 namespace alimer
 {
     /* Constants */
@@ -339,11 +344,26 @@ namespace alimer
         Clockwise = 1
     };
 
-    enum class CullMode : uint32_t 
-    {
+    enum class CullMode : uint32_t {
         None = 0,
         Front,
         Back
+    };
+
+    /// Defines the faces in a cube map texture.
+    enum class TextureCubemapFace : uint8_t {
+        /// Positive X face 
+        PositiveX = 0,
+        /// Negative X face
+        NegativeX = 1,
+        /// Positive Y face
+        PositiveY = 2,
+        /// Negative Y face
+        NegativeY = 3,
+        /// Positive Z face
+        PositiveZ = 4,
+        /// Negative Z face
+        NegativeZ = 5,
     };
 
     /// Describes SwapChain
@@ -395,8 +415,14 @@ namespace alimer
         Texture* texture = nullptr;
         /// The mipmap level of the texture used for rendering to the attachment.
         uint32_t level = 0;
-        /// The slice of the texture used for rendering to the attachment.
-        uint32_t slice = 0;
+        union {
+            /// Cubemap face
+            TextureCubemapFace face = TextureCubemapFace::PositiveX;
+            /// The slice of the texture used for rendering to the attachment.
+            uint32_t slice;
+            /// The 3D texture layer.
+            uint32_t layer;
+        };
     };
 
     struct FramebufferDescriptor
@@ -561,16 +587,12 @@ namespace alimer
     struct ComputePipelineDescriptor {
     };
 
-    struct GraphicsDeviceLimits {
-        uint32_t              maxTextureDimension1D;
-        uint32_t              maxTextureDimension2D;
-        uint32_t              maxTextureDimension3D;
-        uint32_t              maxTextureDimensionCube;
-        uint32_t              maxTextureArrayLayers;
-    };
-
     ALIMER_API uint32_t GetVertexElementSize(VertexFormat format);
 
     ALIMER_API const char* EnumToString(ResourceUsage usage);
     ALIMER_API const char* EnumToString(VertexElementSemantic semantic);
 }
+
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif

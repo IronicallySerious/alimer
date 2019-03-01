@@ -210,8 +210,6 @@ namespace alimer
         // Determine DirectX hardware feature levels this app will support.
         static const D3D_FEATURE_LEVEL s_featureLevels[] =
         {
-            D3D_FEATURE_LEVEL_12_1,
-            D3D_FEATURE_LEVEL_12_0,
             D3D_FEATURE_LEVEL_11_1,
             D3D_FEATURE_LEVEL_11_0,
             D3D_FEATURE_LEVEL_10_1,
@@ -336,9 +334,11 @@ namespace alimer
         swprintf_s(buff, L"D3D11 device created using Adapter: VID:%04X, PID:%04X - %ls\n", desc.VendorId, desc.DeviceId, desc.Description);
         OutputDebugStringW(buff);
 #endif
-        _features.SetVendorId(desc.VendorId);
-        _features.SetDeviceId(desc.DeviceId);
-        _features.SetDeviceName(ToUtf8(desc.Description));
+
+        _info.backend = GraphicsBackend::Direct3D11;
+        _info.vendorId = desc.VendorId;
+        _info.deviceId = desc.DeviceId;
+        _info.deviceName = ToUtf8(desc.Description);
 
         switch (_d3dFeatureLevel)
         {
@@ -376,12 +376,64 @@ namespace alimer
             && threadingFeature.DriverConcurrentCreates
             && threadingFeature.DriverCommandLists)
         {
-            _features.SetMultithreading(true);
+            //_features.SetMultithreading(true);
         }
 
-        //_limits.maxColorAttachments = D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;
-        //_limits.maxBindGroups = MaxDescriptorSets;
-        //_limits.minUniformBufferOffsetAlignment = 16;
+        // Features
+        _caps.features.instancing = true;
+        _caps.features.alphaToCoverage = true;
+        _caps.features.independentBlend = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_10_0);
+        _caps.features.computeShader = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_10_0);
+        _caps.features.geometryShader = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_11_0);
+        _caps.features.tessellationShader = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_11_0);
+        _caps.features.sampleRateShading = true;
+        _caps.features.dualSrcBlend = true;
+        _caps.features.logicOp = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_11_1);
+        _caps.features.multiViewport = true;
+        _caps.features.indexUInt32 = true;
+        _caps.features.drawIndirect = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_11_0);
+        _caps.features.alphaToOne = true;
+        _caps.features.fillModeNonSolid = true;
+        _caps.features.samplerAnisotropy = true;
+        _caps.features.textureCompressionBC = true;
+        _caps.features.textureCompressionPVRTC = false;
+        _caps.features.textureCompressionETC2 = false;
+        _caps.features.textureCompressionATC = false;
+        _caps.features.textureCompressionASTC = false;
+        _caps.features.pipelineStatisticsQuery = true;
+        _caps.features.texture1D = true;
+        _caps.features.texture3D = true;
+        _caps.features.texture2DArray = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_10_0);
+        _caps.features.textureCubeArray = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_10_1);
+
+        // Limits
+        _caps.limits.maxTextureDimension1D = _d3dFeatureLevel >= D3D_FEATURE_LEVEL_11_0 ? 16384u : 8192u;
+        _caps.limits.maxTextureDimension2D = _d3dFeatureLevel >= D3D_FEATURE_LEVEL_11_0 ? 16384u : 8192u;
+        _caps.limits.maxTextureDimension3D = _d3dFeatureLevel >= D3D_FEATURE_LEVEL_10_0 ? 2048u : 256u;
+        _caps.limits.maxTextureDimensionCube = _d3dFeatureLevel >= D3D_FEATURE_LEVEL_10_0 ? 16384u : 8192u;
+        _caps.limits.maxTextureArrayLayers = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_10_0 ? 2048u : 256u);;
+        _caps.limits.maxColorAttachments = D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;
+        _caps.limits.maxUniformBufferSize = D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16;
+        _caps.limits.minUniformBufferOffsetAlignment = 256u;
+        _caps.limits.maxStorageBufferSize;
+        _caps.limits.minStorageBufferOffsetAlignment = 16u;
+        _caps.limits.maxSamplerAnisotropy = 16u;
+        _caps.limits.maxViewports = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+        _caps.limits.maxViewportDimensions[0] = D3D11_VIEWPORT_BOUNDS_MAX;
+        _caps.limits.maxViewportDimensions[1] = D3D11_VIEWPORT_BOUNDS_MAX;
+        _caps.limits.maxPatchVertices = 32u; /* VK: maxTessellationPatchSize*/
+        _caps.limits.pointSizeRange[0] = 1.0f;
+        _caps.limits.pointSizeRange[1] = 1.0f;
+        _caps.limits.lineWidthRange[0] = 1.0f;
+        _caps.limits.lineWidthRange[1] = 1.0f;
+        _caps.limits.maxComputeSharedMemorySize = D3D11_CS_THREAD_LOCAL_TEMP_REGISTER_POOL;
+        _caps.limits.maxComputeWorkGroupCount[0] = D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
+        _caps.limits.maxComputeWorkGroupCount[1] = D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
+        _caps.limits.maxComputeWorkGroupCount[2] = D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
+        _caps.limits.maxComputeWorkGroupInvocations = D3D11_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP;
+        _caps.limits.maxComputeWorkGroupSize[0] = D3D11_CS_THREAD_GROUP_MAX_X;
+        _caps.limits.maxComputeWorkGroupSize[1] = D3D11_CS_THREAD_GROUP_MAX_Y;
+        _caps.limits.maxComputeWorkGroupSize[2] = D3D11_CS_THREAD_GROUP_MAX_Z;
 
         IDXGIFactory5* factory5;
         if (SUCCEEDED(_factory->QueryInterface(&factory5)))

@@ -72,10 +72,7 @@ namespace alimer
         inline GraphicsBackend GetBackend() const { return _backend; }
 
         /// Get the device features.
-        inline const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
-
-        /// Get the device limits
-        inline const GraphicsDeviceLimits& GetLimits() const { return _limits; }
+        inline const GraphicsDeviceCapabilities& GetCaps() const { return _caps; }
 
         /// Return whether rendering initialized.
         bool IsInitialized() const { return _initialized; }
@@ -109,8 +106,8 @@ namespace alimer
         GpuPreference               _devicePreference;
         bool                        _validation = false;
         bool                        _initialized = false;
-        GraphicsDeviceFeatures      _features = {};
-        GraphicsDeviceLimits        _limits = {};
+        GraphicsDeviceInfo          _info = {};
+        GraphicsDeviceCapabilities  _caps = {};
         std::vector<GPUResource*>   _gpuResources;
         std::mutex                  _gpuResourceMutex;
         Sampler*                    _pointSampler = nullptr;

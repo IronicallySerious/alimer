@@ -38,82 +38,91 @@ namespace alimer
         Count = 6
     };
 
-	/// Describes features supported by given instance of GpuDevice.
-	class ALIMER_API GraphicsDeviceFeatures final
-	{
-    public:
-		/// Constructor.
-        GraphicsDeviceFeatures();
+    /// GraphicsDevice information .
+    struct GraphicsDeviceInfo
+    {
+        /// Rendering API backend.
+        GraphicsBackend backend;
 
-		/// Destructor.
-		~GraphicsDeviceFeatures() = default;
+        /// The hardwarw gpu device vendor id.
+        uint32_t    vendorId;
 
-        GraphicsBackend GetBackend() const { 
-            return _backend;
-        }
+        /// The hardwarw gpu device id.
+        uint32_t    deviceId;
 
-        void SetBackend(GraphicsBackend backend) {
-            _backend = backend; 
-        }
+        /// The hardwarw gpu device name.
+        std::string deviceName;
+    };
 
-        uint32_t GetVendorId() const {  return _vendorId;  }
-        GpuVendor GetVendor() const {  return _vendor; }
-        void SetVendorId(uint32_t vendorId);
+    /// Describes features supported by given instance of GpuDevice.
+    struct GraphicsDeviceFeatures 
+    {
+        bool    instancing = false;
+        bool    alphaToCoverage = false;
+        bool    independentBlend = false;
+        bool    computeShader = false;
+        bool    geometryShader = false;
+        bool    tessellationShader = false;
+        bool    sampleRateShading = false;
+        bool    dualSrcBlend = false;
+        bool    logicOp = false;
+        bool    multiViewport = false;
+        bool    indexUInt32 = false;
+        bool    drawIndirect = false;
+        bool    alphaToOne = false;
+        bool    fillModeNonSolid = false;
+        bool    samplerAnisotropy = false;
+        bool    textureCompressionBC = false;
+        bool    textureCompressionPVRTC = false;
+        bool    textureCompressionETC2 = false;
+        bool    textureCompressionATC = false;
+        bool    textureCompressionASTC = false;
+        bool    pipelineStatisticsQuery = false;
+        /// Specifies whether 1D textures are supported.
+        bool    texture1D = false;
+        /// Specifies whether 3D textures are supported.
+        bool    texture3D = false;
 
-        uint32_t GetDeviceId() const {  return _deviceId;  }
-        void SetDeviceId(uint32_t deviceId) { _deviceId = deviceId; }
+        /// Specifies whether 2D array textures are supported.
+        bool    texture2DArray = false;
 
-        ///	Gets the current physical device name.
-        std::string GetDeviceName() const {
-            return _deviceName; 
-        }
-        ///	Sets the current GPU device name.
-        void SetDeviceName(const std::string& name) {
-            _deviceName = name;
-        }
+        /// Specifies whether cube array textures are supported.
+        bool    textureCubeArray = false;
+    };
 
-        bool GetMultithreading() const { 
-            return _multithreading; 
-        }
-        void SetMultithreading(bool value) {
-            _multithreading = value; 
-        }
+    struct GraphicsDeviceLimits
+    {
+        uint32_t        maxTextureDimension1D;
+        uint32_t        maxTextureDimension2D;
+        uint32_t        maxTextureDimension3D;
+        uint32_t        maxTextureDimensionCube;
+        uint32_t        maxTextureArrayLayers;
+        uint32_t        maxColorAttachments;
+        uint32_t        maxUniformBufferSize;
+        uint32_t        minUniformBufferOffsetAlignment;
+        uint32_t        maxStorageBufferSize;
+        uint32_t        minStorageBufferOffsetAlignment;
+        uint32_t        maxSamplerAnisotropy;
+        uint32_t        maxViewports;
+        uint32_t        maxViewportDimensions[2];
+        uint32_t        maxPatchVertices;
+        float           pointSizeRange[2];
+        float           lineWidthRange[2];
+        uint32_t        maxComputeSharedMemorySize;
+        uint32_t        maxComputeWorkGroupCount[3];
+        uint32_t        maxComputeWorkGroupInvocations;
+        uint32_t        maxComputeWorkGroupSize[3];
+    };
 
-        uint32_t GetMaxColorAttachments() const {
-            return _maxColorAttachments;
-        }
-        void SetMaxColorAttachments(uint32_t value) {
-            _maxColorAttachments = value;
-        }
+    /// Describes caps of graphics device.
+    struct GraphicsDeviceCapabilities
+    {
+        /// Specifies all supported hardware features.
+        GraphicsDeviceFeatures          features;
 
-        uint32_t GetMaxBindGroups() const {
-            return _maxBindGroups;
-        }
-        void SetMaxBindGroups(uint32_t value) {
-            _maxBindGroups = value;
-        }
+        /// Specifies all rendering limitations.
+        GraphicsDeviceLimits            limits;
+    };
 
-        uint32_t GetMinUniformBufferOffsetAlignment() const { return _minUniformBufferOffsetAlignment; }
-        void SetMinUniformBufferOffsetAlignment(uint32_t value) {
-            _minUniformBufferOffsetAlignment = value;
-        }
-
-        uint32_t GetMinStorageBufferOffsetAlignment() const { return _minStorageBufferOffsetAlignment; }
-        void SetMinStorageBufferOffsetAlignment(uint32_t value) {
-            _minStorageBufferOffsetAlignment = value;
-        }
-
-    private:
-        GraphicsBackend _backend = GraphicsBackend::Null;
-        uint32_t        _vendorId = 0;
-        GpuVendor       _vendor = GpuVendor::Unknown;
-        uint32_t        _deviceId = 0;
-        std::string     _deviceName;
-        bool            _multithreading = false;
-
-        uint32_t        _maxColorAttachments = 0;
-        uint32_t        _maxBindGroups = 0;
-        uint32_t        _minUniformBufferOffsetAlignment = 0;
-        uint32_t        _minStorageBufferOffsetAlignment = 0;
-	};
+	
 }
