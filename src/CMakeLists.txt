@@ -23,8 +23,8 @@
 # Engine
 add_subdirectory (Alimer)
 
-# Plugins
-add_subdirectory (Plugins)
+# Plugins (disabled for now)
+# add_subdirectory (Plugins)
 
 # Player
 add_subdirectory(Player)

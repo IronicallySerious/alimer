@@ -27,7 +27,7 @@
 
 namespace alimer
 {
-    Application *Application::_instance;
+    Application* application = nullptr;
 
     Application::Application()
         : _exitCode(EXIT_SUCCESS)
@@ -41,18 +41,13 @@ namespace alimer
         _engine = new Engine();
 
         // Set current instance.
-        _instance = this;
+        application = this;
     }
 
     Application::~Application()
     {
         Shutdown();
-        _instance = nullptr;
-    }
-
-    Application* Application::GetInstance()
-    {
-        return _instance;
+        application = nullptr;
     }
 
     void Application::Shutdown()
@@ -126,8 +121,9 @@ namespace alimer
 
     void Application::RenderFrame(double frameTime, double elapsedTime)
     {
-        if (_engine->IsHeadless())
+        if (_engine->IsHeadless()) {
             return;
+        }
 
         /*auto context = _graphicsDevice->GetContext();
 

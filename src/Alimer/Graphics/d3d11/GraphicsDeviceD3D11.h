@@ -45,6 +45,12 @@ namespace alimer
         bool InitializeImpl(const SwapChainDescriptor* descriptor) override;
         void Tick() override;
 
+        PixelFormat GetDefaultDepthStencilFormat() const;
+        PixelFormat GetDefaultDepthFormat() const;
+        Texture* GetCurrentTexture() const override;
+        Texture* GetDepthStencilTexture() const override;
+        Texture* GetMultisampleColorTexture() const override;
+
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData);
         Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor);
         Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData);
@@ -61,7 +67,7 @@ namespace alimer
         ID3D11Device1*          GetD3DDevice1() const { return _d3dDevice1.Get(); }
         ID3D11DeviceContext*    GetD3DDeviceContext() const { return _d3dContext; }
         D3D_FEATURE_LEVEL       GetDeviceFeatureLevel() const { return _d3dFeatureLevel; }
-        
+
         uint32_t                GetShaderModerMajor() const { return _shaderModelMajor; }
         uint32_t                GetShaderModerMinor() const { return _shaderModelMinor; }
         bool                    AllowTearing() const { return _allowTearing; }

@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../Graphics/GPUBackend.h"
 #include "../Resource/Resource.h"
 #include "../Graphics/GPUResource.h"
 #include "../Math/MathUtil.h"
@@ -33,6 +32,7 @@ namespace alimer
     class ALIMER_API Texture : public Resource, public GPUResource
     {
         ALIMER_OBJECT(Texture, Resource);
+
     protected:
         /// Constructor.
         Texture(GraphicsDevice* device);
@@ -79,13 +79,6 @@ namespace alimer
         /// Get the sample count.
         SampleCount GetSamples() const { return _samples; }
 
-#if defined(ALIMER_VULKAN)
-        VkImageView GetView(uint32_t level, uint32_t slice) const;
-#endif
-
-    private:
-        bool Create(const void* pInitData);
-
     protected:
         TextureType     _type = TextureType::Type2D;
         uint32_t        _width = 1;
@@ -97,12 +90,5 @@ namespace alimer
         PixelFormat     _format = PixelFormat::RGBA8UNorm;
         TextureUsage    _usage = TextureUsage::ShaderRead;
         bool            _externalHandle = false;
-
-    private:
-#if defined(ALIMER_VULKAN)
-        VkImage         _handle = VK_NULL_HANDLE;
-        VmaAllocation   _allocation = VK_NULL_HANDLE;
-        VkImageView     _defaultImageView = VK_NULL_HANDLE;
-#endif
     };
 }

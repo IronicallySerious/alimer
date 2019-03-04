@@ -30,7 +30,7 @@ namespace alimer
         : GPUResource(device, Type::Framebuffer)
     {
         const uint32_t colorAttachmentsCount = Max(MaxColorAttachments, graphics->GetCaps().limits.maxColorAttachments);
-        _colorAttachments.resize(colorAttachmentsCount);
+        _colorAttachments.reserve(colorAttachmentsCount);
         _width = UINT32_MAX;
         _height = UINT32_MAX;
         _layers = 1;
@@ -45,7 +45,7 @@ namespace alimer
             const uint32_t level = descriptor->colorAttachments[i].level;
             _width = Min(_width, descriptor->colorAttachments[i].texture->GetWidth(level));
             _height = Min(_height, descriptor->colorAttachments[i].texture->GetHeight(level));
-            _colorAttachments[i] = descriptor->colorAttachments[i];
+            _colorAttachments.push_back(descriptor->colorAttachments[i]);
         }
 
         if (descriptor->depthStencilAttachment.texture != nullptr)

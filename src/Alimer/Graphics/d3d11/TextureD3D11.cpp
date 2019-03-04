@@ -175,6 +175,8 @@ namespace alimer
 
     void TextureD3D11::InvalidateViews()
     {
+        _rtvs.clear();
+        _dsvs.clear();
         _srvs.clear();
         _uavs.clear();
     }
@@ -230,6 +232,199 @@ namespace alimer
         }
 
         return viewMap[viewInfo].Get();
+    }
+
+    ID3D11RenderTargetView* TextureD3D11::GetRTV(uint32_t mipLevel, uint32_t slice)
+    {
+        auto viewInfo = D3DResourceViewInfo(mipLevel, 1, slice, _arraySize);
+        if (_rtvs.find(viewInfo) == end(_rtvs))
+        {
+            const uint32_t arraySize = _arraySize - slice;
+            const bool isTextureMs = static_cast<uint32_t>(_samples) > 1;
+
+            D3D11_RENDER_TARGET_VIEW_DESC desc = {};
+            desc.Format = _dxgiFormat;
+            switch (_type)
+            {
+            case TextureType::Type1D:
+                if (arraySize > 1)
+                {
+                    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1DARRAY;
+                    desc.Texture1DArray.MipSlice = mipLevel;
+                    desc.Texture1DArray.FirstArraySlice = slice;
+                    desc.Texture1DArray.ArraySize = arraySize;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1D;
+                    desc.Texture1D.MipSlice = mipLevel;
+                }
+                break;
+            case TextureType::Type2D:
+                if (arraySize > 1)
+                {
+                    if (isTextureMs)
+                    {
+                        desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
+                        desc.Texture2DMSArray.FirstArraySlice = slice;
+                        desc.Texture2DMSArray.ArraySize = arraySize;
+                    }
+                    else
+                    {
+                        desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+                        desc.Texture2DArray.MipSlice = mipLevel;
+                        desc.Texture2DArray.FirstArraySlice = slice;
+                        desc.Texture2DArray.ArraySize = arraySize;
+                    }
+                }
+                else
+                {
+                    if (isTextureMs)
+                    {
+                        desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
+                    }
+                    else
+                    {
+                        desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+                        desc.Texture2D.MipSlice = mipLevel;
+                    }
+                }
+
+                break;
+
+            case TextureType::Type3D:
+                assert(arraySize == 1);
+                desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
+                desc.Texture3D.MipSlice = mipLevel;
+                desc.Texture3D.FirstWSlice = slice;
+                desc.Texture3D.WSize = 1;
+                break;
+
+            case TextureType::TypeCube:
+                desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+                desc.Texture2DArray.MipSlice = mipLevel;
+                desc.Texture2DArray.FirstArraySlice = slice * 6;
+                desc.Texture2DArray.ArraySize = arraySize * 6;
+                break;
+
+            default:
+                desc.ViewDimension = D3D11_RTV_DIMENSION_UNKNOWN;
+                ALIMER_LOGCRITICAL("Invalid texture type");
+                break;
+            }
+
+            ComPtr<ID3D11RenderTargetView> view;
+            HRESULT hr = _d3dDevice->CreateRenderTargetView(_resource, &desc, view.ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                ALIMER_LOGCRITICAL("[D3D11] - CreateRenderTargetView failed");
+            }
+
+            _rtvs[viewInfo] = view;
+        }
+
+        return _rtvs[viewInfo].Get();
+    }
+
+    ID3D11DepthStencilView* TextureD3D11::GetDSV(uint32_t mipLevel, uint32_t slice)
+    {
+        auto viewInfo = D3DResourceViewInfo(mipLevel, 1, slice, _arraySize);
+        if (_dsvs.find(viewInfo) == end(_dsvs))
+        {
+            const uint32_t arraySize = _arraySize - slice;
+            const bool isTextureMs = static_cast<uint32_t>(_samples) > 1;
+
+            D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc = {};
+            viewDesc.Format = _dxgiFormat;
+            switch (_type)
+            {
+            case TextureType::Type1D:
+                if (arraySize > 1)
+                {
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE1DARRAY;
+                    viewDesc.Texture1DArray.MipSlice = mipLevel;
+                    viewDesc.Texture1DArray.FirstArraySlice = slice;
+                    viewDesc.Texture1DArray.ArraySize = arraySize;
+                }
+                else
+                {
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE1D;
+                    viewDesc.Texture1D.MipSlice = mipLevel;
+                }
+                break;
+            case TextureType::Type2D:
+                if (arraySize > 1)
+                {
+                    if (isTextureMs)
+                    {
+                        viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
+                        viewDesc.Texture2DMSArray.FirstArraySlice = slice;
+                        viewDesc.Texture2DMSArray.ArraySize = arraySize;
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+                        viewDesc.Texture2DArray.MipSlice = mipLevel;
+                        viewDesc.Texture2DArray.FirstArraySlice = slice;
+                        viewDesc.Texture2DArray.ArraySize = arraySize;
+                    }
+                }
+                else
+                {
+                    if (isTextureMs)
+                    {
+                        viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+                        viewDesc.Texture2D.MipSlice = mipLevel;
+                    }
+                }
+
+                break;
+
+            case TextureType::Type3D:
+                assert(arraySize == 1);
+                viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+                viewDesc.Texture2DArray.MipSlice = mipLevel;
+                viewDesc.Texture2DArray.FirstArraySlice = slice;
+                viewDesc.Texture2DArray.ArraySize = _depth;
+                break;
+
+            case TextureType::TypeCube:
+                if (isTextureMs)
+                {
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
+                    viewDesc.Texture2DMSArray.FirstArraySlice = slice * 6;
+                    viewDesc.Texture2DMSArray.ArraySize = arraySize * 6;
+                }
+                else
+                {
+                    viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+                    viewDesc.Texture2DArray.MipSlice = mipLevel;
+                    viewDesc.Texture2DArray.FirstArraySlice = slice * 6;
+                    viewDesc.Texture2DArray.ArraySize = arraySize * 6;
+                }
+                break;
+
+            default:
+                viewDesc.ViewDimension = D3D11_DSV_DIMENSION_UNKNOWN;
+                ALIMER_LOGCRITICAL("Invalid texture type");
+                break;
+            }
+
+            ComPtr<ID3D11DepthStencilView> view;
+            HRESULT hr = _d3dDevice->CreateDepthStencilView(_resource, &viewDesc, view.ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                ALIMER_LOGCRITICAL("[D3D11] - CreateRenderTargetView failed");
+            }
+
+            _dsvs[viewInfo] = view;
+        }
+
+        return _dsvs[viewInfo].Get();
     }
 
     ID3D11ShaderResourceView* TextureD3D11::GetSRV(uint32_t mostDetailedMip, uint32_t mipCount, uint32_t firstArraySlice, uint32_t arraySize) const

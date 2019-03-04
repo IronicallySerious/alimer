@@ -44,6 +44,23 @@ namespace alimer
             _dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
         }
 
+        if (descriptor->depthStencil) {
+            _depthStencilFormat = device->GetDefaultDepthStencilFormat();
+            if (_depthStencilFormat == PixelFormat::Undefined) {
+                _depthStencilFormat = device->GetDefaultDepthFormat();
+            }
+        }
+
+        _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+        _syncInterval = 0;
+        _presentFlags = DXGI_PRESENT_DO_NOT_WAIT;
+        if (descriptor->vsync) {
+            _syncInterval = 1;
+            _presentFlags = 0;
+        }
+
+        _sampleCount = static_cast<UINT>(descriptor->samples);
+
         if (IsOpen()) {
             OnHandleCreated();
         }
@@ -56,6 +73,10 @@ namespace alimer
 
     void SwapChainD3D11::Destroy()
     {
+        SafeDelete(_depthStencilTexture);
+        SafeDelete(_backbufferTexture);
+        SafeDelete(_multisampleColorTexture);
+
         _swapChain->SetFullscreenState(false, nullptr);
         _swapChain.Reset();
         _swapChain1.Reset();
@@ -76,9 +97,30 @@ namespace alimer
     {
         HRESULT hr = S_OK;
 
+        UINT qualityLevels;
+        UINT supportedSampleCount;
+        for (supportedSampleCount = _sampleCount; supportedSampleCount > 1; --supportedSampleCount)
+        {
+            if (FAILED(hr = _device->GetD3DDevice()->CheckMultisampleQualityLevels(_dxgiBackBufferFormat, supportedSampleCount, &qualityLevels)))
+            {
+                ALIMER_LOGERROR("Failed to check Direct3D 11 multisample quality levels");
+            }
+            else if (qualityLevels)
+                break;
+        }
+
+        if (supportedSampleCount != _sampleCount)
+        {
+            ALIMER_LOGWARN("Required {} sample count not supported, using: {}", _sampleCount, supportedSampleCount);
+            _sampleCount = supportedSampleCount;
+        }
+
+
         if (_swapChain)
         {
+            SafeDelete(_depthStencilTexture);
             SafeDelete(_backbufferTexture);
+            SafeDelete(_multisampleColorTexture);
 
             hr = _swapChain->ResizeBuffers(NumBackBuffers, width, height, DXGI_FORMAT_UNKNOWN, _swapChainFlags);
 
@@ -112,7 +154,7 @@ namespace alimer
                 swapChainDesc.Width = width;
                 swapChainDesc.Height = height;
                 swapChainDesc.Format = _dxgiBackBufferFormat;
-                swapChainDesc.SampleDesc.Count = 1;
+                swapChainDesc.SampleDesc.Count = _sampleCount;
                 swapChainDesc.SampleDesc.Quality = 0;
                 swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
                 swapChainDesc.BufferCount = NumBackBuffers;
@@ -199,9 +241,15 @@ namespace alimer
         D3D11_TEXTURE2D_DESC textureDesc;
         renderTarget->GetDesc(&textureDesc);
         TextureDescriptor descriptor = d3d11::Convert(textureDesc);
-
         _backbufferTexture = new TextureD3D11(_device, &descriptor, renderTarget, nullptr);
-        //InitializeFramebuffer();
+
+        // Depth stencil.
+        if (_depthStencilFormat != PixelFormat::Undefined)
+        {
+            descriptor.format = _depthStencilFormat;
+            descriptor.usage = TextureUsage::RenderTarget;
+            _depthStencilTexture = new TextureD3D11(_device, &descriptor, nullptr, nullptr);
+        }
     }
 
     void SwapChainD3D11::SwapBuffers()

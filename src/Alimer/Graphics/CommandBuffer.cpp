@@ -49,21 +49,100 @@ namespace alimer
 
     void CommandBuffer::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
-        _insideRenderPass = true;
-        RenderPassDescriptor passDescriptor = {};
-        //BeginRenderPassImpl(nullptr);
+        Texture* texture = _device->GetCurrentTexture();
+        Texture* multisampleColorTexture = _device->GetMultisampleColorTexture();
+        Texture* depthStencilTexture = _device->GetDepthStencilTexture();
+
+        RenderPassDescriptor renderPass = {};
+        renderPass.colorAttachmentCount = 1u; /* TODO: Multisample resolve, is this correct?*/
+        if (multisampleColorTexture != nullptr) {
+            renderPass.colorAttachments[0].texture = multisampleColorTexture;
+            renderPass.colorAttachments[0].resolveTexture = texture;
+            renderPass.colorAttachments[0].loadAction = LoadAction::Clear;
+            renderPass.colorAttachments[0].storeAction = StoreAction::MultisampleResolve;
+            renderPass.colorAttachments[0].clearColor = clearColor;
+        }
+        else {
+            renderPass.colorAttachments[0].texture = texture;
+            renderPass.colorAttachments[0].loadAction = LoadAction::Clear;
+            renderPass.colorAttachments[0].storeAction = StoreAction::Store;
+            renderPass.colorAttachments[0].clearColor = clearColor;
+        }
+
+        RenderPassDepthStencilAttachmentDescriptor depthStencilAttachment = {};
+        if (depthStencilTexture != nullptr)
+        {
+            depthStencilAttachment.texture = depthStencilTexture;
+            depthStencilAttachment.depthLoadAction = LoadAction::Clear;
+            depthStencilAttachment.depthStoreAction = StoreAction::Store;
+            depthStencilAttachment.clearDepth = clearDepth;
+            if (IsStencilFormat(depthStencilTexture->GetFormat())) {
+                depthStencilAttachment.stencilLoadAction = LoadAction::Clear;
+                depthStencilAttachment.stencilStoreAction = StoreAction::DontCare;
+                depthStencilAttachment.clearStencil = clearStencil;
+            }
+
+            renderPass.depthStencilAttachment = &depthStencilAttachment;
+        }
+
+        BeginRenderPass(&renderPass);
     }
 
-    void CommandBuffer::BeginRenderPass(const RenderPassDescriptor* descriptor)
+    void CommandBuffer::BeginRenderPass(const RenderPassDescriptor* renderPass)
     {
-        ALIMER_ASSERT(descriptor);
+        ALIMER_ASSERT_MSG(!_insideRenderPass, "Cannot begin render pass while inside render pass");
+        ALIMER_ASSERT(renderPass);
+
+#if defined(ALIMER_DEV)
+        // Validate render pass descriptor
+        if (renderPass->colorAttachmentCount > MaxColorAttachments) {
+            ALIMER_LOGERROR("RenderPassDescriptor color attachments out of bounds");
+        }
+
+        for (uint32_t i = 0; i < renderPass->colorAttachmentCount; ++i) {
+            Texture* texture = renderPass->colorAttachments[i].texture;
+            if (texture == nullptr) {
+                ALIMER_LOGERROR("RenderPassDescriptor color attachment texture at index {} is invalid", i);
+            }
+
+            if (IsDepthStencilFormat(texture->GetFormat())) {
+                ALIMER_LOGERROR("RenderPassDescriptor color attachment texture format at index {} is not color.", i);
+                return;
+            }
+
+            if (renderPass->colorAttachments[i].storeAction == StoreAction::MultisampleResolve
+                || renderPass->colorAttachments[i].storeAction == StoreAction::StoreAndMultisampleResolve) {
+                if (renderPass->colorAttachments[i].resolveTexture == nullptr) {
+                    ALIMER_LOGERROR("RenderPassDescriptor color attachment resolve texture at index {} is invalid", i);
+                }
+            }
+        }
+
+        if (renderPass->depthStencilAttachment != nullptr) {
+            Texture* texture = renderPass->depthStencilAttachment->texture;
+            if (texture == nullptr) {
+                ALIMER_LOGERROR("RenderPassDescriptor depth attachment texture is invalid");
+            }
+
+            if (IsDepthStencilFormat(texture->GetFormat()) == false) {
+                ALIMER_LOGERROR("RenderPassDescriptor depth attachment texture format is not depth-stencil.");
+                return;
+            }
+        }
+
+        if (renderPass->colorAttachmentCount == 0 &&
+            renderPass->depthStencilAttachment == nullptr) {
+            ALIMER_LOGERROR("Cannot use render pass with no attachments.");
+        }
+#endif
         _insideRenderPass = true;
-        //BeginRenderPassImpl(descriptor);
+        BeginRenderPassImpl(renderPass);
     }
 
     void CommandBuffer::EndRenderPass()
     {
-        //EndRenderPassImpl();
+        ALIMER_ASSERT_MSG(_insideRenderPass, "Cannot end render pass if not inside begin render pass");
+        EndRenderPassImpl();
         _insideRenderPass = false;
     }
 
@@ -97,10 +176,10 @@ namespace alimer
         }
 #endif
         /*SetVertexBufferImpl(
-            binding, 
+            binding,
             buffer,
             offset,
-            stride, 
+            stride,
             inputRate);*/
     }
 
@@ -202,4 +281,4 @@ namespace alimer
     }
 #endif // TODO
 
-    }
+}

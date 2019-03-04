@@ -112,7 +112,9 @@ namespace alimer
     enum class StoreAction
     {
         DontCare,
-        Store
+        Store,
+        MultisampleResolve,
+        StoreAndMultisampleResolve
     };
 
     /// Primitive topology.
@@ -496,34 +498,79 @@ namespace alimer
 
     struct RenderPassBeginDescriptor
     {
-        ColorAttachmentAction           colors[MaxColorAttachments];
-        DepthStencilAttachmentAction    depthStencil;
+        ColorAttachmentAction           colorAttachments[MaxColorAttachments];
+        DepthStencilAttachmentAction    depthStencilAttachment;
     };
 
-    class TextureView;
     struct RenderPassColorAttachmentDescriptor {
-        TextureView* attachment;
-        TextureView* resolveTarget;
+        /// The texture attachment.
+        Texture* texture = nullptr;
+        /// The mipmap level of the texture used for rendering to the attachment.
+        uint32_t level = 0;
+        union {
+            /// Cubemap face.
+            TextureCubemapFace face = TextureCubemapFace::PositiveX;
+            /// The slice of the texture used for rendering to the attachment.
+            uint32_t slice;
+            /// The depth plane of a 3D texture used for rendering to the attachment.
+            uint32_t depthPlane;
+        };
 
-        LoadAction  loadAction;
-        StoreAction storeAction;
-        Color4      clearColor;
+        /// The destination texture used when multisampled texture data is resolved into single sample values.
+        Texture* resolveTexture = nullptr;
+
+        /// The mipmap level of the texture used for the multisample resolve action.
+        uint32_t resolveLevel = 0;
+        union {
+            /// The cubemap face of the texture used for the multisample resolve action.
+            TextureCubemapFace resolveFace = TextureCubemapFace::PositiveX;
+            /// The slice of the texture used for the multisample resolve action.
+            uint32_t resolveSlice;
+            /// The depth plane of the 3D texture used for the multisample resolve action.
+            uint32_t resolveDepthPlane;
+        };
+
+        LoadAction  loadAction = LoadAction::Clear;
+        StoreAction storeAction = StoreAction::Store;
+        Color4      clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
     };
 
     struct RenderPassDepthStencilAttachmentDescriptor {
-        TextureView* attachment;
+        /// The texture attachment.
+        Texture* texture = nullptr;
+        /// The mipmap level of the texture used for rendering to the attachment.
+        uint32_t level = 0;
+        union {
+            /// Cubemap face.
+            TextureCubemapFace face = TextureCubemapFace::PositiveX;
+            /// The slice of the texture used for rendering to the attachment.
+            uint32_t slice;
+            /// The depth plane of a 3D texture used for rendering to the attachment.
+            uint32_t depthPlane;
+        };
 
-        LoadAction  depthLoadAction;
-        StoreAction depthStoreAction;
-        LoadAction  stencilLoadAction;
-        StoreAction stencilStoreAction;
-        float       clearDepth;
-        uint8_t     clearStencil;
+        LoadAction  depthLoadAction = LoadAction::Clear;
+        StoreAction depthStoreAction = StoreAction::Store;
+        float       clearDepth = 1.0f;
+
+        LoadAction  stencilLoadAction = LoadAction::DontCare;
+        StoreAction stencilStoreAction = StoreAction::DontCare;
+        uint8_t     clearStencil = 0;
     };
 
     struct RenderPassDescriptor {
+        uint32_t colorAttachmentCount = 0;
         RenderPassColorAttachmentDescriptor colorAttachments[MaxColorAttachments];
         const RenderPassDepthStencilAttachmentDescriptor* depthStencilAttachment;
+
+        /// The width, in pixels, to constrain the render target to.
+        uint32_t renderTargetWidth = 0;
+
+        /// The height, in pixels, to constrain the render target to.
+        uint32_t renderTargetHeight = 0;
+
+        /// The number of active layers that all attachments must have for layered rendering.
+        uint32_t renderTargetArraySize = 0;
     };
 
     struct VertexElement

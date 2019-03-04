@@ -48,7 +48,8 @@ namespace alimer
         ID3D11Texture2D*    GetD3DTexture2D() const { return _texture2D; }
         DXGI_FORMAT         GetDXGIFormat() const { return _dxgiFormat; }
 
-        //ID3D11RenderTargetView* getRTV(uint32_t mipLevel = 0, uint32_t firstArraySlice = 0, uint32_t arraySize = MaxPossible);
+        ID3D11RenderTargetView* GetRTV(uint32_t mipLevel, uint32_t slice);
+        ID3D11DepthStencilView* GetDSV(uint32_t mipLevel, uint32_t slice);
         ID3D11ShaderResourceView* GetSRV(uint32_t mostDetailedMip = 0, uint32_t mipCount = RemainingMipLevels, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingArrayLayers) const;
         ID3D11UnorderedAccessView* GetUAV(uint32_t mipLevel, uint32_t firstArraySlice = 0, uint32_t arraySize = RemainingArrayLayers) const;
 
@@ -74,6 +75,8 @@ namespace alimer
             }
         };
 
+        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11RenderTargetView>, ViewInfoHashFunc> _rtvs;
+        mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11DepthStencilView>, ViewInfoHashFunc> _dsvs;
         mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, ViewInfoHashFunc> _srvs;
         mutable std::unordered_map<D3DResourceViewInfo, Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>, ViewInfoHashFunc> _uavs;
     };

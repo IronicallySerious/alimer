@@ -43,8 +43,8 @@ namespace alimer
         void PopDebugGroupImpl() override;
         void InsertDebugMarkerImpl(const std::string& name, const Color4& color) override;
 
-        void BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor);
-        void EndRenderPassImpl();
+        void BeginRenderPassImpl(const RenderPassDescriptor* renderPass) override;
+        void EndRenderPassImpl() override;
 
         void SetViewport(const RectangleF& viewport) override;
         void SetViewport(uint32_t viewportCount, const RectangleF* viewports) override;
@@ -76,7 +76,6 @@ namespace alimer
         bool                        _needWorkaround = false;
         uint64_t                    _fenceValue;
 
-        const FramebufferD3D11*     _currentFramebuffer = nullptr;
         PrimitiveTopology           _currentTopology;
         const PipelineD3D11*        _graphicsPipeline = nullptr;
         const PipelineD3D11*        _computePipeline = nullptr;
@@ -98,7 +97,10 @@ namespace alimer
         } _vbo = {};
 
         // RenderTargetViews
-        uint32_t                    _renderTargetsViewsCount;
+        ID3D11RenderTargetView*     _colorRtvs[MaxColorAttachments] = {};
+        uint32_t                    _colorRtvsCount;
+        ID3D11DepthStencilView*     _depthStencilView = nullptr;
+        ID3D11RenderTargetView*     _nullRTVS[MaxColorAttachments] = {};
 
         // Viewports
         bool                        _viewportsDirty;

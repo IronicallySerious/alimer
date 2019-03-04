@@ -49,9 +49,6 @@ namespace alimer
         /// Destructor.
         virtual ~Application();
 
-        /// Return the single instance of the Application.
-        static Application* GetInstance();
-
         /// Runs main loop.
         int Run(int argc, char** argv);
 
@@ -113,9 +110,7 @@ namespace alimer
         
         RenderContext _renderContext;
         SceneRenderPipeline* _sceneRenderPipeline = nullptr;
-
-    private:
-        static Application *_instance;
-
     };
+
+    ALIMER_API extern Application* application;
 }

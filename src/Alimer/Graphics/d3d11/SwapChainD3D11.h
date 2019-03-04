@@ -23,13 +23,11 @@
 #pragma once
 
 #include "../Window.h"
+#include "../Framebuffer.h"
 #include "BackendD3D11.h"
 
 namespace alimer
 {
-    class TextureD3D11;
-    class FramebufferD3D11;
-
     /// D3D11 SwapChain implementation.
     class SwapChainD3D11 final : public Window
     {
@@ -46,6 +44,9 @@ namespace alimer
         void OnSizeChanged(const IntVector2& newSize) override;
         void ResizeImpl(uint32_t width, uint32_t height);
         void SwapBuffers() override;
+        Texture* GetCurrentTexture() const { return _backbufferTexture; }
+        Texture* GetDepthStencilTexture() const { return _depthStencilTexture; }
+        Texture* GetMultisampleColorTexture() const { return _multisampleColorTexture; }
 
     private:
         static constexpr uint32_t   NumBackBuffers = 2;
@@ -55,11 +56,15 @@ namespace alimer
 
         PixelFormat     _backBufferFormat;
         DXGI_FORMAT     _dxgiBackBufferFormat;
-        UINT            _swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-        UINT            _syncInterval = 1;
-        UINT            _presentFlags = 0;
+        PixelFormat     _depthStencilFormat = PixelFormat::Undefined;
+        UINT            _swapChainFlags;
+        UINT            _syncInterval;
+        UINT            _presentFlags;
+        UINT            _sampleCount = 1;
         Microsoft::WRL::ComPtr<IDXGISwapChain>  _swapChain;
         Microsoft::WRL::ComPtr<IDXGISwapChain1> _swapChain1;
-        TextureD3D11*  _backbufferTexture = nullptr;
+        Texture*  _backbufferTexture = nullptr;
+        Texture*  _depthStencilTexture = nullptr;
+        Texture*  _multisampleColorTexture = nullptr;
     };
 }

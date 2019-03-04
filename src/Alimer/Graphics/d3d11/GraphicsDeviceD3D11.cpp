@@ -324,6 +324,61 @@ namespace alimer
         _d3dContext->Flush();
     }
 
+    PixelFormat GraphicsDeviceD3D11::GetDefaultDepthStencilFormat() const
+    {
+        D3D11_FEATURE_DATA_FORMAT_SUPPORT data = {};
+        data.InFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT, &data, sizeof(data)))
+            && data.OutFormatSupport & D3D11_FORMAT_SUPPORT_RENDER_TARGET | D3D11_FORMAT_SUPPORT_DEPTH_STENCIL)
+        {
+            return PixelFormat::Depth24UNormStencil8;
+        }
+
+        data.InFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT, &data, sizeof(data)))
+            && data.OutFormatSupport & D3D11_FORMAT_SUPPORT_RENDER_TARGET | D3D11_FORMAT_SUPPORT_DEPTH_STENCIL)
+        {
+            return PixelFormat::Depth32FloatStencil8;
+        }
+
+        return PixelFormat::Undefined;
+    }
+
+    PixelFormat GraphicsDeviceD3D11::GetDefaultDepthFormat() const
+    {
+        D3D11_FEATURE_DATA_FORMAT_SUPPORT data = {};
+        data.InFormat = DXGI_FORMAT_D32_FLOAT;
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT, &data, sizeof(data)))
+            && data.OutFormatSupport & D3D11_FORMAT_SUPPORT_RENDER_TARGET | D3D11_FORMAT_SUPPORT_DEPTH_STENCIL)
+        {
+            return PixelFormat::Depth32Float;
+        }
+
+        data.InFormat = DXGI_FORMAT_D16_UNORM;
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT, &data, sizeof(data)))
+            && data.OutFormatSupport & D3D11_FORMAT_SUPPORT_RENDER_TARGET | D3D11_FORMAT_SUPPORT_DEPTH_STENCIL)
+        {
+            return PixelFormat::Depth16UNorm;
+        }
+
+        return PixelFormat::Undefined;
+    }
+
+    Texture* GraphicsDeviceD3D11::GetCurrentTexture() const
+    {
+        return static_cast<SwapChainD3D11*>(_renderWindow.get())->GetCurrentTexture();
+    }
+
+    Texture* GraphicsDeviceD3D11::GetDepthStencilTexture() const
+    {
+        return static_cast<SwapChainD3D11*>(_renderWindow.get())->GetDepthStencilTexture();
+    }
+
+    Texture* GraphicsDeviceD3D11::GetMultisampleColorTexture() const
+    {
+        return static_cast<SwapChainD3D11*>(_renderWindow.get())->GetMultisampleColorTexture();
+    }
+
     void GraphicsDeviceD3D11::InitializeCaps()
     {
         DXGI_ADAPTER_DESC desc;

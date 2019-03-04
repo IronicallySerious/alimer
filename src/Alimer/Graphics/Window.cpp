@@ -38,31 +38,38 @@
 #   include <GLFW/glfw3.h>
 #   include <GLFW/glfw3native.h>
 
+static void Glfw_Resize(GLFWwindow* handle, int w, int h) {
+    auto window = reinterpret_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
+    window->Resize(w, h);
+}
+
 static void Glfw_KeyCallback(GLFWwindow* handle, int key, int scanCode, int action, int modifiers)
 {
-    auto window = static_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
+    //auto window = static_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
     if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
     {
         glfwSetWindowShouldClose(handle, GLFW_TRUE);
     }
 }
 
-static void Glfw_MouseButtonCallback(GLFWwindow* glfwWindow, int button, int action, int)
+static void Glfw_MouseButtonCallback(GLFWwindow* handle, int button, int action, int)
 {
-    //WindowImpl* window = static_cast<WindowImpl*>(glfwGetWindowUserPointer(glfwWindow));
+    auto window = static_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
 }
 
-static void Glfw_MouseMoveCallback(GLFWwindow* glfwWindow, double mouseX, double mouseY)
+static void Glfw_MouseMoveCallback(GLFWwindow* handle, double mouseX, double mouseY)
 {
-    //WindowImpl* window = static_cast<WindowImpl*>(glfwGetWindowUserPointer(glfwWindow));
+    //auto window = static_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
 }
-
-void Glfw_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    //WindowImpl* window = static_cast<WindowImpl*>(glfwGetWindowUserPointer(glfwWindow));
+static void Glfw_ScrollCallback(GLFWwindow* handle, double xoffset, double yoffset) {
+    //auto window = static_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
     //ImGuiIO& io = ImGui::GetIO();
     //io.MouseWheelH += (float)xoffset;
     //io.MouseWheel += (float)yoffset;
+}
+
+static void Glfw_DropCallback(GLFWwindow* window, int count, const char** paths) {
+    // auto window = static_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
 }
 
 using namespace std;
@@ -100,18 +107,14 @@ namespace alimer
             nullptr);
 
         glfwSetWindowUserPointer(_window, this);
-        glfwSetWindowSizeCallback(_window, [](GLFWwindow* handle, int w, int h) {
-            Window* window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(handle));
-            window->Resize(w, h);
-            });
-
+        glfwSetWindowSizeCallback(_window, Glfw_Resize);
         glfwSetKeyCallback(_window, Glfw_KeyCallback);
         glfwSetMouseButtonCallback(_window, Glfw_MouseButtonCallback);
         glfwSetCursorPosCallback(_window, Glfw_MouseMoveCallback);
         glfwSetScrollCallback(_window, Glfw_ScrollCallback);
         //glfwSetCharCallback(window, Glfw_CharCallback);
         //glfwSetCursorEnterCallback(window, Glfw_CursorEnterCallback);
-        //glfwSetDropCallback(pGLFWWindow, Glfw_DroppedFileCallback);
+        glfwSetDropCallback(_window, Glfw_DropCallback);
     }
 
     Window::~Window()

@@ -71,10 +71,10 @@ namespace alimer
 
     void CommandContextD3D11::BeginContext()
     {
-        _renderTargetsViewsCount = 0;
+        _colorRtvsCount = 0;
+        _depthStencilView = nullptr;
         _graphicsPipeline = nullptr;
         _computePipeline = nullptr;
-        _currentFramebuffer = nullptr;
         _currentTopology = PrimitiveTopology::Count;
 
         // States
@@ -125,39 +125,50 @@ namespace alimer
         _annotation->SetMarker(wideString.c_str());
     }
 
-    void CommandContextD3D11::BeginRenderPassImpl(Framebuffer* framebuffer, const RenderPassBeginDescriptor* descriptor)
+    void CommandContextD3D11::BeginRenderPassImpl(const RenderPassDescriptor* renderPass)
     {
-        _currentFramebuffer = static_cast<FramebufferD3D11*>(framebuffer);
-        _renderTargetsViewsCount = _currentFramebuffer->Bind(_context);
+        uint32_t width = renderPass->renderTargetWidth == 0 ? UINT32_MAX : renderPass->renderTargetWidth;
+        uint32_t height = renderPass->renderTargetHeight == 0 ? UINT32_MAX : renderPass->renderTargetHeight;
+        uint32_t layers = renderPass->renderTargetArraySize == 0 ? UINT32_MAX : renderPass->renderTargetArraySize;
 
-        for (uint32_t i = 0; i < _renderTargetsViewsCount; ++i)
+        for (uint32_t i = 0; i < renderPass->colorAttachmentCount; ++i)
         {
-            if (descriptor->colors[i].loadAction == LoadAction::DontCare)
-                continue;
+            auto texture = static_cast<TextureD3D11*>(renderPass->colorAttachments[i].texture);
+            const uint32_t level = renderPass->colorAttachments[i].level;
+            const uint32_t slice = renderPass->colorAttachments[i].slice;
 
-            switch (descriptor->colors[i].loadAction)
-            {
-            case LoadAction::Clear:
-                _context->ClearRenderTargetView(_currentFramebuffer->GetColorRTV(i), &descriptor->colors[i].clearColor[i]);
-                break;
+            width = Min(width, texture->GetWidth(level));
+            height = Min(height, texture->GetHeight(level));
+            layers = Min(layers, texture->GetArraySize());
+            _colorRtvs[_colorRtvsCount] = texture->GetRTV(level, slice);
 
-            default:
-                break;
+            if (renderPass->colorAttachments[i].loadAction == LoadAction::Clear) {
+                _context->ClearRenderTargetView(_colorRtvs[_colorRtvsCount], &renderPass->colorAttachments[i].clearColor[i]);
             }
+
+            _colorRtvsCount++;
         }
 
         // Depth/stencil now.
-        if (framebuffer->HasDepthStencilAttachment())
+        if (renderPass->depthStencilAttachment->texture != nullptr)
         {
-            ID3D11DepthStencilView* depthStencilView = _currentFramebuffer->GetDSV();
+            auto texture = static_cast<TextureD3D11*>(renderPass->depthStencilAttachment->texture);
+            const uint32_t level = renderPass->depthStencilAttachment->level;
+            const uint32_t slice = renderPass->depthStencilAttachment->slice;
+            width = Min(width, texture->GetWidth(level));
+            height = Min(height, texture->GetHeight(level));
+            layers = Min(layers, texture->GetArraySize());
+
+            _depthStencilView = texture->GetDSV(level, slice);
+
             UINT clearFlags = 0;
-            if (descriptor->depthStencil.depthLoadAction == LoadAction::Clear)
+            if (renderPass->depthStencilAttachment->depthLoadAction == LoadAction::Clear)
             {
                 clearFlags |= D3D11_CLEAR_DEPTH;
             }
 
-            if ((descriptor->depthStencil.stencilLoadAction == LoadAction::Clear)
-                && IsStencilFormat(framebuffer->GetDepthStencilTexture()->GetFormat()))
+            if ((renderPass->depthStencilAttachment->stencilLoadAction == LoadAction::Clear)
+                && IsStencilFormat(texture->GetFormat()))
             {
                 clearFlags |= D3D11_CLEAR_STENCIL;
             }
@@ -165,25 +176,26 @@ namespace alimer
             if (clearFlags != 0)
             {
                 _context->ClearDepthStencilView(
-                    depthStencilView, clearFlags,
-                    descriptor->depthStencil.clearDepth, descriptor->depthStencil.clearStencil
+                    _depthStencilView,
+                    clearFlags,
+                    renderPass->depthStencilAttachment->clearDepth,
+                    renderPass->depthStencilAttachment->clearStencil
                 );
             }
         }
 
+        _context->OMSetRenderTargets(_colorRtvsCount, _colorRtvs, _depthStencilView);
+
         // Set viewport and scissor from fbo.
-        uint32_t width = framebuffer->GetWidth();
-        uint32_t height = framebuffer->GetHeight();
         SetViewport(RectangleF(width, height));
         SetScissor(Rectangle(width, height));
     }
 
     void CommandContextD3D11::EndRenderPassImpl()
     {
-        static ID3D11RenderTargetView* nullViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
-
-        _context->OMSetRenderTargets(_renderTargetsViewsCount, nullViews, nullptr);
-        _renderTargetsViewsCount = 0;
+        _context->OMSetRenderTargets(MaxColorAttachments, _nullRTVS, nullptr);
+        _colorRtvsCount = 0;
+        _depthStencilView = nullptr;
     }
 
     void CommandContextD3D11::SetViewport(const RectangleF& viewport)

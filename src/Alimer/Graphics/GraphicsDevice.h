@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Core/Object.h"
-#include "../Graphics/GPUBackend.h"
 #include "../Graphics/Window.h"
 #include "../Graphics/CommandBuffer.h"
 #include "../Graphics/GraphicsDeviceFeatures.h"
@@ -82,6 +81,15 @@ namespace alimer
 
         /// Get the main rendering context.
         CommandBuffer* GetRenderContext() const { return _renderContext.Get(); }
+
+        /// Get the current backbuffer texture.
+        virtual Texture* GetCurrentTexture() const = 0;
+
+        /// Get the backbuffer depth-stencil texture.
+        virtual Texture* GetDepthStencilTexture() const = 0;
+
+        /// Get the backbuffer multisample color texture.
+        virtual Texture* GetMultisampleColorTexture() const = 0;
 
     protected:
         /// Add a GPUResource to keep track of. 
