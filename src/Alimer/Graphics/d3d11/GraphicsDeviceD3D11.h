@@ -27,8 +27,6 @@
 
 namespace alimer
 {
-    class SwapChainD3D11;
-
     /// D3D11 graphics implementation.
     class GraphicsDeviceD3D11 final : public GraphicsDevice
     {
@@ -52,10 +50,9 @@ namespace alimer
         Texture* GetMultisampleColorTexture() const override;
 
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData);
-        Framebuffer* CreateFramebufferImpl(const FramebufferDescriptor* descriptor);
-        Buffer* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData);
+        BufferHandle* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) override;
         Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor);
-        Shader* CreateShaderImpl(const ShaderDescriptor* descriptor);
+        ShaderHandle* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
 
         void HandleDeviceLost();
 

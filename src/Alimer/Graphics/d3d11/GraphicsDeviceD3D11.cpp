@@ -25,7 +25,6 @@
 #include "CommandContextD3D11.h"
 #include "TextureD3D11.h"
 #include "SamplerD3D11.h"
-#include "FramebufferD3D11.h"
 #include "BufferD3D11.h"
 #include "ShaderD3D11.h"
 //#include "D3D11Pipeline.h"
@@ -519,12 +518,7 @@ namespace alimer
         return new TextureD3D11(this, descriptor, nativeTexture, pInitData);
     }
 
-    Framebuffer* GraphicsDeviceD3D11::CreateFramebufferImpl(const FramebufferDescriptor* descriptor)
-    {
-        return new FramebufferD3D11(this, descriptor);
-    }
-
-    Buffer* GraphicsDeviceD3D11::CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData)
+    BufferHandle* GraphicsDeviceD3D11::CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData)
     {
         return new BufferD3D11(this, descriptor, pInitData);
     }
@@ -534,7 +528,7 @@ namespace alimer
         return new SamplerD3D11(this, descriptor);
     }
 
-    Shader* GraphicsDeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
+    ShaderHandle* GraphicsDeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
     {
         return new ShaderD3D11(this, descriptor);
     }

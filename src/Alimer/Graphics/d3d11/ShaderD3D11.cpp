@@ -30,57 +30,21 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     ShaderD3D11::ShaderD3D11(GraphicsDeviceD3D11* device, const ShaderDescriptor* descriptor)
-        : Shader(device, descriptor)
     {
-        if (_compute)
+        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
         {
-            const ShaderStageDescriptor& shaderStage = descriptor->stages[(unsigned)ShaderStage::Compute];
-            device->GetD3DDevice()->CreateComputeShader(shaderStage.code, shaderStage.codeSize, nullptr, _computeShader.ReleaseAndGetAddressOf());
-        }
-        else
-        {
-        }
-    }
-
-    ShaderD3D11::~ShaderD3D11()
-    {
-        Destroy();
-    }
-
-    void ShaderD3D11::Destroy()
-    {
-        if (any(_stage & ShaderStages::Compute))
-        {
-            ALIMER_ASSERT(_computeShader.Reset() == 0);
-        }
-        else
-        {
-            ALIMER_ASSERT(_vertexShader.Reset() == 0);
-            ALIMER_ASSERT(_pixelShader.Reset() == 0);
-        }
-    }
-
-#if TODO_D3D11
-    ShaderD3D11::ShaderD3D11(DeviceD3D11* device, const char* source)
-        : _device(device)
-    {
-
-        auto vertex = D3DShaderCompiler::Compile(source, ShaderStage::Vertex, "VSMain");
-        auto fragment = D3DShaderCompiler::Compile(source, ShaderStage::Fragment, "PSMain");
-
-        /*for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
-        {
-            auto shaderBlob = descriptor->stages[i];
-            if (shaderBlob.size == 0 || shaderBlob.data == nullptr)
+            const ShaderStageDescriptor& shaderStage = descriptor->stages[i];
+            if (!shaderStage.codeSize && !strlen(shaderStage.source))
+            {
                 continue;
+            }
 
-            ShaderStage stage = static_cast<ShaderStage>(i);
-            ID3DBlob* blob = ConvertAndCompileHLSL(device, shaderBlob, stage);
+            ShaderStage stage = (ShaderStage)i;
             switch (stage)
             {
             case ShaderStage::Vertex:
             {
-                device->GetD3DDevice()->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &_vertexShader);
+                device->GetD3DDevice()->CreateVertexShader(shaderStage.code, shaderStage.codeSize, nullptr, &_vertexShader);
                 break;
             }
             case ShaderStage::TessControl:
@@ -90,33 +54,24 @@ namespace alimer
             case ShaderStage::Geometry:
                 break;
             case ShaderStage::Fragment:
-                device->GetD3DDevice()->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &_pixelShader);
+                device->GetD3DDevice()->CreatePixelShader(shaderStage.code, shaderStage.codeSize, nullptr, &_pixelShader);
                 break;
             case ShaderStage::Compute:
-                device->GetD3DDevice()->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &_computeShader);
+                device->GetD3DDevice()->CreateComputeShader(shaderStage.code, shaderStage.codeSize, nullptr, &_computeShader);
                 break;
             default:
                 break;
             }
-
-            if (stage != ShaderStage::Vertex)
-            {
-                blob->Release();
-            }
-        }*/
-    }
-
-    void ShaderD3D11::Bind(ID3D11DeviceContext* context)
-    {
-        /*if (_computeShader != nullptr)
-        {
-            context->CSSetShader(_computeShader, nullptr, 0);
         }
-        else
-        {
-            context->VSSetShader(_vertexShader, nullptr, 0);
-            context->PSSetShader(_pixelShader, nullptr, 0);
-        }*/
     }
-#endif
+
+    ShaderD3D11::~ShaderD3D11()
+    {
+        SafeRelease(_vertexShader);
+        SafeRelease(_tessControlShader);
+        SafeRelease(_tessEvalShader);
+        SafeRelease(_geometryShader);
+        SafeRelease(_pixelShader);
+        SafeRelease(_computeShader);
+    }
 }

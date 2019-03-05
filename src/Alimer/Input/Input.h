@@ -88,8 +88,6 @@ namespace alimer
         void Update();
 
     private:
-        void PlatformConstruct();
-
         enum class ActionSlotBits
         {
             Up,

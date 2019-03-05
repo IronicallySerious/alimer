@@ -22,35 +22,27 @@
 
 #pragma once
 
-#include <vector>
 #include "../Graphics/Types.h"
 
 namespace alimer
 {
-	/// A vertex declaration, which defines per-vertex data..
-	class ALIMER_API VertexDeclaration final
-	{
-	public:
-        /// Constructor.
-        VertexDeclaration();
+    class BufferHandle
+    {
+    protected:
+        BufferHandle() {}
 
-        /// Defines VertexFormat.
-        void Define(const std::vector<VertexElement>& elements);
-        
-        /// Defines VertexFormat.
-        void Define(size_t elementsCount, const VertexElement* elements);
+    public:
+        virtual ~BufferHandle() {};
 
-        /// Return stride of the format.
-        uint32_t GetStride() const { return _stride; }
+        virtual bool SetSubData(uint64_t offset, uint64_t size, const void* pData) = 0;
+    };
 
-        /// Return number of vertex elements.
-        uint32_t GetElementsCount() const { return (uint32_t)_elements.size(); }
+    class ShaderHandle
+    {
+    protected:
+        ShaderHandle() {}
 
-        /// Return vertex elements.
-        const std::vector<VertexElement>& GetElements() const { return _elements; }
-
-    private:
-        std::vector<VertexElement> _elements;
-        uint32_t _stride = 0;
-	};
+    public:
+        virtual ~ShaderHandle() {};
+    };
 }

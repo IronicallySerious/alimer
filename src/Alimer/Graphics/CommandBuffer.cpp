@@ -32,6 +32,14 @@ namespace alimer
     {
     }
 
+    void CommandBuffer::Reset()
+    {
+        _currentShader = nullptr;
+
+        _dirtyVbos = ~0u;
+        memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
+    }
+
     void CommandBuffer::PushDebugGroup(const std::string& name, const Color4& color)
     {
         PushDebugGroupImpl(name, color);
@@ -148,60 +156,52 @@ namespace alimer
 
     void CommandBuffer::SetViewport(const RectangleF& viewport)
     {
-        //SetViewport(1, &viewport);
+        SetViewport(1, &viewport);
     }
 
     void CommandBuffer::SetScissor(const Rectangle& scissor)
     {
-        //SetScissor(1, &scissor);
+        SetScissor(1, &scissor);
     }
 
     void CommandBuffer::SetShader(Shader* shader)
     {
         ALIMER_ASSERT(shader);
+        if (_currentShader == shader)
+            return;
+
         _currentShader = shader;
-        //SetShaderImpl(shader);
+        SetShaderImpl(shader);
     }
 
-    void CommandBuffer::SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
+    void CommandBuffer::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)
     {
         ALIMER_ASSERT(buffer);
         ALIMER_ASSERT(binding < MaxVertexBufferBindings);
 
-#if defined(ALIMER_DEV)
-        if (!any(buffer->GetUsage() & BufferUsage::Vertex))
+        if (_currentVertexBuffers[binding].buffer != buffer
+            || _currentVertexBuffers[binding].vertexOffset != vertexOffset
+            || _currentVertexBuffers[binding].inputRate != inputRate)
         {
-            //_device->NotifyValidationError("SetVertexBuffer need buffer with Vertex usage");
-            return;
+            _dirtyVbos |= 1u << binding;
         }
-#endif
-        /*SetVertexBufferImpl(
-            binding,
-            buffer,
-            offset,
-            stride,
-            inputRate);*/
+
+        _currentVertexBuffers[binding].buffer = buffer;
+        _currentVertexBuffers[binding].vertexOffset = vertexOffset;
+        _currentVertexBuffers[binding].inputRate = inputRate;
     }
 
-    void CommandBuffer::SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandBuffer::SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex)
     {
         ALIMER_ASSERT(buffer);
-
-#if defined(ALIMER_DEV)
-        if (!any(buffer->GetUsage() & BufferUsage::Index))
-        {
-            //_device->NotifyValidationError("SetIndexBuffer need buffer with Index usage");
-            return;
-        }
-#endif
-
-        //SetIndexBufferImpl(buffer, offset, indexType);
+        uint32_t offset = startIndex * buffer->GetIndexSize();
+        SetIndexBufferImpl(buffer->GetHandle(), buffer->GetIndexType(), offset);
     }
 
     void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
 #if defined(ALIMER_DEV)
-        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
+        //ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT_MSG(_insideRenderPass, "Cannot draw outside render pass");
         ALIMER_ASSERT(vertexCount > 0);
         ALIMER_ASSERT(instanceCount >= 1);

@@ -28,24 +28,30 @@
 
 namespace alimer
 {
+    class ShaderHandle;
+
     /// Defines a shader resource.
     class ALIMER_API Shader : public GPUResource, public Object
     {
         ALIMER_OBJECT(Shader, Object);
 
-    protected:
-        /// Constructor.
-        Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor);
-
     public:
+        /// Constructor.
+        Shader();
+
         /// Destructor.
-        virtual ~Shader() = default;
+        ~Shader() override;
+
+        void Destroy() override;
 
         /// Get if shader is compute.
         bool IsCompute() const { return _compute; }
 
         /// Get the shader stage.
         ShaderStages GetStages() const { return _stage; }
+
+        /// Get the backend handle.
+        ShaderHandle* GetHandle() const { return _handle; }
 
     protected:
         void Reflect(const std::vector<uint8_t>& bytecode);
@@ -55,5 +61,7 @@ namespace alimer
 
         /// Shader stage.
         ShaderStages _stage = ShaderStages::None;
+
+        ShaderHandle* _handle = nullptr;
     };
 }

@@ -23,7 +23,6 @@
 #include "CommandContextD3D11.h"
 #include "GraphicsDeviceD3D11.h"
 #include "TextureD3D11.h"
-#include "FramebufferD3D11.h"
 #include "BufferD3D11.h"
 #include "ShaderD3D11.h"
 #include "PipelineD3D11.h"
@@ -55,7 +54,7 @@ namespace alimer
 
         _context->QueryInterface(&_context1);
         _context->QueryInterface(&_annotation);
-        BeginContext();
+        Reset();
     }
 
     CommandContextD3D11::~CommandContextD3D11()
@@ -69,12 +68,12 @@ namespace alimer
         SafeRelease(_annotation);
     }
 
-    void CommandContextD3D11::BeginContext()
+    void CommandContextD3D11::Reset()
     {
+        CommandBuffer::Reset();
+
         _colorRtvsCount = 0;
         _depthStencilView = nullptr;
-        _graphicsPipeline = nullptr;
-        _computePipeline = nullptr;
         _currentTopology = PrimitiveTopology::Count;
 
         // States
@@ -90,9 +89,7 @@ namespace alimer
 
         //_dirty = ~0u;
         _dirtySets = ~0u;
-        _dirtyVbos = ~0u;
         //memset(&_bindings, 0, sizeof(_bindings));
-        memset(_vbo.buffers, 0, sizeof(_vbo.buffers));
 
         _viewportsDirty = false; _viewportsCount = 1;
         _scissorsDirty = false; _scissorsCount = 1;
@@ -250,11 +247,12 @@ namespace alimer
         _stencilReference = reference;
     }
 
-    void CommandContextD3D11::SetPipelineImpl(Pipeline* pipeline)
+    void CommandContextD3D11::SetShaderImpl(Shader* shader)
     {
-        PipelineD3D11* pipelineD3D11 = static_cast<PipelineD3D11*>(pipeline);
+        ShaderD3D11* shaderD3D11 = static_cast<ShaderD3D11*>(shader->GetHandle());
 
-        if (pipeline->IsCompute())
+#if TODO
+        if (shaderD3D11->IsCompute())
         {
             _computePipeline = pipelineD3D11;
 
@@ -289,7 +287,7 @@ namespace alimer
                 // DepthStencilState (TODO: Invalidate when calling SetStencilReference)
                 ID3D11DepthStencilState* depthStencilState = pipelineD3D11->GetDepthStencilState();
                 //uint stencilReference = d3dPipeline.StencilReference;
-                if (_depthStencilState != depthStencilState 
+                if (_depthStencilState != depthStencilState
                     /*|| _stencilReference != stencilReference*/)
                 {
                     _depthStencilState = depthStencilState;
@@ -320,35 +318,16 @@ namespace alimer
                 }
             }
         }
+#endif // TODO
+
     }
 
-    /*void CommandContextD3D11::SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate)
-    {
-        auto d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
-        if (_vbo.buffers[binding] != d3dBuffer
-            || _vbo.offsets[binding] != offset)
-        {
-            _dirtyVbos |= 1u << binding;
-        }
-
-        if (_vbo.strides[binding] != stride
-            || _vbo.inputRates[binding] != inputRate)
-        {
-            _vertexAttributesDirty = true;
-        }
-
-        _vbo.buffers[binding] = d3dBuffer;
-        _vbo.offsets[binding] = offset;
-        _vbo.strides[binding] = stride;
-        _vbo.inputRates[binding] = inputRate;
-    }
-
-    void CommandContextD3D11::SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType)
+    void CommandContextD3D11::SetIndexBufferImpl(BufferHandle* buffer, IndexType indexType, uint32_t offset)
     {
         ID3D11Buffer* d3dBuffer = static_cast<BufferD3D11*>(buffer)->GetHandle();
         DXGI_FORMAT dxgiFormat = indexType == IndexType::UInt32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
         _context->IASetIndexBuffer(d3dBuffer, dxgiFormat, offset);
-    }*/
+    }
 
     void CommandContextD3D11::DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
@@ -450,11 +429,14 @@ namespace alimer
                 for (uint32_t slot = binding; slot < binding + count; slot++)
                 {
 #ifdef ALIMER_DEV
-                    ALIMER_ASSERT(_vbo.buffers[slot] != nullptr);
+                    ALIMER_ASSERT(_currentVertexBuffers[slot].buffer != nullptr);
 #endif
-                    /*const PODVector<VertexElement>& elements = _vbo.formats[slot]->GetElements();
+                    _d3dBuffers[slot] = static_cast<BufferD3D11*>(_currentVertexBuffers[slot].buffer->GetHandle())->GetHandle();
+                    _d3dStrides[slot] = _currentVertexBuffers[slot].buffer->GetVertexSize();
+                    _d3dOffsets[slot] = _currentVertexBuffers[slot].vertexOffset * _d3dStrides[slot];
 
-                    for (auto it = elements.Begin(); it != elements.End(); ++it)
+                    /*const auto& elements = _currentVertexBuffers[slot].buffer->GetElements();
+                    for (auto it = elements.begin(); it != elements.end(); ++it)
                     {
                         const VertexElement& vertexElement = *it;
                         auto &inputElementDesc = _vertexAttributes[_vertexAttributesCount++];
@@ -476,7 +458,7 @@ namespace alimer
                     }*/
                 }
 
-                _context->IASetVertexBuffers(binding, count, _vbo.buffers, _vbo.strides, _vbo.offsets);
+                _context->IASetVertexBuffers(binding, count, _d3dBuffers, _d3dStrides, _d3dOffsets);
             });
 
         _dirtyVbos &= ~updateVboMask;
@@ -550,19 +532,6 @@ namespace alimer
         uint32_t updateSet = 1; // layout.descriptorSetMask & _dirtySets;
         ForEachBit(updateSet, [&](uint32_t set) { FlushDescriptorSet(set); });
         _dirtySets &= ~updateSet;
-    }*/
-
-    /*
-    void D3D11CommandContext::DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t startIndexLocation, int32_t baseVertexLocation)
-    {
-        FlushRenderState(topology);
-        _d3dContext->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation);
-    }
-
-    void D3D11CommandContext::DrawIndexedInstancedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation)
-    {
-        FlushRenderState(topology);
-        _d3dContext->DrawIndexedInstanced(indexCount, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
     }*/
 }
 

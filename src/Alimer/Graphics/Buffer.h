@@ -23,15 +23,19 @@
 #pragma once
 
 #include <memory>
-#include "../Graphics/VertexFormat.h"
 #include "../Graphics/GPUResource.h"
 
 namespace alimer
 {
+    class BufferHandle;
+
 	/// Defines a GPU Buffer class.
 	class ALIMER_API Buffer : public GPUResource, public RefCounted
 	{
     protected:
+        /// Constructor.
+        Buffer();
+
         /// Constructor.
         Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor);
 
@@ -52,8 +56,10 @@ namespace alimer
         uint32_t GetStride() const { return _stride; }
         
     private:
+        void Create(const void* pData);
         virtual bool SetSubDataImpl(uint64_t offset, uint64_t size, const void* pData) = 0;
 
+        BufferHandle* _impl = nullptr;
         BufferUsage _usage = BufferUsage::None;
         uint64_t _size = 0;
         uint32_t _stride = 0;

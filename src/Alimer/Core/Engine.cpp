@@ -34,6 +34,8 @@ using namespace std;
 
 namespace alimer
 {
+    static VertexBuffer* _vertexBuffer = nullptr;
+
     Engine::Engine()
         : _pluginManager(nullptr)
     {
@@ -151,6 +153,30 @@ namespace alimer
         // Create imgui system.
         _gui = new Gui();
 
+        // Create triangle vertex buffer
+        struct VertexColor
+        {
+            vec3 position;
+            Color4 color;
+        };
+
+        VertexColor triangleVertices[] =
+        {
+            { vec3(0.0f, 0.5f, 0.0f), Color4::Red },
+            { vec3(0.5f, -0.5f, 0.0f), Color4::Lime },
+            { vec3(-0.5f, -0.5f, 0.0f), Color4::Blue }
+        };
+
+        BufferDescriptor vertexBufferDesc = {};
+        vertexBufferDesc.usage = BufferUsage::Vertex;
+        vertexBufferDesc.size = sizeof(triangleVertices);
+
+        std::vector<VertexElement> vertexElements;
+        vertexElements.emplace_back(VertexFormat::Float3, VertexElementSemantic::Position);
+        vertexElements.emplace_back(VertexFormat::Float4, VertexElementSemantic::Color0);
+
+        _vertexBuffer = new VertexBuffer();
+        _vertexBuffer->Define(3, vertexElements, false, ResourceUsage::Immutable, triangleVertices);
         ALIMER_LOGINFO("Engine initialized with success");
         _initialized = true;
         return EXIT_SUCCESS;
@@ -212,6 +238,8 @@ namespace alimer
 
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         context->BeginDefaultRenderPass(clearColor, 1.0f, 0);
+        context->SetVertexBuffer(0, _vertexBuffer);
+        context->Draw(PrimitiveTopology::TriangleList, 3);
         context->EndRenderPass();
 
         // TODO: Scene renderer

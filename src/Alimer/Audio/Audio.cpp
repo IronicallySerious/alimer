@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 //
 
-#include <vaudio/vaudio.h>
 #include "../Audio/Audio.h"
 #include "../Core/Log.h"
 #if defined(_MSC_VER)
@@ -29,7 +28,6 @@
 
 namespace alimer
 {
-    static VAudioDevice s_AudioDevice = nullptr;
 	Audio::Audio(AudioBackend backend)
         : _backend(backend)
 	{
@@ -38,7 +36,6 @@ namespace alimer
 
     Audio::~Audio()
     {
-        vaudioDeviceShutdown(s_AudioDevice);
         Shutdown();
         RemoveSubsystem(this);
     }
@@ -49,12 +46,6 @@ namespace alimer
         {
             prefferedBackend = GetPlatformDefaultBackend();
         }
-
-        VAudioDeviceDescriptor descriptor = {};
-        descriptor.deviceType = VAUDIO_DEVICE_TYPE_PLAYBACK;
-        descriptor.channels = 2;
-        descriptor.sampleRate = 44100;
-        vaudioDeviceInitialize(&descriptor, &s_AudioDevice);
 
         Audio* audio = nullptr;
         switch (prefferedBackend)

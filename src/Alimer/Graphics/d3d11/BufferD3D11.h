@@ -28,7 +28,7 @@
 namespace alimer
 {
 	/// D3D11 GpuBuffer implementation.
-	class BufferD3D11 final : public Buffer
+	class BufferD3D11 final : public BufferHandle
 	{
 	public:
 		/// Constructor.
@@ -37,9 +37,7 @@ namespace alimer
 		/// Destructor.
 		~BufferD3D11() override;
 
-        void Destroy() override;
-
-        bool SetSubDataImpl(uint64_t offset, uint64_t size, const void* pData) override;
+        bool SetSubData(uint64_t offset, uint64_t size, const void* pData) override;
 
         ID3D11Buffer* GetHandle() const { return _handle; }
 

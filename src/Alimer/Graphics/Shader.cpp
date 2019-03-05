@@ -21,6 +21,7 @@
 //
 
 #include "../Graphics/Shader.h"
+#include "../Graphics/Backend.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../IO/Path.h"
 #include "../IO/FileSystem.h"
@@ -65,20 +66,19 @@ namespace alimer
         }
     };*/
 
-    Shader::Shader(GraphicsDevice* device, const ShaderDescriptor* descriptor)
-        : GPUResource(device, Type::Shader)
+    Shader::Shader()
+        : GPUResource(Type::Shader)
     {
-        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
-        {
-            const ShaderStageDescriptor& shaderStage = descriptor->stages[i];
-            if (!shaderStage.codeSize && !strlen(shaderStage.source))
-                continue;
+    }
 
-            if ((ShaderStage)i == ShaderStage::Compute)
-            {
-                _compute = true;
-            }
-        }
+    Shader::~Shader()
+    {
+        Destroy();
+    }
+
+    void Shader::Destroy()
+    {
+        SafeDelete(_handle);
     }
 
     void Shader::Reflect(const std::vector<uint8_t>& bytecode)

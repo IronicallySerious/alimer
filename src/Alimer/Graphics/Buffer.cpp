@@ -26,6 +26,12 @@
 
 namespace alimer
 {
+    Buffer::Buffer()
+        : GPUResource(Type::Buffer)
+    {
+
+    }
+
     Buffer::Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor)
         : GPUResource(device, Type::Buffer)
         , _usage(descriptor->usage)
@@ -49,5 +55,9 @@ namespace alimer
         }
 
         return false;
+    }
+
+    void Buffer::Create(const void* pData)
+    {
     }
 }

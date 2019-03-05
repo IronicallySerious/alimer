@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../Window.h"
-#include "../Framebuffer.h"
 #include "BackendD3D11.h"
 
 namespace alimer

@@ -40,7 +40,7 @@ namespace alimer
     }
 
     Pipeline::Pipeline()
-        : GPUResource(graphics, Type::Pipeline)
+        : GPUResource(Type::Pipeline)
         , _isCompute(true)
     {
         memset(&_descriptor, 0, sizeof(_descriptor));

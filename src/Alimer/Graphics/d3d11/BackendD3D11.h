@@ -32,6 +32,7 @@
 #   include <windows.h>
 #endif
 
+#include "../Backend.h"
 #include "../D3D/D3DPrerequisites.h"
 
 #define D3D11_NO_HELPERS

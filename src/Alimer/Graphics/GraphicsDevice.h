@@ -35,8 +35,8 @@
 
 namespace alimer
 {
-    class Shader;
-    class Buffer;
+    class BufferHandle;
+    class ShaderHandle;
     class Sampler;
     class Framebuffer;
 
@@ -48,9 +48,11 @@ namespace alimer
     };
 
     /// Low-level graphics module.
-    class ALIMER_API GraphicsDevice 
+    class ALIMER_API GraphicsDevice : public Object
     {
         friend class GPUResource;
+        ALIMER_OBJECT(GraphicsDevice, Object);
+
     public:
         /// Create factory.
         static GraphicsDevice* Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
@@ -91,6 +93,9 @@ namespace alimer
         /// Get the backbuffer multisample color texture.
         virtual Texture* GetMultisampleColorTexture() const = 0;
 
+        BufferHandle* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData);
+        ShaderHandle* CreateShader(const ShaderDescriptor* descriptor);
+
     protected:
         /// Add a GPUResource to keep track of. 
         void TrackResource(GPUResource* resource);
@@ -105,6 +110,8 @@ namespace alimer
         virtual bool InitializeImpl(const SwapChainDescriptor* descriptor) = 0;
         virtual void Tick() = 0;
 
+        virtual BufferHandle* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) = 0;
+        virtual ShaderHandle* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
     protected:
         /// Constructor.
         GraphicsDevice(GraphicsBackend backend, const GraphicsDeviceDescriptor* descriptor);
@@ -123,6 +130,4 @@ namespace alimer
         SharedPtr<CommandBuffer>    _renderContext;
         std::unique_ptr<Window>     _renderWindow;
     };
-
-    ALIMER_API extern GraphicsDevice* graphics;
 }

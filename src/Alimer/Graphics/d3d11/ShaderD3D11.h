@@ -28,7 +28,7 @@
 namespace alimer
 {
     /// D3D11 Shader implementation.
-    class ShaderD3D11 final : public Shader
+    class ShaderD3D11 final : public ShaderHandle
     {
     public:
         /// Constructor.
@@ -37,24 +37,22 @@ namespace alimer
         /// Destructor.
         ~ShaderD3D11() override;
 
-        void Destroy() override;
-
-        ID3D11VertexShader* GetVertexShader() const { return _vertexShader.Get(); }
-        ID3D11HullShader* GetTessControlShader() const { return _tessControlShader.Get(); }
-        ID3D11DomainShader* GetTessEvalShader() const { return _tessEvalShader.Get(); }
-        ID3D11GeometryShader* GetGeometryShader() const { return _geometryShader.Get(); }
-        ID3D11PixelShader* GetPixelShader() const { return _pixelShader.Get(); }
-        ID3D11ComputeShader* GetComputeShader() const { return _computeShader.Get(); }
+        ID3D11VertexShader* GetVertexShader() const { return _vertexShader; }
+        ID3D11HullShader* GetTessControlShader() const { return _tessControlShader; }
+        ID3D11DomainShader* GetTessEvalShader() const { return _tessEvalShader; }
+        ID3D11GeometryShader* GetGeometryShader() const { return _geometryShader; }
+        ID3D11PixelShader* GetPixelShader() const { return _pixelShader; }
+        ID3D11ComputeShader* GetComputeShader() const { return _computeShader; }
 
         const std::vector<uint8_t>& GetVertexShaderBlob() const { return _vertexShaderBlob; }
 
     private:
-        Microsoft::WRL::ComPtr<ID3D11VertexShader>      _vertexShader;
-        Microsoft::WRL::ComPtr<ID3D11HullShader>        _tessControlShader;
-        Microsoft::WRL::ComPtr<ID3D11DomainShader>      _tessEvalShader;
-        Microsoft::WRL::ComPtr<ID3D11GeometryShader>    _geometryShader;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader>       _pixelShader;
-        Microsoft::WRL::ComPtr<ID3D11ComputeShader>     _computeShader;
-        std::vector<uint8_t>                              _vertexShaderBlob;
+        ID3D11VertexShader* _vertexShader = nullptr;
+        ID3D11HullShader* _tessControlShader = nullptr;
+        ID3D11DomainShader* _tessEvalShader = nullptr;
+        ID3D11GeometryShader* _geometryShader = nullptr;
+        ID3D11PixelShader* _pixelShader = nullptr;
+        ID3D11ComputeShader* _computeShader = nullptr;
+        std::vector<uint8_t> _vertexShaderBlob;
     };
 }

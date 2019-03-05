@@ -30,19 +30,26 @@ namespace alimer
         , _resourceType(resourceType)
     {
         ALIMER_ASSERT(device);
-        graphics->TrackResource(this);
+        device->TrackResource(this);
+    }
+
+    GPUResource::GPUResource(Type resourceType)
+    {
+        _device = Object::GetSubsystem<GraphicsDevice>();
+        if (_device) {
+            _device->TrackResource(this);
+        }
     }
 
     GPUResource::~GPUResource()
     {
-        if (_device)
-        {
+        if (_device) {
             _device->UntrackResource(this);
         }
     }
 
     GraphicsDevice* GPUResource::GetGraphicsDevice() const {
-        return _device;
+        return _device.Get();
     }
 
     GPUResource::Type GPUResource::GetResourceType() const {

@@ -57,20 +57,18 @@ using namespace std;
 
 namespace alimer
 {
-    GraphicsDevice* graphics = nullptr;
-
     GraphicsDevice::GraphicsDevice(GraphicsBackend backend, const GraphicsDeviceDescriptor* descriptor)
         : _backend(backend)
         , _devicePreference(descriptor->devicePreference)
         , _validation(descriptor->validation)
     {
-        graphics = this;
+        AddSubsystem(this);
     }
 
     GraphicsDevice::~GraphicsDevice()
     {
         Finalize();
-        graphics = nullptr;
+        RemoveSubsystem(this);
     }
 
     void GraphicsDevice::Finalize()
@@ -101,6 +99,7 @@ namespace alimer
 
     GraphicsDevice* GraphicsDevice::Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor)
     {
+        auto graphics = GetSubsystem<GraphicsDevice>();
         if (graphics != nullptr)
         {
             ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
@@ -188,5 +187,17 @@ namespace alimer
             std::remove(_gpuResources.begin(), _gpuResources.end(), resource),
             end(_gpuResources)
         );
+    }
+
+    BufferHandle* GraphicsDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData)
+    {
+        ALIMER_ASSERT(descriptor);
+        return CreateBufferImpl(descriptor, pInitData);
+    }
+
+    ShaderHandle* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+        return CreateShaderImpl(descriptor);
     }
 }

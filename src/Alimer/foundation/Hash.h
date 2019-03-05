@@ -24,11 +24,51 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <type_traits>
 
-namespace utils
+namespace alimer
 {
     namespace hash
     {
+        /**
+        * Hash for enum types, to be used instead of std::hash<T> when T is an enum.
+
+        * Until C++14, std::hash<T> is not defined if T is a enum (see
+        * http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#2148).  But
+        * even with C++14, as of october 2016, std::hash for enums is not widely
+        * implemented by compilers, so here when T is a enum, we use EnumClassHash
+        * instead of std::hash.
+        */
+        struct EnumClassHash
+        {
+            template <typename T>
+            constexpr size_t operator()(T t) const
+            {
+                return static_cast<size_t>(t);
+            }
+        };
+
+        /** Generates a hash for the provided type. Type must have a std::hash specialization. */
+        template <class T>
+        size_t hash(const T& v)
+        {
+            using HashType = typename std::conditional<std::is_enum<T>::value, EnumClassHash, std::hash<T>>::type;
+
+            HashType hasher;
+            return hasher(v);
+        }
+
+        /** Generates a new hash for the provided type using the default standard hasher and combines it with a previous hash. */
+        template <class T>
+        void combine(size_t& seed, const T& v)
+        {
+            using HashType = typename std::conditional<std::is_enum<T>::value, EnumClassHash, std::hash<T>>::type;
+
+            HashType hasher;
+            seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+
+
         inline uint32_t murmur3(const uint32_t* key, size_t wordCount, uint32_t seed) {
             uint32_t h = seed;
             size_t i = wordCount;

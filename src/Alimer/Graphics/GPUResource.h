@@ -38,7 +38,6 @@ namespace alimer
             Buffer,
             Texture,
             Sampler,
-            Framebuffer,
             Shader, 
             Program,
             Pipeline,
@@ -62,8 +61,11 @@ namespace alimer
         /// Constructor.
         explicit GPUResource(GraphicsDevice* device, Type resourceType);
 
+        /// Constructor.
+        explicit GPUResource(Type resourceType);
+
         /// Graphics subsystem.
-        GraphicsDevice* _device;
+        WeakPtr<GraphicsDevice> _device;
 
         Type _resourceType;
 	};

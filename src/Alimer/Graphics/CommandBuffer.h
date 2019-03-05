@@ -24,15 +24,21 @@
 
 #include "../Base/Ptr.h"
 #include "../Graphics/Types.h"
-#include "../Graphics/Buffer.h"
-#include "../Graphics/Framebuffer.h"
 #include "../Graphics/Shader.h"
-#include "../Graphics/Pipeline.h"
+#include "../Graphics/VertexBuffer.h"
+#include "../Graphics/IndexBuffer.h"
 #include "../Math/Rectangle.h"
 #include "../Math/Color.h"
 
 namespace alimer
 {
+    struct VertexBufferBinding
+    {
+        VertexBuffer* buffer;
+        uint32_t vertexOffset;
+        VertexInputRate inputRate;
+    };
+
     /// Defines a command buffer for recording gpu commands.
     class ALIMER_API CommandBuffer : public RefCounted
     {
@@ -67,8 +73,8 @@ namespace alimer
 
         void SetShader(Shader* shader);
 
-        void SetVertexBuffer(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate = VertexInputRate::Vertex);
-        void SetIndexBuffer(Buffer* buffer, uint32_t offset, IndexType indexType);
+        void SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
+        void SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex = 0);
 
         void Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
         void DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t baseVertex = 0, uint32_t firstInstance = 0);
@@ -81,8 +87,9 @@ namespace alimer
 
         GraphicsDevice* GetDevice() const { return _device; }
 
-    private:
+    protected:
         // Backend methods
+        virtual void Reset();
         virtual void PushDebugGroupImpl(const std::string& name, const Color4& color) = 0;
         virtual void PopDebugGroupImpl() = 0;
         virtual void InsertDebugMarkerImpl(const std::string& name, const Color4& color) = 0;
@@ -90,13 +97,19 @@ namespace alimer
         virtual void BeginRenderPassImpl(const RenderPassDescriptor* renderPass) = 0;
         virtual void EndRenderPassImpl() = 0;
 
+        virtual void SetIndexBufferImpl(BufferHandle* buffer, IndexType indexType, uint32_t offset) = 0;
+        virtual void SetShaderImpl(Shader* shader) = 0;
+
         virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
         virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;
         virtual void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
 
-    private:
+    protected:
         GraphicsDevice* _device;
         bool            _insideRenderPass = false;
-        Shader*         _currentShader = nullptr;
+        const Shader*   _currentShader = nullptr;
+
+        uint32_t _dirtyVbos = 0;
+        VertexBufferBinding _currentVertexBuffers[MaxVertexBufferBindings] = {};
     };
 }

@@ -30,8 +30,7 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     BufferD3D11::BufferD3D11(GraphicsDeviceD3D11* device, const BufferDescriptor* descriptor, const void* pInitData)
-        : Buffer(device, descriptor)
-        , _deviceContext(device->GetD3DDeviceContext())
+        : _deviceContext(device->GetD3DDeviceContext())
     {
         D3D11_BUFFER_DESC bufferDesc = {};
         bufferDesc.ByteWidth = static_cast<UINT>(descriptor->size);
@@ -39,16 +38,16 @@ namespace alimer
         bufferDesc.Usage = d3d11::Convert(descriptor->resourceUsage);
         bufferDesc.CPUAccessFlags = 0;
 
-        if (any(descriptor->usage & BufferUsage::Dynamic))
+        if (descriptor->resourceUsage == ResourceUsage::Dynamic)
         {
             bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
         }
 
-        if (any(descriptor->usage & BufferUsage::CPUAccessible))
+        if (descriptor->cpuAccessible)
         {
             bufferDesc.Usage = D3D11_USAGE_STAGING;
-            bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
+            bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
         }
 
         if (any(descriptor->usage & BufferUsage::Uniform))
@@ -99,15 +98,10 @@ namespace alimer
 
     BufferD3D11::~BufferD3D11()
     {
-        Destroy();
-    }
-
-    void BufferD3D11::Destroy()
-    {
         SafeRelease(_handle);
     }
 
-    bool BufferD3D11::SetSubDataImpl(uint64_t offset, uint64_t size, const void* pData)
+    bool BufferD3D11::SetSubData(uint64_t offset, uint64_t size, const void* pData)
     {
         if (_mappable)
         {

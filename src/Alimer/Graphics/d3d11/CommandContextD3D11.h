@@ -27,9 +27,6 @@
 
 namespace alimer
 {
-    class FramebufferD3D11;
-    class PipelineD3D11;
-
     class CommandContextD3D11 final : public CommandBuffer
     {
     public:
@@ -53,16 +50,15 @@ namespace alimer
         void SetBlendColor(const Color4& color) override;
         void SetStencilReference(uint32_t reference) override;
 
-        void SetPipelineImpl(Pipeline* pipeline);
+        void SetShaderImpl(Shader* shader) override;
 
-        //void SetVertexBufferImpl(uint32_t binding, Buffer* buffer, uint32_t offset, uint32_t stride, VertexInputRate inputRate) override;
-        //void SetIndexBufferImpl(Buffer* buffer, uint32_t offset, IndexType indexType) override;
+        void SetIndexBufferImpl(BufferHandle* buffer, IndexType indexType, uint32_t offset) override;
 
         void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
         void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
         void DispatchImpl(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
-        void BeginContext();
+        void Reset() override;
         void FlushRenderState(PrimitiveTopology topology);
         void FlushComputeState();
         void FlushDescriptorSet(uint32_t set);
@@ -77,8 +73,6 @@ namespace alimer
         uint64_t                    _fenceValue;
 
         PrimitiveTopology           _currentTopology;
-        const PipelineD3D11*        _graphicsPipeline = nullptr;
-        const PipelineD3D11*        _computePipeline = nullptr;
         ID3D11BlendState*           _blendState;
         ID3D11DepthStencilState*    _depthStencilState;
         ID3D11RasterizerState*      _rasterizerState;
@@ -87,14 +81,6 @@ namespace alimer
         ID3D11PixelShader*          _currentPixelShader = nullptr;
         ID3D11ComputeShader*        _currentComputeShader = nullptr;
         ID3D11InputLayout*          _currentInputLayout = nullptr;
-
-        struct VertexBindingState
-        {
-            ID3D11Buffer*               buffers[MaxVertexBufferBindings];
-            UINT                        offsets[MaxVertexBufferBindings];
-            UINT                        strides[MaxVertexBufferBindings];
-            VertexInputRate             inputRates[MaxVertexBufferBindings];
-        } _vbo = {};
 
         // RenderTargetViews
         ID3D11RenderTargetView*     _colorRtvs[MaxColorAttachments] = {};
@@ -114,6 +100,11 @@ namespace alimer
 
         Color4                      _blendColor;
         uint32_t                    _stencilReference;
+
+        // VBO bindings.
+        ID3D11Buffer*               _d3dBuffers[MaxVertexBufferBindings] = {};
+        UINT                        _d3dStrides[MaxVertexBufferBindings] = {};
+        UINT                        _d3dOffsets[MaxVertexBufferBindings] = {};
 
         /*struct BufferBindingInfo {
             Buffer*  buffer;
@@ -136,6 +127,6 @@ namespace alimer
 
         //ResourceBindings _bindings;
         uint32_t        _dirtySets = 0;
-        uint32_t        _dirtyVbos = 0;
+        
     };
 }

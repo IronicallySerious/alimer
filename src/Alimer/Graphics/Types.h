@@ -24,7 +24,6 @@
 
 #include <string>
 #include <foundation/cpp_macros.h>
-#include <vgpu/vgpu.h>
 #include "../Math/Math.h"
 #include "../Math/Color.h"
 #include "../Graphics/PixelFormat.h"
@@ -229,34 +228,34 @@ namespace alimer
     enum class SamplerAddressMode : uint32_t
     {
         /// Texture coordinates are clamped between 0.0 and 1.0, inclusive.
-        ClampToEdge         = VGPU_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        /// Between -1.0 and 1.0, the texture coordinates are mirrored across the axis. Outside -1.0 and 1.0, the texture coordinates are clamped.
-        MirrorClampToEdge   = VGPU_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE,
+        ClampToEdge,
         /// Texture coordinates wrap to the other side of the texture, effectively keeping only the fractional part of the texture coordinate.
-        Repeat              = VGPU_SAMPLER_ADDRESS_MODE_REPEAT,
+        Repeat,
+        /// Between -1.0 and 1.0, the texture coordinates are mirrored across the axis. Outside -1.0 and 1.0, the texture coordinates are clamped.
+        MirrorClampToEdge,
         /// Between -1.0 and 1.0, the texture coordinates are mirrored across the axis. Outside -1.0 and 1.0, the image is repeated.
-        MirrorRepeat        = VGPU_SAMPLER_ADDRESS_MODE_MIRROR_REPEAT,
+        MirrorRepeat,
         /// Out-of-range texture coordinates return the value specified by the sampler's border color.
-        ClampToBorder       = VGPU_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER_COLOR,
+        ClampToBorder
     };
 
     enum class SamplerMinMagFilter
     {
-        Nearest = VGPU_SAMPLER_MIN_MAG_FILTER_NEAREST,
-        Linear  = VGPU_SAMPLER_MIN_MAG_FILTER_LINEAR,
+        Nearest,
+        Linear,
     };
 
     enum class SamplerMipFilter
     {
-        Nearest = VGPU_SAMPLER_MIP_FILTER_NEAREST,
-        Linear  = VGPU_SAMPLER_MIP_FILTER_LINEAR,
+        Nearest,
+        Linear,
     };
 
     enum class SamplerBorderColor
     {
-        TransparentBlack    = VK_SAMPLER_BORDER_COLOR_TRANSPARENT_BLACK,
-        OpaqueBlack         = VK_SAMPLER_BORDER_COLOR_OPAQUE_BLACK,
-        OpaqueWhite         = VK_SAMPLER_BORDER_COLOR_OPAQUE_WHITE
+        TransparentBlack,
+        OpaqueBlack,
+        OpaqueWhite
     };
 
     enum class ParamDataType
@@ -334,9 +333,7 @@ namespace alimer
         Index = 1 << 1,
         Uniform = 1 << 2,
         Storage = 1 << 3,
-        Indirect = 1 << 4,
-        Dynamic = 1 << 5,
-        CPUAccessible = 1 << 6,
+        Indirect = 1 << 4
     };
     ALIMER_BITMASK(BufferUsage);
 
