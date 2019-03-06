@@ -81,6 +81,28 @@ namespace alimer
         SafeDelete(_handle);
     }
 
+    void Shader::RegisterObject()
+    {
+        RegisterFactory<Shader>();
+    }
+
+    void Shader::Define(ShaderStage stage, const std::vector<uint8_t>& byteCode)
+    {
+        _stage = stage;
+        _byteCode = std::move(byteCode);
+    }
+
+    void Shader::Define(ShaderStage stage, const std::string& code, const std::string& entryPoint)
+    {
+        _stage = stage;
+        _sourceCode = code;
+
+        if (_device && _device->IsInitialized())
+        {
+            _handle = _device->CreateShader(_stage, code, entryPoint);
+        }
+    }
+    
     void Shader::Reflect(const std::vector<uint8_t>& bytecode)
     {
         // Parse SPIRV binary.
@@ -121,45 +143,4 @@ namespace alimer
         {
         }*/
     }
-
-    /*class ShaderLoader final : public ResourceLoader
-    {
-        ALIMER_OBJECT(ShaderLoader, ResourceLoader);
-
-    public:
-        bool CanLoad(const String& extension) const {
-            return extension == ".spv" 
-                || extension == ".cso";
-        }
-
-        StringHash GetLoadingType() const override
-        {
-            return Shader::GetTypeStatic();
-        }
-
-        bool BeginLoad(Stream& source) override
-        {
-            _isBinary = Path::GetExtension(source.GetName(), true) == ".spv";
-            if (_isBinary)
-            {
-                _byteCode = source.ReadBytes();
-            }
-
-            return true;
-        }
-
-        Object* EndLoad() override
-        {
-            Shader* shader = new Shader();
-            if (_isBinary)
-                shader->Define(_byteCode);
-
-            return shader;
-        }
-
-    private:
-        bool _isBinary = false;
-        std::vector<uint8_t> _byteCode;
-    };*/
-
 }

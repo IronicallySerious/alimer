@@ -28,9 +28,13 @@
 
 namespace alimer
 {
+    class TextureHandle;
+
     /// Defines a Texture class.
     class ALIMER_API Texture : public Resource, public GPUResource
     {
+        friend class GraphicsDevice;
+
         ALIMER_OBJECT(Texture, Resource);
 
     protected:
@@ -41,6 +45,14 @@ namespace alimer
         Texture(GraphicsDevice* device, const TextureDescriptor* descriptor);
 
     public:
+        /// Constructor.
+        Texture();
+
+        /// Destructor.
+        ~Texture() override;
+
+        void Destroy() override;
+
         static const uint32_t MaxPossible = ~0U;
 
         /// Get the type of the texture.
@@ -78,6 +90,10 @@ namespace alimer
 
         /// Get the sample count.
         SampleCount GetSamples() const { return _samples; }
+
+    private:
+        /// Register object factory.
+        static void RegisterObject();
 
     protected:
         TextureType     _type = TextureType::Type2D;

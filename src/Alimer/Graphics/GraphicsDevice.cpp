@@ -62,6 +62,7 @@ namespace alimer
         , _devicePreference(descriptor->devicePreference)
         , _validation(descriptor->validation)
     {
+        RegisterGraphicsLibrary();
         AddSubsystem(this);
     }
 
@@ -95,6 +96,18 @@ namespace alimer
 
             _gpuResources.clear();
         }
+    }
+
+    void GraphicsDevice::RegisterObject()
+    {
+        static bool registered = false;
+        if (registered) {
+            return;
+        }
+        registered = true;
+        Shader::RegisterObject();
+        Texture::RegisterObject();
+        Sampler::RegisterObject();
     }
 
     GraphicsDevice* GraphicsDevice::Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor)
@@ -195,9 +208,13 @@ namespace alimer
         return CreateBufferImpl(descriptor, pInitData);
     }
 
-    ShaderHandle* GraphicsDevice::CreateShader(const ShaderDescriptor* descriptor)
+    ShaderHandle* GraphicsDevice::CreateShader(ShaderStage stage, const std::string& code, const std::string& entryPoint)
     {
-        ALIMER_ASSERT(descriptor);
-        return CreateShaderImpl(descriptor);
+        return CreateShaderImpl(stage, code, entryPoint);
+    }
+
+    void RegisterGraphicsLibrary()
+    {
+        GraphicsDevice::RegisterObject();
     }
 }

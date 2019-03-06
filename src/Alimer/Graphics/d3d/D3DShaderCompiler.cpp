@@ -29,7 +29,7 @@ using namespace std;
 
 namespace alimer
 {
-    vector<uint8_t> D3DShaderCompiler::Compile(const string& source, ShaderStages stage, const string& entryPoint, uint32_t major, uint32_t minor)
+    ShaderStageDescriptor D3DShaderCompiler::Compile(const string& source, ShaderStage stage, const string& entryPoint, uint32_t major, uint32_t minor)
     {
 #if ALIMER_D3D_DYNAMIC_LIB
         static pD3DCompile D3DCompile = nullptr;
@@ -66,22 +66,22 @@ namespace alimer
         std::string compileTarget;
         switch (stage)
         {
-        case ShaderStages::Vertex:
+        case ShaderStage::Vertex:
             compileTarget = fmt::sprintf("vs_%u_%u", major, minor);
             break;
-        case ShaderStages::TessellationControl:
+        case ShaderStage::TessControl:
             compileTarget = fmt::sprintf("hs_%u_%u", major, minor);
             break;
-        case ShaderStages::TessellationEvaluation:
+        case ShaderStage::TessEvaluation:
             compileTarget = fmt::sprintf("ds_%u_%u", major, minor);
             break;
-        case ShaderStages::Geometry:
+        case ShaderStage::Geometry:
             compileTarget = fmt::sprintf("gs_%u_%u", major, minor);
             break;
-        case ShaderStages::Fragment:
+        case ShaderStage::Fragment:
             compileTarget = fmt::sprintf("ps_%u_%u", major, minor);
             break;
-        case ShaderStages::Compute:
+        case ShaderStage::Compute:
             compileTarget = fmt::sprintf("cs_%u_%u", major, minor);
             break;
         default:

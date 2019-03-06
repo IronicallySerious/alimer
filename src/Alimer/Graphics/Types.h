@@ -449,7 +449,6 @@ namespace alimer
         ResourceUsage   resourceUsage;
         uint64_t        size;
         uint32_t        stride;
-        bool            cpuAccessible;
     };
 
     struct SamplerDescriptor

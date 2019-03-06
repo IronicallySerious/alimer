@@ -57,6 +57,9 @@ namespace alimer
 		/// Destructor.
 		virtual ~Resource() = default;
 
+        /// Load the resource synchronously from a stream. Return instance on success.
+        bool Load(Stream& source);
+
         /// Save the resource to a stream. Return true on success.
         virtual bool Save(Stream& dest);
 
@@ -71,6 +74,12 @@ namespace alimer
 
 		/// Return the asynchronous loading state.
 		AsyncLoadState GetAsyncLoadState() const { return _asyncLoadState; }
+
+    protected:
+        /// Load the resource data from a stream. May be executed outside the main thread, should not access GPU resources. Return true on success.
+        virtual bool BeginLoad(Stream& source);
+        /// Finish resource loading if necessary. Always called from the main thread, so GPU resources can be accessed here. Return true on success.
+        virtual bool EndLoad();
 
 	protected:
         std::string _name;

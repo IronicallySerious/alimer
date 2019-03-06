@@ -177,6 +177,10 @@ namespace alimer
 
         _vertexBuffer = new VertexBuffer();
         _vertexBuffer->Define(3, vertexElements, false, ResourceUsage::Immutable, triangleVertices);
+
+        auto shader = new Shader();
+        //shader->Define();
+
         ALIMER_LOGINFO("Engine initialized with success");
         _initialized = true;
         return EXIT_SUCCESS;

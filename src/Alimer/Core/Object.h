@@ -114,13 +114,13 @@ namespace alimer
         static void RemoveFactory(StringHash type);
 
         /// Create an object by type. Return pointer to it or null if no factory found.
-        template <class T> static inline T* CreateObject()
+        template <class T> static inline SharedPtr<T> CreateObject()
         {
-            return static_cast<T*>(CreateObject(T::GetTypeStatic()));
+            return StaticCast<T>(CreateObject(T::GetTypeStatic()));
         }
 
         /// Create and return an object through a factory. The caller is assumed to take ownership of the object. Return null if no factory registered. 
-        static Object* CreateObject(StringHash type);
+        static SharedPtr<Object> CreateObject(StringHash type);
 
         /// Return a type name from hash, or empty if not known. Requires a registered object factory.
         static const std::string& GetTypeNameFromType(StringHash type);
@@ -134,7 +134,7 @@ namespace alimer
         virtual ~ObjectFactory() = default;
 
         /// Create and return an object.
-        virtual Object* Create() = 0;
+        virtual SharedPtr<Object> CreateObject() = 0;
 
         /// Return type info of objects created by this factory.
         const TypeInfo* GetTypeInfo() const { return _typeInfo; }
@@ -161,7 +161,7 @@ namespace alimer
         }
 
         /// Create and return an object of the specific type.
-        Object* Create() override { return new T(); }
+        SharedPtr<Object> CreateObject() override { return SharedPtr<Object>(new T()); }
     };
 
 }

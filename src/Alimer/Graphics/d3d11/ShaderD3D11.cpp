@@ -29,39 +29,30 @@ using namespace Microsoft::WRL;
 
 namespace alimer
 {
-    ShaderD3D11::ShaderD3D11(GraphicsDeviceD3D11* device, const ShaderDescriptor* descriptor)
+    ShaderD3D11::ShaderD3D11(GraphicsDeviceD3D11* device, ShaderStage stage, const std::string& code, const std::string& entryPoint)
     {
-        for (unsigned i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
+        auto shaderStage = D3DShaderCompiler::Compile(code, stage, entryPoint, device->GetShaderModerMajor(), device->GetShaderModerMinor());
+        switch (stage)
         {
-            const ShaderStageDescriptor& shaderStage = descriptor->stages[i];
-            if (!shaderStage.codeSize && !strlen(shaderStage.source))
-            {
-                continue;
-            }
-
-            ShaderStage stage = (ShaderStage)i;
-            switch (stage)
-            {
-            case ShaderStage::Vertex:
-            {
-                device->GetD3DDevice()->CreateVertexShader(shaderStage.code, shaderStage.codeSize, nullptr, &_vertexShader);
-                break;
-            }
-            case ShaderStage::TessControl:
-                break;
-            case ShaderStage::TessEvaluation:
-                break;
-            case ShaderStage::Geometry:
-                break;
-            case ShaderStage::Fragment:
-                device->GetD3DDevice()->CreatePixelShader(shaderStage.code, shaderStage.codeSize, nullptr, &_pixelShader);
-                break;
-            case ShaderStage::Compute:
-                device->GetD3DDevice()->CreateComputeShader(shaderStage.code, shaderStage.codeSize, nullptr, &_computeShader);
-                break;
-            default:
-                break;
-            }
+        case ShaderStage::Vertex:
+        {
+            device->GetD3DDevice()->CreateVertexShader(shaderStage.code, shaderStage.codeSize, nullptr, &_vertexShader);
+            break;
+        }
+        case ShaderStage::TessControl:
+            break;
+        case ShaderStage::TessEvaluation:
+            break;
+        case ShaderStage::Geometry:
+            break;
+        case ShaderStage::Fragment:
+            device->GetD3DDevice()->CreatePixelShader(shaderStage.code, shaderStage.codeSize, nullptr, &_pixelShader);
+            break;
+        case ShaderStage::Compute:
+            device->GetD3DDevice()->CreateComputeShader(shaderStage.code, shaderStage.codeSize, nullptr, &_computeShader);
+            break;
+        default:
+            break;
         }
     }
 

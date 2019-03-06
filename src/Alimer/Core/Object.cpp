@@ -73,12 +73,12 @@ namespace alimer
                 _factories.erase(type);
             }
 
-            Object* CreateObject(StringHash type)
+            SharedPtr<Object> CreateObject(StringHash type)
             {
                 auto it = _factories.find(type);
                 if (it != _factories.end())
                 {
-                    return it->second->Create();
+                    return it->second->CreateObject();
                 }
 
                 return nullptr;
@@ -188,7 +188,7 @@ namespace alimer
         details::Context().RemoveFactory(type);
     }
 
-    Object* Object::CreateObject(StringHash type)
+    SharedPtr<Object> Object::CreateObject(StringHash type)
     {
         return details::Context().CreateObject(type);
     }

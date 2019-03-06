@@ -34,12 +34,17 @@ namespace alimer
 	{
     protected:
         /// Constructor.
-        Buffer();
+        Buffer(BufferUsage usage);
 
         /// Constructor.
         Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor);
 
     public:
+        /// Destructor.
+        ~Buffer() override;
+
+        void Destroy() override;
+
         /// Replace entire buffer data in synchronous way.
         bool SetSubData(const void* pData);
 
@@ -52,19 +57,34 @@ namespace alimer
         /// Get the buffer usage flags.
         BufferUsage GetUsage() const { return _usage; }
 
+        /// Return resource usage type.
+        ResourceUsage GetResourceUsage() const { return _resourceUsage; }
+
         /// Get single element size.
         uint32_t GetStride() const { return _stride; }
+
+        /// Return CPU-side shadow data if exists.
+        uint8_t* ShadowData() const { return _shadowData.get(); }
+
+        /// Get the backend handle.
+        BufferHandle* GetHandle() const { return _handle; }
         
-    private:
-        void Create(const void* pData);
-        virtual bool SetSubDataImpl(uint64_t offset, uint64_t size, const void* pData) = 0;
+    protected:
+        /// Create the GPU-side buffer. Return true on success.
+        bool Create(bool useShadowData, const void* pData);
 
-        BufferHandle* _impl = nullptr;
+        /// Buffer usage.
         BufferUsage _usage = BufferUsage::None;
+        /// Resource usage type.
+        ResourceUsage _resourceUsage = ResourceUsage::Default;
+        /// Size in bytes of buffer.
         uint64_t _size = 0;
+        /// Size of single element.
         uint32_t _stride = 0;
-
         /// CPU-side shadow data.
         std::unique_ptr<uint8_t[]> _shadowData;
+
+        /// Backend handle
+        BufferHandle* _handle = nullptr;
 	};
 }

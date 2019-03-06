@@ -30,12 +30,34 @@ namespace alimer
 	{
 	}
 
+    bool Resource::Load(Stream& source)
+    {
+        SetAsyncLoadState(AsyncLoadState::Loading);
+        bool success = BeginLoad(source);
+        if (success)
+            success &= EndLoad();
+        SetAsyncLoadState(AsyncLoadState::Done);
+
+        return success;
+    }
+
+    bool Resource::BeginLoad(Stream& source)
+    {
+        // This always needs to be overridden by subclasses
+        return false;
+    }
+
+    bool Resource::EndLoad()
+    {
+        // Resources that do not need access to main-thread critical objects do not need to override this
+        return true;
+    }
+
     bool Resource::Save(Stream& dest)
     {
         ALIMER_LOGERROR("Save not supported for '{}'", GetTypeName());
         return false;
     }
-
 
 	void Resource::SetName(const std::string& name)
 	{

@@ -52,7 +52,7 @@ namespace alimer
         Texture* CreateTextureImpl(const TextureDescriptor* descriptor, void* nativeTexture, const void* pInitData);
         BufferHandle* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) override;
         Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor);
-        ShaderHandle* CreateShaderImpl(const ShaderDescriptor* descriptor) override;
+        ShaderHandle* CreateShaderImpl(ShaderStage stage, const std::string& code, const std::string& entryPoint) override;
 
         void HandleDeviceLost();
 

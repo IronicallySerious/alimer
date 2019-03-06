@@ -29,35 +29,9 @@
 namespace alimer
 {
     IndexBuffer::IndexBuffer()
-        : GPUResource(Type::Buffer)
+        : Buffer(BufferUsage::Index)
     {
 
-    }
-
-    IndexBuffer::~IndexBuffer()
-    {
-        Destroy();
-    }
-
-    void IndexBuffer::Destroy()
-    {
-        SafeDelete(_handle);
-    }
-
-    bool IndexBuffer::Create(const void* data)
-    {
-        if (_device && _device->IsInitialized())
-        {
-            BufferDescriptor descriptor = {};
-            descriptor.usage = BufferUsage::Index; /* TODO: Handle Storage and Indirect */
-            descriptor.resourceUsage = _usage;
-            descriptor.size = _size;
-            descriptor.stride = _indexSize;
-            descriptor.cpuAccessible = false;
-            _handle = _device->CreateBuffer(&descriptor, data);
-        }
-
-        return true;
     }
 
     bool IndexBuffer::Define(uint32_t indexCount, IndexType indexType, bool useShadowData, ResourceUsage usage, const void* data)
@@ -78,19 +52,10 @@ namespace alimer
         Destroy();
 
         _indexCount = indexCount;
-        _indexSize = indexType == IndexType::UInt16 ? 2 : 4;
-        _size = _indexCount * _indexSize;
-        _usage = usage;
-
-        // If buffer is reinitialized with the same shadow data, no need to reallocate
-        if (useShadowData && (!data || data != _shadowData.get()))
-        {
-            _shadowData.reset(new uint8_t[_size]);
-            if (data) {
-                memcpy(_shadowData.get(), data, _size);
-            }
-        }
-
-        return Create(data);
+        _stride = indexType == IndexType::UInt16 ? 2 : 4;
+        _size = _indexCount * _stride;
+        _resourceUsage = usage;
+        
+        return Create(useShadowData, data);
     }
 }

@@ -23,7 +23,7 @@
 #pragma once
 
 #include <vector>
-#include "../Core/Object.h"
+#include "../Resource/Resource.h"
 #include "../Graphics/GPUResource.h"
 
 namespace alimer
@@ -31,9 +31,11 @@ namespace alimer
     class ShaderHandle;
 
     /// Defines a shader resource.
-    class ALIMER_API Shader : public GPUResource, public Object
+    class ALIMER_API Shader : public Resource, public GPUResource
     {
-        ALIMER_OBJECT(Shader, Object);
+        friend class GraphicsDevice;
+
+        ALIMER_OBJECT(Shader, Resource);
 
     public:
         /// Constructor.
@@ -44,23 +46,28 @@ namespace alimer
 
         void Destroy() override;
 
-        /// Get if shader is compute.
-        bool IsCompute() const { return _compute; }
+        /// Define shader stage and bytecode. All existing variations are destroyed.
+        void Define(ShaderStage stage, const std::vector<uint8_t>& byteCode);
+
+        /// Define shader stage and source code. All existing variations are destroyed.
+        void Define(ShaderStage stage, const std::string& code, const std::string& entryPoint = "main");
 
         /// Get the shader stage.
-        ShaderStages GetStages() const { return _stage; }
+        ShaderStage GetStage() const { return _stage; }
 
         /// Get the backend handle.
         ShaderHandle* GetHandle() const { return _handle; }
 
+    private:
+        /// Register object factory.
+        static void RegisterObject();
+
     protected:
         void Reflect(const std::vector<uint8_t>& bytecode);
 
-        //Vector<PipelineResource> _resources;
-        bool _compute = false;
-
-        /// Shader stage.
-        ShaderStages _stage = ShaderStages::None;
+        ShaderStage _stage = ShaderStage::Count;
+        std::vector<uint8_t> _byteCode;
+        std::string _sourceCode;
 
         ShaderHandle* _handle = nullptr;
     };

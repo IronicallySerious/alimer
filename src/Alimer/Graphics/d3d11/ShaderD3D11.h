@@ -32,7 +32,7 @@ namespace alimer
     {
     public:
         /// Constructor.
-        ShaderD3D11(GraphicsDeviceD3D11* device, const ShaderDescriptor* descriptor);
+        ShaderD3D11(GraphicsDeviceD3D11* device, ShaderStage stage, const std::string& code, const std::string& entryPoint);
 
         /// Destructor.
         ~ShaderD3D11() override;

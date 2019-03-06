@@ -29,35 +29,9 @@
 namespace alimer
 {
     VertexBuffer::VertexBuffer()
-        : GPUResource(Type::Buffer)
+        : Buffer(BufferUsage::Vertex)
     {
 
-    }
-
-    VertexBuffer::~VertexBuffer()
-    {
-        Destroy();
-    }
-
-    void VertexBuffer::Destroy()
-    {
-        SafeDelete(_handle);
-    }
-
-    bool VertexBuffer::Create(const void* data)
-    {
-        if (_device && _device->IsInitialized())
-        {
-            BufferDescriptor descriptor = {};
-            descriptor.usage = BufferUsage::Vertex; /* TODO: Handle Storage and Indirect */
-            descriptor.resourceUsage = _usage;
-            descriptor.size = _size;
-            descriptor.stride = _vertexSize;
-            descriptor.cpuAccessible = false;
-            _handle = _device->CreateBuffer(&descriptor, data);
-        }
-
-        return true;
     }
 
     bool VertexBuffer::Define(uint32_t vertexCount, const std::vector<VertexElement>& elements, bool useShadowData, ResourceUsage usage, const void* data)
@@ -89,7 +63,7 @@ namespace alimer
         Destroy();
 
         _vertexCount = vertexCount;
-        _usage = usage;
+        _resourceUsage = usage;
 
         bool useAutoOffset = true;
         for (size_t i = 0; i < numElements; ++i)
@@ -102,31 +76,22 @@ namespace alimer
         }
 
         _size = 0;
-        _vertexSize = 0;
+        _stride = 0;
         _elementsHash = 0;
         _elements.resize(numElements);
         for (size_t i = 0; i < numElements; ++i)
         {
             _elements[i] = elements[i];
-            _elements[i].offset = useAutoOffset ? _vertexSize : elements[i].offset;
-            _vertexSize += GetVertexElementSize(elements[i].format);
+            _elements[i].offset = useAutoOffset ? _stride : elements[i].offset;
+            _stride += GetVertexElementSize(elements[i].format);
             hash::combine(_elementsHash, i);
             hash::combine(_elementsHash, _elements[i].format);
             hash::combine(_elementsHash, _elements[i].semantic);
             hash::combine(_elementsHash, _elements[i].offset);
         }
 
-        _size = _vertexCount * _vertexSize;
+        _size = _vertexCount * _stride;
 
-        // If buffer is reinitialized with the same shadow data, no need to reallocate
-        if (useShadowData && (!data || data != _shadowData.get()))
-        {
-            _shadowData.reset(new uint8_t[_size]);
-            if (data) {
-                memcpy(_shadowData.get(), data, _size);
-            }
-        }
-
-        return Create(data);
+        return Create(useShadowData, data);
     }
 }

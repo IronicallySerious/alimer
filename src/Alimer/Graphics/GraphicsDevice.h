@@ -54,6 +54,9 @@ namespace alimer
         ALIMER_OBJECT(GraphicsDevice, Object);
 
     public:
+        /// Register object factory.
+        static void RegisterObject();
+
         /// Create factory.
         static GraphicsDevice* Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
 
@@ -94,7 +97,7 @@ namespace alimer
         virtual Texture* GetMultisampleColorTexture() const = 0;
 
         BufferHandle* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData);
-        ShaderHandle* CreateShader(const ShaderDescriptor* descriptor);
+        ShaderHandle* CreateShader(ShaderStage stage, const std::string& code, const std::string& entryPoint = "main");
 
     protected:
         /// Add a GPUResource to keep track of. 
@@ -111,7 +114,7 @@ namespace alimer
         virtual void Tick() = 0;
 
         virtual BufferHandle* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) = 0;
-        virtual ShaderHandle* CreateShaderImpl(const ShaderDescriptor* descriptor) = 0;
+        virtual ShaderHandle* CreateShaderImpl(ShaderStage stage, const std::string& code, const std::string& entryPoint) = 0;
     protected:
         /// Constructor.
         GraphicsDevice(GraphicsBackend backend, const GraphicsDeviceDescriptor* descriptor);
@@ -130,4 +133,7 @@ namespace alimer
         SharedPtr<CommandBuffer>    _renderContext;
         std::unique_ptr<Window>     _renderWindow;
     };
+
+    /// Register Graphics related object factories and attributes.
+    ALIMER_API void RegisterGraphicsLibrary();
 }

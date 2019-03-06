@@ -213,7 +213,7 @@ namespace alimer
     void CommandBuffer::DrawIndexed(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
     {
 #if defined(ALIMER_DEV)
-        ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
+        //ALIMER_ASSERT(_currentShader && !_currentShader->IsCompute());
         ALIMER_ASSERT(_insideRenderPass);
         ALIMER_ASSERT(indexCount > 1);
 #endif
@@ -223,7 +223,7 @@ namespace alimer
     void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
 #if defined(ALIMER_DEV)
-        ALIMER_ASSERT(_currentShader && _currentShader->IsCompute());
+        //ALIMER_ASSERT(_currentShader && _currentShader->IsCompute());
 #endif
         DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }

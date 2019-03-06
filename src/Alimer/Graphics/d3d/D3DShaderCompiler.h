@@ -29,6 +29,6 @@ namespace alimer
 {
     namespace D3DShaderCompiler
     {
-        ALIMER_API std::vector<uint8_t> Compile(const std::string& source, ShaderStages stage, const std::string& entryPoint, uint32_t major = 4, uint32_t minor = 0);
+        ALIMER_API ShaderStageDescriptor Compile(const std::string& source, ShaderStage stage, const std::string& entryPoint, uint32_t major = 4, uint32_t minor = 0);
     }
 }

@@ -21,13 +21,15 @@
 //
 
 #include "../Graphics/Buffer.h"
+#include "../Graphics/Backend.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
 namespace alimer
 {
-    Buffer::Buffer()
+    Buffer::Buffer(BufferUsage usage)
         : GPUResource(Type::Buffer)
+        , _usage(usage)
     {
 
     }
@@ -39,6 +41,16 @@ namespace alimer
         , _stride(descriptor->stride)
     {
 
+    }
+
+    Buffer::~Buffer()
+    {
+        Destroy();
+    }
+
+    void Buffer::Destroy()
+    {
+        SafeDelete(_handle);
     }
 
     bool Buffer::SetSubData(const void* pData)
@@ -54,10 +66,31 @@ namespace alimer
             return false;
         }
 
-        return false;
+        return _handle->SetSubData(offset, size, pData);
     }
 
-    void Buffer::Create(const void* pData)
+    bool Buffer::Create(bool useShadowData, const void* pData)
     {
+        // If buffer is reinitialized with the same shadow data, no need to reallocate
+        if (useShadowData && (!pData || pData != _shadowData.get()))
+        {
+            _shadowData.reset(new uint8_t[_size]);
+            if (pData) {
+                memcpy(_shadowData.get(), pData, _size);
+            }
+        }
+
+        if (_device && _device->IsInitialized())
+        {
+            BufferDescriptor descriptor = {};
+            descriptor.usage = _usage; /* TODO: Handle Storage and Indirect */
+            descriptor.resourceUsage = _resourceUsage;
+            descriptor.size = _size;
+            descriptor.stride = _stride;
+            _handle = _device->CreateBuffer(&descriptor, pData);
+            return _handle != nullptr;
+        }
+
+        return true;
     }
 }

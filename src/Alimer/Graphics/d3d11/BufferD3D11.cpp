@@ -44,11 +44,11 @@ namespace alimer
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
         }
 
-        if (descriptor->cpuAccessible)
+        /*if (descriptor->cpuAccessible)
         {
             bufferDesc.Usage = D3D11_USAGE_STAGING;
             bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
-        }
+        }*/
 
         if (any(descriptor->usage & BufferUsage::Uniform))
         {

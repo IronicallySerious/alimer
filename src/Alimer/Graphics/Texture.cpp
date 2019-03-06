@@ -21,6 +21,7 @@
 //
 
 #include "../Graphics/Texture.h"
+#include "../Graphics/Backend.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../IO/Stream.h"
 #include "../Math/MathUtil.h"
@@ -46,5 +47,25 @@ namespace alimer
         , _format(descriptor->format)
         , _usage(descriptor->usage)
     {
+    }
+
+    Texture::Texture()
+        : GPUResource(Type::Texture)
+    {
+    }
+
+    Texture::~Texture()
+    {
+        Destroy();
+    }
+
+    void Texture::Destroy()
+    {
+        //SafeDelete(_handle);
+    }
+
+    void Texture::RegisterObject()
+    {
+        RegisterFactory<Texture>();
     }
 }

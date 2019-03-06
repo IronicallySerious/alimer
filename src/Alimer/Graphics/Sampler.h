@@ -29,6 +29,7 @@ namespace alimer
     /// Defines a Sampler class.
     class ALIMER_API Sampler : public GPUResource
     {
+        friend class GraphicsDevice;
     public:
         /// Constructor.
         Sampler(GraphicsDevice* device, const SamplerDescriptor* descriptor);
@@ -48,6 +49,10 @@ namespace alimer
 
         /// Get the sampler description.
         const SamplerDescriptor &GetDescriptor() const { return _descriptor; }
+
+    private:
+        /// Register object factory.
+        static void RegisterObject();
 
     protected:
         SamplerDescriptor _descriptor = {};

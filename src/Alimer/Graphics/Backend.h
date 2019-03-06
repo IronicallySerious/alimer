@@ -37,6 +37,15 @@ namespace alimer
         virtual bool SetSubData(uint64_t offset, uint64_t size, const void* pData) = 0;
     };
 
+    class TextureHandle
+    {
+    protected:
+        TextureHandle() {}
+
+    public:
+        virtual ~TextureHandle() {};
+    };
+
     class ShaderHandle
     {
     protected:

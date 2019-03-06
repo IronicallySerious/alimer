@@ -528,8 +528,8 @@ namespace alimer
         return new SamplerD3D11(this, descriptor);
     }
 
-    ShaderHandle* GraphicsDeviceD3D11::CreateShaderImpl(const ShaderDescriptor* descriptor)
+    ShaderHandle* GraphicsDeviceD3D11::CreateShaderImpl(ShaderStage stage, const std::string& code, const std::string& entryPoint)
     {
-        return new ShaderD3D11(this, descriptor);
+        return new ShaderD3D11(this, stage, code);
     }
 }
