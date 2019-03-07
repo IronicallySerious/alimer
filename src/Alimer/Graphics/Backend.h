@@ -54,4 +54,13 @@ namespace alimer
     public:
         virtual ~ShaderHandle() {};
     };
+
+    class PipelineHandle
+    {
+    protected:
+        PipelineHandle() {}
+
+    public:
+        virtual ~PipelineHandle() {};
+    };
 }

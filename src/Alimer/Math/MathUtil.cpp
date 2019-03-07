@@ -51,14 +51,4 @@ namespace alimer
         *cos = cosf(angle);
 #endif
     }
-
-    /*void ComputeTransform(vec3 translation, quat rotation, vec3 scale, mat4 &world, const mat4 &parent)
-    {
-        mat4 S = glm::scale(scale);
-        mat4 R = glm::mat4_cast(rotation);
-        mat4 T = glm::translate(translation);
-
-        mat4 model = R * S;
-        world = parent * T * model;
-    }*/
 }

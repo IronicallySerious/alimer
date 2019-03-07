@@ -24,7 +24,7 @@
 
 #include "../Base/Ptr.h"
 #include "../Graphics/Types.h"
-#include "../Graphics/Shader.h"
+#include "../Graphics/Pipeline.h"
 #include "../Graphics/VertexBuffer.h"
 #include "../Graphics/IndexBuffer.h"
 #include "../Math/Rectangle.h"
@@ -71,7 +71,7 @@ namespace alimer
         virtual void SetBlendColor(const Color4& color) = 0;
         virtual void SetStencilReference(uint32_t reference) = 0;
 
-        void SetShader(Shader* shader);
+        void SetPipeline(Pipeline* pipeline);
 
         void SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset = 0, VertexInputRate inputRate = VertexInputRate::Vertex);
         void SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex = 0);
@@ -98,7 +98,7 @@ namespace alimer
         virtual void EndRenderPassImpl() = 0;
 
         virtual void SetIndexBufferImpl(BufferHandle* buffer, IndexType indexType, uint32_t offset) = 0;
-        virtual void SetShaderImpl(Shader* shader) = 0;
+        virtual void SetPipelineImpl(Pipeline* pipeline) = 0;
 
         virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
         virtual void DrawIndexedImpl(PrimitiveTopology topology, uint32_t indexCount, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;
@@ -107,7 +107,7 @@ namespace alimer
     protected:
         GraphicsDevice* _device;
         bool            _insideRenderPass = false;
-        const Shader*   _currentShader = nullptr;
+        const Pipeline* _currentPipeline = nullptr;
 
         uint32_t _dirtyVbos = 0;
         VertexBufferBinding _currentVertexBuffers[MaxVertexBufferBindings] = {};

@@ -23,6 +23,7 @@
 #pragma once
 
 #include <string>
+#include  "AlimerConfig.h"
 #include "../Math/Math.h"
 
 #ifdef _MSC_VER

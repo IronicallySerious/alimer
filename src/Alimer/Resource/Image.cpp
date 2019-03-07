@@ -34,8 +34,9 @@ namespace alimer
 
     void Image::Define(const uvec2& newSize, PixelFormat newFormat)
     {
-        if (all(equal(newSize, _size)) && newFormat == _format)
+        /*if (all(equal(newSize, _size)) && newFormat == _format) {
             return;
+        }*/
 
         const uint32_t formatSize = GetFormatBitsPerPixel(newFormat);
         if (formatSize == 0)

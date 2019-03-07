@@ -27,6 +27,8 @@
 
 namespace alimer
 {
+    class PipelineD3D11;
+
     class CommandContextD3D11 final : public CommandBuffer
     {
     public:
@@ -50,7 +52,7 @@ namespace alimer
         void SetBlendColor(const Color4& color) override;
         void SetStencilReference(uint32_t reference) override;
 
-        void SetShaderImpl(Shader* shader) override;
+        void SetPipelineImpl(Pipeline* pipeline) override;
 
         void SetIndexBufferImpl(BufferHandle* buffer, IndexType indexType, uint32_t offset) override;
 
@@ -72,6 +74,8 @@ namespace alimer
         bool                        _needWorkaround = false;
         uint64_t                    _fenceValue;
 
+        const PipelineD3D11*        _graphicsPipeline = nullptr;
+        const PipelineD3D11*        _computePipeline = nullptr;
         PrimitiveTopology           _currentTopology;
         ID3D11BlendState*           _blendState;
         ID3D11DepthStencilState*    _depthStencilState;

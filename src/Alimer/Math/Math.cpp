@@ -20,12 +20,11 @@
 // THE SOFTWARE.
 //
 
-#include "../Math/Math.h"
-#include <cmath>
+#include "../Math/math_impl.h"
 
 namespace alimer
 {
-    mat4 mat4::perspective(float fovy, float aspect, float zNear, float zFar)
+    /*mat4 mat4::perspective(float fovy, float aspect, float zNear, float zFar)
     {
         float tanHalfFovy = tan(fovy / 2.0f);
 
@@ -36,5 +35,5 @@ namespace alimer
         result[2][3] = -1.0f;
         result[3][2] = -(zFar * zNear) / (zFar - zNear);
         return result;
-    }
+    }*/
 }

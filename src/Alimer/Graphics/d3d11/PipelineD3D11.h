@@ -29,13 +29,11 @@
 namespace alimer
 {
     /// D3D11 Pipeline implementation.
-    class PipelineD3D11 final : public Pipeline
+    class PipelineD3D11 final : public PipelineHandle
     {
     public:
         PipelineD3D11(GraphicsDeviceD3D11* device, const RenderPipelineDescriptor* descriptor);
         ~PipelineD3D11() override;
-
-        void Destroy() override;
 
         ID3D11BlendState*           GetBlendState() const { return _blendState; }
         ID3D11DepthStencilState*    GetDepthStencilState() const { return _depthStencilState; }

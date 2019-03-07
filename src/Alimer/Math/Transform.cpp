@@ -62,12 +62,12 @@ namespace alimer
         if (!_dirty)
             return;
 
-        mat4 S; // = glm::scale(_scale);
+        /*mat4 S; // = glm::scale(_scale);
         mat4 R; // = glm::mat4_cast(rotation_);
         mat4 T = mat4::translate(_position);
 
         mat4 model = R * S;
-        _matrix = T * model;
+        _matrix = T * model;*/
 
         _dirty = false;
     }

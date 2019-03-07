@@ -74,6 +74,8 @@ namespace alimer
 
         _colorRtvsCount = 0;
         _depthStencilView = nullptr;
+        _graphicsPipeline = nullptr;
+        _computePipeline = nullptr;
         _currentTopology = PrimitiveTopology::Count;
 
         // States
@@ -247,12 +249,11 @@ namespace alimer
         _stencilReference = reference;
     }
 
-    void CommandContextD3D11::SetShaderImpl(Shader* shader)
+    void CommandContextD3D11::SetPipelineImpl(Pipeline* pipeline)
     {
-        ShaderD3D11* shaderD3D11 = static_cast<ShaderD3D11*>(shader->GetHandle());
+        PipelineD3D11* pipelineD3D11 = static_cast<PipelineD3D11*>(pipeline->GetHandle());
 
-#if TODO
-        if (shaderD3D11->IsCompute())
+        if (pipeline->IsCompute())
         {
             _computePipeline = pipelineD3D11;
 
@@ -272,7 +273,7 @@ namespace alimer
                 _currentComputeShader = nullptr;
             }
 
-            if (_graphicsPipeline != pipeline)
+            if (_graphicsPipeline != pipelineD3D11)
             {
                 _graphicsPipeline = pipelineD3D11;
 
@@ -302,8 +303,7 @@ namespace alimer
                     _context->RSSetState(rasterizerState);
                 }
 
-
-                ID3D11VertexShader* vertexShader = pipelineD3D11->GetVertexShader();
+                ID3D11VertexShader* vertexShader = _graphicsPipeline->GetVertexShader();
                 if (_currentVertexShader != vertexShader)
                 {
                     _currentVertexShader = vertexShader;
@@ -318,8 +318,6 @@ namespace alimer
                 }
             }
         }
-#endif // TODO
-
     }
 
     void CommandContextD3D11::SetIndexBufferImpl(BufferHandle* buffer, IndexType indexType, uint32_t offset)

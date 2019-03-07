@@ -142,7 +142,7 @@ namespace alimer
         std::vector<Color4> colors;
         std::vector<uint16_t> indices;
 
-        vec3 tsize = size / 2.0f;
+        /*vec3 tsize = size / 2.0f;
 
         // Create each face in turn.
         for (int i = 0; i < FaceCount; i++)
@@ -181,7 +181,7 @@ namespace alimer
             // (normal + side1 - side2) * tsize // normal // t3
             positions.push_back((normal + side1 - side2) * tsize);
             colors.push_back(Color4(1.0f, 0.0f, 1.0f));
-        }
+        }*/
 
         Mesh* newMesh = new Mesh();
         newMesh->Define(positions, colors, indices);

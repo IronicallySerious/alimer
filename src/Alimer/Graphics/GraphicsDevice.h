@@ -37,8 +37,8 @@ namespace alimer
 {
     class BufferHandle;
     class ShaderHandle;
+    class PipelineHandle;
     class Sampler;
-    class Framebuffer;
 
     struct GraphicsDeviceDescriptor
     {
@@ -98,6 +98,7 @@ namespace alimer
 
         BufferHandle* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData);
         ShaderHandle* CreateShader(ShaderStage stage, const std::string& code, const std::string& entryPoint = "main");
+        PipelineHandle* CreateRenderPipeline(const RenderPipelineDescriptor* descriptor);
 
     protected:
         /// Add a GPUResource to keep track of. 
@@ -115,6 +116,8 @@ namespace alimer
 
         virtual BufferHandle* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) = 0;
         virtual ShaderHandle* CreateShaderImpl(ShaderStage stage, const std::string& code, const std::string& entryPoint) = 0;
+        virtual PipelineHandle* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) = 0;
+
     protected:
         /// Constructor.
         GraphicsDevice(GraphicsBackend backend, const GraphicsDeviceDescriptor* descriptor);

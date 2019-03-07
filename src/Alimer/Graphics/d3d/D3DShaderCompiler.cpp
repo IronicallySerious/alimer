@@ -23,13 +23,12 @@
 #include "AlimerConfig.h"
 #include "D3DShaderCompiler.h"
 #include "../../Core/Log.h"
-#include <d3dcompiler.h>
 #include <fmt/printf.h>
 using namespace std;
 
 namespace alimer
 {
-    ShaderStageDescriptor D3DShaderCompiler::Compile(const string& source, ShaderStage stage, const string& entryPoint, uint32_t major, uint32_t minor)
+    ID3DBlob* D3DShaderCompiler::Compile(const string& source, ShaderStage stage, const string& entryPoint, uint32_t major, uint32_t minor)
     {
 #if ALIMER_D3D_DYNAMIC_LIB
         static pD3DCompile D3DCompile = nullptr;
@@ -108,9 +107,6 @@ namespace alimer
         }
 
         SafeRelease(errorsBlob);
-
-        vector<uint8_t> blob(static_cast<uint32_t>(shaderBlob->GetBufferSize()));
-        memcpy(blob.data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
-        return blob;
+        return shaderBlob;
     }
 }

@@ -24,11 +24,12 @@
 
 #include "D3DPrerequisites.h"
 #include "../Types.h"
+#include <d3dcompiler.h>
 
 namespace alimer
 {
     namespace D3DShaderCompiler
     {
-        ALIMER_API ShaderStageDescriptor Compile(const std::string& source, ShaderStage stage, const std::string& entryPoint, uint32_t major = 4, uint32_t minor = 0);
+        ALIMER_API ID3DBlob* Compile(const std::string& source, ShaderStage stage, const std::string& entryPoint, uint32_t major = 4, uint32_t minor = 0);
     }
 }

@@ -31,12 +31,15 @@ namespace alimer
 {
     ShaderD3D11::ShaderD3D11(GraphicsDeviceD3D11* device, ShaderStage stage, const std::string& code, const std::string& entryPoint)
     {
-        auto shaderStage = D3DShaderCompiler::Compile(code, stage, entryPoint, device->GetShaderModerMajor(), device->GetShaderModerMinor());
+        auto blob = D3DShaderCompiler::Compile(code, stage, entryPoint, device->GetShaderModerMajor(), device->GetShaderModerMinor());
         switch (stage)
         {
         case ShaderStage::Vertex:
         {
-            device->GetD3DDevice()->CreateVertexShader(shaderStage.code, shaderStage.codeSize, nullptr, &_vertexShader);
+            ID3D11VertexShader* vertexShader;
+            device->GetD3DDevice()->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &vertexShader);
+            _handle = vertexShader;
+            _blob = blob;
             break;
         }
         case ShaderStage::TessControl:
@@ -46,23 +49,31 @@ namespace alimer
         case ShaderStage::Geometry:
             break;
         case ShaderStage::Fragment:
-            device->GetD3DDevice()->CreatePixelShader(shaderStage.code, shaderStage.codeSize, nullptr, &_pixelShader);
+        {
+            ID3D11PixelShader* pixelShader;
+            device->GetD3DDevice()->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &pixelShader);
+            _handle = pixelShader;
             break;
+        }
         case ShaderStage::Compute:
-            device->GetD3DDevice()->CreateComputeShader(shaderStage.code, shaderStage.codeSize, nullptr, &_computeShader);
+        {
+            ID3D11ComputeShader* computeShader;
+            device->GetD3DDevice()->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &computeShader);
+            _handle = computeShader;
             break;
+        }
         default:
             break;
+        }
+
+        if (stage != ShaderStage::Vertex) {
+            ALIMER_ASSERT(blob->Release() == 0);
         }
     }
 
     ShaderD3D11::~ShaderD3D11()
     {
-        SafeRelease(_vertexShader);
-        SafeRelease(_tessControlShader);
-        SafeRelease(_tessEvalShader);
-        SafeRelease(_geometryShader);
-        SafeRelease(_pixelShader);
-        SafeRelease(_computeShader);
+        SafeRelease(_blob);
+        SafeRelease(_handle);
     }
 }

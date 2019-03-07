@@ -37,22 +37,11 @@ namespace alimer
         /// Destructor.
         ~ShaderD3D11() override;
 
-        ID3D11VertexShader* GetVertexShader() const { return _vertexShader; }
-        ID3D11HullShader* GetTessControlShader() const { return _tessControlShader; }
-        ID3D11DomainShader* GetTessEvalShader() const { return _tessEvalShader; }
-        ID3D11GeometryShader* GetGeometryShader() const { return _geometryShader; }
-        ID3D11PixelShader* GetPixelShader() const { return _pixelShader; }
-        ID3D11ComputeShader* GetComputeShader() const { return _computeShader; }
-
-        const std::vector<uint8_t>& GetVertexShaderBlob() const { return _vertexShaderBlob; }
+        template <class T> T* GetHandle() const { return static_cast<T*>(_handle); }
+        ID3DBlob* GetBlob() const { return _blob; }
 
     private:
-        ID3D11VertexShader* _vertexShader = nullptr;
-        ID3D11HullShader* _tessControlShader = nullptr;
-        ID3D11DomainShader* _tessEvalShader = nullptr;
-        ID3D11GeometryShader* _geometryShader = nullptr;
-        ID3D11PixelShader* _pixelShader = nullptr;
-        ID3D11ComputeShader* _computeShader = nullptr;
-        std::vector<uint8_t> _vertexShaderBlob;
+        ID3D11DeviceChild* _handle = nullptr;
+        ID3DBlob* _blob = nullptr;
     };
 }

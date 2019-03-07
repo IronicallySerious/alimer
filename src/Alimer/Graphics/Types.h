@@ -433,7 +433,7 @@ namespace alimer
     struct ShaderStageDescriptor
     {
         uint64_t codeSize;
-        const uint8_t* code;
+        uint8_t* code;
         const char* source;
         const char* entryPoint;
     };
@@ -619,7 +619,8 @@ namespace alimer
 
     class Shader;
     struct RenderPipelineDescriptor {
-        Shader*                         shader;
+        Shader*                         vertexShader;
+        Shader*                         fragmentShader;
         RasterizationStateDescriptor    rasterizationState;
         //BlendStateDescriptor            blendStates;
         //DepthStencilStateDescriptor     depthStencilState;

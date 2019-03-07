@@ -30,8 +30,6 @@
 
 namespace alimer
 {
-    class ShaderModule;
-
     /// D3D11 cache.
     class D3D11Cache final 
     {
@@ -46,7 +44,7 @@ namespace alimer
 
         ID3D11BlendState* GetBlendState(D3D11_BLEND srcBlend, D3D11_BLEND destBlend);
         ID3D11SamplerState* GetSamplerState(const SamplerDescriptor* descriptor);
-        ID3D11InputLayout* GetInputLayout(ShaderModule* shader, const RenderPipelineDescriptor* descriptor);
+        ID3D11InputLayout* GetInputLayout(ID3DBlob* blob, const RenderPipelineDescriptor* descriptor);
 
     private:
         GraphicsDeviceD3D11* _device;

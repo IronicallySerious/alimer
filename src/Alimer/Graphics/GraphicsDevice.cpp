@@ -213,6 +213,13 @@ namespace alimer
         return CreateShaderImpl(stage, code, entryPoint);
     }
 
+    PipelineHandle* GraphicsDevice::CreateRenderPipeline(const RenderPipelineDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(descriptor);
+        return CreateRenderPipelineImpl(descriptor);
+    }
+
+
     void RegisterGraphicsLibrary()
     {
         GraphicsDevice::RegisterObject();

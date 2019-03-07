@@ -27,7 +27,7 @@
 #include "SamplerD3D11.h"
 #include "BufferD3D11.h"
 #include "ShaderD3D11.h"
-//#include "D3D11Pipeline.h"
+#include "PipelineD3D11.h"
 #include "foundation/StringUtils.h"
 #include "Core/Platform.h"
 #include "Core/Log.h"
@@ -530,6 +530,11 @@ namespace alimer
 
     ShaderHandle* GraphicsDeviceD3D11::CreateShaderImpl(ShaderStage stage, const std::string& code, const std::string& entryPoint)
     {
-        return new ShaderD3D11(this, stage, code);
+        return new ShaderD3D11(this, stage, code, entryPoint);
+    }
+
+    PipelineHandle* GraphicsDeviceD3D11::CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor)
+    {
+        return new PipelineD3D11(this, descriptor);
     }
 }

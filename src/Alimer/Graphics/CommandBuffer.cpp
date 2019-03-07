@@ -34,7 +34,7 @@ namespace alimer
 
     void CommandBuffer::Reset()
     {
-        _currentShader = nullptr;
+        _currentPipeline = nullptr;
 
         _dirtyVbos = ~0u;
         memset(_currentVertexBuffers, 0, sizeof(_currentVertexBuffers));
@@ -164,14 +164,14 @@ namespace alimer
         SetScissor(1, &scissor);
     }
 
-    void CommandBuffer::SetShader(Shader* shader)
+    void CommandBuffer::SetPipeline(Pipeline* pipeline)
     {
-        ALIMER_ASSERT(shader);
-        if (_currentShader == shader)
+        ALIMER_ASSERT(pipeline);
+        if (_currentPipeline == pipeline)
             return;
 
-        _currentShader = shader;
-        SetShaderImpl(shader);
+        _currentPipeline = pipeline;
+        SetPipelineImpl(pipeline);
     }
 
     void CommandBuffer::SetVertexBuffer(uint32_t binding, VertexBuffer* buffer, uint32_t vertexOffset, VertexInputRate inputRate)

@@ -35,6 +35,7 @@ using namespace std;
 namespace alimer
 {
     static VertexBuffer* _vertexBuffer = nullptr;
+    static Pipeline* _pipeline = nullptr;
 
     Engine::Engine()
         : _pluginManager(nullptr)
@@ -178,8 +179,35 @@ namespace alimer
         _vertexBuffer = new VertexBuffer();
         _vertexBuffer->Define(3, vertexElements, false, ResourceUsage::Immutable, triangleVertices);
 
-        auto shader = new Shader();
-        //shader->Define();
+        auto vertexShader = new Shader();
+        vertexShader->Define(ShaderStage::Vertex, R"(
+        struct VSOuput {
+            float4 Position: SV_Position;
+            float4 Color: COLOR0;
+        };
+        VSOuput main(float4 position : POSITION, float4 color : COLOR) {
+            VSOuput output;
+            output.Position = position;
+            output.Color = color;
+            return output;
+        })"
+        );
+
+        auto fragmentShader = new Shader();
+        fragmentShader->Define(ShaderStage::Fragment, R"(
+        struct VSOuput {
+            float4 Position: SV_Position;
+            float4 Color: COLOR0;
+        };
+        float4 main(VSOuput input) : SV_Target0 {
+            return input.Color;
+        })"
+        );
+
+        // Create pipeline
+        _pipeline = new Pipeline();
+        _pipeline->SetVertexShader(vertexShader);
+        _pipeline->SetFragmentShader(fragmentShader);
 
         ALIMER_LOGINFO("Engine initialized with success");
         _initialized = true;
@@ -243,6 +271,7 @@ namespace alimer
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         context->BeginDefaultRenderPass(clearColor, 1.0f, 0);
         context->SetVertexBuffer(0, _vertexBuffer);
+        context->SetPipeline(_pipeline);
         context->Draw(PrimitiveTopology::TriangleList, 3);
         context->EndRenderPass();
 

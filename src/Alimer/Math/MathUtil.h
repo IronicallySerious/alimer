@@ -278,8 +278,6 @@ namespace alimer
             value &= ~((1u << (bit + range)) - 1);
         }
     }
-
-    //void ComputeTransform(glm::vec3 translation, glm::quat rotation, glm::vec3 scale, glm::mat4 &world, const glm::mat4 &parent);
 }
 
 #ifdef _MSC_VER

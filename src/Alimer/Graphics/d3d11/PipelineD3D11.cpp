@@ -21,6 +21,7 @@
 //
 
 #include "PipelineD3D11.h"
+#include "ShaderD3D11.h"
 #include "GraphicsDeviceD3D11.h"
 #include "../D3D/D3DConvert.h"
 #include "../../Core/Log.h"
@@ -29,12 +30,12 @@ using namespace Microsoft::WRL;
 namespace alimer
 {
     PipelineD3D11::PipelineD3D11(GraphicsDeviceD3D11* device, const RenderPipelineDescriptor* descriptor)
-        : Pipeline(device, descriptor)
-        , _d3dDevice(device->GetD3DDevice())
+        : _d3dDevice(device->GetD3DDevice())
     {
         auto &cache = device->GetCache();
         _blendState = cache.GetBlendState(D3D11_BLEND_ONE, D3D11_BLEND_ZERO);
-
+        _vertexShader = static_cast<ShaderD3D11*>(descriptor->vertexShader->GetHandle())->GetHandle<ID3D11VertexShader>();
+        _pixelShader = static_cast<ShaderD3D11*>(descriptor->fragmentShader->GetHandle())->GetHandle<ID3D11PixelShader>();
         /*for (uint32_t i = 0; i < static_cast<unsigned>(ShaderStage::Count); i++)
         {
             auto shaderModule = descriptor->shaders[i];
@@ -62,21 +63,13 @@ namespace alimer
             default:
                 break;
             }
-        }
-
-        auto vertexShader = descriptor->shaders[static_cast<uint32_t>(ShaderStage::Vertex)];
-        if (vertexShader != nullptr)
-        {
-            _inputLayout = cache.GetInputLayout(vertexShader, descriptor);
         }*/
+
+        auto blob = static_cast<ShaderD3D11*>(descriptor->vertexShader->GetHandle())->GetBlob();
+        _inputLayout = cache.GetInputLayout(blob, descriptor);
     }
 
     PipelineD3D11::~PipelineD3D11()
-    {
-        Destroy();
-    }
-
-    void PipelineD3D11::Destroy()
     {
     }
 }

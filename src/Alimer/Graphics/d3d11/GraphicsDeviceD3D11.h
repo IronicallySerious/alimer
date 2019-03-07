@@ -53,6 +53,7 @@ namespace alimer
         BufferHandle* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) override;
         Sampler* CreateSamplerImpl(const SamplerDescriptor* descriptor);
         ShaderHandle* CreateShaderImpl(ShaderStage stage, const std::string& code, const std::string& entryPoint) override;
+        PipelineHandle* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) override;
 
         void HandleDeviceLost();
 

@@ -22,33 +22,10 @@
 
 #pragma once
 
-#include "../Graphics/Shader.h"
+#include "../Math/Math.h"
+#include <cmath>
 
 namespace alimer
 {
-    class PipelineHandle;
-
-    /// Defines a Pipeline class.
-    class ALIMER_API Pipeline : public GPUResource
-    {
-    public:
-        Pipeline();
-        ~Pipeline() override;
-
-        void SetVertexShader(Shader* shader) { _descriptor.vertexShader = shader; }
-        void SetFragmentShader(Shader* shader) { _descriptor.fragmentShader = shader; }
-
-        /// Get the backend handle computed with hash value.
-        PipelineHandle* GetHandle() const;
-
-        /// Get whether pipeline is compute.
-        bool IsCompute() const { return _isCompute; }
-
-    private:
-        RenderPipelineDescriptor _descriptor;
-        bool _isCompute = false;
-
-        /// Backend handle
-        mutable PipelineHandle* _handle = nullptr;
-    };
 }
+

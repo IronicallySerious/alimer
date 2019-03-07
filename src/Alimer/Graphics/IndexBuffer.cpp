@@ -21,7 +21,6 @@
 //
 
 #include "../Graphics/IndexBuffer.h"
-#include "../Graphics/Backend.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../foundation/Hash.h"
 #include "../Core/Log.h"
