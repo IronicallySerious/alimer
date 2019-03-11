@@ -208,7 +208,6 @@ if __name__ == "__main__":
     if _platform == "desktop":
         logVerbose('Compiler: {}'.format(compiler))
     logVerbose('Action: {}'.format(action))
-    logInfo('Build System: {}-{}'.format(buildSystem, configuration))
 
     multiConfig = (buildSystem.find("vs") == 0)
     if _platform == "desktop":
@@ -270,17 +269,20 @@ if __name__ == "__main__":
                                   (emscriptenToolchain, configuration, emscriptenInstallPrefix))
 
                 # Generate files to run servers
+                if not os.path.exists(os.path.join(buildDir, "bin")):
+                    os.mkdir(os.path.join(buildDir, "bin"))
+
                 _batchFileExt = "sh"
                 if "win" == hostPlatform:
                     _batchFileExt = "bat"
 
                 # Python 2
-                serverFile = open("bin/python_server." + _batchFileExt, "w")
+                serverFile = open(os.path.join(buildDir, "bin", "python_server." + _batchFileExt), "w")
                 serverFile.writelines("python -m SimpleHTTPServer")
                 serverFile.close()
 
                 # Python 3
-                serverFile = open("bin/python_server3." + _batchFileExt, "w")
+                serverFile = open(os.path.join(buildDir, "bin", "python_server3." + _batchFileExt), "w")
                 serverFile.writelines("python -m http.server")
                 serverFile.close()
             elif _platform == "android":
