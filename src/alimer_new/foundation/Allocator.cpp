@@ -20,24 +20,33 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "foundation/Platform.h"
+#include "foundation/Assert.h"
+#include "foundation/Allocator.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 namespace alimer
 {
-    /*class Editor final : public Application
+    class DefaultAlignedAllocator final : public Allocator
     {
-        ALIMER_OBJECT(Editor, Application);
-
     public:
-        explicit Editor();
-        ~Editor() override;
+        void* Allocate(size_t size, size_t align) override;
+        void Deallocate(void* ptr) override;
+    };
 
-    private:
-        void Initialize() override;
-        void OnRenderFrame(double frameTime, double elapsedTime) override;
+    void* DefaultAlignedAllocator::Allocate(size_t size, size_t align)
+    {
+        return ALIMER_ALIGNED_MALLOC(size, align);
+    }
 
-    private:
-    };*/
+    void DefaultAlignedAllocator::Deallocate(void* ptr)
+    {
+        ALIMER_ALIGNED_FREE(ptr);
+    }
+
+    Allocator& DefaultAllocator()
+    {
+        static DefaultAlignedAllocator defaultAllocator;
+        return defaultAllocator;
+    }
 }

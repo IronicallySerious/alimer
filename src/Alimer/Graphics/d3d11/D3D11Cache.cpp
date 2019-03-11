@@ -136,7 +136,7 @@ namespace alimer
     ID3D11InputLayout* D3D11Cache::GetInputLayout(ID3DBlob* blob, const RenderPipelineDescriptor* descriptor)
     {
         Hasher hasher;
-        hasher.Data(blob->GetBufferPointer(), blob->GetBufferSize());
+        //hasher.Data(blob->GetBufferPointer(), blob->GetBufferSize());
         hasher.Data(reinterpret_cast<const uint32_t*>(&descriptor->vertexDescriptor), sizeof(descriptor->vertexDescriptor));
 
         uint64_t hash = hasher.GetValue();

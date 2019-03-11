@@ -27,7 +27,7 @@ alimer_find_source_files(ALL_SOURCE_FILES)
 
 # Define the target.
 add_alimer_executable(${PROJECT_NAME} ${ALL_SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} alimer)
+target_link_libraries(${PROJECT_NAME} alimer_new)
 
 if (WIN32)
     target_link_libraries(${PROJECT_NAME} dbghelp)

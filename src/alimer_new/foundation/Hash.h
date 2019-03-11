@@ -19,25 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
 #pragma once
 
-#include "foundation/Platform.h"
+#include <cstddef>
 
 namespace alimer
 {
-    /*class Editor final : public Application
-    {
-        ALIMER_OBJECT(Editor, Application);
-
-    public:
-        explicit Editor();
-        ~Editor() override;
-
-    private:
-        void Initialize() override;
-        void OnRenderFrame(double frameTime, double elapsedTime) override;
-
-    private:
-    };*/
 }
+

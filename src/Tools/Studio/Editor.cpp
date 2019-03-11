@@ -21,10 +21,14 @@
 //
 
 #include "Editor.h"
+#include "foundation/Assert.h"
+#include "foundation/Array.h"
+#include "foundation/PODVector.h"
+#include "foundation/Vector.h"
 
 namespace alimer
 {
-    Editor::Editor()
+    /*Editor::Editor()
     {
         _engine->GetSettings().title = "Alimer Studio 2018";
         //_engine->GetSettings().gpuSettings = { GraphicsBackend::Vulkan, GpuPreference::HighPerformance, false };
@@ -49,16 +53,40 @@ namespace alimer
         {
             ALIMER_LOGINFO("Mouse left button is held");
         }
-    }
+    }*/
 }
 
 int main(int argc, char** argv)
 {
     using namespace alimer;
 
-    Editor app;
-    int returnCode = app.Run(argc, argv);
-    return returnCode;
+    Array<char, 3> arr = { 'c', 'i', 'a' };
+    auto s = arr.size();
+    for (auto& c : arr)
+    {
+        printf("%d", c);
+    }
+
+    ArrayView<char> view = arr;
+    s = view.size();
+
+    PODVector<uint32_t> tv = { 1, 2, 3 };
+    s = tv.Size();
+    for (auto& c : tv)
+    {
+        printf("%d", c);
+    }
+
+    Vector<uint32_t> cc = { 3, 4, 5 };
+    s = cc.Size();
+    for (auto& c : cc)
+    {
+        printf("%d", c);
+    }
+    //Editor app;
+    //int returnCode = app.Run(argc, argv);
+    //return returnCode;
+    return 0;
 }
 
 #if ALIMER_PLATFORM_WINDOWS
@@ -120,6 +148,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     ALIMER_UNUSED(hPrevInstance);
     ALIMER_UNUSED(lpCmdLine);
     ALIMER_UNUSED(nCmdShow);
+
+#ifdef _MSC_VER
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
     int argc = __argc;
     char** argv = __argv;
     __try

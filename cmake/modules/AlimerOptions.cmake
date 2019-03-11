@@ -64,16 +64,6 @@ option (ALIMER_PROFILING "Enable performance profiling" TRUE)
 
 if (ALIMER_ANDROID OR ALIMER_IOS OR ALIMER_WEB)
     set (ALIMER_TOOLS OFF CACHE INTERNAL "Build tools and editors" FORCE)
-
-    if (ALIMER_WEB)
-        set (EMSCRIPTEN_MEM_INIT_METHOD 1 CACHE STRING "emscripten: how to represent initial memory content (0..2)")
-        set (EMSCRIPTEN_MEMORY_LIMIT 128 CACHE NUMBER "Memory limit in megabytes. Set to 0 for dynamic growth.")
-        set (EMSCRIPTEN_USE_WASM ON CACHE BOOL "Enable WebAssembly support for Web platform.")
-        set (EMSCRIPTEN_MEMORY_GROWTH OFF CACHE BOOL "Allow memory growth. Disables some optimizations.")
-
-        set (ALIMER_WEBGL2 ON CACHE BOOL "Enable WebGL 2.0 support for Web platform.")
-        set (ALIMER_WEB_FILESYSTEM OFF CACHE BOOL  "emscripten: enable FS module" OFF)
-    endif ()
 else()
     option (ALIMER_TOOLS "Build tools and editors" ${ALIMER_DESKTOP})
 endif ()

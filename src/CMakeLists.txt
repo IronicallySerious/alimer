@@ -20,8 +20,11 @@
 # THE SOFTWARE.
 #
 
-# Engine
+# Engine (old)
 add_subdirectory (Alimer)
+
+# Engine
+add_subdirectory (alimer_new)
 
 # Plugins (disabled for now)
 # add_subdirectory (Plugins)
