@@ -172,11 +172,9 @@ namespace alimer
             if (rhs.size_ != size_)
                 return false;
 
-            T* buffer = Buffer();
-            T* rhsBuffer = rhs.Buffer();
-            for (unsigned i = 0; i < size_; ++i)
+            for (uint32_t i = 0; i < size_; ++i)
             {
-                if (buffer[i] != rhsBuffer[i])
+                if (data_[i] != rhs.data_[i])
                     return false;
             }
 
@@ -189,11 +187,9 @@ namespace alimer
             if (rhs.size_ != size_)
                 return true;
 
-            T* buffer = Buffer();
-            T* rhsBuffer = rhs.Buffer();
             for (uint32_t i = 0; i < size_; ++i)
             {
-                if (buffer[i] != rhsBuffer[i])
+                if (data_[i] != rhs.data_[i])
                     return true;
             }
 
@@ -292,19 +288,19 @@ namespace alimer
         }
 
         /// Insert an element at position.
-        void Insert(unsigned pos, const T& value)
+        void Insert(uint32_t pos, const T& value)
         {
             DoInsertElements(pos, &value, &value + 1, CopyTag{});
         }
 
         /// Insert an element at position.
-        void Insert(unsigned pos, T && value)
+        void Insert(uint32_t pos, T && value)
         {
             DoInsertElements(pos, &value, &value + 1, MoveTag{});
         }
 
         /// Insert another vector at position.
-        void Insert(unsigned pos, const Vector<T>& vector)
+        void Insert(uint32_t pos, const Vector<T>& vector)
         {
             DoInsertElements(pos, vector.Begin(), vector.End(), CopyTag{});
         }
@@ -312,40 +308,40 @@ namespace alimer
         /// Insert an element by iterator.
         Iterator Insert(const Iterator& dest, const T& value)
         {
-            auto pos = (unsigned)(dest - Begin());
+            auto pos = (uint32_t)(dest - Begin());
             return DoInsertElements(pos, &value, &value + 1, CopyTag{});
         }
 
         /// Move-insert an element by iterator.
         Iterator Insert(const Iterator& dest, T && value)
         {
-            auto pos = (unsigned)(dest - Begin());
+            auto pos = (uint32_t)(dest - Begin());
             return DoInsertElements(pos, &value, &value + 1, MoveTag{});
         }
 
         /// Insert a vector by iterator.
         Iterator Insert(const Iterator& dest, const Vector<T>& vector)
         {
-            auto pos = (unsigned)(dest - Begin());
+            auto pos = (uint32_t)(dest - Begin());
             return DoInsertElements(pos, vector.Begin(), vector.End(), CopyTag{});
         }
 
         /// Insert a vector partially by iterators.
         Iterator Insert(const Iterator& dest, const ConstIterator& start, const ConstIterator& end)
         {
-            auto pos = (unsigned)(dest - Begin());
+            auto pos = (uint32_t)(dest - Begin());
             return DoInsertElements(pos, start, end, CopyTag{});
         }
 
         /// Insert elements.
         Iterator Insert(const Iterator& dest, const T* start, const T* end)
         {
-            auto pos = (unsigned)(dest - Begin());
+            auto pos = (uint32_t)(dest - Begin());
             return DoInsertElements(pos, start, end, CopyTag{});
         }
 
         /// Erase a range of elements.
-        void Erase(unsigned pos, unsigned length = 1)
+        void Erase(uint32_t pos, uint32_t length = 1)
         {
             // Return if the range is illegal
             if (pos + length > size_ || !length)
@@ -355,15 +351,15 @@ namespace alimer
         }
 
         /// Erase a range of elements by swapping elements from the end of the array.
-        void EraseSwap(unsigned pos, unsigned length = 1)
+        void EraseSwap(uint32_t pos, uint32_t length = 1)
         {
-            unsigned shiftStartIndex = pos + length;
+            uint32_t shiftStartIndex = pos + length;
             // Return if the range is illegal
             if (shiftStartIndex > size_ || !length)
                 return;
 
-            unsigned newSize = size_ - length;
-            unsigned trailingCount = size_ - shiftStartIndex;
+            uint32_t newSize = size_ - length;
+            uint32_t trailingCount = size_ - shiftStartIndex;
             if (trailingCount <= length)
             {
                 // We're removing more elements from the array than exist past the end of the range being removed, so perform a normal shift and destroy
@@ -372,8 +368,7 @@ namespace alimer
             else
             {
                 // Swap elements from the end of the array into the empty space
-                T* buffer = Buffer();
-                std::move(buffer + newSize, buffer + size_, buffer + pos);
+                std::move(data_ + newSize, data_ + size_, data_ + pos);
                 Resize(newSize);
             }
         }
@@ -381,7 +376,7 @@ namespace alimer
         /// Erase an element by iterator. Return iterator to the next element.
         Iterator Erase(const Iterator& it)
         {
-            auto pos = (unsigned)(it - Begin());
+            auto pos = (uint32_t)(it - Begin());
             if (pos >= size_)
                 return End();
             Erase(pos);
@@ -392,10 +387,10 @@ namespace alimer
         /// Erase a range by iterators. Return iterator to the next element.
         Iterator Erase(const Iterator& start, const Iterator& end)
         {
-            auto pos = (unsigned)(start - Begin());
+            auto pos = (uint32_t)(start - Begin());
             if (pos >= size_)
                 return End();
-            auto length = (unsigned)(end - start);
+            auto length = (uint32_t)(end - start);
             Erase(pos, length);
 
             return Begin() + pos;
@@ -410,8 +405,8 @@ namespace alimer
                 Erase(i);
                 return true;
             }
-            else
-                return false;
+
+            return false;
         }
 
         /// Erase an element by value by swapping with the last element. Return true if was found and erased.
@@ -431,19 +426,21 @@ namespace alimer
         void Clear() { Resize(0); }
 
         /// Resize the vector.
-        void Resize(unsigned newSize) { DoResize(newSize); }
+        void Resize(uint32_t newSize) { DoResize(newSize); }
 
         /// Resize the vector and fill new elements with default value.
-        void Resize(unsigned newSize, const T& value)
+        void Resize(uint32_t newSize, const T& value)
         {
-            unsigned oldSize = Size();
+            uint32_t oldSize = Size();
             DoResize(newSize);
-            for (unsigned i = oldSize; i < newSize; ++i)
+            for (uint32_t i = oldSize; i < newSize; ++i)
+            {
                 At(i) = value;
+            }
         }
 
         /// Set new capacity.
-        void Reserve(unsigned newCapacity)
+        void Reserve(uint32_t newCapacity)
         {
             if (newCapacity < size_)
                 newCapacity = size_;
@@ -489,7 +486,7 @@ namespace alimer
         }
 
         /// Return index of value in vector, or size if not found.
-        unsigned IndexOf(const T& value) const
+        uint32_t IndexOf(const T& value) const
         {
             return Find(value) - Begin();
         }
@@ -612,20 +609,20 @@ namespace alimer
             // If size shrinks, destruct the removed elements
             if (newSize < size_)
             {
-                DestructElements(Buffer() + newSize, size_ - newSize);
+                DestructElements(data_ + newSize, size_ - newSize);
             }
             else
             {
                 // Allocate new buffer if necessary and copy the current elements
                 if (newSize > capacity_)
                 {
-                    T* src = Buffer();
+                    T* src = data_;
 
                     // Reallocate vector
                     Vector<T> newVector;
                     newVector.Reserve(CalculateCapacity(newSize, capacity_));
                     newVector.size_ = size_;
-                    T* dest = newVector.Buffer();
+                    T* dest = newVector.data_;
 
                     // Move old elements
                     ConstructElements(dest, src, src + size_, MoveTag{});
@@ -634,7 +631,7 @@ namespace alimer
                 }
 
                 // Initialize the new elements
-                ConstructElements(Buffer() + size_, newSize - size_);
+                ConstructElements(data_ + size_, newSize - size_);
             }
 
             size_ = newSize;
@@ -694,8 +691,7 @@ namespace alimer
         {
             ALIMER_VERIFY(count > 0);
             ALIMER_VERIFY(pos + count <= size_);
-            T* buffer = Buffer();
-            std::move(buffer + pos + count, buffer + size_, buffer + pos);
+            std::move(data_ + pos + count, data_ + size_, data_ + pos);
             Resize(size_ - count);
             return Begin() + pos;
         }

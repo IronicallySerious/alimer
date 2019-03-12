@@ -471,7 +471,7 @@ namespace alimer
         }
 
         /// Return index of value in vector, or size if not found.
-        unsigned IndexOf(const T& value) const
+        uint32_t IndexOf(const T& value) const
         {
             return Find(value) - Begin();
         }
