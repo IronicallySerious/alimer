@@ -56,7 +56,8 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
-define_engine_source_files (foundation)
+define_engine_source_files (foundation core)
+define_engine_source_files (engine)
 
 # Group source code in VS solution
 group_sources()

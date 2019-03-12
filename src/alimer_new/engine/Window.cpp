@@ -20,24 +20,9 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "engine/Application.h"
+#include "engine/Window.h"
 
 namespace alimer
 {
-    class Editor final : public Application
-    {
-        ALIMER_OBJECT(Editor, Application);
 
-    public:
-        explicit Editor(int argc, char** argv);
-        ~Editor() override;
-
-    private:
-        //void Initialize() override;
-        //void OnRenderFrame(double frameTime, double elapsedTime) override;
-
-    private:
-    };
 }

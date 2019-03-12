@@ -22,22 +22,31 @@
 
 #pragma once
 
-#include "engine/Application.h"
+#include "core/Object.h"
 
 namespace alimer
 {
-    class Editor final : public Application
+    class Application;
+
+    /// Platform host for application.
+    class ALIMER_API ApplicationHost
     {
-        ALIMER_OBJECT(Editor, Application);
+    protected:
+        ApplicationHost(Application* application);
 
     public:
-        explicit Editor(int argc, char** argv);
-        ~Editor() override;
+        /// Destructor.
+        virtual ~ApplicationHost() = default;
 
-    private:
-        //void Initialize() override;
-        //void OnRenderFrame(double frameTime, double elapsedTime) override;
+        /// Create host for application.
+        static ApplicationHost* Create(Application* application);
 
-    private:
+        virtual void Run() = 0;
+        virtual void RequestExit() {};
+
+        virtual void ErrorDialog(const String& title, const String& message);
+
+    protected:
+        Application* _application;
     };
 }

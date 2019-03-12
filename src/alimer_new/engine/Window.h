@@ -22,21 +22,20 @@
 
 #pragma once
 
-#include "engine/Application.h"
+#include "core/Object.h"
 
 namespace alimer
 {
-    class Editor final : public Application
+    /// Operating system window.
+    class ALIMER_API Window final : public Object
     {
-        ALIMER_OBJECT(Editor, Application);
+        ALIMER_OBJECT(Window, Object);
 
     public:
-        explicit Editor(int argc, char** argv);
-        ~Editor() override;
-
-    private:
-        //void Initialize() override;
-        //void OnRenderFrame(double frameTime, double elapsedTime) override;
+        /// Construct. Parse default engine parameters from the command line, and create the engine in an uninitialized state.
+        Window();
+        /// Destruct. Close window if open.
+        ~Window();
 
     private:
     };

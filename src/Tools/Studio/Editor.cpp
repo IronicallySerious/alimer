@@ -28,9 +28,10 @@
 
 namespace alimer
 {
-    /*Editor::Editor()
+    Editor::Editor(int argc, char** argv)
+        : Application(argc, argv)
     {
-        _engine->GetSettings().title = "Alimer Studio 2018";
+        //_engine->GetSettings().title = "Alimer Studio 2018";
         //_engine->GetSettings().gpuSettings = { GraphicsBackend::Vulkan, GpuPreference::HighPerformance, false };
     }
 
@@ -39,7 +40,7 @@ namespace alimer
         //ui::ShutdownDock();
     }
 
-    void Editor::Initialize()
+    /*void Editor::Initialize()
     {
         //_engine->GetRenderWindow()->SetTitle("Alimer Studio 2018");
     }
@@ -59,34 +60,9 @@ namespace alimer
 int main(int argc, char** argv)
 {
     using namespace alimer;
-
-    Array<char, 3> arr = { 'c', 'i', 'a' };
-    auto s = arr.size();
-    for (auto& c : arr)
-    {
-        printf("%d", c);
-    }
-
-    ArrayView<char> view = arr;
-    s = view.size();
-
-    PODVector<uint32_t> tv = { 1, 2, 3 };
-    s = tv.Size();
-    for (auto& c : tv)
-    {
-        printf("%d", c);
-    }
-
-    Vector<uint32_t> cc = { 3, 4, 5 };
-    s = cc.Size();
-    for (auto& c : cc)
-    {
-        printf("%d", c);
-    }
-    //Editor app;
-    //int returnCode = app.Run(argc, argv);
-    //return returnCode;
-    return 0;
+    Editor app(argc, argv);
+    int exitCode = app.Run();
+    return exitCode;
 }
 
 #if ALIMER_PLATFORM_WINDOWS

@@ -22,22 +22,21 @@
 
 #pragma once
 
+#include "engine/ApplicationHost.h"
 #include "engine/Application.h"
 
 namespace alimer
 {
-    class Editor final : public Application
+    /// Application host using glfw.
+    class ALIMER_API ApplicationHostGLFW final : public ApplicationHost
     {
-        ALIMER_OBJECT(Editor, Application);
-
     public:
-        explicit Editor(int argc, char** argv);
-        ~Editor() override;
+        ApplicationHostGLFW(Application* application);
 
-    private:
-        //void Initialize() override;
-        //void OnRenderFrame(double frameTime, double elapsedTime) override;
+        /// Destructor.
+        ~ApplicationHostGLFW() override;
 
-    private:
+        void Run() override;
+        void RequestExit() override;
     };
 }

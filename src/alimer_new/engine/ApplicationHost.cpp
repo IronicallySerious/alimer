@@ -20,24 +20,34 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
+#include "engine/ApplicationHost.h"
 #include "engine/Application.h"
+
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
+#endif
 
 namespace alimer
 {
-    class Editor final : public Application
+    ApplicationHost::ApplicationHost(Application* application)
+        : _application(application)
     {
-        ALIMER_OBJECT(Editor, Application);
+       
+    }
 
-    public:
-        explicit Editor(int argc, char** argv);
-        ~Editor() override;
-
-    private:
-        //void Initialize() override;
-        //void OnRenderFrame(double frameTime, double elapsedTime) override;
-
-    private:
-    };
+    void ApplicationHost::ErrorDialog(const String& title, const String& message)
+    {
+#if defined(_WIN32)
+        MessageBoxA(NULL, message.c_str(), title.c_str(), MB_ICONERROR | MB_OK);
+#else
+        ALIMER_UNUSED(title);
+        ALIMER_UNUSED(message);
+#endif
+    }
 }
