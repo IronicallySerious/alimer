@@ -22,6 +22,7 @@
 
 #include "engine/Application.h"
 #include "engine/ApplicationHost.h"
+#include "graphics/GraphicsDeviceFactory.h"
 
 namespace alimer
 {
@@ -51,6 +52,8 @@ namespace alimer
             if (_exitCode) {
                 return _exitCode;
             }
+
+            _graphicsDeviceFactory = GraphicsDeviceFactory::Create(GraphicsBackend::Default, true);
 
             _host->Run();
 

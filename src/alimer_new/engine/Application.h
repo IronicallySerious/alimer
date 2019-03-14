@@ -29,8 +29,9 @@
 namespace alimer
 {
     class ApplicationHost;
+    class GraphicsDeviceFactory;
 
-    /// Base class for creating applications which initialize the Urho3D engine and run a main loop until exited.
+    /// Base class for creating applications which initialize the engine and run a main loop until exited.
     class ALIMER_API Application : public Object
     {
         ALIMER_OBJECT(Application, Object);
@@ -64,6 +65,9 @@ namespace alimer
 
         /// Per platform application host.
         UniquePtr<ApplicationHost> _host;
+
+        /// GraphicsDevice factory
+        UniquePtr<GraphicsDeviceFactory> _graphicsDeviceFactory;
 
         /// Application exit code.
         int _exitCode;

@@ -59,6 +59,8 @@ namespace alimer
 
     void ApplicationHostGLFW::Run()
     {
+        //_application->InitializeBeforeRun();
+
         // WIP
         auto window = glfwCreateWindow(800, 600, "Alimer Window", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);

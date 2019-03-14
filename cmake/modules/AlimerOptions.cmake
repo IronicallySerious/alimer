@@ -46,24 +46,3 @@ foreach(key ${ENVIRONMENT})
         endif ()
     endif ()
 endforeach()
-
-include (CMakeDependentOption)
-option (ALIMER_ENABLE_ALL "Enables all optional subsystems by default" OFF)
-
-# Enable features user has chosen
-foreach(FEATURE in ${ALIMER_FEATURES})
-    set (ALIMER_${FEATURE} ON CACHE BOOL "" FORCE)
-endforeach()
-
-if (ALIMER_WINDOWS OR ALIMER_LINUX OR ALIMER_ANDROID)
-    set (ALIMER_VULKAN_DEFAULT ON)
-endif ()
-
-# Setup options
-option (ALIMER_PROFILING "Enable performance profiling" TRUE)
-
-if (ALIMER_ANDROID OR ALIMER_IOS OR ALIMER_WEB)
-    set (ALIMER_TOOLS OFF CACHE INTERNAL "Build tools and editors" FORCE)
-else()
-    option (ALIMER_TOOLS "Build tools and editors" ${ALIMER_DESKTOP})
-endif ()

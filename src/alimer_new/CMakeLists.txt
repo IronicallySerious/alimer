@@ -58,6 +58,15 @@ endmacro()
 
 define_engine_source_files (foundation core)
 define_engine_source_files (engine)
+define_engine_source_files (NORECURSE graphics)
+
+if (ALIMER_OPENGL)
+    define_engine_source_files(graphics/opengl)
+endif ()
+
+if (ALIMER_D3D12)
+    define_engine_source_files(graphics/d3d12)
+endif ()
 
 # Group source code in VS solution
 group_sources()
@@ -75,6 +84,10 @@ target_include_directories(${TARGET_NAME}
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
+
+if (ALIMER_D3D12)
+    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_D3D12)
+endif ()
 
 if (ALIMER_DESKTOP)
     target_link_libraries(${TARGET_NAME} PRIVATE glfw)
