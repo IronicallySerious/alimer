@@ -37,6 +37,7 @@ namespace alimer
         ~ApplicationHostGLFW() override;
 
         void Run() override;
-        void RequestExit() override;
+
+        UniquePtr<Window> CreateWindow(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen) override;
     };
 }

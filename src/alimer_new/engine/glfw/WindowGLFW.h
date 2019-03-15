@@ -22,29 +22,23 @@
 
 #pragma once
 
-#include "BackendD3D12.h"
-#include "graphics/GraphicsDevice.h"
+#include "engine/Window.h"
+struct GLFWwindow;
 
 namespace alimer
 {
-    class GraphicsDeviceFactoryD3D12;
-
-    /// D3D12 backend
-    class ALIMER_API GraphicsDeviceD3D12 final : public GraphicsDevice
+    /// Window implementation using glfw.
+    class ALIMER_API WindowGLFW final : public Window
     {
     public:
-        GraphicsDeviceD3D12(GraphicsDeviceFactoryD3D12* factory, ComPtr<IDXGIAdapter1> adapter);
-        ~GraphicsDeviceD3D12() override;
+        WindowGLFW(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen);
 
-        SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
+        /// Destructor.
+        ~WindowGLFW() override;
+
+        void Close() override;
 
     private:
-        void InitializeCaps();
-
-    private:
-        GraphicsDeviceFactoryD3D12* _factory;
-        ComPtr<IDXGIAdapter1> _adapter;
-        ComPtr<ID3D12Device> _device;
-        D3D_FEATURE_LEVEL _featureLevel;
+        GLFWwindow* _window;
     };
 }

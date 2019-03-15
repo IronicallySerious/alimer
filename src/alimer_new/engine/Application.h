@@ -28,12 +28,16 @@
 
 namespace alimer
 {
+    class Window;
     class ApplicationHost;
+    class GraphicsDevice;
     class GraphicsDeviceFactory;
 
     /// Base class for creating applications which initialize the engine and run a main loop until exited.
     class ALIMER_API Application : public Object
     {
+        friend class ApplicationHost;
+
         ALIMER_OBJECT(Application, Object);
 
     protected:
@@ -43,8 +47,20 @@ namespace alimer
         /// Destructor.
         ~Application() override;
 
-        /// Initialize the engine and run the main loop, then return the application exit code.
+        /// Get the current active application.
+        static Application* Current();
+
+        /// Initialize all sub systems, graphics device, input, audio and run the main loop, then return the application exit code.
         int Run();
+
+        /// Request the application to exit.
+        void RequestExit();
+
+        /// Tick one rendering frame.
+        void Tick();
+
+        /// Get the main window.
+        Window* GetMainWindow() const { return _mainWindow.Get(); }
 
     protected:
         /// Setup before engine initialization. This is a chance to eg. modify the engine parameters. Call ErrorExit() to terminate without initializing the engine.
@@ -59,6 +75,10 @@ namespace alimer
         /// Show an error message (last log message if empty), terminate the main loop, and set failure exit code.
         void ErrorExit(const String& message = "");
 
+    private:
+        /// Called by ApplicationHost to setup everything before running main loop.
+        void InitializeBeforeRun();
+
     protected:
         /// Command line arguments.
         Vector<String> _args;
@@ -66,8 +86,12 @@ namespace alimer
         /// Per platform application host.
         UniquePtr<ApplicationHost> _host;
 
-        /// GraphicsDevice factory
+        /// Main window.
+        UniquePtr<Window> _mainWindow;
+
+        /// GraphicsDevice factory.
         UniquePtr<GraphicsDeviceFactory> _graphicsDeviceFactory;
+        UniquePtr<GraphicsDevice> _graphicsDevice;
 
         /// Application exit code.
         int _exitCode;

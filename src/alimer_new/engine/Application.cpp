@@ -22,10 +22,13 @@
 
 #include "engine/Application.h"
 #include "engine/ApplicationHost.h"
+#include "engine/Window.h"
+#include "graphics/GraphicsDevice.h"
 #include "graphics/GraphicsDeviceFactory.h"
 
 namespace alimer
 {
+    static Application* s_currentApplication = nullptr;
     Application::Application(int argc, char** argv)
         : _exitCode(EXIT_SUCCESS)
     {
@@ -35,11 +38,18 @@ namespace alimer
         }
 
         _host.Reset(ApplicationHost::Create(this));
+        s_currentApplication = this;
     }
 
     Application::~Application()
     {
         _host = nullptr;
+        s_currentApplication = nullptr;
+    }
+
+    Application* Application::Current()
+    {
+        return s_currentApplication;
     }
 
     int Application::Run()
@@ -53,8 +63,10 @@ namespace alimer
                 return _exitCode;
             }
 
-            _graphicsDeviceFactory = GraphicsDeviceFactory::Create(GraphicsBackend::Default, true);
+            // Create main window
+            _mainWindow = _host->CreateWindow("alimer", 800, 600, true, false);
 
+            _graphicsDeviceFactory = GraphicsDeviceFactory::Create(GraphicsBackend::Default, true);
             _host->Run();
 
             /*if (!_engine->Initialize(_args))
@@ -85,6 +97,22 @@ namespace alimer
 #endif
     }
 
+    void Application::RequestExit()
+    {
+        _host->RequestExit();
+    }
+
+    void Application::InitializeBeforeRun()
+    {
+        AdapterDescriptor adapterDescription = {};
+        _graphicsDevice = _graphicsDeviceFactory->CreateDevice(&adapterDescription);
+    }
+
+    void Application::Tick()
+    {
+
+    }
+
     void Application::ErrorExit(const String& message)
     {
         _host->RequestExit();
@@ -99,4 +127,5 @@ namespace alimer
             _host->ErrorDialog(GetTypeName(), message);
         }
     }
+
 }

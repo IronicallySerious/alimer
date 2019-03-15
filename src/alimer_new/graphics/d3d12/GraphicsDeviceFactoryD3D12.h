@@ -22,26 +22,8 @@
 
 #pragma once
 
+#include "BackendD3D12.h"
 #include "graphics/GraphicsDeviceFactory.h"
-
-#if defined(_DURANGO) || defined(_XBOX_ONE)
-#   define ALIMER_D3D12_DYNAMIC_LIB 0
-#elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
-#   define ALIMER_D3D12_DYNAMIC_LIB 0
-#elif defined(_WIN64) || defined(_WIN32)
-#   define ALIMER_D3D12_DYNAMIC_LIB 1
-#endif
-
-#include <wrl/client.h>
-
-#if defined(NTDDI_WIN10_RS2)
-#    include <dxgi1_6.h>
-#elif defined(NTDDI_WIN10_RS2)
-#    include <dxgi1_5.h>
-#else
-#   include <dxgi1_4.h>
-#endif
-#include <d3d12.h>
 
 namespace alimer
 {
@@ -49,10 +31,19 @@ namespace alimer
     class ALIMER_API GraphicsDeviceFactoryD3D12 final : public GraphicsDeviceFactory
     {
     public:
+        static bool IsSupported();
+        /// Constructor.
         GraphicsDeviceFactoryD3D12(bool validation);
         /// Destructor.
         ~GraphicsDeviceFactoryD3D12() override;
 
+        GraphicsDevice* CreateDeviceImpl(const AdapterDescriptor* adapterDescription) override;
+        SwapChainSurface* CreateSurfaceFromWin32Impl(void *hInstance, void *hWnd) override;
+
     private:
+        static void GetAdapter(_In_ IDXGIFactory2* factory, PowerPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter);
+
+        Microsoft::WRL::ComPtr<IDXGIFactory4> _factory;
+        bool _allowTearing = false;
     };
 }

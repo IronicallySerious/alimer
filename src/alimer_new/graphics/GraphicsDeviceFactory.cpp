@@ -21,6 +21,15 @@
 //
 
 #include "graphics/GraphicsDeviceFactory.h"
+#if defined(_WIN32)
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#   ifndef WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#   endif
+#   include <Windows.h>
+#endif
 
 #if ALIMER_D3D12
 #   include "graphics/d3d12/GraphicsDeviceFactoryD3D12.h"
@@ -57,5 +66,27 @@ namespace alimer
             ALIMER_UNREACHABLE();
             break;
         }
+    }
+
+    GraphicsDevice* GraphicsDeviceFactory::CreateDevice(const AdapterDescriptor* adapterDescription)
+    {
+        ALIMER_ASSERT(adapterDescription);
+
+        return CreateDeviceImpl(adapterDescription);
+    }
+
+    SwapChainSurface* GraphicsDeviceFactory::CreateSurfaceFromWin32(void *hInstance, void *hWnd)
+    {
+#if defined(_WIN32)
+        if (!IsWindow((HWND)hWnd))
+        {
+            ALIMER_ASSERT_MSG(false, "Invalid hWnd handle");
+        }
+
+        return CreateSurfaceFromWin32Impl(hInstance, hWnd);
+#else
+        ALIMER_ASSERT_MSG(false, "CreateSurfaceFromWin32 is supported only on Win32 operating system");
+        return nullptr;
+#endif
     }
 }

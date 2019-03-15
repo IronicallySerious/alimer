@@ -23,6 +23,7 @@
 #pragma once
 
 #include "foundation/Vector.h"
+#include "graphics/SwapChain.h"
 
 namespace alimer
 {
@@ -33,6 +34,11 @@ namespace alimer
         HighPerformance = 2,
     };
 
+    struct AdapterDescriptor
+    {
+        PowerPreference powerPreference = PowerPreference::Default;
+    };
+
     enum class GraphicsBackend
     {
         Default = 0,
@@ -40,6 +46,7 @@ namespace alimer
         Direct3D12
     };
 
+    class GraphicsDevice;
     class ALIMER_API GraphicsDeviceFactory
     {
     protected:
@@ -49,9 +56,19 @@ namespace alimer
         /// Destructor.
         virtual ~GraphicsDeviceFactory() = default;
 
+        /// Create GraphicsDeviceFactory instance.
         static GraphicsDeviceFactory* Create(GraphicsBackend preferredBackend, bool validation);
 
+        GraphicsDevice* CreateDevice(const AdapterDescriptor* adapterDescription);
+        SwapChainSurface* CreateSurfaceFromWin32(void *hInstance, void *hWnd);
+
+        bool Validation() const { return _validation; }
+
     protected:
+        virtual GraphicsDevice* CreateDeviceImpl(const AdapterDescriptor* adapterDescription) = 0;
+        virtual SwapChainSurface* CreateSurfaceFromWin32Impl(void *hInstance, void *hWnd) = 0;
+
         GraphicsBackend _backend = GraphicsBackend::Null;
+        bool _validation = false;
     };
 }

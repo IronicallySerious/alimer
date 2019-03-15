@@ -22,29 +22,38 @@
 
 #pragma once
 
-#include "BackendD3D12.h"
-#include "graphics/GraphicsDevice.h"
+#include "graphics/PixelFormat.h"
 
 namespace alimer
 {
-    class GraphicsDeviceFactoryD3D12;
-
-    /// D3D12 backend
-    class ALIMER_API GraphicsDeviceD3D12 final : public GraphicsDevice
+    struct SwapChainDescriptor
     {
+        //TextureUsageFlags usage;
+        PixelFormat format;
+        uint32_t width;
+        uint32_t height;
+    };
+
+    class ALIMER_API SwapChainSurface
+    {
+    protected:
+        SwapChainSurface();
+
     public:
-        GraphicsDeviceD3D12(GraphicsDeviceFactoryD3D12* factory, ComPtr<IDXGIAdapter1> adapter);
-        ~GraphicsDeviceD3D12() override;
+        /// Destructor.
+        virtual ~SwapChainSurface() = default;
+    };
 
-        SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
+    class ALIMER_API SwapChain
+    {
+    protected:
+        SwapChain();
 
-    private:
-        void InitializeCaps();
+    public:
+        /// Destructor.
+        virtual ~SwapChain() = default;
 
-    private:
-        GraphicsDeviceFactoryD3D12* _factory;
-        ComPtr<IDXGIAdapter1> _adapter;
-        ComPtr<ID3D12Device> _device;
-        D3D_FEATURE_LEVEL _featureLevel;
+    protected:
+       
     };
 }

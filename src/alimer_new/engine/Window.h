@@ -27,16 +27,28 @@
 namespace alimer
 {
     /// Operating system window.
-    class ALIMER_API Window final : public Object
+    class ALIMER_API Window : public Object
     {
         ALIMER_OBJECT(Window, Object);
 
-    public:
-        /// Construct. Parse default engine parameters from the command line, and create the engine in an uninitialized state.
-        Window();
-        /// Destruct. Close window if open.
-        ~Window();
+    protected:
+        /// Constructor.
+        Window(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen);
 
-    private:
+    public:
+        /// Destructor. Close window if open.
+        virtual ~Window() = default;
+
+        virtual void Close();
+
+        bool IsOpen() const { return _isOpen; }
+
+    protected:
+        String _title;
+        uint32_t _width;
+        uint32_t _height;
+        bool _resizable;
+        bool _fullscreen;
+        bool _isOpen;
     };
 }

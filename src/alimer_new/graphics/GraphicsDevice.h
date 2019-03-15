@@ -22,18 +22,11 @@
 
 #pragma once
 
-#include "foundation/Vector.h"
+#include "graphics/SwapChain.h"
 
 namespace alimer
 {
-    enum class PowerPreference
-    {
-        Default = 0,
-        LowPower = 1,
-        HighPerformance = 2,
-    };
-
-    class ALIMER_API GraphicsDevice 
+    class ALIMER_API GraphicsDevice
     {
     protected:
         GraphicsDevice();
@@ -42,9 +35,8 @@ namespace alimer
         /// Destructor.
         virtual ~GraphicsDevice() = default;
 
-        GraphicsDevice* Create(bool validation);
-
+        SwapChain* CreateSwapChain(SwapChainSurface* surface, const SwapChainDescriptor* descriptor);
     protected:
-       
+        virtual SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) = 0;
     };
 }

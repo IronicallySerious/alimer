@@ -50,4 +50,14 @@ namespace alimer
         ALIMER_UNUSED(message);
 #endif
     }
+
+    void ApplicationHost::RequestExit()
+    {
+        _exitRequested = true;
+    }
+
+	void ApplicationHost::InitializeApplication()
+	{
+        _application->InitializeBeforeRun();
+	}
 }

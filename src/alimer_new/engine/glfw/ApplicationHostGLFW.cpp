@@ -24,6 +24,7 @@
 
 #if defined(_WIN32) || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
 #include "ApplicationHostGLFW.h"
+#include "WindowGLFW.h"
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
@@ -59,27 +60,20 @@ namespace alimer
 
     void ApplicationHostGLFW::Run()
     {
-        //_application->InitializeBeforeRun();
+        InitializeApplication();
 
-        // WIP
-        auto window = glfwCreateWindow(800, 600, "Alimer Window", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-
-        while (!glfwWindowShouldClose(window))
+        while (!_exitRequested)
         {
-            //processInput(window);
-            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            {
-                glfwSetWindowShouldClose(window, true);
-            }
+            _application->Tick();
 
+            // Pool glfw events.
             glfwPollEvents();
         }
     }
 
-    void ApplicationHostGLFW::RequestExit()
+    UniquePtr<Window> ApplicationHostGLFW::CreateWindow(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
     {
-
+        return UniquePtr<Window>(new WindowGLFW(title, width, height, resizable, fullscreen));
     }
 
     ApplicationHost* ApplicationHost::Create(Application* application)

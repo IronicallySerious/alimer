@@ -27,4 +27,11 @@ namespace alimer
     GraphicsDevice::GraphicsDevice()
     {
     }
+
+    SwapChain* GraphicsDevice::CreateSwapChain(SwapChainSurface* surface, const SwapChainDescriptor* descriptor)
+    {
+        ALIMER_ASSERT(surface);
+        ALIMER_ASSERT(descriptor);
+        return CreateSwapChainImpl(surface, descriptor);
+    }
 }

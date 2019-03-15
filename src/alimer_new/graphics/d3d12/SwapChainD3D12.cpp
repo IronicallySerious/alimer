@@ -20,31 +20,33 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "BackendD3D12.h"
-#include "graphics/GraphicsDevice.h"
+#include "SwapChainD3D12.h"
+#include "GraphicsDeviceD3D12.h"
 
 namespace alimer
 {
-    class GraphicsDeviceFactoryD3D12;
-
-    /// D3D12 backend
-    class ALIMER_API GraphicsDeviceD3D12 final : public GraphicsDevice
+    SwapChainSurfaceD3D12::SwapChainSurfaceD3D12(void *hInstance, void *hWnd)
+        : _hInstance((HINSTANCE)hInstance)
+        , _hWnd((HWND)hWnd)
     {
-    public:
-        GraphicsDeviceD3D12(GraphicsDeviceFactoryD3D12* factory, ComPtr<IDXGIAdapter1> adapter);
-        ~GraphicsDeviceD3D12() override;
+        if (!IsWindow(_hWnd))
+        {
+            ALIMER_ASSERT_MSG(false, "Invalid hWnd handle");
+        }
+        RECT rect;
+        GetClientRect(_hWnd, &rect);
+        _width = static_cast<uint32_t>(rect.right - rect.left);
+        _height = static_cast<uint32_t>(rect.bottom - rect.top);
+    }
 
-        SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
+    SwapChainD3D12::SwapChainD3D12(SwapChainSurface* surface, const SwapChainDescriptor* descriptor)
+        : SwapChain()
+    {
 
-    private:
-        void InitializeCaps();
+    }
 
-    private:
-        GraphicsDeviceFactoryD3D12* _factory;
-        ComPtr<IDXGIAdapter1> _adapter;
-        ComPtr<ID3D12Device> _device;
-        D3D_FEATURE_LEVEL _featureLevel;
-    };
+    SwapChainD3D12::~SwapChainD3D12()
+    {
+    }
+
 }

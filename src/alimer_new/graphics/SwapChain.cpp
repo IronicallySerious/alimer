@@ -20,31 +20,16 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "BackendD3D12.h"
-#include "graphics/GraphicsDevice.h"
+#include "graphics/SwapChain.h"
 
 namespace alimer
 {
-    class GraphicsDeviceFactoryD3D12;
-
-    /// D3D12 backend
-    class ALIMER_API GraphicsDeviceD3D12 final : public GraphicsDevice
+    SwapChainSurface::SwapChainSurface()
     {
-    public:
-        GraphicsDeviceD3D12(GraphicsDeviceFactoryD3D12* factory, ComPtr<IDXGIAdapter1> adapter);
-        ~GraphicsDeviceD3D12() override;
 
-        SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
+    }
 
-    private:
-        void InitializeCaps();
-
-    private:
-        GraphicsDeviceFactoryD3D12* _factory;
-        ComPtr<IDXGIAdapter1> _adapter;
-        ComPtr<ID3D12Device> _device;
-        D3D_FEATURE_LEVEL _featureLevel;
-    };
+    SwapChain::SwapChain()
+    {
+    }
 }

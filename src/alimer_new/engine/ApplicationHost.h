@@ -22,10 +22,12 @@
 
 #pragma once
 
+#include "foundation/UniquePtr.h"
 #include "core/Object.h"
 
 namespace alimer
 {
+    class Window;
     class Application;
 
     /// Platform host for application.
@@ -42,11 +44,17 @@ namespace alimer
         static ApplicationHost* Create(Application* application);
 
         virtual void Run() = 0;
-        virtual void RequestExit() {};
+        virtual void RequestExit();
 
         virtual void ErrorDialog(const String& title, const String& message);
 
+        virtual UniquePtr<Window> CreateWindow(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen) = 0;
+
+    protected:
+        void InitializeApplication();
+
     protected:
         Application* _application;
+        bool _exitRequested = false;
     };
 }
