@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2019 Amer Koleci and contributors.
+// Copyright (c) 2008-2019 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,51 +20,9 @@
 // THE SOFTWARE.
 //
 
-#include "core/Object.h"
-#include "foundation/Hash.h"
+#include "foundation/Utils.h"
+using namespace std;
 
 namespace alimer
 {
-    TypeInfo::TypeInfo(const char* typeName, const TypeInfo* baseTypeInfo)
-        : _typeName(typeName)
-        , _type(Hash(_typeName))
-        , _baseTypeInfo(baseTypeInfo)
-    {
-    }
-
-    Object::Object()
-    {
-    }
-
-    Object::~Object()
-    {
-    }
-
-    bool TypeInfo::IsTypeOf(size_t type) const
-    {
-        const TypeInfo* current = this;
-        while (current)
-        {
-            if (current->GetType() == type)
-                return true;
-
-            current = current->GetBaseTypeInfo();
-        }
-
-        return false;
-    }
-
-    bool TypeInfo::IsTypeOf(const TypeInfo* typeInfo) const
-    {
-        const TypeInfo* current = this;
-        while (current)
-        {
-            if (current == typeInfo)
-                return true;
-
-            current = current->GetBaseTypeInfo();
-        }
-
-        return false;
-    }
 }

@@ -34,6 +34,8 @@ static void glfwErrorCallback(int error, const char *description)
     //ALIMER_LOGERROR("[GLFW3 Error] Code: %i Decription: %s", error, description);
 }
 
+using namespace std;
+
 namespace alimer
 {
     ApplicationHostGLFW::ApplicationHostGLFW(Application* application)
@@ -62,7 +64,8 @@ namespace alimer
     {
         InitializeApplication();
 
-        while (!_exitRequested)
+        while (!_exitRequested
+            && _application->GetMainWindow()->IsOpen())
         {
             _application->Tick();
 
@@ -71,9 +74,9 @@ namespace alimer
         }
     }
 
-    UniquePtr<Window> ApplicationHostGLFW::CreateWindow(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
+    unique_ptr<Window> ApplicationHostGLFW::CreateWindow(const string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
     {
-        return UniquePtr<Window>(new WindowGLFW(title, width, height, resizable, fullscreen));
+        return make_unique<WindowGLFW>(title, width, height, resizable, fullscreen);
     }
 
     ApplicationHost* ApplicationHost::Create(Application* application)

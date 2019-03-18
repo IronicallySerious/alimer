@@ -33,7 +33,7 @@ namespace alimer
     static void Glfw_FramebufferSizeCallback(GLFWwindow *handle, int width, int height)
     {
         WindowGLFW* window = static_cast<WindowGLFW *>(glfwGetWindowUserPointer(handle));
-        ALIMER_ASSERT(width != 0 && height != 0);
+        //ALIMER_ASSERT(width != 0 && height != 0);
         //window->NotifyResize(width, height);
     }
 
@@ -46,7 +46,7 @@ namespace alimer
         }
     }
 
-    WindowGLFW::WindowGLFW(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
+    WindowGLFW::WindowGLFW(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
         : Window(title, width, height, resizable, fullscreen)
     {
         GLFWmonitor* monitor = nullptr;
@@ -92,7 +92,11 @@ namespace alimer
     void WindowGLFW::Close()
     {
         glfwSetWindowShouldClose(_window, GLFW_TRUE);
-        _isOpen = false;
+    }
+
+    bool WindowGLFW::IsOpen() const
+    {
+        return !glfwWindowShouldClose(_window);
     }
 }
 #endif

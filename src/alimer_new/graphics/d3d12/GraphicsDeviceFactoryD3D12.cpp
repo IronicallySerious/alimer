@@ -23,6 +23,7 @@
 #include "GraphicsDeviceFactoryD3D12.h"
 #include "GraphicsDeviceD3D12.h"
 #include "SwapChainD3D12.h"
+#include "foundation/Utils.h"
 
 #ifdef _DEBUG
 #if !defined(_XBOX_ONE) || !defined(_TITLE) || !defined(_DURANGO)
@@ -130,7 +131,7 @@ namespace alimer
 #endif
 
         // Create temp dxgi factory for check support.
-        ComPtr<IDXGIFactory4> factory;
+        IDXGIFactory4* factory;
         HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
         if (FAILED(hr))
         {
@@ -138,9 +139,11 @@ namespace alimer
             return false;
         }
 
-        ComPtr<IDXGIAdapter1> hardwareAdapter;
-        GetAdapter(factory.Get(), PowerPreference::Default, &hardwareAdapter);
+        IDXGIAdapter1* hardwareAdapter;
+        GetAdapter(factory, PowerPreference::Default, &hardwareAdapter);
         isAvailable = hardwareAdapter != nullptr;
+        SafeRelease(hardwareAdapter);
+        ALIMER_VERIFY(factory->Release() == 0);
         return isAvailable;
     }
 
@@ -155,20 +158,22 @@ namespace alimer
         // Enable the debug layer (requires the Graphics Tools "optional feature").
         if (validation)
         {
-            ComPtr<ID3D12Debug> debugController;
+            ID3D12Debug* debugController;
             if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
             {
                 debugController->EnableDebugLayer();
 
-                ComPtr<ID3D12Debug1> d3d12debug1;
-                if (SUCCEEDED(debugController.As(&d3d12debug1)))
+                ID3D12Debug1* d3d12debug1;
+                if (SUCCEEDED(debugController->QueryInterface(&d3d12debug1)))
                 {
                     d3d12debug1->SetEnableGPUBasedValidation(true);
+                    d3d12debug1->Release();
                 }
 
                 // Enable additional debug layers.
                 dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
                 _validation = true;
+                debugController->Release();
             }
             else
             {
@@ -193,24 +198,27 @@ namespace alimer
             {
                 _allowTearing = true;
             }
+
+            factory5->Release();
         }
     }
 
     GraphicsDeviceFactoryD3D12::~GraphicsDeviceFactoryD3D12()
     {
+        ALIMER_VERIFY(_factory->Release() == 0);
     }
 
     void GraphicsDeviceFactoryD3D12::GetAdapter(_In_ IDXGIFactory2* factory, PowerPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
     {
-        ComPtr<IDXGIAdapter1> adapter;
+        IDXGIAdapter1* adapter;
         *ppAdapter = nullptr;
 
 #if defined(__dxgi1_6_h__) && defined(NTDDI_WIN10_RS4)
-        ComPtr<IDXGIFactory6> factory6;
-        if (SUCCEEDED(factory->QueryInterface(factory6.ReleaseAndGetAddressOf())))
+        IDXGIFactory6* factory6;
+        if (SUCCEEDED(factory->QueryInterface(&factory6)))
         {
             auto dxgiGpuPreference = GetDXGIGpuPreference(preference);
-            for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex, dxgiGpuPreference, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())); adapterIndex++)
+            for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex, dxgiGpuPreference, IID_PPV_ARGS(&adapter)); adapterIndex++)
             {
                 DXGI_ADAPTER_DESC1 desc;
                 adapter->GetDesc1(&desc);
@@ -222,17 +230,18 @@ namespace alimer
                 }
 
                 // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-                if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+                if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
                 {
                     break;
                 }
             }
+            factory6->Release();
         }
         else
         {
 #endif
             ALIMER_UNUSED(preference);
-            for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, adapter.ReleaseAndGetAddressOf()); ++adapterIndex)
+            for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, &adapter); ++adapterIndex)
             {
                 DXGI_ADAPTER_DESC1 desc;
                 adapter->GetDesc1(&desc);
@@ -244,20 +253,20 @@ namespace alimer
                 }
 
                 // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-                if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+                if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
                 {
                     break;
                 }
             }
         }
 
-        *ppAdapter = adapter.Detach();
+        *ppAdapter = adapter;
     }
 
     GraphicsDevice* GraphicsDeviceFactoryD3D12::CreateDeviceImpl(const AdapterDescriptor* adapterDescription)
     {
-        ComPtr<IDXGIAdapter1> adapter;
-        GetAdapter(_factory.Get(), adapterDescription->powerPreference, &adapter);
+        IDXGIAdapter1* adapter;
+        GetAdapter(_factory, adapterDescription->powerPreference, &adapter);
 
         return new GraphicsDeviceD3D12(this, adapter);
     }

@@ -23,8 +23,8 @@
 #pragma once
 
 #include "core/Object.h"
-#include "foundation/Vector.h"
-#include "foundation/UniquePtr.h"
+#include <memory>
+#include <vector>
 
 namespace alimer
 {
@@ -60,20 +60,20 @@ namespace alimer
         void Tick();
 
         /// Get the main window.
-        Window* GetMainWindow() const { return _mainWindow.Get(); }
+        Window* GetMainWindow() const { return _mainWindow.get(); }
 
     protected:
         /// Setup before engine initialization. This is a chance to eg. modify the engine parameters. Call ErrorExit() to terminate without initializing the engine.
         virtual void Setup() { }
 
         /// Setup after engine initialization and before running the main loop. Call ErrorExit() to terminate without running the main loop.
-        virtual void Start() { }
+        virtual void Initialize() { }
 
         /// Cleanup after the main loop. Called by Application.
         virtual void Stop() { }
 
         /// Show an error message (last log message if empty), terminate the main loop, and set failure exit code.
-        void ErrorExit(const String& message = "");
+        void ErrorExit(const std::string& message = "");
 
     private:
         /// Called by ApplicationHost to setup everything before running main loop.
@@ -81,17 +81,17 @@ namespace alimer
 
     protected:
         /// Command line arguments.
-        Vector<String> _args;
+        std::vector<std::string> _args;
 
         /// Per platform application host.
-        UniquePtr<ApplicationHost> _host;
+        std::unique_ptr<ApplicationHost> _host;
 
         /// Main window.
-        UniquePtr<Window> _mainWindow;
+        std::unique_ptr<Window> _mainWindow;
 
         /// GraphicsDevice factory.
-        UniquePtr<GraphicsDeviceFactory> _graphicsDeviceFactory;
-        UniquePtr<GraphicsDevice> _graphicsDevice;
+        GraphicsDeviceFactory* _graphicsDeviceFactory = nullptr;
+        GraphicsDevice* _graphicsDevice = nullptr;
 
         /// Application exit code.
         int _exitCode;

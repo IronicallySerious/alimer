@@ -38,6 +38,6 @@ namespace alimer
 
         void Run() override;
 
-        UniquePtr<Window> CreateWindow(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen) override;
+        std::unique_ptr<Window> CreateWindow(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen) override;
     };
 }

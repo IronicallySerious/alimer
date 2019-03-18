@@ -23,10 +23,11 @@
 #include "GraphicsDeviceD3D12.h"
 #include "GraphicsDeviceFactoryD3D12.h"
 #include "SwapChainD3D12.h"
+#include "foundation/Utils.h"
 
 namespace alimer
 {
-    GraphicsDeviceD3D12::GraphicsDeviceD3D12(GraphicsDeviceFactoryD3D12* factory, ComPtr<IDXGIAdapter1> adapter)
+    GraphicsDeviceD3D12::GraphicsDeviceD3D12(GraphicsDeviceFactoryD3D12* factory, IDXGIAdapter1* adapter)
         : _factory(factory)
         , _adapter(adapter)
     {
@@ -34,7 +35,7 @@ namespace alimer
         adapter->GetDesc1(&desc);
         //WriteLog("Creating DX12 device on adapter '%ls'", desc.Description);
 
-        ThrowIfFailed(D3D12CreateDevice(_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&_device)));
+        ThrowIfFailed(D3D12CreateDevice(_adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&_device)));
 
         // Check the maximum feature level, and make sure it's above our minimum
         D3D_FEATURE_LEVEL featureLevelsArray[4];
@@ -58,8 +59,8 @@ namespace alimer
         if (_factory->Validation())
         {
             // Configure debug device (if active).
-            ComPtr<ID3D12InfoQueue> infoQueue;
-            if (SUCCEEDED(_device.As(&infoQueue)))
+            ID3D12InfoQueue* infoQueue;
+            if (SUCCEEDED(_device->QueryInterface(&infoQueue)))
             {
                 D3D12_MESSAGE_ID hide[] =
                 {
@@ -77,6 +78,8 @@ namespace alimer
                 infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
                 infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
                 //infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+
+                ALIMER_VERIFY(infoQueue->Release() == 0);
             }
         }
 #endif
@@ -86,6 +89,8 @@ namespace alimer
 
     GraphicsDeviceD3D12::~GraphicsDeviceD3D12()
     {
+        SafeRelease(_device);
+        SafeRelease(_adapter);
     }
 
     SwapChain* GraphicsDeviceD3D12::CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor)

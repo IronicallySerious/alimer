@@ -20,51 +20,15 @@
 // THE SOFTWARE.
 //
 
-#include "core/Object.h"
-#include "foundation/Hash.h"
+#include "core/Log.h"
 
 namespace alimer
 {
-    TypeInfo::TypeInfo(const char* typeName, const TypeInfo* baseTypeInfo)
-        : _typeName(typeName)
-        , _type(Hash(_typeName))
-        , _baseTypeInfo(baseTypeInfo)
+    Logger::Logger()
     {
     }
 
-    Object::Object()
+    Logger::~Logger()
     {
-    }
-
-    Object::~Object()
-    {
-    }
-
-    bool TypeInfo::IsTypeOf(size_t type) const
-    {
-        const TypeInfo* current = this;
-        while (current)
-        {
-            if (current->GetType() == type)
-                return true;
-
-            current = current->GetBaseTypeInfo();
-        }
-
-        return false;
-    }
-
-    bool TypeInfo::IsTypeOf(const TypeInfo* typeInfo) const
-    {
-        const TypeInfo* current = this;
-        while (current)
-        {
-            if (current == typeInfo)
-                return true;
-
-            current = current->GetBaseTypeInfo();
-        }
-
-        return false;
     }
 }

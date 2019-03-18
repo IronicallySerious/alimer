@@ -21,10 +21,11 @@
 //
 
 #include "engine/Window.h"
+using namespace std;
 
 namespace alimer
 {
-    Window::Window(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
+    Window::Window(const string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
         : _title(title)
         , _width(width)
         , _height(height)

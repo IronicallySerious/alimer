@@ -25,6 +25,11 @@
 #include "engine/Window.h"
 #include "graphics/GraphicsDevice.h"
 #include "graphics/GraphicsDeviceFactory.h"
+#include "foundation/Utils.h"
+#if defined(_WIN32) || defined(_WIN64)
+#undef CreateWindow
+#endif
+using namespace std;
 
 namespace alimer
 {
@@ -34,15 +39,17 @@ namespace alimer
     {
         for (int i = 0; i < argc; ++i)
         {
-            _args.Push(argv[i]);
+            _args.push_back(argv[i]);
         }
 
-        _host.Reset(ApplicationHost::Create(this));
+        _host.reset(ApplicationHost::Create(this));
         s_currentApplication = this;
     }
 
     Application::~Application()
     {
+        SafeDelete(_graphicsDevice);
+        SafeDelete(_graphicsDeviceFactory);
         _host = nullptr;
         s_currentApplication = nullptr;
     }
@@ -75,16 +82,6 @@ namespace alimer
                 return _exitCode;
             }*/
 
-            Start();
-            if (_exitCode) {
-                return _exitCode;
-            }
-
-#if ALIMER_GLFW
-            
-#else
-#endif
-
             return _exitCode;
 
 #if !defined(__GNUC__) || __EXCEPTIONS
@@ -106,6 +103,11 @@ namespace alimer
     {
         AdapterDescriptor adapterDescription = {};
         _graphicsDevice = _graphicsDeviceFactory->CreateDevice(&adapterDescription);
+
+        Initialize();
+        if (_exitCode) {
+            ErrorExit();
+        }
     }
 
     void Application::Tick()
@@ -113,7 +115,7 @@ namespace alimer
 
     }
 
-    void Application::ErrorExit(const String& message)
+    void Application::ErrorExit(const string& message)
     {
         _host->RequestExit();
         _exitCode = EXIT_FAILURE;

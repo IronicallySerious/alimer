@@ -33,22 +33,20 @@ namespace alimer
 
     protected:
         /// Constructor.
-        Window(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen);
+        Window(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen);
 
     public:
         /// Destructor. Close window if open.
         virtual ~Window() = default;
 
         virtual void Close();
-
-        bool IsOpen() const { return _isOpen; }
+        virtual bool IsOpen() const = 0;
 
     protected:
-        String _title;
+        std::string _title;
         uint32_t _width;
         uint32_t _height;
         bool _resizable;
         bool _fullscreen;
-        bool _isOpen;
     };
 }

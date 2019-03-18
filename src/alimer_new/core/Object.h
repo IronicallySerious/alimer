@@ -27,10 +27,6 @@
 
 namespace alimer
 {
-    // TODO: Replace with own String
-    using StringHash = std::string;
-    using String = std::string;
-
     /// Type info.
     class ALIMER_API TypeInfo final
     {
@@ -41,24 +37,24 @@ namespace alimer
         ~TypeInfo() = default;
 
         /// Check current type is type of specified type.
-        bool IsTypeOf(StringHash type) const;
+        bool IsTypeOf(size_t type) const;
         /// Check current type is type of specified type.
         bool IsTypeOf(const TypeInfo* typeInfo) const;
         /// Check current type is type of specified class type.
         template<typename T> bool IsTypeOf() const { return IsTypeOf(T::GetTypeInfoStatic()); }
 
         /// Return type.
-        StringHash GetType() const { return _type; }
+        size_t GetType() const { return _type; }
         /// Return type name.
-        const String& GetTypeName() const { return _typeName; }
+        const std::string& GetTypeName() const { return _typeName; }
         /// Return base type info.
         const TypeInfo* GetBaseTypeInfo() const { return _baseTypeInfo; }        
 
     private:
-        /// Type.
-        StringHash _type;
         /// Type name.
-        String _typeName;
+        std::string _typeName;
+        /// Type hash id.
+        size_t _type;
         /// Base class type info.
         const TypeInfo* _baseTypeInfo;
     };
@@ -67,11 +63,11 @@ namespace alimer
     public: \
         using ClassName = typeName; \
         using Parent = baseTypeName; \
-        virtual alimer::StringHash GetType() const override { return GetTypeInfoStatic()->GetType(); } \
-        virtual const alimer::String& GetTypeName() const override { return GetTypeInfoStatic()->GetTypeName(); } \
+        virtual size_t GetType() const override { return GetTypeInfoStatic()->GetType(); } \
+        virtual const std::string& GetTypeName() const override { return GetTypeInfoStatic()->GetTypeName(); } \
         virtual const alimer::TypeInfo* GetTypeInfo() const override { return GetTypeInfoStatic(); } \
-        static alimer::StringHash GetTypeStatic() { return GetTypeInfoStatic()->GetType(); } \
-        static const alimer::String& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
+        static size_t GetTypeStatic() { return GetTypeInfoStatic()->GetType(); } \
+        static const std::string& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
         static const alimer::TypeInfo* GetTypeInfoStatic() { static const alimer::TypeInfo typeInfoStatic(#typeName, Parent::GetTypeInfoStatic()); return &typeInfoStatic; } \
 
     /// Base class for objects with type identification, subsystem access and event sending/receiving capability.
@@ -85,9 +81,9 @@ namespace alimer
         virtual ~Object();
 
         /// Return type hash.
-        virtual StringHash GetType() const = 0;
+        virtual size_t GetType() const = 0;
         /// Return type name.
-        virtual const String& GetTypeName() const = 0;
+        virtual const std::string& GetTypeName() const = 0;
         /// Return type info.
         virtual const TypeInfo* GetTypeInfo() const = 0;
 

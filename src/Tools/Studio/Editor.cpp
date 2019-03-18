@@ -22,9 +22,6 @@
 
 #include "Editor.h"
 #include "foundation/Assert.h"
-#include "foundation/Array.h"
-#include "foundation/PODVector.h"
-#include "foundation/Vector.h"
 
 namespace alimer
 {

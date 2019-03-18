@@ -66,6 +66,8 @@ namespace alimer
             ALIMER_UNREACHABLE();
             break;
         }
+
+        return nullptr;
     }
 
     GraphicsDevice* GraphicsDeviceFactory::CreateDevice(const AdapterDescriptor* adapterDescription)

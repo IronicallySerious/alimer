@@ -31,12 +31,13 @@ namespace alimer
     class ALIMER_API WindowGLFW final : public Window
     {
     public:
-        WindowGLFW(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen);
+        WindowGLFW(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen);
 
         /// Destructor.
         ~WindowGLFW() override;
 
         void Close() override;
+        bool IsOpen() const override;
 
     private:
         GLFWwindow* _window;

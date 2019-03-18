@@ -754,7 +754,7 @@
 #       define STDCALL __stdcall
 #   endif
 
-#   if defined(ALIMER_COMPILE) && ALIMER_COMPILE && !defined(_CRT_SECURE_NO_WARNINGS)
+#   ifndef _CRT_SECURE_NO_WARNINGS
 #       define _CRT_SECURE_NO_WARNINGS 1
 #   endif
 

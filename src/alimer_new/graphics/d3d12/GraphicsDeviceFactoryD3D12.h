@@ -43,7 +43,7 @@ namespace alimer
     private:
         static void GetAdapter(_In_ IDXGIFactory2* factory, PowerPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter);
 
-        Microsoft::WRL::ComPtr<IDXGIFactory4> _factory;
+        IDXGIFactory4* _factory;
         bool _allowTearing = false;
     };
 }

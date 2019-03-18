@@ -24,13 +24,13 @@
 #include "engine/Application.h"
 
 #if defined(_WIN32)
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <Windows.h>
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#   ifndef WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#   endif
+#   include <Windows.h>
 #endif
 
 namespace alimer
@@ -41,7 +41,7 @@ namespace alimer
        
     }
 
-    void ApplicationHost::ErrorDialog(const String& title, const String& message)
+    void ApplicationHost::ErrorDialog(const std::string& title, const std::string& message)
     {
 #if defined(_WIN32)
         MessageBoxA(NULL, message.c_str(), title.c_str(), MB_ICONERROR | MB_OK);

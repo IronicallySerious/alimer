@@ -45,18 +45,6 @@ namespace alimer
 
     ///General purpose allocator.
     ALIMER_API Allocator& DefaultAllocator();
-
-    /// Allocator for use with containers.
-    class ALIMER_API ContainerAllocator
-    {
-    public:
-        ContainerAllocator() = default;
-        ContainerAllocator(const ContainerAllocator&) = default;
-        ~ContainerAllocator() = default;
-
-        void* Allocate(size_t size, size_t align) { return DefaultAllocator().Allocate(size, align); }
-        void Deallocate(void* ptr) { DefaultAllocator().Deallocate(ptr); }
-    };
 }
 
 #if defined(__ANDROID_API__) && (__ANDROID_API__ < 16)

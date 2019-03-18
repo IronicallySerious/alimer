@@ -31,8 +31,6 @@
 #   include <dxgi1_4.h>
 #endif
 
-#include <wrl.h>
-
 #ifndef D3D12_DEBUG
 #   ifdef _DEBUG
 #       define D3D12_DEBUG 1
@@ -44,8 +42,6 @@
 #if D3D12_DEBUG
 #   include <dxgidebug.h>
 #endif
-
-using Microsoft::WRL::ComPtr;
 
 #if defined(_DURANGO) || defined(_XBOX_ONE)
 #   define ALIMER_D3D12_DYNAMIC_LIB 0
@@ -196,7 +192,10 @@ inline std::string GetDXErrorStringAnsi(HRESULT hr)
 
     std::string message;
     for (uint64_t i = 0; i < errorString.length(); ++i)
+    {
         message.append(1, static_cast<char>(errorString[i]));
+    }
+
     return message;
 }
 
@@ -210,7 +209,7 @@ inline std::string GetDXErrorStringAnsi(HRESULT hr)
     while(0)
 #else
 // Throws a DXException on failing HRESULT
-inline void DXCall(HRESULT hr)
+inline void ThrowIfFailed(HRESULT hr)
 {
     if (FAILED(hr)) {
         //ALIMER_LOGCRITICAL("DirectX Error: {}", alimer::GetDXErrorStringAnsi(hr).c_str());

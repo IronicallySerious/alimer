@@ -33,7 +33,7 @@ namespace alimer
     class ALIMER_API GraphicsDeviceD3D12 final : public GraphicsDevice
     {
     public:
-        GraphicsDeviceD3D12(GraphicsDeviceFactoryD3D12* factory, ComPtr<IDXGIAdapter1> adapter);
+        GraphicsDeviceD3D12(GraphicsDeviceFactoryD3D12* factory, IDXGIAdapter1* adapter);
         ~GraphicsDeviceD3D12() override;
 
         SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
@@ -43,8 +43,8 @@ namespace alimer
 
     private:
         GraphicsDeviceFactoryD3D12* _factory;
-        ComPtr<IDXGIAdapter1> _adapter;
-        ComPtr<ID3D12Device> _device;
+        IDXGIAdapter1* _adapter;
+        ID3D12Device* _device;
         D3D_FEATURE_LEVEL _featureLevel;
     };
 }

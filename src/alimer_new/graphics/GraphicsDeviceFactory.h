@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "foundation/Vector.h"
 #include "graphics/SwapChain.h"
 
 namespace alimer

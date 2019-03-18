@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "foundation/UniquePtr.h"
 #include "core/Object.h"
+#include <memory>
 
 namespace alimer
 {
@@ -46,9 +46,9 @@ namespace alimer
         virtual void Run() = 0;
         virtual void RequestExit();
 
-        virtual void ErrorDialog(const String& title, const String& message);
+        virtual void ErrorDialog(const std::string& title, const std::string& message);
 
-        virtual UniquePtr<Window> CreateWindow(const String& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen) = 0;
+        virtual std::unique_ptr<Window> CreateWindow(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen) = 0;
 
     protected:
         void InitializeApplication();
