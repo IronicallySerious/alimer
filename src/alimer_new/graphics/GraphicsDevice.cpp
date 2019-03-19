@@ -21,6 +21,31 @@
 //
 
 #include "graphics/GraphicsDevice.h"
+#include "core/Platform.h"
+#if defined(_WIN32)
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#   ifndef WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#   endif
+#   include <Windows.h>
+
+// Prefer the high-performance GPU on switchable GPU systems
+extern "C"
+{
+    __declspec(dllexport) DWORD NvOptimusEnablement = 1;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
+
+#if ALIMER_D3D12
+#   include "graphics/d3d12/GraphicsDeviceD3D12.h"
+#endif
+
+#if ALIMER_OPENGL
+#   include "graphics/opengl/GraphicsDeviceGL.h"
+#endif
 
 namespace alimer
 {
@@ -28,10 +53,135 @@ namespace alimer
     {
     }
 
+    GraphicsDevice* GraphicsDevice::Create(const GraphicsDeviceDescriptor* descriptor)
+    {
+        GraphicsBackend preferredBackend = descriptor->preferredBackend;
+        if (preferredBackend == GraphicsBackend::Default)
+        {
+            preferredBackend = GetDefaultGraphicsPlatform();
+        }
+
+        switch (preferredBackend)
+        {
+        case GraphicsBackend::Null:
+            break;
+        case GraphicsBackend::Direct3D12:
+#if ALIMER_D3D12
+            return new GraphicsDeviceD3D12(descriptor->powerPreference, descriptor->validation);
+#else
+            return nullptr;
+#endif
+            break;
+
+        case GraphicsBackend::Direct3D11:
+#if ALIMER_D3D11
+            return new GraphicsDeviceD3D11(validation);
+#else
+            return nullptr;
+#endif
+            break;
+
+        case GraphicsBackend::OpenGL:
+#if ALIMER_OPENGL
+            return new GraphicsDeviceGL(descriptor->validation);
+#else
+            return nullptr;
+#endif
+            break;
+        default:
+            ALIMER_UNREACHABLE();
+            break;
+        }
+
+        return nullptr;
+    }
+
     SwapChain* GraphicsDevice::CreateSwapChain(SwapChainSurface* surface, const SwapChainDescriptor* descriptor)
     {
         ALIMER_ASSERT(surface);
         ALIMER_ASSERT(descriptor);
         return CreateSwapChainImpl(surface, descriptor);
+    }
+
+    GraphicsBackend GetDefaultGraphicsPlatform()
+    {
+        switch (GetPlatformType())
+        {
+        case PlatformType::Windows:
+            if (IsGraphicsBackendSupported(GraphicsBackend::Direct3D12))
+            {
+                return GraphicsBackend::Direct3D12;
+            }
+
+            if (IsGraphicsBackendSupported(GraphicsBackend::Direct3D11))
+            {
+                return GraphicsBackend::Direct3D11;
+            }
+
+            return GraphicsBackend::OpenGL;
+
+        case PlatformType::UWP:
+        case PlatformType::XboxOne:
+            if (IsGraphicsBackendSupported(GraphicsBackend::Direct3D12))
+            {
+                return GraphicsBackend::Direct3D12;
+            }
+
+            return GraphicsBackend::Direct3D11;
+
+        case PlatformType::Android:
+        case PlatformType::Linux:
+            return GraphicsBackend::OpenGL;
+
+        case PlatformType::iOS:
+        case PlatformType::MacOS:
+            // Using MoltenVK
+            return GraphicsBackend::Vulkan;
+        default:
+            ALIMER_UNREACHABLE();
+        }
+    }
+
+    bool IsGraphicsBackendSupported(GraphicsBackend backend)
+    {
+        if (backend == GraphicsBackend::Default)
+        {
+            backend = GetDefaultGraphicsPlatform();
+        }
+
+        switch (backend)
+        {
+        case GraphicsBackend::Direct3D11:
+#if ALIMER_D3D11
+            return Platform.PlatformType == PlatformType.Windows
+                || Platform.PlatformType == PlatformType.UWP;
+#else
+            return false;
+#endif
+
+        case GraphicsBackend::Direct3D12:
+#if ALIMER_D3D12
+            return false;
+            //return D3D12.DeviceD3D12.IsSupported();
+#else
+            return false;
+#endif
+
+        case GraphicsBackend::Vulkan:
+#if ALIMER_VULKAN
+            return true;
+#else
+            return false;
+#endif
+        case GraphicsBackend::OpenGL:
+#if ALIMER_OPENGL
+            return true;
+#else
+            return false;
+#endif
+
+        default:
+            return false;
+        }
     }
 }

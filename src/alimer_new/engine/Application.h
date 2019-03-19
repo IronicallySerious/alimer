@@ -23,7 +23,9 @@
 #pragma once
 
 #include "core/Object.h"
+#include "graphics/Types.h"
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace alimer
@@ -31,7 +33,26 @@ namespace alimer
     class Window;
     class ApplicationHost;
     class GraphicsDevice;
-    class GraphicsDeviceFactory;
+
+    class ApplicationConfiguration
+    {
+    public:
+        /// Preferred graphics settings.
+        GraphicsDeviceDescriptor graphics = {};
+
+        /// Main application window title.
+        std::string title = "alimer";
+        /// Main application window width.
+        uint32_t width = 640;
+        /// Main application window height.
+        uint32_t height = 480;
+        /// Whether main application window is resizable.
+        bool resizable = true;
+        /// Whether main application window is fullscreen.
+        bool fullscreen = false;
+        /// Whether to disable audio.
+        bool disableAudio;
+    };
 
     /// Base class for creating applications which initialize the engine and run a main loop until exited.
     class ALIMER_API Application : public Object
@@ -41,7 +62,7 @@ namespace alimer
         ALIMER_OBJECT(Application, Object);
 
     protected:
-        Application(int argc, char** argv);
+        Application(const ApplicationConfiguration& config);
 
     public:
         /// Destructor.
@@ -80,8 +101,11 @@ namespace alimer
         void InitializeBeforeRun();
 
     protected:
+        /// Configuration
+        ApplicationConfiguration _config;
+
         /// Command line arguments.
-        std::vector<std::string> _args;
+        //std::vector<std::string> _args;
 
         /// Per platform application host.
         std::unique_ptr<ApplicationHost> _host;
@@ -89,8 +113,7 @@ namespace alimer
         /// Main window.
         std::unique_ptr<Window> _mainWindow;
 
-        /// GraphicsDevice factory.
-        GraphicsDeviceFactory* _graphicsDeviceFactory = nullptr;
+        /// GraphicsDevice.
         GraphicsDevice* _graphicsDevice = nullptr;
 
         /// Application exit code.

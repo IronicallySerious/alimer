@@ -20,30 +20,8 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "BackendD3D12.h"
-#include "graphics/GraphicsDeviceFactory.h"
+#include "graphics/Types.h"
 
 namespace alimer
 {
-    /// D3D12 backend
-    class ALIMER_API GraphicsDeviceFactoryD3D12 final : public GraphicsDeviceFactory
-    {
-    public:
-        static bool IsSupported();
-        /// Constructor.
-        GraphicsDeviceFactoryD3D12(bool validation);
-        /// Destructor.
-        ~GraphicsDeviceFactoryD3D12() override;
-
-        GraphicsDevice* CreateDeviceImpl(const AdapterDescriptor* adapterDescription) override;
-        SwapChainSurface* CreateSurfaceFromWin32Impl(void *hInstance, void *hWnd) override;
-
-    private:
-        static void GetAdapter(_In_ IDXGIFactory2* factory, PowerPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter);
-
-        IDXGIFactory4* _factory;
-        bool _allowTearing = false;
-    };
 }

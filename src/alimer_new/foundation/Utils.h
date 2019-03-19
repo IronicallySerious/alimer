@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "foundation/Platform.h"
+#include "foundation/Preprocessor.h"
 #include <string>
 #include <vector>
 #if defined(_WIN32) || defined(_WIN64)

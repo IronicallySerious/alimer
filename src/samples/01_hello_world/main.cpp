@@ -20,28 +20,24 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "engine/ApplicationHost.h"
 #include "engine/Application.h"
+using namespace alimer;
 
-namespace alimer
+class HelloWorldApp : public Application
 {
-    /// Application host using glfw.
-    class ALIMER_API ApplicationHostGLFW final : public ApplicationHost
+public:
+    HelloWorldApp(const ApplicationConfiguration& config)
+        : Application(config)
     {
-    public:
-        ApplicationHostGLFW(Application* application);
 
-        /// Destructor.
-        ~ApplicationHostGLFW() override;
+    }
+};
 
-        int Run() override;
-
-        std::unique_ptr<Window> CreateWindow(
-            const std::string& title,
-            uint32_t width, uint32_t height,
-            bool resizable, bool fullscreen,
-            bool opengl) override;
-    };
+int main()
+{
+    ApplicationConfiguration config = {};
+    config.title = "Sample 01 - Hello World";
+    config.graphics.preferredBackend = GraphicsBackend::OpenGL;
+    HelloWorldApp app(config);
+    return app.Run();
 }

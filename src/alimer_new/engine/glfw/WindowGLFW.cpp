@@ -20,13 +20,11 @@
 // THE SOFTWARE.
 //
 
-#include "foundation/Platform.h"
-
-#if defined(_WIN32) || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
-#include "engine/Application.h"
-#include "WindowGLFW.h"
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
+#if defined(ALIMER_GLFW)
+#   include "engine/Application.h"
+#   include "WindowGLFW.h"
+#   define GLFW_INCLUDE_NONE
+#   include <GLFW/glfw3.h>
 
 namespace alimer
 {
@@ -46,8 +44,9 @@ namespace alimer
         }
     }
 
-    WindowGLFW::WindowGLFW(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
+    WindowGLFW::WindowGLFW(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen, bool opengl)
         : Window(title, width, height, resizable, fullscreen)
+        , _opengl(opengl)
     {
         GLFWmonitor* monitor = nullptr;
         int windowWidth;
@@ -66,12 +65,46 @@ namespace alimer
             glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
         }
 
+        if (opengl)
+        {
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+            //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+        }
+        else
+        {
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        }
+
         _window = glfwCreateWindow(
             windowWidth,
             windowHeight,
             title.c_str(),
             monitor,
             nullptr);
+
+        if (!fullscreen)
+        {
+            // Center on screen.
+            monitor = glfwGetPrimaryMonitor();
+            auto videoMode = glfwGetVideoMode(monitor);
+
+            int windowWidth = 0;
+            int windowHeight = 0;
+            glfwGetWindowSize(_window, &windowWidth, &windowHeight);
+
+            int windowX = videoMode->width / 2 - windowWidth / 2;
+            int windowY = videoMode->height / 2 - windowHeight / 2;
+            glfwSetWindowPos(_window, windowX, windowY);
+        }
+
+        if (opengl)
+        {
+            glfwMakeContextCurrent(_window);
+            glfwSwapInterval(1);
+        }
 
         glfwSetWindowUserPointer(_window, this);
         glfwSetFramebufferSizeCallback(_window, Glfw_FramebufferSizeCallback);
@@ -97,6 +130,13 @@ namespace alimer
     bool WindowGLFW::IsOpen() const
     {
         return !glfwWindowShouldClose(_window);
+    }
+
+    void WindowGLFW::SwapBuffers()
+    {
+        if (_opengl) {
+            glfwSwapBuffers(_window);
+        }
     }
 }
 #endif

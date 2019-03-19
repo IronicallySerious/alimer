@@ -26,11 +26,12 @@ add_subdirectory (Alimer)
 # Engine
 add_subdirectory (alimer_new)
 
-# Plugins (disabled for now)
-# add_subdirectory (Plugins)
-
 # Player
 add_subdirectory(Player)
+
+if (ALIMER_SAMPLES)
+    add_subdirectory(samples)
+endif ()
 
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
     add_subdirectory (Assets)

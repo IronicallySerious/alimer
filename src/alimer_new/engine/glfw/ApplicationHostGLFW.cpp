@@ -20,9 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "foundation/Platform.h"
-
-#if defined(_WIN32) || ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
+#if defined(ALIMER_GLFW)
 #include "ApplicationHostGLFW.h"
 #include "WindowGLFW.h"
 #define GLFW_INCLUDE_NONE
@@ -48,8 +46,6 @@ namespace alimer
             return;
         }
 
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
 #if ALIMER_PLATFORM_MACOS
         glfwInitHint(GLFW_COCOA_CHDIR_RESOURCES, GLFW_FALSE);
 #endif
@@ -60,7 +56,7 @@ namespace alimer
         glfwTerminate();
     }
 
-    void ApplicationHostGLFW::Run()
+    int ApplicationHostGLFW::Run()
     {
         InitializeApplication();
 
@@ -72,11 +68,13 @@ namespace alimer
             // Pool glfw events.
             glfwPollEvents();
         }
+
+        return EXIT_SUCCESS;
     }
 
-    unique_ptr<Window> ApplicationHostGLFW::CreateWindow(const string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
+    unique_ptr<Window> ApplicationHostGLFW::CreateWindow(const string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen, bool opengl)
     {
-        return make_unique<WindowGLFW>(title, width, height, resizable, fullscreen);
+        return make_unique<WindowGLFW>(title, width, height, resizable, fullscreen, opengl);
     }
 
     ApplicationHost* ApplicationHost::Create(Application* application)

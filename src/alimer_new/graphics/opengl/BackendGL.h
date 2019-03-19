@@ -22,26 +22,34 @@
 
 #pragma once
 
-#include "engine/ApplicationHost.h"
-#include "engine/Application.h"
+#if defined(__EMSCRIPTEN__)
+#   define ALIMER_WEBGL 1
+#   define GL_GLEXT_PROTOTYPES
+#   include "GLES/gl.h"
+#   include "GLES2/gl2.h"
+#   include "GLES2/gl2ext.h"
+#   include "GLES3/gl3.h"
+#   include "GLES3/gl31.h"
+#else
+#   include <glad/glad.h>
+#endif
 
-namespace alimer
-{
-    /// Application host using glfw.
-    class ALIMER_API ApplicationHostGLFW final : public ApplicationHost
-    {
-    public:
-        ApplicationHostGLFW(Application* application);
+#ifndef ALIMER_WEBGL
+#   define ALIMER_WEBGL 0
+#endif
 
-        /// Destructor.
-        ~ApplicationHostGLFW() override;
+#include "foundation/Assert.h"
 
-        int Run() override;
+#if defined(NDEBUG) || (defined(__APPLE__) && !defined(DEBUG))
+#   define GL_ASSERT( gl_code ) gl_code
+#else
+#   define GL_ASSERT( gl_code ) do \
+    { \
+        gl_code; \
+        __gl_error_code = glGetError(); \
+        ALIMER_ASSERT(__gl_error_code == GL_NO_ERROR); \
+    } while(0)
+#endif
 
-        std::unique_ptr<Window> CreateWindow(
-            const std::string& title,
-            uint32_t width, uint32_t height,
-            bool resizable, bool fullscreen,
-            bool opengl) override;
-    };
-}
+/** Global variable to hold GL errors. */
+extern GLenum __gl_error_code;

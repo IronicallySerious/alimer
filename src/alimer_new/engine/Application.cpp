@@ -24,7 +24,6 @@
 #include "engine/ApplicationHost.h"
 #include "engine/Window.h"
 #include "graphics/GraphicsDevice.h"
-#include "graphics/GraphicsDeviceFactory.h"
 #include "foundation/Utils.h"
 #if defined(_WIN32) || defined(_WIN64)
 #undef CreateWindow
@@ -34,14 +33,10 @@ using namespace std;
 namespace alimer
 {
     static Application* s_currentApplication = nullptr;
-    Application::Application(int argc, char** argv)
-        : _exitCode(EXIT_SUCCESS)
+    Application::Application(const ApplicationConfiguration& config)
+        : _config(config)
+        , _exitCode(EXIT_SUCCESS)
     {
-        for (int i = 0; i < argc; ++i)
-        {
-            _args.push_back(argv[i]);
-        }
-
         _host.reset(ApplicationHost::Create(this));
         s_currentApplication = this;
     }
@@ -49,7 +44,6 @@ namespace alimer
     Application::~Application()
     {
         SafeDelete(_graphicsDevice);
-        SafeDelete(_graphicsDeviceFactory);
         _host = nullptr;
         s_currentApplication = nullptr;
     }
@@ -69,19 +63,8 @@ namespace alimer
             if (_exitCode) {
                 return _exitCode;
             }
-
-            // Create main window
-            _mainWindow = _host->CreateWindow("alimer", 800, 600, true, false);
-
-            _graphicsDeviceFactory = GraphicsDeviceFactory::Create(GraphicsBackend::Default, true);
-            _host->Run();
-
-            /*if (!_engine->Initialize(_args))
-            {
-                ErrorExit();
-                return _exitCode;
-            }*/
-
+            
+            _exitCode = _host->Run();
             return _exitCode;
 
 #if !defined(__GNUC__) || __EXCEPTIONS
@@ -101,8 +84,21 @@ namespace alimer
 
     void Application::InitializeBeforeRun()
     {
-        AdapterDescriptor adapterDescription = {};
-        _graphicsDevice = _graphicsDeviceFactory->CreateDevice(&adapterDescription);
+        auto preferredGpuBackend = _config.graphics.preferredBackend;
+        if (preferredGpuBackend == GraphicsBackend::Default)
+        {
+            preferredGpuBackend = GetDefaultGraphicsPlatform();
+        }
+
+        // Create main window.
+        _mainWindow = _host->CreateWindow(_config.title,
+            _config.width, _config.height,
+            _config.resizable, _config.fullscreen,
+            preferredGpuBackend == GraphicsBackend::OpenGL);
+
+
+        // Create graphics device.
+        _graphicsDevice = GraphicsDevice::Create(&_config.graphics);
 
         Initialize();
         if (_exitCode) {
@@ -112,7 +108,8 @@ namespace alimer
 
     void Application::Tick()
     {
-
+        // Present content on screen.
+        _mainWindow->SwapBuffers();
     }
 
     void Application::ErrorExit(const string& message)

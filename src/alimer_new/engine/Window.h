@@ -41,6 +41,7 @@ namespace alimer
 
         virtual void Close();
         virtual bool IsOpen() const = 0;
+        virtual void SwapBuffers();
 
     protected:
         std::string _title;

@@ -43,12 +43,16 @@ namespace alimer
         /// Create host for application.
         static ApplicationHost* Create(Application* application);
 
-        virtual void Run() = 0;
+        virtual int Run() = 0;
         virtual void RequestExit();
 
         virtual void ErrorDialog(const std::string& title, const std::string& message);
 
-        virtual std::unique_ptr<Window> CreateWindow(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen) = 0;
+        virtual std::unique_ptr<Window> CreateWindow(
+            const std::string& title,
+            uint32_t width, uint32_t height,
+            bool resizable, bool fullscreen,
+            bool opengl) = 0;
 
     protected:
         void InitializeApplication();

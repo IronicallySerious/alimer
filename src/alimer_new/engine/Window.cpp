@@ -39,4 +39,9 @@ namespace alimer
     {
 
     }
+
+    void Window::SwapBuffers()
+    {
+
+    }
 }

@@ -21,7 +21,7 @@
 //
 #pragma once
 
-#include "foundation/Platform.h"
+#include "foundation/Preprocessor.h"
 #include <new>
 #include <utility>
 

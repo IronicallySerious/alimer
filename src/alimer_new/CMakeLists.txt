@@ -85,17 +85,35 @@ target_include_directories(${TARGET_NAME}
     PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
-if (ALIMER_D3D12)
-    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_D3D12)
-endif ()
+
 
 if (ALIMER_DESKTOP)
+    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_GLFW)
     target_link_libraries(${TARGET_NAME} PRIVATE glfw)
 elseif (ANDROID)
     target_link_libraries(${TARGET_NAME} PRIVATE dl log android)
-    target_link_libraries(${TARGET_NAME} PRIVATE EGL GLESv2)
+    
     # target_link_libraries(${TARGET_NAME} PRIVATE GLESv3)
     target_include_directories(${TARGET_NAME} PRIVATE ${ANDROID_NDK}/sources/android/cpufeatures)
     target_include_directories(${TARGET_NAME} PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue/)
 elseif (EMSCRIPTEN)
+endif ()
+
+# OpenGL
+if (ALIMER_OPENGL)
+    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_OPENGL)
+    if (WIN32)
+        target_link_libraries(${TARGET_NAME} PRIVATE opengl32)
+    elseif (ANDROID)
+        target_link_libraries(${TARGET_NAME} PRIVATE EGL GLESv2)
+    endif()
+
+    if (NOT EMSCRIPTEN)
+        target_link_libraries(${TARGET_NAME} PRIVATE glad)
+    endif ()
+endif ()
+
+# D3D12
+if (ALIMER_D3D12)
+    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_D3D12)
 endif ()

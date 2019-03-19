@@ -35,8 +35,29 @@ namespace alimer
         /// Destructor.
         virtual ~GraphicsDevice() = default;
 
+        /// Create GraphicsDevice instance.
+        static GraphicsDevice* Create(const GraphicsDeviceDescriptor* descriptor);
+
         SwapChain* CreateSwapChain(SwapChainSurface* surface, const SwapChainDescriptor* descriptor);
+
+        /// Get the device features.
+        const GraphicsDeviceCapabilities& GetCaps() const { return _caps; }
+
+        /// Get the backend.
+        GraphicsBackend GetBackend() const { return _info.backend; }
+
+        /// Get if gpu validation is enabled.
+        bool IsValidationEnabled() const { return _validation; }
+
     protected:
         virtual SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) = 0;
+
+    protected:
+        GraphicsDeviceInfo          _info = {};
+        GraphicsDeviceCapabilities  _caps = {};
+        bool _validation = false;
     };
+
+    ALIMER_API GraphicsBackend GetDefaultGraphicsPlatform();
+    ALIMER_API bool IsGraphicsBackendSupported(GraphicsBackend backend);
 }

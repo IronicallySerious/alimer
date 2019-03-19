@@ -22,18 +22,11 @@
 
 #pragma once
 
+#include "graphics/Types.h"
 #include "graphics/PixelFormat.h"
 
 namespace alimer
 {
-    struct SwapChainDescriptor
-    {
-        //TextureUsageFlags usage;
-        PixelFormat format;
-        uint32_t width;
-        uint32_t height;
-    };
-
     class ALIMER_API SwapChainSurface
     {
     protected:

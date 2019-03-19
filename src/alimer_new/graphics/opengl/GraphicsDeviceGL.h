@@ -22,26 +22,33 @@
 
 #pragma once
 
-#include "engine/ApplicationHost.h"
-#include "engine/Application.h"
+#include "BackendGL.h"
+#include "graphics/GraphicsDevice.h"
 
 namespace alimer
 {
-    /// Application host using glfw.
-    class ALIMER_API ApplicationHostGLFW final : public ApplicationHost
+    struct AdapterDescriptor;
+
+    /// OpenGL graphics device.
+    class ALIMER_API GraphicsDeviceGL final : public GraphicsDevice
     {
     public:
-        ApplicationHostGLFW(Application* application);
+        static bool IsSupported();
 
-        /// Destructor.
-        ~ApplicationHostGLFW() override;
+        GraphicsDeviceGL(bool validation);
+        ~GraphicsDeviceGL() override;
 
-        int Run() override;
+        SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
 
-        std::unique_ptr<Window> CreateWindow(
-            const std::string& title,
-            uint32_t width, uint32_t height,
-            bool resizable, bool fullscreen,
-            bool opengl) override;
+    private:
+        void InitializeCaps();
+
+    private:
+        int    _versionMajor;
+        int    _versionMinor;
+        bool _gles2 = false;
+        bool _singlePass = false;
+        GLuint _defaultFramebuffer = 0;
+        GLuint _vertexArrayId = 0;
     };
 }

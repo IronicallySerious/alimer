@@ -20,7 +20,19 @@
 # THE SOFTWARE.
 #
 
-# TestPlugin
-add_subdirectory(TestPlugin)
+function(add_sample sample_name)
+    set (target_name "${sample_name}")
+    add_executable(${target_name} ${CMAKE_CURRENT_SOURCE_DIR}/${sample_name}/main.cpp)
 
-vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} plugins)
+    if (UNIX)
+        target_compile_options(${target_name} PRIVATE -std=c++14)
+        #target_link_libraries(${target_name} PRIVATE X11-xcb)
+    elseif(WIN32)
+        set_target_properties(${target_name} PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup /SUBSYSTEM:Windows /INCREMENTAL:NO")
+        set_target_properties(${target_name} PROPERTIES FOLDER "samples")
+    endif()
+
+    target_link_libraries(${target_name} PRIVATE alimer_new)
+endfunction()
+
+add_sample(01_hello_world)
