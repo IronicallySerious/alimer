@@ -23,13 +23,7 @@
 #include "engine/ApplicationHost.h"
 #include "engine/Application.h"
 
-#if defined(_WIN32)
-#   ifndef NOMINMAX
-#       define NOMINMAX
-#   endif
-#   ifndef WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
+#if defined(_WIN64) || defined(_WIN32)
 #   include <Windows.h>
 #endif
 
@@ -41,7 +35,7 @@ namespace alimer
        
     }
 
-    void ApplicationHost::ErrorDialog(const std::string& title, const std::string& message)
+    void ApplicationHost::errorDialog(const std::string& title, const std::string& message)
     {
 #if defined(_WIN32)
         MessageBoxA(NULL, message.c_str(), title.c_str(), MB_ICONERROR | MB_OK);
@@ -51,7 +45,7 @@ namespace alimer
 #endif
     }
 
-    void ApplicationHost::RequestExit()
+    void ApplicationHost::requestExit()
     {
         _exitRequested = true;
     }
@@ -60,4 +54,9 @@ namespace alimer
 	{
         _application->InitializeBeforeRun();
 	}
+
+    const std::vector<std::string> &ApplicationHost::getArguments()
+    {
+        return _arguments;
+    }
 }

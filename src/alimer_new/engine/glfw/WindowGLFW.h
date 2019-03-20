@@ -23,7 +23,6 @@
 #pragma once
 
 #include "engine/Window.h"
-struct GLFWwindow;
 
 namespace alimer
 {
@@ -31,7 +30,7 @@ namespace alimer
     class ALIMER_API WindowGLFW final : public Window
     {
     public:
-        WindowGLFW(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen, bool opengl);
+        WindowGLFW(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen);
 
         /// Destructor.
         ~WindowGLFW() override;
@@ -41,7 +40,5 @@ namespace alimer
         void SwapBuffers() override;
 
     private:
-        GLFWwindow* _window;
-        bool _opengl;
     };
 }

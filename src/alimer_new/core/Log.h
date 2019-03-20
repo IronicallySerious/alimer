@@ -22,6 +22,9 @@
 
 #pragma once
 
+#include <cstdio>
+#include <cstdlib>
+#include "alimer_config.h"
 #include "core/Object.h"
 
 namespace alimer
@@ -39,3 +42,39 @@ namespace alimer
         ~Logger() override;
     };
 }
+
+#ifdef ALIMER_LOGGING
+
+#define ALIMER_TAG "alimer"
+
+#if defined(__ANDROID__)
+#	include <android/log.h>
+#	define LOGI(...) __android_log_print(ANDROID_LOG_INFO, ALIMER_TAG, __VA_ARGS__)
+#	define LOGW(...) __android_log_print(ANDROID_LOG_WARN, ALIMER_TAG, __VA_ARGS__)
+#	define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, ALIMER_TAG, __VA_ARGS__)
+#else
+#	define LOGI(...) \
+		{ \
+			fprintf(stdout, "%s [INFO] : ", ALIMER_TAG); \
+			fprintf(stdout, __VA_ARGS__); \
+			fprintf(stdout, "\n"); \
+		}
+#	define LOGW(...) \
+		{ \
+			fprintf(stdout, "%s [WARNING] : ", ALIMER_TAG); \
+			fprintf(stdout, __VA_ARGS__); \
+			fprintf(stdout, "\n"); \
+		}
+#	define LOGE(...) \
+		{ \
+			fprintf(stderr, "%s [ERROR] : ", ALIMER_TAG); \
+			fprintf(stderr, __VA_ARGS__); \
+			fprintf(stderr, "\n"); \
+		}
+#endif
+
+#else
+#   define LOGI(...) ((void)0)
+#   define LOGW(...) ((void)0)
+#   define LOGE(...) ((void)0)
+#endif /* ALIMER_LOGGING */

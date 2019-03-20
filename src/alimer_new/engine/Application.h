@@ -37,9 +37,6 @@ namespace alimer
     class ApplicationConfiguration
     {
     public:
-        /// Preferred graphics settings.
-        GraphicsDeviceDescriptor graphics = {};
-
         /// Main application window title.
         std::string title = "alimer";
         /// Main application window width.
@@ -75,7 +72,7 @@ namespace alimer
         int Run();
 
         /// Request the application to exit.
-        void RequestExit();
+        void requestExit();
 
         /// Tick one rendering frame.
         void Tick();
@@ -108,13 +105,13 @@ namespace alimer
         //std::vector<std::string> _args;
 
         /// Per platform application host.
-        std::unique_ptr<ApplicationHost> _host;
+        ApplicationHost* _host;
 
         /// Main window.
-        std::unique_ptr<Window> _mainWindow;
+        std::shared_ptr<Window> _mainWindow;
 
         /// GraphicsDevice.
-        GraphicsDevice* _graphicsDevice = nullptr;
+        std::shared_ptr<GraphicsDevice> _graphicsDevice = nullptr;
 
         /// Application exit code.
         int _exitCode;

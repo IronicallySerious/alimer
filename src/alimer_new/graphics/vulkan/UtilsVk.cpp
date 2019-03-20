@@ -20,35 +20,19 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "BackendGL.h"
-#include "graphics/GraphicsDevice.h"
+#include "UtilsVk.h"
 
 namespace alimer
 {
-    struct AdapterDescriptor;
-
-    /// OpenGL graphics device.
-    class ALIMER_API GraphicsDeviceGL final : public GraphicsDevice
+    VulkanException::VulkanException(const VkResult result, const std::string &msg) :
+        std::runtime_error{ msg }
     {
-    public:
-        static bool IsSupported();
+        _errorMessage = std::string(std::runtime_error::what()) + std::string{ " : " } + GetVkResultString(result);
+    }
 
-        GraphicsDeviceGL(bool validation);
-        ~GraphicsDeviceGL() override;
+    const char* VulkanException::what() const noexcept
+    {
+        return _errorMessage.c_str();
+    }
 
-        SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
-
-    private:
-        void InitializeCaps();
-
-    private:
-        int    _versionMajor;
-        int    _versionMinor;
-        bool _gles2 = false;
-        bool _singlePass = false;
-        GLuint _defaultFramebuffer = 0;
-        GLuint _vertexArrayId = 0;
-    };
 }

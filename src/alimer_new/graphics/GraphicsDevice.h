@@ -22,42 +22,40 @@
 
 #pragma once
 
-#include "graphics/SwapChain.h"
+#include "engine/Window.h"
+#include "graphics/Types.h"
 
 namespace alimer
 {
-    class ALIMER_API GraphicsDevice
+    class GraphicsImpl;
+
+    class ALIMER_API GraphicsDevice final
     {
-    protected:
-        GraphicsDevice();
 
     public:
         /// Destructor.
-        virtual ~GraphicsDevice() = default;
+        ~GraphicsDevice();
 
-        /// Create GraphicsDevice instance.
-        static GraphicsDevice* Create(const GraphicsDeviceDescriptor* descriptor);
+        
 
-        SwapChain* CreateSwapChain(SwapChainSurface* surface, const SwapChainDescriptor* descriptor);
+        static std::shared_ptr<GraphicsDevice> create(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc);
 
-        /// Get the device features.
-        const GraphicsDeviceCapabilities& GetCaps() const { return _caps; }
+        /// Get the device info.
+        const GraphicsDeviceInfo& getInfo() const;
 
-        /// Get the backend.
-        GraphicsBackend GetBackend() const { return _info.backend; }
+        /// Get the device capabilities.
+        const GraphicsDeviceCapabilities& getCaps() const;
 
-        /// Get if gpu validation is enabled.
-        bool IsValidationEnabled() const { return _validation; }
+    private:
+        /// Constructor.
+        GraphicsDevice(const std::shared_ptr<Window>& window_);
 
-    protected:
-        virtual SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) = 0;
-
-    protected:
-        GraphicsDeviceInfo          _info = {};
-        GraphicsDeviceCapabilities  _caps = {};
-        bool _validation = false;
+    private:
+        /// Implementation.
+        GraphicsImpl* pImpl = nullptr;
+        /// The device window.
+        std::shared_ptr<Window> window;
     };
 
-    ALIMER_API GraphicsBackend GetDefaultGraphicsPlatform();
-    ALIMER_API bool IsGraphicsBackendSupported(GraphicsBackend backend);
+    extern ALIMER_API std::shared_ptr<GraphicsDevice> graphicsDevice;
 }

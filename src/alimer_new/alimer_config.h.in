@@ -1,0 +1,63 @@
+//
+// Copyright (c) 2018 Amer Koleci and contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+
+#pragma once
+
+/* Version */
+#define ALIMER_VERSION_MAJOR   @ALIMER_VERSION_MAJOR@
+#define ALIMER_VERSION_MINOR   @ALIMER_VERSION_MINOR@
+#define ALIMER_VERSION_PATCH   @ALIMER_VERSION_PATCH@
+#define ALIMER_VERSION         ALIMER_MAKE_VERSION(@ALIMER_VERSION_MAJOR@, @ALIMER_VERSION_MINOR@, @ALIMER_VERSION_PATCH@)
+#define ALIMER_VERSION_STR     "@ALIMER_VERSION_MAJOR@.@ALIMER_VERSION_MINOR@.@ALIMER_VERSION_PATCH@"
+#define ALIMER_GIT_BRANCH "@ALIMER_GIT_BRANCH@"
+#define ALIMER_GIT_COMMIT_HASH "@ALIMER_GIT_COMMIT_HASH@"
+
+#cmakedefine ALIMER_BUILD_SHARED_LIBRARY
+#if defined(ALIMER_BUILD_SHARED_LIBRARY)
+#   ifdef _MSC_VER
+#       define ALIMER_API __declspec(dllexport)
+#   else
+#       define ALIMER_API
+#   endif
+#elif defined(ALIMER_USE_SHARED_LIBRARY)
+#   ifdef _MSC_VER
+#       define ALIMER_API __declspec(dllimport)
+#   else
+#       define ALIMER_API
+#   endif
+#else
+#   define ALIMER_API
+#endif
+
+/* Alimer build configuration */
+#cmakedefine ALIMER_LOGGING
+#cmakedefine ALIMER_PROFILING
+#cmakedefine ALIMER_THREADING
+#cmakedefine ALIMER_NETWORK
+
+/* Windowing backend */
+#cmakedefine ALIMER_GLFW
+
+/* Graphics backend */
+#cmakedefine ALIMER_VULKAN
+#cmakedefine ALIMER_D3D12
+#cmakedefine ALIMER_D3D11

@@ -84,6 +84,8 @@ namespace alimer
         if (FileSystem::FileExists(cleanPath)) {
             return FileSystem::Get().Open(cleanPath, FileAccess::ReadOnly);
         }
+
+        return {};
     }
 
     SharedPtr<Resource> ResourceManager::Load(const TypeInfo* type, const string& assetName, bool sendEventOnFailure)

@@ -25,8 +25,8 @@
 
 namespace alimer
 {
-    Editor::Editor(int argc, char** argv)
-        : Application(argc, argv)
+    Editor::Editor(const ApplicationConfiguration& config)
+        : Application(config)
     {
         //_engine->GetSettings().title = "Alimer Studio 2018";
         //_engine->GetSettings().gpuSettings = { GraphicsBackend::Vulkan, GpuPreference::HighPerformance, false };
@@ -35,6 +35,11 @@ namespace alimer
     Editor::~Editor()
     {
         //ui::ShutdownDock();
+    }
+
+    void Editor::ParseArguments(int argc, char** argv)
+    {
+
     }
 
     /*void Editor::Initialize()
@@ -56,10 +61,14 @@ namespace alimer
 
 int main(int argc, char** argv)
 {
-    using namespace alimer;
-    Editor app(argc, argv);
-    int exitCode = app.Run();
-    return exitCode;
+    alimer::ApplicationConfiguration config = {};
+    config.title = "Alimer Studio";
+    config.width = 1280;
+    config.height = 720;
+
+    alimer::Editor app(config);
+    app.ParseArguments(argc, argv);
+    return app.Run();
 }
 
 #if ALIMER_PLATFORM_WINDOWS
@@ -77,7 +86,7 @@ int GenerateDump(EXCEPTION_POINTERS* pExceptionPointers)
     WCHAR* szPath = L"crash_dumps";
     WCHAR szFileName[MAX_PATH];
     SYSTEMTIME stLocalTime;
-    
+
     MINIDUMP_EXCEPTION_INFORMATION info;
     info.ThreadId = GetCurrentThreadId();
     info.ExceptionPointers = pExceptionPointers;
@@ -94,16 +103,16 @@ int GenerateDump(EXCEPTION_POINTERS* pExceptionPointers)
         GetCurrentProcessId(), GetCurrentThreadId());
 
     HANDLE file = CreateFileW(
-        szFileName, 
-        GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 
-        nullptr, CREATE_ALWAYS,  0, nullptr);
+        szFileName,
+        GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ,
+        nullptr, CREATE_ALWAYS, 0, nullptr);
 
     BOOL success = MiniDumpWriteDump(
-        GetCurrentProcess(), 
-        GetCurrentProcessId(), 
+        GetCurrentProcess(),
+        GetCurrentProcessId(),
         file,
-        MiniDumpWithDataSegs, 
-        &info, 
+        MiniDumpWithDataSegs,
+        &info,
         nullptr, nullptr);
     CloseHandle(file);
 

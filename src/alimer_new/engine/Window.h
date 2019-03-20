@@ -22,7 +22,12 @@
 
 #pragma once
 
+#include "alimer_config.h"
 #include "core/Object.h"
+
+#if defined(ALIMER_GLFW)
+struct GLFWwindow;
+#endif
 
 namespace alimer
 {
@@ -43,11 +48,19 @@ namespace alimer
         virtual bool IsOpen() const = 0;
         virtual void SwapBuffers();
 
+#if defined(ALIMER_GLFW)
+        GLFWwindow* getApiHandle() const { return window; }
+#endif
+
     protected:
         std::string _title;
         uint32_t _width;
         uint32_t _height;
         bool _resizable;
         bool _fullscreen;
+
+#if defined(ALIMER_GLFW)
+        GLFWwindow* window;
+#endif
     };
 }

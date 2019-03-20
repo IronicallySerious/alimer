@@ -15,7 +15,6 @@ Alimer uses the following open-source and third-party libraries:
 - [volk Metaloader for Vulkan](https://github.com/zeux/volk)
 - [Vulkan Memory Allocator 2.2.0](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [glfw](https://www.glfw.org)
-- [glad](https://glad.dav1d.de/)
 - [imgui 1.68](https://github.com/ocornut/imgui)
 - [lua 5.1](https://www.lua.org)
 - [fmt 5.3.0](http://fmtlib.net)

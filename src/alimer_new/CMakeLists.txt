@@ -33,10 +33,15 @@ macro (define_engine_source_files)
     foreach (path ${DEFINE_SRC_FILES_UNPARSED_ARGUMENTS})
         # Get header files
         file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h)
+        #list (REMOVE_ITEM _files
+        #    graphics/GraphicsImpl.h
+        #    graphics/vulkan/GraphicsImplVk.h
+        #)
+
         list (APPEND HEADER_FILES ${_files})
         # Install them
         if (ALIMER_INSTALL)
-            install (FILES ${_files} DESTINATION ${DEST_INCLUDE_DIR}/${path})
+            install (FILES ${_files} DESTINATION include/alimer/${path})
         endif ()
         # Get source files
         file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}  ${path}/*.c ${path}/*.cpp)
@@ -56,15 +61,15 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/alimer_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/alimer_config.h)
+
 define_engine_source_files (foundation core)
 define_engine_source_files (engine)
-define_engine_source_files (NORECURSE graphics)
+define_engine_source_files (NORECURSE . graphics)
 
-if (ALIMER_OPENGL)
-    define_engine_source_files(graphics/opengl)
-endif ()
-
-if (ALIMER_D3D12)
+if (ALIMER_VULKAN)
+    define_engine_source_files(graphics/vulkan)
+elseif (ALIMER_D3D12)
     define_engine_source_files(graphics/d3d12)
 endif ()
 
@@ -81,39 +86,46 @@ else()
 endif ()
 
 target_include_directories(${TARGET_NAME}
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
-
-
-if (ALIMER_DESKTOP)
-    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_GLFW)
+if (ALIMER_GLFW)
     target_link_libraries(${TARGET_NAME} PRIVATE glfw)
 elseif (ANDROID)
     target_link_libraries(${TARGET_NAME} PRIVATE dl log android)
-    
+
     # target_link_libraries(${TARGET_NAME} PRIVATE GLESv3)
     target_include_directories(${TARGET_NAME} PRIVATE ${ANDROID_NDK}/sources/android/cpufeatures)
     target_include_directories(${TARGET_NAME} PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue/)
 elseif (EMSCRIPTEN)
 endif ()
 
-# OpenGL
-if (ALIMER_OPENGL)
-    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_OPENGL)
-    if (WIN32)
-        target_link_libraries(${TARGET_NAME} PRIVATE opengl32)
-    elseif (ANDROID)
-        target_link_libraries(${TARGET_NAME} PRIVATE EGL GLESv2)
-    endif()
-
-    if (NOT EMSCRIPTEN)
-        target_link_libraries(${TARGET_NAME} PRIVATE glad)
-    endif ()
+# Graphics backend.
+if (ALIMER_VULKAN)
+    target_link_libraries(${TARGET_NAME} PUBLIC
+        volk
+        vma
+    )
+elseif (ALIMER_D3D12)
+    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_D3D12)
 endif ()
 
-# D3D12
-if (ALIMER_D3D12)
-    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_D3D12)
+if (WIN32)
+    target_compile_definitions(${TARGET_NAME} PRIVATE NOMINMAX)
+endif()
+
+# SDK installation
+if (ALIMER_INSTALL)
+    install (FILES ${CMAKE_CURRENT_BINARY_DIR}/alimer_config.h DESTINATION include/alimer)
+
+    install(TARGETS ${TARGET_NAME}
+        EXPORT ${TARGET_NAME}
+	    LIBRARY DESTINATION lib
+	    RUNTIME DESTINATION bin
+	    ARCHIVE DESTINATION lib
+    )
 endif ()

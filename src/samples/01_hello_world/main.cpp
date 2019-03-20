@@ -37,7 +37,6 @@ int main()
 {
     ApplicationConfiguration config = {};
     config.title = "Sample 01 - Hello World";
-    config.graphics.preferredBackend = GraphicsBackend::OpenGL;
     HelloWorldApp app(config);
     return app.Run();
 }

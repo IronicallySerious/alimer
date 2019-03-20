@@ -22,34 +22,12 @@
 
 #pragma once
 
-#if defined(__EMSCRIPTEN__)
-#   define ALIMER_WEBGL 1
-#   define GL_GLEXT_PROTOTYPES
-#   include "GLES/gl.h"
-#   include "GLES2/gl2.h"
-#   include "GLES2/gl2ext.h"
-#   include "GLES3/gl3.h"
-#   include "GLES3/gl31.h"
+#include "alimer_config.h"
+
+#if defined(ALIMER_VULKAN)
+#   include "vulkan/GraphicsImplVk.h"
+#elif defined(ALIMER_D3D12)
+#   include "d3d12/GraphicsImplD3D12.h"
 #else
-#   include <glad/glad.h>
+#error "Invalid backend"
 #endif
-
-#ifndef ALIMER_WEBGL
-#   define ALIMER_WEBGL 0
-#endif
-
-#include "foundation/Assert.h"
-
-#if defined(NDEBUG) || (defined(__APPLE__) && !defined(DEBUG))
-#   define GL_ASSERT( gl_code ) gl_code
-#else
-#   define GL_ASSERT( gl_code ) do \
-    { \
-        gl_code; \
-        __gl_error_code = glGetError(); \
-        ALIMER_ASSERT(__gl_error_code == GL_NO_ERROR); \
-    } while(0)
-#endif
-
-/** Global variable to hold GL errors. */
-extern GLenum __gl_error_code;

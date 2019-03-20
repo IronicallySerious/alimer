@@ -24,6 +24,8 @@
 
 #include "core/Object.h"
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace alimer
 {
@@ -40,19 +42,14 @@ namespace alimer
         /// Destructor.
         virtual ~ApplicationHost() = default;
 
-        /// Create host for application.
-        static ApplicationHost* Create(Application* application);
+        virtual int run() = 0;
+        virtual void requestExit();
 
-        virtual int Run() = 0;
-        virtual void RequestExit();
+        virtual void errorDialog(const std::string& title, const std::string& message);
 
-        virtual void ErrorDialog(const std::string& title, const std::string& message);
+        virtual std::shared_ptr<Window> createWindow(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen) = 0;
 
-        virtual std::unique_ptr<Window> CreateWindow(
-            const std::string& title,
-            uint32_t width, uint32_t height,
-            bool resizable, bool fullscreen,
-            bool opengl) = 0;
+        const std::vector<std::string> &getArguments();
 
     protected:
         void InitializeApplication();
@@ -60,5 +57,9 @@ namespace alimer
     protected:
         Application* _application;
         bool _exitRequested = false;
+        std::vector<std::string> _arguments;
     };
+
+    /// Create host for application.
+    ALIMER_API ApplicationHost* createPlatformHost(Application* application);
 }

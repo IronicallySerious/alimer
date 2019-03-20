@@ -23,12 +23,6 @@
 #include "core/Platform.h"
 #include "foundation/Utils.h"
 #if defined(_WIN64) || defined(_WIN32)
-#   ifndef NOMINMAX
-#       define NOMINMAX
-#   endif
-#   ifndef WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
 #   include <Windows.h>
 #endif
 

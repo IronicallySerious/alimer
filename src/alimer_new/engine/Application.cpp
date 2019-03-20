@@ -37,14 +37,13 @@ namespace alimer
         : _config(config)
         , _exitCode(EXIT_SUCCESS)
     {
-        _host.reset(ApplicationHost::Create(this));
+        _host = createPlatformHost(this);
         s_currentApplication = this;
     }
 
     Application::~Application()
     {
-        SafeDelete(_graphicsDevice);
-        _host = nullptr;
+        SafeDelete(_host);
         s_currentApplication = nullptr;
     }
 
@@ -64,41 +63,34 @@ namespace alimer
                 return _exitCode;
             }
             
-            _exitCode = _host->Run();
+            _exitCode = _host->run();
             return _exitCode;
 
 #if !defined(__GNUC__) || __EXCEPTIONS
         }
         catch (std::bad_alloc&)
         {
-            _host->ErrorDialog(GetTypeName(), "An out-of-memory error occurred. The application will now exit.");
+            _host->errorDialog(GetTypeName(), "An out-of-memory error occurred. The application will now exit.");
             return EXIT_FAILURE;
         }
 #endif
     }
 
-    void Application::RequestExit()
+    void Application::requestExit()
     {
-        _host->RequestExit();
+        _host->requestExit();
     }
 
     void Application::InitializeBeforeRun()
     {
-        auto preferredGpuBackend = _config.graphics.preferredBackend;
-        if (preferredGpuBackend == GraphicsBackend::Default)
-        {
-            preferredGpuBackend = GetDefaultGraphicsPlatform();
-        }
-
         // Create main window.
-        _mainWindow = _host->CreateWindow(_config.title,
+        _mainWindow = _host->createWindow(_config.title,
             _config.width, _config.height,
-            _config.resizable, _config.fullscreen,
-            preferredGpuBackend == GraphicsBackend::OpenGL);
-
+            _config.resizable, _config.fullscreen);
 
         // Create graphics device.
-        _graphicsDevice = GraphicsDevice::Create(&_config.graphics);
+        GraphicsDeviceDescriptor descriptor = {};
+        _graphicsDevice = GraphicsDevice::create(_mainWindow, descriptor);
 
         Initialize();
         if (_exitCode) {
@@ -114,7 +106,7 @@ namespace alimer
 
     void Application::ErrorExit(const string& message)
     {
-        _host->RequestExit();
+        _host->requestExit();
         _exitCode = EXIT_FAILURE;
 
         if (message.empty())
@@ -123,7 +115,7 @@ namespace alimer
         }
         else
         {
-            _host->ErrorDialog(GetTypeName(), message);
+            _host->errorDialog(GetTypeName(), message);
         }
     }
 

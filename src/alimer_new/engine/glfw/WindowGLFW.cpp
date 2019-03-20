@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#include "alimer_config.h"
 #if defined(ALIMER_GLFW)
 #   include "engine/Application.h"
 #   include "WindowGLFW.h"
@@ -28,6 +29,11 @@
 
 namespace alimer
 {
+    static void Glfw_WindowCloseCallback(GLFWwindow *window)
+    {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+
     static void Glfw_FramebufferSizeCallback(GLFWwindow *handle, int width, int height)
     {
         WindowGLFW* window = static_cast<WindowGLFW *>(glfwGetWindowUserPointer(handle));
@@ -39,14 +45,13 @@ namespace alimer
     {
         if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
         {
-            Application::Current()->RequestExit();
+            Application::Current()->requestExit();
             //glfwSetWindowShouldClose(handle, GLFW_TRUE);
         }
     }
 
-    WindowGLFW::WindowGLFW(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen, bool opengl)
+    WindowGLFW::WindowGLFW(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
         : Window(title, width, height, resizable, fullscreen)
-        , _opengl(opengl)
     {
         GLFWmonitor* monitor = nullptr;
         int windowWidth;
@@ -65,20 +70,7 @@ namespace alimer
             glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
         }
 
-        if (opengl)
-        {
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-            //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-        }
-        else
-        {
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        }
-
-        _window = glfwCreateWindow(
+        window = glfwCreateWindow(
             windowWidth,
             windowHeight,
             title.c_str(),
@@ -93,22 +85,22 @@ namespace alimer
 
             int windowWidth = 0;
             int windowHeight = 0;
-            glfwGetWindowSize(_window, &windowWidth, &windowHeight);
+            glfwGetWindowSize(window, &windowWidth, &windowHeight);
 
             int windowX = videoMode->width / 2 - windowWidth / 2;
             int windowY = videoMode->height / 2 - windowHeight / 2;
-            glfwSetWindowPos(_window, windowX, windowY);
+            glfwSetWindowPos(window, windowX, windowY);
         }
 
-        if (opengl)
-        {
-            glfwMakeContextCurrent(_window);
-            glfwSwapInterval(1);
-        }
+#if defined(ALIMER_OPENL)
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+#endif
 
-        glfwSetWindowUserPointer(_window, this);
-        glfwSetFramebufferSizeCallback(_window, Glfw_FramebufferSizeCallback);
-        glfwSetKeyCallback(_window, Glfw_KeyCallback);
+        glfwSetWindowUserPointer(window, this);
+        glfwSetWindowCloseCallback(window, Glfw_WindowCloseCallback);
+        glfwSetFramebufferSizeCallback(window, Glfw_FramebufferSizeCallback);
+        glfwSetKeyCallback(window, Glfw_KeyCallback);
         //glfwSetMouseButtonCallback(_window, Glfw_MouseButtonCallback);
         //glfwSetCursorPosCallback(_window, Glfw_MouseMoveCallback);
         //glfwSetScrollCallback(_window, Glfw_ScrollCallback);
@@ -124,19 +116,19 @@ namespace alimer
 
     void WindowGLFW::Close()
     {
-        glfwSetWindowShouldClose(_window, GLFW_TRUE);
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
     bool WindowGLFW::IsOpen() const
     {
-        return !glfwWindowShouldClose(_window);
+        return !glfwWindowShouldClose(window);
     }
 
     void WindowGLFW::SwapBuffers()
     {
-        if (_opengl) {
-            glfwSwapBuffers(_window);
-        }
+#if defined(ALIMER_OPENL)
+        glfwSwapBuffers(_window);
+#endif
     }
 }
 #endif

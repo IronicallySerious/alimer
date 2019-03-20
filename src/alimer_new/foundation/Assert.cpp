@@ -21,14 +21,8 @@
 //
 
 #include "foundation/Assert.h"
-#if ALIMER_PLATFORM_WINDOWS || ALIMER_PLATFORM_UWP
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <Windows.h>
+#if defined(_WIN64) || defined(_WIN32)
+#   include <Windows.h>
 #endif
 
 namespace alimer

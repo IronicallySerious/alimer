@@ -23,6 +23,7 @@
 #pragma once
 
 #include "foundation/Assert.h"
+#include <string>
 
 namespace alimer
 {
@@ -162,7 +163,7 @@ namespace alimer
     struct PixelFormatDesc
     {
         PixelFormat format;
-        const char* name;
+        const std::string name;
         PixelFormatType type;
         uint8_t                 bitsPerPixel;
         struct
@@ -188,67 +189,67 @@ namespace alimer
     ALIMER_API extern const PixelFormatDesc FormatDesc[];
 
     /// Get the number of bytes per format.
-    inline uint32_t GetFormatBitsPerPixel(PixelFormat format)
+    inline uint32_t getFormatBitsPerPixel(PixelFormat format)
     {
         ALIMER_ASSERT(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].bitsPerPixel;
     }
 
-    inline uint32_t GetFormatBlockSize(PixelFormat format)
+    inline uint32_t getFormatBlockSize(PixelFormat format)
     {
         ALIMER_ASSERT(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].compression.blockSize;
     }
 
     /// Check if the format has a depth component
-    inline bool IsDepthFormat(PixelFormat format)
+    inline bool isDepthFormat(PixelFormat format)
     {
         ALIMER_ASSERT(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].bits.depth > 0;
     }
 
     /// Check if the format has a stencil component
-    inline bool IsStencilFormat(PixelFormat format)
+    inline bool isStencilFormat(PixelFormat format)
     {
         ALIMER_ASSERT(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].bits.stencil > 0;
     }
 
     /// Check if the format has depth or stencil components
-    inline bool IsDepthStencilFormat(PixelFormat format)
+    inline bool isDepthStencilFormat(PixelFormat format)
     {
-        return IsDepthFormat(format) || IsStencilFormat(format);
+        return isDepthFormat(format) || isStencilFormat(format);
     }
 
     /// Check if the format is a compressed format
-    inline bool IsCompressedFormat(PixelFormat format)
+    inline bool isCompressedFormat(PixelFormat format)
     {
         ALIMER_ASSERT(FormatDesc[(uint32_t)format].format == format);
         return format >= PixelFormat::BC1UNorm && format <= PixelFormat::PVRTC_RGBA4;
     }
 
     /// Get the format compression ration along the x-axis
-    inline uint32_t GetFormatBlockWidth(PixelFormat format)
+    inline uint32_t getFormatBlockWidth(PixelFormat format)
     {
         ALIMER_ASSERT(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].compression.blockWidth;
     }
 
     /// Get the format compression ration along the y-axis
-    inline uint32_t GetFormatBlockHeight(PixelFormat format)
+    inline uint32_t getFormatBlockHeight(PixelFormat format)
     {
         ALIMER_ASSERT(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].compression.blockHeight;
     }
 
     /// Get the format Type
-    inline PixelFormatType GetFormatType(PixelFormat format)
+    inline PixelFormatType getFormatType(PixelFormat format)
     {
         ALIMER_ASSERT(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].type;
     }
 
-    inline const char* GetFormatName(PixelFormat format)
+    inline const std::string& to_string(PixelFormat format)
     {
         ALIMER_ASSERT(FormatDesc[(uint32_t)format].format == format);
         return FormatDesc[(uint32_t)format].name;

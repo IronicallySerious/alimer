@@ -46,13 +46,6 @@ namespace alimer
         HighPerformance = 2,
     };
 
-    struct GraphicsDeviceDescriptor
-    {
-        GraphicsBackend preferredBackend = GraphicsBackend::Default;
-        bool validation = false;
-        PowerPreference powerPreference = PowerPreference::Default;
-    };
-
     struct SwapChainDescriptor
     {
         //TextureUsageFlags usage;
@@ -125,9 +118,9 @@ namespace alimer
         uint32_t        maxTextureArrayLayers;
         uint32_t        maxColorAttachments;
         uint32_t        maxUniformBufferSize;
-        uint32_t        minUniformBufferOffsetAlignment;
+        uint64_t        minUniformBufferOffsetAlignment;
         uint32_t        maxStorageBufferSize;
-        uint32_t        minStorageBufferOffsetAlignment;
+        uint64_t        minStorageBufferOffsetAlignment;
         uint32_t        maxSamplerAnisotropy;
         uint32_t        maxViewports;
         uint32_t        maxViewportDimensions[2];
@@ -148,5 +141,16 @@ namespace alimer
 
         /// Specifies all rendering limitations.
         GraphicsDeviceLimits            limits;
+    };
+
+    /// GraphicsDevice descriptor
+    struct GraphicsDeviceDescriptor
+    {
+        PowerPreference powerPreference = PowerPreference::Default;
+
+        /// The color buffer format
+        PixelFormat colorFormat = PixelFormat::BGRA8UNormSrgb;
+        /// The depth buffer format
+        PixelFormat depthFormat = PixelFormat::Depth32Float;
     };
 }

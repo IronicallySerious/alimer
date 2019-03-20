@@ -21,6 +21,7 @@
 //
 #pragma once
 
+#include "alimer_config.h"
 #include "foundation/Preprocessor.h"
 #include <new>
 #include <utility>

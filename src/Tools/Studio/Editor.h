@@ -31,8 +31,10 @@ namespace alimer
         ALIMER_OBJECT(Editor, Application);
 
     public:
-        explicit Editor(int argc, char** argv);
+        Editor(const ApplicationConfiguration& config);
         ~Editor() override;
+
+        void ParseArguments(int argc, char** argv);
 
     private:
         //void Initialize() override;
