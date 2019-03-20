@@ -29,38 +29,46 @@ foreach (TARGET stb freetype fmt spdlog)
     endif ()
 endforeach ()
 
-# vgpu (vortice gpu)
-add_subdirectory(vgpu)
-
 # SPIRV-Cross
 add_subdirectory(spirv-cross)
 
-if (ALIMER_DESKTOP)
+if (ALIMER_GLFW)
     # glfw
-    if (ALIMER_SYSTEM_GLFW)
-        pkg_search_module(GLFW REQUIRED glfw3)
-        include_directories(${GLFW_INCLUDE_DIRS})
-    else()
-        set (GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-        set (GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-        set (GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-        set (GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-        #set (GLFW_USE_WAYLAND ${VGPU_USE_WAYLAND} CACHE BOOL "" FORCE)
-        add_subdirectory(glfw)
-    endif ()
+    set (GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set (GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+    set (GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set (GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+    #set (GLFW_USE_WAYLAND ${VGPU_USE_WAYLAND} CACHE BOOL "" FORCE)
+    add_subdirectory(glfw)
 endif ()
 
 if (ALIMER_VULKAN)
-    add_subdirectory(volk)
-    add_subdirectory(vk_mem_alloc)
+    # vulkan
+    add_library(vulkan INTERFACE)
+    target_include_directories(vulkan INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_definitions(vulkan INTERFACE VK_NO_PROTOTYPES)
 
-    set_property(TARGET "volk" PROPERTY FOLDER "third_party")
-    set_property(TARGET "vk_mem_alloc" PROPERTY FOLDER "third_party")
-endif ()
+    if(ANDROID)
+	    target_compile_definitions(vulkan INTERFACE VK_USE_PLATFORM_ANDROID_KHR)
+    elseif(WIN32)
+	    target_compile_definitions(vulkan INTERFACE VK_USE_PLATFORM_WIN32_KHR)
+    elseif(APPLE)
+	    target_compile_definitions(vulkan INTERFACE VK_USE_PLATFORM_MACOS_MVK)
+    elseif(UNIX)
+	    target_compile_definitions(vulkan INTERFACE VK_USE_PLATFORM_XCB_KHR)
+    endif()
 
+    # vma
+    add_library(vma INTERFACE)
+    target_include_directories(vma INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/vk_mem_alloc")
+    target_link_libraries(vma INTERFACE vulkan)
 
-if (ALIMER_OPENGL)
-    add_subdirectory(glad)
+    # volk
+    set (VOLK_FILES "volk/volk.c" "volk/volk.h")
+    add_library(volk STATIC ${VOLK_FILES})
+    target_link_libraries(volk PUBLIC vulkan)
+    target_include_directories(volk PUBLIC "volk")
+    set_property(TARGET volk PROPERTY FOLDER "third_party")
 endif ()
 
 # CLI11
