@@ -24,6 +24,9 @@
 
 #include "UtilsVk.h"
 #include "graphics/Types.h"
+
+VK_DEFINE_HANDLE(VmaAllocator)
+
 namespace alimer
 {
     class Window;
@@ -62,17 +65,16 @@ namespace alimer
 
     private:
         void initializeCaps();
+        bool initializeAllocator();
+        bool initializeSwapChain(Window* window, const GraphicsDeviceDescriptor& desc);
 
     private:
         DeviceFeatures features;
-        bool ownedInstance = true;
-        bool ownedDevice = true;
         VkInstance instance = VK_NULL_HANDLE;
 #ifdef VULKAN_DEBUG
         VkDebugReportCallbackEXT debugCallback = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 #endif
-        VkSurfaceKHR surface = VK_NULL_HANDLE;
 
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkPhysicalDeviceProperties deviceProperties;
@@ -81,11 +83,15 @@ namespace alimer
 
         uint32_t graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        uint32_t transferFueueFamily = VK_QUEUE_FAMILY_IGNORED;
+        uint32_t transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         VkQueue graphicsQueue = VK_NULL_HANDLE;
         VkQueue computeQueue = VK_NULL_HANDLE;
         VkQueue transferQueue = VK_NULL_HANDLE;
         VkDevice device = VK_NULL_HANDLE;
+        VmaAllocator memoryAllocator = VK_NULL_HANDLE;
+
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
         GraphicsDeviceInfo          info = {};
         GraphicsDeviceCapabilities  caps = {};

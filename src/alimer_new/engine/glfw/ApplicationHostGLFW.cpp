@@ -22,16 +22,17 @@
 
 #include "alimer_config.h"
 #if defined(ALIMER_GLFW)
-#include "core/Log.h"
-#include "ApplicationHostGLFW.h"
-#include "WindowGLFW.h"
+#   include "core/Log.h"
+#   include "engine/Window.h"
+#   include "engine/Application.h"
+#   include "ApplicationHostGLFW.h"
 
-#if defined(_WIN64) || defined(_WIN32)
-#   include <Windows.h>
-#endif
+#   if defined(_WIN64) || defined(_WIN32)
+#       include <Windows.h>
+#   endif
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
+#   define GLFW_INCLUDE_NONE
+#   include <GLFW/glfw3.h>
 
 // GLFW3 Error Callback, runs on GLFW3 error
 static void glfwErrorCallback(int error, const char *description)
@@ -108,9 +109,9 @@ namespace alimer
         InitializeApplication();
 
         while (!_exitRequested
-            && _application->GetMainWindow()->IsOpen())
+            && _application->getMainWindow()->isOpen())
         {
-            _application->Tick();
+            _application->tick();
 
             // Pool glfw events.
             glfwPollEvents();
@@ -121,7 +122,7 @@ namespace alimer
 
     shared_ptr<Window> ApplicationHostGLFW::createWindow(const string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
     {
-        return make_shared<WindowGLFW>(title, width, height, resizable, fullscreen);
+        return make_shared<Window>(title, width, height, resizable, fullscreen);
     }
 
     ApplicationHost* createPlatformHost(Application* application)

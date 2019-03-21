@@ -47,18 +47,19 @@ namespace alimer
         s_currentApplication = nullptr;
     }
 
-    Application* Application::Current()
+    Application* Application::getCurrent()
     {
+        ALIMER_ASSERT_MSG(s_currentApplication, "Application has not been initialized");
         return s_currentApplication;
     }
 
-    int Application::Run()
+    int Application::run()
     {
 #if !defined(__GNUC__) || __EXCEPTIONS
         try
         {
 #endif
-            Setup();
+            setup();
             if (_exitCode) {
                 return _exitCode;
             }
@@ -81,7 +82,7 @@ namespace alimer
         _host->requestExit();
     }
 
-    void Application::InitializeBeforeRun()
+    void Application::initializeBeforeRun()
     {
         // Create main window.
         _mainWindow = _host->createWindow(_config.title,
@@ -92,19 +93,18 @@ namespace alimer
         GraphicsDeviceDescriptor descriptor = {};
         _graphicsDevice = GraphicsDevice::create(_mainWindow, descriptor);
 
-        Initialize();
+        initialize();
         if (_exitCode) {
-            ErrorExit();
+            errorExit();
         }
     }
 
-    void Application::Tick()
+    void Application::tick()
     {
         // Present content on screen.
-        _mainWindow->SwapBuffers();
     }
 
-    void Application::ErrorExit(const string& message)
+    void Application::errorExit(const string& message)
     {
         _host->requestExit();
         _exitCode = EXIT_FAILURE;

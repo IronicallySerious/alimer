@@ -66,36 +66,36 @@ namespace alimer
         ~Application() override;
 
         /// Get the current active application.
-        static Application* Current();
+        static Application* getCurrent();
 
         /// Initialize all sub systems, graphics device, input, audio and run the main loop, then return the application exit code.
-        int Run();
+        int run();
 
         /// Request the application to exit.
         void requestExit();
 
         /// Tick one rendering frame.
-        void Tick();
+        void tick();
 
         /// Get the main window.
-        Window* GetMainWindow() const { return _mainWindow.get(); }
+        Window* getMainWindow() const { return _mainWindow.get(); }
 
     protected:
         /// Setup before engine initialization. This is a chance to eg. modify the engine parameters. Call ErrorExit() to terminate without initializing the engine.
-        virtual void Setup() { }
+        virtual void setup() { }
 
         /// Setup after engine initialization and before running the main loop. Call ErrorExit() to terminate without running the main loop.
-        virtual void Initialize() { }
+        virtual void initialize() { }
 
         /// Cleanup after the main loop. Called by Application.
-        virtual void Stop() { }
+        virtual void stop() { }
 
         /// Show an error message (last log message if empty), terminate the main loop, and set failure exit code.
-        void ErrorExit(const std::string& message = "");
+        void errorExit(const std::string& message = "");
 
     private:
         /// Called by ApplicationHost to setup everything before running main loop.
-        void InitializeBeforeRun();
+        void initializeBeforeRun();
 
     protected:
         /// Configuration

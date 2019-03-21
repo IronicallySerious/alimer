@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "engine/window_handle.h"
 #include "graphics/PixelFormat.h"
 #include <string>
 
@@ -148,9 +149,11 @@ namespace alimer
     {
         PowerPreference powerPreference = PowerPreference::Default;
 
-        /// The color buffer format
-        PixelFormat colorFormat = PixelFormat::BGRA8UNormSrgb;
+        /// The color buffer format srgb.
+        bool srgb = true;
         /// The depth buffer format
         PixelFormat depthFormat = PixelFormat::Depth32Float;
+
+        bool vSyncEnabled = false;
     };
 }

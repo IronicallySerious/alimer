@@ -97,6 +97,36 @@ namespace alimer
         }
     }
 
+    inline static std::string vkGetVendorByID(uint32_t id)
+    {
+        switch (id)
+        {
+        case 0x1002: return "Advanced Micro Devices, Inc.";
+        case 0x10de: return "NVIDIA Corporation";
+        case 0x102b: return "Matrox Electronic Systems Ltd.";
+        case 0x1414: return "Microsoft Corporation";
+        case 0x5333: return "S3 Graphics Co., Ltd.";
+        case 0x8086: return "Intel Corporation";
+        case 0x80ee: return "Oracle Corporation";
+        case 0x15ad: return "VMware Inc.";
+        }
+        return "";
+    }
+
+    // see https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#fundamentals-versionnum
+    inline std::string vkGetVersionToString(std::uint32_t version)
+    {
+        std::string s;
+
+        s += std::to_string(VK_VERSION_MAJOR(version));
+        s += '.';
+        s += std::to_string(VK_VERSION_MINOR(version));
+        s += ".";
+        s += std::to_string(VK_VERSION_PATCH(version));
+
+        return s;
+    }
+
     /// Vulkan exception structure
     class VulkanException : std::runtime_error
     {

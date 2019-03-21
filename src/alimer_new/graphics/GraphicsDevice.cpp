@@ -39,6 +39,12 @@ namespace alimer
 {
     std::shared_ptr<GraphicsDevice> graphicsDevice;
 
+    GraphicsDevice::GraphicsDevice()
+        : pImpl(new GraphicsImpl())
+    {
+
+    }
+
     GraphicsDevice::GraphicsDevice(const std::shared_ptr<Window>& window_)
         : window(window_)
         , pImpl(new GraphicsImpl())

@@ -52,7 +52,7 @@ namespace alimer
 
 	void ApplicationHost::InitializeApplication()
 	{
-        _application->InitializeBeforeRun();
+        _application->initializeBeforeRun();
 	}
 
     const std::vector<std::string> &ApplicationHost::getArguments()

@@ -23,9 +23,21 @@
 #include "alimer_config.h"
 #if defined(ALIMER_GLFW)
 #   include "engine/Application.h"
-#   include "WindowGLFW.h"
+#   include "engine/Window.h"
+#   if defined(_WIN32)
+#      define GLFW_EXPOSE_NATIVE_WIN32
+#   elif defined(__linux__) || defined(__linux)
+#      if !defined(ALIMER_GLFW_WAYLAND)
+#          define GLFW_EXPOSE_NATIVE_X11
+#      else
+#          define GLFW_EXPOSE_NATIVE_WAYLAND
+#   endif
+#   elif defined(__APPLE__) 
+#      define GLFW_EXPOSE_NATIVE_COCOA
+#   endif
 #   define GLFW_INCLUDE_NONE
 #   include <GLFW/glfw3.h>
+#   include <GLFW/glfw3native.h>
 
 namespace alimer
 {
@@ -36,7 +48,7 @@ namespace alimer
 
     static void Glfw_FramebufferSizeCallback(GLFWwindow *handle, int width, int height)
     {
-        WindowGLFW* window = static_cast<WindowGLFW *>(glfwGetWindowUserPointer(handle));
+        Window* window = static_cast<Window*>(glfwGetWindowUserPointer(handle));
         //ALIMER_ASSERT(width != 0 && height != 0);
         //window->NotifyResize(width, height);
     }
@@ -45,13 +57,17 @@ namespace alimer
     {
         if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
         {
-            Application::Current()->requestExit();
+            Application::getCurrent()->requestExit();
             //glfwSetWindowShouldClose(handle, GLFW_TRUE);
         }
     }
 
-    WindowGLFW::WindowGLFW(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
-        : Window(title, width, height, resizable, fullscreen)
+    Window::Window(const std::string& title_, uint32_t width_, uint32_t height_, bool resizable_, bool fullscreen_)
+        : title(title_)
+        , width(width_)
+        , height(height_)
+        , resizable(resizable_)
+        , fullscreen(fullscreen_)
     {
         GLFWmonitor* monitor = nullptr;
         int windowWidth;
@@ -109,25 +125,46 @@ namespace alimer
         //glfwSetDropCallback(_window, Glfw_DropCallback);
     }
 
-    WindowGLFW::~WindowGLFW()
+    Window::~Window()
     {
-        Close();
+        close();
     }
 
-    void WindowGLFW::Close()
+    void Window::close()
     {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
-    bool WindowGLFW::IsOpen() const
+    bool Window::isOpen() const
     {
         return !glfwWindowShouldClose(window);
     }
 
-    void WindowGLFW::SwapBuffers()
+    WindowHandle Window::getNativeHandle() const
     {
-#if defined(ALIMER_OPENL)
-        glfwSwapBuffers(_window);
+#if defined(GLFW_EXPOSE_NATIVE_WIN32)
+        return glfwGetWin32Window(window);
+#elif defined(GLFW_EXPOSE_NATIVE_X11)
+        return glfwGetX11Window((window);
+#elif defined(GLFW_EXPOSE_NATIVE_WAYLAND)
+        return glfwGetWaylandWindow(window);
+#elif defined(GLFW_EXPOSE_NATIVE_COCOA)
+        return glfwGetCocoaWindow(window);
+#else
+        return 0;
+#endif
+    }
+
+    WindowConnection Window::getNativeConnection() const
+    {
+#if defined(GLFW_EXPOSE_NATIVE_WIN32)
+        return GetModuleHandleW(nullptr);
+#elif defined(GLFW_EXPOSE_NATIVE_X11)
+        return glfwGetX11Display();
+#elif defined(GLFW_EXPOSE_NATIVE_WAYLAND)
+        return glfwGetWaylandDisplay();
+#else
+        return 0;
 #endif
     }
 }

@@ -38,5 +38,5 @@ int main()
     ApplicationConfiguration config = {};
     config.title = "Sample 01 - Hello World";
     HelloWorldApp app(config);
-    return app.Run();
+    return app.run();
 }

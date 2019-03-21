@@ -31,12 +31,12 @@ namespace alimer
 
     class ALIMER_API GraphicsDevice final
     {
-
     public:
+        /// Constructor.
+        GraphicsDevice();
+
         /// Destructor.
         ~GraphicsDevice();
-
-        
 
         static std::shared_ptr<GraphicsDevice> create(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc);
 
@@ -53,7 +53,7 @@ namespace alimer
     private:
         /// Implementation.
         GraphicsImpl* pImpl = nullptr;
-        /// The device window.
+        /// The main window.
         std::shared_ptr<Window> window;
     };
 
