@@ -69,6 +69,39 @@ if (ALIMER_VULKAN)
     target_link_libraries(volk PUBLIC vulkan)
     target_include_directories(volk PUBLIC "volk")
     set_property(TARGET volk PROPERTY FOLDER "third_party")
+
+    # glslang
+    option(ENABLE_SPVREMAPPER OFF)
+    option(ENABLE_AMD_EXTENSIONS OFF)
+    option(ENABLE_GLSLANG_BINARIES OFF)
+    option(ENABLE_NV_EXTENSIONS OFF)
+    option(ENABLE_HLSL OFF)
+    option(ENABLE_OPT OFF)
+    option(BUILD_TESTING OFF)
+
+    add_subdirectory(glslang)
+
+    if (NOT TARGET glslang-default-resource-limits)
+        add_library(glslang-default-resource-limits glslang/StandAlone/ResourceLimits.cpp)
+        set_property(TARGET glslang-default-resource-limits PROPERTY FOLDER "third_party")
+
+        target_include_directories(glslang-default-resource-limits PUBLIC glslang/StandAlone)
+    endif()
+
+    if(NOT MSVC)
+        target_compile_options(glslang PRIVATE
+            "-Wno-logical-op-parentheses"
+            "-Wno-unused-parameter")
+
+        target_compile_options(SPIRV PRIVATE
+            "-Wno-logical-op-parentheses"
+            "-Wno-unused-parameter")
+    endif()
+
+    set_property(TARGET glslang PROPERTY FOLDER "third_party")
+    set_property(TARGET OGLCompiler PROPERTY FOLDER "third_party")
+    set_property(TARGET OSDependent PROPERTY FOLDER "third_party")
+    set_property(TARGET SPIRV PROPERTY FOLDER "third_party")
 endif ()
 
 # CLI11
