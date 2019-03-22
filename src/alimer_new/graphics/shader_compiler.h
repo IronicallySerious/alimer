@@ -22,35 +22,12 @@
 
 #pragma once
 
-#include "core/Object.h"
+#include <string>
+#include <vector>
+#include "graphics/Types.h"
 
 namespace alimer
 {
-	class AssetImporter : public Object
-	{
-		ALIMER_OBJECT(AssetImporter, Object);
-	
-    public:
-        /// Constructor.
-        AssetImporter();
-
-        /// Destructor.
-        virtual ~AssetImporter();
-
-        /// Defines the base asset loading parameters.
-        class Parameters
-        {
-        public:
-            size_t priority = 0;
-        };
-
-        /// Get if given extension can be imported by this importer.
-        virtual bool IsExtensionSupported(const std::string& extension) const = 0;
-
-        virtual bool Import(const std::string& fileName, const std::string& destPath, std::shared_ptr<AssetImporter::Parameters> parameters) = 0;
-
-    private:
-        AssetImporter(const AssetImporter&) = delete;
-        AssetImporter& operator=(const AssetImporter&) = delete;
-	};
+    ALIMER_API bool compile_to_spirv(ShaderStage stage, const std::string& shaderSource, const std::string& entryPoint,
+        std::vector<uint32_t> &spirv, std::string& infoLog);
 }

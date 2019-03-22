@@ -94,21 +94,23 @@ target_include_directories(${TARGET_NAME}
 )
 
 if (ALIMER_GLFW)
-    target_link_libraries(${TARGET_NAME} PRIVATE glfw)
+    target_link_libraries(${TARGET_NAME} glfw)
 elseif (ANDROID)
-    target_link_libraries(${TARGET_NAME} PRIVATE dl log android)
-
-    # target_link_libraries(${TARGET_NAME} PRIVATE GLESv3)
     target_include_directories(${TARGET_NAME} PRIVATE ${ANDROID_NDK}/sources/android/cpufeatures)
     target_include_directories(${TARGET_NAME} PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue/)
+
+    target_link_libraries(${TARGET_NAME} log android native_app_glue)
 elseif (EMSCRIPTEN)
 endif ()
 
 # Graphics backend.
 if (ALIMER_VULKAN)
-    target_link_libraries(${TARGET_NAME} PUBLIC
+    target_link_libraries(${TARGET_NAME}
         volk
         vma
+        SPIRV
+        glslang
+        glslang-default-resource-limits
     )
 elseif (ALIMER_D3D12)
     target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_D3D12)

@@ -22,14 +22,14 @@
 
 #pragma once
 
-#include "Alimer.h"
-#include <string>
+#include "core/Object.h"
 
 namespace alimer
 {
 	class AssetDatabase final : public Object
 	{
 		ALIMER_OBJECT(AssetDatabase, Object);
+
 	public:
 		AssetDatabase();
 		~AssetDatabase();

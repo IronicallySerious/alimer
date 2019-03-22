@@ -68,7 +68,7 @@ int main(int argc, char** argv)
 
     alimer::Editor app(config);
     app.ParseArguments(argc, argv);
-    return app.Run();
+    return app.run();
 }
 
 #if ALIMER_PLATFORM_WINDOWS

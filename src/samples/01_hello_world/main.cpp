@@ -29,7 +29,6 @@ public:
     HelloWorldApp(const ApplicationConfiguration& config)
         : Application(config)
     {
-
     }
 };
 

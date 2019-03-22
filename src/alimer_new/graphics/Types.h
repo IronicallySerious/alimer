@@ -47,6 +47,17 @@ namespace alimer
         HighPerformance = 2,
     };
 
+    enum class ShaderStage : uint32_t
+    {
+        Vertex = 0,
+        TessellationControl = 1,
+        TessellationEvaluation = 2,
+        Geometry = 3,
+        Fragment = 4,
+        Compute = 5,
+        Count
+    };
+
     struct SwapChainDescriptor
     {
         //TextureUsageFlags usage;
