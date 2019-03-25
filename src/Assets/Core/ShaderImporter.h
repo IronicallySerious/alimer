@@ -6,7 +6,7 @@
 */
 
 #pragma once
-#include "Alimer.h"
+
 #include "AssetImporter.h"
 
 namespace alimer
@@ -14,13 +14,12 @@ namespace alimer
     class ShaderImporter final : public AssetImporter
     {
     public:
-        ShaderImporter(Engine& engine);
+        ShaderImporter();
 
         /* AssetImporter members */
         bool IsExtensionSupported(const std::string& extension) const override;
         bool Import(const std::string& fileName, const std::string& destPath, std::shared_ptr<AssetImporter::Parameters> parameters) override;
 
     private:
-        Engine& _engine;
     };
 }
