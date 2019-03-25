@@ -292,7 +292,9 @@ namespace alimer
     void GraphicsImpl::destroy()
     {
         if (device != VK_NULL_HANDLE)
+        {
             vkDeviceWaitIdle(device);
+        }
 
         if (swapchain != VK_NULL_HANDLE)
         {
@@ -304,6 +306,14 @@ namespace alimer
         {
             vkDestroySurfaceKHR(instance, surface, nullptr);
             surface = VK_NULL_HANDLE;
+        }
+
+        // Clear per frame data.
+        perFrame.clear();
+
+        if (graphicsCommandPool != VK_NULL_HANDLE) {
+            vkDestroyCommandPool(device, graphicsCommandPool, nullptr);
+            graphicsCommandPool = VK_NULL_HANDLE;
         }
 
         if (memoryAllocator != VK_NULL_HANDLE)
@@ -756,9 +766,27 @@ namespace alimer
             return false;
         }
 
+        // Create default graphics command pool.
+        VkCommandPoolCreateInfo cmdPoolInfo = {};
+        cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmdPoolInfo.queueFamilyIndex = graphicsQueueFamily;
+        cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        vkThrowIfFailed(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &graphicsCommandPool));
+
+        // Init swap chain.
         if (!initializeSwapChain(window, desc))
         {
             return false;
+        }
+
+        const bool headless = false;
+        maxInflightFrames = headless ? 3u : swapchainImageCount;
+        perFrame.clear();
+
+        for (uint32_t i = 0; i < maxInflightFrames; i++)
+        {
+            auto frame = unique_ptr<PerFrame>(new PerFrame(this));
+            perFrame.emplace_back(move(frame));
         }
 
         return true;
@@ -978,41 +1006,99 @@ namespace alimer
 
         VkSwapchainKHR old_swapchain = swapchain;
 
-        VkSwapchainCreateInfoKHR info = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
-        info.surface = surface;
-        info.minImageCount = desired_swapchain_images;
-        info.imageFormat = format.format;
-        info.imageColorSpace = format.colorSpace;
-        info.imageExtent.width = swapchain_size.width;
-        info.imageExtent.height = swapchain_size.height;
-        info.imageArrayLayers = 1;
-        info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        info.preTransform = pre_transform;
-        info.compositeAlpha = composite_mode;
-        info.presentMode = swapchain_present_mode;
-        info.clipped = VK_TRUE;
-        info.oldSwapchain = old_swapchain;
+        VkSwapchainCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
+        createInfo.surface = surface;
+        createInfo.minImageCount = desired_swapchain_images;
+        createInfo.imageFormat = format.format;
+        createInfo.imageColorSpace = format.colorSpace;
+        createInfo.imageExtent.width = swapchain_size.width;
+        createInfo.imageExtent.height = swapchain_size.height;
+        createInfo.imageArrayLayers = 1;
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.preTransform = pre_transform;
+        createInfo.compositeAlpha = composite_mode;
+        createInfo.presentMode = swapchain_present_mode;
+        createInfo.clipped = VK_TRUE;
+        createInfo.oldSwapchain = old_swapchain;
 
         // Enable transfer source on swap chain images if supported
         if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
-            info.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         }
 
         // Enable transfer destination on swap chain images if supported
         if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
-            info.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         }
 
-        if (vkCreateSwapchainKHR(device, &info, nullptr, &swapchain) != VK_SUCCESS)
+        if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain) != VK_SUCCESS)
         {
             return false;
         }
 
         if (old_swapchain != VK_NULL_HANDLE)
         {
+            for (uint32_t i = 0; i < swapchainImageCount; i++)
+            {
+                //vkDestroyImageView(device, buffers[i].view, nullptr);
+                vkDestroySemaphore(device, swapchainImageSemaphores[i], nullptr);
+            }
+
             vkDestroySwapchainKHR(device, old_swapchain, nullptr);
         }
+
+        vkThrowIfFailed(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, nullptr));
+        swapchainImages.resize(swapchainImageCount);
+        swapchainImageSemaphores.resize(swapchainImageCount);
+        vkThrowIfFailed(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, swapchainImages.data()));
+
+        // Create command buffer for transition or clear 
+        auto setupSwapchainCmdBuffer = CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+        {
+            VkSemaphoreCreateInfo semaphoreCreateInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+            vkThrowIfFailed(
+                vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &swapchainImageSemaphores[i])
+            );
+
+            // Clear with default value if supported.
+            if (createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+            {
+                // Clear images with default color.
+                VkClearColorValue clearColor = {};
+                clearColor.float32[3] = 1.0f;
+                //clearColor.float32[0] = 1.0f;
+
+                VkImageSubresourceRange clearRange = {};
+                clearRange.layerCount = 1;
+                clearRange.levelCount = 1;
+
+                // Clear with default color.
+                vkClearImageWithColor(
+                    setupSwapchainCmdBuffer,
+                    swapchainImages[i],
+                    clearRange,
+                    VK_IMAGE_ASPECT_COLOR_BIT,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    &clearColor);
+            }
+            else
+            {
+                // Transition image to present layout.
+                vkTransitionImageLayout(
+                    setupSwapchainCmdBuffer,
+                    swapchainImages[i],
+                    VK_IMAGE_ASPECT_COLOR_BIT,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                );
+            }
+        }
+
+        FlushCommandBuffer(setupSwapchainCmdBuffer, graphicsQueue, true);
 
         return true;
     }
@@ -1020,5 +1106,135 @@ namespace alimer
     void GraphicsImpl::notifyValidationError(const char* message)
     {
         ALIMER_UNUSED(message);
+    }
+
+    bool GraphicsImpl::beginFrame()
+    {
+        vkThrowIfFailed(vkWaitForFences(device, 1u, &frame().fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+        vkThrowIfFailed(vkResetFences(device, 1u, &frame().fence));
+
+        const VkResult result =
+            vkAcquireNextImageKHR(device,
+                swapchain,
+                std::numeric_limits<uint64_t>::max(),
+                swapchainImageSemaphores[frameNumber],
+                VK_NULL_HANDLE,
+                &swapchainImageIndex);
+
+        if (result != VK_SUCCESS)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    void GraphicsImpl::endFrame()
+    {
+        const uint32_t frameIndex = frameNumber;
+
+        // Submit the pending command buffers.
+        const VkPipelineStageFlags colorAttachmentStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        uint32_t waitSemaphoreCount = 0u;
+        VkSemaphore *waitSemaphores = NULL;
+        const VkPipelineStageFlags *waitStageMasks = nullptr;
+        if (swapchain != VK_NULL_HANDLE)
+        {
+            waitSemaphoreCount = 1u;
+            waitSemaphores = &swapchainImageSemaphores[frameIndex];
+            waitStageMasks = &colorAttachmentStage;
+        }
+
+        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        submitInfo.waitSemaphoreCount = waitSemaphoreCount;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStageMasks;
+        submitInfo.commandBufferCount = (uint32_t)frame().submittedCommandBuffers.size();
+        submitInfo.pCommandBuffers = frame().submittedCommandBuffers.data();
+        submitInfo.signalSemaphoreCount = (uint32_t)frame().waitSemaphores.size();
+        submitInfo.pSignalSemaphores = frame().waitSemaphores.data();
+
+        vkQueueSubmit(graphicsQueue, 1u, &submitInfo, frame().fence);
+
+        if (swapchain != VK_NULL_HANDLE)
+        {
+            VkResult presentResult = VK_SUCCESS;
+            VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+            presentInfo.waitSemaphoreCount = (uint32_t)frame().waitSemaphores.size();
+            presentInfo.pWaitSemaphores = frame().waitSemaphores.data();
+            presentInfo.swapchainCount = 1u;
+            presentInfo.pSwapchains = &swapchain;
+            presentInfo.pImageIndices = &swapchainImageIndex;
+            presentInfo.pResults = &presentResult;
+            vkQueuePresentKHR(graphicsQueue, &presentInfo);
+            if (presentResult != VK_SUCCESS)
+            {
+            }
+        }
+
+        // Advance to next frame.
+        frameNumber = (frameNumber + 1u) % maxInflightFrames;
+    }
+
+    VkCommandBuffer GraphicsImpl::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
+    {
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO  };
+        cmdBufAllocateInfo.commandPool = graphicsCommandPool;
+        cmdBufAllocateInfo.level = level;
+        cmdBufAllocateInfo.commandBufferCount = 1;
+
+        VkCommandBuffer commandBuffer;
+        vkThrowIfFailed(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer));
+
+        // If requested, also start the new command buffer
+        if (begin)
+        {
+            VkCommandBufferBeginInfo cmdBufInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+            vkThrowIfFailed(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
+        }
+
+        return commandBuffer;
+    }
+
+    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
+    {
+        vkThrowIfFailed(vkEndCommandBuffer(commandBuffer));
+
+        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        // Create fence to ensure that the command buffer has finished executing
+        VkFenceCreateInfo fenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+        VkFence fence;
+        vkThrowIfFailed(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+
+        vkThrowIfFailed(vkQueueSubmit(queue, 1, &submitInfo, fence));
+        // Wait for the fence to signal that command buffer has finished executing
+        vkThrowIfFailed(vkWaitForFences(device, 1, &fence, VK_TRUE, 100000000000));
+        vkDestroyFence(device, fence, nullptr);
+
+        if (free)
+        {
+            vkFreeCommandBuffers(device, graphicsCommandPool, 1, &commandBuffer);
+        }
+    }
+
+    GraphicsImpl::PerFrame::PerFrame(GraphicsImpl* device_)
+        : device(device_)
+    {
+        const VkFenceCreateInfo fenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, VK_FENCE_CREATE_SIGNALED_BIT };
+        vkCreateFence(device->device, &fenceCreateInfo, nullptr, &fence);
+    }
+
+    GraphicsImpl::PerFrame::~PerFrame()
+    {
+        Begin();
+        vkDestroyFence(device->device, fence, nullptr);
+    }
+
+    void GraphicsImpl::PerFrame::Begin()
+    {
+
     }
 }

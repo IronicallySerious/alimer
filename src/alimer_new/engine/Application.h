@@ -77,6 +77,9 @@ namespace alimer
         /// Tick one rendering frame.
         void tick();
 
+        /// Return whether application has been initialized.
+        bool isInitialized() const { return _initialized; }
+
         /// Get the main window.
         Window* getMainWindow() const { return _mainWindow.get(); }
 
@@ -97,6 +100,9 @@ namespace alimer
         /// Called by ApplicationHost to setup everything before running main loop.
         void initializeBeforeRun();
 
+        /// Perform frame rendering.
+        void render();
+
     protected:
         /// Configuration
         ApplicationConfiguration _config;
@@ -111,7 +117,11 @@ namespace alimer
         std::shared_ptr<Window> _mainWindow;
 
         /// GraphicsDevice.
-        std::shared_ptr<GraphicsDevice> _graphicsDevice = nullptr;
+        std::shared_ptr<GraphicsDevice> _graphics = nullptr;
+
+        bool _headless = false;
+        bool _initialized = false;
+        bool _exiting = false;
 
         /// Application exit code.
         int _exitCode;

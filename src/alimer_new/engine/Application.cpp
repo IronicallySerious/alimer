@@ -84,6 +84,9 @@ namespace alimer
 
     void Application::initializeBeforeRun()
     {
+        if (_initialized)
+            return;
+
         // Create main window.
         _mainWindow = _host->createWindow(_config.title,
             _config.width, _config.height,
@@ -91,8 +94,9 @@ namespace alimer
 
         // Create graphics device.
         GraphicsDeviceDescriptor descriptor = {};
-        _graphicsDevice = GraphicsDevice::create(_mainWindow, descriptor);
+        _graphics = GraphicsDevice::create(_mainWindow, descriptor);
 
+        _initialized = true;
         initialize();
         if (_exitCode) {
             errorExit();
@@ -101,7 +105,17 @@ namespace alimer
 
     void Application::tick()
     {
-        // Present content on screen.
+        ALIMER_ASSERT(_initialized);
+
+        // If not headless, and the graphics subsystem no longer has a window open, assume we should exit
+        if (!_headless && !_graphics->isInitialized())
+            _exiting = true;
+
+        if (_exiting)
+            return;
+
+        // TODO: Apply frame time.
+        render();
     }
 
     void Application::errorExit(const string& message)
@@ -119,4 +133,19 @@ namespace alimer
         }
     }
 
+    void Application::render()
+    {
+        if (_headless)
+            return;
+
+        //ALIMER_PROFILE(Render);
+
+        // If device is lost, BeginFrame will fail and we skip rendering
+        if (!_graphics->beginFrame())
+            return;
+
+        // TODO: Render scene
+        // TODO: Render UI
+        _graphics->endFrame();
+    }
 }

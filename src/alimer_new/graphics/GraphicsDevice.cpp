@@ -69,7 +69,18 @@ namespace alimer
             graphicsDevice = nullptr;
         }
 
+        graphicsDevice->_initialized = true;
         return graphicsDevice;
+    }
+
+    bool GraphicsDevice::beginFrame()
+    {
+        return pImpl->beginFrame();
+    }
+
+    void GraphicsDevice::endFrame()
+    {
+        pImpl->endFrame();
     }
 
     const GraphicsDeviceInfo& GraphicsDevice::getInfo() const

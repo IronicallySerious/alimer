@@ -34,7 +34,7 @@ namespace alimer
         Editor(const ApplicationConfiguration& config);
         ~Editor() override;
 
-        void ParseArguments(int argc, char** argv);
+        void parseArguments(int argc, char** argv);
 
     private:
         //void Initialize() override;

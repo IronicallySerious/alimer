@@ -29,6 +29,28 @@
 
 namespace alimer
 {
+    /// Enum describing level of logging.
+    enum class LogLevel : uint8_t
+    {
+        /// Trace log level.
+        Trace = 0,
+
+        /// Debug log level.
+        Debug = 1,
+
+        /// Information log level.
+        Info = 2,
+
+        /// Warning log level.
+        Warn = 3,
+
+        /// Error log level.
+        Error = 4,
+
+        /// Critical/Fatal log level.
+        Critical = 5
+    };
+
     /// Class for logging support.
     class ALIMER_API Logger final : public Object
     {
@@ -40,6 +62,29 @@ namespace alimer
 
         /// Destructor.
         ~Logger() override;
+
+        void Log(LogLevel level, const std::string& message);
+
+        /// Get if logger is enabled.
+        bool IsEnabled() const { return _isEnabled; }
+
+        /// Set logger enabled state.
+        void SetEnabled(bool value) { _isEnabled = value; }
+
+        /// Get the log level.
+        LogLevel GetLevel() const { return _level; }
+
+        /// Set the log level.
+        void SetLevel(LogLevel value) { _level = value; }
+
+    private:
+        bool _isEnabled = true;
+#ifdef _DEBUG
+        LogLevel _level = LogLevel::Debug;
+#else
+        LogLevel _level = LogLevel::Info;
+#endif
+        
     };
 }
 

@@ -40,11 +40,19 @@ namespace alimer
 
         static std::shared_ptr<GraphicsDevice> create(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc);
 
+        /// Begin next frame rendering.
+        bool beginFrame();
+
+        void endFrame();
+
         /// Get the device info.
         const GraphicsDeviceInfo& getInfo() const;
 
         /// Get the device capabilities.
         const GraphicsDeviceCapabilities& getCaps() const;
+
+        /// Return whether graphics device has been initialized.
+        bool isInitialized() const { return _initialized; }
 
     private:
         /// Constructor.
@@ -55,6 +63,8 @@ namespace alimer
         GraphicsImpl* pImpl = nullptr;
         /// The main window.
         std::shared_ptr<Window> window;
+        /// Initialization state.
+        bool _initialized = false;
     };
 
     extern ALIMER_API std::shared_ptr<GraphicsDevice> graphicsDevice;

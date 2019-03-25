@@ -37,7 +37,7 @@ namespace alimer
         //ui::ShutdownDock();
     }
 
-    void Editor::ParseArguments(int argc, char** argv)
+    void Editor::parseArguments(int argc, char** argv)
     {
 
     }
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     config.height = 720;
 
     alimer::Editor app(config);
-    app.ParseArguments(argc, argv);
+    app.parseArguments(argc, argv);
     return app.run();
 }
 

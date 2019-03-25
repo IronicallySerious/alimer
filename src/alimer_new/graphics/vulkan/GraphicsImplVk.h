@@ -24,6 +24,7 @@
 
 #include "UtilsVk.h"
 #include "graphics/Types.h"
+#include <vector>
 
 VK_DEFINE_HANDLE(VmaAllocator)
 
@@ -60,6 +61,12 @@ namespace alimer
         bool initialize(Window* window, const GraphicsDeviceDescriptor& desc);
         void notifyValidationError(const char* message);
 
+        bool beginFrame();
+        void endFrame();
+
+        VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin);
+        void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free);
+
         const GraphicsDeviceInfo& getInfo() const { return info; }
         const GraphicsDeviceCapabilities& getCaps() const { return caps; }
 
@@ -90,10 +97,49 @@ namespace alimer
         VkDevice device = VK_NULL_HANDLE;
         VmaAllocator memoryAllocator = VK_NULL_HANDLE;
 
-        VkSurfaceKHR surface = VK_NULL_HANDLE;
-        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-
         GraphicsDeviceInfo          info = {};
         GraphicsDeviceCapabilities  caps = {};
+
+        VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
+
+        uint32_t maxInflightFrames = 0;
+        uint32_t frameNumber = 0;
+
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+        uint32_t swapchainImageCount = 0;
+        uint32_t swapchainImageIndex = 0;
+        std::vector<VkImage> swapchainImages;
+        std::vector<VkSemaphore> swapchainImageSemaphores;
+
+        struct PerFrame
+        {
+            PerFrame(GraphicsImpl* device_);
+            ~PerFrame();
+            void operator=(const PerFrame &) = delete;
+            PerFrame(const PerFrame &) = delete;
+
+            void Begin();
+
+            GraphicsImpl* device;
+            VkFence fence;
+            std::vector<VkCommandBuffer> submittedCommandBuffers;
+            std::vector<VkSemaphore> waitSemaphores;
+        };
+        std::vector<std::unique_ptr<PerFrame>> perFrame;
+
+        PerFrame &frame()
+        {
+            ALIMER_ASSERT(frameNumber < perFrame.size());
+            ALIMER_ASSERT(perFrame[frameNumber]);
+            return *perFrame[frameNumber];
+        }
+
+        const PerFrame &frame() const
+        {
+            ALIMER_ASSERT(frameNumber < perFrame.size());
+            ALIMER_ASSERT(perFrame[frameNumber]);
+            return *perFrame[frameNumber];
+        }
     };
 }
