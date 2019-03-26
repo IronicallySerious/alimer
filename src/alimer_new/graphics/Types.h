@@ -58,14 +58,6 @@ namespace alimer
         Count
     };
 
-    struct SwapChainDescriptor
-    {
-        //TextureUsageFlags usage;
-        PixelFormat format;
-        uint32_t width;
-        uint32_t height;
-    };
-
     /// GraphicsDevice information .
     struct GraphicsDeviceInfo
     {
@@ -155,16 +147,22 @@ namespace alimer
         GraphicsDeviceLimits            limits;
     };
 
-    /// GraphicsDevice descriptor
-    struct GraphicsDeviceDescriptor
+    struct SwapChainDescriptor
     {
-        PowerPreference powerPreference = PowerPreference::Default;
-
+        uint32_t width;
+        uint32_t height;
         /// The color buffer format srgb.
         bool srgb = true;
         /// The depth buffer format
         PixelFormat depthFormat = PixelFormat::Depth32Float;
 
         bool vSyncEnabled = false;
+    };
+
+    /// GraphicsDevice descriptor
+    struct GraphicsDeviceDescriptor
+    {
+        PowerPreference powerPreference = PowerPreference::Default;
+        SwapChainDescriptor swapChainDescriptor = {};
     };
 }

@@ -22,11 +22,11 @@
 
 #pragma once
 
-#include "UtilsVk.h"
+#include "graphics/GraphicsDevice.h"
+#include "BackendVk.h"
 #include "graphics/Types.h"
 #include <vector>
-
-VK_DEFINE_HANDLE(VmaAllocator)
+VK_DEFINE_HANDLE(VmaAllocator);
 
 namespace alimer
 {
@@ -52,76 +52,70 @@ namespace alimer
         VkPhysicalDeviceFeatures enabled_features = {};
     };
 
-    class GraphicsImpl final
+    /// Vulkan backend.
+    class GraphicsDeviceVk final : public GraphicsDevice
     {
     public:
-        GraphicsImpl();
-        ~GraphicsImpl();
-        void destroy();
-        bool initialize(Window* window, const GraphicsDeviceDescriptor& desc);
+        GraphicsDeviceVk();
+        ~GraphicsDeviceVk();
+        void Destroy();
+        bool Initialize(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc) override;
         void notifyValidationError(const char* message);
 
-        bool beginFrame();
-        void endFrame();
+        bool BeginFrame() override;
+        void EndFrame() override;
 
         VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin);
+        void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free);
         void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free);
 
-        const GraphicsDeviceInfo& getInfo() const { return info; }
-        const GraphicsDeviceCapabilities& getCaps() const { return caps; }
+        VkInstance GetVkInstance() const { return _instance; }
+        VkPhysicalDevice GetVkPhysicalDevice() const { return _physicalDevice; }
+        VkDevice GetVkDevice() const { return device; }
 
     private:
-        void initializeCaps();
-        bool initializeAllocator();
-        bool initializeSwapChain(Window* window, const GraphicsDeviceDescriptor& desc);
+        void InitializeCaps();
+        bool InitializeAllocator();
 
     private:
-        DeviceFeatures features;
-        VkInstance instance = VK_NULL_HANDLE;
+        DeviceFeatures _features;
+        VkInstance _instance = VK_NULL_HANDLE;
+
 #ifdef VULKAN_DEBUG
-        VkDebugReportCallbackEXT debugCallback = VK_NULL_HANDLE;
-        VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+        VkDebugReportCallbackEXT _debugCallback = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT _debugMessenger = VK_NULL_HANDLE;
 #endif
 
-        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-        VkPhysicalDeviceProperties deviceProperties;
-        VkPhysicalDeviceFeatures deviceFeatures;
-        VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
+        VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
+        VkPhysicalDeviceProperties _deviceProperties;
+        VkPhysicalDeviceFeatures _deviceFeatures;
+        VkPhysicalDeviceMemoryProperties _deviceMemoryProperties;
 
         uint32_t graphicsQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t computeQueueFamily = VK_QUEUE_FAMILY_IGNORED;
         uint32_t transferQueueFamily = VK_QUEUE_FAMILY_IGNORED;
-        VkQueue graphicsQueue = VK_NULL_HANDLE;
-        VkQueue computeQueue = VK_NULL_HANDLE;
-        VkQueue transferQueue = VK_NULL_HANDLE;
+        VkQueue _graphicsQueue = VK_NULL_HANDLE;
+        VkQueue _computeQueue = VK_NULL_HANDLE;
+        VkQueue _transferQueue = VK_NULL_HANDLE;
         VkDevice device = VK_NULL_HANDLE;
-        VmaAllocator memoryAllocator = VK_NULL_HANDLE;
+        VmaAllocator _memoryAllocator = VK_NULL_HANDLE;
 
-        GraphicsDeviceInfo          info = {};
-        GraphicsDeviceCapabilities  caps = {};
-
-        VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
+        VkCommandPool _graphicsCommandPool = VK_NULL_HANDLE;
 
         uint32_t maxInflightFrames = 0;
         uint32_t frameNumber = 0;
 
-        VkSurfaceKHR surface = VK_NULL_HANDLE;
-        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-        uint32_t swapchainImageCount = 0;
-        uint32_t swapchainImageIndex = 0;
-        std::vector<VkImage> swapchainImages;
-        std::vector<VkSemaphore> swapchainImageSemaphores;
 
         struct PerFrame
         {
-            PerFrame(GraphicsImpl* device_);
+            PerFrame(GraphicsDeviceVk* device_);
             ~PerFrame();
             void operator=(const PerFrame &) = delete;
             PerFrame(const PerFrame &) = delete;
 
             void Begin();
 
-            GraphicsImpl* device;
+            GraphicsDeviceVk* device;
             VkFence fence;
             std::vector<VkCommandBuffer> submittedCommandBuffers;
             std::vector<VkSemaphore> waitSemaphores;

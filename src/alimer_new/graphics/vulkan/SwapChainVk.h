@@ -22,37 +22,34 @@
 
 #pragma once
 
-#include "graphics/Types.h"
-#include "graphics/PixelFormat.h"
+#include "graphics/SwapChain.h"
+#include "BackendVk.h"
+#include <vector>
 
 namespace alimer
 {
-    class GraphicsDevice;
-
-    class ALIMER_API SwapChain
+    /// Vulkan SwapChain.
+    class SwapChainVk final : public SwapChain
     {
-    protected:
-        SwapChain(GraphicsDevice* device, const SwapChainDescriptor* descriptor);
-
     public:
-        /// Destructor.
-        virtual ~SwapChain() = default;
+        SwapChainVk(GraphicsDeviceVk* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
+        ~SwapChainVk();
 
-        void Resize(uint32_t width, uint32_t height);
+        void Destroy();
+        bool ResizeImpl(uint32_t width, uint32_t height) override;
+
+        uint32_t GetImageCount() const { return _imageCount; }
 
     private:
-        virtual bool ResizeImpl(uint32_t width, uint32_t height) = 0;
-
-    protected:
-        GraphicsDevice* _graphicsDevice;
-        uint32_t _width;
-        uint32_t _height;
-        /// The color buffer format srgb.
-        bool _srgb = true;
-        PixelFormat _colorFormat = PixelFormat::BGRA8UNorm;
-        /// The depth buffer format
-        PixelFormat _depthFormat = PixelFormat::Depth32Float;
-
-        bool _vSyncEnabled = false;
+        VkInstance _instance;
+        VkPhysicalDevice _physicalDevice;
+        VkDevice _device;
+        VkSurfaceKHR _surface = VK_NULL_HANDLE;
+        VkSurfaceFormatKHR _format{};
+        VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
+        uint32_t _imageCount = 0;
+        uint32_t _imageIndex = 0;
+        std::vector<VkImage> _images;
+        std::vector<VkSemaphore> _imageSemaphores;
     };
 }

@@ -94,7 +94,9 @@ namespace alimer
 
         // Create graphics device.
         GraphicsDeviceDescriptor descriptor = {};
-        _graphics = GraphicsDevice::create(_mainWindow, descriptor);
+        descriptor.swapChainDescriptor.width = _mainWindow->GetWidth();
+        descriptor.swapChainDescriptor.height = _mainWindow->GetHeight();
+        _graphics = GraphicsDevice::Create(_mainWindow, descriptor);
 
         _initialized = true;
         initialize();
@@ -108,7 +110,7 @@ namespace alimer
         ALIMER_ASSERT(_initialized);
 
         // If not headless, and the graphics subsystem no longer has a window open, assume we should exit
-        if (!_headless && !_graphics->isInitialized())
+        if (!_headless && !_graphics->IsInitialized())
             _exiting = true;
 
         if (_exiting)
@@ -141,11 +143,11 @@ namespace alimer
         //ALIMER_PROFILE(Render);
 
         // If device is lost, BeginFrame will fail and we skip rendering
-        if (!_graphics->beginFrame())
+        if (!_graphics->BeginFrame())
             return;
 
         // TODO: Render scene
         // TODO: Render UI
-        _graphics->endFrame();
+        _graphics->EndFrame();
     }
 }

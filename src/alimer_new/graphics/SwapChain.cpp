@@ -24,12 +24,26 @@
 
 namespace alimer
 {
-    SwapChainSurface::SwapChainSurface()
+    SwapChain::SwapChain(GraphicsDevice* device, const SwapChainDescriptor* descriptor)
+        : _graphicsDevice(device)
+        , _width(descriptor->width)
+        , _height(descriptor->height)
+        , _srgb(descriptor->srgb)
+        , _colorFormat(descriptor->srgb ? PixelFormat::BGRA8UNormSrgb : PixelFormat::BGRA8UNorm)
+        , _depthFormat(descriptor->depthFormat)
+        , _vSyncEnabled(descriptor->vSyncEnabled)
     {
-
     }
 
-    SwapChain::SwapChain()
+    void SwapChain::Resize(uint32_t width, uint32_t height)
     {
+        if (_width == width && _height == height)
+        {
+            return;
+        }
+
+        ResizeImpl(width, height);
+        _width = width;
+        _height = height;
     }
 }

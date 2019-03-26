@@ -21,7 +21,7 @@
 //
 
 #include "graphics/GraphicsDevice.h"
-#include "graphics/GraphicsImpl.h"
+#include "graphics/SwapChain.h"
 #include "core/Log.h"
 
 #if defined(_WIN64) || defined(_WIN32)
@@ -35,28 +35,20 @@ extern "C"
 }
 #endif
 
+#if defined(ALIMER_VULKAN)
+#   include "vulkan/GraphicsDeviceVk.h"
+#endif
+
 namespace alimer
 {
     std::shared_ptr<GraphicsDevice> graphicsDevice;
 
     GraphicsDevice::GraphicsDevice()
-        : pImpl(new GraphicsImpl())
     {
 
     }
 
-    GraphicsDevice::GraphicsDevice(const std::shared_ptr<Window>& window_)
-        : window(window_)
-        , pImpl(new GraphicsImpl())
-    {
-    }
-
-    GraphicsDevice::~GraphicsDevice()
-    {
-        delete pImpl;
-    }
-
-    std::shared_ptr<GraphicsDevice> GraphicsDevice::create(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc)
+    std::shared_ptr<GraphicsDevice> GraphicsDevice::Create(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc)
     {
         if (graphicsDevice)
         {
@@ -64,32 +56,47 @@ namespace alimer
             return nullptr;
         }
 
-        graphicsDevice = std::shared_ptr<GraphicsDevice>(new GraphicsDevice(window));
-        if (graphicsDevice->pImpl->initialize(window.get(), desc) == false) {
+
+#if defined(ALIMER_VULKAN)
+        graphicsDevice = std::shared_ptr<GraphicsDevice>(new GraphicsDeviceVk());
+#endif
+
+        if (graphicsDevice->Initialize(window, desc) == false) {
             graphicsDevice = nullptr;
         }
 
-        graphicsDevice->_initialized = true;
         return graphicsDevice;
     }
 
-    bool GraphicsDevice::beginFrame()
+    bool GraphicsDevice::Initialize(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc)
     {
-        return pImpl->beginFrame();
+        if (_initialized)
+        {
+            return true;
+        }
+
+        _window = window;
+        _descriptor = desc;
+        _initialized = true;
+        return _initialized;
     }
 
-    void GraphicsDevice::endFrame()
+    bool GraphicsDevice::BeginFrame()
     {
-        pImpl->endFrame();
+        return true;
     }
 
-    const GraphicsDeviceInfo& GraphicsDevice::getInfo() const
+    void GraphicsDevice::EndFrame()
     {
-        return pImpl->getInfo();
     }
 
-    const GraphicsDeviceCapabilities& GraphicsDevice::getCaps() const
+    const GraphicsDeviceInfo& GraphicsDevice::GetInfo() const
     {
-        return pImpl->getCaps();
+        return _info;
+    }
+
+    const GraphicsDeviceCapabilities& GraphicsDevice::GetCaps() const
+    {
+        return _caps;
     }
 }

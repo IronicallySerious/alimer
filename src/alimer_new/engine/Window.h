@@ -48,10 +48,10 @@ namespace alimer
         bool isOpen() const;
 
         /// Return window title.
-        const std::string& getTitle() const { return title; }
+        const std::string& GetTitle() const { return title; }
 
-        uint32_t getWidth() const { return width; }
-        uint32_t getHeight() const { return height; }
+        uint32_t GetWidth() const { return width; }
+        uint32_t GetHeight() const { return height; }
 
         /// Gets the native window or view handle.
         WindowHandle getNativeHandle() const;

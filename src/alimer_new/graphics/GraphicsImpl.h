@@ -21,13 +21,3 @@
 //
 
 #pragma once
-
-#include "alimer_config.h"
-
-#if defined(ALIMER_VULKAN)
-#   include "vulkan/GraphicsImplVk.h"
-#elif defined(ALIMER_D3D12)
-#   include "d3d12/GraphicsImplD3D12.h"
-#else
-#error "Invalid backend"
-#endif

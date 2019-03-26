@@ -20,9 +20,9 @@
 // THE SOFTWARE.
 //
 
-#include "alimer_config.h"
 #include "engine/Window.h"
-#include "GraphicsImplVk.h"
+#include "GraphicsDeviceVk.h"
+#include "SwapChainVk.h"
 #define VMA_IMPLEMENTATION 1
 #define VMA_STATIC_VULKAN_FUNCTION 0
 #define VMA_STATS_STRING_ENABLED 0
@@ -46,7 +46,7 @@ namespace alimer
         const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
         void *pUserData)
     {
-        auto *context = static_cast<GraphicsImpl*>(pUserData);
+        auto *context = static_cast<GraphicsDeviceVk*>(pUserData);
 
         switch (messageSeverity)
         {
@@ -113,7 +113,7 @@ namespace alimer
         size_t, int32_t messageCode, const char *pLayerPrefix,
         const char *pMessage, void *pUserData)
     {
-        auto *context = static_cast<GraphicsImpl*>(pUserData);
+        auto *context = static_cast<GraphicsDeviceVk*>(pUserData);
 
         // False positives about lack of srcAccessMask/dstAccessMask.
         if (strcmp(pLayerPrefix, "DS") == 0 && messageCode == 10)
@@ -145,7 +145,7 @@ namespace alimer
     }
 #endif
 
-    GraphicsImpl::GraphicsImpl()
+    GraphicsDeviceVk::GraphicsDeviceVk()
     {
         VkResult result = volkInitialize();
         if (result)
@@ -189,24 +189,24 @@ namespace alimer
 
         if (has_extension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
         {
-            features.supports_physical_device_properties2 = true;
+            _features.supports_physical_device_properties2 = true;
             enabled_extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
         }
 
-        if (features.supports_physical_device_properties2 &&
+        if (_features.supports_physical_device_properties2 &&
             has_extension(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME) &&
             has_extension(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME))
         {
             enabled_extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
             enabled_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
             enabled_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME);
-            features.supports_external = true;
+            _features.supports_external = true;
         }
 
         if (has_extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
         {
             enabled_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            features.supports_debug_utils = true;
+            _features.supports_debug_utils = true;
         }
 
 #ifdef VULKAN_DEBUG
@@ -217,7 +217,7 @@ namespace alimer
             return itr != end(instance_layers);
         };
 
-        if (!features.supports_debug_utils && has_extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
+        if (!_features.supports_debug_utils && has_extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
         {
             enabled_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         }
@@ -238,7 +238,7 @@ namespace alimer
 
         if (appInfo.apiVersion >= VK_API_VERSION_1_1)
         {
-            features.supports_vulkan_11_instance = true;
+            _features.supports_vulkan_11_instance = true;
         }
 
         VkInstanceCreateInfo instanceCreateInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
@@ -248,16 +248,16 @@ namespace alimer
         instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(enabled_layers.size());
         instanceCreateInfo.ppEnabledLayerNames = enabled_layers.empty() ? nullptr : enabled_layers.data();
 
-        result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+        result = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
         if (result != VK_SUCCESS)
         {
             throw VulkanException(result, "Could not create Vulkan instance");
         }
 
-        volkLoadInstance(instance);
+        volkLoadInstance(_instance);
 
 #ifdef VULKAN_DEBUG
-        if (features.supports_debug_utils)
+        if (_features.supports_debug_utils)
         {
             VkDebugUtilsMessengerCreateInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
             info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
@@ -270,7 +270,7 @@ namespace alimer
                 VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
             info.pUserData = this;
 
-            vkCreateDebugUtilsMessengerEXT(instance, &info, nullptr, &debugMessenger);
+            vkCreateDebugUtilsMessengerEXT(_instance, &info, nullptr, &_debugMessenger);
         }
         else if (has_extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
         {
@@ -279,52 +279,43 @@ namespace alimer
                 VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
             info.pfnCallback = vulkanDebugCallback;
             info.pUserData = this;
-            vkCreateDebugReportCallbackEXT(instance, &info, nullptr, &debugCallback);
+            vkCreateDebugReportCallbackEXT(_instance, &info, nullptr, &_debugCallback);
         }
 #endif
     }
 
-    GraphicsImpl::~GraphicsImpl()
+    GraphicsDeviceVk::~GraphicsDeviceVk()
     {
-        destroy();
+        Destroy();
     }
 
-    void GraphicsImpl::destroy()
+    void GraphicsDeviceVk::Destroy()
     {
         if (device != VK_NULL_HANDLE)
         {
             vkDeviceWaitIdle(device);
         }
 
-        if (swapchain != VK_NULL_HANDLE)
-        {
-            vkDestroySwapchainKHR(device, swapchain, nullptr);
-            swapchain = VK_NULL_HANDLE;
-        }
-
-        if (surface != VK_NULL_HANDLE)
-        {
-            vkDestroySurfaceKHR(instance, surface, nullptr);
-            surface = VK_NULL_HANDLE;
-        }
+        // Destroy swap chain.
+        _swapChain.reset();
 
         // Clear per frame data.
         perFrame.clear();
 
-        if (graphicsCommandPool != VK_NULL_HANDLE) {
-            vkDestroyCommandPool(device, graphicsCommandPool, nullptr);
-            graphicsCommandPool = VK_NULL_HANDLE;
+        if (_graphicsCommandPool != VK_NULL_HANDLE) {
+            vkDestroyCommandPool(device, _graphicsCommandPool, nullptr);
+            _graphicsCommandPool = VK_NULL_HANDLE;
         }
 
-        if (memoryAllocator != VK_NULL_HANDLE)
+        if (_memoryAllocator != VK_NULL_HANDLE)
         {
             VmaStats stats;
-            vmaCalculateStats(memoryAllocator, &stats);
+            vmaCalculateStats(_memoryAllocator, &stats);
 
             LOGI("Total device memory leaked: %llu bytes.", stats.total.usedBytes);
 
-            vmaDestroyAllocator(memoryAllocator);
-            memoryAllocator = VK_NULL_HANDLE;
+            vmaDestroyAllocator(_memoryAllocator);
+            _memoryAllocator = VK_NULL_HANDLE;
         }
 
         if (device != VK_NULL_HANDLE)
@@ -334,42 +325,44 @@ namespace alimer
         }
 
 #ifdef VULKAN_DEBUG
-        if (debugCallback != VK_NULL_HANDLE)
+        if (_debugCallback != VK_NULL_HANDLE)
         {
-            vkDestroyDebugReportCallbackEXT(instance, debugCallback, nullptr);
-            debugCallback = VK_NULL_HANDLE;
+            vkDestroyDebugReportCallbackEXT(_instance, _debugCallback, nullptr);
+            _debugCallback = VK_NULL_HANDLE;
         }
 
-        if (debugMessenger != VK_NULL_HANDLE)
+        if (_debugMessenger != VK_NULL_HANDLE)
         {
-            vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-            debugMessenger = VK_NULL_HANDLE;
+            vkDestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, nullptr);
+            _debugMessenger = VK_NULL_HANDLE;
         }
 #endif
 
-        if (instance != VK_NULL_HANDLE)
+        if (_instance != VK_NULL_HANDLE)
         {
-            vkDestroyInstance(instance, nullptr);
-            instance = VK_NULL_HANDLE;
+            vkDestroyInstance(_instance, nullptr);
+            _instance = VK_NULL_HANDLE;
         }
     }
 
-    bool GraphicsImpl::initialize(Window* window, const GraphicsDeviceDescriptor& desc)
+    bool GraphicsDeviceVk::Initialize(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc)
     {
         // Create surface first.
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+
 #if defined(ALIMER_GLFW)
         vkThrowIfFailed(
-            glfwCreateWindowSurface(instance, window->getApiHandle(), NULL, &surface)
+            glfwCreateWindowSurface(_instance, window->getApiHandle(), NULL, &surface)
         );
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 #endif
 
         // Obtain a list of available physical devices.
         uint32_t physical_device_count = 0u;
-        vkEnumeratePhysicalDevices(instance, &physical_device_count, NULL);
+        vkEnumeratePhysicalDevices(_instance, &physical_device_count, NULL);
 
         vector<VkPhysicalDevice> gpus(physical_device_count);
-        vkEnumeratePhysicalDevices(instance, &physical_device_count, gpus.data());
+        vkEnumeratePhysicalDevices(_instance, &physical_device_count, gpus.data());
 
         // Pick a suitable physical device based on user's preference.
         uint32_t best_device_score = 0U;
@@ -415,18 +408,18 @@ namespace alimer
             return false;
         }
 
-        physicalDevice = gpus[best_device_index];
-        vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-        vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
-        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
+        _physicalDevice = gpus[best_device_index];
+        vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
+        vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
+        vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
 
-        LOGI("Selected Vulkan GPU: %s", deviceProperties.deviceName);
+        LOGI("Selected Vulkan GPU: %s", _deviceProperties.deviceName);
 
         uint32_t ext_count = 0;
-        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &ext_count, nullptr);
+        vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &ext_count, nullptr);
         vector<VkExtensionProperties> queried_extensions(ext_count);
         if (ext_count) {
-            vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &ext_count, queried_extensions.data());
+            vkEnumerateDeviceExtensionProperties(_physicalDevice, nullptr, &ext_count, queried_extensions.data());
         }
 
         const auto has_extension = [&](const char *name) -> bool {
@@ -436,43 +429,43 @@ namespace alimer
             return itr != end(queried_extensions);
         };
 
-        if (deviceProperties.apiVersion >= VK_API_VERSION_1_1)
+        if (_deviceProperties.apiVersion >= VK_API_VERSION_1_1)
         {
-            features.supports_vulkan_11_device = features.supports_vulkan_11_instance;
+            _features.supports_vulkan_11_device = _features.supports_vulkan_11_instance;
             LOGI("GPU supports Vulkan 1.1.");
         }
-        else if (deviceProperties.apiVersion >= VK_API_VERSION_1_0)
+        else if (_deviceProperties.apiVersion >= VK_API_VERSION_1_0)
         {
-            features.supports_vulkan_11_device = false;
+            _features.supports_vulkan_11_device = false;
             LOGI("GPU supports Vulkan 1.0.");
         }
 
         // Only need GetPhysicalDeviceProperties2 for Vulkan 1.1-only code, so don't bother getting KHR variant.
-        features.subgroup_properties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES };
+        _features.subgroup_properties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES };
         VkPhysicalDeviceProperties2 props = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
         void **ppNext = &props.pNext;
 
-        if (features.supports_vulkan_11_instance && features.supports_vulkan_11_device)
+        if (_features.supports_vulkan_11_instance && _features.supports_vulkan_11_device)
         {
-            *ppNext = &features.subgroup_properties;
-            ppNext = &features.subgroup_properties.pNext;
+            *ppNext = &_features.subgroup_properties;
+            ppNext = &_features.subgroup_properties.pNext;
         }
 
-        if (features.supports_vulkan_11_instance && features.supports_vulkan_11_device)
+        if (_features.supports_vulkan_11_instance && _features.supports_vulkan_11_device)
         {
-            vkGetPhysicalDeviceProperties2(physicalDevice, &props);
+            vkGetPhysicalDeviceProperties2(_physicalDevice, &props);
         }
 
         uint32_t queue_count;
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queue_count, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queue_count, nullptr);
         vector<VkQueueFamilyProperties> queue_props(queue_count);
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queue_count, queue_props.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queue_count, queue_props.data());
 
         for (uint32_t i = 0; i < queue_count; i++)
         {
             VkBool32 supported = surface == VK_NULL_HANDLE;
             if (surface != VK_NULL_HANDLE)
-                vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &supported);
+                vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, surface, &supported);
 
             static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT;
             if (supported && ((queue_props[i].queueFlags & required) == required))
@@ -602,53 +595,53 @@ namespace alimer
         if (has_extension(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) &&
             has_extension(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME))
         {
-            features.supports_dedicated = true;
+            _features.supports_dedicated = true;
             enabled_extensions.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
             enabled_extensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
         }
 
         if (has_extension(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME))
         {
-            features.supports_image_format_list = true;
+            _features.supports_image_format_list = true;
             enabled_extensions.push_back(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME);
         }
 
         if (has_extension(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
         {
-            features.supports_debug_marker = true;
+            _features.supports_debug_marker = true;
             enabled_extensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
         }
 
         if (has_extension(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME))
         {
-            features.supports_mirror_clamp_to_edge = true;
+            _features.supports_mirror_clamp_to_edge = true;
             enabled_extensions.push_back(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
         }
 
         if (has_extension(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME))
         {
-            features.supports_google_display_timing = true;
+            _features.supports_google_display_timing = true;
             enabled_extensions.push_back(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
         }
 
 #ifdef VULKAN_DEBUG
         if (has_extension(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME))
         {
-            features.supports_nv_device_diagnostic_checkpoints = true;
+            _features.supports_nv_device_diagnostic_checkpoints = true;
             enabled_extensions.push_back(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
         }
 #endif
 
 #ifdef _WIN32
-        features.supports_external = false;
+        _features.supports_external = false;
 #else
-        if (features.supports_external && features.supports_dedicated &&
+        if (_features.supports_external && features.supports_dedicated &&
             has_extension(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME) &&
             has_extension(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME) &&
             has_extension(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME) &&
             has_extension(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME))
         {
-            features.supports_external = true;
+            _features.supports_external = true;
             enabled_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
             enabled_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
             enabled_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
@@ -656,45 +649,45 @@ namespace alimer
         }
         else
         {
-            features.supports_external = false;
+            _features.supports_external = false;
         }
 #endif
 
         VkPhysicalDeviceFeatures2KHR deviceFeatures2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
-        features.storage_8bit_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR };
-        features.storage_16bit_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR };
-        features.float16_int8_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR };
+        _features.storage_8bit_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR };
+        _features.storage_16bit_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR };
+        _features.float16_int8_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR };
         ppNext = &deviceFeatures2.pNext;
 
         if (has_extension(VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME))
             enabled_extensions.push_back(VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME);
 
-        if (features.supports_physical_device_properties2 && has_extension(VK_KHR_8BIT_STORAGE_EXTENSION_NAME))
+        if (_features.supports_physical_device_properties2 && has_extension(VK_KHR_8BIT_STORAGE_EXTENSION_NAME))
         {
             enabled_extensions.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
-            *ppNext = &features.storage_8bit_features;
-            ppNext = &features.storage_8bit_features.pNext;
+            *ppNext = &_features.storage_8bit_features;
+            ppNext = &_features.storage_8bit_features.pNext;
         }
 
-        if (features.supports_physical_device_properties2 && has_extension(VK_KHR_16BIT_STORAGE_EXTENSION_NAME))
+        if (_features.supports_physical_device_properties2 && has_extension(VK_KHR_16BIT_STORAGE_EXTENSION_NAME))
         {
             enabled_extensions.push_back(VK_KHR_16BIT_STORAGE_EXTENSION_NAME);
-            *ppNext = &features.storage_16bit_features;
-            ppNext = &features.storage_16bit_features.pNext;
+            *ppNext = &_features.storage_16bit_features;
+            ppNext = &_features.storage_16bit_features.pNext;
         }
 
-        if (features.supports_physical_device_properties2
+        if (_features.supports_physical_device_properties2
             && has_extension(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME))
         {
             enabled_extensions.push_back(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME);
-            *ppNext = &features.float16_int8_features;
-            ppNext = &features.float16_int8_features.pNext;
+            *ppNext = &_features.float16_int8_features;
+            ppNext = &_features.float16_int8_features.pNext;
         }
 
-        if (features.supports_physical_device_properties2)
-            vkGetPhysicalDeviceFeatures2KHR(physicalDevice, &deviceFeatures2);
+        if (_features.supports_physical_device_properties2)
+            vkGetPhysicalDeviceFeatures2KHR(_physicalDevice, &deviceFeatures2);
         else
-            vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures2.features);
+            vkGetPhysicalDeviceFeatures(_physicalDevice, &deviceFeatures2.features);
 
         // Enable device features we might care about.
         {
@@ -734,10 +727,10 @@ namespace alimer
                 enabled_features.shaderStorageImageArrayDynamicIndexing = VK_TRUE;
 
             deviceFeatures2.features = enabled_features;
-            features.enabled_features = enabled_features;
+            _features.enabled_features = enabled_features;
         }
 
-        if (features.supports_physical_device_properties2)
+        if (_features.supports_physical_device_properties2)
             deviceCreateInfo.pNext = &deviceFeatures2;
         else
             deviceCreateInfo.pEnabledFeatures = &deviceFeatures2.features;
@@ -748,20 +741,20 @@ namespace alimer
         deviceCreateInfo.enabledLayerCount = 0;
         deviceCreateInfo.ppEnabledLayerNames = nullptr;
 
-        if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS)
+        if (vkCreateDevice(_physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS)
         {
             return false;
         }
 
         volkLoadDevice(device);
-        vkGetDeviceQueue(device, graphicsQueueFamily, graphics_queue_index, &graphicsQueue);
-        vkGetDeviceQueue(device, computeQueueFamily, compute_queue_index, &computeQueue);
-        vkGetDeviceQueue(device, transferQueueFamily, transfer_queue_index, &transferQueue);
+        vkGetDeviceQueue(device, graphicsQueueFamily, graphics_queue_index, &_graphicsQueue);
+        vkGetDeviceQueue(device, computeQueueFamily, compute_queue_index, &_computeQueue);
+        vkGetDeviceQueue(device, transferQueueFamily, transfer_queue_index, &_transferQueue);
 
         // Init info and caps.
-        initializeCaps();
+        InitializeCaps();
 
-        if (!initializeAllocator())
+        if (!InitializeAllocator())
         {
             return false;
         }
@@ -771,16 +764,14 @@ namespace alimer
         cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         cmdPoolInfo.queueFamilyIndex = graphicsQueueFamily;
         cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        vkThrowIfFailed(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &graphicsCommandPool));
+        vkThrowIfFailed(vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &_graphicsCommandPool));
 
         // Init swap chain.
-        if (!initializeSwapChain(window, desc))
-        {
-            return false;
-        }
+        auto swapChainVk = new SwapChainVk(this, surface, &desc.swapChainDescriptor);
+        _swapChain.reset(swapChainVk);
 
         const bool headless = false;
-        maxInflightFrames = headless ? 3u : swapchainImageCount;
+        maxInflightFrames = headless ? 3u : swapChainVk->GetImageCount();
         perFrame.clear();
 
         for (uint32_t i = 0; i < maxInflightFrames; i++)
@@ -789,106 +780,106 @@ namespace alimer
             perFrame.emplace_back(move(frame));
         }
 
-        return true;
+        return GraphicsDevice::Initialize(window, desc);
     }
 
-    void GraphicsImpl::initializeCaps()
+    void GraphicsDeviceVk::InitializeCaps()
     {
-        info.backend = GraphicsBackend::Vulkan;
-        info.backendName = "Vulkan " + vkGetVersionToString(deviceProperties.apiVersion);
-        info.deviceName = deviceProperties.deviceName;
-        info.vendorName = vkGetVendorByID(deviceProperties.vendorID);
-        info.vendorId = deviceProperties.vendorID;
-        //info.shadingLanguageName = "SPIR-V";
+        _info.backend = GraphicsBackend::Vulkan;
+        _info.backendName = "Vulkan " + vkGetVersionToString(_deviceProperties.apiVersion);
+        _info.deviceName = _deviceProperties.deviceName;
+        _info.vendorName = vkGetVendorByID(_deviceProperties.vendorID);
+        _info.vendorId = _deviceProperties.vendorID;
+        //_info.shadingLanguageName = "SPIR-V";
 
-        caps.features.instancing = true;
-        caps.features.alphaToCoverage = true;
-        caps.features.independentBlend = deviceFeatures.independentBlend;
-        caps.features.computeShader = true;
-        caps.features.geometryShader = deviceFeatures.geometryShader;
-        caps.features.tessellationShader = deviceFeatures.tessellationShader;
-        caps.features.sampleRateShading = deviceFeatures.sampleRateShading;
-        caps.features.dualSrcBlend = deviceFeatures.dualSrcBlend;
-        caps.features.logicOp = deviceFeatures.logicOp;
-        caps.features.multiViewport = deviceFeatures.multiViewport;
-        caps.features.indexUInt32 = deviceFeatures.fullDrawIndexUint32;
-        caps.features.drawIndirect = deviceFeatures.multiDrawIndirect;
-        caps.features.alphaToOne = deviceFeatures.alphaToOne;
-        caps.features.fillModeNonSolid = deviceFeatures.fillModeNonSolid;
-        caps.features.samplerAnisotropy = deviceFeatures.samplerAnisotropy;
-        caps.features.textureCompressionBC = deviceFeatures.textureCompressionBC;
-        caps.features.textureCompressionPVRTC = false;
-        caps.features.textureCompressionETC2 = deviceFeatures.textureCompressionETC2;
-        caps.features.textureCompressionATC = false;
-        caps.features.textureCompressionASTC = deviceFeatures.textureCompressionASTC_LDR;
-        caps.features.pipelineStatisticsQuery = deviceFeatures.pipelineStatisticsQuery;
-        caps.features.texture1D = true;
-        caps.features.texture3D = true;
-        caps.features.texture2DArray = true;
-        caps.features.textureCubeArray = deviceFeatures.imageCubeArray;
+        _caps.features.instancing = true;
+        _caps.features.alphaToCoverage = true;
+        _caps.features.independentBlend = _deviceFeatures.independentBlend;
+        _caps.features.computeShader = true;
+        _caps.features.geometryShader = _deviceFeatures.geometryShader;
+        _caps.features.tessellationShader = _deviceFeatures.tessellationShader;
+        _caps.features.sampleRateShading = _deviceFeatures.sampleRateShading;
+        _caps.features.dualSrcBlend = _deviceFeatures.dualSrcBlend;
+        _caps.features.logicOp = _deviceFeatures.logicOp;
+        _caps.features.multiViewport = _deviceFeatures.multiViewport;
+        _caps.features.indexUInt32 = _deviceFeatures.fullDrawIndexUint32;
+        _caps.features.drawIndirect = _deviceFeatures.multiDrawIndirect;
+        _caps.features.alphaToOne = _deviceFeatures.alphaToOne;
+        _caps.features.fillModeNonSolid = _deviceFeatures.fillModeNonSolid;
+        _caps.features.samplerAnisotropy = _deviceFeatures.samplerAnisotropy;
+        _caps.features.textureCompressionBC = _deviceFeatures.textureCompressionBC;
+        _caps.features.textureCompressionPVRTC = false;
+        _caps.features.textureCompressionETC2 = _deviceFeatures.textureCompressionETC2;
+        _caps.features.textureCompressionATC = false;
+        _caps.features.textureCompressionASTC = _deviceFeatures.textureCompressionASTC_LDR;
+        _caps.features.pipelineStatisticsQuery = _deviceFeatures.pipelineStatisticsQuery;
+        _caps.features.texture1D = true;
+        _caps.features.texture3D = true;
+        _caps.features.texture2DArray = true;
+        _caps.features.textureCubeArray = _deviceFeatures.imageCubeArray;
 
         // Limits
-        caps.limits.maxTextureDimension1D = deviceProperties.limits.maxImageDimension1D;
-        caps.limits.maxTextureDimension2D = deviceProperties.limits.maxImageDimension2D;
-        caps.limits.maxTextureDimension3D = deviceProperties.limits.maxImageDimension3D;
-        caps.limits.maxTextureDimensionCube = deviceProperties.limits.maxImageDimensionCube;
-        caps.limits.maxTextureArrayLayers = deviceProperties.limits.maxImageArrayLayers;
-        caps.limits.maxColorAttachments = deviceProperties.limits.maxColorAttachments;
-        caps.limits.maxUniformBufferSize = deviceProperties.limits.maxUniformBufferRange;
-        caps.limits.minUniformBufferOffsetAlignment = deviceProperties.limits.minUniformBufferOffsetAlignment;
-        caps.limits.maxStorageBufferSize = deviceProperties.limits.maxStorageBufferRange;
-        caps.limits.minStorageBufferOffsetAlignment = deviceProperties.limits.minStorageBufferOffsetAlignment;
-        caps.limits.maxSamplerAnisotropy = static_cast<uint32_t>(deviceProperties.limits.maxSamplerAnisotropy);
-        caps.limits.maxViewports = deviceProperties.limits.maxViewports;
+        _caps.limits.maxTextureDimension1D = _deviceProperties.limits.maxImageDimension1D;
+        _caps.limits.maxTextureDimension2D = _deviceProperties.limits.maxImageDimension2D;
+        _caps.limits.maxTextureDimension3D = _deviceProperties.limits.maxImageDimension3D;
+        _caps.limits.maxTextureDimensionCube = _deviceProperties.limits.maxImageDimensionCube;
+        _caps.limits.maxTextureArrayLayers = _deviceProperties.limits.maxImageArrayLayers;
+        _caps.limits.maxColorAttachments = _deviceProperties.limits.maxColorAttachments;
+        _caps.limits.maxUniformBufferSize = _deviceProperties.limits.maxUniformBufferRange;
+        _caps.limits.minUniformBufferOffsetAlignment = _deviceProperties.limits.minUniformBufferOffsetAlignment;
+        _caps.limits.maxStorageBufferSize = _deviceProperties.limits.maxStorageBufferRange;
+        _caps.limits.minStorageBufferOffsetAlignment = _deviceProperties.limits.minStorageBufferOffsetAlignment;
+        _caps.limits.maxSamplerAnisotropy = static_cast<uint32_t>(_deviceProperties.limits.maxSamplerAnisotropy);
+        _caps.limits.maxViewports = _deviceProperties.limits.maxViewports;
 
-        caps.limits.maxViewportDimensions[0] = deviceProperties.limits.maxViewportDimensions[0];
-        caps.limits.maxViewportDimensions[1] = deviceProperties.limits.maxViewportDimensions[0];
-        caps.limits.maxPatchVertices = deviceProperties.limits.maxTessellationPatchSize;
-        caps.limits.pointSizeRange[0] = deviceProperties.limits.pointSizeRange[0];
-        caps.limits.pointSizeRange[1] = deviceProperties.limits.pointSizeRange[1];
-        caps.limits.lineWidthRange[0] = deviceProperties.limits.lineWidthRange[0];
-        caps.limits.lineWidthRange[1] = deviceProperties.limits.lineWidthRange[0];
-        caps.limits.maxComputeSharedMemorySize = deviceProperties.limits.maxComputeSharedMemorySize;
-        caps.limits.maxComputeWorkGroupCount[0] = deviceProperties.limits.maxComputeWorkGroupCount[0];
-        caps.limits.maxComputeWorkGroupCount[1] = deviceProperties.limits.maxComputeWorkGroupCount[1];
-        caps.limits.maxComputeWorkGroupCount[2] = deviceProperties.limits.maxComputeWorkGroupCount[2];
-        caps.limits.maxComputeWorkGroupInvocations = deviceProperties.limits.maxComputeWorkGroupInvocations;
-        caps.limits.maxComputeWorkGroupSize[0] = deviceProperties.limits.maxComputeWorkGroupSize[0];
-        caps.limits.maxComputeWorkGroupSize[1] = deviceProperties.limits.maxComputeWorkGroupSize[1];
-        caps.limits.maxComputeWorkGroupSize[2] = deviceProperties.limits.maxComputeWorkGroupSize[2];
+        _caps.limits.maxViewportDimensions[0] = _deviceProperties.limits.maxViewportDimensions[0];
+        _caps.limits.maxViewportDimensions[1] = _deviceProperties.limits.maxViewportDimensions[0];
+        _caps.limits.maxPatchVertices = _deviceProperties.limits.maxTessellationPatchSize;
+        _caps.limits.pointSizeRange[0] = _deviceProperties.limits.pointSizeRange[0];
+        _caps.limits.pointSizeRange[1] = _deviceProperties.limits.pointSizeRange[1];
+        _caps.limits.lineWidthRange[0] = _deviceProperties.limits.lineWidthRange[0];
+        _caps.limits.lineWidthRange[1] = _deviceProperties.limits.lineWidthRange[0];
+        _caps.limits.maxComputeSharedMemorySize = _deviceProperties.limits.maxComputeSharedMemorySize;
+        _caps.limits.maxComputeWorkGroupCount[0] = _deviceProperties.limits.maxComputeWorkGroupCount[0];
+        _caps.limits.maxComputeWorkGroupCount[1] = _deviceProperties.limits.maxComputeWorkGroupCount[1];
+        _caps.limits.maxComputeWorkGroupCount[2] = _deviceProperties.limits.maxComputeWorkGroupCount[2];
+        _caps.limits.maxComputeWorkGroupInvocations = _deviceProperties.limits.maxComputeWorkGroupInvocations;
+        _caps.limits.maxComputeWorkGroupSize[0] = _deviceProperties.limits.maxComputeWorkGroupSize[0];
+        _caps.limits.maxComputeWorkGroupSize[1] = _deviceProperties.limits.maxComputeWorkGroupSize[1];
+        _caps.limits.maxComputeWorkGroupSize[2] = _deviceProperties.limits.maxComputeWorkGroupSize[2];
     }
 
-    bool GraphicsImpl::initializeAllocator()
+    bool GraphicsDeviceVk::InitializeAllocator()
     {
-        VmaVulkanFunctions vma_vulkan_func = {};
-        vma_vulkan_func.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
-        vma_vulkan_func.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
-        vma_vulkan_func.vkAllocateMemory = vkAllocateMemory;
-        vma_vulkan_func.vkFreeMemory = vkFreeMemory;
-        vma_vulkan_func.vkMapMemory = vkMapMemory;
-        vma_vulkan_func.vkUnmapMemory = vkUnmapMemory;
-        vma_vulkan_func.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
-        vma_vulkan_func.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
-        vma_vulkan_func.vkBindBufferMemory = vkBindBufferMemory;
-        vma_vulkan_func.vkBindImageMemory = vkBindImageMemory;
-        vma_vulkan_func.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
-        vma_vulkan_func.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
-        vma_vulkan_func.vkCreateBuffer = vkCreateBuffer;
-        vma_vulkan_func.vkCreateImage = vkCreateImage;
-        vma_vulkan_func.vkDestroyBuffer = vkDestroyBuffer;
-        vma_vulkan_func.vkDestroyImage = vkDestroyImage;
-        vma_vulkan_func.vkCmdCopyBuffer = vkCmdCopyBuffer;
+        VmaVulkanFunctions vmaFunctions = {};
+        vmaFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+        vmaFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+        vmaFunctions.vkAllocateMemory = vkAllocateMemory;
+        vmaFunctions.vkFreeMemory = vkFreeMemory;
+        vmaFunctions.vkMapMemory = vkMapMemory;
+        vmaFunctions.vkUnmapMemory = vkUnmapMemory;
+        vmaFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+        vmaFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+        vmaFunctions.vkBindBufferMemory = vkBindBufferMemory;
+        vmaFunctions.vkBindImageMemory = vkBindImageMemory;
+        vmaFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+        vmaFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+        vmaFunctions.vkCreateBuffer = vkCreateBuffer;
+        vmaFunctions.vkCreateImage = vkCreateImage;
+        vmaFunctions.vkDestroyBuffer = vkDestroyBuffer;
+        vmaFunctions.vkDestroyImage = vkDestroyImage;
+        vmaFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
 #if VMA_DEDICATED_ALLOCATION
-        vma_vulkan_func.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
-        vma_vulkan_func.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+        vmaFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+        vmaFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
 #endif
 
         VmaAllocatorCreateInfo allocatorCreateInfo = {};
-        allocatorCreateInfo.physicalDevice = physicalDevice;
+        allocatorCreateInfo.physicalDevice = _physicalDevice;
         allocatorCreateInfo.device = device;
-        allocatorCreateInfo.pVulkanFunctions = &vma_vulkan_func;
+        allocatorCreateInfo.pVulkanFunctions = &vmaFunctions;
 
-        if (vmaCreateAllocator(&allocatorCreateInfo, &memoryAllocator) != VK_SUCCESS)
+        if (vmaCreateAllocator(&allocatorCreateInfo, &_memoryAllocator) != VK_SUCCESS)
         {
             LOGE("Cannot create vma memory allocator");
             return false;
@@ -897,223 +888,17 @@ namespace alimer
         return true;
     }
 
-    bool GraphicsImpl::initializeSwapChain(Window* window, const GraphicsDeviceDescriptor& desc)
-    {
-        VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        vkThrowIfFailed(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities));
-
-        uint32_t format_count;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &format_count, nullptr);
-        std::vector<VkSurfaceFormatKHR> formats(format_count);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &format_count, formats.data());
-
-        VkSurfaceFormatKHR format;
-        if (format_count == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
-        {
-            format = formats[0];
-            format.format = VK_FORMAT_B8G8R8A8_UNORM;
-        }
-        else
-        {
-            if (format_count == 0)
-            {
-                LOGE("Vulkan: Surface has no formats.");
-                return false;
-            }
-
-            bool found = false;
-            for (uint32_t i = 0; i < format_count; i++)
-            {
-                if (desc.srgb)
-                {
-                    if (formats[i].format == VK_FORMAT_R8G8B8A8_SRGB ||
-                        formats[i].format == VK_FORMAT_B8G8R8A8_SRGB ||
-                        formats[i].format == VK_FORMAT_A8B8G8R8_SRGB_PACK32)
-                    {
-                        format = formats[i];
-                        found = true;
-                    }
-                }
-                else
-                {
-                    if (formats[i].format == VK_FORMAT_R8G8B8A8_UNORM ||
-                        formats[i].format == VK_FORMAT_B8G8R8A8_UNORM ||
-                        formats[i].format == VK_FORMAT_A8B8G8R8_UNORM_PACK32)
-                    {
-                        format = formats[i];
-                        found = true;
-                    }
-                }
-            }
-
-            if (!found)
-                format = formats[0];
-        }
-
-        VkExtent2D swapchain_size;
-        if (surfaceCapabilities.currentExtent.width == ~0u)
-        {
-            swapchain_size.width = window->getWidth();
-            swapchain_size.height = window->getHeight();
-        }
-        else
-        {
-            swapchain_size.width = max(min(window->getWidth(), surfaceCapabilities.maxImageExtent.width), surfaceCapabilities.minImageExtent.width);
-            swapchain_size.height = max(min(window->getHeight(), surfaceCapabilities.maxImageExtent.height), surfaceCapabilities.minImageExtent.height);
-        }
-
-        uint32_t num_present_modes;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &num_present_modes, nullptr);
-        vector<VkPresentModeKHR> present_modes(num_present_modes);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &num_present_modes, present_modes.data());
-
-        VkPresentModeKHR swapchain_present_mode = VK_PRESENT_MODE_FIFO_KHR;
-        if (!desc.vSyncEnabled)
-        {
-            for (uint32_t i = 0; i < num_present_modes; i++)
-            {
-                if (present_modes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR || present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
-                {
-                    swapchain_present_mode = present_modes[i];
-                    break;
-                }
-            }
-        }
-
-        uint32_t desired_swapchain_images = 3;
-
-        if (desired_swapchain_images < surfaceCapabilities.minImageCount)
-            desired_swapchain_images = surfaceCapabilities.minImageCount;
-
-        if ((surfaceCapabilities.maxImageCount > 0) && (desired_swapchain_images > surfaceCapabilities.maxImageCount))
-            desired_swapchain_images = surfaceCapabilities.maxImageCount;
-
-        VkSurfaceTransformFlagBitsKHR pre_transform;
-        if (surfaceCapabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-            pre_transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-        else
-            pre_transform = surfaceCapabilities.currentTransform;
-
-        VkCompositeAlphaFlagBitsKHR composite_mode = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        if (surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR)
-            composite_mode = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
-        if (surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
-            composite_mode = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        if (surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR)
-            composite_mode = VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR;
-        if (surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)
-            composite_mode = VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
-
-        VkSwapchainKHR old_swapchain = swapchain;
-
-        VkSwapchainCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
-        createInfo.surface = surface;
-        createInfo.minImageCount = desired_swapchain_images;
-        createInfo.imageFormat = format.format;
-        createInfo.imageColorSpace = format.colorSpace;
-        createInfo.imageExtent.width = swapchain_size.width;
-        createInfo.imageExtent.height = swapchain_size.height;
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.preTransform = pre_transform;
-        createInfo.compositeAlpha = composite_mode;
-        createInfo.presentMode = swapchain_present_mode;
-        createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = old_swapchain;
-
-        // Enable transfer source on swap chain images if supported
-        if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
-            createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        }
-
-        // Enable transfer destination on swap chain images if supported
-        if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
-            createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        }
-
-        if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain) != VK_SUCCESS)
-        {
-            return false;
-        }
-
-        if (old_swapchain != VK_NULL_HANDLE)
-        {
-            for (uint32_t i = 0; i < swapchainImageCount; i++)
-            {
-                //vkDestroyImageView(device, buffers[i].view, nullptr);
-                vkDestroySemaphore(device, swapchainImageSemaphores[i], nullptr);
-            }
-
-            vkDestroySwapchainKHR(device, old_swapchain, nullptr);
-        }
-
-        vkThrowIfFailed(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, nullptr));
-        swapchainImages.resize(swapchainImageCount);
-        swapchainImageSemaphores.resize(swapchainImageCount);
-        vkThrowIfFailed(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, swapchainImages.data()));
-
-        // Create command buffer for transition or clear 
-        auto setupSwapchainCmdBuffer = CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-        for (uint32_t i = 0; i < swapchainImageCount; i++)
-        {
-            VkSemaphoreCreateInfo semaphoreCreateInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-            vkThrowIfFailed(
-                vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &swapchainImageSemaphores[i])
-            );
-
-            // Clear with default value if supported.
-            if (createInfo.imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-            {
-                // Clear images with default color.
-                VkClearColorValue clearColor = {};
-                clearColor.float32[3] = 1.0f;
-                //clearColor.float32[0] = 1.0f;
-
-                VkImageSubresourceRange clearRange = {};
-                clearRange.layerCount = 1;
-                clearRange.levelCount = 1;
-
-                // Clear with default color.
-                vkClearImageWithColor(
-                    setupSwapchainCmdBuffer,
-                    swapchainImages[i],
-                    clearRange,
-                    VK_IMAGE_ASPECT_COLOR_BIT,
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    &clearColor);
-            }
-            else
-            {
-                // Transition image to present layout.
-                vkTransitionImageLayout(
-                    setupSwapchainCmdBuffer,
-                    swapchainImages[i],
-                    VK_IMAGE_ASPECT_COLOR_BIT,
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-                );
-            }
-        }
-
-        FlushCommandBuffer(setupSwapchainCmdBuffer, graphicsQueue, true);
-
-        return true;
-    }
-
-    void GraphicsImpl::notifyValidationError(const char* message)
+    void GraphicsDeviceVk::notifyValidationError(const char* message)
     {
         ALIMER_UNUSED(message);
     }
 
-    bool GraphicsImpl::beginFrame()
+    bool GraphicsDeviceVk::BeginFrame()
     {
         vkThrowIfFailed(vkWaitForFences(device, 1u, &frame().fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
         vkThrowIfFailed(vkResetFences(device, 1u, &frame().fence));
 
-        const VkResult result =
+        /*const VkResult result =
             vkAcquireNextImageKHR(device,
                 swapchain,
                 std::numeric_limits<uint64_t>::max(),
@@ -1124,12 +909,12 @@ namespace alimer
         if (result != VK_SUCCESS)
         {
             return false;
-        }
+        }*/
 
         return true;
     }
 
-    void GraphicsImpl::endFrame()
+    void GraphicsDeviceVk::EndFrame()
     {
         const uint32_t frameIndex = frameNumber;
 
@@ -1138,12 +923,12 @@ namespace alimer
         uint32_t waitSemaphoreCount = 0u;
         VkSemaphore *waitSemaphores = NULL;
         const VkPipelineStageFlags *waitStageMasks = nullptr;
-        if (swapchain != VK_NULL_HANDLE)
+        /*if (swapchain != VK_NULL_HANDLE)
         {
             waitSemaphoreCount = 1u;
             waitSemaphores = &swapchainImageSemaphores[frameIndex];
             waitStageMasks = &colorAttachmentStage;
-        }
+        }*/
 
         VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
         submitInfo.waitSemaphoreCount = waitSemaphoreCount;
@@ -1154,9 +939,9 @@ namespace alimer
         submitInfo.signalSemaphoreCount = (uint32_t)frame().waitSemaphores.size();
         submitInfo.pSignalSemaphores = frame().waitSemaphores.data();
 
-        vkQueueSubmit(graphicsQueue, 1u, &submitInfo, frame().fence);
+        vkQueueSubmit(_graphicsQueue, 1u, &submitInfo, frame().fence);
 
-        if (swapchain != VK_NULL_HANDLE)
+        /*if (swapchain != VK_NULL_HANDLE)
         {
             VkResult presentResult = VK_SUCCESS;
             VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
@@ -1170,16 +955,16 @@ namespace alimer
             if (presentResult != VK_SUCCESS)
             {
             }
-        }
+        }*/
 
         // Advance to next frame.
         frameNumber = (frameNumber + 1u) % maxInflightFrames;
     }
 
-    VkCommandBuffer GraphicsImpl::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
+    VkCommandBuffer GraphicsDeviceVk::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
     {
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO  };
-        cmdBufAllocateInfo.commandPool = graphicsCommandPool;
+        cmdBufAllocateInfo.commandPool = _graphicsCommandPool;
         cmdBufAllocateInfo.level = level;
         cmdBufAllocateInfo.commandBufferCount = 1;
 
@@ -1195,8 +980,12 @@ namespace alimer
 
         return commandBuffer;
     }
+    void GraphicsDeviceVk::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
+    {
+        FlushCommandBuffer(commandBuffer, _graphicsQueue, free);
+    }
 
-    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
+    void GraphicsDeviceVk::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free)
     {
         vkThrowIfFailed(vkEndCommandBuffer(commandBuffer));
 
@@ -1216,24 +1005,24 @@ namespace alimer
 
         if (free)
         {
-            vkFreeCommandBuffers(device, graphicsCommandPool, 1, &commandBuffer);
+            vkFreeCommandBuffers(device, _graphicsCommandPool, 1, &commandBuffer);
         }
     }
 
-    GraphicsImpl::PerFrame::PerFrame(GraphicsImpl* device_)
+    GraphicsDeviceVk::PerFrame::PerFrame(GraphicsDeviceVk* device_)
         : device(device_)
     {
         const VkFenceCreateInfo fenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, VK_FENCE_CREATE_SIGNALED_BIT };
         vkCreateFence(device->device, &fenceCreateInfo, nullptr, &fence);
     }
 
-    GraphicsImpl::PerFrame::~PerFrame()
+    GraphicsDeviceVk::PerFrame::~PerFrame()
     {
         Begin();
         vkDestroyFence(device->device, fence, nullptr);
     }
 
-    void GraphicsImpl::PerFrame::Begin()
+    void GraphicsDeviceVk::PerFrame::Begin()
     {
 
     }

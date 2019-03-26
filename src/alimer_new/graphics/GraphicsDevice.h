@@ -27,44 +27,48 @@
 
 namespace alimer
 {
-    class GraphicsImpl;
+    class SwapChain;
 
-    class ALIMER_API GraphicsDevice final
+    class ALIMER_API GraphicsDevice
     {
-    public:
+    protected:
         /// Constructor.
         GraphicsDevice();
 
+    public:
         /// Destructor.
-        ~GraphicsDevice();
+        virtual ~GraphicsDevice() = default;
 
-        static std::shared_ptr<GraphicsDevice> create(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc);
+        static std::shared_ptr<GraphicsDevice> Create(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc);
 
         /// Begin next frame rendering.
-        bool beginFrame();
+        virtual bool BeginFrame();
 
-        void endFrame();
+        virtual void EndFrame();
 
         /// Get the device info.
-        const GraphicsDeviceInfo& getInfo() const;
+        const GraphicsDeviceInfo& GetInfo() const;
 
         /// Get the device capabilities.
-        const GraphicsDeviceCapabilities& getCaps() const;
+        const GraphicsDeviceCapabilities& GetCaps() const;
 
         /// Return whether graphics device has been initialized.
-        bool isInitialized() const { return _initialized; }
+        bool IsInitialized() const { return _initialized; }
 
-    private:
-        /// Constructor.
-        GraphicsDevice(const std::shared_ptr<Window>& window_);
+    protected:
+        virtual bool Initialize(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc);
 
-    private:
-        /// Implementation.
-        GraphicsImpl* pImpl = nullptr;
-        /// The main window.
-        std::shared_ptr<Window> window;
         /// Initialization state.
         bool _initialized = false;
+        /// The main window.
+        std::shared_ptr<Window> _window;
+        /// The creation description.
+        GraphicsDeviceDescriptor _descriptor = {};
+        /// The main swap chain.
+        std::unique_ptr<SwapChain> _swapChain = {};
+        
+        GraphicsDeviceInfo _info = {};
+        GraphicsDeviceCapabilities  _caps = {};
     };
 
     extern ALIMER_API std::shared_ptr<GraphicsDevice> graphicsDevice;

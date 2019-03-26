@@ -22,9 +22,8 @@
 
 #pragma once
 
+#include <volk.h>
 #include "core/Log.h"
-#include "vulkan/vulkan.h"
-#include <string>
 
 #if !defined(NDEBUG) || defined(DEBUG) || defined(_DEBUG)
 #	define VULKAN_DEBUG
@@ -166,4 +165,7 @@ namespace alimer
     private:
         std::string _errorMessage;
     };
+
+    // Forward type declarations
+    class GraphicsDeviceVk;
 }
