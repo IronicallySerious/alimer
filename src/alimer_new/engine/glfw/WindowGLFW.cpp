@@ -57,7 +57,7 @@ namespace alimer
     {
         if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
         {
-            Application::getCurrent()->requestExit();
+            Application::GetCurrent()->RequestExit();
             //glfwSetWindowShouldClose(handle, GLFW_TRUE);
         }
     }
@@ -140,7 +140,7 @@ namespace alimer
         return !glfwWindowShouldClose(window);
     }
 
-    WindowHandle Window::getNativeHandle() const
+    WindowHandle Window::GetNativeHandle() const
     {
 #if defined(GLFW_EXPOSE_NATIVE_WIN32)
         return glfwGetWin32Window(window);
@@ -155,7 +155,7 @@ namespace alimer
 #endif
     }
 
-    WindowConnection Window::getNativeConnection() const
+    WindowConnection Window::GetNativeConnection() const
     {
 #if defined(GLFW_EXPOSE_NATIVE_WIN32)
         return GetModuleHandleW(nullptr);

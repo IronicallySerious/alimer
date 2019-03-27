@@ -39,9 +39,12 @@ namespace alimer
         virtual ~SwapChain() = default;
 
         void Resize(uint32_t width, uint32_t height);
-
+        bool GetNextTexture();
+        void Present();
     private:
         virtual bool ResizeImpl(uint32_t width, uint32_t height) = 0;
+        virtual bool GetNextTextureImpl() = 0;
+        virtual void PresentImpl() = 0;
 
     protected:
         GraphicsDevice* _graphicsDevice;
@@ -52,7 +55,8 @@ namespace alimer
         PixelFormat _colorFormat = PixelFormat::BGRA8UNorm;
         /// The depth buffer format
         PixelFormat _depthFormat = PixelFormat::Depth32Float;
-
+        /// vSync state
         bool _vSyncEnabled = false;
+        uint32_t _currentBackBufferIndex = 0;
     };
 }

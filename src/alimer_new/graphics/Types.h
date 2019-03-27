@@ -36,11 +36,10 @@ namespace alimer
         Vulkan,
         Direct3D12,
         Direct3D11,
-        OpenGL
     };
 
     /// Defines the gpu device power preference.
-    enum class PowerPreference
+    enum class GpuPowerPreference
     {
         Default = 0,
         LowPower = 1,
@@ -147,6 +146,21 @@ namespace alimer
         GraphicsDeviceLimits            limits;
     };
 
+    struct SwapChainSurface
+    {
+#if defined(_WIN64) || defined(_WIN32)
+        void *hInstance;
+        void *window;
+#elif defined(__ANDROID__)
+        void *window;
+#elif defined(__linux__)
+        const void **display;
+        uint64_t window;
+#elif defined(__APPLE__)
+        void *layer;
+#endif
+    };
+
     struct SwapChainDescriptor
     {
         uint32_t width;
@@ -157,12 +171,5 @@ namespace alimer
         PixelFormat depthFormat = PixelFormat::Depth32Float;
 
         bool vSyncEnabled = false;
-    };
-
-    /// GraphicsDevice descriptor
-    struct GraphicsDeviceDescriptor
-    {
-        PowerPreference powerPreference = PowerPreference::Default;
-        SwapChainDescriptor swapChainDescriptor = {};
     };
 }

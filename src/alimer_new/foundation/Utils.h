@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "alimer_config.h"
 #include "foundation/Preprocessor.h"
 #include <string>
 #include <vector>
@@ -29,8 +30,7 @@
 #   include <windows.h>
 #endif
 
-namespace alimer
-{
+namespace alimer {
     /// Constant blank string, useful for returning by ref where local does not exist
     const std::string EMPTY_STRING;
 
@@ -83,34 +83,10 @@ namespace alimer
         resource = nullptr;
     }
 
-    // Provide a less-than function for comparing structs
-// Note: struct memory must be initialized to zero, because of packing gaps
-    template <typename T>
-    inline bool StructLessThan(const T &a, const T &b)
-    {
-        return (memcmp(&a, &b, sizeof(T)) < 0);
-    }
-
-    // Provide a less-than function for comparing structs
-    // Note: struct memory must be initialized to zero, because of packing gaps
-    template <typename T>
-    inline bool StructEquals(const T &a, const T &b)
-    {
-        return (memcmp(&a, &b, sizeof(T)) == 0);
-    }
-
-    template <typename T>
-    inline void StructZero(T *obj)
-    {
-        memset(obj, 0, sizeof(T));
-    }
-
-    template <typename T>
-    inline bool IsMaskFlagSet(T mask, T flag)
-    {
-        // Handles multibit flags as well
-        return (mask & flag) == flag;
-    }
+    namespace str {
+        /// Return a formatted string.
+        ALIMER_API std::string Format(const char* format, ...);
+    } // namespace str
 
 #if defined(_WIN32) || defined(_WIN64)
     inline std::wstring ToUtf16(const char* utf8, size_t len) {
@@ -141,5 +117,5 @@ namespace alimer
         return ToUtf8(wstr.data(), wstr.length());
     }
 #endif  // defined(_WIN32) || defined(_WIN64)
-}
+} // namespace alimer
 

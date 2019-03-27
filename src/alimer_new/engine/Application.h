@@ -33,10 +33,17 @@ namespace alimer
     class Window;
     class ApplicationHost;
     class GraphicsDevice;
+    class SwapChain;
 
     class ApplicationConfiguration
     {
     public:
+        /// Preffered graphics backend.
+        GraphicsBackend preferredGpuBackend = GraphicsBackend::Default;
+
+        /// Preffered graphics backend.
+        GpuPowerPreference preferredPowerPreference = GpuPowerPreference::Default;
+
         /// Main application window title.
         std::string title = "alimer";
         /// Main application window width.
@@ -66,42 +73,39 @@ namespace alimer
         ~Application() override;
 
         /// Get the current active application.
-        static Application* getCurrent();
+        static Application* GetCurrent();
 
         /// Initialize all sub systems, graphics device, input, audio and run the main loop, then return the application exit code.
-        int run();
+        int Run();
 
         /// Request the application to exit.
-        void requestExit();
+        void RequestExit();
 
         /// Tick one rendering frame.
-        void tick();
+        void Tick();
 
         /// Return whether application has been initialized.
-        bool isInitialized() const { return _initialized; }
+        bool IsInitialized() const { return _initialized; }
 
         /// Get the main window.
-        Window* getMainWindow() const { return _mainWindow.get(); }
+        Window* GetMainWindow() const { return _mainWindow.get(); }
 
     protected:
-        /// Setup before engine initialization. This is a chance to eg. modify the engine parameters. Call ErrorExit() to terminate without initializing the engine.
-        virtual void setup() { }
-
         /// Setup after engine initialization and before running the main loop. Call ErrorExit() to terminate without running the main loop.
-        virtual void initialize() { }
+        virtual void Initialize() { }
 
         /// Cleanup after the main loop. Called by Application.
-        virtual void stop() { }
+        virtual void Stop() { }
 
         /// Show an error message (last log message if empty), terminate the main loop, and set failure exit code.
-        void errorExit(const std::string& message = "");
+        void ErrorExit(const std::string& message = "");
 
     private:
         /// Called by ApplicationHost to setup everything before running main loop.
-        void initializeBeforeRun();
+        void InitializeBeforeRun();
 
         /// Perform frame rendering.
-        void render();
+        void Render();
 
     protected:
         /// Configuration
@@ -118,6 +122,9 @@ namespace alimer
 
         /// GraphicsDevice.
         std::shared_ptr<GraphicsDevice> _graphics = nullptr;
+
+        /// Main window swap chain
+        std::unique_ptr<SwapChain> _mainWindowSwapChain;
 
         bool _headless = false;
         bool _initialized = false;

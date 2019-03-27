@@ -22,6 +22,7 @@
 
 #include "graphics/GraphicsDevice.h"
 #include "graphics/SwapChain.h"
+#include "engine/Window.h"
 #include "core/Log.h"
 
 #if defined(_WIN64) || defined(_WIN32)
@@ -39,6 +40,10 @@ extern "C"
 #   include "vulkan/GraphicsDeviceVk.h"
 #endif
 
+#if defined(ALIMER_D3D12)
+#   include "d3d12/GraphicsDeviceD3D12.h"
+#endif
+
 namespace alimer
 {
     std::shared_ptr<GraphicsDevice> graphicsDevice;
@@ -48,46 +53,82 @@ namespace alimer
 
     }
 
-    std::shared_ptr<GraphicsDevice> GraphicsDevice::Create(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc)
+    std::shared_ptr<GraphicsDevice> GraphicsDevice::Create(GraphicsBackend preferredBackend, GpuPowerPreference powerPreference)
     {
         if (graphicsDevice)
         {
-            LOGE("Currently can create only one GraphicsDevice instance");
+            ALIMER_LOGERROR("Currently can create only one GraphicsDevice instance");
             return nullptr;
         }
 
-
-#if defined(ALIMER_VULKAN)
-        graphicsDevice = std::shared_ptr<GraphicsDevice>(new GraphicsDeviceVk());
+        if (preferredBackend == GraphicsBackend::Default)
+        {
+#if defined(ALIMER_D3D12)
+            preferredBackend = GraphicsBackend::Direct3D12;
+#elif defined(ALIMER_VULKAN)
+            preferredBackend = GraphicsBackend::Vulkan;
 #endif
+        }
 
-        if (graphicsDevice->Initialize(window, desc) == false) {
-            graphicsDevice = nullptr;
+        switch (preferredBackend)
+        {
+        case GraphicsBackend::Null:
+            break;
+        case GraphicsBackend::Vulkan:
+#if defined(ALIMER_VULKAN)
+            graphicsDevice = std::shared_ptr<GraphicsDevice>(new GraphicsDeviceVk(powerPreference));
+            ALIMER_LOGINFO("Using Vulkan graphics backend.");
+#endif
+            break;
+        case GraphicsBackend::Direct3D12:
+#if defined(ALIMER_D3D12)
+            graphicsDevice = std::shared_ptr<GraphicsDevice>(new GraphicsDeviceD3D12(powerPreference));
+            ALIMER_LOGINFO("Using Direct3D12 graphics backend.");
+#endif
+            break;
+        case GraphicsBackend::Direct3D11:
+            break;
+        default:
+            break;
         }
 
         return graphicsDevice;
     }
 
-    bool GraphicsDevice::Initialize(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc)
+    SwapChain* GraphicsDevice::CreateSwapChain(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor)
     {
-        if (_initialized)
+        ALIMER_ASSERT(surface);
+        ALIMER_ASSERT(descriptor);
+
+#if defined(_WIN64) || defined(_WIN32)
+        if (!IsWindow(reinterpret_cast<HWND>(surface->window)))
         {
-            return true;
+            ALIMER_ASSERT_MSG(false, "Invalid hWnd handle");
         }
+#endif
 
-        _window = window;
-        _descriptor = desc;
-        _initialized = true;
-        return _initialized;
+        return CreateSwapChainImpl(surface, descriptor);
     }
 
-    bool GraphicsDevice::BeginFrame()
+    SwapChain* GraphicsDevice::CreateSwapChain(Window* window)
     {
-        return true;
-    }
+        SwapChainSurface surface = {};
+#if defined(_WIN64) || defined(_WIN32)
+        surface.hInstance = window->GetNativeConnection();
+        surface.window = window->GetNativeHandle();
+#elif defined(__ANDROID__)
+        surface.window = window->GetNativeHandle();
+#elif defined(__linux__)
+        surface.display = window->GetNativeConnection();
+        surface.window = window->GetNativeHandle();
+#elif defined(__APPLE__)
+        surface.layer = window->GetNativeHandle();
+#endif
 
-    void GraphicsDevice::EndFrame()
-    {
+        SwapChainDescriptor descriptor = {};
+        descriptor.width = window->GetWidth();
+        descriptor.height = window->GetHeight();
+        return CreateSwapChain(&surface, &descriptor);
     }
 
     const GraphicsDeviceInfo& GraphicsDevice::GetInfo() const

@@ -97,13 +97,13 @@ namespace alimer
 #endif
 
 #if defined(__dxgi1_6_h__) && defined(NTDDI_WIN10_RS4)
-    static DXGI_GPU_PREFERENCE GetDXGIGpuPreference(PowerPreference preference)
+    static DXGI_GPU_PREFERENCE GetDXGIGpuPreference(GpuPowerPreference preference)
     {
         switch (preference)
         {
-        case PowerPreference::LowPower:
+        case GpuPowerPreference::LowPower:
             return DXGI_GPU_PREFERENCE_MINIMUM_POWER;
-        case PowerPreference::HighPerformance:
+        case GpuPowerPreference::HighPerformance:
             return DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
         default:
             return DXGI_GPU_PREFERENCE_UNSPECIFIED;
@@ -139,44 +139,37 @@ namespace alimer
         }
 
         IDXGIAdapter1* hardwareAdapter;
-        GetAdapter(factory, PowerPreference::Default, &hardwareAdapter);
+        GetAdapter(factory, GpuPowerPreference::Default, &hardwareAdapter);
         isAvailable = hardwareAdapter != nullptr;
         SafeRelease(hardwareAdapter);
         ALIMER_VERIFY(factory->Release() == 0);
         return isAvailable;
     }
 
-    GraphicsDeviceD3D12::GraphicsDeviceD3D12(PowerPreference powerPreference, bool validation)
+    GraphicsDeviceD3D12::GraphicsDeviceD3D12(GpuPowerPreference powerPreference)
     {
         ALIMER_ASSERT_MSG(IsSupported(), "D3D12 backend is not supported");
 
         UINT dxgiFactoryFlags = 0;
-#if D3D12_DEBUG
+#if defined(_DEBUG)
+        bool validation = false;
         // Enable the debug layer (requires the Graphics Tools "optional feature").
-        if (validation)
+        ID3D12Debug* debugController;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
         {
-            ID3D12Debug* debugController;
-            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
-            {
-                debugController->EnableDebugLayer();
+            debugController->EnableDebugLayer();
 
-                ID3D12Debug1* d3d12debug1;
-                if (SUCCEEDED(debugController->QueryInterface(&d3d12debug1)))
-                {
-                    d3d12debug1->SetEnableGPUBasedValidation(true);
-                    d3d12debug1->Release();
-                }
-
-                // Enable additional debug layers.
-                dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-                _validation = true;
-                debugController->Release();
-            }
-            else
+            ID3D12Debug1* d3d12debug1;
+            if (SUCCEEDED(debugController->QueryInterface(&d3d12debug1)))
             {
-                _validation = false;
-                //ALIMER_LOGWARN("Direct3D Debug Device is not available");
+                d3d12debug1->SetEnableGPUBasedValidation(true);
+                d3d12debug1->Release();
             }
+
+            // Enable additional debug layers.
+            dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+            debugController->Release();
+            validation = true;
         }
 #endif
 
@@ -202,36 +195,19 @@ namespace alimer
         // Get adapter based on preference (if supported).
         GetAdapter(_factory, powerPreference, &_adapter);
 
-        DXGI_ADAPTER_DESC1 desc = { };
-        _adapter->GetDesc1(&desc);
-        //WriteLog("Creating DX12 device on adapter '%ls'", desc.Description);
-
-        ThrowIfFailed(D3D12CreateDevice(_adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&_device)));
-
-        // Check the maximum feature level, and make sure it's above our minimum
-        D3D_FEATURE_LEVEL featureLevelsArray[4];
-        featureLevelsArray[0] = D3D_FEATURE_LEVEL_11_0;
-        featureLevelsArray[1] = D3D_FEATURE_LEVEL_11_1;
-        featureLevelsArray[2] = D3D_FEATURE_LEVEL_12_0;
-        featureLevelsArray[3] = D3D_FEATURE_LEVEL_12_1;
-        D3D12_FEATURE_DATA_FEATURE_LEVELS featureLevels = { };
-        featureLevels.NumFeatureLevels = _countof(featureLevelsArray);
-        featureLevels.pFeatureLevelsRequested = featureLevelsArray;
-        ThrowIfFailed(_device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(featureLevels)));
-        _featureLevel = featureLevels.MaxSupportedFeatureLevel;
-
-        const D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-        if (_featureLevel < minFeatureLevel)
+        // Create device with adapter and min feature level.
+        hr = D3D12CreateDevice(_adapter, _d3dMinFeatureLevel, IID_PPV_ARGS(&_d3dDevice));
+        if (FAILED(hr))
         {
-            // TODO: Exception
+
         }
 
-#if D3D12_DEBUG
-        if (_validation)
+#if defined(_DEBUG)
+        if (validation)
         {
             // Configure debug device (if active).
             ID3D12InfoQueue* infoQueue;
-            if (SUCCEEDED(_device->QueryInterface(&infoQueue)))
+            if (SUCCEEDED(_d3dDevice->QueryInterface(&infoQueue)))
             {
                 D3D12_MESSAGE_ID hide[] =
                 {
@@ -256,25 +232,120 @@ namespace alimer
 #endif
 
         InitializeCaps();
+
+        // Create command queue's
+        D3D12_COMMAND_QUEUE_DESC commandQueueDesc = {};
+        commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+        commandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+        commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        commandQueueDesc.NodeMask = 0;
+        ThrowIfFailed(_d3dDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&_d3d12DirectCommandQueue)));
     }
 
     GraphicsDeviceD3D12::~GraphicsDeviceD3D12()
     {
-        SafeRelease(_device);
+        SafeRelease(_d3d12DirectCommandQueue);
+        SafeRelease(_d3dDevice);
         SafeRelease(_adapter);
         ALIMER_VERIFY(_factory->Release() == 0);
     }
 
-    SwapChain* GraphicsDeviceD3D12::CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor)
-    {
-        return new SwapChainD3D12(surface, descriptor);
-    }
-
     void GraphicsDeviceD3D12::InitializeCaps()
     {
+        // Check the maximum feature level, and make sure it's above our minimum
+        static const D3D_FEATURE_LEVEL s_featureLevels[] =
+        {
+            D3D_FEATURE_LEVEL_12_1,
+            D3D_FEATURE_LEVEL_12_0,
+            D3D_FEATURE_LEVEL_11_1,
+            D3D_FEATURE_LEVEL_11_0,
+        };
+
+        D3D12_FEATURE_DATA_FEATURE_LEVELS featureLevels =
+        {
+            _countof(s_featureLevels), s_featureLevels, D3D_FEATURE_LEVEL_11_0
+        };
+
+        HRESULT hr = _d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(featureLevels));
+        if (SUCCEEDED(hr))
+        {
+            _d3dFeatureLevel = featureLevels.MaxSupportedFeatureLevel;
+        }
+        else
+        {
+            _d3dFeatureLevel = _d3dMinFeatureLevel;
+        }
+
+        DXGI_ADAPTER_DESC1 desc = { };
+        _adapter->GetDesc1(&desc);
+
+        std::wstring deviceName(desc.Description);
+
+        _info.backend = GraphicsBackend::Direct3D12;
+        _info.backendName = "Direct3D12 - Level " + D3DFeatureLevelToVersion(_d3dFeatureLevel);
+        _info.deviceName = std::string(deviceName.begin(), deviceName.end());
+        _info.vendorName = D3DGetVendorByID(desc.VendorId);
+        _info.vendorId = desc.VendorId;
+
+        // Under D3D12 minimum supported feature level is 11.0
+        _caps.features.instancing = true;
+        _caps.features.alphaToCoverage = true;
+        _caps.features.independentBlend = true;
+        _caps.features.computeShader = true;
+        _caps.features.geometryShader = true;
+        _caps.features.tessellationShader = true;
+        _caps.features.sampleRateShading = true;
+        _caps.features.dualSrcBlend = true;
+        _caps.features.logicOp = (_d3dFeatureLevel >= D3D_FEATURE_LEVEL_11_1);
+        _caps.features.multiViewport = true;
+        _caps.features.indexUInt32 = true;
+        _caps.features.drawIndirect = true;
+        _caps.features.alphaToOne = true;
+        _caps.features.fillModeNonSolid = true;
+        _caps.features.samplerAnisotropy = true;
+        _caps.features.textureCompressionBC = true;
+        _caps.features.textureCompressionPVRTC = false;
+        _caps.features.textureCompressionETC2 = false;
+        _caps.features.textureCompressionATC = false;
+        _caps.features.textureCompressionASTC = false;
+        _caps.features.pipelineStatisticsQuery = true;
+        _caps.features.texture1D = true;
+        _caps.features.texture3D = true;
+        _caps.features.texture2DArray = true;
+        _caps.features.textureCubeArray = true;
+
+        // Limits
+        _caps.limits.maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
+        _caps.limits.maxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
+        _caps.limits.maxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION;
+        _caps.limits.maxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION;
+        _caps.limits.maxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
+        _caps.limits.maxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
+        _caps.limits.maxUniformBufferSize = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16;
+        _caps.limits.minUniformBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+        _caps.limits.maxStorageBufferSize = std::numeric_limits<uint32_t>::max();
+        _caps.limits.minStorageBufferOffsetAlignment = 16;
+        _caps.limits.maxSamplerAnisotropy = D3D12_MAX_MAXANISOTROPY;
+        _caps.limits.maxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+
+        _caps.limits.maxViewportDimensions[0] = D3D12_VIEWPORT_BOUNDS_MAX;
+        _caps.limits.maxViewportDimensions[1] = D3D12_VIEWPORT_BOUNDS_MAX;
+        _caps.limits.maxPatchVertices = D3D12_IA_PATCH_MAX_CONTROL_POINT_COUNT;
+        _caps.limits.pointSizeRange[0] = 1.0f;
+        _caps.limits.pointSizeRange[1] = 1.0f;
+        _caps.limits.lineWidthRange[0] = 1.0f;
+        _caps.limits.lineWidthRange[1] = 1.0f;
+        _caps.limits.maxComputeSharedMemorySize = D3D12_CS_THREAD_LOCAL_TEMP_REGISTER_POOL;
+        _caps.limits.maxComputeWorkGroupCount[0] = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
+        _caps.limits.maxComputeWorkGroupCount[1] = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
+        _caps.limits.maxComputeWorkGroupCount[2] = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
+        _caps.limits.maxComputeWorkGroupInvocations = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP;
+        _caps.limits.maxComputeWorkGroupSize[0] = D3D12_CS_THREAD_GROUP_MAX_X;
+        _caps.limits.maxComputeWorkGroupSize[1] = D3D12_CS_THREAD_GROUP_MAX_Y;
+        _caps.limits.maxComputeWorkGroupSize[2] = D3D12_CS_THREAD_GROUP_MAX_Z;
     }
 
-    void GraphicsDeviceD3D12::GetAdapter(_In_ IDXGIFactory2* factory, PowerPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
+    void GraphicsDeviceD3D12::GetAdapter(_In_ IDXGIFactory2* factory, GpuPowerPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
     {
         IDXGIAdapter1* adapter;
         *ppAdapter = nullptr;
@@ -327,5 +398,77 @@ namespace alimer
         }
 
         *ppAdapter = adapter;
+    }
+
+    PixelFormat GraphicsDeviceD3D12::GetDefaultDepthStencilFormat() const
+    {
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport =
+        {
+            DXGI_FORMAT_D24_UNORM_S8_UINT, D3D12_FORMAT_SUPPORT1_NONE, D3D12_FORMAT_SUPPORT2_NONE
+        };
+
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport)))
+            && formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET | D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL)
+        {
+            return PixelFormat::Depth24UNormStencil8;
+        }
+
+        formatSupport.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport)))
+            && formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET | D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL)
+        {
+            return PixelFormat::Depth32FloatStencil8;
+        }
+
+        return PixelFormat::Undefined;
+    }
+
+    PixelFormat GraphicsDeviceD3D12::GetDefaultDepthFormat() const
+    {
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport =
+        {
+            DXGI_FORMAT_D32_FLOAT, D3D12_FORMAT_SUPPORT1_NONE, D3D12_FORMAT_SUPPORT2_NONE
+        };
+
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport)))
+            && formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET | D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL)
+        {
+            return PixelFormat::Depth32Float;
+        }
+
+        formatSupport.Format = DXGI_FORMAT_D16_UNORM;
+        if (SUCCEEDED(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport)))
+            && formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET | D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL)
+        {
+            return PixelFormat::Depth16UNorm;
+        }
+
+        return PixelFormat::Undefined;
+    }
+
+    ID3D12CommandQueue* GraphicsDeviceD3D12::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const
+    {
+        ID3D12CommandQueue* commandQueue = nullptr;
+        switch (type)
+        {
+        case D3D12_COMMAND_LIST_TYPE_DIRECT:
+            commandQueue = _d3d12DirectCommandQueue;
+            break;
+        case D3D12_COMMAND_LIST_TYPE_COMPUTE:
+            //commandQueue = _d3d12ComputeCommandQueue;
+            break;
+        case D3D12_COMMAND_LIST_TYPE_COPY:
+            //commandQueue = _d3d12CopyCommandQueue;
+            break;
+        default:
+            ALIMER_ASSERT_MSG(false, "Invalid command queue type.");
+        }
+
+        return commandQueue;
+    }
+
+    SwapChain* GraphicsDeviceD3D12::CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor)
+    {
+        return new SwapChainD3D12(this, surface, descriptor);
     }
 }

@@ -63,13 +63,15 @@ endmacro()
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/alimer_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/alimer_config.h)
 
-define_engine_source_files (foundation core)
+define_engine_source_files (foundation core math)
 define_engine_source_files (engine)
 define_engine_source_files (NORECURSE . graphics)
 
 if (ALIMER_VULKAN)
     define_engine_source_files(graphics/vulkan)
-elseif (ALIMER_D3D12)
+endif ()
+
+if (ALIMER_D3D12)
     define_engine_source_files(graphics/d3d12)
 endif ()
 
@@ -112,8 +114,6 @@ if (ALIMER_VULKAN)
         glslang
         glslang-default-resource-limits
     )
-elseif (ALIMER_D3D12)
-    target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_D3D12)
 endif ()
 
 if (WIN32)

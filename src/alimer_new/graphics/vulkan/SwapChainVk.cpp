@@ -85,7 +85,7 @@ namespace alimer
         {
             if (count == 0)
             {
-                LOGE("Vulkan: Surface has no formats.");
+                ALIMER_LOGERROR("Vulkan: Surface has no formats.");
                 return false;
             }
 
@@ -270,5 +270,25 @@ namespace alimer
         }
 
         deviceVk->FlushCommandBuffer(setupSwapchainCmdBuffer, true);
+        return true;
+    }
+
+    bool SwapChainVk::GetNextTextureImpl()
+    {
+        const VkResult result = vkAcquireNextImageKHR(
+            _device,
+            _swapchain,
+            std::numeric_limits<uint64_t>::max(),
+            _imageSemaphores[_frameIndex],
+            VK_NULL_HANDLE,
+            &_imageIndex);
+
+        if (result != VK_SUCCESS)
+        {
+            return false;
+        }
+
+        _frameIndex = (_frameIndex + 1u) % _imageCount;
+        return true;
     }
 }

@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "alimer_config.h"
+#include "foundation/Utils.h"
 #include "core/Object.h"
 
 namespace alimer
@@ -34,19 +35,14 @@ namespace alimer
     {
         /// Trace log level.
         Trace = 0,
-
         /// Debug log level.
         Debug = 1,
-
         /// Information log level.
         Info = 2,
-
         /// Warning log level.
         Warn = 3,
-
         /// Error log level.
         Error = 4,
-
         /// Critical/Fatal log level.
         Critical = 5
     };
@@ -63,7 +59,10 @@ namespace alimer
         /// Destructor.
         ~Logger() override;
 
+        static Logger &GetDefault();
+
         void Log(LogLevel level, const std::string& message);
+        void Log(LogLevel level, const std::string& tag, const std::string& message);
 
         /// Get if logger is enabled.
         bool IsEnabled() const { return _isEnabled; }
@@ -92,34 +91,20 @@ namespace alimer
 
 #define ALIMER_TAG "alimer"
 
-#if defined(__ANDROID__)
-#	include <android/log.h>
-#	define LOGI(...) __android_log_print(ANDROID_LOG_INFO, ALIMER_TAG, __VA_ARGS__)
-#	define LOGW(...) __android_log_print(ANDROID_LOG_WARN, ALIMER_TAG, __VA_ARGS__)
-#	define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, ALIMER_TAG, __VA_ARGS__)
-#else
-#	define LOGI(...) \
-		{ \
-			fprintf(stdout, "%s [INFO] : ", ALIMER_TAG); \
-			fprintf(stdout, __VA_ARGS__); \
-			fprintf(stdout, "\n"); \
-		}
-#	define LOGW(...) \
-		{ \
-			fprintf(stdout, "%s [WARNING] : ", ALIMER_TAG); \
-			fprintf(stdout, __VA_ARGS__); \
-			fprintf(stdout, "\n"); \
-		}
-#	define LOGE(...) \
-		{ \
-			fprintf(stderr, "%s [ERROR] : ", ALIMER_TAG); \
-			fprintf(stderr, __VA_ARGS__); \
-			fprintf(stderr, "\n"); \
-		}
-#endif
+#	define ALIMER_LOGTRACE(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Trace, ALIMER_TAG, alimer::str::Format(__VA_ARGS__))
+#	define ALIMER_LOGDEBUG(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Debug, ALIMER_TAG, alimer::str::Format(__VA_ARGS__))
+#	define ALIMER_LOGINFO(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Info, ALIMER_TAG, alimer::str::Format(__VA_ARGS__))
+#	define ALIMER_LOGWARN(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Warn, ALIMER_TAG, alimer::str::Format(__VA_ARGS__))
+#	define ALIMER_LOGERROR(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Error, ALIMER_TAG, alimer::str::Format(__VA_ARGS__))
+#	define ALIMER_LOGCRITICAL(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Critical, ALIMER_TAG, alimer::str::Format(__VA_ARGS__))
 
 #else
-#   define LOGI(...) ((void)0)
-#   define LOGW(...) ((void)0)
-#   define LOGE(...) ((void)0)
+
+#	define ALIMER_LOGTRACE(...) ((void)0)
+#   define ALIMER_LOGDEBUG(...) ((void)0)
+#   define ALIMER_LOGINFO(...) ((void)0)
+#   define ALIMER_LOGWARN(...) ((void)0)
+#   define ALIMER_LOGERROR(...) ((void)0)
+#	define ALIMER_LOGCRITICAL(...) ((void)0)
+
 #endif /* ALIMER_LOGGING */

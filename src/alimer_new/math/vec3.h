@@ -20,40 +20,14 @@
 // THE SOFTWARE.
 //
 
-#include "graphics/SwapChain.h"
+// Some idea and concept adopted/taken from filament: https://github.com/google/filament/blob/master/LICENSE
 
-namespace alimer
-{
-    SwapChain::SwapChain(GraphicsDevice* device, const SwapChainDescriptor* descriptor)
-        : _graphicsDevice(device)
-        , _width(descriptor->width)
-        , _height(descriptor->height)
-        , _srgb(descriptor->srgb)
-        , _colorFormat(descriptor->srgb ? PixelFormat::BGRA8UNormSrgb : PixelFormat::BGRA8UNorm)
-        , _depthFormat(descriptor->depthFormat)
-        , _vSyncEnabled(descriptor->vSyncEnabled)
-    {
-    }
+#pragma once
 
-    void SwapChain::Resize(uint32_t width, uint32_t height)
-    {
-        if (_width == width && _height == height)
-        {
-            return;
-        }
+#include "math/vec2.h"
 
-        ResizeImpl(width, height);
-        _width = width;
-        _height = height;
-    }
+namespace alimer {
+    namespace math {
 
-    bool SwapChain::GetNextTexture()
-    {
-        return GetNextTextureImpl();
-    }
-
-    void SwapChain::Present()
-    {
-        PresentImpl();
-    }
-}
+    } // namespace math
+} // namespace alimer

@@ -54,14 +54,10 @@ namespace alimer
         uint32_t GetHeight() const { return height; }
 
         /// Gets the native window or view handle.
-        WindowHandle getNativeHandle() const;
+        WindowHandle GetNativeHandle() const;
 
         /// Gets the native display, connection or instance handle.
-        WindowConnection getNativeConnection() const;
-
-#if defined(ALIMER_GLFW)
-        GLFWwindow* getApiHandle() const { return window; }
-#endif
+        WindowConnection GetNativeConnection() const;
 
     protected:
         std::string title;

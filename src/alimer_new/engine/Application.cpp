@@ -24,6 +24,7 @@
 #include "engine/ApplicationHost.h"
 #include "engine/Window.h"
 #include "graphics/GraphicsDevice.h"
+#include "graphics/SwapChain.h"
 #include "foundation/Utils.h"
 #if defined(_WIN32) || defined(_WIN64)
 #undef CreateWindow
@@ -43,27 +44,23 @@ namespace alimer
 
     Application::~Application()
     {
+        _mainWindowSwapChain.reset();
         SafeDelete(_host);
         s_currentApplication = nullptr;
     }
 
-    Application* Application::getCurrent()
+    Application* Application::GetCurrent()
     {
         ALIMER_ASSERT_MSG(s_currentApplication, "Application has not been initialized");
         return s_currentApplication;
     }
 
-    int Application::run()
+    int Application::Run()
     {
 #if !defined(__GNUC__) || __EXCEPTIONS
         try
         {
 #endif
-            setup();
-            if (_exitCode) {
-                return _exitCode;
-            }
-            
             _exitCode = _host->run();
             return _exitCode;
 
@@ -77,50 +74,48 @@ namespace alimer
 #endif
     }
 
-    void Application::requestExit()
+    void Application::RequestExit()
     {
         _host->requestExit();
     }
 
-    void Application::initializeBeforeRun()
+    void Application::InitializeBeforeRun()
     {
         if (_initialized)
+        {
             return;
+        }
+
+        // Create graphics device.
+        _graphics = GraphicsDevice::Create(_config.preferredGpuBackend, _config.preferredPowerPreference);
 
         // Create main window.
         _mainWindow = _host->createWindow(_config.title,
             _config.width, _config.height,
             _config.resizable, _config.fullscreen);
 
-        // Create graphics device.
-        GraphicsDeviceDescriptor descriptor = {};
-        descriptor.swapChainDescriptor.width = _mainWindow->GetWidth();
-        descriptor.swapChainDescriptor.height = _mainWindow->GetHeight();
-        _graphics = GraphicsDevice::Create(_mainWindow, descriptor);
+        // Create swap chain from window.
+        _mainWindowSwapChain.reset(_graphics->CreateSwapChain(_mainWindow.get()));
 
         _initialized = true;
-        initialize();
+        Initialize();
         if (_exitCode) {
-            errorExit();
+            ErrorExit();
         }
     }
 
-    void Application::tick()
+    void Application::Tick()
     {
         ALIMER_ASSERT(_initialized);
-
-        // If not headless, and the graphics subsystem no longer has a window open, assume we should exit
-        if (!_headless && !_graphics->IsInitialized())
-            _exiting = true;
 
         if (_exiting)
             return;
 
         // TODO: Apply frame time.
-        render();
+        Render();
     }
 
-    void Application::errorExit(const string& message)
+    void Application::ErrorExit(const std::string& message)
     {
         _host->requestExit();
         _exitCode = EXIT_FAILURE;
@@ -135,19 +130,23 @@ namespace alimer
         }
     }
 
-    void Application::render()
+    void Application::Render()
     {
         if (_headless)
             return;
 
         //ALIMER_PROFILE(Render);
 
-        // If device is lost, BeginFrame will fail and we skip rendering
-        if (!_graphics->BeginFrame())
+        // Acquire next swap chain texture before rendering
+        if (!_mainWindowSwapChain->GetNextTexture())
+        {
             return;
+        }
 
         // TODO: Render scene
         // TODO: Render UI
-        _graphics->EndFrame();
+
+        // Present content on screen.
+        _mainWindowSwapChain->Present();
     }
 }

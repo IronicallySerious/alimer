@@ -68,7 +68,7 @@ int main(int argc, char** argv)
 
     alimer::Editor app(config);
     app.parseArguments(argc, argv);
-    return app.run();
+    return app.Run();
 }
 
 #if ALIMER_PLATFORM_WINDOWS

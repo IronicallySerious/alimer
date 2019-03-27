@@ -21,8 +21,26 @@
 //
 
 #include "foundation/Utils.h"
-using namespace std;
+#include <iostream>
+#include <vector>
+#include <cstdarg>
+#include <cstring>
 
-namespace alimer
-{
-}
+namespace alimer {
+    namespace str {
+        /// Return a formatted string.
+        std::string Format(const char* format, ...)
+        {
+            va_list args;
+            va_start(args, format);
+            size_t len = std::vsnprintf(NULL, 0, format, args);
+            va_end(args);
+
+            std::vector<char> vec(len + 1);
+            va_start(args, format);
+            std::vsnprintf(&vec[0], len + 1, format, args);
+            va_end(args);
+            return &vec[0];
+        }
+    } // namespace str
+} // namespace alimer

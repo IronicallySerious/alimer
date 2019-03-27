@@ -564,6 +564,7 @@
 #   define ALIMER_LIKELY(x) __builtin_expect(!!(x), 1)
 #   define ALIMER_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #   define ALIMER_NORETURN __attribute__((noreturn))
+#   define ALIMER_EMPTY_BASES
 
 #   if ALIMER_PLATFORM_WINDOWS
 #       if (ALIMER_CLANG_VERSION < 30800)
@@ -632,6 +633,7 @@
 #   define ALIMER_LIKELY(x) __builtin_expect(!!(x), 1)
 #   define ALIMER_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #   define ALIMER_NORETURN __attribute__((noreturn))
+#   define ALIMER_EMPTY_BASES
 
 #   if ALIMER_PLATFORM_WINDOWS
 #       define STDCALL ALIMER_ATTRIBUTE(stdcall)
@@ -688,6 +690,7 @@
 #   define ALIMER_LIKELY(x) __builtin_expect(!!(x), 1)
 #   define ALIMER_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #   define ALIMER_NORETURN  __declspec(noreturn)
+#   define ALIMER_EMPTY_BASES __declspec(empty_bases)
 
 #   if ALIMER_PLATFORM_WINDOWS
 #       define STDCALL __stdcall
@@ -726,6 +729,7 @@
 #   define ALIMER_LIKELY(x) (x)
 #   define ALIMER_UNLIKELY(x) (x)
 #   define ALIMER_NORETURN  __declspec(noreturn)
+#   define ALIMER_EMPTY_BASES __declspec(empty_bases)
 
 #   pragma warning(disable : 4054)
 #   pragma warning(disable : 4055)

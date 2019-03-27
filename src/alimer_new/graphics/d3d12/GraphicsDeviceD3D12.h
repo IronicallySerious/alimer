@@ -35,20 +35,34 @@ namespace alimer
     public:
         static bool IsSupported();
 
-        GraphicsDeviceD3D12(PowerPreference powerPreference, bool validation);
+        GraphicsDeviceD3D12(GpuPowerPreference powerPreference);
         ~GraphicsDeviceD3D12() override;
 
-        SwapChain* CreateSwapChainImpl(SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
+        PixelFormat GetDefaultDepthStencilFormat() const;
+        PixelFormat GetDefaultDepthFormat() const;
+
+        IDXGIFactory4* GetDXGIFactory() const { return _factory; }
+        IDXGIAdapter1* GetDXGIAdapter() const { return _adapter; }
+        bool AllowTearing() const { return _allowTearing; }
+
+        ID3D12Device* GetD3DDevice() const { return _d3dDevice; }
+        ID3D12CommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT) const;
+
+    private:
+        // Backend methods
+        SwapChain* CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
 
     private:
         void InitializeCaps();
-        static void GetAdapter(_In_ IDXGIFactory2* factory, PowerPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter);
+        static void GetAdapter(_In_ IDXGIFactory2* factory, GpuPowerPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter);
         
     private:
         IDXGIFactory4* _factory = nullptr;
         bool _allowTearing = false;
         IDXGIAdapter1* _adapter = nullptr;
-        ID3D12Device* _device = nullptr;
-        D3D_FEATURE_LEVEL _featureLevel = D3D_FEATURE_LEVEL_9_1;
+        ID3D12Device* _d3dDevice = nullptr;
+        D3D_FEATURE_LEVEL _d3dMinFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+        D3D_FEATURE_LEVEL _d3dFeatureLevel = D3D_FEATURE_LEVEL_9_1;
+        ID3D12CommandQueue* _d3d12DirectCommandQueue = nullptr;
     };
 }

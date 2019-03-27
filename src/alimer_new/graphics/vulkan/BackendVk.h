@@ -91,7 +91,7 @@ namespace alimer
     {
         if (result < VK_SUCCESS)
         {
-            LOGE("Fatal Vulkan result is \"%s\" in %s at line %d", GetVkResultString(result), __FILE__, __LINE__);
+            ALIMER_LOGERROR("Fatal Vulkan result is \"%s\" in %s at line %d", GetVkResultString(result), __FILE__, __LINE__);
             abort();
         }
     }
@@ -113,7 +113,7 @@ namespace alimer
     }
 
     // see https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#fundamentals-versionnum
-    inline std::string vkGetVersionToString(std::uint32_t version)
+    inline std::string vkGetVersionToString(unsigned version)
     {
         std::string s;
 

@@ -37,6 +37,7 @@ namespace alimer
 
         void Destroy();
         bool ResizeImpl(uint32_t width, uint32_t height) override;
+        bool GetNextTextureImpl() override;
 
         uint32_t GetImageCount() const { return _imageCount; }
 
@@ -51,5 +52,6 @@ namespace alimer
         uint32_t _imageIndex = 0;
         std::vector<VkImage> _images;
         std::vector<VkSemaphore> _imageSemaphores;
+        uint32_t _frameIndex = 0;
     };
 }

@@ -22,11 +22,11 @@
 
 #pragma once
 
-#include "engine/Window.h"
 #include "graphics/Types.h"
 
 namespace alimer
 {
+    class Window;
     class SwapChain;
 
     class ALIMER_API GraphicsDevice
@@ -39,12 +39,13 @@ namespace alimer
         /// Destructor.
         virtual ~GraphicsDevice() = default;
 
-        static std::shared_ptr<GraphicsDevice> Create(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc);
+        static std::shared_ptr<GraphicsDevice> Create(GraphicsBackend preferredBackend, GpuPowerPreference powerPreference = GpuPowerPreference::Default);
 
-        /// Begin next frame rendering.
-        virtual bool BeginFrame();
+        /// Create SwapChain
+        SwapChain* CreateSwapChain(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor);
 
-        virtual void EndFrame();
+        /// CreateSwapChain from Window
+        SwapChain* CreateSwapChain(Window* window);
 
         /// Get the device info.
         const GraphicsDeviceInfo& GetInfo() const;
@@ -52,21 +53,10 @@ namespace alimer
         /// Get the device capabilities.
         const GraphicsDeviceCapabilities& GetCaps() const;
 
-        /// Return whether graphics device has been initialized.
-        bool IsInitialized() const { return _initialized; }
+    protected:
+        virtual SwapChain* CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor) = 0;
 
     protected:
-        virtual bool Initialize(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc);
-
-        /// Initialization state.
-        bool _initialized = false;
-        /// The main window.
-        std::shared_ptr<Window> _window;
-        /// The creation description.
-        GraphicsDeviceDescriptor _descriptor = {};
-        /// The main swap chain.
-        std::unique_ptr<SwapChain> _swapChain = {};
-        
         GraphicsDeviceInfo _info = {};
         GraphicsDeviceCapabilities  _caps = {};
     };

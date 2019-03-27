@@ -53,21 +53,24 @@ namespace alimer
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
             if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
             {
-                LOGE("[Vulkan]: Validation Error: %s", pCallbackData->pMessage);
-                context->notifyValidationError(pCallbackData->pMessage);
+                ALIMER_LOGERROR("[Vulkan]: Validation Error: %s", pCallbackData->pMessage);
+                context->NotifyValidationError(pCallbackData->pMessage);
             }
             else
-                LOGE("[Vulkan]: Other Error: %s", pCallbackData->pMessage);
+            {
+                ALIMER_LOGERROR("[Vulkan]: Other Error: %s", pCallbackData->pMessage);
+            }
+
             break;
 
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
             if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
             {
-                LOGW("[Vulkan]: Validation Warning: %s", pCallbackData->pMessage);
+                ALIMER_LOGWARN("[Vulkan]: Validation Warning: %s", pCallbackData->pMessage);
             }
             else
             {
-                LOGW("[Vulkan]: Other Warning: %s", pCallbackData->pMessage);
+                ALIMER_LOGWARN("[Vulkan]: Other Warning: %s", pCallbackData->pMessage);
             }
             break;
 
@@ -85,23 +88,23 @@ namespace alimer
             return VK_FALSE;
         }
 
-        bool log_object_names = false;
+        bool logObjectNames = false;
         for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
         {
             auto *name = pCallbackData->pObjects[i].pObjectName;
             if (name)
             {
-                log_object_names = true;
+                logObjectNames = true;
                 break;
             }
         }
 
-        if (log_object_names)
+        if (logObjectNames)
         {
             for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
             {
                 auto *name = pCallbackData->pObjects[i].pObjectName;
-                LOGI("  Object #%u: %s\n", i, name ? name : "N/A");
+                ALIMER_LOGINFO("  Object #%u: %s\n", i, name ? name : "N/A");
             }
         }
 
@@ -125,27 +128,27 @@ namespace alimer
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
         {
-            LOGE("[Vulkan]: Error: %s: %s", pLayerPrefix, pMessage);
-            context->notifyValidationError(pMessage);
+            ALIMER_LOGERROR("[Vulkan]: Error: %s: %s", pLayerPrefix, pMessage);
+            context->NotifyValidationError(pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
         {
-            LOGW("[Vulkan]: Warning: %s: %s", pLayerPrefix, pMessage);
+            ALIMER_LOGWARN("[Vulkan]: Warning: %s: %s", pLayerPrefix, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
         {
-            //LOGW("[Vulkan]: Performance warning: %s: %s\n", pLayerPrefix, pMessage);
+            //ALIMER_LOGWARN("[Vulkan]: Performance warning: %s: %s\n", pLayerPrefix, pMessage);
         }
         else
         {
-            LOGI("[Vulkan]: Information: %s: %s", pLayerPrefix, pMessage);
+            ALIMER_LOGINFO("[Vulkan]: Information: %s: %s", pLayerPrefix, pMessage);
         }
 
         return VK_FALSE;
     }
 #endif
 
-    GraphicsDeviceVk::GraphicsDeviceVk()
+    GraphicsDeviceVk::GraphicsDeviceVk(GpuPowerPreference powerPreference)
     {
         VkResult result = volkInitialize();
         if (result)
@@ -154,18 +157,17 @@ namespace alimer
         }
 
         // Enumerate supported extenions.
-        uint32_t instance_extension_count;
-        vkThrowIfFailed(vkEnumerateInstanceExtensionProperties(nullptr, &instance_extension_count, nullptr));
+        uint32_t count;
+        vkThrowIfFailed(vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr));
 
-        std::vector<VkExtensionProperties> instance_extensions(instance_extension_count);
-        vkThrowIfFailed(vkEnumerateInstanceExtensionProperties(nullptr, &instance_extension_count, instance_extensions.data()));
+        std::vector<VkExtensionProperties> instance_extensions(count);
+        vkThrowIfFailed(vkEnumerateInstanceExtensionProperties(nullptr, &count, instance_extensions.data()));
 
         // Enumerate supported layers.
-        uint32_t instance_layer_count;
-        vkThrowIfFailed(vkEnumerateInstanceLayerProperties(&instance_layer_count, nullptr));
+        vkThrowIfFailed(vkEnumerateInstanceLayerProperties(&count, nullptr));
 
-        std::vector<VkLayerProperties> instance_layers(instance_layer_count);
-        vkThrowIfFailed(vkEnumerateInstanceLayerProperties(&instance_layer_count, instance_layers.data()));
+        std::vector<VkLayerProperties> instance_layers(count);
+        vkThrowIfFailed(vkEnumerateInstanceLayerProperties(&count, instance_layers.data()));
 
         const auto has_extension = [&](const char *name) -> bool {
             auto itr = find_if(begin(instance_extensions), end(instance_extensions), [name](const VkExtensionProperties &e) -> bool {
@@ -282,6 +284,61 @@ namespace alimer
             vkCreateDebugReportCallbackEXT(_instance, &info, nullptr, &_debugCallback);
         }
 #endif
+
+        // Obtain a list of available physical devices.
+        vkEnumeratePhysicalDevices(_instance, &count, NULL);
+
+        vector<VkPhysicalDevice> physicalDevices(count);
+        vkEnumeratePhysicalDevices(_instance, &count, physicalDevices.data());
+
+        // Pick a suitable physical device based on user's preference.
+        uint32_t bestDeviceScore = 0U;
+        uint32_t bestDeviceIndex = static_cast<uint32_t>(-1);
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            VkPhysicalDeviceProperties dev_props;
+            vkGetPhysicalDeviceProperties(physicalDevices[i], &dev_props);
+
+            uint32_t score = 0u;
+            switch (dev_props.deviceType)
+            {
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                score += 100U;
+                if (powerPreference == GpuPowerPreference::HighPerformance) {
+                    score += 1000u;
+                }
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                score += 90U;
+                if (powerPreference == GpuPowerPreference::LowPower) {
+                    score += 1000u;
+                }
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                score += 80U;
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                score += 70U;
+                break;
+            default: score += 10U;
+            }
+
+            if (score > bestDeviceScore)
+            {
+                bestDeviceIndex = i;
+                bestDeviceScore = score;
+            }
+        }
+
+        if (bestDeviceIndex == static_cast<uint32_t>(-1))
+        {
+            return;
+        }
+
+        _physicalDevice = physicalDevices[bestDeviceIndex];
+        vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
+        vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
+        vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
     }
 
     GraphicsDeviceVk::~GraphicsDeviceVk()
@@ -296,9 +353,6 @@ namespace alimer
             vkDeviceWaitIdle(device);
         }
 
-        // Destroy swap chain.
-        _swapChain.reset();
-
         // Clear per frame data.
         perFrame.clear();
 
@@ -312,7 +366,7 @@ namespace alimer
             VmaStats stats;
             vmaCalculateStats(_memoryAllocator, &stats);
 
-            LOGI("Total device memory leaked: %llu bytes.", stats.total.usedBytes);
+            ALIMER_LOGINFO("Total device memory leaked: %llu bytes.", stats.total.usedBytes);
 
             vmaDestroyAllocator(_memoryAllocator);
             _memoryAllocator = VK_NULL_HANDLE;
@@ -345,6 +399,7 @@ namespace alimer
         }
     }
 
+#if TODO_VK
     bool GraphicsDeviceVk::Initialize(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc)
     {
         // Create surface first.
@@ -357,61 +412,7 @@ namespace alimer
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 #endif
 
-        // Obtain a list of available physical devices.
-        uint32_t physical_device_count = 0u;
-        vkEnumeratePhysicalDevices(_instance, &physical_device_count, NULL);
 
-        vector<VkPhysicalDevice> gpus(physical_device_count);
-        vkEnumeratePhysicalDevices(_instance, &physical_device_count, gpus.data());
-
-        // Pick a suitable physical device based on user's preference.
-        uint32_t best_device_score = 0U;
-        uint32_t best_device_index = static_cast<uint32_t>(-1);
-        for (uint32_t i = 0; i < physical_device_count; ++i)
-        {
-            VkPhysicalDeviceProperties dev_props;
-            vkGetPhysicalDeviceProperties(gpus[i], &dev_props);
-
-            uint32_t score = 0u;
-            switch (dev_props.deviceType)
-            {
-            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                score += 100U;
-                if (desc.powerPreference == PowerPreference::HighPerformance) {
-                    score += 1000u;
-                }
-                break;
-            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                score += 90U;
-                if (desc.powerPreference == PowerPreference::LowPower) {
-                    score += 1000u;
-                }
-                break;
-            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-                score += 80U;
-                break;
-            case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                score += 70U;
-                break;
-            default: score += 10U;
-            }
-
-            if (score > best_device_score)
-            {
-                best_device_index = i;
-                best_device_score = score;
-            }
-        }
-
-        if (best_device_index == static_cast<uint32_t>(-1))
-        {
-            return false;
-        }
-
-        _physicalDevice = gpus[best_device_index];
-        vkGetPhysicalDeviceProperties(_physicalDevice, &_deviceProperties);
-        vkGetPhysicalDeviceFeatures(_physicalDevice, &_deviceFeatures);
-        vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &_deviceMemoryProperties);
 
         LOGI("Selected Vulkan GPU: %s", _deviceProperties.deviceName);
 
@@ -650,7 +651,7 @@ namespace alimer
         else
         {
             _features.supports_external = false;
-        }
+    }
 #endif
 
         VkPhysicalDeviceFeatures2KHR deviceFeatures2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
@@ -782,6 +783,8 @@ namespace alimer
 
         return GraphicsDevice::Initialize(window, desc);
     }
+#endif // TODO_VK
+
 
     void GraphicsDeviceVk::InitializeCaps()
     {
@@ -881,35 +884,28 @@ namespace alimer
 
         if (vmaCreateAllocator(&allocatorCreateInfo, &_memoryAllocator) != VK_SUCCESS)
         {
-            LOGE("Cannot create vma memory allocator");
+            ALIMER_LOGERROR("Cannot create vma memory allocator");
             return false;
         }
 
         return true;
     }
 
-    void GraphicsDeviceVk::notifyValidationError(const char* message)
+    void GraphicsDeviceVk::NotifyValidationError(const char* message)
     {
         ALIMER_UNUSED(message);
     }
 
+    SwapChain* GraphicsDeviceVk::CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor)
+    {
+        return nullptr;
+    }
+
+#if TODO_VK
     bool GraphicsDeviceVk::BeginFrame()
     {
         vkThrowIfFailed(vkWaitForFences(device, 1u, &frame().fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
         vkThrowIfFailed(vkResetFences(device, 1u, &frame().fence));
-
-        /*const VkResult result =
-            vkAcquireNextImageKHR(device,
-                swapchain,
-                std::numeric_limits<uint64_t>::max(),
-                swapchainImageSemaphores[frameNumber],
-                VK_NULL_HANDLE,
-                &swapchainImageIndex);
-
-        if (result != VK_SUCCESS)
-        {
-            return false;
-        }*/
 
         return true;
     }
@@ -960,6 +956,8 @@ namespace alimer
         // Advance to next frame.
         frameNumber = (frameNumber + 1u) % maxInflightFrames;
     }
+#endif // TODO
+
 
     VkCommandBuffer GraphicsDeviceVk::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
     {

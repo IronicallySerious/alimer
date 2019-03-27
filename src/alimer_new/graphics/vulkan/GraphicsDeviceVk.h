@@ -56,14 +56,10 @@ namespace alimer
     class GraphicsDeviceVk final : public GraphicsDevice
     {
     public:
-        GraphicsDeviceVk();
+        GraphicsDeviceVk(GpuPowerPreference powerPreference);
         ~GraphicsDeviceVk();
         void Destroy();
-        bool Initialize(const std::shared_ptr<Window>& window, const GraphicsDeviceDescriptor& desc) override;
-        void notifyValidationError(const char* message);
-
-        bool BeginFrame() override;
-        void EndFrame() override;
+        void NotifyValidationError(const char* message);
 
         VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin);
         void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free);
@@ -72,6 +68,10 @@ namespace alimer
         VkInstance GetVkInstance() const { return _instance; }
         VkPhysicalDevice GetVkPhysicalDevice() const { return _physicalDevice; }
         VkDevice GetVkDevice() const { return device; }
+
+    private:
+        // Backend methods
+        SwapChain* CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
 
     private:
         void InitializeCaps();

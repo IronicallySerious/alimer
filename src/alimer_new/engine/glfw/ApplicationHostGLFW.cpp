@@ -37,7 +37,7 @@
 // GLFW3 Error Callback, runs on GLFW3 error
 static void glfwErrorCallback(int error, const char *description)
 {
-    LOGE("GLFW Error (code %i): %s", error, description);
+    ALIMER_LOGERROR("GLFW Error (code %i): %s", error, description);
 }
 
 using namespace std;
@@ -75,7 +75,7 @@ namespace alimer
         glfwSetErrorCallback(glfwErrorCallback);
         if (!glfwInit())
         {
-            LOGE("Failed to initialize GLFW.");
+            ALIMER_LOGERROR("Failed to initialize GLFW.");
             return;
         }
 
@@ -109,9 +109,9 @@ namespace alimer
         InitializeApplication();
 
         while (!_exitRequested
-            && _application->getMainWindow()->isOpen())
+            && _application->GetMainWindow()->isOpen())
         {
-            _application->tick();
+            _application->Tick();
 
             // Pool glfw events.
             glfwPollEvents();
