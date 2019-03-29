@@ -104,12 +104,12 @@ namespace alimer
         bool    texture1D = false;
         /// Specifies whether 3D textures are supported.
         bool    texture3D = false;
-
         /// Specifies whether 2D array textures are supported.
         bool    texture2DArray = false;
-
         /// Specifies whether cube array textures are supported.
         bool    textureCubeArray = false;
+        /// Specifies whether raytracing is supported.
+        bool    raytracing = false;
     };
 
     struct GraphicsDeviceLimits

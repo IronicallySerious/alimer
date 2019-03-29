@@ -41,10 +41,10 @@ namespace alimer
 
         static std::shared_ptr<GraphicsDevice> Create(GraphicsBackend preferredBackend, GpuPowerPreference powerPreference = GpuPowerPreference::Default);
 
-        /// Create SwapChain
+        /// Create SwapChain with given surface and descriptor.
         SwapChain* CreateSwapChain(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor);
 
-        /// CreateSwapChain from Window
+        /// Create SwapChain from Window instance.
         SwapChain* CreateSwapChain(Window* window);
 
         /// Get the device info.

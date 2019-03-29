@@ -314,6 +314,17 @@ namespace alimer
         _caps.features.texture2DArray = true;
         _caps.features.textureCubeArray = true;
 
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = { };
+        ThrowIfFailed(_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5)));
+        if (options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
+        {
+            _caps.features.raytracing = true;
+        }
+        else
+        {
+            _caps.features.raytracing = false;
+        }
+
         // Limits
         _caps.limits.maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
         _caps.limits.maxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
@@ -327,7 +338,6 @@ namespace alimer
         _caps.limits.minStorageBufferOffsetAlignment = 16;
         _caps.limits.maxSamplerAnisotropy = D3D12_MAX_MAXANISOTROPY;
         _caps.limits.maxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
-
         _caps.limits.maxViewportDimensions[0] = D3D12_VIEWPORT_BOUNDS_MAX;
         _caps.limits.maxViewportDimensions[1] = D3D12_VIEWPORT_BOUNDS_MAX;
         _caps.limits.maxPatchVertices = D3D12_IA_PATCH_MAX_CONTROL_POINT_COUNT;
