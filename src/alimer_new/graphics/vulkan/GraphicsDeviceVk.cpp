@@ -901,6 +901,12 @@ namespace alimer
         return nullptr;
     }
 
+    CommandBuffer* GraphicsDeviceVk::CreateCommandBufferImpl()
+    {
+        return nullptr;
+    }
+
+
 #if TODO_VK
     bool GraphicsDeviceVk::BeginFrame()
     {

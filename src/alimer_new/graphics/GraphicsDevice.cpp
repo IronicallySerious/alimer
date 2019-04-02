@@ -22,6 +22,7 @@
 
 #include "graphics/GraphicsDevice.h"
 #include "graphics/SwapChain.h"
+#include "graphics/CommandBuffer.h"
 #include "engine/Window.h"
 #include "core/Log.h"
 
@@ -129,6 +130,12 @@ namespace alimer
         descriptor.width = window->GetWidth();
         descriptor.height = window->GetHeight();
         return CreateSwapChain(&surface, &descriptor);
+    }
+
+    std::shared_ptr<CommandBuffer> GraphicsDevice::CreateCommandBuffer()
+    {
+        std::shared_ptr<CommandBuffer> result = std::shared_ptr<CommandBuffer>(CreateCommandBufferImpl());
+        return result;
     }
 
     const GraphicsDeviceInfo& GraphicsDevice::GetInfo() const

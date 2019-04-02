@@ -26,45 +26,18 @@
 
 namespace alimer
 {
-    class Window;
-    class SwapChain;
-    class CommandBuffer;
+    class GraphicsDevice;
 
-    class ALIMER_API GraphicsDevice
+    class ALIMER_API CommandBuffer : public std::enable_shared_from_this<CommandBuffer>
     {
     protected:
-        /// Constructor.
-        GraphicsDevice();
+        CommandBuffer(GraphicsDevice* device);
 
     public:
         /// Destructor.
-        virtual ~GraphicsDevice() = default;
-
-        static std::shared_ptr<GraphicsDevice> Create(GraphicsBackend preferredBackend, GpuPowerPreference powerPreference = GpuPowerPreference::Default);
-
-        /// Create SwapChain with given surface and descriptor.
-        SwapChain* CreateSwapChain(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor);
-
-        /// Create SwapChain from Window instance.
-        SwapChain* CreateSwapChain(Window* window);
-
-        /// Create new CreateCommandBuffer
-        std::shared_ptr<CommandBuffer> CreateCommandBuffer();
-
-        /// Get the device info.
-        const GraphicsDeviceInfo& GetInfo() const;
-
-        /// Get the device capabilities.
-        const GraphicsDeviceCapabilities& GetCaps() const;
+        virtual ~CommandBuffer() = default;
 
     protected:
-        virtual SwapChain* CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor) = 0;
-        virtual CommandBuffer* CreateCommandBufferImpl() = 0;
-
-    protected:
-        GraphicsDeviceInfo _info = {};
-        GraphicsDeviceCapabilities  _caps = {};
+        GraphicsDevice* _graphicsDevice;
     };
-
-    extern ALIMER_API std::shared_ptr<GraphicsDevice> graphicsDevice;
 }

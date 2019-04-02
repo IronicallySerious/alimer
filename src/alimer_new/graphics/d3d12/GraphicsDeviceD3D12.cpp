@@ -22,6 +22,7 @@
 
 #include "GraphicsDeviceD3D12.h"
 #include "SwapChainD3D12.h"
+#include "CommandBufferD3D12.h"
 #include "foundation/Utils.h"
 
 #ifdef _DEBUG
@@ -480,5 +481,10 @@ namespace alimer
     SwapChain* GraphicsDeviceD3D12::CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor)
     {
         return new SwapChainD3D12(this, surface, descriptor);
+    }
+
+    CommandBuffer* GraphicsDeviceD3D12::CreateCommandBufferImpl()
+    {
+        return new CommandBufferD3D12(this);
     }
 }
