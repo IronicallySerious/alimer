@@ -43,6 +43,8 @@
 #   define ALIMER_D3D12_DYNAMIC_LIB 1
 #endif
 
+#include <wrl.h>
+
 #include "foundation/Assert.h"
 #include <string>
 
@@ -227,6 +229,8 @@ namespace alimer
 
 namespace alimer
 {
+    using Microsoft::WRL::ComPtr;
+
     inline std::string D3DFeatureLevelToVersion(D3D_FEATURE_LEVEL featureLevel)
     {
         switch (featureLevel)

@@ -143,10 +143,12 @@ namespace alimer
             return;
         }
 
-        auto commandBuffer = _graphics->CreateCommandBuffer();
+        auto commandBuffer = _graphics->GetCommandQueue()->GetCommandBuffer();
 
         // TODO: Render scene
         // TODO: Render UI
+
+        _graphics->GetCommandQueue()->Submit(commandBuffer);
 
         // Present content on screen.
         _mainWindowSwapChain->Present();

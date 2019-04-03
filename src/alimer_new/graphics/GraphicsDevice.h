@@ -22,12 +22,13 @@
 
 #pragma once
 
-#include "graphics/Types.h"
+#include "graphics/CommandQueue.h"
 
 namespace alimer
 {
     class Window;
     class SwapChain;
+    class CommandQueue;
     class CommandBuffer;
 
     class ALIMER_API GraphicsDevice
@@ -48,8 +49,8 @@ namespace alimer
         /// Create SwapChain from Window instance.
         SwapChain* CreateSwapChain(Window* window);
 
-        /// Create new CreateCommandBuffer
-        std::shared_ptr<CommandBuffer> CreateCommandBuffer();
+        /// Get queue.
+        std::shared_ptr<CommandQueue> GetCommandQueue(CommandQueueType type = CommandQueueType::Direct) const;
 
         /// Get the device info.
         const GraphicsDeviceInfo& GetInfo() const;
@@ -59,11 +60,14 @@ namespace alimer
 
     protected:
         virtual SwapChain* CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor) = 0;
-        virtual CommandBuffer* CreateCommandBufferImpl() = 0;
 
     protected:
         GraphicsDeviceInfo _info = {};
         GraphicsDeviceCapabilities  _caps = {};
+
+        std::shared_ptr<CommandQueue> _directCommandQueue;
+        std::shared_ptr<CommandQueue> _computeCommandQueue;
+        std::shared_ptr<CommandQueue> _copyCommandQueue;
     };
 
     extern ALIMER_API std::shared_ptr<GraphicsDevice> graphicsDevice;

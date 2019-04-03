@@ -132,10 +132,25 @@ namespace alimer
         return CreateSwapChain(&surface, &descriptor);
     }
 
-    std::shared_ptr<CommandBuffer> GraphicsDevice::CreateCommandBuffer()
+    std::shared_ptr<CommandQueue> GraphicsDevice::GetCommandQueue(CommandQueueType type) const
     {
-        std::shared_ptr<CommandBuffer> result = std::shared_ptr<CommandBuffer>(CreateCommandBufferImpl());
-        return result;
+        std::shared_ptr<CommandQueue> commandQueue;
+        switch (type)
+        {
+        case CommandQueueType::Direct:
+            commandQueue = _directCommandQueue;
+            break;
+        case CommandQueueType::Compute:
+            commandQueue = _computeCommandQueue;
+            break;
+        case CommandQueueType::Copy:
+            commandQueue = _copyCommandQueue;
+            break;
+        default:
+            ALIMER_ASSERT(false && "Invalid command queue type.");
+        }
+
+        return commandQueue;
     }
 
     const GraphicsDeviceInfo& GraphicsDevice::GetInfo() const

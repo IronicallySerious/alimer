@@ -72,7 +72,6 @@ namespace alimer
     private:
         // Backend methods
         SwapChain* CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor) override;
-        CommandBuffer* CreateCommandBufferImpl() override;
 
     private:
         void InitializeCaps();

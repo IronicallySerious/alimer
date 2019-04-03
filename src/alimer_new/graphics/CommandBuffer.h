@@ -28,7 +28,7 @@ namespace alimer
 {
     class GraphicsDevice;
 
-    class ALIMER_API CommandBuffer : public std::enable_shared_from_this<CommandBuffer>
+    class ALIMER_API CommandBuffer
     {
     protected:
         CommandBuffer(GraphicsDevice* device);

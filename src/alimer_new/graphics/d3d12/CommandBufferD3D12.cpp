@@ -25,18 +25,18 @@
 
 namespace alimer
 {
-    CommandBufferD3D12::CommandBufferD3D12(GraphicsDeviceD3D12* device)
+    CommandBufferD3D12::CommandBufferD3D12(GraphicsDeviceD3D12* device, D3D12_COMMAND_LIST_TYPE type)
         : CommandBuffer(device)
     {
         // Create the command list.
-        ThrowIfFailed(device->GetD3DDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_commandAllocator)));
-        ThrowIfFailed(device->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _commandAllocator, nullptr, IID_PPV_ARGS(&_commandList)));
+        ThrowIfFailed(device->GetD3DDevice()->CreateCommandAllocator(type, IID_PPV_ARGS(&_d3d12CommandAllocator)));
+        ThrowIfFailed(device->GetD3DDevice()->CreateCommandList(0, type, _d3d12CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&_d3d12CommandList)));
         //ThrowIfFailed(_commandList->Close());
     }
 
-    CommandBufferD3D12::~CommandBufferD3D12()
+    void CommandBufferD3D12::Reset()
     {
-        ALIMER_VERIFY(_commandAllocator->Release() == 0);
-        ALIMER_VERIFY(_commandList->Release() == 0);
+        ThrowIfFailed(_d3d12CommandAllocator->Reset());
+        ThrowIfFailed(_d3d12CommandList->Reset(_d3d12CommandAllocator.Get(), nullptr));
     }
 }

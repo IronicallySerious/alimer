@@ -81,7 +81,6 @@ namespace alimer
 
     SwapChainD3D12::~SwapChainD3D12()
     {
-        ALIMER_VERIFY(_swapChain->Release() == 0);
     }
 
     bool SwapChainD3D12::ResizeImpl(uint32_t width, uint32_t height)
@@ -117,6 +116,8 @@ namespace alimer
             auto deviceD3D12 = static_cast<GraphicsDeviceD3D12*>(_graphicsDevice);
             IDXGIFactory4* dxgiFactory = deviceD3D12->GetDXGIFactory();
 
+            ComPtr<IDXGISwapChain1> swapChain;
+
 #if ALIMER_PLATFORM_UWP
             ThrowIfFailed(dxgiFactory->CreateSwapChainForCoreWindow(
                 deviceD3D12->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
@@ -127,7 +128,6 @@ namespace alimer
             ));
 #else
             /* TODO: DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT*/
-            IDXGISwapChain1* swapChain;
 
             DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
             fsSwapChainDesc.Windowed = TRUE;
@@ -148,11 +148,8 @@ namespace alimer
             ThrowIfFailed(dxgiFactory->MakeWindowAssociation(_hWnd, DXGI_MWA_NO_ALT_ENTER));
 #endif
 
-            ThrowIfFailed(swapChain->QueryInterface(&_swapChain));
-            swapChain->Release();
+            ThrowIfFailed(swapChain.As(&_swapChain));
         }
-
-       
 
         return true;
     }

@@ -20,40 +20,14 @@
 // THE SOFTWARE.
 //
 
-#pragma once
-
-#include "BackendD3D12.h"
-#include "graphics/SwapChain.h"
+#include "SamplerD3D12.h"
+#include "GraphicsDeviceD3D12.h"
 
 namespace alimer
 {
-    class ALIMER_API SwapChainD3D12 final : public SwapChain
+    SamplerD3D12::SamplerD3D12(GraphicsDeviceD3D12* device, const SamplerDescriptor* descriptor)
+        : Sampler(device, descriptor)
     {
-    public:
-        SwapChainD3D12(GraphicsDeviceD3D12* device, const SwapChainSurface* surface, const SwapChainDescriptor* descriptor);
-        ~SwapChainD3D12() override;
-
-        bool ResizeImpl(uint32_t width, uint32_t height) override;
-        bool GetNextTextureImpl() override;
-
-        void PresentImpl() override;
-
-    private:
-        static constexpr uint32_t BufferCount = 2;
-
-        // Surface data.
-#if ALIMER_PLATFORM_UWP
-#else
-        HINSTANCE _hInstance;
-        HWND _hWnd;
-#endif
-
-        DXGI_FORMAT _dxgiBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-        DXGI_SWAP_EFFECT _swapEffect;
-        UINT _swapChainFlags;
-        UINT _syncInterval;
-        UINT _presentFlags;
-
-        ComPtr<IDXGISwapChain3> _swapChain;
-    };
+     
+    }
 }

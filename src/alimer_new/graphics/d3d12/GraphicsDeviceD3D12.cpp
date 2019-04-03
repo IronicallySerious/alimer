@@ -22,6 +22,7 @@
 
 #include "GraphicsDeviceD3D12.h"
 #include "SwapChainD3D12.h"
+#include "CommandQueueD3D12.h"
 #include "CommandBufferD3D12.h"
 #include "foundation/Utils.h"
 
@@ -131,7 +132,7 @@ namespace alimer
 #endif
 
         // Create temp dxgi factory for check support.
-        IDXGIFactory4* factory;
+        ComPtr<IDXGIFactory4> factory;
         HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
         if (FAILED(hr))
         {
@@ -139,11 +140,9 @@ namespace alimer
             return false;
         }
 
-        IDXGIAdapter1* hardwareAdapter;
-        GetAdapter(factory, GpuPowerPreference::Default, &hardwareAdapter);
+        ComPtr<IDXGIAdapter1> hardwareAdapter;
+        GetAdapter(factory.Get(), GpuPowerPreference::Default, &hardwareAdapter);
         isAvailable = hardwareAdapter != nullptr;
-        SafeRelease(hardwareAdapter);
-        ALIMER_VERIFY(factory->Release() == 0);
         return isAvailable;
     }
 
@@ -155,21 +154,19 @@ namespace alimer
 #if defined(_DEBUG)
         bool validation = false;
         // Enable the debug layer (requires the Graphics Tools "optional feature").
-        ID3D12Debug* debugController;
+        ComPtr<ID3D12Debug> debugController;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
         {
             debugController->EnableDebugLayer();
 
-            ID3D12Debug1* d3d12debug1;
-            if (SUCCEEDED(debugController->QueryInterface(&d3d12debug1)))
+            ComPtr<ID3D12Debug1> d3d12debug1;
+            if (SUCCEEDED(debugController.As(&d3d12debug1)))
             {
                 d3d12debug1->SetEnableGPUBasedValidation(true);
-                d3d12debug1->Release();
             }
 
             // Enable additional debug layers.
             dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-            debugController->Release();
             validation = true;
         }
 #endif
@@ -180,8 +177,8 @@ namespace alimer
             return;
         }
 
-        IDXGIFactory5* factory5;
-        if (SUCCEEDED(_factory->QueryInterface(&factory5)))
+        ComPtr<IDXGIFactory5> factory5;
+        if (SUCCEEDED(_factory.As(&factory5)))
         {
             BOOL allowTearing = FALSE;
             hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
@@ -189,15 +186,13 @@ namespace alimer
             {
                 _allowTearing = true;
             }
-
-            factory5->Release();
         }
 
         // Get adapter based on preference (if supported).
-        GetAdapter(_factory, powerPreference, &_adapter);
+        GetAdapter(_factory.Get(), powerPreference, &_adapter);
 
         // Create device with adapter and min feature level.
-        hr = D3D12CreateDevice(_adapter, _d3dMinFeatureLevel, IID_PPV_ARGS(&_d3dDevice));
+        hr = D3D12CreateDevice(_adapter.Get(), _d3dMinFeatureLevel, IID_PPV_ARGS(&_d3dDevice));
         if (FAILED(hr))
         {
 
@@ -207,8 +202,8 @@ namespace alimer
         if (validation)
         {
             // Configure debug device (if active).
-            ID3D12InfoQueue* infoQueue;
-            if (SUCCEEDED(_d3dDevice->QueryInterface(&infoQueue)))
+            ComPtr<ID3D12InfoQueue> infoQueue;
+            if (SUCCEEDED(_d3dDevice.As(&infoQueue)))
             {
                 D3D12_MESSAGE_ID hide[] =
                 {
@@ -226,8 +221,6 @@ namespace alimer
                 infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
                 infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
                 //infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
-
-                ALIMER_VERIFY(infoQueue->Release() == 0);
             }
         }
 #endif
@@ -235,20 +228,13 @@ namespace alimer
         InitializeCaps();
 
         // Create command queue's
-        D3D12_COMMAND_QUEUE_DESC commandQueueDesc = {};
-        commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-        commandQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-        commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        commandQueueDesc.NodeMask = 0;
-        ThrowIfFailed(_d3dDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&_d3d12DirectCommandQueue)));
+        _directCommandQueue = std::make_shared<CommandQueueD3D12>(this, CommandQueueType::Direct);
+        _computeCommandQueue = std::make_shared<CommandQueueD3D12>(this, CommandQueueType::Compute);
+        _copyCommandQueue = std::make_shared<CommandQueueD3D12>(this, CommandQueueType::Copy);
     }
 
     GraphicsDeviceD3D12::~GraphicsDeviceD3D12()
     {
-        SafeRelease(_d3d12DirectCommandQueue);
-        SafeRelease(_d3dDevice);
-        SafeRelease(_adapter);
-        ALIMER_VERIFY(_factory->Release() == 0);
     }
 
     void GraphicsDeviceD3D12::InitializeCaps()
@@ -358,12 +344,12 @@ namespace alimer
 
     void GraphicsDeviceD3D12::GetAdapter(_In_ IDXGIFactory2* factory, GpuPowerPreference preference, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
     {
-        IDXGIAdapter1* adapter;
+        ComPtr<IDXGIAdapter1> adapter;
         *ppAdapter = nullptr;
 
 #if defined(__dxgi1_6_h__) && defined(NTDDI_WIN10_RS4)
-        IDXGIFactory6* factory6;
-        if (SUCCEEDED(factory->QueryInterface(&factory6)))
+        ComPtr<IDXGIFactory6> factory6;
+        if (SUCCEEDED(factory->QueryInterface(factory6.ReleaseAndGetAddressOf())))
         {
             auto dxgiGpuPreference = GetDXGIGpuPreference(preference);
             for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex, dxgiGpuPreference, IID_PPV_ARGS(&adapter)); adapterIndex++)
@@ -378,12 +364,11 @@ namespace alimer
                 }
 
                 // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-                if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+                if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
                 {
                     break;
                 }
             }
-            factory6->Release();
         }
         else
         {
@@ -401,14 +386,14 @@ namespace alimer
                 }
 
                 // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-                if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+                if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
                 {
                     break;
                 }
             }
         }
 
-        *ppAdapter = adapter;
+        *ppAdapter = adapter.Detach();
     }
 
     PixelFormat GraphicsDeviceD3D12::GetDefaultDepthStencilFormat() const
@@ -463,13 +448,13 @@ namespace alimer
         switch (type)
         {
         case D3D12_COMMAND_LIST_TYPE_DIRECT:
-            commandQueue = _d3d12DirectCommandQueue;
+            commandQueue = std::static_pointer_cast<CommandQueueD3D12>(_directCommandQueue)->GetD3D12CommandQueue();
             break;
         case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-            //commandQueue = _d3d12ComputeCommandQueue;
+            commandQueue = std::static_pointer_cast<CommandQueueD3D12>(_computeCommandQueue)->GetD3D12CommandQueue();
             break;
         case D3D12_COMMAND_LIST_TYPE_COPY:
-            //commandQueue = _d3d12CopyCommandQueue;
+            commandQueue = std::static_pointer_cast<CommandQueueD3D12>(_copyCommandQueue)->GetD3D12CommandQueue();;
             break;
         default:
             ALIMER_ASSERT_MSG(false, "Invalid command queue type.");
@@ -481,10 +466,5 @@ namespace alimer
     SwapChain* GraphicsDeviceD3D12::CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor)
     {
         return new SwapChainD3D12(this, surface, descriptor);
-    }
-
-    CommandBuffer* GraphicsDeviceD3D12::CreateCommandBufferImpl()
-    {
-        return new CommandBufferD3D12(this);
     }
 }

@@ -30,11 +30,18 @@ namespace alimer
     class ALIMER_API CommandBufferD3D12 final : public CommandBuffer
     {
     public:
-        CommandBufferD3D12(GraphicsDeviceD3D12* device);
-        ~CommandBufferD3D12() override;
+        CommandBufferD3D12(GraphicsDeviceD3D12* device, D3D12_COMMAND_LIST_TYPE type);
+        ~CommandBufferD3D12() override = default;
+
+        void Reset();
+
+        ID3D12GraphicsCommandList* GetD3D12CommandList() const
+        {
+            return _d3d12CommandList.Get();
+        }
 
     private:
-        ID3D12CommandAllocator* _commandAllocator = nullptr;
-        ID3D12GraphicsCommandList* _commandList = nullptr;
+        ComPtr<ID3D12CommandAllocator> _d3d12CommandAllocator;
+        ComPtr<ID3D12GraphicsCommandList> _d3d12CommandList;
     };
 }

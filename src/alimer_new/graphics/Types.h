@@ -46,6 +46,13 @@ namespace alimer
         HighPerformance = 2,
     };
 
+    enum class CommandQueueType : uint32_t
+    {
+        Direct = 0,
+        Compute,
+        Copy
+    };
+
     enum class ShaderStage : uint32_t
     {
         Vertex = 0,
@@ -55,6 +62,25 @@ namespace alimer
         Fragment = 4,
         Compute = 5,
         Count
+    };
+
+    /// Texture types.
+    enum class TextureType : uint32_t
+    {
+        Type1D,
+        Type2D,
+        Type3D,
+        TypeCube,
+    };
+
+    enum class TextureUsage : uint32_t {
+        None = 0,
+        /// Specifies an option that enables reading or sampling from the texture.
+        ShaderRead = 1 << 0,
+        /// Specifies an option that enables writing to the texture.
+        ShaderWrite = 1 << 1,
+        /// Specifies an option that enables using the texture as a color, depth, or stencil render target 
+        RenderTarget = 1 << 2,
     };
 
     /// GraphicsDevice information .
@@ -171,5 +197,23 @@ namespace alimer
         PixelFormat depthFormat = PixelFormat::Depth32Float;
 
         bool vSyncEnabled = false;
+    };
+
+    struct TextureDescriptor
+    {
+        uint32_t width;
+        uint32_t height;
+        uint32_t depth;
+        uint32_t arraySize;
+        uint32_t mipLevels;
+        //SampleCount samples;
+        TextureType type;
+        PixelFormat format;
+        TextureUsage usage;
+    };
+
+    struct SamplerDescriptor
+    {
+
     };
 }
