@@ -30,24 +30,19 @@ namespace alimer
     class SwapChain;
     class CommandQueue;
     class CommandBuffer;
+    class GraphicsImpl;
 
-    class ALIMER_API GraphicsDevice
+    class ALIMER_API Graphics final
     {
-    protected:
-        /// Constructor.
-        GraphicsDevice();
-
     public:
+        /// Constructor.
+        Graphics();
+
         /// Destructor.
-        virtual ~GraphicsDevice() = default;
+        ~Graphics();
 
-        static std::shared_ptr<GraphicsDevice> Create(GraphicsBackend preferredBackend, GpuPowerPreference powerPreference = GpuPowerPreference::Default);
-
-        /// Create SwapChain with given surface and descriptor.
-        SwapChain* CreateSwapChain(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor);
-
-        /// Create SwapChain from Window instance.
-        SwapChain* CreateSwapChain(Window* window);
+        bool BeginFrame();
+        uint32_t EndFrame();
 
         /// Get queue.
         std::shared_ptr<CommandQueue> GetCommandQueue(CommandQueueType type = CommandQueueType::Direct) const;
@@ -58,17 +53,13 @@ namespace alimer
         /// Get the device capabilities.
         const GraphicsDeviceCapabilities& GetCaps() const;
 
-    protected:
-        virtual SwapChain* CreateSwapChainImpl(const SwapChainSurface* surface, const SwapChainDescriptor* descriptor) = 0;
+    private:
+        GraphicsImpl* _impl = nullptr;
+        uint32_t _frameCount = 0;
 
     protected:
-        GraphicsDeviceInfo _info = {};
-        GraphicsDeviceCapabilities  _caps = {};
-
         std::shared_ptr<CommandQueue> _directCommandQueue;
         std::shared_ptr<CommandQueue> _computeCommandQueue;
         std::shared_ptr<CommandQueue> _copyCommandQueue;
     };
-
-    extern ALIMER_API std::shared_ptr<GraphicsDevice> graphicsDevice;
 }

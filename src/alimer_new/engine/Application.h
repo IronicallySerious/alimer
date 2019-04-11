@@ -32,15 +32,12 @@ namespace alimer
 {
     class Window;
     class ApplicationHost;
-    class GraphicsDevice;
+    class Graphics;
     class SwapChain;
 
     class ApplicationConfiguration
     {
     public:
-        /// Preffered graphics backend.
-        GraphicsBackend preferredGpuBackend = GraphicsBackend::Default;
-
         /// Preffered graphics backend.
         GpuPowerPreference preferredPowerPreference = GpuPowerPreference::Default;
 
@@ -121,7 +118,7 @@ namespace alimer
         std::shared_ptr<Window> _mainWindow;
 
         /// GraphicsDevice.
-        std::shared_ptr<GraphicsDevice> _graphics = nullptr;
+        std::unique_ptr<Graphics> _graphics = nullptr;
 
         /// Main window swap chain
         std::unique_ptr<SwapChain> _mainWindowSwapChain;

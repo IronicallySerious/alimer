@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+#include "alimer_config.h"
+#if defined(ALIMER_VULKAN)
 #include "graphics/shader_compiler.h"
 #include <SPIRV/GLSL.std.450.h>
 #include <SPIRV/GlslangToSpv.h>
@@ -127,3 +129,4 @@ namespace alimer
         return true;
     }
 }
+#endif 

@@ -23,7 +23,7 @@
 #include "engine/Application.h"
 #include "engine/ApplicationHost.h"
 #include "engine/Window.h"
-#include "graphics/GraphicsDevice.h"
+#include "graphics/Graphics.h"
 #include "graphics/SwapChain.h"
 #include "foundation/Utils.h"
 #if defined(_WIN32) || defined(_WIN64)
@@ -87,7 +87,7 @@ namespace alimer
         }
 
         // Create graphics device.
-        _graphics = GraphicsDevice::Create(_config.preferredGpuBackend, _config.preferredPowerPreference);
+        _graphics.reset(new Graphics());
 
         // Create main window.
         _mainWindow = _host->createWindow(_config.title,
@@ -95,7 +95,7 @@ namespace alimer
             _config.resizable, _config.fullscreen);
 
         // Create swap chain from window.
-        _mainWindowSwapChain.reset(_graphics->CreateSwapChain(_mainWindow.get()));
+        //_mainWindowSwapChain.reset(_graphics->CreateSwapChain(_mainWindow.get()));
 
         _initialized = true;
         Initialize();
@@ -138,12 +138,14 @@ namespace alimer
         //ALIMER_PROFILE(Render);
 
         // Acquire next swap chain texture before rendering
-        if (!_mainWindowSwapChain->GetNextTexture())
+        if (!_graphics->BeginFrame())
         {
             return;
         }
 
-        auto commandBuffer = _graphics->GetCommandQueue()->GetCommandBuffer();
+        _graphics->EndFrame();
+
+        /*auto commandBuffer = _graphics->GetCommandQueue()->GetCommandBuffer();
 
         // TODO: Render scene
         // TODO: Render UI
@@ -151,6 +153,6 @@ namespace alimer
         _graphics->GetCommandQueue()->Submit(commandBuffer);
 
         // Present content on screen.
-        _mainWindowSwapChain->Present();
+        _mainWindowSwapChain->Present();*/
     }
 }

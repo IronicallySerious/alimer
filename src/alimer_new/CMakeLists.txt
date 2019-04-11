@@ -69,9 +69,9 @@ define_engine_source_files (NORECURSE . graphics)
 
 if (ALIMER_VULKAN)
     define_engine_source_files(graphics/vulkan)
-endif ()
-
-if (ALIMER_D3D12)
+elseif (ALIMER_D3D11)
+    define_engine_source_files(graphics/d3d11)
+elseif (ALIMER_D3D12)
     define_engine_source_files(graphics/d3d12)
 endif ()
 
