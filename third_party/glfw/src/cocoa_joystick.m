@@ -231,6 +231,19 @@ static void matchCallback(void* context,
                     break;
             }
         }
+        else if (page == kHIDPage_Simulation)
+        {
+            switch (usage)
+            {
+                case kHIDUsage_Sim_Accelerator:
+                case kHIDUsage_Sim_Brake:
+                case kHIDUsage_Sim_Throttle:
+                case kHIDUsage_Sim_Rudder:
+                case kHIDUsage_Sim_Steering:
+                    target = axes;
+                    break;
+            }
+        }
         else if (page == kHIDPage_Button || page == kHIDPage_Consumer)
             target = buttons;
 
@@ -464,7 +477,7 @@ void _glfwPlatformUpdateGamepadGUID(char* guid)
         (strncmp(guid + 20, "000000000000", 12) == 0))
     {
         char original[33];
-        strcpy(original, guid);
+        strncpy(original, guid, sizeof(original) - 1);
         sprintf(guid, "03000000%.4s0000%.4s000000000000",
                 original, original + 16);
     }
