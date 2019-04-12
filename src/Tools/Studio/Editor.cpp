@@ -63,8 +63,7 @@ int main(int argc, char** argv)
 {
     alimer::ApplicationConfiguration config = {};
     config.title = "Alimer Studio";
-    config.width = 1280;
-    config.height = 720;
+    config.size = { 1280, 720 };
 
     alimer::Editor app(config);
     app.parseArguments(argc, argv);

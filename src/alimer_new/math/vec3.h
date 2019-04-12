@@ -25,6 +25,10 @@
 #pragma once
 
 #include "math/vec2.h"
+#ifdef _MSC_VER
+#   pragma warning(push)
+#   pragma warning(disable : 4201) 
+#endif
 
 namespace alimer {
     namespace math {
@@ -107,3 +111,7 @@ namespace alimer {
 
     } // namespace math
 } // namespace alimer
+
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif

@@ -23,6 +23,9 @@
 #include "GraphicsImplD3D11.h"
 #include "engine/Window.h"
 
+#include <DirectXMath.h>
+#include <DirectXColors.h>
+
 namespace
 {
     inline DXGI_FORMAT NoSRGB(DXGI_FORMAT format)
@@ -179,11 +182,27 @@ namespace alimer
 
     bool GraphicsImpl::BeginFrame()
     {
+        _d3dAnnotation->BeginEvent(L"Main");
+
+        // Clear main view.
+        ID3D11RenderTargetView* renderTargetView = _d3dRenderTargetView.Get();
+        ID3D11DepthStencilView* depthStencilView = _d3dDepthStencilView.Get();
+
+        _d3dContext->ClearRenderTargetView(renderTargetView, DirectX::Colors::CornflowerBlue);
+        if (depthStencilView)
+        {
+            _d3dContext->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        }
+
+        _d3dContext->OMSetRenderTargets(1, &renderTargetView, depthStencilView);
+
         return true;
     }
 
     void GraphicsImpl::EndFrame()
     {
+        _d3dAnnotation->EndEvent();
+
         HRESULT hr;
         if (_tearing)
         {
@@ -201,6 +220,7 @@ namespace alimer
         // Discard the contents of the render target.
         // This is a valid operation only when the existing contents will be entirely
         // overwritten. If dirty or scroll rects are used, this call should be removed.
+        // Only do this if we Clear RenderTarget and depth stencil using CommandContext otherwise it will flicker.
         _d3dContext->DiscardView(_d3dRenderTargetView.Get());
 
         if (_d3dDepthStencilView)
@@ -702,7 +722,7 @@ namespace alimer
         Shutdown();
 
         CreateDeviceResources();
-        //CreateWindowSizeDependentResources();
+        CreateWindowSizeDependentResources();
     }
 
     PixelFormat GraphicsImpl::GetDefaultDepthStencilFormat() const

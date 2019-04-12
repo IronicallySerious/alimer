@@ -74,17 +74,17 @@ namespace alimer
         Microsoft::WRL::ComPtr<ID3D11DeviceContext1>        _d3dContext;
         Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
-        GraphicsDeviceInfo _info = {};
-        GraphicsDeviceCapabilities  _caps = {};
+        GraphicsDeviceInfo                                  _info = {};
+        GraphicsDeviceCapabilities                          _caps = {};
 
-        DXGI_FORMAT                                     _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-        DXGI_FORMAT                                     _depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
-        UINT                                            _backBufferCount = 2;
-        Microsoft::WRL::ComPtr<IDXGISwapChain1>         _swapChain;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>         _renderTarget;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>         _depthStencil;
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  _d3dRenderTargetView;
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  _d3dDepthStencilView;
+        DXGI_FORMAT                                         _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+        DXGI_FORMAT                                         _depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
+        UINT                                                _backBufferCount = 2;
+        Microsoft::WRL::ComPtr<IDXGISwapChain1>             _swapChain;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>             _renderTarget;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>             _depthStencil;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>      _d3dRenderTargetView;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView>      _d3dDepthStencilView;
 
         /// Current size of the backbuffer.
         math::uint2 _backbufferSize;
