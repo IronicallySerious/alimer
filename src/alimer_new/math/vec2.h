@@ -77,6 +77,11 @@ namespace alimer {
             friend inline constexpr T cross(const tvec2& u, const tvec2<RT>& v) {
                 return T(u.x*v.y - u.y*v.x);
             }
+
+            static constexpr tvec2 zero() { return tvec2(T(0), T(0)); }
+            static constexpr tvec2 one() { return tvec2(T(1), T(1)); }
+            static constexpr tvec2 unit_x() { return tvec2(T(1), T(0)); }
+            static constexpr tvec2 unit_y() { return tvec2(T(0), T(1)); }
         };
 
         using float2 = tvec2<float>;

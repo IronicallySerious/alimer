@@ -38,13 +38,13 @@ namespace alimer
         : _config(config)
         , _exitCode(EXIT_SUCCESS)
     {
-        _host = createPlatformHost(this);
+        _host = CreatePlatformHost(this);
         s_currentApplication = this;
     }
 
     Application::~Application()
     {
-        _mainWindowSwapChain.reset();
+        _graphics.Reset();
         SafeDelete(_host);
         s_currentApplication = nullptr;
     }
@@ -61,14 +61,14 @@ namespace alimer
         try
         {
 #endif
-            _exitCode = _host->run();
+            _exitCode = _host->Run();
             return _exitCode;
 
 #if !defined(__GNUC__) || __EXCEPTIONS
         }
         catch (std::bad_alloc&)
         {
-            _host->errorDialog(GetTypeName(), "An out-of-memory error occurred. The application will now exit.");
+            _host->ErrorDialog(GetTypeName(), "An out-of-memory error occurred. The application will now exit.");
             return EXIT_FAILURE;
         }
 #endif
@@ -76,7 +76,7 @@ namespace alimer
 
     void Application::RequestExit()
     {
-        _host->requestExit();
+        _host->RequestExit();
     }
 
     void Application::InitializeBeforeRun()
@@ -87,15 +87,13 @@ namespace alimer
         }
 
         // Create graphics device.
-        _graphics.reset(new Graphics());
+        _graphics = new Graphics();
 
-        // Create main window.
-        _mainWindow = _host->createWindow(_config.title,
-            _config.width, _config.height,
-            _config.resizable, _config.fullscreen);
+        // Setup graphics.
+        if (!_graphics->SetMode(_config.title, _config.size, _config.resizable, _config.fullscreen, _config.sampleCount))
+        {
 
-        // Create swap chain from window.
-        //_mainWindowSwapChain.reset(_graphics->CreateSwapChain(_mainWindow.get()));
+        }
 
         _initialized = true;
         Initialize();
@@ -117,7 +115,7 @@ namespace alimer
 
     void Application::ErrorExit(const std::string& message)
     {
-        _host->requestExit();
+        _host->RequestExit();
         _exitCode = EXIT_FAILURE;
 
         if (message.empty())
@@ -126,7 +124,7 @@ namespace alimer
         }
         else
         {
-            _host->errorDialog(GetTypeName(), message);
+            _host->ErrorDialog(GetTypeName(), message);
         }
     }
 

@@ -35,7 +35,7 @@ namespace alimer
        
     }
 
-    void ApplicationHost::errorDialog(const std::string& title, const std::string& message)
+    void ApplicationHost::ErrorDialog(const std::string& title, const std::string& message)
     {
 #if defined(_WIN32)
         MessageBoxA(NULL, message.c_str(), title.c_str(), MB_ICONERROR | MB_OK);
@@ -45,7 +45,7 @@ namespace alimer
 #endif
     }
 
-    void ApplicationHost::requestExit()
+    void ApplicationHost::RequestExit()
     {
         _exitRequested = true;
     }
@@ -55,7 +55,7 @@ namespace alimer
         _application->InitializeBeforeRun();
 	}
 
-    const std::vector<std::string> &ApplicationHost::getArguments()
+    const std::vector<std::string> &ApplicationHost::GetArguments()
     {
         return _arguments;
     }

@@ -114,6 +114,10 @@ if (ALIMER_VULKAN)
         glslang
         glslang-default-resource-limits
     )
+elseif (ALIMER_D3D11)
+    target_link_libraries(${TARGET_NAME} d3d11 dxgi dxguid)
+elseif (ALIMER_D3D12)
+    target_link_libraries(${TARGET_NAME} d3d12 dxgi dxguid)
 endif ()
 
 if (WIN32)

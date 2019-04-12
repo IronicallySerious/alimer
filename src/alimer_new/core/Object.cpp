@@ -21,10 +21,82 @@
 //
 
 #include "core/Object.h"
+#include "foundation/Assert.h"
 #include "foundation/Hash.h"
+#include <map>
 
 namespace alimer
 {
+    namespace details
+    {
+        struct SubSystemContext
+        {
+            void AddSubsystem(Object* subsystem)
+            {
+                _subsystems[subsystem->GetType()] = subsystem;
+            }
+
+            void RemoveSubsystem(Object* subsystem)
+            {
+                _subsystems.erase(subsystem->GetType());
+            }
+
+            void RemoveSubsystem(TypeHash type)
+            {
+                _subsystems.erase(type);
+            }
+
+            Object* GetSubsystem(TypeHash type)
+            {
+                auto it = _subsystems.find(type);
+                return it != _subsystems.end() ? it->second : nullptr;
+            }
+
+            void RegisterFactory(ObjectFactory* factory)
+            {
+                auto it = _factories.find(factory->GetType());
+                if (it == _factories.end())
+                {
+                    _factories[factory->GetType()].Reset(factory);
+                }
+                else
+                {
+                    //ALIMER_LOGERROR("Type already registered: {}", factory->GetTypeName());
+                }
+
+            }
+
+            void RemoveFactory(TypeHash type)
+            {
+                _factories.erase(type);
+            }
+
+            SharedPtr<Object> CreateObject(TypeHash type)
+            {
+                auto it = _factories.find(type);
+                if (it != _factories.end())
+                {
+                    return it->second->CreateObject();
+                }
+
+                return nullptr;
+            }
+
+        private:
+            /// Registered subsystems.
+            std::map<TypeHash, Object*> _subsystems;
+
+            /// Registered object factories.
+            std::map<TypeHash, UniquePtr<ObjectFactory>> _factories;
+        };
+
+        SubSystemContext& Context()
+        {
+            static SubSystemContext s_context;
+            return s_context;
+        }
+    }
+
     TypeInfo::TypeInfo(const char* typeName, const TypeInfo* baseTypeInfo)
         : _typeName(typeName)
         , _type(Hash(_typeName))
@@ -32,15 +104,7 @@ namespace alimer
     {
     }
 
-    Object::Object()
-    {
-    }
-
-    Object::~Object()
-    {
-    }
-
-    bool TypeInfo::IsTypeOf(size_t type) const
+    bool TypeInfo::IsTypeOf(TypeHash type) const
     {
         const TypeInfo* current = this;
         while (current)
@@ -66,5 +130,59 @@ namespace alimer
         }
 
         return false;
+    }
+
+    Object::Object()
+    {
+    }
+
+    Object::~Object()
+    {
+    }
+
+    bool Object::IsInstanceOf(TypeHash type) const
+    {
+        return GetTypeInfo()->IsTypeOf(type);
+    }
+
+    bool Object::IsInstanceOf(const TypeInfo* typeInfo) const
+    {
+        return GetTypeInfo()->IsTypeOf(typeInfo);
+    }
+
+    void Object::AddSubsystem(Object* subsystem)
+    {
+        details::Context().AddSubsystem(subsystem);
+    }
+
+    void Object::RemoveSubsystem(Object* subsystem)
+    {
+        details::Context().RemoveSubsystem(subsystem);
+    }
+
+    void Object::RemoveSubsystem(TypeHash type)
+    {
+        details::Context().RemoveSubsystem(type);
+    }
+
+    Object* Object::GetSubsystem(TypeHash type)
+    {
+        return details::Context().GetSubsystem(type);
+    }
+
+    void Object::RegisterFactory(ObjectFactory* factory)
+    {
+        ALIMER_ASSERT(factory);
+        details::Context().RegisterFactory(factory);
+    }
+
+    void Object::RemoveFactory(TypeHash type)
+    {
+        details::Context().RemoveFactory(type);
+    }
+
+    SharedPtr<Object> Object::CreateObject(TypeHash type)
+    {
+        return details::Context().CreateObject(type);
     }
 }

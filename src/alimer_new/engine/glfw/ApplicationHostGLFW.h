@@ -36,11 +36,6 @@ namespace alimer
         /// Destructor.
         ~ApplicationHostGLFW() override;
 
-        int run() override;
-
-        std::shared_ptr<Window> createWindow(
-            const std::string& title,
-            uint32_t width, uint32_t height,
-            bool resizable, bool fullscreen) override;
+        int Run() override;
     };
 }

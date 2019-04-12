@@ -26,6 +26,7 @@
 #   include "engine/Window.h"
 #   include "engine/Application.h"
 #   include "ApplicationHostGLFW.h"
+#   include "graphics/Graphics.h"
 
 #   if defined(_WIN64) || defined(_WIN32)
 #       include <Windows.h>
@@ -104,12 +105,12 @@ namespace alimer
         glfwTerminate();
     }
 
-    int ApplicationHostGLFW::run()
+    int ApplicationHostGLFW::Run()
     {
         InitializeApplication();
 
         while (!_exitRequested
-            && _application->GetMainWindow()->isOpen())
+            && _application->GetGraphics()->GetRenderWindow()->IsOpen())
         {
             _application->Tick();
 
@@ -120,12 +121,7 @@ namespace alimer
         return EXIT_SUCCESS;
     }
 
-    shared_ptr<Window> ApplicationHostGLFW::createWindow(const string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
-    {
-        return make_shared<Window>(title, width, height, resizable, fullscreen);
-    }
-
-    ApplicationHost* createPlatformHost(Application* application)
+    ApplicationHost* CreatePlatformHost(Application* application)
     {
         return new ApplicationHostGLFW(application);
     }

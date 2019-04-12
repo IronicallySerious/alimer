@@ -24,6 +24,7 @@
 
 #include "engine/window_handle.h"
 #include "core/Object.h"
+#include "math/vec2.h"
 
 #if defined(ALIMER_GLFW)
 struct GLFWwindow;
@@ -38,20 +39,31 @@ namespace alimer
 
     public:
         /// Constructor.
-        Window(const std::string& title_, uint32_t width_, uint32_t height_, bool resizable_, bool fullscreen_);
+        Window();
+
+        /// Constructor.
+        Window(const std::string& title, const math::uint2& size, bool resizable = true, bool fullscreen = false);
 
         /// Destructor. Close window if open.
         ~Window();
 
+        /// Set window size. Open the window if not opened yet. Return true on success.
+        bool SetSize(const math::uint2& size, bool resizable = true, bool fullscreen = false);
+
         /// Close's the window
-        void close();
-        bool isOpen() const;
+        void Close();
+        bool IsOpen() const;
 
         /// Return window title.
-        const std::string& GetTitle() const { return title; }
+        const std::string& GetTitle() const { return _title; }
 
-        uint32_t GetWidth() const { return width; }
-        uint32_t GetHeight() const { return height; }
+        /// Return window size.
+        const math::uint2& GetSize() const { return _size; }
+
+        /// Return window width.
+        uint32_t GetWidth() const { return _size.x; }
+        /// Return window height.
+        uint32_t GetHeight() const { return _size.y; }
 
         /// Gets the native window or view handle.
         WindowHandle GetNativeHandle() const;
@@ -60,14 +72,13 @@ namespace alimer
         WindowConnection GetNativeConnection() const;
 
     protected:
-        std::string title;
-        uint32_t width;
-        uint32_t height;
-        bool resizable;
-        bool fullscreen;
+        std::string _title;
+        math::uint2 _size;
+        bool _resizable;
+        bool _fullscreen;
 
 #if defined(ALIMER_GLFW)
-        GLFWwindow* window;
+        GLFWwindow* _window = nullptr;
 #endif
     };
 }

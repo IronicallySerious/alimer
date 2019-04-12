@@ -46,6 +46,7 @@
 
 #include <wrl/client.h>
 
+#define D3D11_NO_HELPERS
 #include <d3d11_1.h>
 #if defined(NTDDI_WIN10_RS2)
 #   include <dxgi1_6.h>
@@ -65,6 +66,7 @@
 #   define ALIMER_D3D_DYNAMIC_LIB 1
 #endif
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace alimer
@@ -78,24 +80,6 @@ namespace alimer
         }
     }
 }
-
-#ifdef ALIMER_D3D_DYNAMIC_LIB
-typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY1)(REFIID riid, _COM_Outptr_ void **ppFactory);
-typedef HRESULT(WINAPI* PFN_CREATE_DXGI_FACTORY2)(UINT flags, REFIID _riid, void** _factory);
-typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE)(REFIID riid, _COM_Outptr_ void** pDebug);
-typedef HRESULT(WINAPI* PFN_GET_DXGI_DEBUG_INTERFACE1)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
-
-namespace alimer
-{
-    extern PFN_CREATE_DXGI_FACTORY1         CreateDXGIFactory1;
-    extern PFN_GET_DXGI_DEBUG_INTERFACE     DXGIGetDebugInterface;
-
-    extern PFN_CREATE_DXGI_FACTORY2         CreateDXGIFactory2;
-    extern PFN_GET_DXGI_DEBUG_INTERFACE1    DXGIGetDebugInterface1;
-
-    extern PFN_D3D11_CREATE_DEVICE          D3D11CreateDevice;
-}
-#endif
 
 namespace alimer
 {

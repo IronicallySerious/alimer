@@ -24,16 +24,14 @@
 
 #include "core/Object.h"
 #include "graphics/Types.h"
+#include "math/vec2.h"
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace alimer
 {
-    class Window;
     class ApplicationHost;
     class Graphics;
-    class SwapChain;
 
     class ApplicationConfiguration
     {
@@ -43,14 +41,14 @@ namespace alimer
 
         /// Main application window title.
         std::string title = "alimer";
-        /// Main application window width.
-        uint32_t width = 640;
-        /// Main application window height.
-        uint32_t height = 480;
+        /// Main application window size.
+        math::uint2 size = { 640u, 480u };
         /// Whether main application window is resizable.
         bool resizable = true;
         /// Whether main application window is fullscreen.
         bool fullscreen = false;
+        /// Multisample count for graphics backend.
+        uint32_t sampleCount = 1u;
         /// Whether to disable audio.
         bool disableAudio;
     };
@@ -84,8 +82,8 @@ namespace alimer
         /// Return whether application has been initialized.
         bool IsInitialized() const { return _initialized; }
 
-        /// Get the main window.
-        Window* GetMainWindow() const { return _mainWindow.get(); }
+        /// Return graphics subsystem.
+        inline Graphics* GetGraphics() const { return _graphics; }
 
     protected:
         /// Setup after engine initialization and before running the main loop. Call ErrorExit() to terminate without running the main loop.
@@ -108,20 +106,11 @@ namespace alimer
         /// Configuration
         ApplicationConfiguration _config;
 
-        /// Command line arguments.
-        //std::vector<std::string> _args;
-
         /// Per platform application host.
         ApplicationHost* _host;
 
-        /// Main window.
-        std::shared_ptr<Window> _mainWindow;
-
         /// GraphicsDevice.
-        std::unique_ptr<Graphics> _graphics = nullptr;
-
-        /// Main window swap chain
-        std::unique_ptr<SwapChain> _mainWindowSwapChain;
+        SharedPtr<Graphics> _graphics;
 
         bool _headless = false;
         bool _initialized = false;

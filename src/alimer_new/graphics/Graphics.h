@@ -22,18 +22,19 @@
 
 #pragma once
 
+#include "core/Object.h"
 #include "graphics/CommandQueue.h"
+#include "math/vec2.h"
 
 namespace alimer
 {
     class Window;
-    class SwapChain;
-    class CommandQueue;
-    class CommandBuffer;
     class GraphicsImpl;
 
-    class ALIMER_API Graphics final
+    class ALIMER_API Graphics final : public Object
     {
+        ALIMER_OBJECT(Graphics, Object);
+
     public:
         /// Constructor.
         Graphics();
@@ -41,11 +42,14 @@ namespace alimer
         /// Destructor.
         ~Graphics();
 
+        /// Set graphics mode. Create the window and rendering context if not created yet. Return true on success.
+        bool SetMode(const std::string& title, const math::uint2& size, bool resizable = false, bool fullscreen = false, uint32_t multisample = 1);
+
         bool BeginFrame();
         uint32_t EndFrame();
 
-        /// Get queue.
-        std::shared_ptr<CommandQueue> GetCommandQueue(CommandQueueType type = CommandQueueType::Direct) const;
+        /// Return whether graphics backend has been initialized.
+        bool IsInitialized() const;
 
         /// Get the device info.
         const GraphicsDeviceInfo& GetInfo() const;
@@ -53,8 +57,15 @@ namespace alimer
         /// Get the device capabilities.
         const GraphicsDeviceCapabilities& GetCaps() const;
 
+        /// Return the rendering window.
+        Window* GetRenderWindow() const;
+
     private:
         GraphicsImpl* _impl = nullptr;
+        /// Main OS rendering window.
+        Window* _renderWindow = nullptr;
+
+        uint32_t _sampleCount = 1;
         uint32_t _frameCount = 0;
 
     protected:

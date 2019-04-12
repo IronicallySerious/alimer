@@ -62,94 +62,115 @@ namespace alimer
         }
     }
 
-    Window::Window(const std::string& title_, uint32_t width_, uint32_t height_, bool resizable_, bool fullscreen_)
-        : title(title_)
-        , width(width_)
-        , height(height_)
-        , resizable(resizable_)
-        , fullscreen(fullscreen_)
+    Window::Window()
+        : _title("Alimer")
+        , _size(math::uint2::zero())
+        , _resizable(false)
+        , _fullscreen(false)
     {
-        GLFWmonitor* monitor = nullptr;
-        int windowWidth;
-        int windowHeight;
-        if (fullscreen)
-        {
-            monitor = glfwGetPrimaryMonitor();
-            const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-            windowWidth = mode->width;
-            windowHeight = mode->height;
-        }
-        else
-        {
-            windowWidth = static_cast<int>(width);
-            windowHeight = static_cast<int>(height);
-            glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
-        }
 
-        window = glfwCreateWindow(
-            windowWidth,
-            windowHeight,
-            title.c_str(),
-            monitor,
-            nullptr);
+    }
 
-        if (!fullscreen)
-        {
-            // Center on screen.
-            monitor = glfwGetPrimaryMonitor();
-            auto videoMode = glfwGetVideoMode(monitor);
-
-            int windowWidth = 0;
-            int windowHeight = 0;
-            glfwGetWindowSize(window, &windowWidth, &windowHeight);
-
-            int windowX = videoMode->width / 2 - windowWidth / 2;
-            int windowY = videoMode->height / 2 - windowHeight / 2;
-            glfwSetWindowPos(window, windowX, windowY);
-        }
-
-#if defined(ALIMER_OPENL)
-        glfwMakeContextCurrent(window);
-        glfwSwapInterval(1);
-#endif
-
-        glfwSetWindowUserPointer(window, this);
-        glfwSetWindowCloseCallback(window, Glfw_WindowCloseCallback);
-        glfwSetFramebufferSizeCallback(window, Glfw_FramebufferSizeCallback);
-        glfwSetKeyCallback(window, Glfw_KeyCallback);
-        //glfwSetMouseButtonCallback(_window, Glfw_MouseButtonCallback);
-        //glfwSetCursorPosCallback(_window, Glfw_MouseMoveCallback);
-        //glfwSetScrollCallback(_window, Glfw_ScrollCallback);
-        //glfwSetCharCallback(window, Glfw_CharCallback);
-        //glfwSetCursorEnterCallback(window, Glfw_CursorEnterCallback);
-        //glfwSetDropCallback(_window, Glfw_DropCallback);
+    Window::Window(const std::string& title, const math::uint2& size, bool resizable, bool fullscreen)
+        : _title(title)
+    {
+        SetSize(size, resizable, fullscreen);
     }
 
     Window::~Window()
     {
-        close();
+        Close();
     }
 
-    void Window::close()
+    bool Window::SetSize(const math::uint2& size, bool resizable, bool fullscreen)
     {
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+        if (!_window)
+        {
+            GLFWmonitor* monitor = nullptr;
+            int windowWidth;
+            int windowHeight;
+            if (fullscreen)
+            {
+                monitor = glfwGetPrimaryMonitor();
+                const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+                windowWidth = mode->width;
+                windowHeight = mode->height;
+            }
+            else
+            {
+                windowWidth = static_cast<int>(size.x);
+                windowHeight = static_cast<int>(size.y);
+                glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
+            }
+
+            _window = glfwCreateWindow(
+                windowWidth,
+                windowHeight,
+                _title.c_str(),
+                monitor,
+                nullptr);
+
+            if (!fullscreen)
+            {
+                // Center on screen.
+                monitor = glfwGetPrimaryMonitor();
+                auto videoMode = glfwGetVideoMode(monitor);
+
+                int windowWidth = 0;
+                int windowHeight = 0;
+                glfwGetWindowSize(_window, &windowWidth, &windowHeight);
+
+                int windowX = videoMode->width / 2 - windowWidth / 2;
+                int windowY = videoMode->height / 2 - windowHeight / 2;
+                glfwSetWindowPos(_window, windowX, windowY);
+            }
+
+#if defined(ALIMER_OPENL)
+            glfwMakeContextCurrent(_window);
+            glfwSwapInterval(1);
+#endif
+
+            glfwSetWindowUserPointer(_window, this);
+            glfwSetWindowCloseCallback(_window, Glfw_WindowCloseCallback);
+            glfwSetFramebufferSizeCallback(_window, Glfw_FramebufferSizeCallback);
+            glfwSetKeyCallback(_window, Glfw_KeyCallback);
+            //glfwSetMouseButtonCallback(_window, Glfw_MouseButtonCallback);
+            //glfwSetCursorPosCallback(_window, Glfw_MouseMoveCallback);
+            //glfwSetScrollCallback(_window, Glfw_ScrollCallback);
+            //glfwSetCharCallback(window, Glfw_CharCallback);
+            //glfwSetCursorEnterCallback(window, Glfw_CursorEnterCallback);
+            //glfwSetDropCallback(_window, Glfw_DropCallback);
+        }
+        else
+        {
+        }
+
+        _size = size;
+        _resizable = resizable;
+        _fullscreen = fullscreen;
+        return true;
     }
 
-    bool Window::isOpen() const
+    void Window::Close()
     {
-        return !glfwWindowShouldClose(window);
+        glfwSetWindowShouldClose(_window, GLFW_TRUE);
+    }
+
+    bool Window::IsOpen() const
+    {
+        return !glfwWindowShouldClose(_window);
     }
 
     WindowHandle Window::GetNativeHandle() const
     {
 #if defined(GLFW_EXPOSE_NATIVE_WIN32)
-        return glfwGetWin32Window(window);
+        return glfwGetWin32Window(_window);
 #elif defined(GLFW_EXPOSE_NATIVE_X11)
-        return glfwGetX11Window((window);
+        return glfwGetX11Window((_window);
 #elif defined(GLFW_EXPOSE_NATIVE_WAYLAND)
-        return glfwGetWaylandWindow(window);
+        return glfwGetWaylandWindow(_window);
 #elif defined(GLFW_EXPOSE_NATIVE_COCOA)
-        return glfwGetCocoaWindow(window);
+        return glfwGetCocoaWindow(_window);
 #else
         return 0;
 #endif

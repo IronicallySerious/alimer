@@ -23,7 +23,6 @@
 #pragma once
 
 #include "core/Object.h"
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -42,14 +41,12 @@ namespace alimer
         /// Destructor.
         virtual ~ApplicationHost() = default;
 
-        virtual int run() = 0;
-        virtual void requestExit();
+        virtual int Run() = 0;
+        virtual void RequestExit();
 
-        virtual void errorDialog(const std::string& title, const std::string& message);
+        virtual void ErrorDialog(const std::string& title, const std::string& message);
 
-        virtual std::shared_ptr<Window> createWindow(const std::string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen) = 0;
-
-        const std::vector<std::string> &getArguments();
+        const std::vector<std::string> &GetArguments();
 
     protected:
         void InitializeApplication();
@@ -61,5 +58,5 @@ namespace alimer
     };
 
     /// Create host for application.
-    ALIMER_API ApplicationHost* createPlatformHost(Application* application);
+    ALIMER_API ApplicationHost* CreatePlatformHost(Application* application);
 }

@@ -44,11 +44,32 @@ namespace alimer
     Graphics::Graphics()
         : _impl(new GraphicsImpl())
     {
-
+        _renderWindow = new Window();
+        AddSubsystem(this);
     }
 
     Graphics::~Graphics()
     {
+        SafeDelete(_impl);
+        RemoveSubsystem(this);
+    }
+
+    bool Graphics::SetMode(const std::string& title, const math::uint2& size, bool resizable, bool fullscreen, uint32_t sampleCount)
+    {
+        //_sampleCount = Clamp(sampleCount, 1, 16);
+        _sampleCount = sampleCount;
+
+        if (!_renderWindow->SetSize(size, resizable, fullscreen))
+        {
+            return false;
+        }
+
+        if (!_impl->IsInitialized())
+        {
+            return _impl->Initialize(_renderWindow, _sampleCount);
+        }
+
+        return _impl->Resize(size);
     }
 
     bool Graphics::BeginFrame()
@@ -60,6 +81,11 @@ namespace alimer
     {
         _impl->EndFrame();
         return _frameCount++;
+    }
+
+    bool Graphics::IsInitialized() const
+    {
+        return _impl->IsInitialized();
     }
 
 #if TODO
@@ -93,5 +119,10 @@ namespace alimer
     const GraphicsDeviceCapabilities& Graphics::GetCaps() const
     {
         return _impl->GetCaps();
+    }
+
+    Window* Graphics::GetRenderWindow() const
+    {
+        return _renderWindow;
     }
 }
