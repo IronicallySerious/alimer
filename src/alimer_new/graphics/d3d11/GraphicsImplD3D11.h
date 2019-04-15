@@ -23,27 +23,28 @@
 #pragma once
 
 #include "BackendD3D11.h"
-#include "graphics/Types.h"
+#include "graphics/Graphics.h"
 #include "math/vec2.h"
 
 namespace alimer
 {
     class Window;
 
-    class GraphicsImpl final 
+    class GraphicsImpl final : public Graphics
     {
     public:
         static bool IsSupported();
 
-        GraphicsImpl();
+        GraphicsImpl(const ApplicationConfiguration& config);
         ~GraphicsImpl();
 
-        bool Initialize(Window* renderWindow, uint32_t sampleCount);
-        bool Resize(const math::uint2& newSize);
-        void Shutdown();
+        bool Initialize();
+        void Shutdown() override;
 
-        bool BeginFrame();
-        void EndFrame();
+        bool Resize(const math::uint2& newSize);
+
+        bool BeginFrameImpl() override;
+        void CommitFrame() override;
 
         const GraphicsDeviceInfo& GetInfo() const { return _info; }
         const GraphicsDeviceCapabilities& GetCaps() const { return _caps; }
@@ -74,9 +75,6 @@ namespace alimer
         Microsoft::WRL::ComPtr<ID3D11DeviceContext1>        _d3dContext;
         Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>   _d3dAnnotation;
 
-        GraphicsDeviceInfo                                  _info = {};
-        GraphicsDeviceCapabilities                          _caps = {};
-
         DXGI_FORMAT                                         _backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
         DXGI_FORMAT                                         _depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
         UINT                                                _backBufferCount = 2;
@@ -91,8 +89,6 @@ namespace alimer
 
         // HDR Support
         DXGI_COLOR_SPACE_TYPE                           _colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-
-        uint32_t _sampleCount = 1;
 
 #if ALIMER_PLATFORM_UWP
         IUnknown*   _window = nullptr;

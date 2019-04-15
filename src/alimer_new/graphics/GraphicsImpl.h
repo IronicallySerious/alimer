@@ -23,9 +23,3 @@
 #pragma once
 
 #include "alimer_config.h"
-
-#if defined(ALIMER_VULKAN)
-
-#elif defined(ALIMER_D3D11)
-#   include "d3d11/GraphicsImplD3D11.h"
-#endif

@@ -23,27 +23,25 @@
 #pragma once
 
 #include "core/Object.h"
-#include "graphics/CommandQueue.h"
-#include "math/vec2.h"
+#include "engine/Configuration.h"
 
 namespace alimer
 {
     class Window;
-    class GraphicsImpl;
 
-    class ALIMER_API Graphics final : public Object
+    class ALIMER_API Graphics : public Object
     {
         ALIMER_OBJECT(Graphics, Object);
 
-    public:
+    protected:
         /// Constructor.
-        Graphics();
+        Graphics(const ApplicationConfiguration& config);
 
+    public:
         /// Destructor.
         ~Graphics();
 
-        /// Set graphics mode. Create the window and rendering context if not created yet. Return true on success.
-        bool SetMode(const std::string& title, const math::uint2& size, bool resizable = false, bool fullscreen = false, uint32_t multisample = 1);
+        static Graphics* Create(const ApplicationConfiguration& config);
 
         bool BeginFrame();
         uint32_t EndFrame();
@@ -60,17 +58,21 @@ namespace alimer
         /// Return the rendering window.
         Window* GetRenderWindow() const;
 
-    private:
-        GraphicsImpl* _impl = nullptr;
+    protected:
+        virtual void Shutdown();
+        virtual bool BeginFrameImpl() { return true; }
+        virtual void CommitFrame() {}
+
+    protected:
+        GraphicsDeviceInfo                                  _info = {};
+        GraphicsDeviceCapabilities                          _caps = {};
+
         /// Main OS rendering window.
         Window* _renderWindow = nullptr;
 
+        bool _initialized = false;
+
         uint32_t _sampleCount = 1;
         uint32_t _frameCount = 0;
-
-    protected:
-        std::shared_ptr<CommandQueue> _directCommandQueue;
-        std::shared_ptr<CommandQueue> _computeCommandQueue;
-        std::shared_ptr<CommandQueue> _copyCommandQueue;
     };
 }

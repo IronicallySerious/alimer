@@ -83,9 +83,14 @@ namespace alimer
         return isAvailable;
     }
 
-    GraphicsImpl::GraphicsImpl()
+    GraphicsImpl::GraphicsImpl(const ApplicationConfiguration& config)
+        : Graphics(config)
     {
         ALIMER_ASSERT_MSG(IsSupported(), "D3D12 backend is not supported");
+
+        if (!Initialize())
+        {
+        }
     }
 
     GraphicsImpl::~GraphicsImpl()
@@ -95,6 +100,8 @@ namespace alimer
 
     void GraphicsImpl::Shutdown()
     {
+        Graphics::Shutdown();
+
         _d3dDepthStencilView.Reset();
         _d3dRenderTargetView.Reset();
         _renderTarget.Reset();
@@ -180,7 +187,7 @@ namespace alimer
         *ppAdapter = adapter.Detach();
     }
 
-    bool GraphicsImpl::BeginFrame()
+    bool GraphicsImpl::BeginFrameImpl()
     {
         _d3dAnnotation->BeginEvent(L"Main");
 
@@ -199,7 +206,7 @@ namespace alimer
         return true;
     }
 
-    void GraphicsImpl::EndFrame()
+    void GraphicsImpl::CommitFrame()
     {
         _d3dAnnotation->EndEvent();
 
@@ -252,9 +259,8 @@ namespace alimer
         }
     }
 
-    bool GraphicsImpl::Initialize(Window* renderWindow, uint32_t sampleCount)
+    bool GraphicsImpl::Initialize()
     {
-        _sampleCount = sampleCount;
         if (_sampleCount > 1)
         {
             _tearing = false;
@@ -263,15 +269,15 @@ namespace alimer
         CreateDeviceResources();
 
 #if ALIMER_PLATFORM_UWP
-        _window = renderWindow->GetNativeHandle();
+        _window = _renderWindow->GetNativeHandle();
 #else
-        _window = renderWindow->GetNativeHandle();
+        _window = _renderWindow->GetNativeHandle();
         if (!IsWindow(_window))
         {
             ALIMER_ASSERT_MSG(false, "Invalid hWnd handle");
         }
 
-        _backbufferSize = renderWindow->GetSize();
+        _backbufferSize = _renderWindow->GetSize();
 
         if (_backbufferSize.x == 0
             || _backbufferSize.y == 0)

@@ -21,7 +21,6 @@
 //
 
 #include "graphics/Graphics.h"
-#include "graphics/SwapChain.h"
 #include "graphics/CommandBuffer.h"
 #include "engine/Window.h"
 #include "core/Log.h"
@@ -37,88 +36,62 @@ extern "C"
 }
 #endif
 
-#include "GraphicsImpl.h"
+#if defined(ALIMER_VULKAN)
+
+#elif defined(ALIMER_D3D11)
+#   include "d3d11/GraphicsImplD3D11.h"
+#endif
+
 
 namespace alimer
 {
-    Graphics::Graphics()
-        : _impl(new GraphicsImpl())
+    Graphics::Graphics(const ApplicationConfiguration& config)
     {
-        _renderWindow = new Window();
+        _renderWindow = new Window(config.title, config.size, config.resizable, config.fullscreen);
+        _sampleCount = config.sampleCount;
         AddSubsystem(this);
     }
 
     Graphics::~Graphics()
     {
-        SafeDelete(_impl);
+        Shutdown();
         RemoveSubsystem(this);
     }
 
-    bool Graphics::SetMode(const std::string& title, const math::uint2& size, bool resizable, bool fullscreen, uint32_t sampleCount)
+    void Graphics::Shutdown()
     {
-        //_sampleCount = Clamp(sampleCount, 1, 16);
-        _sampleCount = sampleCount;
 
-        if (!_renderWindow->SetSize(size, resizable, fullscreen))
-        {
-            return false;
-        }
+    }
 
-        if (!_impl->IsInitialized())
-        {
-            return _impl->Initialize(_renderWindow, _sampleCount);
-        }
-
-        return _impl->Resize(size);
+    Graphics* Graphics::Create(const ApplicationConfiguration& config)
+    {
+        return new GraphicsImpl(config);
     }
 
     bool Graphics::BeginFrame()
     {
-        return _impl->BeginFrame();
+        return BeginFrameImpl();
     }
 
     uint32_t Graphics::EndFrame()
     {
-        _impl->EndFrame();
+        CommitFrame();
         return _frameCount++;
     }
 
     bool Graphics::IsInitialized() const
     {
-        return _impl->IsInitialized();
+        return _initialized;
     }
-
-#if TODO
-    std::shared_ptr<CommandQueue> GraphicsDevice::GetCommandQueue(CommandQueueType type) const
-    {
-        std::shared_ptr<CommandQueue> commandQueue;
-        switch (type)
-        {
-        case CommandQueueType::Direct:
-            commandQueue = _directCommandQueue;
-            break;
-        case CommandQueueType::Compute:
-            commandQueue = _computeCommandQueue;
-            break;
-        case CommandQueueType::Copy:
-            commandQueue = _copyCommandQueue;
-            break;
-        default:
-            ALIMER_ASSERT(false && "Invalid command queue type.");
-        }
-
-        return commandQueue;
-    }
-#endif // TODO
 
     const GraphicsDeviceInfo& Graphics::GetInfo() const
     {
-        return _impl->GetInfo();
+        return _info;
     }
 
     const GraphicsDeviceCapabilities& Graphics::GetCaps() const
     {
-        return _impl->GetCaps();
+        return _caps;
     }
 
     Window* Graphics::GetRenderWindow() const

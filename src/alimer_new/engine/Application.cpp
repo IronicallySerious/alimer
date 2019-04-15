@@ -24,7 +24,6 @@
 #include "engine/ApplicationHost.h"
 #include "engine/Window.h"
 #include "graphics/Graphics.h"
-#include "graphics/SwapChain.h"
 #include "foundation/Utils.h"
 #if defined(_WIN32) || defined(_WIN64)
 #undef CreateWindow
@@ -87,13 +86,7 @@ namespace alimer
         }
 
         // Create graphics device.
-        _graphics = new Graphics();
-
-        // Setup graphics.
-        if (!_graphics->SetMode(_config.title, _config.size, _config.resizable, _config.fullscreen, _config.sampleCount))
-        {
-
-        }
+        _graphics = Graphics::Create(_config);
 
         _initialized = true;
         Initialize();

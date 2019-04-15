@@ -58,14 +58,6 @@
 #   include <dxgidebug.h>
 #endif
 
-#if defined(_DURANGO) || defined(_XBOX_ONE)
-#   define ALIMER_D3D_DYNAMIC_LIB 0
-#elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
-#   define ALIMER_D3D_DYNAMIC_LIB 0
-#elif defined(_WIN64) || defined(_WIN32)
-#   define ALIMER_D3D_DYNAMIC_LIB 1
-#endif
-
 #include <algorithm>
 #include <stdexcept>
 

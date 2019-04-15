@@ -20,13 +20,31 @@
 // THE SOFTWARE.
 //
 
-#include "graphics/CommandQueue.h"
+#pragma once
+
+#include "graphics/Types.h"
+#include "math/vec2.h"
 
 namespace alimer
 {
-    CommandQueue::CommandQueue(GraphicsDevice* device, CommandQueueType type)
-        : _graphicsDevice(device)
-        , _type(type)
+    class ApplicationConfiguration
     {
-    }
+    public:
+        /// Preffered graphics backend.
+        GpuPowerPreference preferredPowerPreference = GpuPowerPreference::Default;
+
+        /// Main application window title.
+        std::string title = "alimer";
+        /// Main application window size.
+        math::uint2 size = { 640u, 480u };
+        /// Whether main application window is resizable.
+        bool resizable = true;
+        /// Whether main application window is fullscreen.
+        bool fullscreen = false;
+        /// Multisample count for graphics backend.
+        uint32_t sampleCount = 1u;
+        /// Whether to disable audio.
+        bool disableAudio;
+    };
+
 }

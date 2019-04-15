@@ -23,8 +23,7 @@
 #pragma once
 
 #include "core/Object.h"
-#include "graphics/Types.h"
-#include "math/vec2.h"
+#include "engine/Configuration.h"
 #include <memory>
 #include <string>
 
@@ -32,26 +31,6 @@ namespace alimer
 {
     class ApplicationHost;
     class Graphics;
-
-    class ApplicationConfiguration
-    {
-    public:
-        /// Preffered graphics backend.
-        GpuPowerPreference preferredPowerPreference = GpuPowerPreference::Default;
-
-        /// Main application window title.
-        std::string title = "alimer";
-        /// Main application window size.
-        math::uint2 size = { 640u, 480u };
-        /// Whether main application window is resizable.
-        bool resizable = true;
-        /// Whether main application window is fullscreen.
-        bool fullscreen = false;
-        /// Multisample count for graphics backend.
-        uint32_t sampleCount = 1u;
-        /// Whether to disable audio.
-        bool disableAudio;
-    };
 
     /// Base class for creating applications which initialize the engine and run a main loop until exited.
     class ALIMER_API Application : public Object
