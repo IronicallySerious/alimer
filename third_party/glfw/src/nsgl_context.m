@@ -1,7 +1,7 @@
 //========================================================================
 // GLFW 3.3 macOS - www.glfw.org
 //------------------------------------------------------------------------
-// Copyright (c) 2009-2016 Camilla Löwy <elmindreda@glfw.org>
+// Copyright (c) 2009-2019 Camilla Löwy <elmindreda@glfw.org>
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -363,6 +363,10 @@ GLFWbool _glfwCreateContextNSGL(_GLFWwindow* window,
 
     if (window->ns.retina)
         [window->ns.view setWantsBestResolutionOpenGLSurface:YES];
+
+    GLint interval = 0;
+    [window->context.nsgl.object setValues:&interval
+                              forParameter:NSOpenGLContextParameterSwapInterval];
 
     [window->context.nsgl.object setView:window->ns.view];
 

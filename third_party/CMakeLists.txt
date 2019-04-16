@@ -42,6 +42,9 @@ if (ALIMER_GLFW)
     add_subdirectory(glfw)
 endif ()
 
+# lua
+add_subdirectory(lua)
+
 if (ALIMER_VULKAN)
     # vulkan
     add_library(vulkan INTERFACE)
@@ -108,9 +111,5 @@ endif ()
 add_subdirectory(CLI11)
 # ImGui
 add_subdirectory(imgui)
-
-if (ALIMER_SCRIPTING_LUA)
-    add_subdirectory(lua)
-endif ()
 
 vs_group_subdirectory_targets(${CMAKE_CURRENT_SOURCE_DIR} third_party)
