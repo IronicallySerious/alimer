@@ -20,24 +20,21 @@
 # THE SOFTWARE.
 #
 
-# Engine (old)
-add_subdirectory (Alimer)
-
 # Engine
 add_subdirectory (alimer_new)
 
 # Player
-add_subdirectory(Player)
+# add_subdirectory(Player)
 
 if (ALIMER_SAMPLES)
-    add_subdirectory(samples)
+    #add_subdirectory(samples)
 endif ()
 
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
-    add_subdirectory (Assets)
-    add_subdirectory (Tools)
+    #add_subdirectory (Assets)
+    #add_subdirectory (Tools)
 endif ()
 
 if (ALIMER_CSHARP)
-    add_subdirectory (Managed)
+    #add_subdirectory (Managed)
 endif ()

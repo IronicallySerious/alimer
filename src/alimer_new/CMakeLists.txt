@@ -63,28 +63,28 @@ endmacro()
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/alimer_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/alimer_config.h)
 
-define_engine_source_files (foundation core math)
-define_engine_source_files (engine)
-define_engine_source_files (NORECURSE . graphics)
+#define_engine_source_files (foundation core math)
+#define_engine_source_files (engine)
+define_engine_source_files (NORECURSE .)
 
 if (ALIMER_VULKAN)
-    define_engine_source_files(graphics/vulkan)
+    #define_engine_source_files(graphics/vulkan)
 elseif (ALIMER_D3D11)
-    define_engine_source_files(graphics/d3d11)
+    #define_engine_source_files(graphics/d3d11)
 elseif (ALIMER_D3D12)
-    define_engine_source_files(graphics/d3d12)
+    #define_engine_source_files(graphics/d3d12)
 endif ()
 
 # Group source code in VS solution
 group_sources()
 
-set (TARGET_NAME alimer_new)
+set (TARGET_NAME alimer)
 
 if (ALIMER_BUILD_SHARED)
     add_library(${TARGET_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES} $<$<CXX_COMPILER_ID:MSVC>:${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis>)
     target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_BUILD_SHARED_LIBRARY)
 else()
-    add_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES} $<$<CXX_COMPILER_ID:MSVC>:${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis>)
+    add_executable(${TARGET_NAME} ${HEADER_FILES} ${SOURCE_FILES} $<$<CXX_COMPILER_ID:MSVC>:${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis>)
 endif ()
 
 target_include_directories(${TARGET_NAME}
@@ -123,6 +123,8 @@ endif ()
 if (WIN32)
     target_compile_definitions(${TARGET_NAME} PRIVATE NOMINMAX)
 endif()
+
+target_link_libraries(${TARGET_NAME} liblua)
 
 # SDK installation
 if (ALIMER_INSTALL)

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Amer Koleci and contributors.
+// Copyright (c) 2017-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,8 @@
 #define ALIMER_VERSION_PATCH   @ALIMER_VERSION_PATCH@
 #define ALIMER_VERSION         ALIMER_MAKE_VERSION(@ALIMER_VERSION_MAJOR@, @ALIMER_VERSION_MINOR@, @ALIMER_VERSION_PATCH@)
 #define ALIMER_VERSION_STR     "@ALIMER_VERSION_MAJOR@.@ALIMER_VERSION_MINOR@.@ALIMER_VERSION_PATCH@"
+#define ALIMER_VERSION_ALIAS "WIP"
+
 #define ALIMER_GIT_BRANCH "@ALIMER_GIT_BRANCH@"
 #define ALIMER_GIT_COMMIT_HASH "@ALIMER_GIT_COMMIT_HASH@"
 

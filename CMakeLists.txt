@@ -83,7 +83,6 @@ endif ()
 
 # Options
 option (ALIMER_BUILD_SHARED "Build as a shared library." OFF)
-option (ALIMER_SCRIPTING_LUA "Enable Lua scripting support" ON)
 option (ALIMER_CSHARP "Enable C# support" OFF)
 option (ALIMER_CSHARP_MONO "Use mono for C# support" OFF)
 option (ALIMER_INSTALL "Generate installation target" ON)
@@ -192,11 +191,7 @@ endif()
 
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER "3.6")
-    if (ALIMER_TOOLS)
-        set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT "AlimerStudio")
-    else ()
-        set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT "AlimerPlayer")
-    endif ()
+    set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT "alimer")
 endif()
 
 # Print current build configuration
@@ -216,5 +211,4 @@ message(STATUS "  Threading       ${ALIMER_THREADING}")
 message(STATUS "  Backend         ${ALIMER_PLATFORM}")
 message(STATUS "  Renderer        ${ALIMER_RENDERER}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")
-message(STATUS "  Lua             ${ALIMER_SCRIPTING_LUA}")
 message(STATUS "  CSharp          ${ALIMER_CSHARP}")
