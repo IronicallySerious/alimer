@@ -20,22 +20,67 @@
 // THE SOFTWARE.
 //
 
-#include "engine/Application.h"
-using namespace alimer;
+#include "Turso3D.h"
+using namespace Turso3D;
+//using namespace alimer;
 
 class HelloWorldApp : public Application
 {
 public:
-    HelloWorldApp(const ApplicationConfiguration& config)
-        : Application(config)
+    HelloWorldApp(/*const ApplicationConfiguration& config*/)
+        : Application(/*config*/)
     {
     }
 };
 
 int main()
 {
-    ApplicationConfiguration config = {};
+    /*ApplicationConfiguration config = {};
     config.title = "Sample 01 - Hello World";
     HelloWorldApp app(config);
+    return app.Run();*/
+
+#ifdef _MSC_VER
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
+    HelloWorldApp app/*(config)*/;
     return app.Run();
+
+    Log log;
+    Profiler profiler;
+    ResourceCache cache;
+
+    //printf("Testing resource loading\n");
+
+    Image* image = nullptr;
+
+    {
+        profiler.BeginFrame();
+        cache.AddResourceDir(ExecutableDir() + "Data");
+        image = cache.LoadResource<Image>("Test.png");
+        profiler.EndFrame();
+    }
+
+    if (image)
+    {
+        //printf("Image loaded successfully, size %dx%d pixel byte size %d\n", image->Width(), image->Height(), (int)image->PixelByteSize());
+        image->SavePNG("Test_Save.png");
+    }
+
+    LOGRAW(profiler.OutputResults(false, false, 16));
+
+    AutoPtr<Input> input = new Input();
+
+    AutoPtr<Window> window = new Window();
+    window->SetTitle("Window test");
+    window->SetSize(IntVector2(800, 600), false, true);
+
+    //SubscribeToEvent(window->closeRequestEvent, &WindowTest::HandleCloseRequest);
+
+    while (window->IsOpen())
+    {
+        input->Update();
+        Thread::Sleep(1);
+    }
 }

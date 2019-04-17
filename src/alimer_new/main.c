@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
         }
 
         restart = lua_type(T, -1) == LUA_TSTRING && !strcmp(lua_tostring(T, -1), "restart");
-        status = lua_tonumber(T, -1);
+        status = (int)lua_tonumber(T, -1);
         lua_close(L);
 #endif
     } while (restart);

@@ -2,9 +2,10 @@
 
 Alimer uses the following open-source and third-party libraries:
 
+- [Turso3D](https://github.com/cadaver/turso3d)
 - [Nothings](https://github.com/nothings/stb) single file libs.
-  - [stb_image.h 2.21](https://github.com/nothings/stb/blob/master/stb_image.h)
-  - [stb_image_write.h 1.11](https://github.com/nothings/stb/blob/master/stb_image_write.h)
+  - [stb_image.h 2.22](https://github.com/nothings/stb/blob/master/stb_image.h)
+  - [stb_image_write.h 1.13](https://github.com/nothings/stb/blob/master/stb_image_write.h)
   - [stb_image_resize.h 0.95](https://github.com/nothings/stb/blob/master/stb_image_resize.h)
   - [stb_rect_pack.h 1.00](https://github.com/nothings/stb/blob/master/stb_rect_pack.h)
   - [stb_textedit.h 1.13](https://github.com/nothings/stb/blob/master/stb_textedit.h)

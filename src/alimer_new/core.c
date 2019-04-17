@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 //
 
-
 #include "core.h"
 
 #ifdef _WIN32

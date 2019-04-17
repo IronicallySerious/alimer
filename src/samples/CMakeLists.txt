@@ -24,6 +24,8 @@ function(add_sample sample_name)
     set (target_name "${sample_name}")
     add_executable(${target_name} ${CMAKE_CURRENT_SOURCE_DIR}/${sample_name}/main.cpp)
 
+    set_target_properties(${target_name} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+
     if (UNIX)
         target_compile_options(${target_name} PRIVATE -std=c++14)
         #target_link_libraries(${target_name} PRIVATE X11-xcb)
@@ -32,7 +34,7 @@ function(add_sample sample_name)
         set_target_properties(${target_name} PROPERTIES FOLDER "samples")
     endif()
 
-    target_link_libraries(${target_name} PRIVATE alimer_new)
+    target_link_libraries(${target_name} PRIVATE Turso3D)
 endfunction()
 
 add_sample(01_hello_world)
