@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "../Turso3DConfig.h"
+#include "Turso3DConfig.h"
 
 #ifndef WIN32
 #include <pthread.h>

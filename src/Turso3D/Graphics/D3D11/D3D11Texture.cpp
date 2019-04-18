@@ -112,7 +112,6 @@ namespace Turso3D
         : texture(nullptr)
         , resourceView(nullptr)
         , sampler(nullptr)
-        , type(TEX_2D)
         , size(IntVector2::ZERO)
         , format(FMT_NONE)
     {
@@ -127,7 +126,7 @@ namespace Turso3D
     {
         if (graphics)
         {
-            for (size_t i = 0; i < MAX_TEXTURE_UNITS; ++i)
+            for (uint32_t i = 0; i < MAX_TEXTURE_UNITS; ++i)
             {
                 if (graphics->GetTexture(i) == this)
                     graphics->SetTexture(i, 0);
@@ -194,19 +193,19 @@ namespace Turso3D
 
         Release();
 
-        if (type_ != TEX_2D && type_ != TEX_CUBE)
+        if (type_ != TextureType::Type2D && type_ != TextureType::TypeCube)
         {
-            LOGERROR("Only 2D textures and cube maps supported for now");
+            TURSO3D_LOGERROR("Only 2D textures and cube maps supported for now");
             return false;
         }
         if (format_ > FMT_DXT5)
         {
-            LOGERROR("ETC1 and PVRTC formats are unsupported");
+            TURSO3D_LOGERROR("ETC1 and PVRTC formats are unsupported");
             return false;
         }
-        if (type_ == TEX_CUBE && size_.x != size_.y)
+        if (type_ == TextureType::TypeCube && size_.x != size_.y)
         {
-            LOGERROR("Cube map must have square dimensions");
+            TURSO3D_LOGERROR("Cube map must have square dimensions");
             return false;
         }
 
@@ -240,7 +239,7 @@ namespace Turso3D
                     textureDesc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
             }
             textureDesc.CPUAccessFlags = usage == ResourceUsage::Dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
-            if (type == TEX_CUBE)
+            if (type == TextureType::TypeCube)
                 textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
             Vector<D3D11_SUBRESOURCE_DATA> subResourceData;
@@ -262,7 +261,7 @@ namespace Turso3D
                 format = FMT_NONE;
                 numLevels = 0;
 
-                LOGERROR("Failed to create texture");
+                TURSO3D_LOGERROR("Failed to create texture");
                 return false;
             }
             else
@@ -271,20 +270,20 @@ namespace Turso3D
                 format = format_;
                 numLevels = numLevels_;
 
-                LOGDEBUGF("Created texture width %d height %d format %d numLevels %d", size.x, size.y, (int)format, numLevels);
+                TURSO3D_LOGDEBUGF("Created texture width %d height %d format %d numLevels %d", size.x, size.y, (int)format, numLevels);
             }
 
             D3D11_SHADER_RESOURCE_VIEW_DESC resourceViewDesc;
             memset(&resourceViewDesc, 0, sizeof resourceViewDesc);
-            resourceViewDesc.ViewDimension = srvDimension[type];
+            resourceViewDesc.ViewDimension = srvDimension[static_cast<uint32_t>(type)];
             switch (type)
             {
-            case TEX_2D:
+            case TextureType::Type2D:
                 resourceViewDesc.Texture2D.MipLevels = (unsigned)numLevels;
                 resourceViewDesc.Texture2D.MostDetailedMip = 0;
                 break;
 
-            case TEX_CUBE:
+            case TextureType::TypeCube:
                 resourceViewDesc.TextureCube.MipLevels = (unsigned)numLevels;
                 resourceViewDesc.TextureCube.MostDetailedMip = 0;
                 break;
@@ -296,13 +295,13 @@ namespace Turso3D
                 D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
                 memset(&renderTargetViewDesc, 0, sizeof renderTargetViewDesc);
                 renderTargetViewDesc.Format = textureDesc.Format;
-                renderTargetViewDesc.ViewDimension = rtvDimension[type];
+                renderTargetViewDesc.ViewDimension = rtvDimension[static_cast<uint32_t>(type)];
                 renderTargetViewDesc.Texture2D.MipSlice = 0;
 
                 d3dDevice->CreateRenderTargetView((ID3D11Resource*)texture, &renderTargetViewDesc, (ID3D11RenderTargetView**)&renderTargetView);
                 if (!renderTargetView)
                 {
-                    LOGERROR("Failed to create rendertarget view for texture");
+                    TURSO3D_LOGERROR("Failed to create rendertarget view for texture");
                 }
             }
             else if (IsDepthStencil())
@@ -313,20 +312,20 @@ namespace Turso3D
                 // and shader resource views
                 resourceViewDesc.Format = depthStencilResourceViewFormat[format - FMT_D16];
                 depthStencilViewDesc.Format = depthStencilViewFormat[format - FMT_D16];
-                depthStencilViewDesc.ViewDimension = dsvDimension[type];
+                depthStencilViewDesc.ViewDimension = dsvDimension[static_cast<uint32_t>(type)];
                 depthStencilViewDesc.Flags = 0;
 
                 d3dDevice->CreateDepthStencilView((ID3D11Resource*)texture, &depthStencilViewDesc, (ID3D11DepthStencilView**)&renderTargetView);
                 if (!renderTargetView)
                 {
-                    LOGERROR("Failed to create depth-stencil view for texture");
+                    TURSO3D_LOGERROR("Failed to create depth-stencil view for texture");
                 }
             }
 
             d3dDevice->CreateShaderResourceView((ID3D11Resource*)texture, &resourceViewDesc, (ID3D11ShaderResourceView**)&resourceView);
             if (!resourceView)
             {
-                LOGERROR("Failed to create shader resource view for texture");
+                TURSO3D_LOGERROR("Failed to create shader resource view for texture");
             }
         }
 
@@ -373,11 +372,11 @@ namespace Turso3D
 
             if (!sampler)
             {
-                LOGERROR("Failed to create sampler state");
+                TURSO3D_LOGERROR("Failed to create sampler state");
                 return false;
             }
             else
-                LOGDEBUG("Created sampler state");
+                TURSO3D_LOGDEBUG("Created sampler state");
         }
 
         return true;
@@ -391,24 +390,24 @@ namespace Turso3D
         {
             if (usage == ResourceUsage::Immutable)
             {
-                LOGERROR("Can not update immutable texture");
+                TURSO3D_LOGERROR("Can not update immutable texture");
                 return false;
             }
             if (face >= NumFaces())
             {
-                LOGERROR("Face to update out of bounds");
+                TURSO3D_LOGERROR("Face to update out of bounds");
                 return false;
             }
             if (level >= numLevels)
             {
-                LOGERROR("Mipmap level to update out of bounds");
+                TURSO3D_LOGERROR("Mipmap level to update out of bounds");
                 return false;
             }
 
             IntRect levelRect(0, 0, Max(size.x >> level, 1), Max(size.y >> level, 1));
             if (levelRect.IsInside(rect) != INSIDE)
             {
-                LOGERROR("Texture update region is outside level");
+                TURSO3D_LOGERROR("Texture update region is outside level");
                 return false;
             }
 
@@ -431,7 +430,7 @@ namespace Turso3D
                 size_t pixelByteSize = Image::pixelByteSizes[format];
                 if (!pixelByteSize)
                 {
-                    LOGERROR("Updating dynamic compressed texture is not supported");
+                    TURSO3D_LOGERROR("Updating dynamic compressed texture is not supported");
                     return false;
                 }
 
@@ -450,7 +449,7 @@ namespace Turso3D
                 }
                 else
                 {
-                    LOGERROR("Failed to map texture for update");
+                    TURSO3D_LOGERROR("Failed to map texture for update");
                     return false;
                 }
             }

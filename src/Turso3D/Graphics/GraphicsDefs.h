@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Turso3DConfig.h"
+#include "Turso3DConfig.h"
 #include "../Base/String.h"
 #include "../Math/IntRect.h"
 
@@ -41,34 +41,51 @@ namespace Turso3D
     /// Maximum simultaneous vertex buffers.
     static constexpr uint32_t MAX_VERTEX_STREAMS = 4u;
     /// Maximum simultaneous constant buffers.
-    static const size_t MAX_CONSTANT_BUFFERS = 15;
+    static constexpr uint32_t MAX_CONSTANT_BUFFERS = 15u;
     /// Maximum number of textures in use at once.
-    static const size_t MAX_TEXTURE_UNITS = 16;
+    static constexpr uint32_t MAX_TEXTURE_UNITS = 16u;
     /// Maximum number of textures reserved for materials, starting from 0.
-    static const size_t MAX_MATERIAL_TEXTURE_UNITS = 8;
+    static constexpr uint32_t MAX_MATERIAL_TEXTURE_UNITS = 8u;
     /// Maximum number of color rendertargets in use at once.
-    static const size_t MAX_RENDERTARGETS = 4;
+    static constexpr uint32_t MAX_RENDERTARGETS = 4u;
     /// Number of cube map faces.
-    static const size_t MAX_CUBE_FACES = 6;
+    static constexpr uint32_t MAX_CUBE_FACES = 6u;
 
-    /// Disable color write.
-    static const unsigned char COLORMASK_NONE = 0x0;
-    /// Write to red channel.
-    static const unsigned char COLORMASK_R = 0x1;
-    /// Write to green channel.
-    static const unsigned char COLORMASK_G = 0x2;
-    /// Write to blue channel.
-    static const unsigned char COLORMASK_B = 0x4;
-    /// Write to alpha channel.
-    static const unsigned char COLORMASK_A = 0x8;
-    /// Write to all color channels (default.)
-    static const unsigned char COLORMASK_ALL = 0xf;
+    enum class ColorWriteMask : uint8_t
+    {
+        /// Disable color write.
+        None = 0x0,
+
+        /// The red color channel is enabled.
+        Red = 0x1,
+
+        /// The green color channel is enabled.
+        Green = 0x2,
+
+        /// The blue color channel is enabled.
+        Blue = 0x4,
+
+        /// The alpha color channel is enabled.
+        Alpha = 0x8,
+
+        /// All color channels are enabled.
+        All = 0xf,
+    };
+
+    DEFINE_ENUM_CLASS_FLAG_OPERATOR(ColorWriteMask, &);
+    DEFINE_ENUM_CLASS_FLAG_OPERATOR(ColorWriteMask, | );
 
     enum class BufferType : unsigned
     {
         Vertex = 0,
         Index,
         Uniform
+    };
+
+    enum class IndexType : unsigned
+    {
+        UInt16,
+        UInt32,
     };
 
     /// Shader stages.
@@ -178,45 +195,53 @@ namespace Turso3D
         MAX_CULL_MODES
     };
 
-    /// Depth or stencil compare modes.
-    enum CompareFunc
+    /// Specifies comparison options that should be performed on a depth texture.
+    enum CompareFunction : uint32_t
     {
-        CMP_NEVER = 1,
-        CMP_LESS,
-        CMP_EQUAL,
-        CMP_LESS_EQUAL,
-        CMP_GREATER,
-        CMP_NOT_EQUAL,
-        CMP_GREATER_EQUAL,
-        CMP_ALWAYS,
-        MAX_COMPARE_MODES
+        /// A new value never passes the comparison test.
+        Never = 1,
+        Less,
+        Equal,
+        LessEqual,
+        Greater,
+        NotEqual,
+        GreaterEqual,
+        /// A new value always passes the comparison test.
+        Always
     };
 
-    /// Stencil operations.
-    enum StencilOp
+    /// Identifies the stencil operations that can be performed during depth-stencil testing.
+    enum class StencilOperation : uint32_t
     {
-        STENCIL_OP_KEEP = 1,
-        STENCIL_OP_ZERO,
-        STENCIL_OP_REPLACE,
-        STENCIL_OP_INCR_SAT,
-        STENCIL_OP_DECR_SAT,
-        STENCIL_OP_INVERT,
-        STENCIL_OP_INCR,
-        STENCIL_OP_DECR,
-        MAX_STENCIL_OPS
+        /// Keep the current stencil value.
+        Keep = 1,
+        /// Set the stencil data to 0.
+        Zero,
+        /// Replace the stencil value with the stencil reference value, which is set by the SetStencilReference
+        Replace,
+        /// Increment the stencil value by 1, and clamp the result.
+        IncrementClamp,
+        /// Decrement the stencil value by 1, and clamp the result.
+        DecrementClamp,
+        /// Invert the stencil data.
+        Invert,
+        /// Increment the stencil value by 1, and wrap the result if necessary.
+        IncrementWrap,
+        /// Decrement the stencil value by 1, and wrap the result if necessary.
+        DecrementWrap
     };
 
     /// Texture types.
-    enum TextureType
+    enum class TextureType : uint32_t
     {
-        TEX_1D = 0,
-        TEX_2D,
-        TEX_3D,
-        TEX_CUBE,
+        Type1D = 0,
+        Type2D,
+        Type3D,
+        TypeCube,
     };
 
     /// Resource usage modes. Rendertarget usage can only be used with textures.
-    enum class ResourceUsage : unsigned
+    enum class ResourceUsage : uint32_t
     {
         Default = 0,
         Immutable,
@@ -384,36 +409,36 @@ namespace Turso3D
         {
             stencilReadMask = 0xff;
             stencilWriteMask = 0xff;
-            frontFunc = CMP_ALWAYS;
-            frontFail = STENCIL_OP_KEEP;
-            frontDepthFail = STENCIL_OP_KEEP;
-            frontPass = STENCIL_OP_KEEP;
-            backFunc = CMP_ALWAYS;
-            backFail = STENCIL_OP_KEEP;
-            backDepthFail = STENCIL_OP_KEEP;
-            backPass = STENCIL_OP_KEEP;
+            frontFunc = CompareFunction::Always;
+            frontFail = StencilOperation::Keep;
+            frontDepthFail = StencilOperation::Keep;
+            frontPass = StencilOperation::Keep;
+            backFunc = CompareFunction::Always;
+            backFail = StencilOperation::Keep;
+            backDepthFail = StencilOperation::Keep;
+            backPass = StencilOperation::Keep;
         }
 
         /// Stencil read bit mask.
-        unsigned char stencilReadMask;
+        uint8_t stencilReadMask;
         /// Stencil write bit mask.
-        unsigned char stencilWriteMask;
+        uint8_t stencilWriteMask;
         /// Stencil front face compare function.
-        CompareFunc frontFunc;
+        CompareFunction frontFunc;
         /// Operation for front face stencil test fail.
-        StencilOp frontFail;
+        StencilOperation frontFail;
         /// Operation for front face depth test fail.
-        StencilOp frontDepthFail;
+        StencilOperation frontDepthFail;
         /// Operation for front face pass.
-        StencilOp frontPass;
+        StencilOperation frontPass;
         /// Stencil back face compare function.
-        CompareFunc backFunc;
+        CompareFunction backFunc;
         /// Operation for back face stencil test fail.
-        StencilOp backFail;
+        StencilOperation backFail;
         /// Operation for back face depth test fail.
-        StencilOp backDepthFail;
+        StencilOperation backDepthFail;
         /// Operation for back face pass.
-        StencilOp backPass;
+        StencilOperation backPass;
     };
 
     /// Collection of render state.
@@ -428,12 +453,12 @@ namespace Turso3D
         /// Reset to defaults.
         void Reset()
         {
-            depthFunc = CMP_LESS_EQUAL;
+            depthFunc = CompareFunction::LessEqual;
             depthWrite = true;
             depthClip = true;
             depthBias = 0;
             slopeScaledDepthBias = 0.0f;
-            colorWriteMask = COLORMASK_ALL;
+            colorWriteMask = ColorWriteMask::All;
             alphaToCoverage = false;
             blendMode.Reset();
             cullMode = CULL_BACK;
@@ -446,7 +471,7 @@ namespace Turso3D
         }
 
         /// Depth test function.
-        CompareFunc depthFunc;
+        CompareFunction depthFunc;
         /// Depth write enable.
         bool depthWrite;
         /// Depth clipping enable.
@@ -456,7 +481,7 @@ namespace Turso3D
         /// Slope-scaled depth bias.
         float slopeScaledDepthBias;
         /// Rendertarget color channel write mask.
-        unsigned char colorWriteMask;
+        ColorWriteMask colorWriteMask;
         /// Alpha-to-coverage enable.
         bool alphaToCoverage;
         /// Blend mode parameters.

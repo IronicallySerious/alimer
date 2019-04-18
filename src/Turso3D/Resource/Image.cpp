@@ -283,7 +283,7 @@ namespace Turso3D
                 break;
 
             default:
-                LOGERROR("Unsupported DDS format");
+                TURSO3D_LOGERROR("Unsupported DDS format");
                 return false;
             }
 
@@ -313,25 +313,25 @@ namespace Turso3D
 
             if (endianness != 0x04030201)
             {
-                LOGERROR("Big-endian KTX files not supported");
+                TURSO3D_LOGERROR("Big-endian KTX files not supported");
                 return false;
             }
 
             if (type != 0 || imageFormat != 0)
             {
-                LOGERROR("Uncompressed KTX files not supported");
+                TURSO3D_LOGERROR("Uncompressed KTX files not supported");
                 return false;
             }
 
             if (faces > 1 || depth > 1)
             {
-                LOGERROR("3D or cube KTX files not supported");
+                TURSO3D_LOGERROR("3D or cube KTX files not supported");
                 return false;
             }
 
             if (mipmaps == 0)
             {
-                LOGERROR("KTX files without explicitly specified mipmap count not supported");
+                TURSO3D_LOGERROR("KTX files without explicitly specified mipmap count not supported");
                 return false;
             }
 
@@ -373,7 +373,7 @@ namespace Turso3D
 
             if (format == FMT_NONE)
             {
-                LOGERROR("Unsupported texture format in KTX file");
+                TURSO3D_LOGERROR("Unsupported texture format in KTX file");
                 return false;
             }
 
@@ -390,7 +390,7 @@ namespace Turso3D
                 size_t levelSize = source.Read<unsigned>();
                 if (levelSize + dataOffset > dataSize)
                 {
-                    LOGERROR("KTX mipmap level data size exceeds file size");
+                    TURSO3D_LOGERROR("KTX mipmap level data size exceeds file size");
                     return false;
                 }
 
@@ -417,13 +417,13 @@ namespace Turso3D
 
             if (depth > 1 || numFaces > 1)
             {
-                LOGERROR("3D or cube PVR files not supported");
+                TURSO3D_LOGERROR("3D or cube PVR files not supported");
                 return false;
             }
 
             if (mipmapCount == 0)
             {
-                LOGERROR("PVR files without explicitly specified mipmap count not supported");
+                TURSO3D_LOGERROR("PVR files without explicitly specified mipmap count not supported");
                 return false;
             }
 
@@ -465,7 +465,7 @@ namespace Turso3D
 
             if (format == FMT_NONE)
             {
-                LOGERROR("Unsupported texture format in PVR file");
+                TURSO3D_LOGERROR("Unsupported texture format in PVR file");
                 return false;
             }
 
@@ -487,7 +487,7 @@ namespace Turso3D
             uint8_t* pixelData = DecodePixelData(source, imageWidth, imageHeight, imageComponents);
             if (!pixelData)
             {
-                LOGERROR("Could not load image " + source.Name() + ": " + String(stbi_failure_reason()));
+                TURSO3D_LOGERROR("Could not load image " + source.Name() + ": " + String(stbi_failure_reason()));
                 return false;
             }
 
@@ -527,12 +527,12 @@ namespace Turso3D
 
         if (newSize.x <= 0 || newSize.y <= 0)
         {
-            LOGERROR("Can not set zero or negative image size");
+            TURSO3D_LOGERROR("Can not set zero or negative image size");
             return;
         }
         if (pixelByteSizes[newFormat] == 0)
         {
-            LOGERROR("Can not set image size with unspecified pixel byte size (including compressed formats)");
+            TURSO3D_LOGERROR("Can not set image size with unspecified pixel byte size (including compressed formats)");
             return;
         }
 
@@ -547,7 +547,7 @@ namespace Turso3D
         if (!IsCompressed())
             memcpy(data.Get(), pixelData, size.x * size.y * PixelByteSize());
         else
-            LOGERROR("Can not set pixel data of a compressed image");
+            TURSO3D_LOGERROR("Can not set pixel data of a compressed image");
     }
 
     uint8_t* Image::DecodePixelData(Stream& source, int& width, int& height, unsigned& components)
@@ -574,7 +574,7 @@ namespace Turso3D
         int components = Components();
         if (components < 1 || components > 4)
         {
-            LOGERROR("Unsupported format for calculating the next mip level");
+            TURSO3D_LOGERROR("Unsupported format for calculating the next mip level");
             return false;
         }
 
@@ -666,13 +666,13 @@ namespace Turso3D
 
         if (!dest)
         {
-            LOGERROR("Null destination data for DecompressLevel");
+            TURSO3D_LOGERROR("Null destination data for DecompressLevel");
             return false;
         }
 
         if (index >= numLevels)
         {
-            LOGERROR("Mip level index out of bounds for DecompressLevel");
+            TURSO3D_LOGERROR("Mip level index out of bounds for DecompressLevel");
             return false;
         }
 
@@ -698,7 +698,7 @@ namespace Turso3D
             break;
 
         default:
-            LOGERROR("Unsupported format for DecompressLevel");
+            TURSO3D_LOGERROR("Unsupported format for DecompressLevel");
             return false;
         }
 
@@ -748,20 +748,20 @@ namespace Turso3D
     {
         if (IsCompressed())
         {
-            LOGERROR("Can not save compressed image " + Name());
+            TURSO3D_LOGERROR("Can not save compressed image " + Name());
             return 0;
         }
 
         if (!data)
         {
-            LOGERROR("Can not save zero-sized image " + Name());
+            TURSO3D_LOGERROR("Can not save zero-sized image " + Name());
             return 0;
         }
 
         int components = (int)PixelByteSize();
         if (components < 1 || components > 4)
         {
-            LOGERROR("Unsupported pixel format for PNG save on image " + Name());
+            TURSO3D_LOGERROR("Unsupported pixel format for PNG save on image " + Name());
             return 0;
         }
 

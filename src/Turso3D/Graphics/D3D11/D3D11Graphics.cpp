@@ -36,14 +36,7 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <cstdlib>
-
 #include "../../Debug/DebugNew.h"
-
-// Prefer the high-performance GPU on switchable GPU systems
-extern "C" {
-    __declspec(dllexport) DWORD NvOptimusEnablement = 1;
-    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-}
 
 namespace Turso3D
 {
@@ -161,8 +154,11 @@ namespace Turso3D
         screenModeEvent.multisample = multisample;
         SendEvent(screenModeEvent);
 
-        LOGDEBUGF("Set screen mode %dx%d fullscreen %d resizable %d multisample %d", backbufferSize.x, backbufferSize.y,
-            IsFullscreen(), IsResizable(), multisample);
+        TURSO3D_LOGDEBUGF("Set screen mode %dx%d fullscreen %d resizable %d multisample %d",
+            backbufferSize.x, backbufferSize.y,
+            IsFullscreen(),
+            IsResizable(),
+            multisample);
 
         return true;
     }
@@ -345,21 +341,21 @@ namespace Turso3D
         }
     }
 
-    void Graphics::SetConstantBuffer(ShaderStage stage, size_t index, ConstantBuffer* buffer)
+    void Graphics::SetConstantBuffer(ShaderStage stage, uint32_t index, ConstantBuffer* buffer)
     {
         if (stage < MAX_SHADER_STAGES && index < MAX_CONSTANT_BUFFERS && buffer != constantBuffers[stage][index])
         {
             constantBuffers[stage][index] = buffer;
-            ID3D11Buffer* d3dBuffer = buffer ? (ID3D11Buffer*)buffer->D3DBuffer() : nullptr;
+            ID3D11Buffer* d3dBuffer = buffer ? buffer->GetHandle() : nullptr;
 
             switch (stage)
             {
             case SHADER_VS:
-                impl->deviceContext->VSSetConstantBuffers((unsigned)index, 1, &d3dBuffer);
+                impl->deviceContext->VSSetConstantBuffers(index, 1, &d3dBuffer);
                 break;
 
             case SHADER_PS:
-                impl->deviceContext->PSSetConstantBuffers((unsigned)index, 1, &d3dBuffer);
+                impl->deviceContext->PSSetConstantBuffers(index, 1, &d3dBuffer);
                 break;
 
             default:
@@ -368,7 +364,7 @@ namespace Turso3D
         }
     }
 
-    void Graphics::SetTexture(size_t index, Texture* texture)
+    void Graphics::SetTexture(uint32_t index, Texture* texture)
     {
         if (index < MAX_TEXTURE_UNITS)
         {
@@ -397,10 +393,16 @@ namespace Turso3D
         {
             indexBuffer = buffer;
             if (buffer)
-                impl->deviceContext->IASetIndexBuffer((ID3D11Buffer*)buffer->D3DBuffer(), buffer->IndexSize() ==
-                    sizeof(unsigned short) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT, 0);
+            {
+                impl->deviceContext->IASetIndexBuffer(
+                    buffer->GetHandle(),
+                    buffer->GetIndexType() == IndexType::UInt32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT,
+                    0);
+            }
             else
+            {
                 impl->deviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+            }
         }
     }
 
@@ -436,7 +438,7 @@ namespace Turso3D
         }
     }
 
-    void Graphics::SetColorState(const BlendModeDesc& blendMode, bool alphaToCoverage, unsigned char colorWriteMask)
+    void Graphics::SetColorState(const BlendModeDesc& blendMode, bool alphaToCoverage, ColorWriteMask colorWriteMask)
     {
         renderState.blendMode = blendMode;
         renderState.colorWriteMask = colorWriteMask;
@@ -445,7 +447,7 @@ namespace Turso3D
         blendStateDirty = true;
     }
 
-    void Graphics::SetColorState(BlendMode blendMode, bool alphaToCoverage, unsigned char colorWriteMask)
+    void Graphics::SetColorState(BlendMode blendMode, bool alphaToCoverage, ColorWriteMask colorWriteMask)
     {
         renderState.blendMode = blendModes[blendMode];
         renderState.colorWriteMask = colorWriteMask;
@@ -454,7 +456,7 @@ namespace Turso3D
         blendStateDirty = true;
     }
 
-    void Graphics::SetDepthState(CompareFunc depthFunc, bool depthWrite, bool depthClip, int depthBias, float slopeScaledDepthBias)
+    void Graphics::SetDepthState(CompareFunction depthFunc, bool depthWrite, bool depthClip, int depthBias, float slopeScaledDepthBias)
     {
         renderState.depthFunc = depthFunc;
         renderState.depthWrite = depthWrite;
@@ -527,17 +529,21 @@ namespace Turso3D
 
     void Graphics::ResetConstantBuffers()
     {
-        for (size_t i = 0; i < MAX_SHADER_STAGES; ++i)
+        for (uint32_t i = 0; i < MAX_SHADER_STAGES; ++i)
         {
-            for (size_t j = 0; i < MAX_CONSTANT_BUFFERS; ++j)
+            for (uint32_t j = 0; i < MAX_CONSTANT_BUFFERS; ++j)
+            {
                 SetConstantBuffer((ShaderStage)i, j, nullptr);
+            }
         }
     }
 
     void Graphics::ResetTextures()
     {
-        for (size_t i = 0; i < MAX_TEXTURE_UNITS; ++i)
+        for (uint32_t i = 0; i < MAX_TEXTURE_UNITS; ++i)
+        {
             SetTexture(i, nullptr);
+        }
     }
 
     void Graphics::Clear(unsigned clearFlags, const Color& clearColor, float clearDepth, unsigned char clearStencil)
@@ -676,7 +682,7 @@ namespace Turso3D
 
             if (!impl->device || !impl->deviceContext)
             {
-                LOGERROR("Failed to create D3D11 device");
+                TURSO3D_LOGERROR("Failed to create D3D11 device");
                 return false;
             }
         }
@@ -723,7 +729,7 @@ namespace Turso3D
         }
         else
         {
-            LOGERROR("Failed to create D3D11 swap chain");
+            TURSO3D_LOGERROR("Failed to create D3D11 swap chain");
             return false;
         }
     }
@@ -762,7 +768,7 @@ namespace Turso3D
         }
         else
         {
-            LOGERROR("Failed to get backbuffer texture");
+            TURSO3D_LOGERROR("Failed to get backbuffer texture");
             success = false;
         }
 
@@ -782,10 +788,12 @@ namespace Turso3D
         depthDesc.MiscFlags = 0;
         impl->device->CreateTexture2D(&depthDesc, 0, &impl->defaultDepthTexture);
         if (impl->defaultDepthTexture)
+        {
             impl->device->CreateDepthStencilView(impl->defaultDepthTexture, 0, &impl->defaultDepthStencilView);
+        }
         else
         {
-            LOGERROR("Failed to create backbuffer depth-stencil texture");
+            TURSO3D_LOGERROR("Failed to create backbuffer depth-stencil texture");
             success = false;
         }
 
@@ -893,7 +901,9 @@ namespace Turso3D
                         inputLayout = newInputLayout;
                     }
                     else
-                        LOGERROR("Failed to create input layout");
+                    {
+                        TURSO3D_LOGERROR("Failed to create input layout");
+                    }
                 }
             }
         }
@@ -901,7 +911,7 @@ namespace Turso3D
         if (blendStateDirty)
         {
             unsigned long long blendStateHash =
-                renderState.colorWriteMask |
+                static_cast<unsigned>(renderState.colorWriteMask) |
                 (renderState.alphaToCoverage ? 0x10 : 0x0) |
                 (renderState.blendMode.blendEnable ? 0x20 : 0x0) |
                 (renderState.blendMode.srcBlend << 6) |
@@ -937,7 +947,7 @@ namespace Turso3D
                     stateDesc.RenderTarget[0].SrcBlendAlpha = (D3D11_BLEND)renderState.blendMode.srcBlendAlpha;
                     stateDesc.RenderTarget[0].DestBlendAlpha = (D3D11_BLEND)renderState.blendMode.destBlendAlpha;
                     stateDesc.RenderTarget[0].BlendOpAlpha = (D3D11_BLEND_OP)renderState.blendMode.blendOpAlpha;
-                    stateDesc.RenderTarget[0].RenderTargetWriteMask = renderState.colorWriteMask & COLORMASK_ALL;
+                    stateDesc.RenderTarget[0].RenderTargetWriteMask = (UINT8)(renderState.colorWriteMask & ColorWriteMask::All);
 
                     ID3D11BlendState* newBlendState = nullptr;
                     impl->device->CreateBlendState(&stateDesc, &newBlendState);
@@ -948,7 +958,7 @@ namespace Turso3D
                         impl->blendStateHash = blendStateHash;
                         blendStates[blendStateHash] = newBlendState;
 
-                        LOGDEBUGF("Created new blend state with hash %x", blendStateHash & 0xffffffff);
+                        TURSO3D_LOGDEBUGF("Created new blend state with hash %x", blendStateHash & 0xffffffff);
                     }
                 }
             }
@@ -958,20 +968,20 @@ namespace Turso3D
 
         if (depthStateDirty)
         {
-            unsigned long long depthStateHash =
+            uint64_t depthStateHash =
                 (renderState.depthWrite ? 0x1 : 0x0) |
                 (renderState.stencilEnable ? 0x2 : 0x0) |
                 (renderState.depthFunc << 2) |
                 (renderState.stencilTest.stencilReadMask << 6) |
                 (renderState.stencilTest.stencilWriteMask << 14) |
-                (renderState.stencilTest.frontFail << 22) |
-                (renderState.stencilTest.frontDepthFail << 26) |
-                ((unsigned long long)renderState.stencilTest.frontPass << 30) |
-                ((unsigned long long)renderState.stencilTest.frontFunc << 34) |
-                ((unsigned long long)renderState.stencilTest.frontFail << 38) |
-                ((unsigned long long)renderState.stencilTest.frontDepthFail << 42) |
-                ((unsigned long long)renderState.stencilTest.frontPass << 46) |
-                ((unsigned long long)renderState.stencilTest.frontFunc << 50);
+                ((uint64_t)renderState.stencilTest.frontFail << 22) |
+                ((uint64_t)renderState.stencilTest.frontDepthFail << 26) |
+                ((uint64_t)renderState.stencilTest.frontPass << 30) |
+                ((uint64_t)renderState.stencilTest.frontFunc << 34) |
+                ((uint64_t)renderState.stencilTest.backFail << 38) |
+                ((uint64_t)renderState.stencilTest.backDepthFail << 42) |
+                ((uint64_t)renderState.stencilTest.backPass << 46) |
+                ((uint64_t)renderState.stencilTest.backFunc << 50);
 
             if (depthStateHash != impl->depthStateHash || renderState.stencilRef != impl->stencilRef)
             {
@@ -1016,7 +1026,7 @@ namespace Turso3D
                         impl->stencilRef = renderState.stencilRef;
                         depthStates[depthStateHash] = newDepthState;
 
-                        LOGDEBUGF("Created new depth state with hash %x", depthStateHash & 0xffffffff);
+                        TURSO3D_LOGDEBUGF("Created new depth state with hash %x", depthStateHash & 0xffffffff);
                     }
                 }
             }
@@ -1071,7 +1081,7 @@ namespace Turso3D
                         impl->rasterizerStateHash = rasterizerStateHash;
                         rasterizerStates[rasterizerStateHash] = newRasterizerState;
 
-                        LOGDEBUGF("Created new rasterizer state with hash %x", rasterizerStateHash & 0xffffffff);
+                        TURSO3D_LOGDEBUGF("Created new rasterizer state with hash %x", rasterizerStateHash & 0xffffffff);
                     }
                 }
             }

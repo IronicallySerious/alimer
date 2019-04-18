@@ -1158,9 +1158,9 @@ namespace Turso3D
 #endif
     }
 
-    unsigned String::CaseSensitiveHash(const char* str)
+    uint32_t String::CaseSensitiveHash(const char* str)
     {
-        unsigned hash = 0;
+        uint32_t hash = 0;
         while (*str)
         {
             hash = *str + (hash << 6) + (hash << 16) - hash;
@@ -1170,9 +1170,9 @@ namespace Turso3D
         return hash;
     }
 
-    unsigned String::CaseInsensitiveHash(const char* str)
+    uint32_t String::CaseInsensitiveHash(const char* str)
     {
-        unsigned hash = 0;
+        uint32_t hash = 0;
         while (*str)
         {
             hash = (Turso3D::ToLower(*str)) + (hash << 6) + (hash << 16) - hash;

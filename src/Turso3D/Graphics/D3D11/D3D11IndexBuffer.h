@@ -24,13 +24,12 @@
 #pragma once
 
 #include "../../Base/AutoPtr.h"
-#include "../GPUObject.h"
-#include "../GraphicsDefs.h"
+#include "../Buffer.h"
 
 namespace Turso3D
 {
     /// GPU buffer for index data.
-    class TURSO3D_API IndexBuffer : public RefCounted, public GPUObject
+    class TURSO3D_API IndexBuffer : public Buffer
     {
     public:
         /// Construct.
@@ -38,42 +37,23 @@ namespace Turso3D
         /// Destruct.
         ~IndexBuffer();
 
-        /// Release the index buffer and CPU shadow data.
-        void Release() override;
-
         /// Define buffer. Immutable buffers must specify initial data here.  Return true on success.
-        bool Define(ResourceUsage usage, size_t numIndices, size_t indexSize, bool useShadowData, const void* data = nullptr);
+        bool Define(ResourceUsage usage, uint32_t indexCount, IndexType indexType, bool useShadowData = false, const void* data = nullptr);
         /// Redefine buffer data either completely or partially. Not supported for immutable buffers. Return true on success.
-        bool SetData(size_t firstIndex, size_t numIndices, const void* data);
+        bool SetData(const void* data, uint32_t indexStart, uint32_t indexCount);
 
-        /// Return CPU-side shadow data if exists.
-        unsigned char* ShadowData() const { return shadowData.Get(); }
         /// Return number of indices.
-        size_t NumIndices() const { return numIndices; }
+        uint32_t NumIndices() const { return _indexCount; }
+        /// Get the index type.
+        IndexType GetIndexType() const { return _indexType; }
         /// Return size of index in bytes.
-        size_t IndexSize() const { return indexSize; }
-        /// Return resource usage type.
-        ResourceUsage Usage() const { return usage; }
-        /// Return whether is dynamic.
-        bool IsDynamic() const { return usage == ResourceUsage::Dynamic; }
-        /// Return whether is immutable.
-        bool IsImmutable() const { return usage == ResourceUsage::Immutable; }
-
-        /// Return the D3D11 buffer. Used internally and should not be called by portable application code.
-        void* D3DBuffer() const { return buffer; }
+        uint32_t IndexSize() const { return _indexType == IndexType::UInt32 ? 4u : 2u; }
 
     private:
-        /// Create the GPU-side index buffer. Return true on success.
-        bool Create(const void* data);
-
-        /// D3D11 buffer.
-        void* buffer;
-        /// CPU-side shadow data.
-        AutoArrayPtr<unsigned char> shadowData;
         /// Number of indices.
-        size_t numIndices;
+        uint32_t _indexCount = 0;
         /// Size of index in bytes.
-        size_t indexSize;
+        IndexType _indexType = IndexType::UInt16;
         /// Resource usage type.
         ResourceUsage usage = ResourceUsage::Default;
     };

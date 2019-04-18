@@ -37,7 +37,7 @@ namespace Turso3D
     {
     protected:
         /// Constructor.
-        Buffer(BufferType bufferType_);
+        Buffer(BufferType bufferType, ResourceUsage usage);
 
     public:
         /// Destructor.
@@ -47,11 +47,15 @@ namespace Turso3D
         void Release() override;
 
         /// Return resource usage type.
-        ResourceUsage Usage() const { return usage; }
+        ResourceUsage Usage() const { return _usage; }
         /// Return whether is dynamic.
-        bool IsDynamic() const { return usage == ResourceUsage::Dynamic; }
+        bool IsDynamic() const { return _usage == ResourceUsage::Dynamic; }
         /// Return whether is immutable.
-        bool IsImmutable() const { return usage == ResourceUsage::Immutable; }
+        bool IsImmutable() const { return _usage == ResourceUsage::Immutable; }
+        /// Return total byte size of the buffer.
+        uint32_t SizeInBytes() const { return _sizeInBytes; }
+        /// Return CPU-side shadow data if exists.
+        uint8_t* ShadowData() const { return _shadowData.Get(); }
 
 #ifdef TURSO3D_D3D11
         /// Return the D3D11 buffer. Used internally and should not be called by portable application code.
@@ -60,19 +64,26 @@ namespace Turso3D
 
     protected:
         /// Create the GPU-side buffer. Return true on success.
-        bool Create(const void* data);
+        bool Create(bool useShadowData, const void* data);
+
+    private:
+        // Backend methods
+        bool CreateImpl(const void* data);
 
     protected:
 #ifdef TURSO3D_D3D11
         ID3D11Buffer* _handle = nullptr;
 #endif
         /// Type of buffer.
-        BufferType bufferType;
+        BufferType _bufferType;
 
         /// Resource usage type.
-        ResourceUsage usage = ResourceUsage::Default;
+        ResourceUsage _usage = ResourceUsage::Default;
 
         /// Size in bytes
-        uint32_t sizeInBytes = 0;
+        uint32_t _sizeInBytes = 0;
+
+        /// CPU-side shadow data.
+        AutoArrayPtr<uint8_t> _shadowData;
     };
 }

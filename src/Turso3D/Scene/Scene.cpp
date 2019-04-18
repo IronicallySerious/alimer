@@ -1,4 +1,25 @@
-// For conditions of distribution and use, see copyright notice in License.txt
+//
+// Alimer is based on the Turso3D codebase.
+// Copyright (c) 2018-2019 Amer Koleci and contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
 
 #include "../Debug/Log.h"
 #include "../Debug/Profiler.h"
@@ -44,7 +65,7 @@ namespace Turso3D
     {
         TURSO3D_PROFILE(SaveScene);
 
-        LOGINFO("Saving scene to " + dest.Name());
+        TURSO3D_LOGINFO("Saving scene to " + dest.Name());
 
         dest.WriteFileID("SCNE");
         Node::Save(dest);
@@ -54,12 +75,12 @@ namespace Turso3D
     {
         TURSO3D_PROFILE(LoadScene);
 
-        LOGINFO("Loading scene from " + source.Name());
+        TURSO3D_LOGINFO("Loading scene from " + source.Name());
 
         String fileId = source.ReadFileID();
         if (fileId != "SCNE")
         {
-            LOGERROR("File is not a binary scene file");
+            TURSO3D_LOGERROR("File is not a binary scene file");
             return false;
         }
 
@@ -67,7 +88,7 @@ namespace Turso3D
         unsigned ownId = source.Read<unsigned>();
         if (ownType != TypeStatic())
         {
-            LOGERROR("Mismatching type of scene root node in scene file");
+            TURSO3D_LOGERROR("Mismatching type of scene root node in scene file");
             return false;
         }
 
@@ -90,7 +111,7 @@ namespace Turso3D
 
         if (ownType != TypeStatic())
         {
-            LOGERROR("Mismatching type of scene root node in scene file");
+            TURSO3D_LOGERROR("Mismatching type of scene root node in scene file");
             return false;
         }
 
@@ -106,7 +127,7 @@ namespace Turso3D
 
     bool Scene::LoadJSON(Stream& source)
     {
-        LOGINFO("Loading scene from " + source.Name());
+        TURSO3D_LOGINFO("Loading scene from " + source.Name());
 
         JSONFile json;
         bool success = json.Load(source);
@@ -118,7 +139,7 @@ namespace Turso3D
     {
         TURSO3D_PROFILE(SaveSceneJSON);
 
-        LOGINFO("Saving scene to " + dest.Name());
+        TURSO3D_LOGINFO("Saving scene to " + dest.Name());
 
         JSONFile json;
         Node::SaveJSON(json.Root());
@@ -174,7 +195,7 @@ namespace Turso3D
     {
         if (index >= 32)
         {
-            LOGERROR("Can not define more than 32 layers");
+            TURSO3D_LOGERROR("Can not define more than 32 layers");
             return;
         }
 

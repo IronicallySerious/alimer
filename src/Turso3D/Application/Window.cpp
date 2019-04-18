@@ -21,36 +21,29 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#include "Window.h"
+#include "../Debug/DebugNew.h"
 
-#include "Turso3DPlatform.h"
-
-/// %Turso3D engine namespace.
 namespace Turso3D
 {
+    Window::Window()
+        : savedPosition(IntVector2(M_MIN_INT, M_MIN_INT))
+        , mousePosition(IntVector2::ZERO)
+        , windowStyle(0)
+        , minimized(false)
+        , focus(false)
+        , resizable(false)
+        , fullscreen(false)
+        , inResize(false)
+        , mouseVisible(true)
+        , mouseVisibleInternal(true)
+    {
+        RegisterSubsystem(this);
+    }
+
+    Window::~Window()
+    {
+        Close();
+        RemoveSubsystem(this);
+    }
 }
-
-#ifdef _MSC_VER
-#   pragma warning(disable:4481)
-#endif
-
-// Shared library exports
-/* #undef TURSO3D_SHARED */
-#if defined(_WIN32) && defined(TURSO3D_SHARED)
-#   ifdef _MSC_VER
-#       pragma warning(disable:4251)
-#   endif
-#   ifdef TURSO3D_EXPORTS
-#       define TURSO3D_API __declspec(dllexport)
-#   else
-#       define TURSO3D_API __declspec(dllimport)
-#   endif
-#else
-#   define TURSO3D_API
-#endif
-
-// Turso3D build configuration
-#define TURSO3D_LOGGING
-#define TURSO3D_PROFILING
-#define TURSO3D_D3D11
-/* #undef TURSO3D_OPENGL */

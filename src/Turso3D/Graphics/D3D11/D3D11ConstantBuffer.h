@@ -24,15 +24,14 @@
 #pragma once
 
 #include "../../Base/AutoPtr.h"
-#include "../GPUObject.h"
-#include "../GraphicsDefs.h"
+#include "../Buffer.h"
 
 namespace Turso3D
 {
     class JSONValue;
 
     /// GPU buffer for shader constant data.
-    class TURSO3D_API ConstantBuffer : public RefCounted, public GPUObject
+    class TURSO3D_API ConstantBuffer : public Buffer
     {
     public:
         /// Construct.
@@ -40,17 +39,14 @@ namespace Turso3D
         /// Destruct.
         ~ConstantBuffer();
 
-        /// Release the buffer.
-        void Release() override;
-
         /// Load from JSON data. Return true on success.
         bool LoadJSON(const JSONValue& source);
         /// Save as JSON data.
         void SaveJSON(JSONValue& dest);
         /// Define the constants being used and create the GPU-side buffer. Return true on success.
-        bool Define(ResourceUsage usage, const Vector<Constant>& srcConstants);
+        bool Define(const Vector<Constant>& srcConstants);
         /// Define the constants being used and create the GPU-side buffer. Return true on success.
-        bool Define(ResourceUsage usage, size_t numConstants, const Constant* srcConstants);
+        bool Define(size_t numConstants, const Constant* srcConstants);
         /// Set a constant by index. Optionally specify how many elements to update, default all. Return true on success.
         bool SetConstant(size_t index, const void* data, size_t numElements = 0);
         /// Set a constant by name. Optionally specify how many elements to update, default all. Return true on success.
@@ -104,37 +100,16 @@ namespace Turso3D
             return value ? *(reinterpret_cast<const T*>(value)) : T();
         }
 
-        /// Return total byte size of the buffer.
-        uint32_t SizeInBytes() const { return sizeInBytes; }
+        
         /// Return whether buffer has unapplied changes.
         bool IsDirty() const { return dirty; }
-        /// Return resource usage type.
-        ResourceUsage Usage() const { return usage; }
-        /// Return whether is dynamic.
-        bool IsDynamic() const { return usage == ResourceUsage::Dynamic; }
-        /// Return whether is immutable.
-        bool IsImmutable() const { return usage == ResourceUsage::Immutable; }
-
-        /// Return the D3D11 buffer. Used internally and should not be called by portable application code.
-        void* D3DBuffer() const { return buffer; }
 
         /// Index for "constant not found."
         static const uint32_t NPOS = (uint32_t)-1;
 
     private:
-        /// Create the GPU-side constant buffer. Called on the first Apply() if the buffer is immutable. Return true on success.
-        bool Create(const void* data = nullptr);
-
-        /// D3D11 buffer.
-        void* buffer = nullptr;
         /// Constant definitions.
         Vector<Constant> constants;
-        /// CPU-side data where updates are collected before applying.
-        AutoArrayPtr<uint8_t> shadowData;
-        /// Total size in bytes.
-        uint32_t sizeInBytes = 0;
-        /// Resource usage type.
-        ResourceUsage usage = ResourceUsage::Default;
         /// Dirty flag.
         bool dirty = false;
     };

@@ -34,7 +34,7 @@ namespace Turso3D
         bool success = root.Parse(pos, end);
         if (!success)
         {
-            LOGERROR("Parsing JSON from " + source.Name() + " failed; data may be partial");
+            TURSO3D_LOGERROR("Parsing JSON from " + source.Name() + " failed; data may be partial");
         }
 
         return success;

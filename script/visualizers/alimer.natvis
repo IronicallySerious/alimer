@@ -1,39 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-    <!-- alimer::StringHash -->
-    <Type Name="alimer::StringHash" Priority="Low">
-        <DisplayString>#{_value}</DisplayString>
-    </Type>
-
-    <!-- alimer::SharedPtr<> -->
-    <Type Name = "alimer::SharedPtr&lt;*&gt;">
-        <DisplayString>{ptr_}</DisplayString>
+    <!-- Urho3D::String -->
+    <Type Name="Turso3D::String">
+        <DisplayString Condition="buffer_">{buffer_,nas8}</DisplayString>
+        <DisplayString>invalid string</DisplayString>
         <Expand>
-            <Synthetic Condition="!ptr_" Name="[empty]"/>
-            <Item Condition="ptr_" Name="[strong]">ptr_->_refCount->refs</Item>
-            <Item Condition="ptr_" Name="[weak]">ptr_->_refCount->weakRefs</Item>
-            <Item Condition="ptr_" Name="[ptr]">ptr_</Item>
+            <Item Name="[length]" ExcludeView="simple">length_</Item>
+            <Item Name="[capacity]" ExcludeView="simple">capacity_</Item>
+            <Item Name="[buffer]">buffer_</Item>
         </Expand>
     </Type>
 
-    <!-- alimer::WeakPtr<> -->
-    <Type Name = "alimer::WeakPtr&lt;*&gt;">
-        <DisplayString Condition="!_refCount">(empty)</DisplayString>
-        <DisplayString Condition="_refCount &amp;&amp; (_refCount->refs &lt; 0)">(expired)</DisplayString>
-        <DisplayString Condition="_refCount &amp;&amp; !(_refCount->refs &lt; 0)">{ptr_}</DisplayString>
-        <Expand>
-            <Synthetic Condition="!_refCount" Name="[empty]"/>
-            <Synthetic Condition="_refCount &amp;&amp; _refCount->refs &lt; 0" Name="[expired]"/>
-            <Item Condition="_refCount" Name="[weak]">_refCount->weakRefs</Item>
-            <Item Condition="_refCount" Name="[strong]">_refCount->refs</Item>
-            <Item Condition="_refCount &amp;&amp; !(_refCount->refs &lt; 0)" Name="[ptr]">ptr_</Item>
-        </Expand>
-    </Type>
-
-    <!-- alimer::Resource -->
-    <Type Name = "alimer::Resource">
-        <DisplayString>_name = {_name}</DisplayString>
+    <!-- Urho3D::StringHash -->
+    <Type Name="Turso3D::StringHash" Priority="Low">
+        <DisplayString>#{value}</DisplayString>
     </Type>
 
 </AutoVisualizer>

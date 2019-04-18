@@ -76,9 +76,9 @@ namespace Turso3D
         /// Bind an index buffer.
         void SetIndexBuffer(IndexBuffer* buffer);
         /// Bind a constant buffer.
-        void SetConstantBuffer(ShaderStage stage, size_t index, ConstantBuffer* buffer);
+        void SetConstantBuffer(ShaderStage stage, uint32_t index, ConstantBuffer* buffer);
         /// Bind a texture.
-        void SetTexture(size_t index, Texture* texture);
+        void SetTexture(uint32_t index, Texture* texture);
         /// Bind vertex and pixel shaders.
         void SetShaders(ShaderVariation* vs, ShaderVariation* ps);
         /// Set color write and blending related state using an arbitrary blend mode.

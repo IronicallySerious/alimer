@@ -29,30 +29,40 @@
 
 namespace Turso3D
 {
-    bool VertexBuffer::Define(ResourceUsage usage_, size_t numVertices_, const Vector<VertexElement>& elements_, bool useShadowData, const void* data)
+    VertexBuffer::VertexBuffer()
+        : Buffer(BufferType::Vertex, ResourceUsage::Default)
     {
-        if (!numVertices_ || !elements_.Size())
+    }
+
+    VertexBuffer::~VertexBuffer()
+    {
+        Release();
+    }
+
+    bool VertexBuffer::Define(ResourceUsage usage, uint32_t vertexCount, const Vector<VertexElement>& elements_, bool useShadowData, const void* data)
+    {
+        if (!vertexCount || !elements_.Size())
         {
-            LOGERROR("Can not define vertex buffer with no vertices or no elements");
+            TURSO3D_LOGERROR("Can not define vertex buffer with no vertices or no elements");
             return false;
         }
 
-        return Define(usage_, numVertices_, elements_.Size(), &elements_[0], useShadowData, data);
+        return Define(usage, vertexCount, elements_.Size(), &elements_[0], useShadowData, data);
     }
 
-    bool VertexBuffer::Define(ResourceUsage usage_, size_t numVertices_, size_t numElements_, const VertexElement* elements_, bool useShadowData, const void* data)
+    bool VertexBuffer::Define(ResourceUsage usage, uint32_t vertexCount, size_t numElements_, const VertexElement* elements_, bool useShadowData, const void* data)
     {
         TURSO3D_PROFILE(DefineVertexBuffer);
 
-        if (!numVertices_ || !numElements_ || !elements_)
+        if (!vertexCount || !numElements_ || !elements_)
         {
-            LOGERROR("Can not define vertex buffer with no vertices or no elements");
+            TURSO3D_LOGERROR("Can not define vertex buffer with no vertices or no elements");
             return false;
         }
 
-        if (usage_ == ResourceUsage::Immutable && !data)
+        if (usage == ResourceUsage::Immutable && !data)
         {
-            LOGERROR("Immutable vertex buffer must define initial data");
+            TURSO3D_LOGERROR("Immutable vertex buffer must define initial data");
             return false;
         }
 
@@ -60,38 +70,28 @@ namespace Turso3D
         {
             if (elements_[i].type >= ELEM_MATRIX3X4)
             {
-                LOGERROR("Matrix elements are not supported in vertex buffers");
+                TURSO3D_LOGERROR("Matrix elements are not supported in vertex buffers");
                 return false;
             }
         }
 
-        Release();
-
-        numVertices = numVertices_;
-        usage = usage_;
+        _vertexCount = vertexCount;
+        _usage = usage;
 
         // Determine offset of elements and the vertex size & element hash
-        vertexSize = 0;
-        elementHash = 0;
-        elements.Resize(numElements_);
+        _vertexSize = 0;
+        _elementHash = 0;
+        _elements.Resize(numElements_);
         for (size_t i = 0; i < numElements_; ++i)
         {
-            elements[i] = elements_[i];
-            elements[i].offset = vertexSize;
-            vertexSize += elementSizes[elements[i].type];
-            elementHash |= ElementHash(i, elements[i].semantic);
+            _elements[i] = elements_[i];
+            _elements[i].offset = _vertexSize;
+            _vertexSize += elementSizes[_elements[i].type];
+            _elementHash |= ElementHash(i, _elements[i].semantic);
         }
 
-        sizeInBytes = (unsigned)(numVertices * vertexSize);
+        _sizeInBytes = _vertexCount * _vertexSize;
 
-        // If buffer is reinitialized with the same shadow data, no need to reallocate
-        if (useShadowData && (!data || data != shadowData.Get()))
-        {
-            shadowData = new uint8_t[numVertices * vertexSize];
-            if (data)
-                memcpy(shadowData.Get(), data, numVertices * vertexSize);
-        }
-
-        return Create(data);
+        return Create(useShadowData, data);
     }
 }

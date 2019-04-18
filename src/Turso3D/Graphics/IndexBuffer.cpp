@@ -29,45 +29,37 @@
 
 namespace Turso3D
 {
-    bool IndexBuffer::Define(ResourceUsage usage_, size_t numIndices_, size_t indexSize_, bool useShadowData, const void* data)
+    IndexBuffer::IndexBuffer()
+        : Buffer(BufferType::Index, ResourceUsage::Default)
+    {
+    }
+
+    IndexBuffer::~IndexBuffer()
+    {
+        Release();
+    }
+
+    bool IndexBuffer::Define(ResourceUsage usage, uint32_t indexCount, IndexType indexType, bool useShadowData, const void* data)
     {
         TURSO3D_PROFILE(DefineIndexBuffer);
 
-        Release();
-
-        if (!numIndices_)
+        if (!indexCount)
         {
-            LOGERROR("Can not define index buffer with no indices");
-            return false;
-        }
-        if (usage_ == ResourceUsage::RenderTarget)
-        {
-            LOGERROR("Rendertarget usage is illegal for index buffers");
-            return false;
-        }
-        if (usage_ == ResourceUsage::Immutable && !data)
-        {
-            LOGERROR("Immutable index buffer must define initial data");
-            return false;
-        }
-        if (indexSize_ != sizeof(unsigned) && indexSize_ != sizeof(unsigned short))
-        {
-            LOGERROR("Index buffer index size must be 2 or 4");
+            TURSO3D_LOGERROR("Can not define index buffer with no indices");
             return false;
         }
 
-        numIndices = numIndices_;
-        indexSize = indexSize_;
-        usage = usage_;
-
-        // If buffer is reinitialized with the same shadow data, no need to reallocate
-        if (useShadowData && (!data || data != shadowData.Get()))
+        if (usage == ResourceUsage::Immutable && !data)
         {
-            shadowData = new unsigned char[numIndices * indexSize];
-            if (data)
-                memcpy(shadowData.Get(), data, numIndices * indexSize);
+            TURSO3D_LOGERROR("Immutable index buffer must define initial data");
+            return false;
         }
 
-        return Create(data);
+        _indexCount = indexCount;
+        _indexType = indexType;
+        _usage = usage;
+        _sizeInBytes = indexCount * IndexSize();
+
+        return Create(useShadowData, data);
     }
 }

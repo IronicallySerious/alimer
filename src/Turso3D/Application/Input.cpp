@@ -23,7 +23,6 @@
 
 #include "Input.h"
 #include "Window.h"
-
 #include "../Debug/DebugNew.h"
 
 namespace Turso3D
@@ -48,12 +47,9 @@ namespace Turso3D
         keyPressed.Clear();
         rawKeyPress.Clear();
         for (auto it = touches.Begin(); it != touches.End(); ++it)
+        {
             it->delta = IntVector2::ZERO;
-
-        // The OS-specific window message handling will call back to Input and update the state
-        Window* window = Subsystem<Window>();
-        if (window)
-            window->PumpMessages();
+        }
     }
 
     bool Input::IsKeyDown(unsigned keyCode) const
@@ -80,10 +76,15 @@ namespace Turso3D
         return it != rawKeyPress.End() ? it->second : false;
     }
 
-    const IntVector2& Input::MousePosition() const
+    const IntVector2& Input::GetMousePosition() const
     {
         Window* window = Subsystem<Window>();
         return window ? window->MousePosition() : IntVector2::ZERO;
+    }
+
+    const IntVector2& Input::GetMousePosition(const Window& relativeTo) const
+    {
+        return relativeTo.MousePosition();
     }
 
     bool Input::IsMouseButtonDown(unsigned button) const
@@ -156,7 +157,7 @@ namespace Turso3D
         mouseButtonEvent.button = button;
         mouseButtonEvent.buttons = mouseButtons;
         mouseButtonEvent.pressed = pressed;
-        mouseButtonEvent.position = MousePosition();
+        mouseButtonEvent.position = GetMousePosition();
         SendEvent(mouseButtonEvent);
     }
 

@@ -32,38 +32,38 @@ namespace Turso3D
     {
     public:
         /// Construct with zero value.
-        StringHash() :
-            value(0)
+        StringHash()
+            : value(0)
         {
         }
 
         /// Copy-construct.
-        StringHash(const StringHash& hash) :
-            value(hash.value)
+        StringHash(const StringHash& hash)
+            : value(hash.value)
         {
         }
 
         /// Construct with an initial value.
-        explicit StringHash(unsigned value_) :
-            value(value_)
+        explicit StringHash(uint32_t value_)
+            : value(value_)
         {
         }
 
         /// Construct from a string case-insensitively.
-        explicit StringHash(const String& str) :
-            value(String::CaseInsensitiveHash(str.CString()))
+        explicit StringHash(const String& str)
+            : value(String::CaseInsensitiveHash(str.CString()))
         {
         }
 
         /// Construct from a C string case-insensitively.
-        explicit StringHash(const char* str) :
-            value(String::CaseInsensitiveHash(str))
+        explicit StringHash(const char* str)
+            : value(String::CaseInsensitiveHash(str))
         {
         }
 
         /// Construct from a C string case-insensitively.
-        explicit StringHash(char* str) :
-            value(String::CaseInsensitiveHash(str))
+        explicit StringHash(char* str)
+            : value(String::CaseInsensitiveHash(str))
         {
         }
 
@@ -125,16 +125,13 @@ namespace Turso3D
         /// Return as string.
         String ToString() const;
         /// Return hash value for HashSet & HashMap.
-        unsigned ToHash() const { return value; }
-
-        /// Calculate hash value case-insensitively from a C string.
-        static unsigned Calculate(const char* str);
+        uint32_t ToHash() const { return value; }
 
         /// Zero hash.
         static const StringHash ZERO;
 
     private:
         /// Hash value.
-        unsigned value;
+        uint32_t value;
     };
 }

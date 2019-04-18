@@ -41,22 +41,22 @@ namespace Turso3D
 {
     uint32_t InspectInputSignature(ID3DBlob* d3dBlob)
     {
-        ID3D11ShaderReflection* reflection = nullptr;
+        ID3D11ShaderReflection* shaderReflection;
         D3D11_SHADER_DESC shaderDesc;
         uint32_t elementHash = 0;
 
-        D3DReflect(d3dBlob->GetBufferPointer(), d3dBlob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflection);
-        if (!reflection)
+        HRESULT hr = D3DReflect(d3dBlob->GetBufferPointer(), d3dBlob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&shaderReflection);
+        if (FAILED(hr))
         {
-            LOGERROR("Failed to reflect vertex shader's input signature");
+            TURSO3D_LOGERROR("Failed to reflect vertex shader's input signature");
             return elementHash;
         }
 
-        reflection->GetDesc(&shaderDesc);
+        shaderReflection->GetDesc(&shaderDesc);
         for (size_t i = 0; i < shaderDesc.InputParameters; ++i)
         {
             D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
-            reflection->GetInputParameterDesc((unsigned)i, &paramDesc);
+            shaderReflection->GetInputParameterDesc((unsigned)i, &paramDesc);
 
             for (size_t j = 0; elementSemanticNames[j]; ++j)
             {
@@ -68,7 +68,7 @@ namespace Turso3D
             }
         }
 
-        reflection->Release();
+        shaderReflection->Release();
         return elementHash;
     }
 
@@ -87,7 +87,9 @@ namespace Turso3D
     void ShaderVariation::Release()
     {
         if (graphics && (graphics->GetVertexShader() == this || graphics->GetPixelShader() == this))
+        {
             graphics->SetShaders(nullptr, nullptr);
+        }
 
         if (blob)
         {
@@ -127,12 +129,12 @@ namespace Turso3D
 
         if (!graphics || !graphics->IsInitialized())
         {
-            LOGERROR("Can not compile shader without initialized Graphics subsystem");
+            TURSO3D_LOGERROR("Can not compile shader without initialized Graphics subsystem");
             return false;
         }
         if (!parent)
         {
-            LOGERROR("Can not compile shader without parent shader resource");
+            TURSO3D_LOGERROR("Can not compile shader without parent shader resource");
             return false;
         }
 
@@ -172,7 +174,7 @@ namespace Turso3D
         {
             if (errorBlob)
             {
-                LOGERRORF("Could not compile shader %s: %s", FullName().CString(), errorBlob->GetBufferPointer());
+                TURSO3D_LOGERRORF("Could not compile shader %s: %s", FullName().CString(), errorBlob->GetBufferPointer());
                 errorBlob->Release();
             }
             return false;
@@ -198,22 +200,24 @@ namespace Turso3D
         }
 #endif
 
+        HRESULT hr = S_OK;
         if (stage == SHADER_VS)
         {
             elementHash = InspectInputSignature(d3dBlob);
-            d3dDevice->CreateVertexShader(d3dBlob->GetBufferPointer(), d3dBlob->GetBufferSize(), 0, (ID3D11VertexShader**)&shader);
+            hr = d3dDevice->CreateVertexShader(d3dBlob->GetBufferPointer(), d3dBlob->GetBufferSize(), 0, (ID3D11VertexShader**)&shader);
         }
         else
-            d3dDevice->CreatePixelShader(d3dBlob->GetBufferPointer(), d3dBlob->GetBufferSize(), 0, (ID3D11PixelShader**)&shader);
-
-        if (!shader)
         {
-            LOGERROR("Failed to create shader " + FullName());
+            hr = d3dDevice->CreatePixelShader(d3dBlob->GetBufferPointer(), d3dBlob->GetBufferSize(), 0, (ID3D11PixelShader**)&shader);
+        }
+
+        if (FAILED(hr))
+        {
+            TURSO3D_LOGERROR("Failed to create shader " + FullName());
             return false;
         }
-        else
-            LOGDEBUGF("Compiled shader %s bytecode size %u", FullName().CString(), (unsigned)d3dBlob->GetBufferSize());
 
+        TURSO3D_LOGDEBUGF("Compiled shader %s bytecode size %u", FullName().CString(), (unsigned)d3dBlob->GetBufferSize());
         return true;
     }
 
@@ -224,10 +228,11 @@ namespace Turso3D
 
     String ShaderVariation::FullName() const
     {
-        if (parent)
+        if (parent) {
             return defines.IsEmpty() ? parent->Name() : parent->Name() + " (" + defines + ")";
-        else
-            return String::EMPTY;
+        }
+
+        return String::EMPTY;
     }
 
 }

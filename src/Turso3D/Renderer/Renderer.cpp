@@ -101,7 +101,7 @@ namespace Turso3D
         shadowMaps.Resize(num);
         for (auto it = shadowMaps.Begin(); it != shadowMaps.End(); ++it)
         {
-            if (it->texture->Define(TEX_2D, ResourceUsage::RenderTarget, IntVector2(size, size), format, 1))
+            if (it->texture->Define(TextureType::Type2D, ResourceUsage::RenderTarget, IntVector2(size, size), format, 1))
             {
                 // Setup shadow map sampling with hardware depth compare
                 it->texture->DefineSampler(COMPARE_BILINEAR, ADDRESS_CLAMP, ADDRESS_CLAMP, ADDRESS_CLAMP, 1);
@@ -602,22 +602,22 @@ namespace Turso3D
         constants.Push(Constant(ELEM_MATRIX4, "projectionMatrix"));
         constants.Push(Constant(ELEM_MATRIX4, "viewProjMatrix"));
         constants.Push(Constant(ELEM_VECTOR4, "depthParameters"));
-        vsFrameConstantBuffer->Define(ResourceUsage::Default, constants);
+        vsFrameConstantBuffer->Define(constants);
 
         psFrameConstantBuffer = new ConstantBuffer();
         constants.Clear();
         constants.Push(Constant(ELEM_VECTOR4, "ambientColor"));
-        psFrameConstantBuffer->Define(ResourceUsage::Default, constants);
+        psFrameConstantBuffer->Define(constants);
 
         vsObjectConstantBuffer = new ConstantBuffer();
         constants.Clear();
         constants.Push(Constant(ELEM_MATRIX3X4, "worldMatrix"));
-        vsObjectConstantBuffer->Define(ResourceUsage::Default, constants);
+        vsObjectConstantBuffer->Define(constants);
 
         vsLightConstantBuffer = new ConstantBuffer();
         constants.Clear();
         constants.Push(Constant(ELEM_MATRIX4, "shadowMatrices", MAX_LIGHTS_PER_PASS));
-        vsLightConstantBuffer->Define(ResourceUsage::Default, constants);
+        vsLightConstantBuffer->Define(constants);
 
         psLightConstantBuffer = new ConstantBuffer();
         constants.Clear();
@@ -629,7 +629,7 @@ namespace Turso3D
         constants.Push(Constant(ELEM_VECTOR4, "pointShadowParameters", MAX_LIGHTS_PER_PASS));
         constants.Push(Constant(ELEM_VECTOR4, "dirShadowSplits"));
         constants.Push(Constant(ELEM_VECTOR4, "dirShadowFade"));
-        psLightConstantBuffer->Define(ResourceUsage::Default, constants);
+        psLightConstantBuffer->Define(constants);
 
         // Instance vertex buffer contains texcoords 4-6 which define the instances' world matrices
         instanceVertexBuffer = new VertexBuffer();
@@ -675,17 +675,17 @@ namespace Turso3D
         {
             ImageLevel level;
             level.rowSize = 4 * sizeof(float);
-            level.data = (unsigned char*)&faceSelectionData1[4 * i];
+            level.data = (uint8_t*)&faceSelectionData1[4 * i];
             faces1.Push(level);
-            level.data = (unsigned char*)&faceSelectionData2[4 * i];
+            level.data = (uint8_t*)&faceSelectionData2[4 * i];
             faces2.Push(level);
         }
 
-        faceSelectionTexture1->Define(TEX_CUBE, ResourceUsage::Default, IntVector2(1, 1), FMT_RGBA32F, 1, &faces1[0]);
+        faceSelectionTexture1->Define(TextureType::TypeCube, ResourceUsage::Default, IntVector2(1, 1), FMT_RGBA32F, 1, &faces1[0]);
         faceSelectionTexture1->DefineSampler(FILTER_POINT, ADDRESS_CLAMP, ADDRESS_CLAMP, ADDRESS_CLAMP);
         faceSelectionTexture1->SetDataLost(false);
 
-        faceSelectionTexture2->Define(TEX_CUBE, ResourceUsage::Default, IntVector2(1, 1), FMT_RGBA32F, 1, &faces2[0]);
+        faceSelectionTexture2->Define(TextureType::TypeCube, ResourceUsage::Default, IntVector2(1, 1), FMT_RGBA32F, 1, &faces2[0]);
         faceSelectionTexture2->DefineSampler(FILTER_POINT, ADDRESS_CLAMP, ADDRESS_CLAMP, ADDRESS_CLAMP);
         faceSelectionTexture2->SetDataLost(false);
     }
@@ -870,12 +870,12 @@ namespace Turso3D
 
         if (instanceTransformsDirty && instanceTransforms.Size())
         {
-            if (instanceVertexBuffer->NumVertices() < instanceTransforms.Size())
+            if (instanceVertexBuffer->VertexCount() < instanceTransforms.Size())
             {
-                instanceVertexBuffer->Define(ResourceUsage::Dynamic, NextPowerOfTwo(instanceTransforms.Size()), instanceVertexElements, false);
+                instanceVertexBuffer->Define(ResourceUsage::Dynamic, NextPowerOfTwo((uint32_t)instanceTransforms.Size()), instanceVertexElements, false);
             }
 
-            instanceVertexBuffer->SetData(0, instanceTransforms.Size(), &instanceTransforms[0]);
+            instanceVertexBuffer->SetData(&instanceTransforms[0], 0, (uint32_t)instanceTransforms.Size());
             graphics->SetVertexBuffer(1, instanceVertexBuffer);
             instanceTransformsDirty = false;
         }
@@ -928,7 +928,7 @@ namespace Turso3D
                     Material* material = pass->Parent();
                     if (material != lastMaterial)
                     {
-                        for (size_t i = 0; i < MAX_MATERIAL_TEXTURE_UNITS; ++i)
+                        for (uint32_t i = 0; i < MAX_MATERIAL_TEXTURE_UNITS; ++i)
                         {
                             if (material->textures[i])
                                 graphics->SetTexture(i, material->textures[i]);
@@ -965,7 +965,7 @@ namespace Turso3D
                             psLightConstantBuffer->SetData(lights->lightPositions);
                             graphics->SetConstantBuffer(SHADER_PS, CB_LIGHTS, psLightConstantBuffer.Get());
 
-                            for (size_t i = 0; i < MAX_LIGHTS_PER_PASS; ++i)
+                            for (uint32_t i = 0; i < MAX_LIGHTS_PER_PASS; ++i)
                                 graphics->SetTexture(MAX_MATERIAL_TEXTURE_UNITS + i, lights->shadowMaps[i]);
                         }
 

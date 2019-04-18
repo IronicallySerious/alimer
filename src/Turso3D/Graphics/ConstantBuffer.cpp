@@ -45,12 +45,19 @@ namespace Turso3D
         MAX_ATTR_TYPES
     };
 
+    ConstantBuffer::ConstantBuffer()
+        : Buffer(BufferType::Uniform, ResourceUsage::Dynamic)
+    {
+    }
+
+    ConstantBuffer::~ConstantBuffer()
+    {
+        Release();
+    }
+
+
     bool ConstantBuffer::LoadJSON(const JSONValue& source)
     {
-        ResourceUsage usage_ = ResourceUsage::Default;
-        if (source.Contains("usage"))
-            usage_ = (ResourceUsage)String::ListIndex(source["usage"].GetString(), resourceUsageNames, (size_t)ResourceUsage::Default);
-
         Vector<Constant> constants_;
 
         const JSONValue& jsonConstants = source["constants"];
@@ -64,7 +71,7 @@ namespace Turso3D
             newConstant.type = (ElementType)String::ListIndex(type, elementTypeNames, MAX_ELEMENT_TYPES);
             if (newConstant.type == MAX_ELEMENT_TYPES)
             {
-                LOGERRORF("Unknown element type %s in constant buffer JSON", type.CString());
+                TURSO3D_LOGERRORF("Unknown element type %s in constant buffer JSON", type.CString());
                 break;
             }
             if (jsonConstant.Contains("numElements"))
@@ -73,7 +80,7 @@ namespace Turso3D
             constants_.Push(newConstant);
         }
 
-        if (!Define(usage_, constants_))
+        if (!Define(constants_))
             return false;
 
         for (size_t i = 0; i < constants.Size() && i < jsonConstants.Size(); ++i)
@@ -98,7 +105,7 @@ namespace Turso3D
     void ConstantBuffer::SaveJSON(JSONValue& dest)
     {
         dest.SetEmptyObject();
-        dest["usage"] = resourceUsageNames[static_cast<unsigned>(usage)];
+        dest["usage"] = resourceUsageNames[static_cast<unsigned>(_usage)];
         dest["constants"].SetEmptyArray();
 
         for (size_t i = 0; i < constants.Size(); ++i)
@@ -125,12 +132,12 @@ namespace Turso3D
         }
     }
 
-    bool ConstantBuffer::Define(ResourceUsage usage_, const Vector<Constant>& srcConstants)
+    bool ConstantBuffer::Define(const Vector<Constant>& srcConstants)
     {
-        return Define(usage_, srcConstants.Size(), srcConstants.Size() ? &srcConstants[0] : nullptr);
+        return Define(srcConstants.Size(), srcConstants.Size() ? &srcConstants[0] : nullptr);
     }
 
-    bool ConstantBuffer::Define(ResourceUsage usage_, size_t numConstants, const Constant* srcConstants)
+    bool ConstantBuffer::Define(size_t numConstants, const Constant* srcConstants)
     {
         TURSO3D_PROFILE(DefineConstantBuffer);
 
@@ -138,26 +145,20 @@ namespace Turso3D
 
         if (!numConstants)
         {
-            LOGERROR("Can not define constant buffer with no constants");
-            return false;
-        }
-        if (usage_ == ResourceUsage::RenderTarget)
-        {
-            LOGERROR("Rendertarget usage is illegal for constant buffers");
+            TURSO3D_LOGERROR("Can not define constant buffer with no constants");
             return false;
         }
 
         constants.Clear();
-        sizeInBytes = 0;
-        usage = usage_;
+        _sizeInBytes = 0;
 
         while (numConstants--)
         {
             if (srcConstants->type == ELEM_UBYTE4)
             {
-                LOGERROR("UBYTE4 type is not supported in constant buffers");
+                TURSO3D_LOGERROR("UBYTE4 type is not supported in constant buffers");
                 constants.Clear();
-                sizeInBytes = 0;
+                _sizeInBytes = 0;
                 return false;
             }
 
@@ -167,28 +168,23 @@ namespace Turso3D
             newConstant.numElements = srcConstants->numElements;
             newConstant.elementSize = elementSizes[newConstant.type];
             // If element crosses 16 byte boundary or is larger than 16 bytes, align to next 16 bytes
-            if ((newConstant.elementSize <= 16 && ((sizeInBytes + newConstant.elementSize - 1) >> 4) != (sizeInBytes >> 4))
-                || (newConstant.elementSize > 16 && (sizeInBytes & 15))) {
-                sizeInBytes += 16 - (sizeInBytes & 15);
+            if ((newConstant.elementSize <= 16 && ((_sizeInBytes + newConstant.elementSize - 1) >> 4) != (_sizeInBytes >> 4))
+                || (newConstant.elementSize > 16 && (_sizeInBytes & 15))) {
+                _sizeInBytes += 16 - (_sizeInBytes & 15);
             }
 
-            newConstant.offset = sizeInBytes;
+            newConstant.offset = _sizeInBytes;
             constants.Push(newConstant);
 
-            sizeInBytes += newConstant.elementSize * newConstant.numElements;
+            _sizeInBytes += newConstant.elementSize * newConstant.numElements;
             ++srcConstants;
         }
 
         // Align the final buffer size to a multiple of 16 bytes
-        if (sizeInBytes & 15)
-            sizeInBytes += 16 - (sizeInBytes & 15);
+        if (_sizeInBytes & 15)
+            _sizeInBytes += 16 - (_sizeInBytes & 15);
 
-        shadowData = new uint8_t[sizeInBytes];
-
-        if (usage != ResourceUsage::Immutable)
-            return Create();
-        else
-            return true;
+        return Create(true, nullptr);
     }
 
     bool ConstantBuffer::SetConstant(size_t index, const void* data, size_t numElements)
@@ -201,7 +197,7 @@ namespace Turso3D
         if (!numElements || numElements > constant.numElements)
             numElements = constant.numElements;
 
-        memcpy(shadowData.Get() + constant.offset, data, numElements * constant.elementSize);
+        memcpy(_shadowData.Get() + constant.offset, data, numElements * constant.elementSize);
         dirty = true;
         return true;
     }
@@ -224,7 +220,7 @@ namespace Turso3D
 
     bool ConstantBuffer::Apply()
     {
-        return dirty ? SetData(shadowData.Get()) : true;
+        return dirty ? SetData(_shadowData.Get()) : true;
     }
 
     size_t ConstantBuffer::FindConstantIndex(const String& name) const
@@ -245,7 +241,7 @@ namespace Turso3D
 
     const void* ConstantBuffer::ConstantValue(size_t index, size_t elementIndex) const
     {
-        return (index < constants.Size() && elementIndex < constants[index].numElements) ? shadowData.Get() +
+        return (index < constants.Size() && elementIndex < constants[index].numElements) ? _shadowData.Get() +
             constants[index].offset + elementIndex * constants[index].elementSize : nullptr;
     }
 

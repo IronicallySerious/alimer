@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Turso3DConfig.h"
+#include "../Turso3DConfig.h"
 
 #ifdef TURSO3D_OPENGL
 

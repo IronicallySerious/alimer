@@ -119,7 +119,7 @@ namespace Turso3D
         /// D3D11 texture sampler object.
         void* sampler;
         /// Texture type.
-        TextureType type;
+        TextureType type = TextureType::Type2D;
         /// Texture usage mode.
         ResourceUsage usage = ResourceUsage::Default;
         /// Texture dimensions in pixels.

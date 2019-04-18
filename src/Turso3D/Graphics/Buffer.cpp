@@ -28,8 +28,9 @@
 
 namespace Turso3D
 {
-    Buffer::Buffer(BufferType bufferType_)
-        : bufferType(bufferType_)
+    Buffer::Buffer(BufferType bufferType, ResourceUsage usage)
+        : _bufferType(bufferType)
+        , _usage(usage)
     {
 
     }
@@ -37,5 +38,22 @@ namespace Turso3D
     Buffer::~Buffer()
     {
         Release();
+    }
+
+    bool Buffer::Create(bool useShadowData, const void* data)
+    {
+        // If buffer is reinitialized with the same shadow data, no need to reallocate
+        if (useShadowData && (!data || data != _shadowData.Get()))
+        {
+            _shadowData = new uint8_t[_sizeInBytes];
+            if (data) {
+                memcpy(_shadowData.Get(), data, _sizeInBytes);
+            }
+        }
+
+        // Destroy old handle first.
+        Release();
+
+        return CreateImpl(data);
     }
 }

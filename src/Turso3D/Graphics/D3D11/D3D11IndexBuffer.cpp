@@ -32,55 +32,40 @@
 
 namespace Turso3D
 {
-    IndexBuffer::IndexBuffer()
-        : buffer(nullptr)
-        , numIndices(0)
-        , indexSize(0)
-    {
-    }
-
-    IndexBuffer::~IndexBuffer()
-    {
-        Release();
-    }
-
-    void IndexBuffer::Release()
-    {
-        if (graphics && graphics->GetIndexBuffer() == this)
-            graphics->SetIndexBuffer(nullptr);
-
-        if (buffer)
-        {
-            ID3D11Buffer* d3dBuffer = (ID3D11Buffer*)buffer;
-            d3dBuffer->Release();
-            buffer = nullptr;
-        }
-    }
-
-    bool IndexBuffer::SetData(size_t firstIndex, size_t numIndices_, const void* data)
+    bool IndexBuffer::SetData(const void* data, uint32_t indexStart, uint32_t indexCount)
     {
         TURSO3D_PROFILE(UpdateIndexBuffer);
 
         if (!data)
         {
-            LOGERROR("Null source data for updating index buffer");
-            return false;
-        }
-        if (firstIndex + numIndices_ > numIndices)
-        {
-            LOGERROR("Out of bounds range for updating index buffer");
-            return false;
-        }
-        if (buffer && usage == ResourceUsage::Immutable)
-        {
-            LOGERROR("Can not update immutable index buffer");
+            TURSO3D_LOGERROR("Null source data for updating index buffer");
             return false;
         }
 
-        if (shadowData)
-            memcpy(shadowData.Get() + firstIndex * indexSize, data, numIndices_ * indexSize);
+        if (indexCount == 0) {
+            indexCount = _indexCount - indexStart;
+        }
 
-        if (buffer)
+        if (indexStart + indexCount > _indexCount)
+        {
+            TURSO3D_LOGERROR("Out of bounds range for updating index buffer");
+            return false;
+        }
+
+        if (_handle != nullptr && usage == ResourceUsage::Immutable)
+        {
+            TURSO3D_LOGERROR("Can not update immutable index buffer");
+            return false;
+        }
+
+        const uint32_t indexSize = IndexSize();
+
+        if (_shadowData)
+        {
+            memcpy(_shadowData.Get() + indexStart * indexSize, data, indexCount * indexSize);
+        }
+
+        if (_handle != nullptr)
         {
             ID3D11DeviceContext* d3dDeviceContext = (ID3D11DeviceContext*)graphics->D3DDeviceContext();
 
@@ -89,63 +74,32 @@ namespace Turso3D
                 D3D11_MAPPED_SUBRESOURCE mappedData;
                 mappedData.pData = nullptr;
 
-                d3dDeviceContext->Map((ID3D11Buffer*)buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
+                d3dDeviceContext->Map(_handle, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
                 if (mappedData.pData)
                 {
-                    memcpy((unsigned char*)mappedData.pData + firstIndex * indexSize, data, numIndices_ * indexSize);
-                    d3dDeviceContext->Unmap((ID3D11Buffer*)buffer, 0);
+                    memcpy((uint8_t*)mappedData.pData + indexStart * indexSize, data, indexCount * indexSize);
+                    d3dDeviceContext->Unmap(_handle, 0);
                 }
                 else
                 {
-                    LOGERROR("Failed to map index buffer for update");
+                    TURSO3D_LOGERROR("Failed to map index buffer for update");
                     return false;
                 }
             }
             else
             {
                 D3D11_BOX destBox;
-                destBox.left = (unsigned)(firstIndex * indexSize);
-                destBox.right = destBox.left + (unsigned)(numIndices_ * indexSize);
+                destBox.left = indexStart * indexSize;
+                destBox.right = destBox.left + (indexCount * indexSize);
                 destBox.top = 0;
                 destBox.bottom = 1;
                 destBox.front = 0;
                 destBox.back = 1;
 
-                d3dDeviceContext->UpdateSubresource((ID3D11Buffer*)buffer, 0, &destBox, data, 0, 0);
+                d3dDeviceContext->UpdateSubresource(_handle, 0, &destBox, data, 0, 0);
             }
         }
 
         return true;
     }
-
-    bool IndexBuffer::Create(const void* data)
-    {
-        if (graphics && graphics->IsInitialized())
-        {
-            D3D11_BUFFER_DESC bufferDesc;
-            D3D11_SUBRESOURCE_DATA initialData;
-            memset(&bufferDesc, 0, sizeof bufferDesc);
-            memset(&initialData, 0, sizeof initialData);
-            initialData.pSysMem = data;
-
-            bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-            bufferDesc.CPUAccessFlags = (usage == ResourceUsage::Dynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
-            bufferDesc.Usage = (D3D11_USAGE)usage;
-            bufferDesc.ByteWidth = (unsigned)(numIndices * indexSize);
-
-            ID3D11Device* d3dDevice = (ID3D11Device*)graphics->D3DDevice();
-            d3dDevice->CreateBuffer(&bufferDesc, data ? &initialData : nullptr, (ID3D11Buffer**)&buffer);
-
-            if (!buffer)
-            {
-                LOGERROR("Failed to create index buffer");
-                return false;
-            }
-            else
-                LOGDEBUGF("Created index buffer numIndices %u indexSize %u", (unsigned)numIndices, (unsigned)indexSize);
-        }
-
-        return true;
-    }
-
 }

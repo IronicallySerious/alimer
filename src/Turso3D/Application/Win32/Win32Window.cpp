@@ -24,51 +24,29 @@
 #include "../../Base/WString.h"
 #include "../../Debug/Log.h"
 #include "../../Math/Math.h"
+#include "../Window.h"
 #include "../Input.h"
-#include "Win32Window.h"
 
+#ifndef NOMINMAX
+#    define NOMINMAX 1
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN 1
+#endif
 #include <Windows.h>
 
 #include "../../Debug/DebugNew.h"
 
 namespace Turso3D
 {
-    static LRESULT CALLBACK WndProc(HWND wnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-    String Window::className("Turso3DWindow");
-
-    Window::Window()
-        : handle(nullptr)
-        , title("Turso3D Window")
-        , size(IntVector2::ZERO)
-        , savedPosition(IntVector2(M_MIN_INT, M_MIN_INT))
-        , mousePosition(IntVector2::ZERO)
-        , windowStyle(0)
-        , minimized(false)
-        , focus(false)
-        , resizable(false)
-        , fullscreen(false)
-        , inResize(false)
-        , mouseVisible(true)
-        , mouseVisibleInternal(true)
-    {
-        RegisterSubsystem(this);
-
-        // Cancel automatic DPI scaling
-        SetProcessDPIAware();
-    }
-
-    Window::~Window()
-    {
-        Close();
-        RemoveSubsystem(this);
-    }
+    const wchar_t Window::AppWindowClass[] = L"Turso3DWindow";
 
     void Window::SetTitle(const String& newTitle)
     {
         title = newTitle;
-        if (handle)
-            SetWindowTextW((HWND)handle, WString(title).CString());
+        if (_handle) {
+            SetWindowTextW(_handle, WString(title).CString());
+        }
     }
 
     bool Window::SetSize(const IntVector2& size_, bool fullscreen_, bool resizable_)
@@ -98,57 +76,55 @@ namespace Turso3D
             SetDisplayMode(size_.x, size_.y);
         }
 
+        DWORD windowExStyle = WS_EX_APPWINDOW;
+
         RECT rect = { 0, 0, size_.x, size_.y };
-        AdjustWindowRect(&rect, windowStyle, false);
+        AdjustWindowRectEx(&rect, windowStyle, FALSE, windowExStyle);
 
-        if (!handle)
+        if (!_handle)
         {
-            WNDCLASS wc;
-            wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-            wc.lpfnWndProc = WndProc;
-            wc.cbClsExtra = 0;
-            wc.cbWndExtra = 0;
-            wc.hInstance = GetModuleHandle(0);
-            wc.hIcon = LoadIcon(0, IDI_APPLICATION);
-            wc.hCursor = LoadCursor(0, IDC_ARROW);
-            wc.hbrBackground = CreateSolidBrush(RGB(0, 0, 0));
-            wc.lpszMenuName = nullptr;
-            wc.lpszClassName = className.CString();
+            _handle = CreateWindowExW(
+                windowExStyle,
+                AppWindowClass,
+                WString(title).CString(),
+                windowStyle,
+                position.x, position.y,
+                rect.right - rect.left,
+                rect.bottom - rect.top,
+                0, 0,
+                GetModuleHandleW(nullptr),
+                nullptr);
 
-            RegisterClass(&wc);
-
-            handle = CreateWindowW(WString(className).CString(), WString(title).CString(), windowStyle, position.x, position.y,
-                rect.right - rect.left, rect.bottom - rect.top, 0, 0, GetModuleHandle(0), nullptr);
-            if (!handle)
+            if (!_handle)
             {
-                LOGERROR("Failed to create window");
+                TURSO3D_LOGERROR("Failed to create window");
                 inResize = false;
                 return false;
             }
 
             // Enable touch input if available
-            RegisterTouchWindow((HWND)handle, TWF_FINETOUCH | TWF_WANTPALM);
+            RegisterTouchWindow(_handle, TWF_FINETOUCH | TWF_WANTPALM);
 
             minimized = false;
             focus = false;
 
-            SetWindowLongPtr((HWND)handle, GWLP_USERDATA, (LONG_PTR)this);
-            ShowWindow((HWND)handle, SW_SHOW);
+            SetWindowLongPtrW(_handle, GWLP_USERDATA, (LONG_PTR)this);
+            ShowWindow(_handle, SW_SHOW);
         }
         else
         {
-            SetWindowLong((HWND)handle, GWL_STYLE, windowStyle);
+            SetWindowLongW(_handle, GWL_STYLE, windowStyle);
 
             if (!fullscreen_ && (savedPosition.x == M_MIN_INT || savedPosition.y == M_MIN_INT))
             {
                 WINDOWPLACEMENT placement;
                 placement.length = sizeof(placement);
-                GetWindowPlacement((HWND)handle, &placement);
+                GetWindowPlacement(_handle, &placement);
                 position = IntVector2(placement.rcNormalPosition.left, placement.rcNormalPosition.top);
             }
 
-            SetWindowPos((HWND)handle, NULL, position.x, position.y, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
-            ShowWindow((HWND)handle, SW_SHOW);
+            SetWindowPos(_handle, NULL, position.x, position.y, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
+            ShowWindow(_handle, SW_SHOW);
         }
 
         fullscreen = fullscreen_;
@@ -171,8 +147,9 @@ namespace Turso3D
 
     void Window::SetPosition(const IntVector2& position)
     {
-        if (handle)
-            SetWindowPos((HWND)handle, NULL, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+        if (_handle) {
+            SetWindowPos(_handle, nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+        }
     }
 
     void Window::SetMouseVisible(bool enable)
@@ -186,20 +163,20 @@ namespace Turso3D
 
     void Window::SetMousePosition(const IntVector2& position)
     {
-        if (handle)
+        if (_handle)
         {
             mousePosition = position;
             POINT screenPosition;
             screenPosition.x = position.x;
             screenPosition.y = position.y;
-            ClientToScreen((HWND)handle, &screenPosition);
+            ClientToScreen(_handle, &screenPosition);
             SetCursorPos(screenPosition.x, screenPosition.y);
         }
     }
 
     void Window::Close()
     {
-        if (handle)
+        if (_handle)
         {
             // Return to desktop resolution if was fullscreen, else save last windowed mode position
             if (fullscreen)
@@ -207,53 +184,39 @@ namespace Turso3D
             else
                 savedPosition = Position();
 
-            DestroyWindow((HWND)handle);
-            handle = nullptr;
+            DestroyWindow(_handle);
+            _handle = nullptr;
         }
     }
 
     void Window::Minimize()
     {
-        if (handle)
-            ShowWindow((HWND)handle, SW_MINIMIZE);
+        if (_handle)
+            ShowWindow(_handle, SW_MINIMIZE);
     }
 
     void Window::Maximize()
     {
-        if (handle)
-            ShowWindow((HWND)handle, SW_MAXIMIZE);
+        if (_handle)
+            ShowWindow(_handle, SW_MAXIMIZE);
     }
 
     void Window::Restore()
     {
-        if (handle)
-            ShowWindow((HWND)handle, SW_RESTORE);
-    }
-
-    void Window::PumpMessages()
-    {
-        if (!handle)
-            return;
-
-        MSG msg;
-
-        while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
-        {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
-        }
+        if (_handle)
+            ShowWindow(_handle, SW_RESTORE);
     }
 
     IntVector2 Window::Position() const
     {
-        if (handle)
+        if (_handle)
         {
             RECT rect;
-            GetWindowRect((HWND)handle, &rect);
+            GetWindowRect(_handle, &rect);
             return IntVector2(rect.left, rect.top);
         }
-        else
-            return IntVector2::ZERO;
+
+        return IntVector2::ZERO;
     }
 
     bool Window::OnWindowMessage(unsigned msg, unsigned wParam, unsigned lParam)
@@ -267,7 +230,8 @@ namespace Turso3D
         switch (msg)
         {
         case WM_DESTROY:
-            handle = nullptr;
+            _handle = nullptr;
+            PostQuitMessage(0);
             break;
 
         case WM_CLOSE:
@@ -301,7 +265,7 @@ namespace Turso3D
 
                     // If fullscreen, minimize on focus loss
                     if (fullscreen)
-                        ShowWindow((HWND)handle, SW_MINIMIZE);
+                        ShowWindow(_handle, SW_MINIMIZE);
 
                     // Stop mouse cursor hiding & clipping
                     UpdateMouseVisible();
@@ -403,7 +367,7 @@ namespace Turso3D
                 MouseButton button = (msg == WM_LBUTTONDOWN) ? MouseButton::Left : (msg == WM_MBUTTONDOWN) ? MouseButton::Middle : MouseButton::Right;
                 input->OnMouseButton(button, true);
                 // Make sure we track the button release even if mouse moves outside the window
-                SetCapture((HWND)handle);
+                SetCapture(_handle);
                 // Re-establish mouse cursor hiding & clipping
                 if (!mouseVisible && mouseVisibleInternal)
                     UpdateMouseVisible();
@@ -440,7 +404,7 @@ namespace Turso3D
                         POINT point;
                         point.x = it->x / 100;
                         point.y = it->y / 100;
-                        ScreenToClient((HWND)handle, &point);
+                        ScreenToClient(_handle, &point);
                         IntVector2 position(point.x, point.y);
 
                         if (it->dwFlags & (TOUCHEVENTF_DOWN || TOUCHEVENTF_UP))
@@ -495,14 +459,14 @@ namespace Turso3D
 
     IntVector2 Window::ClientRectSize() const
     {
-        if (handle)
+        if (_handle)
         {
             RECT rect;
-            GetClientRect((HWND)handle, &rect);
+            GetClientRect(_handle, &rect);
             return IntVector2(rect.right, rect.bottom);
         }
-        else
-            return IntVector2::ZERO;
+
+        return IntVector2::ZERO;
     }
 
     void Window::SetDisplayMode(int width, int height)
@@ -523,7 +487,7 @@ namespace Turso3D
 
     void Window::UpdateMouseVisible()
     {
-        if (!handle)
+        if (!_handle)
             return;
 
         // When the window is unfocused, mouse should never be hidden
@@ -548,7 +512,7 @@ namespace Turso3D
             IntVector2 windowSize = Size();
 
             point.x = point.y = 0;
-            ClientToScreen((HWND)handle, &point);
+            ClientToScreen(_handle, &point);
             mouseRect.left = point.x;
             mouseRect.top = point.y;
             mouseRect.right = point.x + windowSize.x;
@@ -561,19 +525,8 @@ namespace Turso3D
     {
         POINT screenPosition;
         GetCursorPos(&screenPosition);
-        ScreenToClient((HWND)handle, &screenPosition);
+        ScreenToClient(_handle, &screenPosition);
         mousePosition.x = screenPosition.x;
         mousePosition.y = screenPosition.y;
     }
-
-    LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-    {
-        Window* window = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-        bool handled = false;
-        // When the window is just opening and has not assigned the userdata yet, let the default procedure handle the messages
-        if (window)
-            handled = window->OnWindowMessage(msg, (unsigned)wParam, (unsigned)lParam);
-        return handled ? 0 : DefWindowProc(hwnd, msg, wParam, lParam);
-    }
-
 }

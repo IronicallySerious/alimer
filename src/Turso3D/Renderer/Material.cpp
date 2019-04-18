@@ -1,4 +1,25 @@
-// For conditions of distribution and use, see copyright notice in License.txt
+//
+// Alimer is based on the Turso3D codebase.
+// Copyright (c) 2018-2019 Amer Koleci and contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
 
 #include "../Debug/Profiler.h"
 #include "../Graphics/ConstantBuffer.h"
@@ -44,15 +65,19 @@ namespace Turso3D
             shaderDefines[SHADER_PS] = source["psDefines"].GetString();
 
         if (source.Contains("depthFunc"))
-            depthFunc = (CompareFunc)String::ListIndex(source["depthFunc"].GetString(), compareFuncNames, CMP_LESS_EQUAL);
+            depthFunc = (CompareFunction)String::ListIndex(source["depthFunc"].GetString(), compareFuncNames, CompareFunction::LessEqual);
         if (source.Contains("depthWrite"))
             depthWrite = source["depthWrite"].GetBool();
         if (source.Contains("depthClip"))
             depthClip = source["depthClip"].GetBool();
         if (source.Contains("alphaToCoverage"))
             alphaToCoverage = source["alphaToCoverage"].GetBool();
+
         if (source.Contains("colorWriteMask"))
-            colorWriteMask = (unsigned char)source["colorWriteMask"].GetNumber();
+        {
+            colorWriteMask = static_cast<ColorWriteMask>((unsigned)source["colorWriteMask"].GetNumber());
+        }
+
         if (source.Contains("blendMode"))
             blendMode = blendModes[String::ListIndex(source["blendMode"].GetString(), blendModeNames, BLEND_MODE_REPLACE)];
         else
@@ -99,7 +124,7 @@ namespace Turso3D
         dest["depthWrite"] = depthWrite;
         dest["depthClip"] = depthClip;
         dest["alphaToCoverage"] = alphaToCoverage;
-        dest["colorWriteMask"] = colorWriteMask;
+        dest["colorWriteMask"] = (unsigned)colorWriteMask;
 
         // Prefer saving a predefined blend mode if possible for better readability
         bool blendModeFound = false;
@@ -146,11 +171,11 @@ namespace Turso3D
 
     void Pass::Reset()
     {
-        depthFunc = CMP_LESS_EQUAL;
+        depthFunc = CompareFunction::LessEqual;
         depthWrite = true;
         depthClip = true;
         alphaToCoverage = false;
-        colorWriteMask = COLORMASK_ALL;
+        colorWriteMask = ColorWriteMask::All;
         blendMode.Reset();
         cullMode = CULL_BACK;
         fillMode = FILL_SOLID;
@@ -418,7 +443,7 @@ namespace Turso3D
 
             pass = defaultMaterial->CreatePass("shadow");
             pass->SetShaders("Shadow", "Shadow");
-            pass->colorWriteMask = COLORMASK_NONE;
+            pass->colorWriteMask = ColorWriteMask::None;
         }
 
         return defaultMaterial.Get();

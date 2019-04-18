@@ -32,47 +32,43 @@
 
 namespace Turso3D
 {
-    VertexBuffer::VertexBuffer()
-        : Buffer(BufferType::Vertex)
-        , numVertices(0)
-        , vertexSize(0)
-        , elementHash(0)
-    {
-    }
-
-    VertexBuffer::~VertexBuffer()
-    {
-        Release();
-    }
-
-    bool VertexBuffer::SetData(size_t firstVertex, size_t numVertices_, const void* data)
+    
+    bool VertexBuffer::SetData(const void* data, uint32_t vertexStart, uint32_t vertexCount)
     {
         TURSO3D_PROFILE(UpdateVertexBuffer);
 
         if (!data)
         {
-            LOGERROR("Null source data for updating vertex buffer");
-            return false;
-        }
-        if (firstVertex + numVertices_ > numVertices)
-        {
-            LOGERROR("Out of bounds range for updating vertex buffer");
-            return false;
-        }
-        if (_handle != nullptr && usage == ResourceUsage::Immutable)
-        {
-            LOGERROR("Can not update immutable vertex buffer");
+            TURSO3D_LOGERROR("Null source data for updating vertex buffer");
             return false;
         }
 
-        if (shadowData)
-            memcpy(shadowData.Get() + firstVertex * vertexSize, data, numVertices_ * vertexSize);
+        if (vertexCount == 0) {
+            vertexCount = _vertexCount - vertexStart;
+        }
+
+        if (vertexStart + vertexCount > _vertexCount)
+        {
+            TURSO3D_LOGERROR("Out of bounds range for updating vertex buffer");
+            return false;
+        }
+
+        if (_handle != nullptr && _usage == ResourceUsage::Immutable)
+        {
+            TURSO3D_LOGERROR("Can not update immutable vertex buffer");
+            return false;
+        }
+
+        if (_shadowData)
+        {
+            memcpy(_shadowData.Get() + vertexStart * _vertexSize, data, vertexCount * _vertexSize);
+        }
 
         if (_handle != nullptr)
         {
             ID3D11DeviceContext* d3dDeviceContext = (ID3D11DeviceContext*)graphics->D3DDeviceContext();
 
-            if (usage == ResourceUsage::Dynamic)
+            if (_usage == ResourceUsage::Dynamic)
             {
                 D3D11_MAPPED_SUBRESOURCE mappedData;
                 mappedData.pData = nullptr;
@@ -80,20 +76,20 @@ namespace Turso3D
                 d3dDeviceContext->Map(_handle, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
                 if (mappedData.pData)
                 {
-                    memcpy((uint8_t*)mappedData.pData + firstVertex * vertexSize, data, numVertices_ * vertexSize);
+                    memcpy((uint8_t*)mappedData.pData + vertexStart * _vertexSize, data, vertexCount * _vertexSize);
                     d3dDeviceContext->Unmap(_handle, 0);
                 }
                 else
                 {
-                    LOGERROR("Failed to map vertex buffer for update");
+                    TURSO3D_LOGERROR("Failed to map vertex buffer for update");
                     return false;
                 }
             }
             else
             {
                 D3D11_BOX destBox;
-                destBox.left = (unsigned)(firstVertex * vertexSize);
-                destBox.right = destBox.left + (unsigned)(numVertices_ * vertexSize);
+                destBox.left = vertexStart * _vertexSize;
+                destBox.right = destBox.left + vertexCount * _vertexSize;
                 destBox.top = 0;
                 destBox.bottom = 1;
                 destBox.front = 0;

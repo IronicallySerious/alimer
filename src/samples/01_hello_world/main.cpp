@@ -47,11 +47,9 @@ int main()
     HelloWorldApp app/*(config)*/;
     return app.Run();
 
-    Log log;
+    /*Log log;
     Profiler profiler;
     ResourceCache cache;
-
-    //printf("Testing resource loading\n");
 
     Image* image = nullptr;
 
@@ -68,19 +66,5 @@ int main()
         image->SavePNG("Test_Save.png");
     }
 
-    LOGRAW(profiler.OutputResults(false, false, 16));
-
-    AutoPtr<Input> input = new Input();
-
-    AutoPtr<Window> window = new Window();
-    window->SetTitle("Window test");
-    window->SetSize(IntVector2(800, 600), false, true);
-
-    //SubscribeToEvent(window->closeRequestEvent, &WindowTest::HandleCloseRequest);
-
-    while (window->IsOpen())
-    {
-        input->Update();
-        Thread::Sleep(1);
-    }
+    TURSO3D_LOGRAW(profiler.OutputResults(false, false, 16));*/
 }

@@ -140,28 +140,28 @@ namespace Turso3D
 
 #ifdef TURSO3D_LOGGING
 
-#define LOGDEBUG(message) Turso3D::Log::Write(Turso3D::LOG_DEBUG, message)
-#define LOGINFO(message) Turso3D::Log::Write(Turso3D::LOG_INFO, message)
-#define LOGWARNING(message) Turso3D::Log::Write(Turso3D::LOG_WARNING, message)
-#define LOGERROR(message) Turso3D::Log::Write(Turso3D::LOG_ERROR, message)
-#define LOGRAW(message) Turso3D::Log::WriteRaw(message)
-#define LOGDEBUGF(format, ...) Turso3D::Log::Write(Turso3D::LOG_DEBUG, Turso3D::String::Format(format, ##__VA_ARGS__))
-#define LOGINFOF(format, ...) Turso3D::Log::Write(Turso3D::LOG_INFO, Turso3D::String::Format(format, ##__VA_ARGS__))
-#define LOGWARNINGF(format, ...) Turso3D::Log::Write(Turso3D::LOG_WARNING, Turso3D::String::Format(format, ##__VA_ARGS__))
-#define LOGERRORF(format, ...) Turso3D::Log::Write(Turso3D::LOG_ERROR, Turso3D::String::Format(format, ##__VA_ARGS__))
-#define LOGRAWF(format, ...) Turso3D::Log::WriteRaw(Turso3D::String::Format(format, ##__VA_ARGS__))
+#   define TURSO3D_LOGDEBUG(message) Turso3D::Log::Write(Turso3D::LOG_DEBUG, message)
+#   define TURSO3D_LOGINFO(message) Turso3D::Log::Write(Turso3D::LOG_INFO, message)
+#   define TURSO3D_LOGWARN(message) Turso3D::Log::Write(Turso3D::LOG_WARNING, message)
+#   define TURSO3D_LOGERROR(message) Turso3D::Log::Write(Turso3D::LOG_ERROR, message)
+#   define TURSO3D_LOGRAW(message) Turso3D::Log::WriteRaw(message)
+#   define TURSO3D_LOGDEBUGF(format, ...) Turso3D::Log::Write(Turso3D::LOG_DEBUG, Turso3D::String::Format(format, ##__VA_ARGS__))
+#   define TURSO3D_LOGINFOF(format, ...) Turso3D::Log::Write(Turso3D::LOG_INFO, Turso3D::String::Format(format, ##__VA_ARGS__))
+#   define TURSO3D_LOGWARNF(format, ...) Turso3D::Log::Write(Turso3D::LOG_WARNING, Turso3D::String::Format(format, ##__VA_ARGS__))
+#   define TURSO3D_LOGERRORF(format, ...) Turso3D::Log::Write(Turso3D::LOG_ERROR, Turso3D::String::Format(format, ##__VA_ARGS__))
+#   define TURSO3D_LOGRAWF(format, ...) Turso3D::Log::WriteRaw(Turso3D::String::Format(format, ##__VA_ARGS__))
 
 #else
 
-#define LOGDEBUG(message)
-#define LOGINFO(message)
-#define LOGWARNING(message)
-#define LOGERROR(message)
-#define LOGRAW(message)
-#define LOGDEBUGF(format, ...)
-#define LOGINFOF(format, ...)
-#define LOGWARNINGF(format, ...)
-#define LOGERRORF(format, ...)
-#define LOGRAWF(format, ...)
+#   define TURSO3D_LOGDEBUG(message) ((void)0)
+#   define TURSO3D_LOGINFO(message) ((void)0)
+#   define TURSO3D_LOGWARN(message) ((void)0)
+#   define TURSO3D_LOGERROR(message) ((void)0)
+#   define TURSO3D_LOGRAW(message) ((void)0)
+#   define TURSO3D_LOGDEBUGF(format, ...) ((void)0)
+#   define TURSO3D_LOGINFOF(format, ...) ((void)0)
+#   define TURSO3D_LOGWARNF(format, ...) ((void)0)
+#   define TURSO3D_LOGERRORF(format, ...) ((void)0)
+#   define TURSO3D_LOGRAWF(format, ...) ((void)0)
 
 #endif

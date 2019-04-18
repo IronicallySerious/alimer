@@ -46,10 +46,20 @@ namespace Turso3D
 
         int Run();
 
+        void Exit();
+
     private:
+        void PlatformConstruct();
+        void PlatformShutdown();
+        int PlatformRun();
+        bool InitializeBeforeRun();
+        void Tick();
         void HandleWindowCloseRequest(Event&);
 
     protected:
+        bool _running = false;
+        bool _paused = false;
+
         /// Input subsystem.
         AutoPtr<Input> input;
 

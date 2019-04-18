@@ -337,9 +337,9 @@ namespace Turso3D
         /// Return length of a C string.
         static size_t CStringLength(const char* str);
         /// Calculate a case-sensitive hash for a string.
-        static unsigned CaseSensitiveHash(const char* str);
+        static uint32_t CaseSensitiveHash(const char* str);
         /// Calculate a case-insensitive hash for a string.
-        static unsigned CaseInsensitiveHash(const char* str);
+        static uint32_t CaseInsensitiveHash(const char* str);
         /// Compare two C strings.
         static int Compare(const char* str1, const char* str2, bool caseSensitive = true);
         /// Return an index to a string list corresponding to the given string, or a default value if not found. The string list must be empty-terminated.

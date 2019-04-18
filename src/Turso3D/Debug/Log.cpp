@@ -77,11 +77,13 @@ namespace Turso3D
 
         logFile = new File();
         if (logFile->Open(fileName, FILE_WRITE))
-            LOGINFO("Opened log file " + fileName);
+        {
+            TURSO3D_LOGINFO("Opened log file " + fileName);
+        }
         else
         {
             logFile.Reset();
-            LOGERROR("Failed to create log file " + fileName);
+            TURSO3D_LOGERROR("Failed to create log file " + fileName);
         }
     }
 

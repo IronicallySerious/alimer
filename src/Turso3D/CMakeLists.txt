@@ -29,18 +29,38 @@ option (TURSO3D_LOGGING "Enable logging macros" TRUE)
 option (TURSO3D_PROFILING "Enable performance profiling" TRUE)
 
 # Macro to add files from a directory grouped to the solution file
-macro (add_engine_directory DIRECTORY)
-    file (GLOB DIR_FILES ${DIRECTORY}/*.h ${DIRECTORY}/*.c ${DIRECTORY}/*.cpp)
-    get_filename_component (GROUP ${DIRECTORY} NAME)
-    source_group ("${GROUP}" FILES ${DIR_FILES})
-    list (APPEND SOURCE_FILES ${DIR_FILES})
-endmacro ()
+macro (define_engine_source_files)
+    cmake_parse_arguments(DEFINE_SRC_FILES "NORECURSE" "" "" ${ARGN} )
+    if (DEFINE_SRC_FILES_NORECURSE)
+        set (_action GLOB)
+    else ()
+        set (_action GLOB_RECURSE)
+    endif ()
+    foreach (path ${DEFINE_SRC_FILES_UNPARSED_ARGUMENTS})
+        # Get header files
+        file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h)
+        list (APPEND HEADER_FILES ${_files})
+        # Install them
+        if (ALIMER_INSTALL)
+            install (FILES ${_files} DESTINATION include/alimer/${path})
+        endif ()
+        # Get source files
+        file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}  ${path}/*.c ${path}/*.cpp)
+        list (APPEND SOURCE_FILES ${_files})
+    endforeach ()
+endmacro()
 
-macro (add_engine_directory_group DIRECTORY GROUP)
-    file (GLOB DIR_FILES ${DIRECTORY}/*.h ${DIRECTORY}/*.c ${DIRECTORY}/*.cpp)
-    source_group ("${GROUP}" FILES ${DIR_FILES})
-    list (APPEND SOURCE_FILES ${DIR_FILES})
-endmacro ()
+# Groups sources into subfolders.
+macro(group_sources)
+    file (GLOB_RECURSE children LIST_DIRECTORIES true RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/**)
+    foreach (child ${children})
+        if (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
+            string(REPLACE "/" "\\" groupname "${child}")
+            file (GLOB files LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/${child}/*)
+            source_group(${groupname} FILES ${files})
+        endif ()
+    endforeach ()
+endmacro()
 
 # Set definitions
 if (TURSO3D_SHARED)
@@ -55,40 +75,29 @@ if (WIN32 AND NOT TURSO3D_OPENGL)
 endif ()
 
 # Generate the Turso3DConfig.h file
-configure_file (Turso3DConfig.h.in ${CMAKE_CURRENT_SOURCE_DIR}/Turso3DConfig.h)
+configure_file (Turso3DConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/Turso3DConfig.h)
 
-# Add source files from subdirectories
-add_engine_directory (Base)
-add_engine_directory (Debug)
-add_engine_directory (Graphics)
-add_engine_directory (IO)
-add_engine_directory (Math)
-add_engine_directory (Object)
-add_engine_directory (Renderer)
-add_engine_directory (Resource)
-add_engine_directory (Scene)
-add_engine_directory (Thread)
-add_engine_directory (ThirdParty/STB)
-add_engine_directory (Application)
+define_engine_source_files (Base Debug Thread IO Object Math Resource)
+define_engine_source_files (NORECURSE . Graphics Application)
+define_engine_source_files (Scene Renderer)
 
 if (TURSO3D_D3D11)
-    add_engine_directory_group (Graphics/D3D11 Graphics)
+    define_engine_source_files (Graphics/D3D11)
 endif ()
 if (TURSO3D_OPENGL)
-    add_engine_directory_group (Graphics/GL Graphics)
-    add_engine_directory (ThirdParty/FlextGL)
+    define_engine_source_files (Graphics/GL)
+    #add_engine_directory (ThirdParty/FlextGL)
 endif ()
 
 if (WIN32)
-    add_engine_directory_group (Application/Win32 Window)
+    define_engine_source_files (Application/Win32)
 endif ()
 
-# Add root-level files
-file (GLOB TURSO3D_FILES *.h *.c *.cpp)
-list (APPEND SOURCE_FILES ${TURSO3D_FILES})
+# Group source code in VS solution
+group_sources()
 
 # Define the Turso3D library target
-add_library (${PROJECT_NAME} ${TURSO3D_LIB_TYPE} ${SOURCE_FILES})
+add_library (${PROJECT_NAME} ${TURSO3D_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES} $<$<CXX_COMPILER_ID:MSVC>:${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis>)
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "../Base/Ptr.h"
-#include "../Turso3DConfig.h"
+#include "Turso3DConfig.h"
 
 namespace Turso3D
 {

@@ -30,9 +30,16 @@ namespace Turso3D
 {
     enum class MouseButton : unsigned
     {
+        /// The left mouse button.
         Left = 0,
+        /// The middle mouse button. 
         Middle,
+        /// The right mouse button. 
         Right,
+        /// The first extra mouse button
+        XButton1,
+        /// The second extra mouse button
+        XButton2,
         Count
     };
 
@@ -144,6 +151,8 @@ namespace Turso3D
         IntVector2 position;
     };
 
+    class Window;
+
     /// %Input subsystem for reading keyboard/mouse/etc. input. Updated from OS window messages by the Window class.
     class TURSO3D_API Input : public Object
     {
@@ -166,8 +175,11 @@ namespace Turso3D
         bool IsKeyPress(unsigned keyCode) const;
         /// Return whether key was pressed on this frame by raw key code.
         bool IsKeyPressRaw(unsigned rawKeyCode) const;
-        /// Return current mouse position.
-        const IntVector2& MousePosition() const;
+        /// Return current mouse screen position.
+        const IntVector2& GetMousePosition() const;
+        /// Return current mouse position relative to window.
+        const IntVector2& GetMousePosition(const Window& relativeTo) const;
+
         /// Return accumulated mouse movement since last frame.
         IntVector2 MouseMove() const { return mouseMove; }
         /// Return pressed down mouse buttons bitmask.

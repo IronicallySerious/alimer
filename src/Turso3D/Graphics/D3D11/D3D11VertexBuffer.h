@@ -39,38 +39,34 @@ namespace Turso3D
         ~VertexBuffer();
 
         /// Define buffer. Immutable buffers must specify initial data here. Return true on success.
-        bool Define(ResourceUsage usage, size_t numVertices, const Vector<VertexElement>& elements, bool useShadowData, const void* data = nullptr);
+        bool Define(ResourceUsage usage, uint32_t vertexCount, const Vector<VertexElement>& elements, bool useShadowData = false, const void* data = nullptr);
         /// Define buffer. Immutable buffers must specify initial data here. Return true on success.
-        bool Define(ResourceUsage usage, size_t numVertices, size_t numElements, const VertexElement* elements, bool useShadowData, const void* data = nullptr);
+        bool Define(ResourceUsage usage, uint32_t vertexCount, size_t numElements, const VertexElement* elements, bool useShadowData = false, const void* data = nullptr);
         /// Redefine buffer data either completely or partially. Not supported for immutable buffers. Return true on success.
-        bool SetData(size_t firstVertex, size_t numVertices, const void* data);
+        bool SetData(const void* data, uint32_t vertexStart = 0, uint32_t vertexCount = 0);
 
-        /// Return CPU-side shadow data if exists.
-        unsigned char* ShadowData() const { return shadowData.Get(); }
         /// Return number of vertices.
-        size_t NumVertices() const { return numVertices; }
+        uint32_t VertexCount() const { return _vertexCount; }
         /// Return number of vertex elements.
-        size_t NumElements() const { return elements.Size(); }
+        uint32_t NumElements() const { return static_cast<uint32_t>(_elements.Size()); }
         /// Return vertex elements.
-        const Vector<VertexElement>& Elements() const { return elements; }
+        const Vector<VertexElement>& Elements() const { return _elements; }
         /// Return size of vertex in bytes.
-        size_t VertexSize() const { return vertexSize; }
+        uint32_t VertexSize() const { return _vertexSize; }
         /// Return vertex declaration hash code.
-        uint32_t ElementHash() const { return elementHash; }
+        uint32_t ElementHash() const { return _elementHash; }
 
         /// Compute the hash code of one vertex element by index and semantic.
         static uint32_t ElementHash(size_t index, ElementSemantic semantic) { return (semantic + 1) << (index * 3); }
 
     private:
-        /// CPU-side shadow data.
-        AutoArrayPtr<unsigned char> shadowData;
         /// Number of vertices.
-        size_t numVertices;
+        uint32_t _vertexCount = 0;
         /// Size of vertex in bytes.
-        size_t vertexSize;
+        uint32_t _vertexSize = 0;
         /// Vertex elements.
-        Vector<VertexElement> elements;
+        Vector<VertexElement> _elements;
         /// Vertex element hash code.
-        uint32_t elementHash;
+        uint32_t _elementHash = 0;
     };
 }

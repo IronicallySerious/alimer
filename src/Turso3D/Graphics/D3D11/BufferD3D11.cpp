@@ -26,6 +26,8 @@
 #include "D3D11Graphics.h"
 #include "../Buffer.h"
 #include "../VertexBuffer.h"
+#include "../IndexBuffer.h"
+#include "../ConstantBuffer.h"
 #include <d3d11.h>
 #include "../../Debug/DebugNew.h"
 
@@ -35,12 +37,28 @@ namespace Turso3D
     {
         if (_handle != nullptr)
         {
-            if (bufferType == BufferType::Vertex)
+            if (_bufferType == BufferType::Vertex)
             {
                 for (uint32_t i = 0; i < MAX_VERTEX_STREAMS; ++i)
                 {
                     if (graphics->GetVertexBuffer(i) == static_cast<VertexBuffer*>(this))
                         graphics->SetVertexBuffer(i, nullptr);
+                }
+            }
+            else if (_bufferType == BufferType::Index)
+            {
+                if (graphics->GetIndexBuffer() == static_cast<IndexBuffer*>(this))
+                    graphics->SetIndexBuffer(nullptr);
+            }
+            else if (_bufferType == BufferType::Uniform)
+            {
+                for (uint32_t i = 0; i < MAX_SHADER_STAGES; ++i)
+                {
+                    for (uint32_t j = 0; j < MAX_CONSTANT_BUFFERS; ++j)
+                    {
+                        if (graphics->GetConstantBuffer((ShaderStage)i, j) == static_cast<ConstantBuffer*>(this))
+                            graphics->SetConstantBuffer((ShaderStage)i, j, 0);
+                    }
                 }
             }
 
@@ -110,7 +128,7 @@ namespace Turso3D
         return true;
     }*/
 
-    bool Buffer::Create(const void* data)
+    bool Buffer::CreateImpl(const void* data)
     {
         if (graphics
             && graphics->IsInitialized())
@@ -119,7 +137,7 @@ namespace Turso3D
             D3D11_SUBRESOURCE_DATA initialData = {};
             initialData.pSysMem = data;
 
-            switch (bufferType)
+            switch (_bufferType)
             {
             case BufferType::Vertex:
                 bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -137,16 +155,16 @@ namespace Turso3D
                 break;
             }
 
-            bufferDesc.CPUAccessFlags = (usage == ResourceUsage::Dynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
-            bufferDesc.Usage = (D3D11_USAGE)usage;
-            bufferDesc.ByteWidth = sizeInBytes;
+            bufferDesc.CPUAccessFlags = (_usage == ResourceUsage::Dynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
+            bufferDesc.Usage = (D3D11_USAGE)_usage;
+            bufferDesc.ByteWidth = _sizeInBytes;
 
             ID3D11Device* d3dDevice = (ID3D11Device*)graphics->D3DDevice();
             HRESULT hr = d3dDevice->CreateBuffer(&bufferDesc, data ? &initialData : nullptr, &_handle);
 
             if (FAILED(hr))
             {
-                LOGERROR("Failed to create vertex buffer");
+                TURSO3D_LOGERROR("Failed to create vertex buffer");
                 return false;
             }
 

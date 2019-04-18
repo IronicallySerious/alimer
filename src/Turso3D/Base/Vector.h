@@ -36,7 +36,6 @@
 
 namespace Turso3D
 {
-
     /// %Vector base class.
     class TURSO3D_API VectorBase
     {

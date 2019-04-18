@@ -21,34 +21,22 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#include "Graphics.h"
+#include "GraphicsDefs.h"
+#include "../Debug/DebugNew.h"
 
-#include "Turso3DConfig.h"
+#if defined(_WIN32) || defined(_WIN64)
+#   include <Windows.h>
+
+// Prefer the high-performance GPU on switchable GPU systems
+extern "C"
+{
+    __declspec(dllexport) DWORD NvOptimusEnablement = 1;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
 
 namespace Turso3D
 {
-    class HashBase;
-    class ListBase;
-    class VectorBase;
-    class String;
 
-    /// Swap two values.
-    template<class T> inline void Swap(T& first, T& second)
-    {
-        T temp = first;
-        first = second;
-        second = temp;
-    }
-
-    /// Swap two hash sets/maps.
-    template<> TURSO3D_API void Swap<HashBase>(HashBase& first, HashBase& second);
-
-    /// Swap two lists.
-    template<> TURSO3D_API void Swap<ListBase>(ListBase& first, ListBase& second);
-
-    /// Swap two vectors.
-    template<> TURSO3D_API void Swap<VectorBase>(VectorBase& first, VectorBase& second);
-
-    /// Swap two strings.
-    template<> TURSO3D_API void Swap<String>(String& first, String& second);
 }
