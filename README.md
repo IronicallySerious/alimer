@@ -5,7 +5,7 @@
 [![Build Status](https://dev.azure.com/amerkoleci/alimer/_apis/build/status/amerkoleci.alimer?branchName=master)](https://dev.azure.com/amerkoleci/alimer/_build/latest?definitionId=6?branchName=master)
 [![Join the chat at https://gitter.im/alimer/Lobby](https://badges.gitter.im/alimer/Lobby.svg)](https://gitter.im/alimer/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-**Alimer Engine** is a cross platform 2D and 3D game engine implemented in C++14,  forked from [Turso3D](https://github.com/cadaver/turso3d) and inspired by [Urho3D](https://github.com/urho3d/Urho3D) and [Ogre3D](http://www.ogre3d.org).
+**Alimer Engine** is a cross platform 2D and 3D game engine implemented in C++14, inspired by [Urho3D](https://github.com/urho3d/Urho3D) and [Ogre3D](http://www.ogre3d.org).
 
 ## Features
 
@@ -32,9 +32,10 @@
 
 ## Credits
 
-Alimer is fork from [Turso3D](https://github.com/cadaver/turso3d), which is licensed under the [MIT](https://github.com/cadaver/turso3d/blob/master/License.txt).
 Alimer development, contributions and bugfixes by:
 
 - Amer Koleci
+
+Alimer is greatly inspired by [Urho3D](https://github.com/urho3d/Urho3D) and [Ogre3D](http://www.ogre3d.org).
 
 See [Credits](https://github.com/amerkoleci/alimer/blob/master/CREDITS.md) for list of libraries, research, inspirations and assets being used.
