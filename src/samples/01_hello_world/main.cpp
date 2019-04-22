@@ -20,20 +20,19 @@
 // THE SOFTWARE.
 //
 
-#include "Turso3D.h"
-using namespace Turso3D;
-//using namespace alimer;
+#include "Alimer.h"
+using namespace alimer;
 
 class HelloWorldApp : public Application
 {
 public:
-    HelloWorldApp(/*const ApplicationConfiguration& config*/)
-        : Application(/*config*/)
+    HelloWorldApp(int &argc, char **argv)
+        : Application(argc, argv)
     {
     }
 };
 
-int main()
+int main(int argc, char* argv[])
 {
     /*ApplicationConfiguration config = {};
     config.title = "Sample 01 - Hello World";
@@ -44,27 +43,6 @@ int main()
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    HelloWorldApp app/*(config)*/;
+    HelloWorldApp app(argc, argv);
     return app.Run();
-
-    /*Log log;
-    Profiler profiler;
-    ResourceCache cache;
-
-    Image* image = nullptr;
-
-    {
-        profiler.BeginFrame();
-        cache.AddResourceDir(ExecutableDir() + "Data");
-        image = cache.LoadResource<Image>("Test.png");
-        profiler.EndFrame();
-    }
-
-    if (image)
-    {
-        //printf("Image loaded successfully, size %dx%d pixel byte size %d\n", image->Width(), image->Height(), (int)image->PixelByteSize());
-        image->SavePNG("Test_Save.png");
-    }
-
-    TURSO3D_LOGRAW(profiler.OutputResults(false, false, 16));*/
 }

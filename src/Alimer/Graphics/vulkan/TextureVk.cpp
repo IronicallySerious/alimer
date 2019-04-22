@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_VK
 #include "../Texture.h"
 #include "GraphicsDeviceVk.h"
 #include "../../Core/Log.h"
@@ -165,30 +166,30 @@ namespace alimer
             VkResult result = VK_SUCCESS;
             //if ((memoryFlags & VGPU_MEMORY_NO_ALLOCATION) == 0) {
                 // Determine appropriate memory usage flags.
-                VmaAllocationCreateInfo allocCreateInfo = {};
-                allocCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
-                allocCreateInfo.flags = 0u;
+            VmaAllocationCreateInfo allocCreateInfo = {};
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+            allocCreateInfo.flags = 0u;
 
-                //if (memoryFlags == VGPU_MEMORY_GPU_ONLY) {
-                    allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-                //}
-                //else if (memoryFlags == VGPU_MEMORY_CPU_ONLY) {
-                //    allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-                //}
-                //else if (memoryFlags == VGPU_MEMORY_CPU_TO_GPU) {
-                //    allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-                //}
-                //else if (memoryFlags == VGPU_MEMORY_GPU_TO_CPU) {
-                //    allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
-                //}
+            //if (memoryFlags == VGPU_MEMORY_GPU_ONLY) {
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+            //}
+            //else if (memoryFlags == VGPU_MEMORY_CPU_ONLY) {
+            //    allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+            //}
+            //else if (memoryFlags == VGPU_MEMORY_CPU_TO_GPU) {
+            //    allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+            //}
+            //else if (memoryFlags == VGPU_MEMORY_GPU_TO_CPU) {
+            //    allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+            //}
 
-                //if (memoryFlags & VGPU_MEMORY_DEDICATED_ALLOCATION) {
-                //    allocCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-                //}
+            //if (memoryFlags & VGPU_MEMORY_DEDICATED_ALLOCATION) {
+            //    allocCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+            //}
 
-                    vkThrowIfFailed(
-                        vmaCreateImage(_device->GetImpl()->GetVmaAllocator(), &createInfo, &allocCreateInfo, &_handle, &_allocation, nullptr)
-                        );
+            vkThrowIfFailed(
+                vmaCreateImage(_device->GetImpl()->GetVmaAllocator(), &createInfo, &allocCreateInfo, &_handle, &_allocation, nullptr)
+            );
             //}
             //else {
             //    vkThrowIfFailed(
@@ -245,7 +246,7 @@ namespace alimer
             else {
                 _device->GetImpl()->DestroyImage(_handle);
             }
-            
+
             _handle = VK_NULL_HANDLE;
         }
     }
@@ -260,3 +261,5 @@ namespace alimer
         return VK_NULL_HANDLE;
     }
 }
+
+#endif // #if TODO_VK

@@ -29,12 +29,17 @@ namespace alimer
 {
     Application* application = nullptr;
 
-    Application::Application()
+    Application::Application(int &argc, char **argv)
         : _exitCode(EXIT_SUCCESS)
         , _running(false)
         , _paused(false)
         , _scene()
     {
+        for (int i = 1; i < argc; ++i)
+        {
+            _args.push_back(argv[i]);
+        }
+
         PlatformConstruct();
 
         // Create the Engine, but do not initialize it yet. Subsystems except Graphics & Renderer are registered at this point
@@ -79,7 +84,7 @@ namespace alimer
         // Setup and configure all systems.
         //_systems.Add<CameraSystem>();
 
-        ALIMER_LOGINFO("Engine initialized with success.");
+        //ALIMER_LOGINFO("Engine initialized with success.");
         _running = true;
         //BeginRun();
 
@@ -97,13 +102,8 @@ namespace alimer
         _engine->GetPluginManager().LoadPlugins(FileSystem::GetExecutableFolder());
     }
 
-    int Application::Run(int argc, char** argv)
+    int Application::Run()
     {
-        for (int i = 1; i < argc; ++i)
-        {
-            _args.push_back(argv[i]);
-        }
-
         Setup();
         if (_exitCode != EXIT_SUCCESS)
         {

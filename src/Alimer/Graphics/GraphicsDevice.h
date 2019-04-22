@@ -23,9 +23,9 @@
 #pragma once
 
 #include "../Core/Object.h"
+#include "../Graphics/Types.h"
 #include "../Graphics/Window.h"
 #include "../Graphics/CommandBuffer.h"
-#include "../Graphics/GraphicsDeviceFeatures.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Pipeline.h"
 #include <memory>
@@ -40,61 +40,66 @@ namespace alimer
     class PipelineHandle;
     class Sampler;
 
-    struct GraphicsDeviceDescriptor
-    {
-        GraphicsBackend preferredBackend = GraphicsBackend::Count;
-        GpuPreference devicePreference = GpuPreference::HighPerformance;
-        bool validation = false;
-    };
+    class GraphicsImpl;
 
     /// Low-level graphics module.
-    class ALIMER_API GraphicsDevice : public Object
+    class ALIMER_API GraphicsDevice final : public Object
     {
         friend class GPUResource;
         ALIMER_OBJECT(GraphicsDevice, Object);
+
+    private:
+        /// Constructor.
+        GraphicsDevice(const char* applicationName, GpuPreference devicePreference);
 
     public:
         /// Register object factory.
         static void RegisterObject();
 
         /// Create factory.
-        static GraphicsDevice* Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
+        static GraphicsDevice* Create(const char* applicationName, GpuPreference devicePreference = GpuPreference::Default);
 
         /// Destructor.
-        virtual ~GraphicsDevice();
+        ~GraphicsDevice();
 
-        /// Initialize device with given swap chain descriptor.
-        bool Initialize(const SwapChainDescriptor* descriptor);
+        /// Set graphics mode. Create the window and rendering context if not created yet. Return true on success.
+        bool SetMode(const IntVector2& size, bool resizable = true, bool fullscreen = false, SampleCount samples = SampleCount::Count1);
 
         /// Begin rendering frame and returns command buffer for recording.
-        virtual bool BeginFrame();
+        bool BeginFrame();
 
         /// End frame rendering and swap buffers.
         void EndFrame();
 
         /// Get the backend.
-        inline GraphicsBackend GetBackend() const { return _backend; }
+        GraphicsBackend GetBackend() const;
+
+        /// Get the device info.
+        const GraphicsDeviceInfo& GetInfo() const;
 
         /// Get the device features.
-        inline const GraphicsDeviceCapabilities& GetCaps() const { return _caps; }
+        const GraphicsDeviceCapabilities& GetCaps() const;
 
         /// Return whether rendering initialized.
         bool IsInitialized() const { return _initialized; }
 
         /// Get the main rendering window.
-        Window* GetRenderWindow() const { return _renderWindow.get(); }
+        Window* GetRenderWindow() const { return _renderWindow.Get(); }
 
         /// Get the main rendering context.
         CommandBuffer* GetRenderContext() const { return _renderContext.Get(); }
 
         /// Get the current backbuffer texture.
-        virtual Texture* GetCurrentTexture() const = 0;
+        //virtual Texture* GetCurrentTexture() const = 0;
 
         /// Get the backbuffer depth-stencil texture.
-        virtual Texture* GetDepthStencilTexture() const = 0;
+        //virtual Texture* GetDepthStencilTexture() const = 0;
 
         /// Get the backbuffer multisample color texture.
-        virtual Texture* GetMultisampleColorTexture() const = 0;
+        //virtual Texture* GetMultisampleColorTexture() const = 0;
+
+         /// Return graphics implementation, which holds the actual API-specific resources.
+        GraphicsImpl* GetImpl() const { return _impl; }
 
         BufferHandle* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData);
         ShaderHandle* CreateShader(ShaderStage stage, const std::string& code, const std::string& entryPoint = "main");
@@ -111,32 +116,25 @@ namespace alimer
 
     private:
         // Backend methods
-        virtual bool InitializeImpl(const SwapChainDescriptor* descriptor) = 0;
-        virtual void Tick() = 0;
+        //virtual bool InitializeImpl(const SwapChainDescriptor* descriptor) = 0;
+        //virtual void Tick() = 0;
 
-        virtual BufferHandle* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) = 0;
-        virtual ShaderHandle* CreateShaderImpl(ShaderStage stage, const std::string& code, const std::string& entryPoint) = 0;
-        virtual PipelineHandle* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) = 0;
+        //virtual BufferHandle* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) = 0;
+        //virtual ShaderHandle* CreateShaderImpl(ShaderStage stage, const std::string& code, const std::string& entryPoint) = 0;
+        //virtual PipelineHandle* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) = 0;
+
+    private:
+        /// Implementation.
+        GraphicsImpl* _impl;
 
     protected:
-        /// Constructor.
-        GraphicsDevice(GraphicsBackend backend, const GraphicsDeviceDescriptor* descriptor);
-
         /// Implementation.
-        GraphicsBackend             _backend;
-        GpuPreference               _devicePreference;
-        bool                        _validation = false;
         bool                        _initialized = false;
-        GraphicsDeviceInfo          _info = {};
-        GraphicsDeviceCapabilities  _caps = {};
         std::vector<GPUResource*>   _gpuResources;
         std::mutex                  _gpuResourceMutex;
         Sampler*                    _pointSampler = nullptr;
         Sampler*                    _linearSampler = nullptr;
         SharedPtr<CommandBuffer>    _renderContext;
-        std::unique_ptr<Window>     _renderWindow;
+        UniquePtr<Window>     _renderWindow;
     };
-
-    /// Register Graphics related object factories and attributes.
-    ALIMER_API void RegisterGraphicsLibrary();
 }

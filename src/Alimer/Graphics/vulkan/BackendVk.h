@@ -22,38 +22,28 @@
 
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64)
-#   ifndef NOMINMAX
-#       define NOMINMAX
-#   endif
-#   ifndef WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
-#   define VK_SURFACE_EXT               "VK_KHR_win32_surface"
-#   define VK_CREATE_SURFACE_FN         vkCreateWin32SurfaceKHR
-#   define VK_USE_PLATFORM_WIN32_KHR    1
-#elif defined(__ANDROID__)
-#   define VK_SURFACE_EXT               "VK_KHR_android_surface"
-#   define VK_CREATE_SURFACE_FN         vkCreateAndroidSurfaceKHR
-#   define VK_USE_PLATFORM_ANDROID_KHR  1
-#elif defined(__linux__)
-#   include <dlfcn.h>
-#   include <xcb/xcb.h>
-#   include <X11/Xlib-xcb.h>
-#   define VK_SURFACE_EXT               "VK_KHR_xcb_surface"
-#   define VK_CREATE_SURFACE_FN         vkCreateXcbSurfaceKHR
-#   define VK_USE_PLATFORM_XCB_KHR      1
-#endif
-
-#include "volk.h"
-#include "vk_mem_alloc.h"
 #include "../Types.h"
 #include "../PixelFormat.h"
 #include "../../Core/Log.h"
 
+#ifndef VK_NO_PROTOTYPES
+#	define VK_NO_PROTOTYPES
+#endif
+#include <vulkan/vulkan.h>
+
+VK_DEFINE_HANDLE(VmaAllocator);
+
+#ifndef VULKAN_DEBUG
+#   if defined(_DEBUG)
+#       define VULKAN_DEBUG 1
+#   else
+#       define VULKAN_DEBUG 0
+#   endif
+#endif
+
 namespace alimer
 {
-    class GraphicsDeviceVk;
+    class GraphicsImpl;
 
     inline const char* GetVkResultString(VkResult result)
     {
@@ -122,6 +112,36 @@ namespace alimer
                 __LINE__);
         }
     }
+
+    inline std::string VKApiVersionToString(uint32_t version)
+    {
+        std::string s;
+
+        s += std::to_string(VK_VERSION_MAJOR(version));
+        s += '.';
+        s += std::to_string(VK_VERSION_MINOR(version));
+        s += ".";
+        s += std::to_string(VK_VERSION_PATCH(version));
+
+        return s;
+    }
+
+    inline static std::string GetVendorByID(unsigned id)
+    {
+        switch (id)
+        {
+        case 0x1002: return "Advanced Micro Devices, Inc.";
+        case 0x10de: return "NVIDIA Corporation";
+        case 0x102b: return "Matrox Electronic Systems Ltd.";
+        case 0x1414: return "Microsoft Corporation";
+        case 0x5333: return "S3 Graphics Co., Ltd.";
+        case 0x8086: return "Intel Corporation";
+        case 0x80ee: return "Oracle Corporation";
+        case 0x15ad: return "VMware Inc.";
+        }
+        return "";
+    }
+
 
     struct DeviceFeaturesVk
     {

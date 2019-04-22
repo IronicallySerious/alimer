@@ -121,11 +121,9 @@ namespace alimer
         _audio->Initialize();
 
         // Create main window and device if not headless
-        if (!_headless) {
-#if defined(_DEBUG)
-            _settings.gpuSettings.validation = true;
-#endif
-            auto newDevice = GraphicsDevice::Create("Alimer", &_settings.gpuSettings);
+        if (!_headless)
+        {
+            auto newDevice = GraphicsDevice::Create("Alimer", GpuPreference::Default);
             if (newDevice == nullptr)
             {
                 ALIMER_LOGERROR("Failed to create GraphicsDevice instance. Running in headless moder");
@@ -136,14 +134,8 @@ namespace alimer
                 _graphicsDevice.reset(newDevice);
 
                 // Initialize main window and device.
-                SwapChainDescriptor swapchainDescriptor = {};
-                swapchainDescriptor.title = _settings.title;
-                swapchainDescriptor.width = _settings.size.x;
-                swapchainDescriptor.height = _settings.size.y;
-                swapchainDescriptor.depthStencil = true;
-                swapchainDescriptor.vsync = true;
-                swapchainDescriptor.samples = SampleCount::Count1;
-                if (!_graphicsDevice->Initialize(&swapchainDescriptor))
+                _graphicsDevice->GetRenderWindow()->SetTitle(_settings.title);
+                if (!_graphicsDevice->SetMode(_settings.size, _settings.resizable, _settings.fullscreen, _settings.samples))
                 {
                     ALIMER_LOGERROR("Failed to create command context.");
                     return false;
@@ -266,14 +258,14 @@ namespace alimer
             return;
         }
 
-        auto context =  _graphicsDevice->GetRenderContext();
+        /*auto context =  _graphicsDevice->GetRenderContext();
 
         Color4 clearColor(0.0f, 0.2f, 0.4f, 1.0f);
         context->BeginDefaultRenderPass(clearColor, 1.0f, 0);
         context->SetVertexBuffer(0, _vertexBuffer);
         context->SetPipeline(_pipeline);
         context->Draw(PrimitiveTopology::TriangleList, 3);
-        context->EndRenderPass();
+        context->EndRenderPass();*/
 
         // TODO: Scene renderer
         // TODO: UI render.

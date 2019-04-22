@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include <foundation/platform.h>
 #include "../Core/Debug.h"
 
 #ifdef _MSC_VER

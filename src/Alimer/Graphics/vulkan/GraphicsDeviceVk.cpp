@@ -22,23 +22,21 @@
 
 #include "GraphicsDeviceVk.h"
 #include "SwapChainVk.h"
+#include "../Window.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #   define VK_SURFACE_EXT               "VK_KHR_win32_surface"
-#   define VK_CREATE_SURFACE_FN         vkCreateWin32SurfaceKHR
-#   define VK_USE_PLATFORM_WIN32_KHR    1
 #elif defined(__ANDROID__)
 #   define VK_SURFACE_EXT               "VK_KHR_android_surface"
-#   define VK_CREATE_SURFACE_FN         vkCreateAndroidSurfaceKHR
-#   define VK_USE_PLATFORM_ANDROID_KHR  1
 #elif defined(__linux__)
-#   include <xcb/xcb.h>
-#   include <dlfcn.h>
-#   include <X11/Xlib-xcb.h>
 #   define VK_SURFACE_EXT               "VK_KHR_xcb_surface"
-#   define VK_CREATE_SURFACE_FN         vkCreateXcbSurfaceKHR
-#   define VK_USE_PLATFORM_XCB_KHR      1
 #endif
+
+#include "volk.h"
+#define VMA_IMPLEMENTATION 1
+#define VMA_STATIC_VULKAN_FUNCTION 0
+#define VMA_STATS_STRING_ENABLED 0
+#include "vk_mem_alloc.h"
 
 using namespace std;
 
@@ -62,6 +60,7 @@ namespace alimer
         bool    VK_LAYER_RENDERDOC_Capture;
     } _vk;
 
+#if VULKAN_DEBUG
     static VKAPI_ATTR VkBool32 VKAPI_CALL vgpuVkMessengerCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT                  messageType,
@@ -166,21 +165,9 @@ namespace alimer
 
         return VK_FALSE;
     }
+#endif /* VULKAN_DEBUG */
 
-    static VkBool32 QueryPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
-    {
-        // TODO: @see: glfwGetPhysicalDevicePresentationSupport
-#if defined(_WIN32) || defined(_WIN64)
-        return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex);
-#elif defined(__ANDROID__)
-        return VK_TRUE;
-#else
-        // TODO:
-        return VK_TRUE;
-#endif
-    }
-
-    bool GraphicsDevice::IsSupported()
+    bool GraphicsImpl::IsSupported()
     {
         VkResult result;
         uint32_t extensionsCount;
@@ -288,21 +275,13 @@ namespace alimer
         return true;
     }
 
-    GraphicsImpl::GraphicsImpl(const char* applicationName, const GraphicsDeviceDescriptor* descriptor)
-        : _validation(descriptor->validation)
-        , _headless(descriptor->headless)
+    GraphicsImpl::GraphicsImpl(const char* applicationName, GpuPreference devicePreference)
     {
-        CreateInstance(applicationName);
-        SelectPhysicalDevice(descriptor->devicePreference);
-        CreateLogicalDevice();
-        InitializeFeatures();
+        ALIMER_ASSERT_MSG(IsSupported(), "Vulkan backend is not supported");
 
-        // Pipeline cache
-        VkPipelineCacheCreateInfo pipelineCacheCreateInfo{};
-        pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        vkThrowIfFailed(
-            vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache)
-        );
+        CreateInstance(applicationName);
+        SelectPhysicalDevice(devicePreference);
+        ALIMER_LOGINFO("Vulkan backend created with success.");
     }
 
     GraphicsImpl::~GraphicsImpl()
@@ -387,24 +366,21 @@ namespace alimer
             instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
 
-#if !defined(NDEBUG)
-        if (_validation)
+#if VULKAN_DEBUG
+        if (!_vk.EXT_debug_utils && _vk.EXT_debug_report)
         {
-            if (!_vk.EXT_debug_utils && _vk.EXT_debug_report)
-            {
-                instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-            }
+            instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+        }
 
-            bool force_no_validation = false;
-            /*if (getenv("VGPU_VULKAN_NO_VALIDATION"))
-            {
-                force_no_validation = true;
-            }*/
+        const bool force_no_validation = false;
+        /*if (getenv("VGPU_VULKAN_NO_VALIDATION"))
+        {
+            force_no_validation = true;
+        }*/
 
-            if (!force_no_validation && _vk.VK_LAYER_LUNARG_standard_validation)
-            {
-                instanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
-            }
+        if (!force_no_validation && _vk.VK_LAYER_LUNARG_standard_validation)
+        {
+            instanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
         }
 #endif
 
@@ -430,32 +406,31 @@ namespace alimer
 
         volkLoadInstance(_instance);
 
-        if (_validation)
+#if VULKAN_DEBUG
+        if (_vk.EXT_debug_utils)
         {
-            if (_vk.EXT_debug_utils)
-            {
-                VkDebugUtilsMessengerCreateInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
-                info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-                info.pfnUserCallback = vgpuVkMessengerCallback;
-                info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                    VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-                    VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
-                info.pUserData = this;
-                vkCreateDebugUtilsMessengerEXT(_instance, &info, nullptr, &_debugMessenger);
-            }
-            else if (_vk.EXT_debug_report)
-            {
-                VkDebugReportCallbackCreateInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
-                info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
-                    VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-                info.pfnCallback = vgpuVkDebugCallback;
-                info.pUserData = this;
-                vkCreateDebugReportCallbackEXT(_instance, &info, nullptr, &_debugCallback);
-            }
+            VkDebugUtilsMessengerCreateInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+            info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+            info.pfnUserCallback = vgpuVkMessengerCallback;
+            info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+            info.pUserData = this;
+            vkCreateDebugUtilsMessengerEXT(_instance, &info, nullptr, &_debugMessenger);
         }
+        else if (_vk.EXT_debug_report)
+        {
+            VkDebugReportCallbackCreateInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
+            info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
+                VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+            info.pfnCallback = vgpuVkDebugCallback;
+            info.pUserData = this;
+            vkCreateDebugReportCallbackEXT(_instance, &info, nullptr, &_debugCallback);
+        }
+#endif /* VULKAN_DEBUG */
     }
 
     void GraphicsImpl::SelectPhysicalDevice(GpuPreference devicePreference)
@@ -498,7 +473,7 @@ namespace alimer
                 break;
             case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
                 score += 90u;
-                if (devicePreference == GpuPreference::MinimumPower) {
+                if (devicePreference == GpuPreference::LowPower) {
                     score += 1000u;
                 }
                 break;
@@ -569,6 +544,22 @@ namespace alimer
         ALIMER_LOGDEBUG("Selected Vulkan GPU: {}", _physicalDeviceProperties.deviceName);
     }
 
+    bool GraphicsImpl::Initialize(Window* window, SampleCount samples)
+    {
+        _surface = CreateSurface(window);
+        CreateLogicalDevice();
+        InitializeInfoAndCaps();
+
+        // Pipeline cache
+        VkPipelineCacheCreateInfo pipelineCacheCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
+        vkThrowIfFailed(
+            vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache)
+        );
+
+
+        return true;
+    }
+
     void GraphicsImpl::CreateLogicalDevice()
     {
         /// Create surface and logical device,
@@ -576,12 +567,10 @@ namespace alimer
         if (_physicalDeviceProperties.apiVersion >= VK_API_VERSION_1_1)
         {
             _featuresVk.supportsVulkan11Device = _featuresVk.supportsVulkan11Instance;
-            ALIMER_LOGDEBUG("GPU supports Vulkan 1.1.");
         }
         else if (_physicalDeviceProperties.apiVersion >= VK_API_VERSION_1_0)
         {
             _featuresVk.supportsVulkan11Device = false;
-            ALIMER_LOGDEBUG("GPU supports Vulkan 1.0.");
         }
 
         // Only need GetPhysicalDeviceProperties2 for Vulkan 1.1-only code, so don't bother getting KHR variant.
@@ -606,7 +595,8 @@ namespace alimer
         const uint32_t queueCount = (uint32_t)_physicalDeviceQueueFamilyProperties.size();
         for (uint32_t i = 0u; i < queueCount; i++)
         {
-            VkBool32 supportPresent = QueryPresentationSupport(_physicalDevice, i);
+            VkBool32 supportPresent;
+            vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, _surface, &supportPresent);
 
             if (_presentQueueFamily == VK_QUEUE_FAMILY_IGNORED &&
                 supportPresent)
@@ -737,7 +727,6 @@ namespace alimer
         requiredDeviceExtensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 
         vector<const char*> enabledExtensions;
-        vector<const char*> enabledLayers;
 
         for (size_t i = 0; i < requiredDeviceExtensions.size(); i++)
         {
@@ -888,18 +877,11 @@ namespace alimer
             device_info.pEnabledFeatures = &features.features;
         }
 
-#if !defined(NDEBUG)
-        if (_validation
-            && HasLayer("VK_LAYER_LUNARG_standard_validation"))
-        {
-            enabledLayers.push_back("VK_LAYER_LUNARG_standard_validation");
-        }
-#endif
-
         device_info.enabledExtensionCount = (uint32_t)enabledExtensions.size();
         device_info.ppEnabledExtensionNames = enabledExtensions.data();
-        device_info.enabledLayerCount = (uint32_t)enabledLayers.size();
-        device_info.ppEnabledLayerNames = enabledLayers.data();
+        // Deprecated and ignored.
+        device_info.enabledLayerCount = 0;
+        device_info.ppEnabledLayerNames = nullptr;
 
         if (vkCreateDevice(_physicalDevice, &device_info, nullptr, &_device) != VK_SUCCESS)
         {
@@ -911,19 +893,110 @@ namespace alimer
         vkGetDeviceQueue(_device, _graphicsQueueFamily, 0, &_graphicsQueue);
         vkGetDeviceQueue(_device, _computeQueueFamily, computeQueueIndex, &_computeQueue);
         vkGetDeviceQueue(_device, _transferQueueFamily, transferQueueIndex, &_transferQueue);
+
+        // Initialize vma memory allocator
+        VmaVulkanFunctions vma_vulkan_func = {};
+        vma_vulkan_func.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+        vma_vulkan_func.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+        vma_vulkan_func.vkAllocateMemory = vkAllocateMemory;
+        vma_vulkan_func.vkFreeMemory = vkFreeMemory;
+        vma_vulkan_func.vkMapMemory = vkMapMemory;
+        vma_vulkan_func.vkUnmapMemory = vkUnmapMemory;
+        vma_vulkan_func.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+        vma_vulkan_func.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+        vma_vulkan_func.vkBindBufferMemory = vkBindBufferMemory;
+        vma_vulkan_func.vkBindImageMemory = vkBindImageMemory;
+        vma_vulkan_func.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+        vma_vulkan_func.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+        vma_vulkan_func.vkCreateBuffer = vkCreateBuffer;
+        vma_vulkan_func.vkCreateImage = vkCreateImage;
+        vma_vulkan_func.vkDestroyBuffer = vkDestroyBuffer;
+        vma_vulkan_func.vkDestroyImage = vkDestroyImage;
+        vma_vulkan_func.vkCmdCopyBuffer = vkCmdCopyBuffer;
+
+#if VMA_DEDICATED_ALLOCATION
+        vma_vulkan_func.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+        vma_vulkan_func.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+#endif
+
+        VmaAllocatorCreateInfo allocator_info{};
+        allocator_info.physicalDevice = _physicalDevice;
+        allocator_info.device = _device;
+        allocator_info.pVulkanFunctions = &vma_vulkan_func;
+        VkResult result = vmaCreateAllocator(&allocator_info, &_memoryAllocator);
+
+        if (result != VK_SUCCESS)
+        {
+            ALIMER_LOGERROR("Vulkan: Failed to create vma allocator");
+            return;
+        }
     }
 
-    void GraphicsImpl::InitializeFeatures()
+    void GraphicsImpl::InitializeInfoAndCaps()
     {
-        _features.SetBackend(GraphicsBackend::Vulkan);
-        _features.SetVendorId(_physicalDeviceProperties.vendorID);
-        _features.SetDeviceId(_physicalDeviceProperties.deviceID);
-        _features.SetDeviceName(_physicalDeviceProperties.deviceName);
-        _features.SetMultithreading(true);
-        _features.SetMaxColorAttachments(_physicalDeviceProperties.limits.maxColorAttachments);
-        _features.SetMaxBindGroups(_physicalDeviceProperties.limits.maxBoundDescriptorSets);
-        _features.SetMinUniformBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minUniformBufferOffsetAlignment));
-        _features.SetMinStorageBufferOffsetAlignment(static_cast<uint32_t>(_physicalDeviceProperties.limits.minStorageBufferOffsetAlignment));
+        _info.backend = GraphicsBackend::Vulkan;
+        _info.backendName = "Vulkan " + VKApiVersionToString(_physicalDeviceProperties.apiVersion);
+        _info.deviceName = _physicalDeviceProperties.deviceName;
+        _info.vendorName = GetVendorByID(_physicalDeviceProperties.vendorID);
+        _info.vendorId = _physicalDeviceProperties.vendorID;
+
+        _caps.features.instancing = true;
+        _caps.features.alphaToCoverage = true;
+        _caps.features.independentBlend = _physicalDeviceFeatures.independentBlend;
+        _caps.features.computeShader = true;
+        _caps.features.geometryShader = _physicalDeviceFeatures.geometryShader;
+        _caps.features.tessellationShader = _physicalDeviceFeatures.tessellationShader;
+        _caps.features.sampleRateShading = _physicalDeviceFeatures.sampleRateShading;
+        _caps.features.dualSrcBlend = _physicalDeviceFeatures.dualSrcBlend;
+        _caps.features.logicOp = _physicalDeviceFeatures.logicOp;
+        _caps.features.multiViewport = _physicalDeviceFeatures.multiViewport;
+        _caps.features.indexUInt32 = _physicalDeviceFeatures.fullDrawIndexUint32;
+        _caps.features.drawIndirect = _physicalDeviceFeatures.multiDrawIndirect;
+        _caps.features.alphaToOne = _physicalDeviceFeatures.alphaToOne;
+        _caps.features.fillModeNonSolid = _physicalDeviceFeatures.fillModeNonSolid;
+        _caps.features.samplerAnisotropy = _physicalDeviceFeatures.samplerAnisotropy;
+        _caps.features.textureCompressionBC = _physicalDeviceFeatures.textureCompressionBC;
+        _caps.features.textureCompressionPVRTC = false;
+        _caps.features.textureCompressionETC2 = _physicalDeviceFeatures.textureCompressionETC2;
+        _caps.features.textureCompressionATC = false;
+        _caps.features.textureCompressionASTC = _physicalDeviceFeatures.textureCompressionASTC_LDR;
+        _caps.features.pipelineStatisticsQuery = _physicalDeviceFeatures.pipelineStatisticsQuery;
+        _caps.features.texture1D = true;
+        _caps.features.texture3D = true;
+        _caps.features.texture2DArray = true;
+        _caps.features.textureCubeArray = _physicalDeviceFeatures.imageCubeArray;
+
+        // TODO: Raytracing
+        _caps.features.raytracing = false;
+
+        // Limits
+        _caps.limits.maxTextureDimension1D = _physicalDeviceProperties.limits.maxImageDimension1D;
+        _caps.limits.maxTextureDimension2D = _physicalDeviceProperties.limits.maxImageDimension2D;
+        _caps.limits.maxTextureDimension3D = _physicalDeviceProperties.limits.maxImageDimension3D;
+        _caps.limits.maxTextureDimensionCube = _physicalDeviceProperties.limits.maxImageDimensionCube;
+        _caps.limits.maxTextureArrayLayers = _physicalDeviceProperties.limits.maxImageArrayLayers;
+        _caps.limits.maxColorAttachments = _physicalDeviceProperties.limits.maxColorAttachments;
+        _caps.limits.maxUniformBufferSize = _physicalDeviceProperties.limits.maxUniformBufferRange;
+        _caps.limits.minUniformBufferOffsetAlignment = _physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+        _caps.limits.maxStorageBufferSize = _physicalDeviceProperties.limits.maxStorageBufferRange;
+        _caps.limits.minStorageBufferOffsetAlignment = _physicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
+        _caps.limits.maxSamplerAnisotropy = static_cast<uint32_t>(_physicalDeviceProperties.limits.maxSamplerAnisotropy);
+        _caps.limits.maxViewports = _physicalDeviceProperties.limits.maxViewports;
+        _caps.limits.maxViewportDimensions[0] = _physicalDeviceProperties.limits.maxViewportDimensions[0];
+        _caps.limits.maxViewportDimensions[1] = _physicalDeviceProperties.limits.maxViewportDimensions[1];
+        _caps.limits.maxPatchVertices = _physicalDeviceProperties.limits.maxTessellationPatchSize;
+        _caps.limits.pointSizeRange[0] = _physicalDeviceProperties.limits.pointSizeRange[0];
+        _caps.limits.pointSizeRange[1] = _physicalDeviceProperties.limits.pointSizeRange[1];
+        _caps.limits.lineWidthRange[0] = _physicalDeviceProperties.limits.lineWidthRange[0];
+        _caps.limits.lineWidthRange[1] = _physicalDeviceProperties.limits.lineWidthRange[0];
+        _caps.limits.maxComputeSharedMemorySize = _physicalDeviceProperties.limits.maxComputeSharedMemorySize;
+        _caps.limits.maxComputeWorkGroupCount[0] = _physicalDeviceProperties.limits.maxComputeWorkGroupCount[0];
+        _caps.limits.maxComputeWorkGroupCount[1] = _physicalDeviceProperties.limits.maxComputeWorkGroupCount[1];
+        _caps.limits.maxComputeWorkGroupCount[2] = _physicalDeviceProperties.limits.maxComputeWorkGroupCount[2];
+        _caps.limits.maxComputeWorkGroupInvocations = _physicalDeviceProperties.limits.maxComputeWorkGroupInvocations;
+        _caps.limits.maxComputeWorkGroupSize[0] = _physicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
+        _caps.limits.maxComputeWorkGroupSize[1] = _physicalDeviceProperties.limits.maxComputeWorkGroupSize[1];
+        _caps.limits.maxComputeWorkGroupSize[2] = _physicalDeviceProperties.limits.maxComputeWorkGroupSize[2];
     }
 
     void GraphicsImpl::WaitIdle()
@@ -933,63 +1006,35 @@ namespace alimer
         );
     }
 
-    VkSurfaceKHR GraphicsImpl::CreateSurface(uint64_t nativeHandle)
+    VkSurfaceKHR GraphicsImpl::CreateSurface(Window* window)
     {
-#if defined(_WIN32) || defined(_WIN64)
-        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo;
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.pNext = nullptr;
-        surfaceCreateInfo.flags = 0;
-        surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-        surfaceCreateInfo.hwnd = reinterpret_cast<HWND>(nativeHandle);
-#elif defined(__ANDROID__)
-        VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.window = reinterpret_cast<ANativeWindow>(nativeHandle);
-#elif defined(__linux__)
-        VkXcbSurfaceCreateInfoKHR surfaceCreateInfo;
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.pNext = nullptr;
-        surfaceCreateInfo.flags = 0;
-
-        if (descriptor->nativeDisplay == 0) {
-            static xcb_connection_t* XCB_CONNECTION = nullptr;
-            if (XCB_CONNECTION == nullptr) {
-                int screenIndex = 0;
-                xcb_screen_t* screen = nullptr;
-                xcb_connection_t* connection = xcb_connect(NULL, &screenIndex);
-                const xcb_setup_t *setup = xcb_get_setup(connection);
-                for (xcb_screen_iterator_t it = xcb_setup_roots_iterator(setup);
-                    screen >= 0 && it.rem;
-                    xcb_screen_next(&it)) {
-                    if (screenIndex-- == 0) {
-                        screen = it.data;
-                    }
-                }
-                assert(screen);
-                XCB_CONNECTION = connection;
-            }
-
-            surfaceCreateInfo.connection = XCB_CONNECTION;
-        }
-        else
-        {
-            surfaceCreateInfo.connection = = (xcb_connection_t*)descriptor->nativeDisplay;
-        }
-
-        surfaceCreateInfo.window = (xcb_window_t)nativeHandle;
-#elif defined(VK_USE_PLATFORM_IOS_MVK)
-        VkIOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
-        surfaceCreateInfo.pView = nativeHandle;
-#elif defined(VK_USE_PLATFORM_MACOS_MVK)
-        VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-        surfaceCreateInfo.pView = nativeHandle;
-#endif
-
         VkSurfaceKHR surface = VK_NULL_HANDLE;
-        VkResult result = VK_CREATE_SURFACE_FN(_instance, &surfaceCreateInfo, nullptr, &surface);
+        VkResult result = VK_SUCCESS;
+
+#if defined(_WIN32) || defined(_WIN64)
+        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+        surfaceCreateInfo.hinstance = window->GetNativeConnection()/* GetModuleHandleW(nullptr)*/;
+        surfaceCreateInfo.hwnd = window->GetNativeHandle();
+        result = vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(__ANDROID__)
+        VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR  };
+        surfaceCreateInfo.window = window->GetNativeHandle();
+        result = vkCreateAndroidSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(__linux__)
+        VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = { VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR };
+        surfaceCreateInfo.connection = window->GetNativeConnection();
+        surfaceCreateInfo.window = window->GetNativeHandle();
+        result = vkCreateXcbSurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_IOS_MVK)
+        VkIOSSurfaceCreateInfoMVK surfaceCreateInfo = { VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK };
+        surfaceCreateInfo.pView = nativeHandle;
+        result = vkCreateIOSSurfaceMVK(_instance, &surfaceCreateInfo, nullptr, &surface);
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+        VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo = { VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK  };
+        surfaceCreateInfo.pView = nativeHandle;
+        result = vkCreateMacOSSurfaceMVK(_instance, &surfaceCreateInfo, nullptr, &surface);
+#endif
+       
         if (result != VK_SUCCESS)
         {
             ALIMER_LOGERROR("Vulkan: Failed to create platform surface");
@@ -1146,36 +1191,4 @@ namespace alimer
 #endif
         //frame().destroyedImages.push_back(handle);
     }
-
-    /*GraphicsDeviceVk::FrameData::FrameData(GraphicsDeviceVk* device_)
-        : device(device_)
-        , logicalDevice(device_->GetVkDevice())
-    {
-        VkFenceCreateInfo fenceCreateInfo = {};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.pNext = nullptr;
-        fenceCreateInfo.flags = 0u;
-        vkThrowIfFailed(vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &fence));
-    }
-
-    GraphicsDeviceVk::FrameData::~FrameData()
-    {
-        ProcessDeferredDelete();
-    }
-
-    void GraphicsDeviceVk::FrameData::ProcessDeferredDelete()
-    {
-        for (auto &sampler : destroyedSamplers)
-            vkDestroySampler(logicalDevice, sampler, nullptr);
-
-        for (auto &pipeline : destroyedPipelines)
-            vkDestroyPipeline(logicalDevice, pipeline, nullptr);
-
-        for (auto &image : destroyedImages)
-            vkDestroyImage(logicalDevice, image, nullptr);
-
-        destroyedSamplers.clear();
-        destroyedPipelines.clear();
-        destroyedImages.clear();
-    }*/
 }

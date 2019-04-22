@@ -1,20 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-    <!-- Urho3D::String -->
-    <Type Name="Turso3D::String">
-        <DisplayString Condition="buffer_">{buffer_,nas8}</DisplayString>
-        <DisplayString>invalid string</DisplayString>
+    <Type Name="Alimer::Array&lt;*,*&gt;">
+        <DisplayString Condition="$T2 == 0">Empty</DisplayString>
+        <DisplayString Condition="$T2 != 0">size = {$T2}</DisplayString>
         <Expand>
-            <Item Name="[length]" ExcludeView="simple">length_</Item>
-            <Item Name="[capacity]" ExcludeView="simple">capacity_</Item>
-            <Item Name="[buffer]">buffer_</Item>
+            <ArrayItems>
+                <Size>($T2)</Size>
+                <ValuePointer>($T1*)data_</ValuePointer>
+            </ArrayItems>
         </Expand>
     </Type>
 
-    <!-- Urho3D::StringHash -->
-    <Type Name="Turso3D::StringHash" Priority="Low">
-        <DisplayString>#{value}</DisplayString>
+    <Type Name="Alimer::ArrayView&lt;*&gt;">
+        <DisplayString Condition="(end_ - begin_) == 0">Empty</DisplayString>
+        <DisplayString Condition="(end_ - begin_) != 0">size = {end_ - begin_}</DisplayString>
+        <Expand>
+            <Item Name="[size]" ExcludeView="simple">(end_ - begin_)</Item>
+            <ArrayItems>
+                <Size>(end_ - begin_)</Size>
+                <ValuePointer>($T1*)begin_</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+    <!-- alimer::StringHash -->
+    <Type Name="alimer::StringHash" Priority="Low">
+        <DisplayString>#{value_}</DisplayString>
     </Type>
 
 </AutoVisualizer>

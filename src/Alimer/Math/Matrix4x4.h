@@ -31,8 +31,6 @@
 #pragma warning(disable : 4201 4203 4244 4702)
 #endif
 
-#include <foundation/platform.h>
-
 #if !defined(ALIMER_SIMD_DISABLED) && ALIMER_ARCH_SSE2
 #   include <xmmintrin.h>
 #   include <emmintrin.h>

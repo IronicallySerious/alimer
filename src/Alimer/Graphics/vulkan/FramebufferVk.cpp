@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_VK
 #include "FramebufferVk.h"
 #include "../Texture.h"
 #include "GraphicsDeviceVk.h"
@@ -85,3 +86,5 @@ namespace alimer
 
     }
 }
+
+#endif // TODO_VK

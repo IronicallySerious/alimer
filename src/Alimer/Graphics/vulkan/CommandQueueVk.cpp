@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_VK
 #include "../CommandQueue.h"
 //#include "CommandContextVk.h"
 #include "GraphicsDeviceVk.h"
@@ -127,3 +128,5 @@ namespace alimer
         return false;
     }
 }
+
+#endif // TODO_VK

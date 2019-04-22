@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_VK
 #include "PipelineVk.h"
 #include "GraphicsDeviceVk.h"
 
@@ -79,3 +80,5 @@ namespace alimer
         }
     }
 }
+
+#endif // TODO_VK

@@ -23,8 +23,9 @@
 
 #pragma once
 
+#include "AlimerConfig.h"
+
 #include <string>
-#include <foundation/foundation.h>
 
 #if defined(__CYGWIN32__)
 #   define ALIMER_INTERFACE_EXPORT __declspec(dllexport)

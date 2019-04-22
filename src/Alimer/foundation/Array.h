@@ -26,7 +26,7 @@
 #include "../Core/Debug.h"
 #include <type_traits>
 
-namespace alimer
+namespace Alimer
 {
     /// Fixed size array.
     template<typename T, size_t SIZE>

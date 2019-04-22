@@ -70,6 +70,17 @@ if (ALIMER_VULKAN)
     set (VOLK_FILES "volk/volk.c" "volk/volk.h")
     add_library(volk STATIC ${VOLK_FILES})
     target_link_libraries(volk PUBLIC vulkan)
+
+    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        target_compile_definitions(volk PRIVATE VK_USE_PLATFORM_WIN32_KHR VK_KHR_win32_surface)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_compile_definitions(volk PRIVATE VK_USE_PLATFORM_XCB_KHR VK_KHR_xcb_surface)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
+        target_compile_definitions(volk PRIVATE VK_USE_PLATFORM_ANDROID_KHR VK_KHR_android_surface)
+    else()
+        message(FATAL_ERROR "Volk can't be cofigured for " ${CMAKE_SYSTEM_NAME})
+    endif()
+
     target_include_directories(volk PUBLIC "volk")
     set_property(TARGET volk PROPERTY FOLDER "third_party")
 

@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_VK
 #include "GraphicsDeviceVk.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
@@ -117,3 +118,5 @@ namespace alimer
         _graphicsPipelineCache[hash] = pipeline;
     }*/
 }
+
+#endif // TODO_VK

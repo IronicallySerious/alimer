@@ -36,6 +36,8 @@ extern "C"
 }
 #endif /* defined(_WIN32) */
 
+#include "AlimerConfig.h"
+
 #if ALIMER_D3D11
 #   include "d3d11/GraphicsDeviceD3D11.h"
 #endif
@@ -48,21 +50,16 @@ extern "C"
 #   include "vulkan/GraphicsDeviceVk.h"
 #endif
 
-#if defined(ALIMER_GLFW)
-#   define GLFW_INCLUDE_NONE 
-#   include <GLFW/glfw3.h>
-#endif
-
 using namespace std;
 
 namespace alimer
 {
-    GraphicsDevice::GraphicsDevice(GraphicsBackend backend, const GraphicsDeviceDescriptor* descriptor)
-        : _backend(backend)
-        , _devicePreference(descriptor->devicePreference)
-        , _validation(descriptor->validation)
+    GraphicsDevice::GraphicsDevice(const char* applicationName, GpuPreference devicePreference)
     {
-        RegisterGraphicsLibrary();
+        _impl = new GraphicsImpl(applicationName, devicePreference);
+        _renderWindow = new Window();
+
+        RegisterObject();
         AddSubsystem(this);
     }
 
@@ -80,7 +77,7 @@ namespace alimer
 
         _initialized = false;
         _renderContext.Reset();
-        _renderWindow.reset();
+        _renderWindow.Reset();
 
         // Destroy undestroyed resources.
         SafeDelete(_pointSampler);
@@ -104,13 +101,14 @@ namespace alimer
         if (registered) {
             return;
         }
+
         registered = true;
         Shader::RegisterObject();
         Texture::RegisterObject();
         Sampler::RegisterObject();
     }
 
-    GraphicsDevice* GraphicsDevice::Create(const char* applicationName, const GraphicsDeviceDescriptor* descriptor)
+    GraphicsDevice* GraphicsDevice::Create(const char* applicationName, GpuPreference devicePreference)
     {
         auto graphics = GetSubsystem<GraphicsDevice>();
         if (graphics != nullptr)
@@ -118,59 +116,27 @@ namespace alimer
             ALIMER_LOGCRITICAL("Cannot create multiple instance of GraphicsDevice");
         }
 
-        GraphicsBackend preferredBackend = descriptor->preferredBackend;
-        if (preferredBackend == GraphicsBackend::Count) {
-            preferredBackend = GraphicsBackend::Direct3D11;
-        }
-
-#if defined(ALIMER_GLFW)
-        if (preferredBackend != GraphicsBackend::OpenGL)
+        if (!GraphicsImpl::IsSupported())
         {
-            // Disable opengl context by default creation.
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+            ALIMER_LOGERROR("Vulkan backend is not supported.");
+            return nullptr;
         }
-        else
-        {
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
-            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        }
-#endif
 
-        GraphicsDevice* device = nullptr;
-        switch (preferredBackend)
-        {
-        case GraphicsBackend::Direct3D11:
-#if ALIMER_D3D11
-            if (!GraphicsDeviceD3D11::IsSupported())
-            {
-                ALIMER_LOGERROR("Direct3D11 backend is not supported.");
-                return nullptr;
-            }
-
-            device = new GraphicsDeviceD3D11(descriptor);
-            ALIMER_LOGINFO("Direct3D11 backend created with success.");
-#else
-            ALIMER_LOGERROR("Direct3D11 backend is not supported.");
-#endif
-            break;
-
-        default:
-            break;
-        }
-        
-        return device;
+        return new GraphicsDevice(applicationName, devicePreference);
     }
 
-    bool GraphicsDevice::Initialize(const SwapChainDescriptor* descriptor)
+    bool GraphicsDevice::SetMode(const IntVector2& size, bool resizable, bool fullscreen, SampleCount samples)
     {
-        if (_initialized) {
+        if (!_renderWindow->SetSize(size, resizable, fullscreen)) {
+            return false;
+        }
+
+        if (!_initialized)
+        {
+            _initialized = _impl->Initialize(_renderWindow.Get(), samples);
             return true;
         }
 
-        _initialized = InitializeImpl(descriptor);
         return _initialized;
     }
 
@@ -181,10 +147,22 @@ namespace alimer
 
     void GraphicsDevice::EndFrame()
     {
-        Tick();
+        //Tick();
+    }
 
-        // Present to screen.
-        _renderWindow->SwapBuffers();
+    GraphicsBackend GraphicsDevice::GetBackend() const
+    {
+        return _impl->GetInfo().backend;
+    }
+
+    const GraphicsDeviceInfo& GraphicsDevice::GetInfo() const
+    {
+        return _impl->GetInfo();
+    }
+
+    const GraphicsDeviceCapabilities& GraphicsDevice::GetCaps() const
+    {
+        return _impl->GetCaps();
     }
 
     void GraphicsDevice::TrackResource(GPUResource* resource)
@@ -205,23 +183,20 @@ namespace alimer
     BufferHandle* GraphicsDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData)
     {
         ALIMER_ASSERT(descriptor);
-        return CreateBufferImpl(descriptor, pInitData);
+        return nullptr;
+        //return CreateBufferImpl(descriptor, pInitData);
     }
 
     ShaderHandle* GraphicsDevice::CreateShader(ShaderStage stage, const std::string& code, const std::string& entryPoint)
     {
-        return CreateShaderImpl(stage, code, entryPoint);
+        //return CreateShaderImpl(stage, code, entryPoint);
+        return nullptr;
     }
 
     PipelineHandle* GraphicsDevice::CreateRenderPipeline(const RenderPipelineDescriptor* descriptor)
     {
         ALIMER_ASSERT(descriptor);
-        return CreateRenderPipelineImpl(descriptor);
-    }
-
-
-    void RegisterGraphicsLibrary()
-    {
-        GraphicsDevice::RegisterObject();
+        //return CreateRenderPipelineImpl(descriptor);
+        return nullptr;
     }
 }

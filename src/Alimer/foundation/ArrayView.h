@@ -25,7 +25,7 @@
 #include "../Core/Debug.h"
 #include <type_traits>
 
-namespace alimer
+namespace Alimer
 {
     template<typename T>
     class ArrayView

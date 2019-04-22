@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "AlimerConfig.h"
+
 #if defined(_WIN32) || defined(_WIN64)
 #   ifndef NOMINMAX
 #       define NOMINMAX
@@ -47,7 +49,6 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include "../foundation/platform.h"
 
 #define STACK_ARRAY(TYPE, LEN) static_cast<TYPE*>(::alloca((LEN) * sizeof(TYPE)))
 

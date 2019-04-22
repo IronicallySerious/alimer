@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_VK
 #include "SwapChainVk.h"
 #include "FramebufferVk.h"
 #include "GraphicsDeviceVk.h"
@@ -459,3 +460,5 @@ namespace alimer
         return vkQueuePresentKHR(queue, &presentInfo);
     }
 }
+
+#endif // TODO_VK

@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include <foundation/foundation.h>
+#include "AlimerConfig.h"
+
 #include <cassert>
 #include <string>
 

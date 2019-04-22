@@ -39,15 +39,18 @@ namespace alimer
 
     struct EngineSettings
     {
-        GraphicsDeviceDescriptor    gpuSettings = {};
-
-        /// Main window title.
+        /// Main application window title.
         std::string                 title = "Alimer";
-
-        /// Main window             size.
+        /// Main application window size.
         IntVector2                  size = { 800, 600 };
-        bool                        fullscreen = false;
-        bool                        resizable = true;
+        /// Whether main application window is resizable.
+        bool resizable = true;
+        /// Whether main application window is fullscreen.
+        bool fullscreen = false;
+        /// Multisample count for graphics backend.
+        SampleCount samples = SampleCount::Count1;
+        /// Whether to disable audio.
+        bool disableAudio;
     };
 
     /// Alimer engine. Manages module setup and all engine logic.

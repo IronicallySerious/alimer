@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2019 Amer Koleci and contributors.
+// Copyright (c) 2018-2019 Amer Koleci and contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -363,8 +363,8 @@
 #           undef  ALIMER_ARCH_ARM8_64
 #           define ALIMER_ARCH_ARM8_64 1
 #           define ALIMER_PLATFORM_DESCRIPTION "Linux ARM64v8"
-#       else       
-#           error Unrecognized ARM architecture
+#       else       ALIMER
+#           error UALIMERnrecognized ARM architecture
 #       endif
 
 #       if defined( __AARCH64EB__ )
@@ -483,40 +483,29 @@
 #endif
 
 // Export/Import attribute
-#if defined(ALIMER_SHARED_LIBRARY) && ALIMER_PLATFORM_WINDOWS
-#   define FOUNDATION_EXPORT_LINK __declspec(dllexport)
-#   define FOUNDATION_IMPORT_LINK __declspec(dllimport)
+#if defined(__CYGWIN32__)
+#   define ALIMER_INTERFACE_EXPORT  __declspec(dllexport)
+#   define ALIMER_INTERFACE_IMPORT __declspec(dllimport)
+#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || defined(WINAPI_FAMILY)
+#   define ALIMER_INTERFACE_EXPORT __declspec(dllexport)
+#   define ALIMER_INTERFACE_IMPORT __declspec(dllimport)
+#elif defined(__MACH__) || defined(__ANDROID__) || defined(__linux__) || defined(__QNX__)
+#   define ALIMER_INTERFACE_EXPORT __attribute__((visibility("default")))
+#   define ALIMER_INTERFACE_IMPORT
 #else
-#   define FOUNDATION_EXPORT_LINK
-#   define FOUNDATION_IMPORT_LINK
-#endif
-
-#if ALIMER_COMPILE
-#   ifdef __cplusplus
-#       define FOUNDATION_EXTERN extern "C" FOUNDATION_IMPORT_LINK
-#       define FOUNDATION_API extern "C" FOUNDATION_EXPORT_LINK
-#   else
-#       define FOUNDATION_EXTERN extern FOUNDATION_IMPORT_LINK
-#       define FOUNDATION_API extern FOUNDATION_EXPORT_LINK
-#   endif
-#   define ALIMER_API FOUNDATION_EXPORT_LINK
-#else
-#   ifdef __cplusplus
-#       define FOUNDATION_EXTERN extern "C" FOUNDATION_IMPORT_LINK
-#       define FOUNDATION_API extern "C" FOUNDATION_IMPORT_LINK
-#   else
-#       define FOUNDATION_EXTERN extern FOUNDATION_IMPORT_LINK
-#       define FOUNDATION_API extern FOUNDATION_IMPORT_LINK
-#   endif
-#   define ALIMER_API FOUNDATION_IMPORT_LINK
+#   define ALIMER_INTERFACE_EXPORT
+#   define ALIMER_INTERFACE_IMPORT
 #endif
 
 // Utility macros
-#define ALIMER_STRINGIZE_HELPER(X) #X
-#define ALIMER_STRINGIZE(X) ALIMER_STRINGIZE_HELPER(X)
+#define ALIMER_STRINGIZE_(X) #X
+#define ALIMER_STRINGIZE(X) ALIMER_STRINGIZE_(X)
 
 #define ALIMER_CONCAT_HELPER(X, Y) X##Y
 #define ALIMER_CONCAT(X, Y) ALIMER_CONCAT_HELPER(X, Y)
+
+#define ALIMER_MAKE_FOURCC(_a, _b, _c, _d) \
+    (((uint32_t)(_a) | ((uint32_t)(_b) << 8) | ((uint32_t)(_c) << 16) | ((uint32_t)(_d) << 24)))
 
 // Architecture details
 #if defined(__SSE2__) || ALIMER_ARCH_X86_64
@@ -545,13 +534,13 @@
 #endif
 
 // Compilers
-#if defined(__clang__)
+#if defined( __clang__ )
 
 #   undef  ALIMER_COMPILER_CLANG
 #   define ALIMER_COMPILER_CLANG 1
 
 #   define ALIMER_COMPILER_NAME "clang"
-#   define ALIMER_COMPILER_DESCRIPTION ALIMER_COMPILER_NAME " " ALIMER_STRINGIZE(__clang_major__) "." ALIMER_STRINGIZE(__clang_minor__)
+#   define ALIMER_COMPILER_DESCRIPTION ALIMER " " ALIMER_STRINGIZE(__clang_major__) "." ALIMER_STRINGIZE(__clang_minor__)
 #   define ALIMER_CLANG_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__)
 
 #   define ALIMER_RESTRICT __restrict
@@ -574,6 +563,8 @@
 
 #   define ALIMER_LIKELY(x) __builtin_expect(!!(x), 1)
 #   define ALIMER_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#   define ALIMER_NORETURN __attribute__((noreturn))
+#   define ALIMER_EMPTY_BASES
 
 #   if ALIMER_PLATFORM_WINDOWS
 #       if (ALIMER_CLANG_VERSION < 30800)
@@ -641,6 +632,8 @@
 
 #   define ALIMER_LIKELY(x) __builtin_expect(!!(x), 1)
 #   define ALIMER_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#   define ALIMER_NORETURN __attribute__((noreturn))
+#   define ALIMER_EMPTY_BASES
 
 #   if ALIMER_PLATFORM_WINDOWS
 #       define STDCALL ALIMER_ATTRIBUTE(stdcall)
@@ -696,6 +689,8 @@
 
 #   define ALIMER_LIKELY(x) __builtin_expect(!!(x), 1)
 #   define ALIMER_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#   define ALIMER_NORETURN  __declspec(noreturn)
+#   define ALIMER_EMPTY_BASES __declspec(empty_bases)
 
 #   if ALIMER_PLATFORM_WINDOWS
 #       define STDCALL __stdcall
@@ -705,7 +700,7 @@
 #   include <intrin.h>
 
 // Microsoft
-#elif defined(_MSC_VER)
+#elif defined( _MSC_VER )
 
 #   undef  ALIMER_COMPILER_MSVC
 #   define ALIMER_COMPILER_MSVC 1
@@ -733,6 +728,8 @@
 
 #   define ALIMER_LIKELY(x) (x)
 #   define ALIMER_UNLIKELY(x) (x)
+#   define ALIMER_NORETURN  __declspec(noreturn)
+#   define ALIMER_EMPTY_BASES __declspec(empty_bases)
 
 #   pragma warning(disable : 4054)
 #   pragma warning(disable : 4055)
@@ -753,7 +750,7 @@
 #       define STDCALL __stdcall
 #   endif
 
-#   if defined(ALIMER_COMPILE) && ALIMER_COMPILE && !defined(_CRT_SECURE_NO_WARNINGS)
+#   ifndef _CRT_SECURE_NO_WARNINGS
 #       define _CRT_SECURE_NO_WARNINGS 1
 #   endif
 
@@ -821,13 +818,12 @@
 #if !ALIMER_PLATFORM_WINDOWS
 #   include <wchar.h>
 #endif
-
 #if (ALIMER_PLATFORM_POSIX && !ALIMER_PLATFORM_APPLE)
 #   include <sys/types.h>
 #endif
 
 #ifndef __cplusplus
-#   define nullptr ((void*)0)
+#  define nullptr ((void*)0)
 #endif
 
 #if !defined(__cplusplus) && !defined(__bool_true_false_are_defined)
@@ -835,17 +831,6 @@ typedef enum {
     false = 0,
     true = 1
 } bool;
-#endif
-
-#if ALIMER_COMPILER_MSVC
-typedef enum memory_order {
-    memory_order_relaxed,
-    memory_order_consume,
-    memory_order_acquire,
-    memory_order_release,
-    memory_order_acq_rel,
-    memory_order_seq_cst
-} memory_order;
 #endif
 
 #if ALIMER_COMPILER_CLANG
@@ -870,24 +855,35 @@ typedef enum memory_order {
 #   endif
 #endif
 
-// Macro for determining size of arrays.
-#if defined(_MSC_VER)
-#   define ALIMER_ARRAYSIZE(arr) _countof(arr)
-#else
-#   define ALIMER_ARRAYSIZE(arr) (sizeof(arr)/sizeof(arr[0]))
-#endif
-
 // Misc
-#if defined(__COVERITY__)
-#   define ALIMER_UNUSED(x) ((void)(x))
-#elif ALIMER_COMPILER_GCC
-#   define ALIMER_UNUSED(x) ((void)sizeof((x)))
+#define ALIMER_UNUSED(x) (void)(true ? (void)0 : ((void)(x)))
+
+#if defined(_MSC_VER) 
+#   include <sal.h>
+#   define ALIMER_PRINTF_FORMAT_STRING _Printf_format_string_
+#   define ALIMER_PRINTF_VARARG_FUNC( fmtargnumber )
+#   define ALIMER_SCANF_VARARG_FUNC( fmtargnumber )
+#elif defined(__GNUC__)
+#   define ALIMER_PRINTF_FORMAT_STRING
+#   define ALIMER_PRINTF_VARARG_FUNC( fmtargnumber ) __attribute__ (( format( __printf__, fmtargnumber, fmtargnumber+1 )))
+#   define ALIMER_SCANF_VARARG_FUNC( fmtargnumber ) __attribute__ (( format( __scanf__, fmtargnumber, fmtargnumber+1 )))
 #else
-#   define ALIMER_UNUSED(x) (/*lint --e{505,550,818,866} */(void)sizeof((x), 0))
+#   define ALIMER_PRINTF_FORMAT_STRING
+#   define ALIMER_PRINTF_VARARG_FUNC( fmtargnumber )
+#   define ALIMER_SCANF_VARARG_FUNC( fmtargnumber )
 #endif
 
-// Version
-#define ALIMER_MAKE_VERSION(major, minor, patch) (((major) << 22) | ((minor) << 12) | (patch))
-#define ALIMER_VERSION_GET_MAJOR(version) ((unsigned)(version) >> 22)
-#define ALIMER_VERSION_GET_MINOR(version) (((unsigned)(version) >> 12) & 0x3ff)
-#define ALIMER_VERSION_GET_PATCH(version) ((unsigned)(version) & 0xfff)
+#if defined(__GNUC__)
+#   if defined(__i386__) || defined(__x86_64__)
+#       define ALIMER_BREAKPOINT() __asm__ __volatile__("int $3\n\t")
+#   else
+#       define ALIMER_BREAKPOINT() ((void)0)
+#   endif
+#   define ALIMER_UNREACHABLE() __builtin_unreachable()
+#elif defined(_MSC_VER)
+#   define ALIMER_BREAKPOINT() __debugbreak()
+#   define ALIMER_UNREACHABLE() __assume(false)
+#else
+#   define ALIMER_BREAKPOINT() ((void)0)
+#   define ALIMER_UNREACHABLE()((void)0)
+#endif

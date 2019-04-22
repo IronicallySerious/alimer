@@ -117,10 +117,9 @@ set (ALIMER_${ALIMER_PLATFORM} ON)
 
 # Graphics Backend
 if (WIN32)
-    #set (ALIMER_RENDERER D3D12 CACHE STRING "Select renderer: Vulkan | D3D12 | D3D11")
-    set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11 | D3D12 | Vulkan")
+    set (ALIMER_RENDERER Vulkan CACHE STRING "Select renderer: Vulkan | D3D12 | D3D11")
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "WindowsStore") # UWP
-    set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11 | D3D12")
+    set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D12 | D3D11")
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Durango") #  XboxOne
     set (ALIMER_RENDERER D3D12 CACHE STRING "Select renderer: D3D12 | D3D11")
 elseif (LINUX OR ANDROID)
@@ -191,7 +190,7 @@ endif()
 
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER "3.6")
-    set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT "alimer")
+    set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT "Alimer")
 endif()
 
 # Print current build configuration

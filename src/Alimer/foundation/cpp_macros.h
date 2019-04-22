@@ -26,7 +26,8 @@
 #error Cannot include this header from C
 #endif
 
-#include <foundation/platform.h>
+#include "AlimerConfig.h"
+
 #include <type_traits>
 
 // Utility to enable bitmask operators on enum classes.

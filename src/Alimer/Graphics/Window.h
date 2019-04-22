@@ -107,10 +107,18 @@ namespace alimer
 
     public:
         /// Constructor.
-        Window(const std::string& title, uint32_t width, uint32_t height, bool resizable = true, bool fullscreen = false);
+        Window();
+
+        /// Constructor.
+        Window(const std::string& title, const IntVector2& size, bool resizable = true, bool fullscreen = false);
 
         /// Destructor
         ~Window() override;
+
+        /// Set window title.
+        void SetTitle(const std::string& newTitle);
+        /// Set window size. Open the window if not opened yet. Return true on success.
+        bool SetSize(const IntVector2& size, bool resizable = true, bool fullscreen = false);
 
         /// Show the window.
         void Show();
@@ -128,8 +136,7 @@ namespace alimer
         /// Resize the window.
         void Resize(int width, int height);
 
-        /// Set window title.
-        void SetTitle(const std::string& newTitle);
+        
 
         /// Set whether is fullscreen.
         void SetFullscreen(bool value);
@@ -162,8 +169,6 @@ namespace alimer
         /// Set cursor visibility.
         void SetCursorVisible(bool visible);
 
-        virtual void SwapBuffers();
-
         /// Gets the native window or view handle.
         WindowHandle GetNativeHandle() const;
 
@@ -178,9 +183,9 @@ namespace alimer
         virtual void OnHandleDestroyed() {}
         virtual void OnSizeChanged(const IntVector2& newSize);
         /// Window title.
-        std::string _title;
+        std::string _title = "Alimer";
         /// Window height.
-        IntVector2 _size;
+        IntVector2 _size = { 0, 0 };
         /// Fullscreen flag.
         bool _fullscreen;
         bool _visible = true;
@@ -189,7 +194,7 @@ namespace alimer
     private:
 #if defined(ALIMER_GLFW)
         /// Backend implementation.
-        GLFWwindow* _window;
+        GLFWwindow* _window = nullptr;
 #endif
 
     private:

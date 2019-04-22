@@ -44,13 +44,13 @@ namespace alimer
 
     public:
         /// Constructor.
-        Application();
+        Application(int &argc, char **argv);
 
         /// Destructor.
         virtual ~Application();
 
         /// Runs main loop.
-        int Run(int argc, char** argv);
+        int Run();
 
         /// Run one frame.
         void RunFrame();

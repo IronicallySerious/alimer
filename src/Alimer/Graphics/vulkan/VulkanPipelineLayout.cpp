@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_VK
 #include "VulkanPipelineLayout.h"
 #include "GraphicsDeviceVk.h"
 #include "BackendVk.h"
@@ -32,35 +33,35 @@ namespace alimer
         , _hash(hash)
         , _layout(*layout)
     {
-       // VkDescriptorSetLayout layouts[MaxDescriptorSets] = {};
-       // uint32_t numSets = 0;
-        /*for (uint32_t i = 0; i < MaxDescriptorSets; i++)
-        {
-            if (!layout.sets[i].stages)
-                continue;
+        // VkDescriptorSetLayout layouts[MaxDescriptorSets] = {};
+        // uint32_t numSets = 0;
+         /*for (uint32_t i = 0; i < MaxDescriptorSets; i++)
+         {
+             if (!layout.sets[i].stages)
+                 continue;
 
-            _setAllocators[i] = graphics->RequestDescriptorSetAllocator(layout.sets[i]);
-            layouts[i] = _setAllocators[i]->GetVkHandle();
-            if (layout.descriptorSetMask & (1u << i))
-            {
-                numSets = i + 1;
-            }
-        }*/
+             _setAllocators[i] = graphics->RequestDescriptorSetAllocator(layout.sets[i]);
+             layouts[i] = _setAllocators[i]->GetVkHandle();
+             if (layout.descriptorSetMask & (1u << i))
+             {
+                 numSets = i + 1;
+             }
+         }*/
 
-        /*VkPipelineLayoutCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        createInfo.pNext = nullptr;
-        createInfo.flags = 0;
-        if (numSets)
-        {
-            createInfo.setLayoutCount = numSets;
-            createInfo.pSetLayouts = layouts;
-        }
+         /*VkPipelineLayoutCreateInfo createInfo = {};
+         createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+         createInfo.pNext = nullptr;
+         createInfo.flags = 0;
+         if (numSets)
+         {
+             createInfo.setLayoutCount = numSets;
+             createInfo.pSetLayouts = layouts;
+         }
 
-        if (vkCreatePipelineLayout(_device->GetVkDevice(), &createInfo, nullptr, &_handle) != VK_SUCCESS)
-        {
-            ALIMER_LOGCRITICAL("[Vulkan] - Failed to create pipeline layout.");
-        }*/
+         if (vkCreatePipelineLayout(_device->GetVkDevice(), &createInfo, nullptr, &_handle) != VK_SUCCESS)
+         {
+             ALIMER_LOGCRITICAL("[Vulkan] - Failed to create pipeline layout.");
+         }*/
     }
 
     VulkanPipelineLayout::~VulkanPipelineLayout()
@@ -72,3 +73,5 @@ namespace alimer
         }*/
     }
 }
+
+#endif // TODO_VK

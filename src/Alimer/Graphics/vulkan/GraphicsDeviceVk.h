@@ -23,35 +23,37 @@
 #pragma once
 
 #include "BackendVk.h"
-#include "../GraphicsDevice.h"
+#include "../Types.h"
 
 namespace alimer
 {
-    class CommandContextVk;
+    class Window;
 
     /// Vulkan gpu backend.
     class GraphicsImpl final 
     {
     public:
+        static bool IsSupported();
+
         /// Constructor.
-        GraphicsImpl(const char* applicationName, const GraphicsDeviceDescriptor* descriptor);
+        GraphicsImpl(const char* applicationName, GpuPreference devicePreference);
 
         /// Destructor.
         ~GraphicsImpl();
-
-        GraphicsBackend GetBackend() const { return GraphicsBackend::Vulkan; }
 
         void WaitIdle();
         
         void CreateInstance(const char* applicationName);
         void SelectPhysicalDevice(GpuPreference devicePreference);
+
+        bool Initialize(Window* window, SampleCount samples);
         void CreateLogicalDevice();
-        void InitializeFeatures();
+        void InitializeInfoAndCaps();
 
         bool BeginFrame();
         void EndFrame();
 
-        VkSurfaceKHR CreateSurface(uint64_t nativeHandle);
+        VkSurfaceKHR CreateSurface(Window* window);
 
         bool ImageFormatIsSupported(VkFormat format, VkFormatFeatureFlags required, VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL) const;
         PixelFormat GetDefaultDepthStencilFormat() const;
@@ -77,12 +79,6 @@ namespace alimer
         uint32_t GetTransferQueueFamily() const { return _transferQueueFamily; }
         const DeviceFeaturesVk& GetFeaturesVk() const { return _featuresVk; }
 
-        /// Get the device features.
-        inline const GraphicsDeviceFeatures& GetFeatures() const { return _features; }
-
-        /// Get the device limits
-        inline const GraphicsDeviceLimits& GetLimits() const { return _limits; }
-
         VkQueue GetQueue(QueueType type) const
         {
             switch (type)
@@ -98,6 +94,11 @@ namespace alimer
                 return _transferQueue;
             }
         }
+
+        const GraphicsDeviceInfo& GetInfo() const { return _info; }
+
+        /// Get the device features.
+        const GraphicsDeviceCapabilities& GetCaps() const { return _caps; }
         
     private:
         bool HasExtension(const std::string& extension)
@@ -105,16 +106,11 @@ namespace alimer
             return (std::find(_physicalDeviceExtensions.begin(), _physicalDeviceExtensions.end(), extension) != _physicalDeviceExtensions.end());
         }
 
-        bool HasLayer(const std::string& extension)
-        {
-            return (std::find(_physicalDeviceLayers.begin(), _physicalDeviceLayers.end(), extension) != _physicalDeviceLayers.end());
-        }
-
     private:
-        bool                                    _headless = false;
-        bool                                    _validation = false;
-        GraphicsDeviceFeatures                  _features = {};
-        GraphicsDeviceLimits                    _limits = {};
+        bool _headless = false;
+
+        GraphicsDeviceInfo          _info = {};
+        GraphicsDeviceCapabilities  _caps = {};
 
         VkInstance                              _instance = VK_NULL_HANDLE;
         VkDebugReportCallbackEXT                _debugCallback = VK_NULL_HANDLE;
@@ -138,6 +134,8 @@ namespace alimer
         VmaAllocator                            _memoryAllocator = VK_NULL_HANDLE;
         DeviceFeaturesVk                        _featuresVk = {};
         VkPipelineCache                         _pipelineCache = VK_NULL_HANDLE;
+
+        VkSurfaceKHR                            _surface = VK_NULL_HANDLE;
         
         std::vector<VkFence>                    _fences;
         std::vector<VkSemaphore>                _semaphores;

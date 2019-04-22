@@ -20,6 +20,9 @@
 # THE SOFTWARE.
 #
 
+cmake_minimum_required(VERSION 3.5)
+project (Alimer)
+
 macro (define_engine_source_files)
 	cmake_parse_arguments(DEFINE_SRC_FILES "NORECURSE" "" "" ${ARGN} )
 	if (DEFINE_SRC_FILES_NORECURSE)
@@ -59,10 +62,7 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
-set (TARGET_NAME alimer)
-
 # Generate the AlimerConfig.h file
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/foundation/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/foundation/version.h)
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/AlimerConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h)
 if (ALIMER_INSTALL)
     install (FILES ${CMAKE_CURRENT_BINARY_DIR}/foundation/version.h DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/foundation)
@@ -90,33 +90,33 @@ if (ALIMER_WINDOWS OR ALIMER_UWP)
     define_engine_source_files(Audio/XAudio2)
 endif()
 
-if (ALIMER_D3D11 OR ALIMER_D3D12)
-    define_engine_source_files(Graphics/d3d)
+if (ALIMER_VULKAN)
+    define_engine_source_files(Graphics/vulkan)
 endif ()
 
-if (ALIMER_D3D11)
-    define_engine_source_files(Graphics/d3d11)
+if (ALIMER_D3D11 OR ALIMER_D3D12)
+    define_engine_source_files(Graphics/d3d)
 endif ()
 
 if (ALIMER_D3D12)
     # define_engine_source_files(Graphics/d3d12)
 endif ()
 
-if (ALIMER_CSHARP)
-    define_engine_source_files(CSharp)
+if (ALIMER_D3D11)
+    define_engine_source_files(Graphics/d3d11)
 endif ()
 
-if (MSVC)
-    list (APPEND SOURCE_FILES ${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis)
+if (ALIMER_CSHARP)
+    define_engine_source_files(CSharp)
 endif ()
 
 # Group source code in VS solution
 group_sources()
 
 # Define the library target.
-add_alimer_library(${TARGET_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+add_alimer_library(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES} $<$<CXX_COMPILER_ID:MSVC>:${ALIMER_ROOT_DIR}/script/visualizers/alimer.natvis>)
 
-target_include_directories(${TARGET_NAME}
+target_include_directories(${PROJECT_NAME}
     PUBLIC
 	    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -125,7 +125,7 @@ target_include_directories(${TARGET_NAME}
 )
 
 if (ALIMER_OPENGL AND ALIMER_DESKTOP)
-    target_include_directories(${TARGET_NAME} PRIVATE ${ALIMER_THIRD_PARTY_DIR}/khronos)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${ALIMER_THIRD_PARTY_DIR}/khronos)
 endif ()
 
 # Link dependencies
@@ -141,72 +141,82 @@ list (APPEND THIRD_PARTY_DEPENDENCIES liblua)
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     if (TARGET "${dep}")
-        target_link_libraries(${TARGET_NAME} PUBLIC ${dep})
+        target_link_libraries(${PROJECT_NAME} PUBLIC ${dep})
     endif ()
 endforeach()
 
-target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_COMPILE)
-target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
+# Graphics backend.
+if (ALIMER_VULKAN)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        volk
+        vma
+        SPIRV
+        glslang
+        glslang-default-resource-limits
+    )
+elseif (ALIMER_D3D12)
+    target_link_libraries(${PROJECT_NAME} PRIVATE d3d12 dxgi dxguid)
+elseif (ALIMER_D3D11)
+    target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 dxgi dxguid)
+endif ()
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE ALIMER_DEFAULT_ASSETS_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/../../assets\")
 
 if (EMSCRIPTEN OR ANDROID OR IOS)
-    target_compile_definitions(${TARGET_NAME} PUBLIC -DALIMER_SIMD_DISABLED)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC -DALIMER_SIMD_DISABLED)
 endif ()
 
 if (ALIMER_BUILD_SHARED OR ALIMER_CSHARP OR EMSCRIPTEN)
-	target_compile_definitions(${TARGET_NAME} PRIVATE ALIMER_SHARED_LIBRARY)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE ALIMER_SHARED_LIBRARY)
 endif ()
 
 if (ALIMER_SHARED OR ANDROID)
-    set_target_properties(${TARGET_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif ()
 
 if (ALIMER_CSHARP)
-    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_CSHARP)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DALIMER_CSHARP)
 endif ()
 
 if (ALIMER_DESKTOP)
-    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_GLFW)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DALIMER_GLFW)
 #elseif (ALIMER_SDL2)
-#    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_SDL2)
-endif ()
-
-if (ALIMER_D3D11)
-    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_D3D11)
+#    target_compile_definitions(${PROJECT_NAME} PRIVATE -DALIMER_SDL2)
 endif ()
 
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
-    target_compile_definitions(${TARGET_NAME} PRIVATE -DALIMER_TOOLS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DALIMER_TOOLS)
 endif ()
 
 # Add OS-specific library dependencies
 if (ALIMER_WINDOWS)
-    target_link_libraries (${TARGET_NAME} PUBLIC winmm ws2_32)
+    target_link_libraries (${PROJECT_NAME} PUBLIC winmm ws2_32)
 elseif (ALIMER_UWP)
-    target_link_libraries (${TARGET_NAME} PUBLIC d3d12 d3d11 dxgi d3dcompiler)
+    target_link_libraries (${PROJECT_NAME} PUBLIC d3d12 d3d11 dxgi d3dcompiler)
 else ()
-    target_link_libraries (${TARGET_NAME} PUBLIC dl)
+    target_link_libraries (${PROJECT_NAME} PUBLIC dl)
     if (ALIMER_ANDROID)
-        target_link_libraries (${TARGET_NAME} PUBLIC log android)
+        target_link_libraries (${PROJECT_NAME} PUBLIC log android)
     elseif (ALIMER_DESKTOP)
-	    target_link_libraries (${TARGET_NAME} PUBLIC m pthread)
+	    target_link_libraries (${PROJECT_NAME} PUBLIC m pthread)
         if (NOT APPLE)
-            target_link_libraries (${TARGET_NAME} PUBLIC rt uuid)
+            target_link_libraries (${PROJECT_NAME} PUBLIC rt uuid)
         endif ()
     endif ()
 
     if (ALIMER_OPENGL)
         if (ANDROID)
-            target_link_libraries(${TARGET_NAME} PUBLIC EGL GLESv3)
+            target_link_libraries(${PROJECT_NAME} PUBLIC EGL GLESv3)
         else()
-            target_link_libraries (${TARGET_NAME} PUBLIC GL)
+            target_link_libraries (${PROJECT_NAME} PUBLIC GL)
         endif ()
     endif ()
 endif ()
 
 # SDK installation
 if (ALIMER_INSTALL)
-    install(TARGETS ${TARGET_NAME}
-	    EXPORT ${TARGET_NAME}
+    install(TARGETS ${PROJECT_NAME}
+	    EXPORT ${PROJECT_NAME}
 	    LIBRARY DESTINATION lib
 	    RUNTIME DESTINATION bin
 	    ARCHIVE DESTINATION lib

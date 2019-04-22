@@ -21,6 +21,7 @@
 //
 
 #include "../Buffer.h"
+#if TODO_VK
 #include "GraphicsDeviceVk.h"
 #include "../../Core/Log.h"
 
@@ -172,3 +173,5 @@ namespace alimer
 
     }
 }
+
+#endif // TODO_VK

@@ -54,7 +54,7 @@ static void Glfw_KeyCallback(GLFWwindow* handle, int key, int scanCode, int acti
 
 static void Glfw_MouseButtonCallback(GLFWwindow* handle, int button, int action, int)
 {
-    auto window = static_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
+    //auto window = static_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
 }
 
 static void Glfw_MouseMoveCallback(GLFWwindow* handle, double mouseX, double mouseY)
@@ -76,45 +76,15 @@ using namespace std;
 
 namespace alimer
 {
-   
-    Window::Window(const string& title, uint32_t width, uint32_t height, bool resizable, bool fullscreen)
+    Window::Window()
+    {
+    }
+
+    Window::Window(const string& title, const IntVector2& size, bool resizable, bool fullscreen)
         : _title(title)
-        , _size(width, height)
         , _fullscreen(fullscreen)
     {
-        GLFWmonitor* monitor = nullptr;
-        int windowWidth;
-        int windowHeight;
-        if (fullscreen)
-        {
-            monitor = glfwGetPrimaryMonitor();
-            const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-            windowWidth = mode->width;
-            windowHeight = mode->height;
-        }
-        else
-        {
-            windowWidth = static_cast<int>(width);
-            windowHeight = static_cast<int>(height);
-            glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
-        }
-
-        _window = glfwCreateWindow(
-            windowWidth,
-            windowHeight,
-            title.c_str(),
-            monitor,
-            nullptr);
-
-        glfwSetWindowUserPointer(_window, this);
-        glfwSetWindowSizeCallback(_window, Glfw_Resize);
-        glfwSetKeyCallback(_window, Glfw_KeyCallback);
-        glfwSetMouseButtonCallback(_window, Glfw_MouseButtonCallback);
-        glfwSetCursorPosCallback(_window, Glfw_MouseMoveCallback);
-        glfwSetScrollCallback(_window, Glfw_ScrollCallback);
-        //glfwSetCharCallback(window, Glfw_CharCallback);
-        //glfwSetCursorEnterCallback(window, Glfw_CursorEnterCallback);
-        glfwSetDropCallback(_window, Glfw_DropCallback);
+        SetSize(size, resizable, fullscreen);
     }
 
     Window::~Window()
@@ -169,7 +139,57 @@ namespace alimer
     void Window::SetTitle(const std::string& newTitle)
     {
         _title = newTitle;
-        glfwSetWindowTitle(_window, newTitle.c_str());
+        if (_window) {
+            glfwSetWindowTitle(_window, newTitle.c_str());
+        }
+    }
+
+    bool Window::SetSize(const IntVector2& size, bool resizable, bool fullscreen)
+    {
+        GLFWmonitor* monitor = nullptr;
+        int windowWidth;
+        int windowHeight;
+        if (fullscreen)
+        {
+            monitor = glfwGetPrimaryMonitor();
+            const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+            windowWidth = mode->width;
+            windowHeight = mode->height;
+        }
+        else
+        {
+            windowWidth = static_cast<int>(size.x);
+            windowHeight = static_cast<int>(size.y);
+            glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
+        }
+
+        if (!_window)
+        {
+            _window = glfwCreateWindow(
+                windowWidth,
+                windowHeight,
+                _title.c_str(),
+                monitor,
+                nullptr);
+
+            glfwSetWindowUserPointer(_window, this);
+            glfwSetWindowSizeCallback(_window, Glfw_Resize);
+            glfwSetKeyCallback(_window, Glfw_KeyCallback);
+            glfwSetMouseButtonCallback(_window, Glfw_MouseButtonCallback);
+            glfwSetCursorPosCallback(_window, Glfw_MouseMoveCallback);
+            glfwSetScrollCallback(_window, Glfw_ScrollCallback);
+            //glfwSetCharCallback(window, Glfw_CharCallback);
+            //glfwSetCursorEnterCallback(window, Glfw_CursorEnterCallback);
+            glfwSetDropCallback(_window, Glfw_DropCallback);
+        }
+        else
+        {
+            glfwSetWindowSize(_window, size.x, size.y);
+        }
+
+        _size = size;
+        _fullscreen = fullscreen;
+        return true;
     }
 
     void Window::SetFullscreen(bool value)
@@ -237,7 +257,7 @@ namespace alimer
         return 0;
 #endif
     }
-    
+
     WindowConnection Window::GetNativeConnection() const
     {
 #if defined(GLFW_EXPOSE_NATIVE_WIN32)
@@ -249,11 +269,6 @@ namespace alimer
 #else
         return 0;
 #endif
-    }
-
-    void Window::SwapBuffers()
-    {
-        glfwSwapBuffers(_window);
     }
 }
 #elif defined(ALIMER_SDL2)

@@ -22,9 +22,43 @@
 
 #pragma once
 
-#include <foundation/foundation.h>
+#include "AlimerPlatform.h"
+
+#cmakedefine ALIMER_BUILD_SHARED_LIBRARY
+#if defined(ALIMER_BUILD_SHARED_LIBRARY)
+#   ifdef _MSC_VER
+#       define ALIMER_API __declspec(dllexport)
+#   else
+#       define ALIMER_API
+#   endif
+#elif defined(ALIMER_USE_SHARED_LIBRARY)
+#   ifdef _MSC_VER
+#       define ALIMER_API __declspec(dllimport)
+#   else
+#       define ALIMER_API
+#   endif
+#else
+#   define ALIMER_API
+#endif
+
+/* Version */
+#define ALIMER_VERSION_MAJOR   @ALIMER_VERSION_MAJOR@
+#define ALIMER_VERSION_MINOR   @ALIMER_VERSION_MINOR@
+#define ALIMER_VERSION_PATCH   @ALIMER_VERSION_PATCH@
+#define ALIMER_VERSION         ALIMER_MAKE_VERSION(@ALIMER_VERSION_MAJOR@, @ALIMER_VERSION_MINOR@, @ALIMER_VERSION_PATCH@)
+#define ALIMER_VERSION_STR     "@ALIMER_VERSION_MAJOR@.@ALIMER_VERSION_MINOR@.@ALIMER_VERSION_PATCH@"
+#define ALIMER_VERSION_ALIAS "WIP"
+
+#define ALIMER_GIT_BRANCH "@ALIMER_GIT_BRANCH@"
+#define ALIMER_GIT_COMMIT_HASH "@ALIMER_GIT_COMMIT_HASH@"
 
 // Alimer build configuration
 #cmakedefine ALIMER_PROFILING
 #cmakedefine ALIMER_THREADING
 #cmakedefine ALIMER_NETWORK
+
+// Graphics backends.
+#cmakedefine ALIMER_VULKAN
+#cmakedefine ALIMER_D3D12
+#cmakedefine ALIMER_D3D11
+#cmakedefine ALIMER_OPENGL

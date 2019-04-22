@@ -49,8 +49,8 @@ namespace alimer
     /* Enums */
     enum class GpuPreference : uint32_t {
         /// No GPU preference.
-        Unspecified = 0,
-        MinimumPower,
+        Default = 0,
+        LowPower,
         HighPerformance,
     };
 
@@ -64,8 +64,6 @@ namespace alimer
         Direct3D12,
         /// Direct3D 11 backend.
         Direct3D11,
-        /// OpenGL backend.
-        OpenGL,
         /// Count - Default platform backend
         Count
     };
@@ -364,6 +362,111 @@ namespace alimer
         /// Negative Z face
         NegativeZ = 5,
     };
+
+    enum class GpuVendor : uint32_t
+    {
+        Unknown = 0,
+        NVIDIA = 1,
+        AMD = 2,
+        INTEL = 3,
+        ARM = 4,
+        WARP = 5,
+        Count = 6
+    };
+
+    /// GraphicsDevice information .
+    struct GraphicsDeviceInfo
+    {
+        /// Rendering API backend.
+        GraphicsBackend backend;
+
+        /// Rendering API name.
+        std::string backendName;
+
+        /// The hardware gpu device vendor name.
+        std::string vendorName;
+
+
+        /// The hardwarw gpu device vendor id.
+        uint32_t    vendorId;
+
+        /// The hardwarw gpu device id.
+        uint32_t    deviceId;
+
+        /// The hardwarw gpu device name.
+        std::string deviceName;
+    };
+
+    /// Describes features supported by given instance of GpuDevice.
+    struct GraphicsDeviceFeatures
+    {
+        bool    instancing = false;
+        bool    alphaToCoverage = false;
+        bool    independentBlend = false;
+        bool    computeShader = false;
+        bool    geometryShader = false;
+        bool    tessellationShader = false;
+        bool    sampleRateShading = false;
+        bool    dualSrcBlend = false;
+        bool    logicOp = false;
+        bool    multiViewport = false;
+        bool    indexUInt32 = false;
+        bool    drawIndirect = false;
+        bool    alphaToOne = false;
+        bool    fillModeNonSolid = false;
+        bool    samplerAnisotropy = false;
+        bool    textureCompressionBC = false;
+        bool    textureCompressionPVRTC = false;
+        bool    textureCompressionETC2 = false;
+        bool    textureCompressionATC = false;
+        bool    textureCompressionASTC = false;
+        bool    pipelineStatisticsQuery = false;
+        /// Specifies whether 1D textures are supported.
+        bool    texture1D = false;
+        /// Specifies whether 3D textures are supported.
+        bool    texture3D = false;
+        /// Specifies whether 2D array textures are supported.
+        bool    texture2DArray = false;
+        /// Specifies whether cube array textures are supported.
+        bool    textureCubeArray = false;
+        /// Specifies whether raytracing is supported.
+        bool    raytracing = false;
+    };
+
+    struct GraphicsDeviceLimits
+    {
+        uint32_t        maxTextureDimension1D;
+        uint32_t        maxTextureDimension2D;
+        uint32_t        maxTextureDimension3D;
+        uint32_t        maxTextureDimensionCube;
+        uint32_t        maxTextureArrayLayers;
+        uint32_t        maxColorAttachments;
+        uint32_t        maxUniformBufferSize;
+        uint64_t        minUniformBufferOffsetAlignment;
+        uint32_t        maxStorageBufferSize;
+        uint64_t        minStorageBufferOffsetAlignment;
+        uint32_t        maxSamplerAnisotropy;
+        uint32_t        maxViewports;
+        uint32_t        maxViewportDimensions[2];
+        uint32_t        maxPatchVertices;
+        float           pointSizeRange[2];
+        float           lineWidthRange[2];
+        uint32_t        maxComputeSharedMemorySize;
+        uint32_t        maxComputeWorkGroupCount[3];
+        uint32_t        maxComputeWorkGroupInvocations;
+        uint32_t        maxComputeWorkGroupSize[3];
+    };
+
+    /// Describes caps of graphics device.
+    struct GraphicsDeviceCapabilities
+    {
+        /// Specifies all supported hardware features.
+        GraphicsDeviceFeatures          features;
+
+        /// Specifies all rendering limitations.
+        GraphicsDeviceLimits            limits;
+    };
+
 
     /// Describes SwapChain
     struct SwapChainDescriptor

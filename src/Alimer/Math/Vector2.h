@@ -22,8 +22,14 @@
 
 #pragma once
 
+#include "../Math/Half.h"
 #include "../Math/MathUtil.h"
 #include <string>
+
+#ifdef _MSC_VER
+#   pragma warning(push)
+#   pragma warning(disable : 4201) 
+#endif
 
 namespace alimer
 {
@@ -292,3 +298,7 @@ namespace alimer
     inline IntVector2 operator *(int lhs, const IntVector2& rhs) { return rhs * lhs; }
 
 }
+
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif

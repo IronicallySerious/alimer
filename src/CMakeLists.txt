@@ -27,7 +27,7 @@ add_subdirectory (Alimer)
 # add_subdirectory(Player)
 
 if (ALIMER_SAMPLES)
-    # add_subdirectory(samples)
+    add_subdirectory(samples)
 endif ()
 
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)

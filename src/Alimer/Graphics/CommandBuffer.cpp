@@ -57,9 +57,9 @@ namespace alimer
 
     void CommandBuffer::BeginDefaultRenderPass(const Color4& clearColor, float clearDepth, uint8_t clearStencil)
     {
-        Texture* texture = _device->GetCurrentTexture();
-        Texture* multisampleColorTexture = _device->GetMultisampleColorTexture();
-        Texture* depthStencilTexture = _device->GetDepthStencilTexture();
+        Texture* texture = nullptr; // _device->GetCurrentTexture();
+        Texture* multisampleColorTexture = nullptr; // _device->GetMultisampleColorTexture();
+        Texture* depthStencilTexture = nullptr; //_device->GetDepthStencilTexture();
 
         RenderPassDescriptor renderPass = {};
         renderPass.colorAttachmentCount = 1u; /* TODO: Multisample resolve, is this correct?*/

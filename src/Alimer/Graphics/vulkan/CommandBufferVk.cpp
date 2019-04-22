@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+#if TODO_VK
 #include "../CommandBuffer.h"
 #include "VulkanShader.h"
 #include "VulkanPipelineLayout.h"
@@ -158,4 +159,6 @@ namespace alimer
         vkCmdEndRenderPass(_handle);
     }
 }
+#endif // #if TODO_VK
+
 

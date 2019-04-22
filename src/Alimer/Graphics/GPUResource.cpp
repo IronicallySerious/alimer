@@ -48,11 +48,13 @@ namespace alimer
         }
     }
 
-    GraphicsDevice* GPUResource::GetGraphicsDevice() const {
+    GraphicsDevice* GPUResource::GetGraphicsDevice() const
+    {
         return _device.Get();
     }
 
-    GPUResource::Type GPUResource::GetResourceType() const {
+    GPUResource::Type GPUResource::GetResourceType() const
+    {
         return _resourceType;
     }
 }

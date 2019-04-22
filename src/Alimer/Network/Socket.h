@@ -22,17 +22,18 @@
 
 #pragma once
 
-#include "../foundation/platform.h"
-#include <string>
+#include "AlimerConfig.h"
 
-#ifdef _WIN32
-typedef unsigned __int64 socket_id;
-#else
-typedef int socket_id;
-#endif
+#include <string>
 
 namespace alimer
 {
+#ifdef _WIN32
+    using socket_id = unsigned __int64;
+#else
+    using socket_id = int;
+#endif
+
     /**
     * Network Socket.
     */

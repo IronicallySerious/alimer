@@ -34,7 +34,7 @@ function(add_sample sample_name)
         set_target_properties(${target_name} PROPERTIES FOLDER "samples")
     endif()
 
-    target_link_libraries(${target_name} PRIVATE Turso3D)
+    target_link_libraries(${target_name} PRIVATE Alimer)
 endfunction()
 
 add_sample(01_hello_world)
