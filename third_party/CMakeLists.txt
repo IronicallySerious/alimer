@@ -21,7 +21,7 @@
 #
 
 # Always included libraries
-foreach (TARGET stb freetype fmt spdlog)
+foreach (TARGET stb freetype fmt)
     add_subdirectory (${TARGET})
 
     if (TARGET target_name)
@@ -44,6 +44,14 @@ endif ()
 
 # lua
 add_subdirectory(lua)
+
+# sokol_gfx
+add_library(sokol_gfx INTERFACE)
+target_include_directories(sokol_gfx INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/sokol)
+
+# sokol_app
+add_library(sokol_app INTERFACE)
+target_include_directories(sokol_app INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/sokol)
 
 if (ALIMER_VULKAN)
     # vulkan
