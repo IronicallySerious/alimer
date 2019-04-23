@@ -31,8 +31,6 @@
 #endif
 #include <vulkan/vulkan.h>
 
-VK_DEFINE_HANDLE(VmaAllocator);
-
 #ifndef VULKAN_DEBUG
 #   if defined(_DEBUG)
 #       define VULKAN_DEBUG 1
@@ -106,7 +104,7 @@ namespace alimer
         if (result < VK_SUCCESS)
         {
             ALIMER_LOGCRITICAL(
-                "Fatal Vulkan result is \"{}\" in {} at line {}",
+                "Fatal Vulkan result is \"%s\" in %d at line %d",
                 GetVkResultString(result),
                 __FILE__,
                 __LINE__);

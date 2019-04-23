@@ -22,13 +22,12 @@
 
 #pragma once
 
-#include <memory>
+#include "AlimerConfig.h"
 #include "../Graphics/GPUResource.h"
+#include <memory>
 
 namespace alimer
 {
-    class BufferHandle;
-
 	/// Defines a GPU Buffer class.
 	class ALIMER_API Buffer : public GPUResource, public RefCounted
 	{
@@ -36,13 +35,11 @@ namespace alimer
         /// Constructor.
         Buffer(BufferUsage usage);
 
-        /// Constructor.
-        Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor);
-
     public:
         /// Destructor.
         ~Buffer() override;
 
+        /// Destroy GPU resource.
         void Destroy() override;
 
         /// Replace entire buffer data in synchronous way.
@@ -66,8 +63,16 @@ namespace alimer
         /// Return CPU-side shadow data if exists.
         uint8_t* ShadowData() const { return _shadowData.get(); }
 
+#if defined(ALIMER_VULKAN)
         /// Get the backend handle.
-        BufferHandle* GetHandle() const { return _handle; }
+        VkBuffer GetHandle() const { return _handle; }
+#elif defined(ALIMER_D3D12)
+#elif defined(ALIMER_D3D11)
+#endif
+
+    private:
+        bool Create(const void* pInitData);
+        bool SetSubDataImpl(uint64_t offset, uint64_t size, const void* pData);
         
     protected:
         /// Create the GPU-side buffer. Return true on success.
@@ -84,7 +89,12 @@ namespace alimer
         /// CPU-side shadow data.
         std::unique_ptr<uint8_t[]> _shadowData;
 
+#if defined(ALIMER_VULKAN)
         /// Backend handle
-        BufferHandle* _handle = nullptr;
+        VkBuffer _handle{ VK_NULL_HANDLE };
+        VmaAllocation _memory{ VK_NULL_HANDLE };
+#elif defined(ALIMER_D3D12)
+#elif defined(ALIMER_D3D11)
+#endif
 	};
 }

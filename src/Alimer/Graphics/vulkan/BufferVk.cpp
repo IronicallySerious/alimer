@@ -21,18 +21,18 @@
 //
 
 #include "../Buffer.h"
-#if TODO_VK
+#include "../GraphicsDevice.h"
 #include "GraphicsDeviceVk.h"
 #include "../../Core/Log.h"
+
+#include <volk.h>
+#include <vk_mem_alloc.h>
 
 namespace alimer
 {
     bool Buffer::Create(const void* pInitData)
     {
-        VkBufferCreateInfo createInfo;
-        createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        createInfo.pNext = nullptr;
-        createInfo.flags = 0;
+        VkBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         createInfo.size = _size;
         createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -86,50 +86,47 @@ namespace alimer
 
         // Allocate memory from the Vulkan Memory Allocator.
         VkResult result = VK_SUCCESS;
-        const bool noAllocation = false;
-        bool staticBuffer = false;
         VmaAllocationInfo allocationInfo = {};
-        if (noAllocation)
+
+        // Determine appropriate memory usage flags.
+        VmaAllocationCreateInfo allocCreateInfo = {};
+        ResourceUsage resourceUsage = ResourceUsage::Default;
+        switch (resourceUsage)
         {
-            result = vkCreateBuffer(_device->GetImpl()->GetVkDevice(), &createInfo, nullptr, &_handle);
-        }
-        else
-        {
-            // Determine appropriate memory usage flags.
-            VmaAllocationCreateInfo allocCreateInfo = {};
-            ResourceUsage resourceUsage = ResourceUsage::Default;
-            switch (resourceUsage)
-            {
-            case ResourceUsage::Default:
+            /*case ResourceUsage::Default:
             case ResourceUsage::Immutable:
                 createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-                staticBuffer = true;
-                break;
-
-            case ResourceUsage::Dynamic:
-                allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
                 allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-                break;
+                staticBuffer = true;
+                break;*/
 
-            case ResourceUsage::Staging:
-                createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-                allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-                allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-                break;
+        case ResourceUsage::Default:
+        case ResourceUsage::Immutable:
+        case ResourceUsage::Dynamic:
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+            allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            break;
 
-            default:
-                break;
-            }
+        case ResourceUsage::Staging:
+            createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+            allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+            break;
 
-            result = vmaCreateBuffer(
-                _device->GetImpl()->GetVmaAllocator(),
-                &createInfo,
-                &allocCreateInfo,
-                &_handle,
-                &_allocation,
-                &allocationInfo);
+        default:
+            break;
         }
+
+
+
+        result = vmaCreateBuffer(
+            _device->GetImpl()->GetVmaAllocator(),
+            &createInfo,
+            &allocCreateInfo,
+            &_handle,
+            &_memory,
+            &allocationInfo);
 
         if (result != VK_SUCCESS)
         {
@@ -138,29 +135,30 @@ namespace alimer
         }
 
         // Handle
-        /*if (initialData != nullptr)
+        if (pInitData != nullptr)
         {
-            if (staticBuffer)
+            memcpy(allocationInfo.pMappedData, pInitData, allocationInfo.size);
+            /*if (staticBuffer)
             {
-                device->BufferSubData(this, 0, allocationInfo.size, initialData);
+                SetSubDataImpl(0, allocationInfo.size, pInitData);
             }
             else
             {
                 void *data;
-                vmaMapMemory(_allocator, _allocation, &data);
-                memcpy(data, initialData, allocationInfo.size);
-                vmaUnmapMemory(_allocator, _allocation);
-            }
-        }*/
+                vmaMapMemory(_device->GetImpl()->GetVmaAllocator(), _memory, &data);
+                memcpy(data, pInitData, allocationInfo.size);
+                vmaUnmapMemory(_device->GetImpl()->GetVmaAllocator(), _memory);
+            }*/
+        }
 
         return true;
     }
 
     void Buffer::Destroy()
     {
-        if (_allocation != VK_NULL_HANDLE) {
-            vmaDestroyBuffer(_device->GetImpl()->GetVmaAllocator(), _handle, _allocation);
-            _allocation = VK_NULL_HANDLE;
+        if (_memory != VK_NULL_HANDLE) {
+            vmaDestroyBuffer(_device->GetImpl()->GetVmaAllocator(), _handle, _memory);
+            _memory = VK_NULL_HANDLE;
         }
         else if (_handle != VK_NULL_HANDLE)
         {
@@ -169,9 +167,8 @@ namespace alimer
         }
     }
 
-    void Buffer::SetSubDataImpl(uint32_t offset, uint32_t size, const void* pData) {
-
+    bool Buffer::SetSubDataImpl(uint64_t offset, uint64_t size, const void* pData)
+    {
+        return false;
     }
 }
-
-#endif // TODO_VK

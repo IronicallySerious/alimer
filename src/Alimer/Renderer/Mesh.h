@@ -23,9 +23,10 @@
 #pragma once
 
 #include <vector>
-#include "../Resource/Resource.h"
-#include "../Graphics/Buffer.h"
-#include "../Graphics/Types.h"
+#include "Math/math.h"
+#include "Resource/Resource.h"
+#include "Graphics/Buffer.h"
+#include "Graphics/Types.h"
 
 namespace alimer
 {
@@ -76,7 +77,7 @@ namespace alimer
         static Mesh* CreateBox(const vec3& size = vec3(1.0f));
 
     private:
-        MeshAttributeLayout _attributes[ecast(MeshAttribute::Count)];
+        MeshAttributeLayout _attributes[static_cast<unsigned>(MeshAttribute::Count)];
 
         SharedPtr<Buffer> _vertexBuffer;
         SharedPtr<Buffer> _indexBuffer;

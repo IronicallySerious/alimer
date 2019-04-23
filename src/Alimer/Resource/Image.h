@@ -23,7 +23,7 @@
 #pragma once
 
 #include <memory>
-#include "../Math/Math.h"
+#include "../Math/math.h"
 #include "../Resource/Resource.h"
 #include "../Graphics/PixelFormat.h"
 

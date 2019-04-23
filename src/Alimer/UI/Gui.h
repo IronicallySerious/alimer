@@ -24,7 +24,6 @@
 
 #include <memory>
 #include "../Core/Object.h"
-#include "../Math/Math.h"
 #include "../Math/Color.h"
 #include "../Graphics/Pipeline.h"
 

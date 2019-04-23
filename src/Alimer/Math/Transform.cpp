@@ -23,7 +23,7 @@
 #include "../Math/Transform.h"
 #include "../Core/Log.h"
 
-namespace alimer
+/*namespace alimer
 {
     const Transform Transform::Identity;
 
@@ -67,8 +67,9 @@ namespace alimer
         mat4 T = mat4::translate(_position);
 
         mat4 model = R * S;
-        _matrix = T * model;*/
+        _matrix = T * model;
 
         _dirty = false;
     }
 }
+*/

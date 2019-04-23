@@ -19,7 +19,6 @@
 #pragma once
 
 #include "AlimerConfig.h"
-
 #include <stdint.h>
 #include <limits>
 #include <type_traits>
@@ -55,7 +54,7 @@ namespace alimer
 
 #else
 
-    class ALIMER_API Half {
+    class ALIMER_API half {
         struct fp16 {
             uint16_t bits;
             fp16() noexcept = default;
@@ -84,28 +83,28 @@ namespace alimer
         };
 
     public:
-        Half() = default;
-        constexpr Half(float v) noexcept : mBits(ftoh(v)) { }
+        half() = default;
+        constexpr half(float v) noexcept : mBits(ftoh(v)) { }
         constexpr operator float() const noexcept { return htof(mBits); }
 
     private:
         // these are friends, not members (and they're not "private")
-        friend constexpr uint16_t getBits(Half const& h) noexcept { return h.mBits.bits; }
-        friend constexpr inline Half MakeHalf(uint16_t bits) noexcept;
+        friend constexpr uint16_t getBits(half const& h) noexcept { return h.mBits.bits; }
+        friend constexpr inline half makeHalf(uint16_t bits) noexcept;
 
         enum Binary { binary };
-        explicit constexpr Half(Binary, uint16_t bits) noexcept : mBits(bits) { }
+        explicit constexpr half(Binary, uint16_t bits) noexcept : mBits(bits) { }
 
         static inline constexpr fp16 ftoh(float v) noexcept;
         static inline constexpr float htof(fp16 v) noexcept;
         fp16 mBits;
     };
 
-    constexpr inline Half MakeHalf(uint16_t bits) noexcept {
-        return Half(Half::binary, bits);
+    constexpr inline half makeHalf(uint16_t bits) noexcept {
+        return half(half::binary, bits);
     }
 
-    constexpr Half::fp16 Half::ftoh(float f) noexcept {
+    constexpr half::fp16 half::ftoh(float f) noexcept {
         constexpr fp32 infinity(31u << 23);
         constexpr fp32 magic(15u << 23);
         fp32 in(f);
@@ -128,7 +127,7 @@ namespace alimer
         return out;
     }
 
-    constexpr float Half::htof(Half::fp16 in) noexcept {
+    constexpr float half::htof(half::fp16 in) noexcept {
         constexpr fp32 magic((0xFEu - 0xFu) << 23);
         constexpr fp32 infnan(0x8Fu << 23);
         fp32 out((in.bits & 0x7FFFu) << 13);
@@ -142,19 +141,19 @@ namespace alimer
 
 #endif // __ARM_NEON
 
-    inline constexpr Half operator"" _h(long double v) {
-        return Half(static_cast<float>(v));
+    inline constexpr half operator"" _h(long double v) {
+        return half(static_cast<float>(v));
     }
-}  // namespace filament
+}  // namespace alimer
 
-namespace std {
-
-    template<> struct is_floating_point<alimer::Half> : public std::true_type {};
+namespace std
+{
+    template<> struct is_floating_point<alimer::half> : public std::true_type {};
 
     template<>
-    class numeric_limits<alimer::Half> {
+    class numeric_limits<alimer::half> {
     public:
-        typedef alimer::Half type;
+        using type = alimer::half;
 
         static constexpr const bool is_specialized = true;
         static constexpr const bool is_signed = true;
@@ -181,14 +180,14 @@ namespace std {
         static constexpr const int max_exponent = 16;
         static constexpr const int max_exponent10 = 4;
 
-        inline static constexpr type round_error() noexcept { return alimer::MakeHalf(0x3800); }
-        inline static constexpr type min() noexcept { return alimer::MakeHalf(0x0400); }
-        inline static constexpr type max() noexcept { return alimer::MakeHalf(0x7bff); }
-        inline static constexpr type lowest() noexcept { return alimer::MakeHalf(0xfbff); }
-        inline static constexpr type epsilon() noexcept { return alimer::MakeHalf(0x1400); }
-        inline static constexpr type infinity() noexcept { return alimer::MakeHalf(0x7c00); }
-        inline static constexpr type quiet_NaN() noexcept { return alimer::MakeHalf(0x7fff); }
-        inline static constexpr type denorm_min() noexcept { return alimer::MakeHalf(0x0001); }
-        inline static constexpr type signaling_NaN() noexcept { return alimer::MakeHalf(0x7dff); }
+        inline static constexpr type round_error() noexcept { return alimer::makeHalf(0x3800); }
+        inline static constexpr type min() noexcept { return alimer::makeHalf(0x0400); }
+        inline static constexpr type max() noexcept { return alimer::makeHalf(0x7bff); }
+        inline static constexpr type lowest() noexcept { return alimer::makeHalf(0xfbff); }
+        inline static constexpr type epsilon() noexcept { return alimer::makeHalf(0x1400); }
+        inline static constexpr type infinity() noexcept { return alimer::makeHalf(0x7c00); }
+        inline static constexpr type quiet_NaN() noexcept { return alimer::makeHalf(0x7fff); }
+        inline static constexpr type denorm_min() noexcept { return alimer::makeHalf(0x0001); }
+        inline static constexpr type signaling_NaN() noexcept { return alimer::makeHalf(0x7dff); }
     };
-} // namespace std
+}

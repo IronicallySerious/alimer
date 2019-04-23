@@ -22,68 +22,77 @@
 
 #pragma once
 
+#include "../foundation/StringUtils.h"
+#include "../Core/Object.h"
 #include "../Core/Debug.h"
 
-#if ALIMER_PLATFORM_WINDOWS
-#if ALIMER_COMPILER_MSVC
-#include "spdlog/sinks/msvc_sink.h"
-namespace spdlog
+namespace alimer
 {
-    namespace sinks
+    /// Enum describing level of logging.
+    enum class LogLevel : uint8_t
     {
-        using platform_sink_mt = msvc_sink_mt;
-    }
-}
-#else
-#include "spdlog/sinks/wincolor_sink.h"
-namespace spdlog
-{
-    namespace sinks
-    {
-        using platform_sink_mt = wincolor_stdout_sink_mt;
-    }
-}
-#endif
-#elif ALIMER_PLATFORM_LINUX || ALIMER_PLATFORM_MACOS
-#include "spdlog/sinks/ansicolor_sink.h"
-namespace spdlog
-{
-    namespace sinks
-    {
-        using platform_sink_mt = ansicolor_stdout_sink_mt;
-    }
-}
-#elif ALIMER_PLATFORM_ANDROID
-#include "spdlog/sinks/android_sink.h"
-namespace spdlog
-{
-    namespace sinks
-    {
-        using platform_sink_mt = android_sink_mt;
-    }
-}
-#else
-#include "spdlog/sinks/ansicolor_sink.h"
-namespace spdlog
-{
-    namespace sinks
-    {
-        using platform_sink_mt = stdout_sink_mt;
-    }
-}
-#endif
-#include "spdlog/sinks/dist_sink.h"
-#include "spdlog/sinks/daily_file_sink.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
+        /// Trace log level.
+        Trace = 0,
+        /// Debug log level.
+        Debug = 1,
+        /// Information log level.
+        Info = 2,
+        /// Warning log level.
+        Warn = 3,
+        /// Error log level.
+        Error = 4,
+        /// Critical/Fatal log level.
+        Critical = 5
+    };
 
-#define ALIMER_LOG "Alimer"
-#define ALIMER_LOGTRACE(...) spdlog::get(ALIMER_LOG)->trace(__VA_ARGS__)
-#define ALIMER_LOGDEBUG(...) spdlog::get(ALIMER_LOG)->debug(__VA_ARGS__)
-#define ALIMER_LOGINFO(...) spdlog::get(ALIMER_LOG)->info(__VA_ARGS__)
-#define ALIMER_LOGWARN(...) spdlog::get(ALIMER_LOG)->warn(__VA_ARGS__)
-#define ALIMER_LOGERROR(...) spdlog::get(ALIMER_LOG)->error(__VA_ARGS__)
+    /// Class for logging support.
+    class ALIMER_API Logger final : public Object
+    {
+        ALIMER_OBJECT(Logger, Object);
+
+    public:
+        /// Constructor.
+        Logger();
+
+        /// Destructor.
+        ~Logger() override;
+
+        static Logger &GetDefault();
+
+        void Log(LogLevel level, const std::string& message);
+        void Log(LogLevel level, const std::string& tag, const std::string& message);
+
+        /// Get if logger is enabled.
+        bool IsEnabled() const { return _isEnabled; }
+
+        /// Set logger enabled state.
+        void SetEnabled(bool value) { _isEnabled = value; }
+
+        /// Get the log level.
+        LogLevel GetLevel() const { return _level; }
+
+        /// Set the log level.
+        void SetLevel(LogLevel value) { _level = value; }
+
+    private:
+        bool _isEnabled = true;
+#ifdef _DEBUG
+        LogLevel _level = LogLevel::Debug;
+#else
+        LogLevel _level = LogLevel::Info;
+#endif
+
+    };
+}
+
+#define ALIMER_TAG "Alimer"
+#define ALIMER_LOGTRACE(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Trace, ALIMER_TAG, alimer::StringUtils::Format(__VA_ARGS__))
+#define ALIMER_LOGDEBUG(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Debug, ALIMER_TAG, alimer::StringUtils::Format(__VA_ARGS__))
+#define ALIMER_LOGINFO(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Info, ALIMER_TAG, alimer::StringUtils::Format(__VA_ARGS__))
+#define ALIMER_LOGWARN(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Warn, ALIMER_TAG, alimer::StringUtils::Format(__VA_ARGS__))
+#define ALIMER_LOGERROR(...) alimer::Logger::GetDefault().Log(alimer::LogLevel::Error, ALIMER_TAG, alimer::StringUtils::Format(__VA_ARGS__))
 #define ALIMER_LOGCRITICAL(...) do { \
-	spdlog::get(ALIMER_LOG)->critical(__VA_ARGS__); \
+	alimer::Logger::GetDefault().Log(alimer::LogLevel::Critical, ALIMER_TAG, alimer::StringUtils::Format(__VA_ARGS__)); \
 	ALIMER_BREAKPOINT(); \
 	ALIMER_UNREACHABLE(); \
 } while (0)

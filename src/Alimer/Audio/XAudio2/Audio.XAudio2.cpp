@@ -336,7 +336,7 @@ namespace alimer
             (void**)&_deviceEnumerator);
         if (FAILED(hr))
         {
-            ALIMER_LOGERROR("[XAudio2] - CoCreateInstance(MMDeviceEnumerator) failed, {}", hr);
+            ALIMER_LOGERROR("[XAudio2] - CoCreateInstance(MMDeviceEnumerator) failed, %d", hr);
         }
 
         _notificationClient = new AudioNotificationClient();
@@ -441,7 +441,7 @@ namespace alimer
             ALIMER_LOGCRITICAL("Failed to initialize XAudio2");
         }
 #endif
-        ALIMER_LOGINFO("XAudio {}.{} backend created.", _apiMajorVersion, _apiMinorVersion);
+        ALIMER_LOGINFO("XAudio %d.%d backend created.", _apiMajorVersion, _apiMinorVersion);
 
         if (validation
             && _apiMinorVersion > 7)
@@ -454,7 +454,7 @@ namespace alimer
             debugConfiguration.LogFunctionName = FALSE;
             debugConfiguration.LogTiming = FALSE;
             _xaudio2->SetDebugConfiguration(&debugConfiguration);
-            ALIMER_LOGDEBUG("XAudio {}.{} debugging enabled.", _apiMajorVersion, _apiMinorVersion);
+            ALIMER_LOGDEBUG("XAudio %d.%d debugging enabled.", _apiMajorVersion, _apiMinorVersion);
         }
     }
 
@@ -615,7 +615,7 @@ namespace alimer
             _masterRate = details.InputSampleRate;
         }
 
-        ALIMER_LOGDEBUG("[XAudio2] - Mastering voice has {} channels, {} sample rate, {} channel mask", _masterChannels, _masterRate, _masterChannelMask);
+        ALIMER_LOGDEBUG("[XAudio2] - Mastering voice has %d channels, %d sample rate, %d channel mask", _masterChannels, _masterRate, _masterChannelMask);
 
         // Setup 3D audio
         const float SPEEDOFSOUND = X3DAUDIO_SPEED_OF_SOUND;
@@ -665,7 +665,7 @@ namespace alimer
             HRESULT hr = _masteringVoice->SetVolume(volume);
             if (FAILED(hr))
             {
-                ALIMER_LOGDEBUG("[XAudio2] - Failed to set master voice volume, COM error: {}", hr);
+                ALIMER_LOGDEBUG("[XAudio2] - Failed to set master voice volume, COM error: %d", hr);
             }
         }
     }
@@ -690,7 +690,7 @@ namespace alimer
             if (FAILED(hr))
             {
                 ALIMER_LOGERROR(
-                    "XAudio2 resume: Failure with HRESULT of {}",
+                    "XAudio2 resume: Failure with HRESULT of %d",
                     static_cast<unsigned int>(hr)
                 );
             }

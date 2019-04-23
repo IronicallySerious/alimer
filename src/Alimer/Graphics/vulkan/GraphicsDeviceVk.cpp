@@ -74,12 +74,12 @@ namespace alimer
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
             if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
             {
-                ALIMER_LOGERROR("[Vulkan]: Validation Error: {}", pCallbackData->pMessage);
+                ALIMER_LOGERROR("[Vulkan]: Validation Error: %s", pCallbackData->pMessage);
                 //device->NotifyValidationError(pCallbackData->pMessage);
             }
             else
             {
-                ALIMER_LOGERROR("[Vulkan]: Other Error: {}", pCallbackData->pMessage);
+                ALIMER_LOGERROR("[Vulkan]: Other Error: %s", pCallbackData->pMessage);
             }
 
             break;
@@ -87,11 +87,11 @@ namespace alimer
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
             if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
             {
-                ALIMER_LOGWARN("[Vulkan]: Validation Warning: {}", pCallbackData->pMessage);
+                ALIMER_LOGWARN("[Vulkan]: Validation Warning: %s", pCallbackData->pMessage);
             }
             else
             {
-                ALIMER_LOGWARN("[Vulkan]: Other Warning: {}", pCallbackData->pMessage);
+                ALIMER_LOGWARN("[Vulkan]: Other Warning: %s", pCallbackData->pMessage);
             }
             break;
 
@@ -99,9 +99,9 @@ namespace alimer
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
             if (messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
-                ALIMER_LOGINFO("[Vulkan]: Validation Info: {}", pCallbackData->pMessage);
+                ALIMER_LOGINFO("[Vulkan]: Validation Info: %s", pCallbackData->pMessage);
             else
-                ALIMER_LOGINFO("[Vulkan]: Other Info: {}", pCallbackData->pMessage);
+                ALIMER_LOGINFO("[Vulkan]: Other Info: %s", pCallbackData->pMessage);
             break;
 #endif
 
@@ -125,7 +125,7 @@ namespace alimer
             for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
             {
                 auto *name = pCallbackData->pObjects[i].pObjectName;
-                ALIMER_LOGINFO("  Object #%u: {}", i, name ? name : "N/A");
+                ALIMER_LOGINFO("  Object #%u: %s", i, name ? name : "N/A");
             }
         }
 
@@ -147,20 +147,20 @@ namespace alimer
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
         {
-            ALIMER_LOGERROR("[Vulkan]: {}: {}", pLayerPrefix, pMessage);
+            ALIMER_LOGERROR("[Vulkan]: %s: %s", pLayerPrefix, pMessage);
             //device->NotifyValidationError(pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
         {
-            ALIMER_LOGWARN("[Vulkan]: {}: {}", pLayerPrefix, pMessage);
+            ALIMER_LOGWARN("[Vulkan]: %s: %s", pLayerPrefix, pMessage);
         }
         else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
         {
-            ALIMER_LOGWARN("[Vulkan]: Performance warning: {}: {}", pLayerPrefix, pMessage);
+            ALIMER_LOGWARN("[Vulkan]: Performance warning: %s: %s", pLayerPrefix, pMessage);
         }
         else
         {
-            ALIMER_LOGINFO("[Vulkan]: {}: {}", pLayerPrefix, pMessage);
+            ALIMER_LOGINFO("[Vulkan]: %s: %s", pLayerPrefix, pMessage);
         }
 
         return VK_FALSE;
@@ -453,12 +453,12 @@ namespace alimer
             VkPhysicalDeviceProperties properties;
             vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
 
-            ALIMER_LOGTRACE("Found Vulkan GPU: {}", properties.deviceName);
-            ALIMER_LOGTRACE("    API: {}.{}.{}",
+            ALIMER_LOGTRACE("Found Vulkan GPU: %s", properties.deviceName);
+            ALIMER_LOGTRACE("    API: %d.%d.%d",
                 VK_VERSION_MAJOR(properties.apiVersion),
                 VK_VERSION_MINOR(properties.apiVersion),
                 VK_VERSION_PATCH(properties.apiVersion));
-            ALIMER_LOGTRACE("    Driver: {}.{}.{}",
+            ALIMER_LOGTRACE("    Driver: %d.%d.%d",
                 VK_VERSION_MAJOR(properties.driverVersion),
                 VK_VERSION_MINOR(properties.driverVersion),
                 VK_VERSION_PATCH(properties.driverVersion));
@@ -541,7 +541,7 @@ namespace alimer
             }
         }
 
-        ALIMER_LOGDEBUG("Selected Vulkan GPU: {}", _physicalDeviceProperties.deviceName);
+        ALIMER_LOGDEBUG("Selected Vulkan GPU: %s", _physicalDeviceProperties.deviceName);
     }
 
     bool GraphicsImpl::Initialize(Window* window, SampleCount samples)
@@ -549,6 +549,18 @@ namespace alimer
         _surface = CreateSurface(window);
         CreateLogicalDevice();
         InitializeInfoAndCaps();
+
+        // Create default graphics command pool
+        VkCommandPoolCreateInfo cmdPoolCreateInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO  };
+        cmdPoolCreateInfo.queueFamilyIndex = _graphicsQueueFamily;
+        cmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        vkThrowIfFailed(vkCreateCommandPool(_device, &cmdPoolCreateInfo, nullptr, &_graphicsCommandPool));
+
+        // Create swap chain.
+        SwapChainDescriptor swapChainDescriptor = {};
+        swapChainDescriptor.width = window->GetWidth();
+        swapChainDescriptor.height = window->GetHeight();
+        _swapChain.Reset(new SwapChainVk(this, _surface, &swapChainDescriptor));
 
         // Pipeline cache
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
@@ -732,7 +744,7 @@ namespace alimer
         {
             if (!HasExtension(requiredDeviceExtensions[i]))
             {
-                ALIMER_LOGERROR("Vulkan: required extension is not supported '{}'", requiredDeviceExtensions[i]);
+                ALIMER_LOGERROR("Vulkan: required extension is not supported '%d'", requiredDeviceExtensions[i]);
                 return;
             }
 
@@ -919,11 +931,11 @@ namespace alimer
         vma_vulkan_func.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
 #endif
 
-        VmaAllocatorCreateInfo allocator_info{};
-        allocator_info.physicalDevice = _physicalDevice;
-        allocator_info.device = _device;
-        allocator_info.pVulkanFunctions = &vma_vulkan_func;
-        VkResult result = vmaCreateAllocator(&allocator_info, &_memoryAllocator);
+        VmaAllocatorCreateInfo allocatorCreateInfo = {};
+        allocatorCreateInfo.physicalDevice = _physicalDevice;
+        allocatorCreateInfo.device = _device;
+        allocatorCreateInfo.pVulkanFunctions = &vma_vulkan_func;
+        VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &_memoryAllocator);
 
         if (result != VK_SUCCESS)
         {
@@ -1055,14 +1067,14 @@ namespace alimer
         //frame().ProcessDeferredDelete();
 
         // Acquire the next image from the swap chain
-        //_swapChain->AcquireNextTexture();
+        _swapChain->AcquireNextTexture();
 
         return true;
     }
 
     void GraphicsImpl::EndFrame()
     {
-        /*VkResult result = _swapChain->QueuePresent(_graphicsQueue);
+        VkResult result = _swapChain->QueuePresent(_graphicsQueue);
         if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR)))
         {
             if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -1073,7 +1085,7 @@ namespace alimer
             else {
                 vkThrowIfFailed(result);
             }
-        }*/
+        }
 
         // Advance frame index.
         //_frameIndex = (_frameIndex + 1u) % _maxInflightFrames;
@@ -1115,6 +1127,51 @@ namespace alimer
         }
 
         return PixelFormat::Undefined;
+    }
+
+    VkCommandBuffer GraphicsImpl::CreateCommandBuffer(VkCommandBufferLevel level, bool begin)
+    {
+        VkCommandBufferAllocateInfo commandBufferAllocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO  };
+        commandBufferAllocateInfo.commandPool = _graphicsCommandPool;
+        commandBufferAllocateInfo.level = level;
+        commandBufferAllocateInfo.commandBufferCount = 1u;
+
+        VkCommandBuffer commandBuffer;
+        vkThrowIfFailed(vkAllocateCommandBuffers(_device, &commandBufferAllocateInfo, &commandBuffer));
+
+        // If requested, also start the new command buffer
+        if (begin)
+        {
+            VkCommandBufferBeginInfo cmdBufferBeginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+            vkThrowIfFailed(vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo));
+        }
+
+        return commandBuffer;
+    }
+
+    void GraphicsImpl::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free)
+    {
+        vkThrowIfFailed(vkEndCommandBuffer(commandBuffer));
+
+        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO  };
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        // Create fence to ensure that the command buffer has finished executing
+        VkFenceCreateInfo fenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+        VkFence fence;
+        vkThrowIfFailed(vkCreateFence(_device, &fenceCreateInfo, nullptr, &fence));
+
+        vkThrowIfFailed(vkQueueSubmit(_graphicsQueue, 1, &submitInfo, fence));
+        // Wait for the fence to signal that command buffer has finished executing
+        vkThrowIfFailed(vkWaitForFences(_device, 1, &fence, VK_TRUE, UINT64_MAX));
+
+        vkDestroyFence(_device, fence, nullptr);
+
+        if (free)
+        {
+            vkFreeCommandBuffers(_device, _graphicsCommandPool, 1, &commandBuffer);
+        }
     }
 
     VkSemaphore GraphicsImpl::RequestSemaphore()

@@ -40,7 +40,7 @@
 
 static void Glfw_Resize(GLFWwindow* handle, int w, int h) {
     auto window = reinterpret_cast<alimer::Window*>(glfwGetWindowUserPointer(handle));
-    window->Resize(w, h);
+    window->Resize(alimer::uvec2(w, h));
 }
 
 static void Glfw_KeyCallback(GLFWwindow* handle, int key, int scanCode, int action, int modifiers)
@@ -80,7 +80,7 @@ namespace alimer
     {
     }
 
-    Window::Window(const string& title, const IntVector2& size, bool resizable, bool fullscreen)
+    Window::Window(const string& title, const uvec2& size, bool resizable, bool fullscreen)
         : _title(title)
         , _fullscreen(fullscreen)
     {
@@ -144,7 +144,7 @@ namespace alimer
         }
     }
 
-    bool Window::SetSize(const IntVector2& size, bool resizable, bool fullscreen)
+    bool Window::SetSize(const uvec2& size, bool resizable, bool fullscreen)
     {
         GLFWmonitor* monitor = nullptr;
         int windowWidth;
@@ -217,21 +217,20 @@ namespace alimer
         return !glfwWindowShouldClose(_window);
     }
 
-    void Window::Resize(int width, int height)
+    void Window::Resize(const uvec2& size)
     {
-        if (_size.x == width
-            && _size.y == height)
+        if (_size.x == size.x
+            && _size.y == size.y)
         {
             return;
         }
 
-        _size.x = width;
-        _size.y = height;
-        glfwSetWindowSize(_window, (int)width, (int)height);
+        _size = size;
+        glfwSetWindowSize(_window, (int)size.x, (int)size.y);
         OnSizeChanged(_size);
     }
 
-    void Window::OnSizeChanged(const IntVector2& newSize)
+    void Window::OnSizeChanged(const uvec2& newSize)
     {
         WindowResizeEvent evt;
         evt.size = _size;

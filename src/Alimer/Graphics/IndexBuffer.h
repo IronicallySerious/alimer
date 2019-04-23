@@ -26,8 +26,6 @@
 
 namespace alimer
 {
-    class BufferHandle;
-
 	/// Defines a GPU IndexBuffer class.
 	class ALIMER_API IndexBuffer : public Buffer
 	{

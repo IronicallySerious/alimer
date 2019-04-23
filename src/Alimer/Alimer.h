@@ -37,12 +37,9 @@
 #include "IO/Path.h"
 
 // Math
-#include "Math/MathUtil.h"
-#include "Math/Math.h"
-#include "Math/Vector2.h"
+#include "Math/math.h"
 #include "Math/Color.h"
 #include "Math/Rectangle.h"
-#include "Math/Matrix4x4.h"
 
 // Graphics
 #include "Graphics/PixelFormat.h"
@@ -60,12 +57,6 @@
 #include "Serialization/Serializable.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonDeserializer.h"
-
-// Scene
-#include "Scene/Entity.h"
-#include "Scene/Components/TransformComponent.h"
-#include "Scene/Components/CameraComponent.h"
-//#include "Scene/Components/Renderable.h"
 
 // Renderer
 #include "Renderer/Material.h"

@@ -22,7 +22,7 @@
 
 #include "../Graphics/CommandBuffer.h"
 #include "../Graphics/GraphicsDevice.h"
-#include "../Math/MathUtil.h"
+#include "../Math/math.h"
 #include "../Core/Log.h"
 
 namespace alimer
@@ -194,8 +194,8 @@ namespace alimer
     void CommandBuffer::SetIndexBuffer(IndexBuffer* buffer, uint32_t startIndex)
     {
         ALIMER_ASSERT(buffer);
-        uint32_t offset = startIndex * buffer->GetIndexSize();
-        SetIndexBufferImpl(buffer->GetHandle(), buffer->GetIndexType(), offset);
+        //uint32_t offset = startIndex * buffer->GetIndexSize();
+        //SetIndexBufferImpl(buffer->GetHandle(), buffer->GetIndexType(), offset);
     }
 
     void CommandBuffer::Draw(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)

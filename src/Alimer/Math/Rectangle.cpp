@@ -21,7 +21,8 @@
 //
 
 #include "../Math/Rectangle.h"
-#include <fmt/printf.h>
+#include "../foundation/StringUtils.h"
+#include <cstdio>
 
 namespace alimer
 {
@@ -30,11 +31,15 @@ namespace alimer
 
     std::string Rectangle::ToString() const
     {
-        return fmt::sprintf("%d %d %d %d", x, y, width, height);
+        char tempBuffer[CONVERSION_BUFFER_LENGTH];
+        sprintf(tempBuffer, "%d %d %d %d", x, y, width, height);
+        return String(tempBuffer);
     }
 
     std::string RectangleF::ToString() const
     {
-        return fmt::sprintf("%g %g %g %g", x, y, width, height);
+        char tempBuffer[CONVERSION_BUFFER_LENGTH];
+        sprintf(tempBuffer, "%g %g %g %g", x, y, width, height);
+        return String(tempBuffer);
     }
 }

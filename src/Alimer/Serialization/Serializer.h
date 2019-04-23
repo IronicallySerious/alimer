@@ -26,8 +26,8 @@
 #include <vector>
 #include <map>
 #include "../IO/Stream.h"
-#include "../Math/Math.h"
-#include "../Math/Color.h"
+#include "Math/math.h"
+#include "Math/Color.h"
 
 namespace alimer
 {
@@ -56,10 +56,22 @@ namespace alimer
         virtual void Serialize(const char* key, const char* value);
         virtual void Serialize(const char* key, const std::string& value) = 0;
 
-        virtual void Serialize(const char* key, vec2& value);
-        virtual void Serialize(const char* key, vec3& value);
-        virtual void Serialize(const char* key, vec4& value);
-        virtual void Serialize(const char* key, quat& value);
+        template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value >::type>
+        void Serialize(const char* key, tvec2<T>& value) {
+            Serialize(key, &value.x, 2);
+        }
+
+        template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value >::type>
+        void Serialize(const char* key, tvec3<T>& value) {
+            Serialize(key, &value.x, 3);
+        }
+
+        template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value >::type>
+        void Serialize(const char* key, tvec4<T>& value) {
+            Serialize(key, &value.x, 4);
+        }
+
+        //virtual void Serialize(const char* key, quat& value);
         virtual void Serialize(const char* key, const Color4& value);
         virtual void Serialize(const char* key, const float* values, uint32_t count) = 0;
 

@@ -22,13 +22,11 @@
 
 #pragma once
 
-#include <string>
 #include <foundation/cpp_macros.h>
-#include "../Math/Math.h"
-#include "../Math/Color.h"
-#include "../Graphics/PixelFormat.h"
-#include "fmt/format.h"
+#include "Math/Color.h"
+#include "Graphics/PixelFormat.h"
 
+#include <string>
 #ifdef _MSC_VER
 #   pragma warning(push)
 #   pragma warning(disable : 4201) 
@@ -471,18 +469,10 @@ namespace alimer
     /// Describes SwapChain
     struct SwapChainDescriptor
     {
-        /// Title of the window.
-        std::string title = "Alimer";
-
         /// Width.
         uint32_t    width = 800;
         /// Height.
         uint32_t    height = 600;
-
-        /// Fullscreen.
-        bool fullscreen = false;
-
-        bool resizable = true;
 
         /// srgb pixel format
         bool        srgb = true;
@@ -742,4 +732,33 @@ namespace alimer
 
 #ifdef _MSC_VER
 #   pragma warning(pop)
+#endif
+
+/* Backend declaration */
+#if defined(ALIMER_VULKAN)
+
+#ifndef VK_NULL_HANDLE
+#   define VK_NULL_HANDLE 0
+#endif
+
+#ifndef VK_DEFINE_HANDLE
+#   define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
+#endif
+
+
+#if !defined(VK_DEFINE_NON_DISPATCHABLE_HANDLE)
+#   if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) && !defined(__ILP32__) ) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
+#       define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
+#   else
+#       define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef uint64_t object;
+#   endif
+#endif
+
+VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkBuffer)
+
+VK_DEFINE_HANDLE(VmaAllocator)
+VK_DEFINE_HANDLE(VmaAllocation)
+
+#elif defined(ALIMER_D3D12)
+#elif defined(ALIMER_D3D11)
 #endif

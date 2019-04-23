@@ -26,7 +26,9 @@
 #include "../Graphics/Types.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
-#include "../Math/Vector2.h"
+#include "Math/math.h"
+
+#include <atomic>
 
 namespace alimer
 {
@@ -40,9 +42,9 @@ namespace alimer
     struct EngineSettings
     {
         /// Main application window title.
-        std::string                 title = "Alimer";
+        std::string title = "Alimer";
         /// Main application window size.
-        IntVector2                  size = { 800, 600 };
+        uvec2 size = { 800u, 600u };
         /// Whether main application window is resizable.
         bool resizable = true;
         /// Whether main application window is fullscreen.
@@ -109,7 +111,6 @@ namespace alimer
         EngineSettings _settings;
         bool _headless = false;
 
-        std::shared_ptr<spdlog::logger> _logger;
         PluginManager*              _pluginManager;
         SharedPtr<ResourceManager>  _resources;
         SharedPtr<Input>            _input;

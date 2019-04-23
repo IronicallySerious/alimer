@@ -130,12 +130,12 @@ namespace alimer
 
         static const vec3 faceNormals[FaceCount] =
         {
-            vec3(0,  0,  1),
-            vec3(0,  0, -1),
-            vec3(1,  0,  0),
-            vec3(-1,  0,  0),
-            vec3(0,  1,  0),
-            vec3(0, -1,  0),
+            vec3(0.0f,  0.0f,  1.0f),
+            vec3(0.0f,  0.0f, -1.0f),
+            vec3(1.0f,  0.0f,  0.0f),
+            vec3(-1.0f, 0.0f,  0.0f),
+            vec3(0.0f,  1.0f,  0.0f),
+            vec3(0.0f, -1.0f,  0.0f),
         };
 
         std::vector<vec3> positions;

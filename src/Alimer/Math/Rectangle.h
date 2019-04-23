@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "../Math/Vector2.h"
+#include "Math/math.h"
+#include <string>
 
 namespace alimer
 {
@@ -71,14 +72,14 @@ namespace alimer
         int Bottom() const { return y + height; }
 
         // Rectangle operations
-        IntVector2 Location() const { return IntVector2(x, y); }
-        IntVector2 TopLeft() const { return IntVector2(x, y); }
-        IntVector2 TopRight() const { return IntVector2(x + width, y); }
-        IntVector2 BottomRight() const { return IntVector2(x + width, y + height); }
-        IntVector2 BottomLeft() const { return IntVector2(x, y + height); }
-        IntVector2 Center() const { return IntVector2(x + (width / 2), y + (height / 2)); }
-        IntVector2 Size() const { return IntVector2(width, height); }
-        IntVector2 HalfSize() const { return IntVector2(width / 2, height / 2); }
+        ivec2 Location() const { return ivec2(x, y); }
+        ivec2 TopLeft() const { return ivec2(x, y); }
+        ivec2 TopRight() const { return ivec2(x + width, y); }
+        ivec2 BottomRight() const { return ivec2(x + width, y + height); }
+        ivec2 BottomLeft() const { return ivec2(x, y + height); }
+        ivec2 Center() const { return ivec2(x + (width / 2), y + (height / 2)); }
+        ivec2 Size() const { return ivec2(width, height); }
+        ivec2 HalfSize() const { return ivec2(width / 2, height / 2); }
         float AspectRatio() const { return width / static_cast<float>(height); }
 
         /// Return as string.
@@ -134,14 +135,14 @@ namespace alimer
         float Bottom() const { return y + height; }
 
         // Rectangle operations
-        Vector2 Location() const { return Vector2(x, y); }
-        Vector2 TopLeft() const { return Vector2(x, y); }
-        Vector2 TopRight() const { return Vector2(x + width, y); }
-        Vector2 BottomRight() const { return Vector2(x + width, y + height); }
-        Vector2 BottomLeft() const { return Vector2(x, y + height); }
-        Vector2 Center() const { return Vector2(x + (width / 2.0f), y + (height / 2.0f)); }
-        Vector2 Size() const { return Vector2(width, height); }
-        Vector2 HalfSize() const { return Vector2(width / 2.0f, height / 2.0f); }
+        vec2 Location() const { return vec2(x, y); }
+        vec2 TopLeft() const { return vec2(x, y); }
+        vec2 TopRight() const { return vec2(x + width, y); }
+        vec2 BottomRight() const { return vec2(x + width, y + height); }
+        vec2 BottomLeft() const { return vec2(x, y + height); }
+        vec2 Center() const { return vec2(x + (width / 2.0f), y + (height / 2.0f)); }
+        vec2 Size() const { return vec2(width, height); }
+        vec2 HalfSize() const { return vec2(width / 2.0f, height / 2.0f); }
         float AspectRatio() const { return width / height; }
 
         /// Return as string.

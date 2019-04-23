@@ -43,24 +43,6 @@ namespace alimer
         // Register as subsystem.
         AddSubsystem(this);
 
-        // Setup logger first.
-        std::vector<std::shared_ptr<spdlog::sinks::sink>> sinks;
-
-        sinks.emplace_back(std::make_shared<spdlog::sinks::platform_sink_mt>());
-        sinks.emplace_back(std::make_shared<spdlog::sinks::daily_file_sink_mt>("AlimerLog", 23, 59));
-#if ALIMER_PLATFORM_WINDOWS && ALIMER_DEV
-        AllocConsole();
-        sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-#endif
-        _logger = std::make_shared<spdlog::logger>(ALIMER_LOG, sinks.begin(), sinks.end());
-        spdlog::register_logger(_logger);
-
-#ifdef _DEBUG
-        _logger->set_level(spdlog::level::debug);
-#else
-        _logger->set_level(spdlog::level::info);
-#endif
-
         // Create plugin manager
         _pluginManager = PluginManager::Create(*this);
 
@@ -86,7 +68,7 @@ namespace alimer
             return true;
         }
 
-        ALIMER_LOGINFO("Initializing engine {}", ALIMER_VERSION_STR);
+        ALIMER_LOGINFO("Initializing engine %s", ALIMER_VERSION_STR);
 
 #if TODO_CLI_ARGS
         // Define and parse command line parameters.

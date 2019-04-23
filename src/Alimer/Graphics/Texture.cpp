@@ -21,10 +21,8 @@
 //
 
 #include "../Graphics/Texture.h"
-#include "../Graphics/Backend.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../IO/Stream.h"
-#include "../Math/MathUtil.h"
 #include "Core/Log.h"
 
 namespace alimer

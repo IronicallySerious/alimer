@@ -36,7 +36,9 @@ namespace alimer
 	{
 	public:
         SwapChainVk(GraphicsImpl* device, VkSurfaceKHR surface, const SwapChainDescriptor* descriptor);
+        ~SwapChainVk();
 
+        bool Resize(uint32_t width, uint32_t height);
         void AcquireNextTexture();
         VkResult QueuePresent(VkQueue queue);
 
@@ -54,7 +56,7 @@ namespace alimer
         uint32_t                    _width = 0;
         uint32_t                    _height = 0;
         PixelFormat                 _colorFormat = PixelFormat::Undefined;
-        bool                        _vSync;
+        bool                        _vsync = false;
         PixelFormat                 _depthStencilFormat = PixelFormat::Undefined;
         SampleCount                 _samples;
         uint32_t                    _imageIndex = 0;
@@ -65,5 +67,7 @@ namespace alimer
         std::vector<std::unique_ptr<Texture>> _swapchainTextures;
         //std::vector<SharedPtr<FramebufferVk>> _framebuffers;
         VkRenderPass                _renderPass = VK_NULL_HANDLE;
+        uint32_t                    _presentQueueIndex = VK_QUEUE_FAMILY_IGNORED;
+        VkQueue                     _presentQueue = VK_NULL_HANDLE;
 	};
 }

@@ -32,7 +32,7 @@ macro (define_engine_source_files)
 	endif ()
 	foreach (path ${DEFINE_SRC_FILES_UNPARSED_ARGUMENTS})
 		# Get header files
-		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.inl)
+		file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.hpp ${path}/*.h ${path}/*.inl)
 
 		list (APPEND HEADER_FILES ${_files})
 
@@ -129,7 +129,7 @@ if (ALIMER_OPENGL AND ALIMER_DESKTOP)
 endif ()
 
 # Link dependencies
-set (THIRD_PARTY_DEPENDENCIES stb freetype fmt spdlog ImGui spirv_cross)
+set (THIRD_PARTY_DEPENDENCIES stb ImGui spirv_cross)
 
 if (ALIMER_DESKTOP)
     list (APPEND THIRD_PARTY_DEPENDENCIES glfw)
@@ -137,7 +137,7 @@ if (ALIMER_DESKTOP)
 #    list (APPEND THIRD_PARTY_DEPENDENCIES SDL2)
 endif ()
 
-list (APPEND THIRD_PARTY_DEPENDENCIES liblua)
+# list (APPEND THIRD_PARTY_DEPENDENCIES liblua)
 
 foreach (dep ${THIRD_PARTY_DEPENDENCIES})
     if (TARGET "${dep}")
@@ -183,6 +183,10 @@ if (ALIMER_DESKTOP)
 #elseif (ALIMER_SDL2)
 #    target_compile_definitions(${PROJECT_NAME} PRIVATE -DALIMER_SDL2)
 endif ()
+
+if (WIN32)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX)
+endif()
 
 if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
     target_compile_definitions(${PROJECT_NAME} PRIVATE -DALIMER_TOOLS)

@@ -125,7 +125,7 @@ namespace alimer
         return new GraphicsDevice(applicationName, devicePreference);
     }
 
-    bool GraphicsDevice::SetMode(const IntVector2& size, bool resizable, bool fullscreen, SampleCount samples)
+    bool GraphicsDevice::SetMode(const uvec2& size, bool resizable, bool fullscreen, SampleCount samples)
     {
         if (!_renderWindow->SetSize(size, resizable, fullscreen)) {
             return false;
@@ -142,12 +142,12 @@ namespace alimer
 
     bool GraphicsDevice::BeginFrame()
     {
-        return true;
+        return _impl->BeginFrame();
     }
 
     void GraphicsDevice::EndFrame()
     {
-        //Tick();
+        _impl->EndFrame();
     }
 
     GraphicsBackend GraphicsDevice::GetBackend() const
@@ -178,25 +178,5 @@ namespace alimer
             std::remove(_gpuResources.begin(), _gpuResources.end(), resource),
             end(_gpuResources)
         );
-    }
-
-    BufferHandle* GraphicsDevice::CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData)
-    {
-        ALIMER_ASSERT(descriptor);
-        return nullptr;
-        //return CreateBufferImpl(descriptor, pInitData);
-    }
-
-    ShaderHandle* GraphicsDevice::CreateShader(ShaderStage stage, const std::string& code, const std::string& entryPoint)
-    {
-        //return CreateShaderImpl(stage, code, entryPoint);
-        return nullptr;
-    }
-
-    PipelineHandle* GraphicsDevice::CreateRenderPipeline(const RenderPipelineDescriptor* descriptor)
-    {
-        ALIMER_ASSERT(descriptor);
-        //return CreateRenderPipelineImpl(descriptor);
-        return nullptr;
     }
 }

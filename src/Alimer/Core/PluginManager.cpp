@@ -55,7 +55,7 @@ namespace alimer
     void PluginManager::LoadPlugins(const std::string& pluginPath)
     {
         ALIMER_LOGTRACE("Initializing Plugin System...");
-        ALIMER_LOGDEBUG("Scanning for plugins in directory '{}'", pluginPath);
+        ALIMER_LOGDEBUG("Scanning for plugins in directory '%s'", pluginPath.c_str());
 
         std::vector<std::string> files;
         ScanDirectory(files, pluginPath, PLUGIN_EXT, ScanDirFlags::Files, false);
@@ -113,7 +113,7 @@ namespace alimer
 
     void PluginManager::InstallPlugin(Plugin* plugin)
     {
-        ALIMER_LOGINFO("Installing plugin: {}", plugin->GetName());
+        ALIMER_LOGINFO("Installing plugin: %s", plugin->GetName());
 
         _plugins.push_back(std::unique_ptr<Plugin>(plugin));
         plugin->Install();

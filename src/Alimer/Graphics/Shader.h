@@ -28,8 +28,6 @@
 
 namespace alimer
 {
-    class ShaderHandle;
-
     /// Defines a shader resource.
     class ALIMER_API Shader : public Resource, public GPUResource
     {
@@ -56,7 +54,7 @@ namespace alimer
         ShaderStage GetStage() const { return _stage; }
 
         /// Get the backend handle.
-        ShaderHandle* GetHandle() const { return _handle; }
+        //ShaderHandle* GetHandle() const { return _handle; }
 
     private:
         /// Register object factory.
@@ -69,6 +67,6 @@ namespace alimer
         std::vector<uint8_t> _byteCode;
         std::string _sourceCode;
 
-        ShaderHandle* _handle = nullptr;
+        //ShaderHandle* _handle = nullptr;
     };
 }

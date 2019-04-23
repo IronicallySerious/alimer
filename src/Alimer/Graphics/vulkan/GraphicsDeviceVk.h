@@ -23,11 +23,13 @@
 #pragma once
 
 #include "BackendVk.h"
+#include "../../Base/Ptr.h"
 #include "../Types.h"
 
 namespace alimer
 {
     class Window;
+    class SwapChainVk;
 
     /// Vulkan gpu backend.
     class GraphicsImpl final 
@@ -58,6 +60,9 @@ namespace alimer
         bool ImageFormatIsSupported(VkFormat format, VkFormatFeatureFlags required, VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL) const;
         PixelFormat GetDefaultDepthStencilFormat() const;
         PixelFormat GetDefaultDepthFormat() const;
+
+        VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin);
+        void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free);
 
         VkSemaphore RequestSemaphore();
         void RecycleSemaphore(VkSemaphore semaphore);
@@ -133,10 +138,14 @@ namespace alimer
         VkQueue                                 _transferQueue = VK_NULL_HANDLE;
         VmaAllocator                            _memoryAllocator = VK_NULL_HANDLE;
         DeviceFeaturesVk                        _featuresVk = {};
+
+        /// Default command pool for the graphics queue family index.
+        VkCommandPool                           _graphicsCommandPool = VK_NULL_HANDLE;
         VkPipelineCache                         _pipelineCache = VK_NULL_HANDLE;
 
         VkSurfaceKHR                            _surface = VK_NULL_HANDLE;
-        
+        UniquePtr<SwapChainVk>                  _swapChain;
+
         std::vector<VkFence>                    _fences;
         std::vector<VkSemaphore>                _semaphores;
     };

@@ -21,7 +21,8 @@
 //
 
 #include "../Math/Color.h"
-#include <fmt/printf.h>
+#include "../foundation/StringUtils.h"
+#include <cstdio>
 
 namespace alimer
 {
@@ -37,6 +38,8 @@ namespace alimer
 
     std::string Color4::ToString() const
     {
-        return fmt::sprintf("%g %g %g %g", r, g, b, a);
+        char tempBuffer[CONVERSION_BUFFER_LENGTH];
+        sprintf(tempBuffer, "%g %g %g %g", r, g, b, a);
+        return String(tempBuffer);
     }
 }

@@ -23,10 +23,11 @@
 #pragma once
 
 #include <string>
-#include "../Math/Math.h"
-#include "../Math/Matrix4x4.h"
+#include "Math/vec4.h"
+#include "Math/vec3.h"
+#include "Math/Matrix4x4.h"
 
-namespace alimer
+/*namespace alimer
 {
     /// Defines a transform in space.
     class ALIMER_API Transform
@@ -71,3 +72,4 @@ namespace alimer
     };
 }
 
+*/

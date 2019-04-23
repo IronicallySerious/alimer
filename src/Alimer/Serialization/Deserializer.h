@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../IO/Stream.h"
-#include "../Math/MathUtil.h"
+#include "../Math/math.h"
 #include "../Math/Color.h"
 
 namespace alimer

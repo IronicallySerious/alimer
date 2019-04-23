@@ -24,7 +24,7 @@
 
 #include <string>
 #include  "AlimerConfig.h"
-#include "../Math/Math.h"
+#include "Math/math.h"
 
 #ifdef _MSC_VER
 #   pragma warning(push)

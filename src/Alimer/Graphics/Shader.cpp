@@ -21,7 +21,6 @@
 //
 
 #include "../Graphics/Shader.h"
-#include "../Graphics/Backend.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../IO/Path.h"
 #include "../IO/FileSystem.h"
@@ -78,7 +77,7 @@ namespace alimer
 
     void Shader::Destroy()
     {
-        SafeDelete(_handle);
+        //SafeDelete(_handle);
     }
 
     void Shader::RegisterObject()
@@ -97,9 +96,10 @@ namespace alimer
         _stage = stage;
         _sourceCode = code;
 
-        if (_device && _device->IsInitialized())
+        if (_device
+            && _device->IsInitialized())
         {
-            _handle = _device->CreateShader(_stage, code, entryPoint);
+            //_handle = _device->CreateShader(_stage, code, entryPoint);
         }
     }
     

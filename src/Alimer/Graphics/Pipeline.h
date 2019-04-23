@@ -26,8 +26,6 @@
 
 namespace alimer
 {
-    class PipelineHandle;
-
     /// Defines a Pipeline class.
     class ALIMER_API Pipeline : public GPUResource
     {
@@ -39,7 +37,7 @@ namespace alimer
         void SetFragmentShader(Shader* shader) { _descriptor.fragmentShader = shader; }
 
         /// Get the backend handle computed with hash value.
-        PipelineHandle* GetHandle() const;
+        //PipelineHandle* GetHandle() const;
 
         /// Get whether pipeline is compute.
         bool IsCompute() const { return _isCompute; }
@@ -49,6 +47,6 @@ namespace alimer
         bool _isCompute = false;
 
         /// Backend handle
-        mutable PipelineHandle* _handle = nullptr;
+        //mutable PipelineHandle* _handle = nullptr;
     };
 }

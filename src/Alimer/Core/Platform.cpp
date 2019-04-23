@@ -24,10 +24,17 @@
 #include "foundation/StringUtils.h"
 #include "../Core/Platform.h"
 #include "../Core/Log.h"
-#include <fmt/printf.h>
 
 #if defined(_WIN32)
-#include <foundation/windows.h>
+#ifndef NOMINMAX
+#    define NOMINMAX
+#endif
+
+#ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
 
 static const DWORD MS_VC_EXCEPTION = 0x406D1388;
 #pragma pack(push,8)
@@ -199,16 +206,16 @@ namespace alimer
         {
             if (osvi.szCSDVersion[0] != '\0')
             {
-                version += fmt::sprintf(" %d.%d.%d %s",
+                version += StringUtils::Format(" %d.%d.%d %s",
                     osvi.dwMajorVersion,
                     osvi.dwMinorVersion,
                     osvi.dwBuildNumber,
-                    ToUtf8(osvi.szCSDVersion)
+                    ToUtf8(osvi.szCSDVersion).c_str()
                 );
             }
             else
             {
-                version += fmt::sprintf(" %d.%d.%d",
+                version += StringUtils::Format(" %d.%d.%d",
                     osvi.dwMajorVersion,
                     osvi.dwMinorVersion,
                     osvi.dwBuildNumber

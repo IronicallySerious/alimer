@@ -97,7 +97,7 @@ namespace alimer
         virtual void BeginRenderPassImpl(const RenderPassDescriptor* renderPass) = 0;
         virtual void EndRenderPassImpl() = 0;
 
-        virtual void SetIndexBufferImpl(BufferHandle* buffer, IndexType indexType, uint32_t offset) = 0;
+       // virtual void SetIndexBufferImpl(BufferHandle* buffer, IndexType indexType, uint32_t offset) = 0;
         virtual void SetPipelineImpl(Pipeline* pipeline) = 0;
 
         virtual void DrawImpl(PrimitiveTopology topology, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;

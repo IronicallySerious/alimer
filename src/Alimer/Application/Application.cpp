@@ -21,7 +21,6 @@
 //
 
 #include "Application/Application.h"
-#include "Scene/Systems/CameraSystem.h"
 #include "IO/Path.h"
 #include "Core/Platform.h"
 

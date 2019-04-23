@@ -25,8 +25,7 @@
 #include <foundation/cpp_macros.h>
 #include "../Core/Platform.h"
 #include "../Core/Object.h"
-#include "../Math/Math.h"
-#include "../Math/Vector2.h"
+#include "Math/math.h"
 #include <string>
 
 #if defined(ALIMER_GLFW)
@@ -97,7 +96,7 @@ namespace alimer
     struct WindowResizeEvent 
     {
         /// New window size.
-        IntVector2 size;
+        uvec2 size;
     };
 
     /// OS Window class.
@@ -110,7 +109,7 @@ namespace alimer
         Window();
 
         /// Constructor.
-        Window(const std::string& title, const IntVector2& size, bool resizable = true, bool fullscreen = false);
+        Window(const std::string& title, const uvec2& size, bool resizable = true, bool fullscreen = false);
 
         /// Destructor
         ~Window() override;
@@ -118,7 +117,7 @@ namespace alimer
         /// Set window title.
         void SetTitle(const std::string& newTitle);
         /// Set window size. Open the window if not opened yet. Return true on success.
-        bool SetSize(const IntVector2& size, bool resizable = true, bool fullscreen = false);
+        bool SetSize(const uvec2& size, bool resizable = true, bool fullscreen = false);
 
         /// Show the window.
         void Show();
@@ -134,9 +133,7 @@ namespace alimer
         void Close();
 
         /// Resize the window.
-        void Resize(int width, int height);
-
-        
+        void Resize(const uvec2& size);
 
         /// Set whether is fullscreen.
         void SetFullscreen(bool value);
@@ -157,9 +154,9 @@ namespace alimer
         const std::string& GetTitle() const { return _title; }
 
         /// Return window client area size.
-        const IntVector2& GetSize() const { return _size; }
-        int GetWidth() const { return _size.x; }
-        int GetHeight() const { return _size.y; }
+        const uvec2& GetSize() const { return _size; }
+        uint32_t GetWidth() const { return _size.x; }
+        uint32_t GetHeight() const { return _size.y; }
 
         float GetAspectRatio() const { return static_cast<float>(_size.x) / _size.y; }
 
@@ -181,11 +178,11 @@ namespace alimer
     protected:
         virtual void OnHandleCreated() {}
         virtual void OnHandleDestroyed() {}
-        virtual void OnSizeChanged(const IntVector2& newSize);
+        virtual void OnSizeChanged(const uvec2& newSize);
         /// Window title.
         std::string _title = "Alimer";
         /// Window height.
-        IntVector2 _size = { 0, 0 };
+        uvec2 _size = { 0u, 0u };
         /// Fullscreen flag.
         bool _fullscreen;
         bool _visible = true;

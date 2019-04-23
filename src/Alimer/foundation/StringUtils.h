@@ -54,6 +54,11 @@
 
 namespace alimer
 {
+    static constexpr int CONVERSION_BUFFER_LENGTH = 128;
+    static constexpr int MATRIX_CONVERSION_BUFFER_LENGTH = 256;
+
+    using String = std::string;
+
     inline char tolowercase(char c) {
         return static_cast<char>(tolower(c));
     }
@@ -72,6 +77,9 @@ namespace alimer
             join_helper(stream, std::forward<Ts>(ts)...);
             return stream.str();
         }
+
+        /// Return a formatted string.
+        static std::string Format(const char* format, ...);
 
         /// Return substrings split by a separator char. By default don't return empty strings.
         static std::vector<std::string> Split(const char* str, char separator, bool keepEmptyStrings = false);

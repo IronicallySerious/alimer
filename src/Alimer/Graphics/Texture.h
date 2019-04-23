@@ -24,7 +24,7 @@
 
 #include "../Resource/Resource.h"
 #include "../Graphics/GPUResource.h"
-#include "../Math/MathUtil.h"
+#include "Math/math.h"
 
 namespace alimer
 {

@@ -49,6 +49,20 @@ namespace alimer
         return string(length - s.length(), padding) + s;
     }
 
+    std::string StringUtils::Format(const char* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        size_t len = std::vsnprintf(NULL, 0, format, args);
+        va_end(args);
+
+        std::vector<char> vec(len + 1);
+        va_start(args, format);
+        std::vsnprintf(&vec[0], len + 1, format, args);
+        va_end(args);
+        return &vec[0];
+    }
+
     vector<string> StringUtils::Split(const char* str, char separator, bool keepEmptyStrings)
     {
         vector<string> ret;

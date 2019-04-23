@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "../Math/Matrix4x4.h"
+#include "Math/math.h"
 
 namespace alimer
 {
@@ -56,8 +56,8 @@ namespace alimer
         float _zfar = 1000.0f;
 
         // Calculated values.
-        Matrix4x4 _view;
-        Matrix4x4 _projection;
+        mat4 _view;
+        mat4 _projection;
 
         /// Camera dirty flags.
         mutable int _dirtyFlags;

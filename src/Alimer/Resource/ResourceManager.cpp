@@ -119,7 +119,7 @@ namespace alimer
             ResourceLoader* loader = GetLoader(type->GetType());
             if (!loader)
             {
-                ALIMER_LOGERROR("Could not load unknown resource type '{}', no loader found.", type->GetTypeName());
+                ALIMER_LOGERROR("Could not load unknown resource type '%s', no loader found.", type->GetTypeName().c_str());
 
                 if (sendEventOnFailure)
                 {
@@ -186,12 +186,12 @@ namespace alimer
 
         if (object.IsNull())
         {
-            ALIMER_LOGERROR("Failed to load resource '{}'", assetPath);
+            ALIMER_LOGERROR("Failed to load resource '%s'", assetPath.c_str());
             return nullptr;
         }
 #endif // TODO
 
-        ALIMER_LOGDEBUG("Loading resource '{}'", assetName);
+        ALIMER_LOGDEBUG("Loading resource '%s'", assetName.c_str());
 
         if (!newResource->Load(*stream))
         {

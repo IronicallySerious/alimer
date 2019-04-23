@@ -63,7 +63,7 @@ namespace alimer
                 }
                 else
                 {
-                    ALIMER_LOGERROR("Type already registered: {}", factory->GetTypeName());
+                    ALIMER_LOGERROR("Type already registered: %s", factory->GetTypeName().c_str());
                 }
                 
             }

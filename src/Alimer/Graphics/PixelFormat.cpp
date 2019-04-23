@@ -20,9 +20,9 @@
 // THE SOFTWARE.
 //
 
-#include "../Graphics/PixelFormat.h"
-#include "../Math/MathUtil.h"
-#include "../Core/Log.h"
+#include "PixelFormat.h"
+#include "Math/math.hpp"
+#include "Core/Log.h"
 
 namespace alimer
 {

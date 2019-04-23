@@ -21,7 +21,6 @@
 //
 
 #include "../Graphics/Buffer.h"
-#include "../Graphics/Backend.h"
 #include "../Graphics/GraphicsDevice.h"
 #include "../Core/Log.h"
 
@@ -34,23 +33,9 @@ namespace alimer
 
     }
 
-    Buffer::Buffer(GraphicsDevice* device, const BufferDescriptor* descriptor)
-        : GPUResource(device, Type::Buffer)
-        , _usage(descriptor->usage)
-        , _size(descriptor->size)
-        , _stride(descriptor->stride)
-    {
-
-    }
-
     Buffer::~Buffer()
     {
         Destroy();
-    }
-
-    void Buffer::Destroy()
-    {
-        SafeDelete(_handle);
     }
 
     bool Buffer::SetSubData(const void* pData)
@@ -66,7 +51,7 @@ namespace alimer
             return false;
         }
 
-        return _handle->SetSubData(offset, size, pData);
+        return SetSubDataImpl(offset, size, pData);
     }
 
     bool Buffer::Create(bool useShadowData, const void* pData)
@@ -80,15 +65,10 @@ namespace alimer
             }
         }
 
-        if (_device && _device->IsInitialized())
+        if (_device
+            && _device->IsInitialized())
         {
-            BufferDescriptor descriptor = {};
-            descriptor.usage = _usage; /* TODO: Handle Storage and Indirect */
-            descriptor.resourceUsage = _resourceUsage;
-            descriptor.size = _size;
-            descriptor.stride = _stride;
-            _handle = _device->CreateBuffer(&descriptor, pData);
-            return _handle != nullptr;
+            return Create(pData);
         }
 
         return true;

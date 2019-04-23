@@ -29,7 +29,7 @@ namespace alimer
     // GLFW3 Error Callback, runs on GLFW3 error
     static void glfwErrorCallback(int error, const char *description)
     {
-        ALIMER_LOGERROR("[GLFW3 Error] Code: {} Decription: {}", error, description);
+        ALIMER_LOGERROR("[GLFW3 Error] Code: %d Decription: %s", error, description);
     }
 
     void Application::PlatformConstruct()
@@ -55,6 +55,18 @@ namespace alimer
 
 #if ALIMER_PLATFORM_MACOS
         glfwInitHint(GLFW_COCOA_CHDIR_RESOURCES, GLFW_FALSE);
+#endif
+
+#if defined(_WIN32) || defined(_WIN64)
+
+#   if defined(_DEBUG)
+        AllocConsole();
+
+        freopen("conin$", "r", stdin);
+        freopen("conout$", "w", stdout);
+        freopen("conout$", "w", stderr);
+#   endif /* defined(_DEBUG) */
+
 #endif
     }
 

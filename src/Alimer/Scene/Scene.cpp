@@ -21,8 +21,8 @@
 //
 
 #include "../Scene/Scene.h"
-#include "../Scene/Components/TransformComponent.h"
-#include "../Scene/Components/CameraComponent.h"
+//#include "../Scene/Components/TransformComponent.h"
+//#include "../Scene/Components/CameraComponent.h"
 #include "../Core/Log.h"
 
 namespace alimer

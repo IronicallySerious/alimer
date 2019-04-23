@@ -24,7 +24,7 @@
 
 #include "../Core/Platform.h"
 #include "../Core/Object.h"
-#include "../Math/Math.h"
+#include "Math/math.h"
 #include <string>
 #include <vector>
 #include <bitset>
@@ -81,8 +81,8 @@ namespace alimer
 
         
         // Events
-        void MouseButtonEvent(MouseButton button, int32_t x, int32_t y, bool pressed);
-        void MouseMoveEvent(MouseButton button, int32_t x, int32_t y);
+        void MouseButtonEvent(MouseButton button, float x, float y, bool pressed);
+        void MouseMoveEvent(MouseButton button, float x, float y);
 
         /// Update input state and poll devices.
         void Update();
@@ -122,8 +122,8 @@ namespace alimer
         };
 
         ActionState _mouseButtons;
-        ivec2 _mousePosition;
-        ivec2 _previousMousePosition;
+        vec2 _mousePosition;
+        vec2 _previousMousePosition;
 
         bool _cursorVisible = true;
 

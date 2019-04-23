@@ -35,11 +35,7 @@
 
 namespace alimer
 {
-    class BufferHandle;
-    class ShaderHandle;
-    class PipelineHandle;
     class Sampler;
-
     class GraphicsImpl;
 
     /// Low-level graphics module.
@@ -63,7 +59,7 @@ namespace alimer
         ~GraphicsDevice();
 
         /// Set graphics mode. Create the window and rendering context if not created yet. Return true on success.
-        bool SetMode(const IntVector2& size, bool resizable = true, bool fullscreen = false, SampleCount samples = SampleCount::Count1);
+        bool SetMode(const uvec2& size, bool resizable = true, bool fullscreen = false, SampleCount samples = SampleCount::Count1);
 
         /// Begin rendering frame and returns command buffer for recording.
         bool BeginFrame();
@@ -101,10 +97,6 @@ namespace alimer
          /// Return graphics implementation, which holds the actual API-specific resources.
         GraphicsImpl* GetImpl() const { return _impl; }
 
-        BufferHandle* CreateBuffer(const BufferDescriptor* descriptor, const void* pInitData);
-        ShaderHandle* CreateShader(ShaderStage stage, const std::string& code, const std::string& entryPoint = "main");
-        PipelineHandle* CreateRenderPipeline(const RenderPipelineDescriptor* descriptor);
-
     protected:
         /// Add a GPUResource to keep track of. 
         void TrackResource(GPUResource* resource);
@@ -118,10 +110,6 @@ namespace alimer
         // Backend methods
         //virtual bool InitializeImpl(const SwapChainDescriptor* descriptor) = 0;
         //virtual void Tick() = 0;
-
-        //virtual BufferHandle* CreateBufferImpl(const BufferDescriptor* descriptor, const void* pInitData) = 0;
-        //virtual ShaderHandle* CreateShaderImpl(ShaderStage stage, const std::string& code, const std::string& entryPoint) = 0;
-        //virtual PipelineHandle* CreateRenderPipelineImpl(const RenderPipelineDescriptor* descriptor) = 0;
 
     private:
         /// Implementation.
