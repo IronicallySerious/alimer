@@ -20,6 +20,9 @@
 # THE SOFTWARE.
 #
 
+# vortice
+add_subdirectory (vortice)
+
 # Engine
 add_subdirectory (Alimer)
 
