@@ -62,6 +62,15 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
+# Graphics Backend
+if (WIN32)
+    set (VORTICE_RENDERER OpenGL CACHE STRING "Select renderer: D3D11 | OpenGL")
+else ()
+    set (VORTICE_RENDERER OpenGL CACHE STRING "Use OpenGL renderer" FORCE)
+endif ()
+string(TOUPPER "${VORTICE_RENDERER}" VORTICE_RENDERER)
+set (VORTICE_${VORTICE_RENDERER} ON)
+
 option(VORTICE_BUILD_SHARED "Build as a shared library instead of an executable" OFF)
 
 # Setup
@@ -97,24 +106,58 @@ endif ()
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 define_engine_source_files(core)
+define_engine_source_files (NORECURSE . platform gpu)
+
+# Group source code in VS solution
+group_sources()
 
 if (VORTICE_BUILD_SHARED)
+    target_compile_definitions(vortice PUBLIC -DVORTICE_EXPORTS)
     add_library(vortice SHARED ${SOURCE_FILES} ${HEADER_FILES})
 else()
-    add_executable(vortice ${SOURCE_FILES} ${HEADER_FILES})
+    add_library(vortice STATIC ${SOURCE_FILES} ${HEADER_FILES})
 endif()
 
 if (WIN32)
-    target_sources(vortice PRIVATE
-        platform/sokol.c
-        platform/windows.c
-    )
-    target_link_libraries(vortice sokol_app)
+    target_compile_definitions(vortice PRIVATE -DVORTICE_GLFW)
+    set_target_properties(vortice PROPERTIES COMPILE_FLAGS "/wd4244")
+    target_compile_definitions(vortice PUBLIC -D_CRT_SECURE_NO_WARNINGS)
+    target_compile_definitions(vortice PUBLIC -D_CRT_NONSTDC_NO_WARNINGS)
+
+    if (MSVC_VERSION VERSION_LESS 1900)
+        target_compile_definitions(vortice PUBLIC -Dinline=__inline -Dsnprintf=_snprintf)
+    endif()
+    
+elseif (APPLE)
+elseif (EMSCRIPTEN)
+elseif(ANDROID)
+    target_link_libraries(vortice PRIVATE log EGL GLESv3)
+    target_include_directories(vortice PRIVATE ${ANDROID_NDK}/sources/android/cpufeatures)
+    target_include_directories(vortice PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue/)
 endif ()
 
-target_link_libraries(vortice sokol_gfx)
+if(NOT (EMSCRIPTEN OR ANDROID))
+    target_link_libraries(vortice PRIVATE glfw)
+endif ()
 
-target_include_directories(vortice PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+target_compile_definitions(vortice PUBLIC -DSOKOL_NO_DEPRECATED)
+if (VORTICE_OPENGL)
+    if (EMSCRIPTEN OR ANDROID)
+        target_compile_definitions(vortice PUBLIC -DVGPU_GLES)
+        target_compile_definitions(vortice PUBLIC -DSOKOL_GLES3)
+    else()
+        # glad
+        target_sources(vortice PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glad/src/glad.c)
+        target_include_directories(vortice PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glad/include)
+        target_compile_definitions(vortice PUBLIC -DVGPU_GL)
+        target_compile_definitions(vortice PUBLIC -DSOKOL_GLCORE33)
+    endif ()
+endif ()
+target_link_libraries(vortice PRIVATE sokol)
+
+target_include_directories(vortice
+    PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+	        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    PRIVATE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )

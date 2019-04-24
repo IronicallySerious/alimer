@@ -1,1 +1,1 @@
-@python alimer.py --action=build --platform=desktop --compiler=vc141 --verbose
+@python alimer.py --action=build --platform=desktop --buildSystem=vs2017 --verbose

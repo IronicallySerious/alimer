@@ -20,11 +20,27 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#include "gpu.h"
 
-/* Build configuration */
-#cmakedefine VORTICE_BUILD_SHARED
+#if defined(VGPU_GL) || defined(VGPU_GLES)
+static bool s_initialized = false;
 
-#ifndef VORTICE_BUILD_SHARED
-#   define VORTICE_BUILD_SHARED 0
+VGpuResult vgpu_initialize(const char* applicationName, const VGpuDescriptor* descriptor)
+{
+    if (s_initialized) {
+        return VGPU_ALREADY_INITIALIZED;
+    }
+
+    s_initialized = true;
+    return VGPU_SUCCESS;
+}
+
+void vgpu_shutdown()
+{
+    if (!s_initialized) {
+        return;
+    }
+
+}
+
 #endif

@@ -21,10 +21,39 @@
 //
 
 #pragma once
+#include "input.hpp"
 
-/* Build configuration */
-#cmakedefine VORTICE_BUILD_SHARED
+namespace vortice
+{
+    class VORTICE_API Application
+    {
+    public:
+        Application();
 
-#ifndef VORTICE_BUILD_SHARED
-#   define VORTICE_BUILD_SHARED 0
-#endif
+        /// Destructor.
+        virtual ~Application();
+
+        /// Runs main loop using Platform instance.
+        int run();
+
+        /// Get the input system.
+        inline Input& get_input() { return _input; }
+
+    private:
+        void platform_construct();
+        void platform_shutdown();
+        /// Run OS main loop.
+        int run_main_loop();
+
+        void setup();
+        /// Run one frame.
+        void frame();
+
+    protected:
+        uint32_t _width = 1280;
+        uint32_t _height = 720;
+
+        /// Input system.
+        Input _input;
+    };
+} // namespace vortice

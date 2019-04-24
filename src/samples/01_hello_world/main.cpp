@@ -20,29 +20,25 @@
 // THE SOFTWARE.
 //
 
-#include "Alimer.h"
-using namespace alimer;
+#include "application.hpp"
+using namespace vortice;
 
 class HelloWorldApp : public Application
 {
 public:
-    HelloWorldApp(int &argc, char **argv)
-        : Application(argc, argv)
+    HelloWorldApp()
+        : Application()
     {
     }
 };
 
-int main(int argc, char* argv[])
+int main(int argc, char** argv)
 {
     /*ApplicationConfiguration config = {};
     config.title = "Sample 01 - Hello World";
     HelloWorldApp app(config);
     return app.Run();*/
 
-#ifdef _MSC_VER
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
-    HelloWorldApp app(argc, argv);
-    return app.Run();
+    HelloWorldApp app;
+    return app.run();
 }

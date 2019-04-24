@@ -23,18 +23,17 @@
 function(add_sample sample_name)
     set (target_name "${sample_name}")
     add_executable(${target_name} ${CMAKE_CURRENT_SOURCE_DIR}/${sample_name}/main.cpp)
+    target_link_libraries(${target_name} PRIVATE vortice)
 
-    set_target_properties(${target_name} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+    if(WIN32)
+        set_target_properties(${target_name} PROPERTIES LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE")
+        set_target_properties(${target_name} PROPERTIES LINK_FLAGS_RELEASE "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
+    endif ()
 
-    if (UNIX)
-        target_compile_options(${target_name} PRIVATE -std=c++14)
-        #target_link_libraries(${target_name} PRIVATE X11-xcb)
-    elseif(WIN32)
-        set_target_properties(${target_name} PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup /SUBSYSTEM:Windows /INCREMENTAL:NO")
+    if (MSVC)
+        set_target_properties(${target_name} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
         set_target_properties(${target_name} PROPERTIES FOLDER "samples")
-    endif()
-
-    target_link_libraries(${target_name} PRIVATE Alimer)
+    endif ()
 endfunction()
 
 add_sample(01_hello_world)

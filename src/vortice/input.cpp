@@ -20,21 +20,34 @@
 // THE SOFTWARE.
 //
 
-#include "platform.h"
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
+#include "input.hpp"
 
-static void vorticeGlfwError(int code, const char* description) {
-    //alimer_throw(description);
-}
-
-bool vorticePlatformInitialize(void)
+namespace vortice
 {
-    glfwSetErrorCallback(vorticeGlfwError);
-    return glfwInit();
-}
+    Input::Input()
+    {
+    }
 
-void vorticePlatformShutdown()
-{
-    glfwTerminate();
-}
+    void Input::set_listener(InputListener* listener)
+    {
+        _listener = listener;
+    }
+
+    bool Input::key_event(Key key, KeyState state)
+    {
+        if (state == KeyState::Released)
+            key_state &= ~(1ull << static_cast<unsigned>(key));
+        else if (state == KeyState::Pressed || state == KeyState::Repeat)
+            key_state |= 1ull << static_cast<unsigned>(key);
+
+        if (_listener)
+        {
+            // Propagate events.
+            KeyboardEvent event(key, state);
+            return _listener->key_event(event);
+        }
+
+        return false;
+    }
+
+} // namespace vortice

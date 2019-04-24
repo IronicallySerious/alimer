@@ -24,26 +24,36 @@
 
 #include "core/platform.h"
 
+#include <stdarg.h>     // va_list
 #include <stdint.h>     // uint32_t, int64_t, etc.
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    /// Suspends execution for given  milliseconds.
-    VORTICE_API void vortice_sleep(uint32_t milliseconds);
+    typedef enum VorticeLogLevel {
+        VORTICE_LOG_LEVEL_TRACE = 0,
+        VORTICE_LOG_LEVEL_DEBUG = 1,
+        VORTICE_LOG_LEVEL_INFO = 2,
+        VORTICE_LOG_LEVEL_WARN = 3,
+        VORTICE_LOG_LEVEL_ERROR = 4,
+        VORTICE_LOG_LEVEL_CRITICAL = 5,
+        VORTICE_LOG_LEVEL_OFF = 6
+    } VorticeLogLevel;
 
-    /// Opens the library at given path.
-    VORTICE_API void* vortice_dlopen(const char* path);
+    typedef void(*vortice_log_function)(void *userData, VorticeLogLevel level, const char *message);
 
-    /// Closes a previously loaded library with library_open.
-    VORTICE_API void vortice_dlclose(void* library);
+    VORTICE_API void vortice_log_set_level(VorticeLogLevel level);
+    VORTICE_API VorticeLogLevel vortice_log_get_level();
 
-    /// Returns a pointer to the symbol with name from given library.
-    VORTICE_API void* vortice_dlsym(void* library, const char* name);
+    /// Get the current log output function.
+    VORTICE_API void vortice_log_get_function(vortice_log_function *callback, void **userData);
+    /// Set the current log output function.
+    VORTICE_API void vortice_log_set_function(vortice_log_function callback, void *userData);
 
-    /// Return the number of CPU cores available.
-    VORTICE_API uint32_t vortice_get_cpu_count(void);
+    VORTICE_API void vortice_log_print(VorticeLogLevel level, const char *fmt, ...);
+    VORTICE_API void vortice_log_vprint(VorticeLogLevel level, const char *fmt, va_list args);
+    VORTICE_API void vortice_log_write(VorticeLogLevel level, const char *message);
 
 #ifdef __cplusplus
 }

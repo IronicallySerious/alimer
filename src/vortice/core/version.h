@@ -22,9 +22,7 @@
 
 #pragma once
 
-/* Build configuration */
-#cmakedefine VORTICE_BUILD_SHARED
-
-#ifndef VORTICE_BUILD_SHARED
-#   define VORTICE_BUILD_SHARED 0
-#endif
+#define VORTICE_VERSION_MAJOR 0
+#define VORTICE_VERSION_MINOR 1
+#define VORTICE_VERSION_PATCH 0
+#define VORTICE_VERSION_ALIAS "WIP"

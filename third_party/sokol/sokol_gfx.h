@@ -1054,9 +1054,16 @@ typedef enum sg_action {
     - SG_DEFAULT_CLEAR_DEPTH:   1.0f
     - SG_DEFAULT_CLEAR_STENCIL: 0
 */
+
+typedef union sg_clear_color_value {
+    float       float32[4];
+    int32_t     int32[4];
+    uint32_t    uint32[4];
+} sg_clear_color_value;
+
 typedef struct sg_color_attachment_action {
     sg_action action;
-    float val[4];
+    sg_clear_color_value val;
 } sg_color_attachment_action;
 
 typedef struct sg_depth_attachment_action {
@@ -3012,10 +3019,10 @@ _SOKOL_PRIVATE void _sg_resolve_default_pass_action(const sg_pass_action* from, 
     for (int i = 0; i < SG_MAX_COLOR_ATTACHMENTS; i++) {
         if (to->colors[i].action  == _SG_ACTION_DEFAULT) {
             to->colors[i].action = SG_ACTION_CLEAR;
-            to->colors[i].val[0] = SG_DEFAULT_CLEAR_RED;
-            to->colors[i].val[1] = SG_DEFAULT_CLEAR_GREEN;
-            to->colors[i].val[2] = SG_DEFAULT_CLEAR_BLUE;
-            to->colors[i].val[3] = SG_DEFAULT_CLEAR_ALPHA;
+            to->colors[i].val.float32[0] = SG_DEFAULT_CLEAR_RED;
+            to->colors[i].val.float32[1] = SG_DEFAULT_CLEAR_GREEN;
+            to->colors[i].val.float32[2] = SG_DEFAULT_CLEAR_BLUE;
+            to->colors[i].val.float32[3] = SG_DEFAULT_CLEAR_ALPHA;
         }
     }
     if (to->depth.action == _SG_ACTION_DEFAULT) {
@@ -4675,7 +4682,7 @@ _SOKOL_PRIVATE void _sg_begin_pass(_sg_pass_t* pass, const sg_pass_action* actio
         GLbitfield clear_mask = 0;
         if (action->colors[0].action == SG_ACTION_CLEAR) {
             clear_mask |= GL_COLOR_BUFFER_BIT;
-            const float* c = action->colors[0].val;
+            const float* c = action->colors[0].val.float32;
             glClearColor(c[0], c[1], c[2], c[3]);
         }
         if (action->depth.action == SG_ACTION_CLEAR) {
@@ -4700,7 +4707,7 @@ _SOKOL_PRIVATE void _sg_begin_pass(_sg_pass_t* pass, const sg_pass_action* actio
         for (int i = 0; i < SG_MAX_COLOR_ATTACHMENTS; i++) {
             if (pass->color_atts[i].image) {
                 if (action->colors[i].action == SG_ACTION_CLEAR) {
-                    glClearBufferfv(GL_COLOR, i, action->colors[i].val);
+                    glClearBufferfv(GL_COLOR, i, action->colors[i].val.float32);
                 }
             }
             else {

@@ -24,7 +24,7 @@
 add_subdirectory (vortice)
 
 # Engine
-add_subdirectory (Alimer)
+# add_subdirectory (Alimer)
 
 # Player
 # add_subdirectory(Player)

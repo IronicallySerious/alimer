@@ -16,7 +16,6 @@ VERSION = '0.9.0'
 enableLogVerbose = False
 WIN_SDK_VERSION = "10.0.17763.0"
 
-
 def logError(message):
     print("[ERROR] %s" % message)
     sys.stdout.flush()
@@ -27,16 +26,13 @@ def logError(message):
     subprocess.call(pauseCmd, shell=True)
     sys.exit(1)
 
-
 def logInfo(message):
     print("[INFO] %s" % message)
     sys.stdout.flush()
 
-
 def logWarning(message):
     print("[WARN] %s" % message)
     sys.stdout.flush()
-
 
 def logVerbose(message):
     if enableLogVerbose:
@@ -58,34 +54,36 @@ def FindProgramFilesFolder():
     return programFilesFolder
 
 
-def FindVS2017Folder(programFilesFolder):
-    tryVswhereLocation = programFilesFolder + \
-        "\\Microsoft Visual Studio\\Installer\\vswhere.exe"
-    if os.path.exists(tryVswhereLocation):
-        vsLocation = subprocess.check_output([tryVswhereLocation,
-                                              "-latest",
-                                              "-requires", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-                                              "-property", "installationPath",
-                                              "-version", "[15.0,16.0)",
-                                              "-prerelease"]).decode().split("\r\n")[0]
-        tryFolder = vsLocation + "\\VC\\Auxiliary\\Build\\"
-        tryVcvarsall = "VCVARSALL.BAT"
-        if os.path.exists(tryFolder + tryVcvarsall):
-            return tryFolder
-    else:
-        names = ("Preview", "2017")
-        skus = ("Community", "Professional", "Enterprise")
-        for name in names:
-            for sku in skus:
-                tryFolder = programFilesFolder + \
-                    "\\Microsoft Visual Studio\\%s\\%s\\VC\\Auxiliary\\Build\\" % (
-                        name, sku)
-                tryVcvarsall = "VCVARSALL.BAT"
-                if os.path.exists(tryFolder + tryVcvarsall):
-                    return tryFolder
-    logError("Could NOT find VS2017.")
-    return ""
+def FindVS2017OrUpFolder(programFilesFolder, vsVersion, vsName):
+	tryVswhereLocation = programFilesFolder + "\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+	if os.path.exists(tryVswhereLocation):
+		vsLocation = subprocess.check_output([tryVswhereLocation,
+			"-latest",
+			"-requires", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+			"-property", "installationPath",
+			"-version", "[%d.0,%d.0)" % (vsVersion, vsVersion + 1),
+			"-prerelease"]).decode().split("\r\n")[0]
+		tryFolder = vsLocation + "\\VC\\Auxiliary\\Build\\"
+		tryVcvarsall = "VCVARSALL.BAT"
+		if os.path.exists(tryFolder + tryVcvarsall):
+			return tryFolder
+	else:
+		names = ("Preview", vsName)
+		skus = ("Community", "Professional", "Enterprise")
+		for name in names:
+			for sku in skus:
+				tryFolder = programFilesFolder + "\\Microsoft Visual Studio\\%s\\%s\\VC\\Auxiliary\\Build\\" % (name, sku)
+				tryVcvarsall = "VCVARSALL.BAT"
+				if os.path.exists(tryFolder + tryVcvarsall):
+					return tryFolder
+	logError("Could NOT find VS%s.\n" % vsName)
+	return ""
 
+def FindVS2019Folder(programFilesFolder):
+	return FindVS2017OrUpFolder(programFilesFolder, 16, "2019")
+
+def FindVS2017Folder(programFilesFolder):
+	return FindVS2017OrUpFolder(programFilesFolder, 15, "2017")
 
 class BatchCommand:
     def __init__(self, hostPlatform):
@@ -124,7 +122,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--platform', help="Build platform",
                         choices=['desktop', 'android', 'ios', 'web', 'uwp', 'all'])
     parser.add_argument('--buildSystem', help="Build system",
-                        choices=['vs2017', 'ninja'])
+                        choices=['vs2019', 'vs2017', 'ninja'])
     parser.add_argument('-c', '--compiler', help="Build compiler",
                         choices=['vc140', 'vc141', 'gcc7', 'gcc8', 'gcc9', 'clang6', 'clang7', 'clang9'])
     parser.add_argument(
@@ -171,18 +169,20 @@ if __name__ == "__main__":
     if args.buildSystem is None:
         if _platform == "desktop":
             if hostPlatform == "win":
-                buildSystem = "vs2017"
+                buildSystem = "vs2019"
             else:
                 buildSystem = "ninja"
         elif _platform == "uwp":
-            buildSystem = "vs2017"
+            buildSystem = "vs2019"
         elif _platform == "android" or _platform == "web":
             buildSystem = "ninja"
     else:
         buildSystem = args.buildSystem
 
     if args.compiler is None:
-        if buildSystem == "vs2017":
+        if buildSystem == "vs2019":
+            compiler = "vc142"
+        elif buildSystem == "vs2017":
             compiler = "vc141"
         elif buildSystem == "vs2015":
             compiler = "vc140"
@@ -238,9 +238,11 @@ if __name__ == "__main__":
         parallel = multiprocessing.cpu_count()
         batCmd = BatchCommand(hostPlatform)
 
-        if _platform == "desktop" and hostPlatform == "win":
+        if (buildSystem == "vs2019") or (buildSystem == "vs2017") and hostPlatform == "win":
             programFilesFolder = FindProgramFilesFolder()
-            if (buildSystem == "vs2017") or (buildSystem == "ninja"):
+            if (buildSystem == "vs2019") or ((buildSystem == "ninja") and (compiler == "vc142")):
+                vsFolder = FindVS2019Folder(programFilesFolder)
+            elif (buildSystem == "vs2017") or ((buildSystem == "ninja") and (compiler == "vc141")):
                 vsFolder = FindVS2017Folder(programFilesFolder)
             if architecture == "x64":
                 vcOption = "amd64"
@@ -248,6 +250,14 @@ if __name__ == "__main__":
                 vcOption = "x86"
             else:
                 logError("Unsupported architecture.")
+            vcToolset = ""
+            if (buildSystem == "vs2019") and (compiler == "vc141"):
+			    vcOption += " -vcvars_ver=14.1"
+			    vcToolset = "v141,"
+            elif ((buildSystem == "vs2019") or (buildSystem == "vs2017")) and (compiler == "vc140"):
+                vcOption += " -vcvars_ver=14.0"
+                vcToolset = "v140,"
+
             batCmd.AddCommand("@call \"%sVCVARSALL.BAT\" %s" %
                               (vsFolder, vcOption))
             batCmd.AddCommand("@cd /d \"%s\"" % buildDir)
@@ -293,14 +303,17 @@ if __name__ == "__main__":
             if action == "build":
                 batCmd.AddCommand("ninja -j%d" % parallel)
         else:
-            if _platform == "uwp":
-                generator = "Visual Studio 15 2017 Win64"
-                batCmd.AddCommand("cmake -G \"%s\" -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_VERSION=\"%s\" ../../" %
-                                  (generator, WIN_SDK_VERSION))
-            else:
+            if buildSystem == "vs2019":
+                generator = "Visual Studio 16"
+            elif buildSystem == "vs2017":
                 generator = "Visual Studio 15"
-                batCmd.AddCommand("cmake -G \"%s\" host=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" %
-                                  (generator, WIN_SDK_VERSION, architecture))
+
+            if _platform == "uwp":
+                batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" %
+                                (generator, vcToolset, WIN_SDK_VERSION, architecture))
+            else:
+                batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" %
+                                (generator, vcToolset, WIN_SDK_VERSION, architecture))
 
             if action == "build":
                 batCmd.AddCommand("MSBuild ALL_BUILD.vcxproj /nologo /m:%d /v:m /p:Configuration=%s,Platform=%s" %

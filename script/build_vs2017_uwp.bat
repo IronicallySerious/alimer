@@ -1,1 +1,1 @@
-@python alimer.py --action=build --platform=uwp --compiler=vc141  --verbose
+@python alimer.py --action=build --platform=uwp --buildSystem=vs2017  --verbose
