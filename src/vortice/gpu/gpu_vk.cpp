@@ -20,9 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "gpu.h"
-
 #if defined(VGPU_VK)
+#include "vgpu.h"
 #include <stdio.h>
 #include <stdint.h>
 #include "volk.h"
@@ -101,12 +100,13 @@
 
 /* Handle declaration */
 typedef struct vgpu_swapchain_T {
-    VkSwapchainKHR          vk_handle;
-    uint32_t                width;
-    uint32_t                height;
-    VkFormat                format;
-    std::vector<VkImage>    images;
-    uint32_t                image_index; 
+    VkSwapchainKHR              vk_handle;
+    uint32_t                    width;
+    uint32_t                    height;
+    VkFormat                    format;
+    std::vector<VkImage>        images;
+    std::vector<VkSemaphore>    image_semaphores;
+    uint32_t                    image_index;
 } vgpu_swapchain_T;
 
 struct {
@@ -128,15 +128,17 @@ struct {
     VkQueue                     graphics_queue = VK_NULL_HANDLE;
     VkQueue                     compute_queue = VK_NULL_HANDLE;
     VkQueue                     transfer_queue = VK_NULL_HANDLE;
-    vgpu_swapchain_T*           swapchain = nullptr;
+    vgpu_swapchain_T* swapchain = nullptr;
+    uint32_t                    max_inflight_frames;
+    uint32_t                    frame_index;
 } _vk;
 
 #if VULKAN_DEBUG
 static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_messenger_cb(
     VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT                  messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
-    void *pUserData)
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData)
 {
     switch (messageSeverity)
     {
@@ -166,7 +168,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_messenger_cb(
     bool log_object_names = false;
     for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
     {
-        auto *name = pCallbackData->pObjects[i].pObjectName;
+        auto* name = pCallbackData->pObjects[i].pObjectName;
         if (name)
         {
             log_object_names = true;
@@ -178,7 +180,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_messenger_cb(
     {
         for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
         {
-            auto *name = pCallbackData->pObjects[i].pObjectName;
+            auto* name = pCallbackData->pObjects[i].pObjectName;
             VGPU_LOGI("  Object #%u: %s\n", i, name ? name : "N/A");
         }
     }
@@ -188,8 +190,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_messenger_cb(
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_cb(VkDebugReportFlagsEXT flags,
     VkDebugReportObjectTypeEXT, uint64_t,
-    size_t, int32_t messageCode, const char *pLayerPrefix,
-    const char *pMessage, void *pUserData)
+    size_t, int32_t messageCode, const char* pLayerPrefix,
+    const char* pMessage, void* pUserData)
 {
     // False positives about lack of srcAccessMask/dstAccessMask.
     if (strcmp(pLayerPrefix, "DS") == 0 && messageCode == 10)
@@ -226,10 +228,10 @@ using namespace std;
 vgpu_result _vgpu_vk_create_swapchain(
     uint32_t width, uint32_t height,
     VkSurfaceKHR surface,
-    vgpu_swapchain_T* swapchain,
-    const vgpu_swapchain_descriptor* descriptor);
+    vgpu_swapchain_T * *swapchain,
+    const vgpu_swapchain_descriptor * descriptor);
 
-vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings* settings)
+vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings * settings)
 {
     if (_vk.instance != VK_NULL_HANDLE) {
         return VGPU_ALREADY_INITIALIZED;
@@ -253,8 +255,8 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings* 
     if (layer_count)
         vkEnumerateInstanceLayerProperties(&layer_count, queried_layers.data());
 
-    const auto has_extension = [&](const char *name) -> bool {
-        auto itr = find_if(begin(queried_extensions), end(queried_extensions), [name](const VkExtensionProperties &e) -> bool {
+    const auto has_extension = [&](const char* name) -> bool {
+        auto itr = find_if(begin(queried_extensions), end(queried_extensions), [name](const VkExtensionProperties & e) -> bool {
             return strcmp(e.extensionName, name) == 0;
             });
         return itr != end(queried_extensions);
@@ -326,8 +328,8 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings* 
     {
         enabled_instance_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
-        const auto has_layer = [&](const char *name) -> bool {
-            auto itr = find_if(begin(queried_layers), end(queried_layers), [name](const VkLayerProperties &e) -> bool {
+        const auto has_layer = [&](const char* name) -> bool {
+            auto itr = find_if(begin(queried_layers), end(queried_layers), [name](const VkLayerProperties & e) -> bool {
                 return strcmp(e.layerName, name) == 0;
                 });
             return itr != end(queried_layers);
@@ -675,14 +677,21 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings* 
     vkGetDeviceQueue(_vk.device, _vk.compute_queue_family, compute_queue_index, &_vk.compute_queue);
     vkGetDeviceQueue(_vk.device, _vk.transfer_queue_family, transfer_queue_index, &_vk.transfer_queue);
 
-    return _vgpu_vk_create_swapchain(settings->width, settings->height, _vk.surface, _vk.swapchain, &settings->swapchain);
+    // Setup per frame resources.
+    _vk.max_inflight_frames = 3u;
+    if (!_vk.headless)
+    {
+        _vgpu_vk_create_swapchain(settings->width, settings->height, _vk.surface, &_vk.swapchain, &settings->swapchain);
+        _vk.max_inflight_frames = (uint32_t)_vk.swapchain->images.size();
+    }
+    return VGPU_SUCCESS;
 }
 
 vgpu_result _vgpu_vk_create_swapchain(
     uint32_t width, uint32_t height,
     VkSurfaceKHR surface,
-    vgpu_swapchain_T* swapchain,
-    const vgpu_swapchain_descriptor* descriptor)
+    vgpu_swapchain_T * *swapchain,
+    const vgpu_swapchain_descriptor * descriptor)
 {
     VkSurfaceCapabilitiesKHR surface_properties;
     if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_vk.physical_device, surface, &surface_properties) != VK_SUCCESS)
@@ -802,7 +811,7 @@ vgpu_result _vgpu_vk_create_swapchain(
     if (surface_properties.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)
         composite_mode = VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
 
-    VkSwapchainKHR old_swapchain = swapchain != nullptr ? swapchain->vk_handle : VK_NULL_HANDLE;
+    VkSwapchainKHR old_swapchain = VK_NULL_HANDLE;
 
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
     swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -832,30 +841,42 @@ vgpu_result _vgpu_vk_create_swapchain(
         swapchainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
 
-    swapchain = new vgpu_swapchain_T();
-    VkResult result = vkCreateSwapchainKHR(_vk.device, &swapchainCreateInfo, nullptr, &swapchain->vk_handle);
+    vgpu_swapchain_T* newSwapchain = new vgpu_swapchain_T();
+    VkResult result = vkCreateSwapchainKHR(_vk.device, &swapchainCreateInfo, nullptr, &newSwapchain->vk_handle);
     if (old_swapchain != VK_NULL_HANDLE)
     {
         vkDestroySwapchainKHR(_vk.device, old_swapchain, nullptr);
     }
 
-    swapchain->width = swapchain_size.width;
-    swapchain->height = swapchain_size.height;
-    swapchain->format = format.format;
-    swapchain->image_index = 0;
+    newSwapchain->width = swapchain_size.width;
+    newSwapchain->height = swapchain_size.height;
+    newSwapchain->format = format.format;
+    newSwapchain->image_index = 0;
 
     uint32_t image_count;
-    if (vkGetSwapchainImagesKHR(_vk.device, swapchain->vk_handle, &image_count, nullptr) != VK_SUCCESS)
+    if (vkGetSwapchainImagesKHR(_vk.device, newSwapchain->vk_handle, &image_count, nullptr) != VK_SUCCESS)
     {
         return VGPU_ERROR_INITIALIZATION_FAILED;
     }
 
-    swapchain->images.resize(image_count);
-    if (vkGetSwapchainImagesKHR(_vk.device, swapchain->vk_handle, &image_count, swapchain->images.data()) != VK_SUCCESS)
+    newSwapchain->images.resize(image_count);
+    newSwapchain->image_semaphores.resize(image_count);
+    if (vkGetSwapchainImagesKHR(_vk.device, newSwapchain->vk_handle, &image_count, newSwapchain->images.data()) != VK_SUCCESS)
     {
         return VGPU_ERROR_INITIALIZATION_FAILED;
     }
 
+    for (uint32_t i = 0u; i < image_count; ++i)
+    {
+        VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        result = vkCreateSemaphore(_vk.device, &semaphoreCreateInfo, nullptr, &newSwapchain->image_semaphores[i]);
+        if (result != VK_SUCCESS) {
+            return VGPU_ERROR_INITIALIZATION_FAILED;
+        }
+    }
+
+    *swapchain = newSwapchain;
     return VGPU_SUCCESS;
 }
 
@@ -884,9 +905,59 @@ void vgpu_shutdown()
     }
 
     if (_vk.instance != VK_NULL_HANDLE)
+    {
         vkDestroyInstance(_vk.instance, nullptr);
+    }
 
     _vk.instance = VK_NULL_HANDLE;
+}
+
+vgpu_result vgpu_begin_frame()
+{
+    uint32_t frame_index = _vk.frame_index;
+    if (!_vk.headless)
+    {
+        VkResult result = vkAcquireNextImageKHR(_vk.device,
+            _vk.swapchain->vk_handle,
+            UINT64_MAX,
+            _vk.swapchain->image_semaphores[frame_index],
+            VK_NULL_HANDLE,
+            &_vk.swapchain->image_index);
+        if (result != VK_SUCCESS) {
+            return VGPU_ERROR_BEGIN_FRAME_FAILED;
+        }
+    }
+
+    return VGPU_SUCCESS;
+}
+
+vgpu_result vgpu_end_frame() {
+    vgpu_result result = VGPU_SUCCESS;
+
+    const uint32_t frame_index = _vk.frame_index;
+    if (!_vk.headless)
+    {
+        VkResult present_result = VK_SUCCESS;
+
+        VkPresentInfoKHR present_info = {};
+        present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        present_info.waitSemaphoreCount = 0;
+        present_info.pWaitSemaphores = nullptr;
+        present_info.swapchainCount = 1;
+        present_info.pSwapchains = &_vk.swapchain->vk_handle;
+        present_info.pImageIndices = &_vk.swapchain->image_index;
+        present_info.pResults = &present_result;
+        vkQueuePresentKHR(_vk.graphics_queue, &present_info);
+        if (present_result != VK_SUCCESS)
+        {
+            return VGPU_ERROR_END_FRAME_FAILED;
+        }
+    }
+
+    // Advance to next frame.
+    _vk.frame_index = (_vk.frame_index + 1u) % _vk.max_inflight_frames;
+
+    return result;
 }
 
 #endif

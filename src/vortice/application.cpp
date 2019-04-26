@@ -22,7 +22,7 @@
 
 #include "core/log.h"
 #include "application.hpp"
-#include "gpu/gpu.h"
+#include "gpu/vgpu.h"
 
 namespace vortice
 {
@@ -51,6 +51,10 @@ namespace vortice
 
     void Application::frame()
     {
+        vgpu_begin_frame();
+
+        vgpu_end_frame();
+
         /*sg_pass_action pass_action = {};
         pass_action.colors[0].action = SG_ACTION_CLEAR;
         pass_action.colors[0].val = { { 0.0f, 0.0f, 0.2f, 1.0f } };

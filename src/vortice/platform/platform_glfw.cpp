@@ -36,7 +36,7 @@
 #   include <glad/glad.h>
 #endif
 
-#include "gpu/gpu.h"
+#include "gpu/vgpu.h"
 
 #if defined(__linux__)
 #   define GLFW_EXPOSE_NATIVE_X11
@@ -223,6 +223,10 @@ namespace vortice
 
         // Setup vgpu using glfw window handle
         vgpu_renderer_settings gpu_descriptor = {};
+#if defined(_DEBUG)
+        gpu_descriptor.validation = false;
+#endif
+
 #if defined(__linux__)
         gpu_descriptor.handle.connection = XGetXCBConnection(glfwGetX11Display());
         gpu_descriptor.handle.window = glfwGetX11Window(window);
@@ -234,7 +238,7 @@ namespace vortice
         gpu_descriptor.height = _height;
         gpu_descriptor.swapchain.image_count = 3;
         gpu_descriptor.swapchain.srgb = true;
-        gpu_descriptor.swapchain.depth_stencil_format = VGPU_PIXEL_FORMAT_UNDEFINED;
+        gpu_descriptor.swapchain.depth_stencil_pixel_format = VGPU_PIXEL_FORMAT_UNDEFINED;
         vgpu_initialize("vortice", &gpu_descriptor);
 
         while (!glfwWindowShouldClose(_window))

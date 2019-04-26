@@ -20,9 +20,8 @@
 // THE SOFTWARE.
 //
 
-#include "gpu.h"
-
 #if defined(VGPU_GL) || defined(VGPU_GLES)
+#include "vgpu.h"
 static bool s_initialized = false;
 
 VGpuResult vgpu_initialize(const VGpuDescriptor* descriptor)

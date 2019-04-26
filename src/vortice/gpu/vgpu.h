@@ -64,14 +64,16 @@ extern "C" {
         VGPU_TIMEOUT = 2,
         VGPU_INCOMPLETE = 3,
         VGPU_ALREADY_INITIALIZED = 4,
-        VGPU_ERROR_GENERIC = -1,
-        VGPU_ERROR_OUT_OF_HOST_MEMORY = -2,
-        VGPU_ERROR_OUT_OF_DEVICE_MEMORY = -3,
-        VGPU_ERROR_INITIALIZATION_FAILED = -4,
-        VGPU_ERROR_DEVICE_LOST = -5,
-        VGPU_ERROR_TOO_MANY_OBJECTS = -6,
-        VGPU_ERROR_COMMAND_BUFFER_ALREADY_RECORDING = -7,
-        VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING = -8,
+        VGPU_ERROR_GENERIC                          = -1,
+        VGPU_ERROR_OUT_OF_HOST_MEMORY               = -2,
+        VGPU_ERROR_OUT_OF_DEVICE_MEMORY             = -3,
+        VGPU_ERROR_INITIALIZATION_FAILED            = -4,
+        VGPU_ERROR_DEVICE_LOST                      = -5,
+        VGPU_ERROR_TOO_MANY_OBJECTS                 = -6,
+        VGPU_ERROR_BEGIN_FRAME_FAILED               = -7,
+        VGPU_ERROR_END_FRAME_FAILED                 = -8,
+        VGPU_ERROR_COMMAND_BUFFER_ALREADY_RECORDING = -9,
+        VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING     = -10,
     } vgpu_result;
 
     typedef enum vgpu_device_preference {
@@ -236,7 +238,7 @@ extern "C" {
         uint32_t            image_count;
         VgpuBool32          srgb;
         vgpu_clear_value    color_clear_value;
-        vgpu_pixel_format   depth_stencil_format;
+        vgpu_pixel_format   depth_stencil_pixel_format;
         vgpu_clear_value    depth_stencil_clear_value;
         vgpu_sample_count   samples;
         VgpuBool32          vsync;
@@ -253,6 +255,8 @@ extern "C" {
 
     VORTICE_API vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings* settings);
     VORTICE_API void vgpu_shutdown();
+    VORTICE_API vgpu_result vgpu_begin_frame();
+    VORTICE_API vgpu_result vgpu_end_frame();
 
 #ifdef __cplusplus
 }
