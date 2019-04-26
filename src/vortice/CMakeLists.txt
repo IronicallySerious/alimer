@@ -62,17 +62,6 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
-# Graphics Backend
-if (WIN32)
-    set (VORTICE_RENDERER OpenGL CACHE STRING "Select renderer: D3D11 | OpenGL")
-else ()
-    set (VORTICE_RENDERER OpenGL CACHE STRING "Use OpenGL renderer" FORCE)
-endif ()
-string(TOUPPER "${VORTICE_RENDERER}" VORTICE_RENDERER)
-set (VORTICE_${VORTICE_RENDERER} ON)
-
-option(VORTICE_BUILD_SHARED "Build as a shared library instead of an executable" OFF)
-
 # Setup
 if (EMSCRIPTEN)
     string(CONCAT LOVR_EMSCRIPTEN_FLAGS
@@ -111,7 +100,7 @@ define_engine_source_files (NORECURSE . platform gpu)
 # Group source code in VS solution
 group_sources()
 
-if (VORTICE_BUILD_SHARED)
+if (ALIMER_BUILD_SHARED)
     target_compile_definitions(vortice PUBLIC -DVORTICE_EXPORTS)
     add_library(vortice SHARED ${SOURCE_FILES} ${HEADER_FILES})
 else()
@@ -130,7 +119,7 @@ if (WIN32)
     
 elseif (APPLE)
 elseif (EMSCRIPTEN)
-elseif(ANDROID)
+elseif (ANDROID)
     target_link_libraries(vortice PRIVATE log EGL GLESv3)
     target_include_directories(vortice PRIVATE ${ANDROID_NDK}/sources/android/cpufeatures)
     target_include_directories(vortice PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue/)
@@ -140,8 +129,12 @@ if(NOT (EMSCRIPTEN OR ANDROID))
     target_link_libraries(vortice PRIVATE glfw)
 endif ()
 
-target_compile_definitions(vortice PUBLIC -DSOKOL_NO_DEPRECATED)
-if (VORTICE_OPENGL)
+if (ALIMER_VULKAN)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC -DVGPU_VK)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        volk
+    )
+elseif (ALIMER_OPENGL)
     if (EMSCRIPTEN OR ANDROID)
         target_compile_definitions(vortice PUBLIC -DVGPU_GLES)
         target_compile_definitions(vortice PUBLIC -DSOKOL_GLES3)

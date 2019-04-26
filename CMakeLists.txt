@@ -130,10 +130,6 @@ endif ()
 string(TOUPPER "${ALIMER_RENDERER}" ALIMER_RENDERER)
 set (ALIMER_${ALIMER_RENDERER} ON)
 
-if (ALIMER_CSHARP)
-    set (ALIMER_BUILD_SHARED ON CACHE INTERNAL "Force shared library build" FORCE)
-endif ()
-
 if (ALIMER_ANDROID OR ALIMER_IOS OR ALIMER_WEB)
     set (ALIMER_TOOLS OFF CACHE INTERNAL "Build tools and editors" FORCE)
 else()

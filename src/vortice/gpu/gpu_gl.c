@@ -25,7 +25,7 @@
 #if defined(VGPU_GL) || defined(VGPU_GLES)
 static bool s_initialized = false;
 
-VGpuResult vgpu_initialize(const char* applicationName, const VGpuDescriptor* descriptor)
+VGpuResult vgpu_initialize(const VGpuDescriptor* descriptor)
 {
     if (s_initialized) {
         return VGPU_ALREADY_INITIALIZED;

@@ -32,9 +32,20 @@
 #   include <Windows.h>
 #endif
 
-#include <glad/glad.h>
+#if defined(VGPU_GL)
+#   include <glad/glad.h>
+#endif
+
+#include "gpu/gpu.h"
+
+#if defined(__linux__)
+#   define GLFW_EXPOSE_NATIVE_X11
+#elif defined(_WIN32)
+#   define GLFW_EXPOSE_NATIVE_WIN32
+#endif
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 
 static void vortice_glfw_error(int code, const char* description) {
     //alimer_throw(description);
@@ -170,7 +181,7 @@ namespace vortice
             return;
         }
 
-#ifdef SOKOL_GLCORE33
+#if defined(VGPU_GL)
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
@@ -183,7 +194,7 @@ namespace vortice
         glfwSetWindowUserPointer(_window, this);
         glfwSetKeyCallback(_window, vortice_glfw_key_callback);
 
-#ifdef SOKOL_GLCORE33
+#if defined(VGPU_GL)
         glfwMakeContextCurrent(_window);
         glfwSwapInterval(1);
 
@@ -209,6 +220,22 @@ namespace vortice
     int Application::run_main_loop()
     {
         setup();
+
+        // Setup vgpu using glfw window handle
+        vgpu_renderer_settings gpu_descriptor = {};
+#if defined(__linux__)
+        gpu_descriptor.handle.connection = XGetXCBConnection(glfwGetX11Display());
+        gpu_descriptor.handle.window = glfwGetX11Window(window);
+#elif defined(_WIN32)
+        gpu_descriptor.handle.hinstance = ::GetModuleHandleW(NULL);
+        gpu_descriptor.handle.hwnd = glfwGetWin32Window(_window);
+#endif
+        gpu_descriptor.width = _width;
+        gpu_descriptor.height = _height;
+        gpu_descriptor.swapchain.image_count = 3;
+        gpu_descriptor.swapchain.srgb = true;
+        gpu_descriptor.swapchain.depth_stencil_format = VGPU_PIXEL_FORMAT_UNDEFINED;
+        vgpu_initialize("vortice", &gpu_descriptor);
 
         while (!glfwWindowShouldClose(_window))
         {
