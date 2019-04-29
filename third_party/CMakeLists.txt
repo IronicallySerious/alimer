@@ -59,4 +59,12 @@ if (ALIMER_VULKAN)
     target_link_libraries(volk PUBLIC vulkan)
     target_include_directories(volk PUBLIC "volk")
     set_property(TARGET volk PROPERTY FOLDER "third_party")
+
+    # vma
+    set (VMA_FILES "vk_mem_alloc/vk_mem_alloc.cpp" "vk_mem_alloc/vk_mem_alloc.h")
+    add_library(vma STATIC ${VMA_FILES})
+    target_link_libraries(vma PUBLIC vulkan)
+    target_include_directories(vma PUBLIC "vk_mem_alloc")
+    set_property(TARGET vma PROPERTY FOLDER "third_party")
+
 endif ()
