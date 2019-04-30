@@ -222,24 +222,25 @@ namespace vortice
         setup();
 
         // Setup vgpu using glfw window handle
-        vgpu_renderer_settings gpu_descriptor = {};
+        VGpuRendererSettings gpuDescriptor = {};
 #if defined(_DEBUG)
-        gpu_descriptor.validation = false;
+        gpuDescriptor.validation = false;
 #endif
 
 #if defined(__linux__)
-        gpu_descriptor.handle.connection = XGetXCBConnection(glfwGetX11Display());
-        gpu_descriptor.handle.window = glfwGetX11Window(window);
+        gpuDescriptor.handle.connection = XGetXCBConnection(glfwGetX11Display());
+        gpuDescriptor.handle.window = glfwGetX11Window(window);
 #elif defined(_WIN32)
-        gpu_descriptor.handle.hinstance = ::GetModuleHandleW(NULL);
-        gpu_descriptor.handle.hwnd = glfwGetWin32Window(_window);
+        gpuDescriptor.handle.hinstance = ::GetModuleHandleW(NULL);
+        gpuDescriptor.handle.hwnd = glfwGetWin32Window(_window);
 #endif
-        gpu_descriptor.width = _width;
-        gpu_descriptor.height = _height;
-        gpu_descriptor.swapchain.image_count = 3;
-        gpu_descriptor.swapchain.srgb = true;
-        gpu_descriptor.swapchain.depth_stencil_pixel_format = VGPU_PIXEL_FORMAT_UNDEFINED;
-        vgpu_initialize("vortice", &gpu_descriptor);
+        gpuDescriptor.width = _width;
+        gpuDescriptor.height = _height;
+        gpuDescriptor.swapchain.image_count = 3;
+        gpuDescriptor.swapchain.srgb = true;
+        gpuDescriptor.swapchain.colorClearValue = { 0.0f, 0.0f, 0.2f, 1.0f };
+        gpuDescriptor.swapchain.depthStencilFormat = VGPU_PIXEL_FORMAT_D32_FLOAT;
+        vgpuInitialize("vortice", &gpuDescriptor);
 
         while (!glfwWindowShouldClose(_window))
         {

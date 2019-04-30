@@ -133,6 +133,7 @@ if (ALIMER_VULKAN)
     target_compile_definitions(${PROJECT_NAME} PUBLIC -DVGPU_VK)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         volk
+        vma
     )
 elseif (ALIMER_OPENGL)
     if (EMSCRIPTEN OR ANDROID)

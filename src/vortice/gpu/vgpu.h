@@ -51,6 +51,7 @@ extern "C" {
 
     typedef uint32_t VgpuFlags;
     typedef uint32_t VgpuBool32;
+    VGPU_DEFINE_HANDLE(VGpuTexture);
 
     enum {
         VGPU_MAX_COLOR_ATTACHMENTS = 8,
@@ -70,10 +71,11 @@ extern "C" {
         VGPU_ERROR_INITIALIZATION_FAILED            = -4,
         VGPU_ERROR_DEVICE_LOST                      = -5,
         VGPU_ERROR_TOO_MANY_OBJECTS                 = -6,
-        VGPU_ERROR_BEGIN_FRAME_FAILED               = -7,
-        VGPU_ERROR_END_FRAME_FAILED                 = -8,
-        VGPU_ERROR_COMMAND_BUFFER_ALREADY_RECORDING = -9,
-        VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING     = -10,
+        VGPU_ERROR_SWAPCHAIN_CREATION_FAILED        = -7,
+        VGPU_ERROR_BEGIN_FRAME_FAILED               = -8,
+        VGPU_ERROR_END_FRAME_FAILED                 = -9,
+        VGPU_ERROR_COMMAND_BUFFER_ALREADY_RECORDING = -10,
+        VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING     = -11,
     } vgpu_result;
 
     typedef enum vgpu_device_preference {
@@ -86,7 +88,7 @@ extern "C" {
     } vgpu_device_preference;
 
     /// Defines pixel format.
-    typedef enum vgpu_pixel_format {
+    typedef enum VGpuPixelFormat {
         VGPU_PIXEL_FORMAT_UNDEFINED = 0,
         // 8-bit pixel formats
         VGPU_PIXEL_FORMAT_A8_UNORM,
@@ -192,24 +194,46 @@ extern "C" {
         VGPU_PIXEL_FORMAT_ASTC12x12,
 
         VGPU_PIXEL_FORMAT_COUNT
-    } vgpu_pixel_format;
+    } VGpuPixelFormat;
 
-    typedef enum vgpu_sample_count {
-        /// 1 sample (no multi-sampling).
-        VGPU_SAMPLE_COUNT1 = 1,
-        /// 2 Samples.
-        VGPU_SAMPLE_COUNT2 = 2,
-        /// 4 Samples.
-        VGPU_SAMPLE_COUNT4 = 4,
-        /// 8 Samples.
-        VGPU_SAMPLE_COUNT8 = 8,
-        /// 16 Samples.
-        VGPU_SAMPLE_COUNT16 = 16,
-        /// 32 Samples.
-        VGPU_SAMPLE_COUNT32 = 32,
-    } vgpu_sample_count;
+    /// Defines pixel format type.
+    typedef enum VGpuPixelFormatType {
+        /// Unknown format Type
+        VGPU_PIXEL_FORMAT_TYPE_UNKNOWN = 0,
+        /// _FLOATing-point formats.
+        VGPU_PIXEL_FORMAT_TYPE_FLOAT,
+        /// Unsigned normalized formats.
+        VGPU_PIXEL_FORMAT_TYPE_UNORM,
+        /// Unsigned normalized SRGB formats
+        VGPU_PIXEL_FORMAT_TYPE_UNORM_SRGB,
+        /// Signed normalized formats.
+        VGPU_PIXEL_FORMAT_TYPE_SNORM,
+        /// Unsigned integer formats.
+        VGPU_PIXEL_FORMAT_TYPE_UINT,
+        /// Signed integer formats.
+        VGPU_PIXEL_FORMAT_TYPE_SINT,
 
-    typedef struct vgpu_clear_value {
+        /// Count
+        VGPU_PIXEL_FORMAT_TYPE_COUNT
+    } VGpuPixelFormatType;
+
+    typedef enum VGpuTextureType {
+        VGPU_TEXTURE_TYPE_1D    = 0,
+        VGPU_TEXTURE_TYPE_2D    = 1,
+        VGPU_TEXTURE_TYPE_3D    = 2,
+        VGPU_TEXTURE_TYPE_CUBE  = 3,
+        VGPU_TEXTURE_TYPE_COUNT,
+    } VGpuTextureType;
+
+    typedef enum VGpuTextureUsageFlagBits {
+        VGPU_TEXTURE_USAGE_NONE             = 0,
+        VGPU_TEXTURE_USAGE_SHADER_READ      = 1 << 0,
+        VGPU_TEXTURE_USAGE_SHADER_WRITE     = 1 << 1,
+        VGPU_TEXTURE_USAGE_RENDER_TARGET    = 1 << 2
+    } VGpuTextureUsageFlagBits;
+    typedef VgpuFlags VGpuTextureUsageFlags;
+
+    typedef struct VGpuClearValue {
         union {
             struct {
                 float                       r;
@@ -222,9 +246,9 @@ extern "C" {
                 uint32_t                    stencil;
             };
         };
-    } vgpu_clear_value;
+    } VGpuClearValue;
 
-    typedef struct vgpu_platform_handle {
+    typedef struct VGpuPlatformHandle {
 #if defined(_WIN32)
         HINSTANCE                           hinstance;
         HWND                                hwnd;
@@ -232,31 +256,69 @@ extern "C" {
         xcb_connection_t*                   connection;
         xcb_window_t                        window;      
 #endif
-    } vgpu_platform_handle;
+    } VGpuPlatformHandle;
 
-    typedef struct vgpu_swapchain_descriptor {
+    typedef struct VGpuSwapchainDescriptor {
         uint32_t            image_count;
         VgpuBool32          srgb;
-        vgpu_clear_value    color_clear_value;
-        vgpu_pixel_format   depth_stencil_pixel_format;
-        vgpu_clear_value    depth_stencil_clear_value;
-        vgpu_sample_count   samples;
+        VGpuClearValue      colorClearValue;
+        VGpuPixelFormat     depthStencilFormat;
+        VGpuClearValue      depthStencilClearValue;
+        uint32_t            sampleCount;
         VgpuBool32          vsync;
-    } vgpu_swapchain_descriptor;
+    } VGpuSwapchainDescriptor;
 
-    typedef struct vgpu_renderer_settings {
-        vgpu_device_preference      device_preference;
-        VgpuBool32                  validation;
-        vgpu_platform_handle        handle;
-        uint32_t                    width;
-        uint32_t                    height;
-        vgpu_swapchain_descriptor   swapchain;
-    } vgpu_renderer_settings;
+    typedef struct VGpuRendererSettings {
+        vgpu_device_preference  devicePreference;
+        VgpuBool32              validation;
+        VGpuPlatformHandle      handle;
+        uint32_t                width;
+        uint32_t                height;
+        VGpuSwapchainDescriptor swapchain;
+    } VGpuRendererSettings;
 
-    VORTICE_API vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings* settings);
-    VORTICE_API void vgpu_shutdown();
-    VORTICE_API vgpu_result vgpu_begin_frame();
-    VORTICE_API vgpu_result vgpu_end_frame();
+    typedef struct VGpuTextureDescriptor {
+        VGpuTextureType         type;
+        VGpuPixelFormat         format;
+        uint32_t                width;
+        uint32_t                height;
+        uint32_t                depthOrArraySize;
+        uint32_t                mipLevels;
+        uint32_t                sampleCount;
+        VGpuTextureUsageFlags   usage;
+    } VGpuTextureDescriptor;
+
+    VORTICE_API vgpu_result vgpuInitialize(const char* app_name, const VGpuRendererSettings* settings);
+    VORTICE_API void vgpuShutdown();
+    VORTICE_API vgpu_result vgpuBeginFrame();
+    VORTICE_API vgpu_result vgpuEndFrame();
+
+    VORTICE_API VGpuTexture vgpuCreateTexture(const VGpuTextureDescriptor* descriptor);
+    VORTICE_API VGpuTexture vgpuCreateTexture2D(uint32_t width, uint32_t height, VgpuBool32 mipMap, uint32_t arrayLayers, VGpuPixelFormat format, uint32_t sampleCount, VGpuTextureUsageFlags usage);
+    VORTICE_API VGpuTexture vgpuCreateExternalTexture(const VGpuTextureDescriptor* descriptor, void* handle);
+    VORTICE_API void vgpuDestroyTexture(VGpuTexture texture);
+
+    /// Get the number of bits per format
+    VORTICE_API uint32_t vgpuGetFormatBitsPerPixel(VGpuPixelFormat format);
+    VORTICE_API uint32_t vgpuGetFormatBlockSize(VGpuPixelFormat format);
+
+    /// Get the format compression ration along the x-axis.
+    VORTICE_API uint32_t vgpuGetFormatBlockWidth(VGpuPixelFormat format);
+    /// Get the format compression ration along the y-axis.
+    VORTICE_API uint32_t vgpuGetFormatBlockHeight(VGpuPixelFormat format);
+    /// Get the format Type.
+    VORTICE_API VGpuPixelFormatType vgpuGetFormatType(VGpuPixelFormat format);
+
+    /// Check if the format has a depth component.
+    VORTICE_API VgpuBool32 vgpuIsDepthFormat(VGpuPixelFormat format);
+    /// Check if the format has a stencil component.
+    VORTICE_API VgpuBool32 vgpuIsStencilFormat(VGpuPixelFormat format);
+    /// Check if the format has depth or stencil components.
+    VORTICE_API VgpuBool32 vgpuIsDepthStencilFormat(VGpuPixelFormat format);
+    /// Check if the format is a compressed format.
+    VORTICE_API VgpuBool32 vgpuIsCompressedFormat(VGpuPixelFormat format);
+    /// Get format string name.
+    VORTICE_API const char* vgpuGetFormatName(VGpuPixelFormat format);
 
 #ifdef __cplusplus
 }

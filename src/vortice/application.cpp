@@ -34,7 +34,7 @@ namespace vortice
     Application::~Application()
     {
         // Shutdown vgpu
-        vgpu_shutdown();
+        vgpuShutdown();
 
         platform_shutdown();
     }
@@ -51,9 +51,11 @@ namespace vortice
 
     void Application::frame()
     {
-        vgpu_begin_frame();
+        if (vgpuBeginFrame() == VGPU_ERROR_BEGIN_FRAME_FAILED) {
+            return;
+        }
 
-        vgpu_end_frame();
+        vgpuEndFrame();
 
         /*sg_pass_action pass_action = {};
         pass_action.colors[0].action = SG_ACTION_CLEAR;

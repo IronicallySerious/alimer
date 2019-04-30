@@ -22,14 +22,24 @@
 
 #if defined(VGPU_VK)
 #include "vgpu.h"
-#include <stdio.h>
-#include <stdint.h>
+#include <assert.h>
+#include <string.h>
+#if defined(WIN32)
+#   include <malloc.h>
+#   undef    alloca
+#   define   alloca _malloca
+#   define   freea  _freea
+#else
+#   include <alloca.h>
+#endif
+
 #include "volk.h"
-/*#define VMA_IMPLEMENTATION 1
-#define VMA_STATIC_VULKAN_FUNCTION 0
-#define VMA_STATS_STRING_ENABLED 0
 #include "vk_mem_alloc.h"
-*/
+
+#define _VGPU_ALLOC(type)           ((type*) malloc(sizeof(type)))
+#define _VGPU_ALLOCN(type, n)       ((type*) malloc(sizeof(type) * n))
+#define _VGPU_FREE(ptr)             (free((void*)(ptr)))
+#define _VGPU_ALLOC_HANDLE(type)    ((type) calloc(1, sizeof(type##_T)))
 
 #if defined(_MSC_VER)
 #ifndef WIN32_LEAN_AND_MEAN
@@ -98,16 +108,29 @@
 #   endif
 #endif
 
+/* Vulkan only handles */
+VGPU_DEFINE_HANDLE(VGpuSwapchain);
+
 /* Handle declaration */
-typedef struct vgpu_swapchain_T {
+typedef struct VGpuSwapchain_T {
     VkSwapchainKHR              vk_handle;
     uint32_t                    width;
     uint32_t                    height;
     VkFormat                    format;
-    std::vector<VkImage>        images;
-    std::vector<VkSemaphore>    image_semaphores;
+    uint32_t                    image_count;
+    VkImage*                    images;
+    VkImageView*                image_views;
+    VkSemaphore*                image_semaphores;
     uint32_t                    image_index;
-} vgpu_swapchain_T;
+    VGpuTexture                 depthStencilTexture;
+    VGpuClearValue              depthStencilClearValue;
+} VGpuSwapchain_T;
+
+typedef struct VGpuTexture_T {
+    bool                        externalHandle;
+    VkImage                     handle;
+    VmaAllocation               memory;
+} VGpuTexture_T;
 
 struct {
     bool                        headless = false;
@@ -120,7 +143,7 @@ struct {
 #endif
     VkSurfaceKHR                surface = VK_NULL_HANDLE;
 
-    VkPhysicalDevice            physical_device;
+    VkPhysicalDevice            physicalDevice = VK_NULL_HANDLE;
     uint32_t                    graphics_queue_family = VK_QUEUE_FAMILY_IGNORED;
     uint32_t                    compute_queue_family = VK_QUEUE_FAMILY_IGNORED;
     uint32_t                    transfer_queue_family = VK_QUEUE_FAMILY_IGNORED;
@@ -128,7 +151,9 @@ struct {
     VkQueue                     graphics_queue = VK_NULL_HANDLE;
     VkQueue                     compute_queue = VK_NULL_HANDLE;
     VkQueue                     transfer_queue = VK_NULL_HANDLE;
-    vgpu_swapchain_T* swapchain = nullptr;
+    VmaAllocator                memoryAllocator = VK_NULL_HANDLE;
+    VkCommandPool               commandPool = VK_NULL_HANDLE;
+    VGpuSwapchain               swapchain = nullptr;
     uint32_t                    max_inflight_frames;
     uint32_t                    frame_index;
 } _vk;
@@ -223,15 +248,267 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_cb(VkDebugReportFlagsEXT flag
 }
 #endif
 
+/* Conversion functions */
+static const char* _vgpu_vk_get_result_string(VkResult result)
+{
+    switch (result)
+    {
+    case VK_SUCCESS:
+        return "Success";
+    case VK_NOT_READY:
+        return "A fence or query has not yet completed";
+    case VK_TIMEOUT:
+        return "A wait operation has not completed in the specified time";
+    case VK_EVENT_SET:
+        return "An event is signaled";
+    case VK_EVENT_RESET:
+        return "An event is unsignaled";
+    case VK_INCOMPLETE:
+        return "A return array was too small for the result";
+    case VK_ERROR_OUT_OF_HOST_MEMORY:
+        return "A host memory allocation has failed";
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+        return "A device memory allocation has failed";
+    case VK_ERROR_INITIALIZATION_FAILED:
+        return "Initialization of an object could not be completed for implementation-specific reasons";
+    case VK_ERROR_DEVICE_LOST:
+        return "The logical or physical device has been lost";
+    case VK_ERROR_MEMORY_MAP_FAILED:
+        return "Mapping of a memory object has failed";
+    case VK_ERROR_LAYER_NOT_PRESENT:
+        return "A requested layer is not present or could not be loaded";
+    case VK_ERROR_EXTENSION_NOT_PRESENT:
+        return "A requested extension is not supported";
+    case VK_ERROR_FEATURE_NOT_PRESENT:
+        return "A requested feature is not supported";
+    case VK_ERROR_INCOMPATIBLE_DRIVER:
+        return "The requested version of Vulkan is not supported by the driver or is otherwise incompatible";
+    case VK_ERROR_TOO_MANY_OBJECTS:
+        return "Too many objects of the type have already been created";
+    case VK_ERROR_FORMAT_NOT_SUPPORTED:
+        return "A requested format is not supported on this device";
+    case VK_ERROR_SURFACE_LOST_KHR:
+        return "A surface is no longer available";
+    case VK_SUBOPTIMAL_KHR:
+        return "A swapchain no longer matches the surface properties exactly, but can still be used";
+    case VK_ERROR_OUT_OF_DATE_KHR:
+        return "A surface has changed in such a way that it is no longer compatible with the swapchain";
+    case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
+        return "The display used by a swapchain does not use the same presentable image layout";
+    case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
+        return "The requested window is already connected to a VkSurfaceKHR, or to some other non-Vulkan API";
+    case VK_ERROR_VALIDATION_FAILED_EXT:
+        return "A validation layer found an error";
+    default:
+        return "ERROR: UNKNOWN VULKAN ERROR";
+    }
+}
+
+
+static void _vgpuVkLogIfFailed(VkResult result)
+{
+    if (result < VK_SUCCESS)
+    {
+        /*VGPU_LOGE(
+            "Fatal vulkan result is \"%s\" in %u at line %u",
+            _vgpu_vk_get_result_string(result),
+            __FILE__,
+            __LINE__);*/
+    }
+}
+
+static VkFormat _vgpuVkGetFormat(VGpuPixelFormat format)
+{
+    static VkFormat formats[VGPU_PIXEL_FORMAT_COUNT] = {
+        VK_FORMAT_UNDEFINED,
+        // 8-bit pixel formats
+        VK_FORMAT_R8_UNORM,                     // VGPU_PIXEL_FORMAT_A8_UNORM
+        VK_FORMAT_R8_UNORM,                     // VGPU_PIXEL_FORMAT_R8_UNORM
+        VK_FORMAT_R8_SNORM,                     // VGPU_PIXEL_FORMAT_R8_SNORM
+        VK_FORMAT_R8_UINT,                      // VGPU_PIXEL_FORMAT_R8_UINT
+        VK_FORMAT_R8_SINT,                      // VGPU_PIXEL_FORMAT_R8_SINT
+
+        // 16-bit pixel formats
+        VK_FORMAT_R16_UNORM,                    // VGPU_PIXEL_FORMAT_R16_UNORM
+        VK_FORMAT_R16_SNORM,                    // VGPU_PIXEL_FORMAT_R16_SNORM
+        VK_FORMAT_R16_UINT,                     // VGPU_PIXEL_FORMAT_R16_UINT
+        VK_FORMAT_R16_SINT,                     // VGPU_PIXEL_FORMAT_R16_SINT
+        VK_FORMAT_R16_SFLOAT,                   // VGPU_PIXEL_FORMAT_R16_FLOAT
+        VK_FORMAT_R8G8_UNORM,                   // VGPU_PIXEL_FORMAT_RG8_UNORM
+        VK_FORMAT_R8G8_SNORM,                   // VGPU_PIXEL_FORMAT_RG8_SNORM
+        VK_FORMAT_R8G8_UINT,                    // VGPU_PIXEL_FORMAT_RG8_UINT
+        VK_FORMAT_R8G8_SINT,                    // VGPU_PIXEL_FORMAT_RG8_SINT
+
+        // Packed 16-bit pixel formats
+        VK_FORMAT_R5G6B5_UNORM_PACK16,          // VGPU_PIXEL_FORMAT_R5G6B5_UNORM
+        VK_FORMAT_R4G4B4A4_UNORM_PACK16,        // VGPU_PIXEL_FORMAT_RGBA4_UNORM
+
+        // 32-bit pixel formats
+        VK_FORMAT_R32_UINT,                     // VGPU_PIXEL_FORMAT_R32_UINT,
+        VK_FORMAT_R32_SINT,                     // VGPU_PIXEL_FORMAT_R32_SINT,
+        VK_FORMAT_R32_SFLOAT,                   // VGPU_PIXEL_FORMAT_R32_FLOAT
+        VK_FORMAT_R16G16_UNORM,                 // VGPU_PIXEL_FORMAT_RG16_UNORM
+        VK_FORMAT_R16G16_SNORM,                 // VGPU_PIXEL_FORMAT_RG16_SNORM
+        VK_FORMAT_R16G16_UINT,                  // VGPU_PIXEL_FORMAT_RG16_UINT
+        VK_FORMAT_R16G16_SINT,                  // VGPU_PIXEL_FORMAT_RG16_SINT
+        VK_FORMAT_R16G16_SFLOAT,                // VGPU_PIXEL_FORMAT_RG16_FLOAT
+        VK_FORMAT_R8G8B8A8_UNORM,               // VGPU_PIXEL_FORMAT_RGBA8_UNORM
+        VK_FORMAT_R8G8B8A8_SRGB,                // VGPU_PIXEL_FORMAT_RGBA8_UNORM_SRGB
+        VK_FORMAT_R8G8B8A8_SNORM,               // VGPU_PIXEL_FORMAT_RGBA8_SNORM
+        VK_FORMAT_R8G8B8A8_UINT,                // VGPU_PIXEL_FORMAT_RGBA8_UINT
+        VK_FORMAT_R8G8B8A8_SINT,                // VGPU_PIXEL_FORMAT_RGBA8_SINT
+        VK_FORMAT_B8G8R8A8_UNORM,               // VGPU_PIXEL_FORMAT_BGRA8_UNORM
+        VK_FORMAT_B8G8R8A8_SRGB,                // VGPU_PIXEL_FORMAT_BGRA8_UNORM_SRGB
+
+        // Packed 32-Bit Pixel formats
+        VK_FORMAT_A2R10G10B10_UNORM_PACK32,     // VGPU_PIXEL_FORMAT_RGB10A2_UNORM
+        VK_FORMAT_A2R10G10B10_UINT_PACK32,      // VGPU_PIXEL_FORMAT_RGB10A2_UINT
+        VK_FORMAT_B10G11R11_UFLOAT_PACK32,      // VGPU_PIXEL_FORMAT_RG11B10_FLOAT
+        VK_FORMAT_E5B9G9R9_UFLOAT_PACK32,       // VGPU_PIXEL_FORMAT_RGB9E5_FLOAT
+
+        // 64-Bit Pixel Formats
+        VK_FORMAT_R32G32_UINT,                  // VGPU_PIXEL_FORMAT_RG32_UINT
+        VK_FORMAT_R32G32_SINT,                  // VGPU_PIXEL_FORMAT_RG32_SINT
+        VK_FORMAT_R32G32_SFLOAT,                // VGPU_PIXEL_FORMAT_RG32_FLOAT
+        VK_FORMAT_R16G16B16_UNORM,              // VGPU_PIXEL_FORMAT_RGBA16_UNORM
+        VK_FORMAT_R16G16B16_SNORM,              // VGPU_PIXEL_FORMAT_RGBA16_SNORM
+        VK_FORMAT_R16G16B16_UINT,               // VGPU_PIXEL_FORMAT_RGBA16_UINT
+        VK_FORMAT_R16G16B16_SINT,               // VGPU_PIXEL_FORMAT_RGBA16_SINT
+        VK_FORMAT_R16G16B16_SFLOAT,             // VGPU_PIXEL_FORMAT_RGBA16_FLOAT
+
+        // 128-Bit Pixel Formats
+        VK_FORMAT_R32G32B32A32_UINT,            // VGPU_PIXEL_FORMAT_RGBA32_UINT
+        VK_FORMAT_R32G32B32A32_SINT,            // VGPU_PIXEL_FORMAT_RGBA32_SINT
+        VK_FORMAT_R32G32B32A32_SFLOAT,          // VGPU_PIXEL_FORMAT_RGBA32_FLOAT
+
+        // Depth-stencil
+        VK_FORMAT_D16_UNORM,                    // VGPU_PIXEL_FORMAT_D16_UNORM
+        VK_FORMAT_D32_SFLOAT,                   // VGPU_PIXEL_FORMAT_D32_FLOAT
+        VK_FORMAT_D24_UNORM_S8_UINT,            // VGPU_PIXEL_FORMAT_D24_UNORM_S8_UINT
+        VK_FORMAT_D32_SFLOAT_S8_UINT,           // VGPU_PIXEL_FORMAT_D32_FLOAT_S8_UINT
+        VK_FORMAT_S8_UINT,                      // VGPU_PIXEL_FORMAT_S8
+
+        // Compressed formats
+        VK_FORMAT_BC1_RGB_UNORM_BLOCK,          // VGPU_PIXEL_FORMAT_BC1_UNORM,        
+        VK_FORMAT_BC1_RGB_SRGB_BLOCK,           // VGPU_PIXEL_FORMAT_BC1_UNORM_SRGB
+        VK_FORMAT_BC2_UNORM_BLOCK,              // VGPU_PIXEL_FORMAT_BC2_UNORM
+        VK_FORMAT_BC2_SRGB_BLOCK,               // VGPU_PIXEL_FORMAT_BC2_UNORM_SRGB
+        VK_FORMAT_BC3_UNORM_BLOCK,              // VGPU_PIXEL_FORMAT_BC3_UNORM
+        VK_FORMAT_BC3_SRGB_BLOCK,               // VGPU_PIXEL_FORMAT_BC3_UNORM_SRGB
+        VK_FORMAT_BC4_UNORM_BLOCK,              // VGPU_PIXEL_FORMAT_BC4_UNORM     
+        VK_FORMAT_BC4_SNORM_BLOCK,              // VGPU_PIXEL_FORMAT_BC4_SNORM    
+        VK_FORMAT_BC5_UNORM_BLOCK,              // VGPU_PIXEL_FORMAT_BC5_UNORM    
+        VK_FORMAT_BC5_SNORM_BLOCK,              // VGPU_PIXEL_FORMAT_BC5_SNORM    
+        VK_FORMAT_BC6H_SFLOAT_BLOCK,            // VGPU_PIXEL_FORMAT_BC6HS16
+        VK_FORMAT_BC6H_UFLOAT_BLOCK,            // VGPU_PIXEL_FORMAT_BC6HU16
+        VK_FORMAT_BC7_UNORM_BLOCK,              // VGPU_PIXEL_FORMAT_BC7_UNORM
+        VK_FORMAT_BC7_SRGB_BLOCK,               // VGPU_PIXEL_FORMAT_BC7_UNORM_SRGB
+
+        // Compressed PVRTC Pixel Formats
+        VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG,  // VGPU_PIXEL_FORMAT_PVRTC_RGB2
+        VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG,  // VGPU_PIXEL_FORMAT_PVRTC_RGBA2
+        VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG,  // VGPU_PIXEL_FORMAT_PVRTC_RGB4
+        VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG,  // VGPU_PIXEL_FORMAT_PVRTC_RGBA4
+
+        // Compressed ETC Pixel Formats
+        VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK,      // VGPU_PIXEL_FORMAT_ETC2_RGB8
+        VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK,    // VGPU_PIXEL_FORMAT_ETC2_RGB8A1
+
+        // Compressed ASTC Pixel Formats
+        VK_FORMAT_ASTC_4x4_UNORM_BLOCK,         // VGPU_PIXEL_FORMAT_ASTC4x4,
+        VK_FORMAT_ASTC_5x5_UNORM_BLOCK,         // VGPU_PIXEL_FORMAT_ASTC5x5
+        VK_FORMAT_ASTC_6x6_UNORM_BLOCK,         // VGPU_PIXEL_FORMAT_ASTC6x6
+        VK_FORMAT_ASTC_8x5_UNORM_BLOCK,         // VGPU_PIXEL_FORMAT_ASTC8x5
+        VK_FORMAT_ASTC_8x6_UNORM_BLOCK,         // VGPU_PIXEL_FORMAT_ASTC8x6
+        VK_FORMAT_ASTC_8x8_UNORM_BLOCK,         // VGPU_PIXEL_FORMAT_ASTC8x8
+        VK_FORMAT_ASTC_10x10_UNORM_BLOCK,       // VGPU_PIXEL_FORMAT_ASTC10x10
+        VK_FORMAT_ASTC_12x12_UNORM_BLOCK,       // VGPU_PIXEL_FORMAT_ASTC12x12
+    };
+
+    return formats[format];
+}
+
+static VkImageType _vgpuVkGetImageType(VGpuTextureType type)
+{
+    static const VkImageType types[VGPU_TEXTURE_TYPE_COUNT] = {
+        VK_IMAGE_TYPE_1D,
+        VK_IMAGE_TYPE_2D,
+        VK_IMAGE_TYPE_3D,
+        VK_IMAGE_TYPE_2D
+    };
+
+    return types[type];
+}
+
+static VkSampleCountFlagBits _vgpuVkGetSampleCount(uint32_t sample_count)
+{
+    switch (sample_count)
+    {
+    case 0u:
+    case 1u:  return VK_SAMPLE_COUNT_1_BIT;
+    case 2u:  return VK_SAMPLE_COUNT_2_BIT;
+    case 4u:  return VK_SAMPLE_COUNT_4_BIT;
+    case 8u:  return VK_SAMPLE_COUNT_8_BIT;
+    case 16u: return VK_SAMPLE_COUNT_16_BIT;
+    case 32u: return VK_SAMPLE_COUNT_32_BIT;
+    case 64u: return VK_SAMPLE_COUNT_64_BIT;
+    default:  return VK_SAMPLE_COUNT_1_BIT;
+    }
+
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
+static VkImageUsageFlags  _vgpuVkGetTextureUsage(
+    VGpuTextureUsageFlags usage,
+    VGpuPixelFormat format,
+    uint32_t sampleCount)
+{
+    VkImageUsageFlags vkUsage = 0u;
+    if (usage & VGPU_TEXTURE_USAGE_SHADER_READ) {
+        vkUsage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+
+    if (usage & VGPU_TEXTURE_USAGE_SHADER_READ) {
+        vkUsage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+
+    if (usage & VGPU_TEXTURE_USAGE_SHADER_WRITE) {
+        vkUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
+    }
+
+    if (usage & VGPU_TEXTURE_USAGE_RENDER_TARGET)
+    {
+        if (vgpuIsDepthStencilFormat(format)) {
+            if (sampleCount > 1)
+            {
+                vkUsage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            }
+            else
+            {
+                vkUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            }
+        }
+        else {
+            if (sampleCount > 1)
+            {
+                vkUsage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            }
+            else
+            {
+                vkUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            }
+        }
+    }
+
+    return vkUsage;
+}
+
 using namespace std;
 
-vgpu_result _vgpu_vk_create_swapchain(
-    uint32_t width, uint32_t height,
-    VkSurfaceKHR surface,
-    vgpu_swapchain_T * *swapchain,
-    const vgpu_swapchain_descriptor * descriptor);
+VGpuSwapchain _vgpuVkCreateSwapchain(uint32_t width, uint32_t height, VkSurfaceKHR surface, VkSwapchainKHR oldSwapchain, const VGpuSwapchainDescriptor* descriptor);
+void _vgpuVkDestroySwapchain(VGpuSwapchain swapchain);
 
-vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings * settings)
+vgpu_result vgpuInitialize(const char* app_name, const VGpuRendererSettings * settings)
 {
     if (_vk.instance != VK_NULL_HANDLE) {
         return VGPU_ALREADY_INITIALIZED;
@@ -417,7 +694,7 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings *
         {
             return VGPU_ERROR_INITIALIZATION_FAILED;
         }
-    }
+}
 
     // Enumerate physical device and create logical device.
     uint32_t gpu_count = 0u;
@@ -440,13 +717,13 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings *
         switch (device_props.deviceType) {
         case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
             score += 100U;
-            if (settings->device_preference == VGPU_DEVICE_PREFERENCE_HIGH_PERFORMANCE) {
+            if (settings->devicePreference == VGPU_DEVICE_PREFERENCE_HIGH_PERFORMANCE) {
                 score += 1000u;
             }
             break;
         case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
             score += 90U;
-            if (settings->device_preference == VGPU_DEVICE_PREFERENCE_LOW_POWER) {
+            if (settings->devicePreference == VGPU_DEVICE_PREFERENCE_LOW_POWER) {
                 score += 1000u;
             }
             break;
@@ -467,9 +744,9 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings *
         return VGPU_ERROR_INITIALIZATION_FAILED;
     }
 
-    _vk.physical_device = gpus[best_device_index];
+    _vk.physicalDevice = gpus[best_device_index];
     VkPhysicalDeviceProperties device_props;
-    vkGetPhysicalDeviceProperties(_vk.physical_device, &device_props);
+    vkGetPhysicalDeviceProperties(_vk.physicalDevice, &device_props);
 
     VGPU_LOGI("Using Vulkan GPU: %s\n", device_props.deviceName);
     VGPU_LOGI("    API: %u.%u.%u\n",
@@ -483,15 +760,15 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings *
 
 
     uint32_t queue_count;
-    vkGetPhysicalDeviceQueueFamilyProperties(_vk.physical_device, &queue_count, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(_vk.physicalDevice, &queue_count, nullptr);
     vector<VkQueueFamilyProperties> queue_props(queue_count);
-    vkGetPhysicalDeviceQueueFamilyProperties(_vk.physical_device, &queue_count, queue_props.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(_vk.physicalDevice, &queue_count, queue_props.data());
 
     for (uint32_t i = 0; i < queue_count; i++)
     {
         VkBool32 supported = _vk.surface == VK_NULL_HANDLE;
         if (_vk.surface != VK_NULL_HANDLE) {
-            vkGetPhysicalDeviceSurfaceSupportKHR(_vk.physical_device, i, _vk.surface, &supported);
+            vkGetPhysicalDeviceSurfaceSupportKHR(_vk.physicalDevice, i, _vk.surface, &supported);
         }
 
         static const VkQueueFlags required = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT;
@@ -608,9 +885,9 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings *
     features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR;
 
     if (_vk.supports_physical_device_properties2)
-        vkGetPhysicalDeviceFeatures2KHR(_vk.physical_device, &features);
+        vkGetPhysicalDeviceFeatures2KHR(_vk.physicalDevice, &features);
     else
-        vkGetPhysicalDeviceFeatures(_vk.physical_device, &features.features);
+        vkGetPhysicalDeviceFeatures(_vk.physicalDevice, &features.features);
 
     // Enable device features we might care about.
     {
@@ -666,7 +943,7 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings *
     else
         deviceCreateInfo.pEnabledFeatures = &features.features;
 
-    result = vkCreateDevice(_vk.physical_device, &deviceCreateInfo, nullptr, &_vk.device);
+    result = vkCreateDevice(_vk.physicalDevice, &deviceCreateInfo, nullptr, &_vk.device);
     if (result != VK_SUCCESS)
     {
         return VGPU_ERROR_INITIALIZATION_FAILED;
@@ -677,39 +954,317 @@ vgpu_result vgpu_initialize(const char* app_name, const vgpu_renderer_settings *
     vkGetDeviceQueue(_vk.device, _vk.compute_queue_family, compute_queue_index, &_vk.compute_queue);
     vkGetDeviceQueue(_vk.device, _vk.transfer_queue_family, transfer_queue_index, &_vk.transfer_queue);
 
+    // Initialize vma memory allocator
+    VmaVulkanFunctions vma_vulkan_func = {};
+    vma_vulkan_func.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+    vma_vulkan_func.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+    vma_vulkan_func.vkAllocateMemory = vkAllocateMemory;
+    vma_vulkan_func.vkFreeMemory = vkFreeMemory;
+    vma_vulkan_func.vkMapMemory = vkMapMemory;
+    vma_vulkan_func.vkUnmapMemory = vkUnmapMemory;
+    vma_vulkan_func.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+    vma_vulkan_func.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+    vma_vulkan_func.vkBindBufferMemory = vkBindBufferMemory;
+    vma_vulkan_func.vkBindImageMemory = vkBindImageMemory;
+    vma_vulkan_func.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+    vma_vulkan_func.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+    vma_vulkan_func.vkCreateBuffer = vkCreateBuffer;
+    vma_vulkan_func.vkCreateImage = vkCreateImage;
+    vma_vulkan_func.vkDestroyBuffer = vkDestroyBuffer;
+    vma_vulkan_func.vkDestroyImage = vkDestroyImage;
+    vma_vulkan_func.vkCmdCopyBuffer = vkCmdCopyBuffer;
+
+#if VMA_DEDICATED_ALLOCATION
+    vma_vulkan_func.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+    vma_vulkan_func.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+#endif
+
+    VmaAllocatorCreateInfo allocatorCreateInfo = {};
+    allocatorCreateInfo.physicalDevice = _vk.physicalDevice;
+    allocatorCreateInfo.device = _vk.device;
+    allocatorCreateInfo.pVulkanFunctions = &vma_vulkan_func;
+    result = vmaCreateAllocator(&allocatorCreateInfo, &_vk.memoryAllocator);
+    if (result != VK_SUCCESS)
+    {
+        //ALIMER_LOGERROR("Vulkan: Failed to create vma allocator");
+        return VGPU_ERROR_INITIALIZATION_FAILED;
+    }
+
+    // Setup graphics command Pool
+    VkCommandPoolCreateInfo commandPoolCreateInfo = {
+        VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        nullptr,
+        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        _vk.graphics_queue_family };
+
+    if (vkCreateCommandPool(_vk.device, &commandPoolCreateInfo, nullptr, &_vk.commandPool) != VK_SUCCESS)
+    {
+        return VGPU_ERROR_INITIALIZATION_FAILED;
+    }
+
     // Setup per frame resources.
     _vk.max_inflight_frames = 3u;
     if (!_vk.headless)
     {
-        _vgpu_vk_create_swapchain(settings->width, settings->height, _vk.surface, &_vk.swapchain, &settings->swapchain);
-        _vk.max_inflight_frames = (uint32_t)_vk.swapchain->images.size();
+        _vk.swapchain = _vgpuVkCreateSwapchain(settings->width, settings->height, _vk.surface, VK_NULL_HANDLE, &settings->swapchain);
+        _vk.max_inflight_frames = _vk.swapchain->image_count;
     }
     return VGPU_SUCCESS;
 }
 
-vgpu_result _vgpu_vk_create_swapchain(
-    uint32_t width, uint32_t height,
-    VkSurfaceKHR surface,
-    vgpu_swapchain_T * *swapchain,
-    const vgpu_swapchain_descriptor * descriptor)
+VkCommandBuffer _vgpu_vk_create_command_buffer()
+{
+    VkCommandBufferAllocateInfo allocateInfo = {};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.commandPool = _vk.commandPool;
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocateInfo.commandBufferCount = 1u;
+
+    VkCommandBuffer handle;
+    if (vkAllocateCommandBuffers(_vk.device, &allocateInfo, &handle) != VK_SUCCESS)
+    {
+        return VK_NULL_HANDLE;
+    }
+
+    VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+    commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    if (vkBeginCommandBuffer(handle, &commandBufferBeginInfo) != VK_SUCCESS)
+    {
+        return VK_NULL_HANDLE;
+    }
+
+    return handle;
+}
+
+bool _vgpu_vk_flush_command_buffer(VkCommandBuffer commandBuffer)
+{
+    VkResult result = VK_SUCCESS;
+
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+    {
+        return false;
+    }
+
+    VkSubmitInfo submit_info = {};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &commandBuffer;
+
+    // Create fence to ensure that the command buffer has finished executing
+    VkFence fence = VK_NULL_HANDLE;
+    VkFenceCreateInfo fenceCreateInfo{};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    _vgpuVkLogIfFailed(vkCreateFence(_vk.device, &fenceCreateInfo, NULL, &fence));
+
+    // Submit to the queue
+    result = vkQueueSubmit(_vk.graphics_queue, 1, &submit_info, fence);
+    if (result != VK_SUCCESS)
+    {
+        return false;
+    }
+
+    // Wait for the fence to signal that command buffer has finished executing.
+    result = vkWaitForFences(_vk.device, 1, &fence, VK_TRUE, UINT64_MAX);
+    if (result != VK_SUCCESS)
+    {
+        return false;
+    }
+
+    vkDestroyFence(_vk.device, fence, nullptr);
+    vkFreeCommandBuffers(_vk.device, _vk.commandPool, 1u, &commandBuffer);
+
+    return true;
+}
+
+// Put an image memory barrier for setting an image layout on the sub resource into the given command buffer
+static void vgpuVkTransitionImageLayout(
+    VkCommandBuffer commandBuffer,
+    VkImage image,
+    VkImageLayout oldImageLayout,
+    VkImageLayout newImageLayout,
+    VkImageSubresourceRange subresourceRange,
+    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
+{
+    // Create an image barrier object
+    VkImageMemoryBarrier imageMemoryBarrier{};
+    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.oldLayout = oldImageLayout;
+    imageMemoryBarrier.newLayout = newImageLayout;
+    imageMemoryBarrier.image = image;
+    imageMemoryBarrier.subresourceRange = subresourceRange;
+
+    // Source layouts (old)
+    // Source access mask controls actions that have to be finished on the old layout
+    // before it will be transitioned to the new layout
+    switch (oldImageLayout)
+    {
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+        // Image layout is undefined (or does not matter)
+        // Only valid as initial layout
+        // No flags required, listed only for completeness
+        imageMemoryBarrier.srcAccessMask = 0;
+        break;
+
+    case VK_IMAGE_LAYOUT_PREINITIALIZED:
+        // Image is preinitialized
+        // Only valid as initial layout for linear images, preserves memory contents
+        // Make sure host writes have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+        // Image is a color attachment
+        // Make sure any writes to the color buffer have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+        // Image is a depth/stencil attachment
+        // Make sure any writes to the depth/stencil buffer have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+        // Image is a transfer source 
+        // Make sure any reads from the image have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+        // Image is a transfer destination
+        // Make sure any writes to the image have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+        // Image is read by a shader
+        // Make sure any shader reads from the image have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        break;
+    default:
+        // Other source layouts aren't handled (yet)
+        break;
+    }
+
+    // Target layouts (new)
+    // Destination access mask controls the dependency for the new image layout
+    switch (newImageLayout)
+    {
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+        // Image will be used as a transfer destination
+        // Make sure any writes to the image have been finished
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+        // Image will be used as a transfer source
+        // Make sure any reads from the image have been finished
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+        // Image will be used as a color attachment
+        // Make sure any writes to the color buffer have been finished
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+        // Image layout will be used as a depth/stencil attachment
+        // Make sure any writes to depth/stencil buffer have been finished
+        imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+        // Image will be read in a shader (sampler, input attachment)
+        // Make sure any writes to the image have been finished
+        if (imageMemoryBarrier.srcAccessMask == 0)
+        {
+            imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+        }
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        break;
+    default:
+        // Other source layouts aren't handled (yet)
+        break;
+    }
+
+    // Put barrier inside setup command buffer
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        srcStageMask,
+        dstStageMask,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &imageMemoryBarrier);
+}
+
+// Uses a fixed sub resource layout with first mip level and layer
+static void vgpuVkTransitionImageLayout(
+    VkCommandBuffer commandBuffer,
+    VkImage image,
+    VkImageAspectFlags aspectMask,
+    VkImageLayout oldImageLayout,
+    VkImageLayout newImageLayout,
+    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
+{
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = aspectMask;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = 1;
+    subresourceRange.layerCount = 1;
+    vgpuVkTransitionImageLayout(commandBuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
+}
+
+static void vgpuVkClearImageWithColor(
+    VkCommandBuffer commandBuffer,
+    VkImage image,
+    VkImageSubresourceRange range,
+    VkImageAspectFlags aspect,
+    VkImageLayout sourceLayout,
+    VkImageLayout destLayout,
+    VkClearColorValue *clearValue)
+{
+    // Transition to destination layout.
+    vgpuVkTransitionImageLayout(commandBuffer, image, aspect, sourceLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    // Clear the image
+    range.aspectMask = aspect;
+    vkCmdClearColorImage(
+        commandBuffer,
+        image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        clearValue,
+        1,
+        &range);
+
+    // Transition back to source layout.
+    vgpuVkTransitionImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
+}
+
+VGpuSwapchain _vgpuVkCreateSwapchain(uint32_t width, uint32_t height, VkSurfaceKHR surface, VkSwapchainKHR oldSwapchain, const VGpuSwapchainDescriptor* descriptor)
 {
     VkSurfaceCapabilitiesKHR surface_properties;
-    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_vk.physical_device, surface, &surface_properties) != VK_SUCCESS)
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_vk.physicalDevice, surface, &surface_properties) != VK_SUCCESS)
     {
-        return VGPU_ERROR_INITIALIZATION_FAILED;
+        return nullptr;
     }
 
     // Happens on nVidia Windows when you minimize a window.
     if (surface_properties.maxImageExtent.width == 0
         && surface_properties.maxImageExtent.height == 0)
     {
-        return VGPU_ERROR_INITIALIZATION_FAILED;
+        return nullptr;
     }
 
     uint32_t format_count;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(_vk.physical_device, surface, &format_count, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(_vk.physicalDevice, surface, &format_count, nullptr);
     vector<VkSurfaceFormatKHR> formats(format_count);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(_vk.physical_device, surface, &format_count, formats.data());
+    vkGetPhysicalDeviceSurfaceFormatsKHR(_vk.physicalDevice, surface, &format_count, formats.data());
 
     VkSurfaceFormatKHR format;
     if (format_count == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
@@ -722,7 +1277,7 @@ vgpu_result _vgpu_vk_create_swapchain(
         if (format_count == 0)
         {
             VGPU_LOGE("Surface has no formats.\n");
-            return VGPU_ERROR_INITIALIZATION_FAILED;
+            return nullptr;
         }
 
         bool found = false;
@@ -767,9 +1322,9 @@ vgpu_result _vgpu_vk_create_swapchain(
     }
 
     uint32_t num_present_modes;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(_vk.physical_device, surface, &num_present_modes, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(_vk.physicalDevice, surface, &num_present_modes, nullptr);
     vector<VkPresentModeKHR> present_modes(num_present_modes);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(_vk.physical_device, surface, &num_present_modes, present_modes.data());
+    vkGetPhysicalDeviceSurfacePresentModesKHR(_vk.physicalDevice, surface, &num_present_modes, present_modes.data());
 
     VkPresentModeKHR swapchain_present_mode = VK_PRESENT_MODE_FIFO_KHR;
     if (!descriptor->vsync)
@@ -790,8 +1345,6 @@ vgpu_result _vgpu_vk_create_swapchain(
         desired_swapchain_images = 3;
     }
 
-    VGPU_LOGI("Targeting %u swapchain images.\n", desired_swapchain_images);
-
     if (desired_swapchain_images < surface_properties.minImageCount)
         desired_swapchain_images = surface_properties.minImageCount;
 
@@ -811,76 +1364,219 @@ vgpu_result _vgpu_vk_create_swapchain(
     if (surface_properties.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)
         composite_mode = VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
 
-    VkSwapchainKHR old_swapchain = VK_NULL_HANDLE;
-
-    VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
-    swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchainCreateInfo.pNext = nullptr;
-    swapchainCreateInfo.surface = surface;
-    swapchainCreateInfo.minImageCount = desired_swapchain_images;
-    swapchainCreateInfo.imageFormat = format.format;
-    swapchainCreateInfo.imageColorSpace = format.colorSpace;
-    swapchainCreateInfo.imageExtent.width = swapchain_size.width;
-    swapchainCreateInfo.imageExtent.height = swapchain_size.height;
-    swapchainCreateInfo.imageArrayLayers = 1;
-    swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    swapchainCreateInfo.preTransform = pre_transform;
-    swapchainCreateInfo.compositeAlpha = composite_mode;
-    swapchainCreateInfo.presentMode = swapchain_present_mode;
-    swapchainCreateInfo.clipped = VK_TRUE;
-    swapchainCreateInfo.oldSwapchain = old_swapchain;
+    VkSwapchainCreateInfoKHR createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.pNext = nullptr;
+    createInfo.surface = surface;
+    createInfo.minImageCount = desired_swapchain_images;
+    createInfo.imageFormat = format.format;
+    createInfo.imageColorSpace = format.colorSpace;
+    createInfo.imageExtent.width = swapchain_size.width;
+    createInfo.imageExtent.height = swapchain_size.height;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.preTransform = pre_transform;
+    createInfo.compositeAlpha = composite_mode;
+    createInfo.presentMode = swapchain_present_mode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = oldSwapchain;
 
     // Enable transfer source on swap chain images if supported
     if (surface_properties.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
-        swapchainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     }
 
     // Enable transfer destination on swap chain images if supported
     if (surface_properties.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
-        swapchainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
 
-    vgpu_swapchain_T* newSwapchain = new vgpu_swapchain_T();
-    VkResult result = vkCreateSwapchainKHR(_vk.device, &swapchainCreateInfo, nullptr, &newSwapchain->vk_handle);
-    if (old_swapchain != VK_NULL_HANDLE)
-    {
-        vkDestroySwapchainKHR(_vk.device, old_swapchain, nullptr);
+    VkSwapchainKHR vk_handle = VK_NULL_HANDLE;
+    VkResult result = vkCreateSwapchainKHR(_vk.device, &createInfo, nullptr, &vk_handle);
+    if (result != VK_SUCCESS) {
+        return nullptr;
     }
 
-    newSwapchain->width = swapchain_size.width;
-    newSwapchain->height = swapchain_size.height;
-    newSwapchain->format = format.format;
-    newSwapchain->image_index = 0;
-
-    uint32_t image_count;
-    if (vkGetSwapchainImagesKHR(_vk.device, newSwapchain->vk_handle, &image_count, nullptr) != VK_SUCCESS)
+    if (oldSwapchain != VK_NULL_HANDLE)
     {
-        return VGPU_ERROR_INITIALIZATION_FAILED;
+        /*for (uint32_t i = 0u; i < handle->image_count; i++)
+        {
+            vkDestroyImageView(_vk.device, handle->image_views[i], nullptr);
+        }*/
+
+        vkDestroySwapchainKHR(_vk.device, oldSwapchain, nullptr);
     }
 
-    newSwapchain->images.resize(image_count);
-    newSwapchain->image_semaphores.resize(image_count);
-    if (vkGetSwapchainImagesKHR(_vk.device, newSwapchain->vk_handle, &image_count, newSwapchain->images.data()) != VK_SUCCESS)
+    VGpuSwapchain handle = _VGPU_ALLOC_HANDLE(VGpuSwapchain);
+    handle->vk_handle = vk_handle;
+    handle->width = swapchain_size.width;
+    handle->height = swapchain_size.height;
+    handle->format = format.format;
+    handle->image_index = 0;
+
+    if (vkGetSwapchainImagesKHR(_vk.device, vk_handle, &handle->image_count, nullptr) != VK_SUCCESS)
     {
-        return VGPU_ERROR_INITIALIZATION_FAILED;
+        return nullptr;
     }
 
-    for (uint32_t i = 0u; i < image_count; ++i)
+    handle->images = _VGPU_ALLOCN(VkImage, handle->image_count);
+
+    if (vkGetSwapchainImagesKHR(_vk.device, vk_handle, &handle->image_count, handle->images) != VK_SUCCESS)
     {
+        return nullptr;
+    }
+
+    // Create image views for swapchain images.
+    handle->image_views = _VGPU_ALLOCN(VkImageView, handle->image_count);
+    handle->image_semaphores = _VGPU_ALLOCN(VkSemaphore, handle->image_count);
+
+    /* Clear or transition to default image layout */
+    const bool canClear = surface_properties.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+        VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        nullptr,
+        _vk.commandPool,
+        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        1u
+    };
+
+    VkCommandBuffer clearImageCmdBuffer = _vgpu_vk_create_command_buffer();
+
+    for (uint32_t i = 0u; i < handle->image_count; ++i)
+    {
+        // Clear with default value if supported.
+        if (canClear)
+        {
+            // Clear images with default color.
+            VkClearColorValue clearColor = {};
+            clearColor.float32[0] = descriptor->colorClearValue.r;
+            clearColor.float32[1] = descriptor->colorClearValue.g;
+            clearColor.float32[2] = descriptor->colorClearValue.b;
+            clearColor.float32[3] = descriptor->colorClearValue.a;
+
+            VkImageSubresourceRange clearRange = {};
+            clearRange.layerCount = 1;
+            clearRange.levelCount = 1;
+
+            // Clear with default color.
+            vgpuVkClearImageWithColor(
+                clearImageCmdBuffer,
+                handle->images[i],
+                clearRange,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                &clearColor);
+        }
+        else
+        {
+            // Transition image to present layout.
+            vgpuVkTransitionImageLayout(
+                clearImageCmdBuffer,
+                handle->images[i],
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+            );
+        }
+
+        VkImageViewCreateInfo imageViewCreateInfo = {};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.pNext = nullptr;
+        imageViewCreateInfo.flags = 0;
+        imageViewCreateInfo.image = handle->images[i];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format = format.format;
+        imageViewCreateInfo.components = {
+            VK_COMPONENT_SWIZZLE_R,
+            VK_COMPONENT_SWIZZLE_G,
+            VK_COMPONENT_SWIZZLE_B,
+            VK_COMPONENT_SWIZZLE_A
+        };
+        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+        result = vkCreateImageView(_vk.device, &imageViewCreateInfo, nullptr, &handle->image_views[i]);
+        if (result != VK_SUCCESS) {
+            return nullptr;
+        }
+
         VkSemaphoreCreateInfo semaphoreCreateInfo = {};
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        result = vkCreateSemaphore(_vk.device, &semaphoreCreateInfo, nullptr, &newSwapchain->image_semaphores[i]);
+        result = vkCreateSemaphore(_vk.device, &semaphoreCreateInfo, nullptr, &handle->image_semaphores[i]);
         if (result != VK_SUCCESS) {
-            return VGPU_ERROR_INITIALIZATION_FAILED;
+            return nullptr;
         }
     }
 
-    *swapchain = newSwapchain;
-    return VGPU_SUCCESS;
+    // Make sure depth/stencil format is supported - fall back to VK_FORMAT_D16_UNORM if not
+    if (descriptor->depthStencilFormat != VGPU_PIXEL_FORMAT_UNDEFINED)
+    {
+        VGpuPixelFormat depthStencilFormat = descriptor->depthStencilFormat;
+        VkFormat vkDepthStencilFormat = _vgpuVkGetFormat(depthStencilFormat);
+
+        VkImageFormatProperties properties = {};
+        result = vkGetPhysicalDeviceImageFormatProperties(
+            _vk.physicalDevice,
+            vkDepthStencilFormat,
+            VK_IMAGE_TYPE_2D,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            0,
+            &properties);
+
+        // Fall back to something that's guaranteed to work
+        if (result != VK_SUCCESS)
+        {
+            depthStencilFormat = VGPU_PIXEL_FORMAT_D16_UNORM;
+        }
+
+        handle->depthStencilTexture = vgpuCreateTexture2D(width, height, false, 1u, depthStencilFormat, descriptor->sampleCount, VGPU_TEXTURE_USAGE_RENDER_TARGET);
+        handle->depthStencilClearValue.depth = descriptor->depthStencilClearValue.depth;
+        handle->depthStencilClearValue.stencil = descriptor->depthStencilClearValue.stencil;
+    }
+
+    _vgpu_vk_flush_command_buffer(clearImageCmdBuffer);
+    return handle;
 }
 
-void vgpu_shutdown()
+void _vgpuVkDestroySwapchain(VGpuSwapchain swapchain)
+{
+    assert(swapchain);
+    if (swapchain->vk_handle == VK_NULL_HANDLE) {
+        return;
+    }
+
+    vkDeviceWaitIdle(_vk.device);
+
+    for (uint32_t i = 0; i < swapchain->image_count; ++i)
+    {
+        vkDestroyImageView(_vk.device, swapchain->image_views[i], nullptr);
+        vkDestroySemaphore(_vk.device, swapchain->image_semaphores[i], nullptr);
+    }
+
+    _VGPU_FREE(swapchain->image_views);
+    _VGPU_FREE(swapchain->image_semaphores);
+
+    // Destroy depth-stencil texture.
+    if (swapchain->depthStencilTexture != nullptr)
+    {
+        vgpuDestroyTexture(swapchain->depthStencilTexture);
+    }
+
+    /*if (swapchain->renderpass != VK_NULL_HANDLE) {
+        vkDestroyRenderPass(_vk.device, swapchain->renderpass, NULL);
+    }*/
+
+    vkDestroySwapchainKHR(_vk.device, swapchain->vk_handle, nullptr);
+}
+
+void vgpuShutdown()
 {
     if (_vk.instance == VK_NULL_HANDLE) {
         return;
@@ -898,10 +1594,37 @@ void vgpu_shutdown()
     }
 #endif
 
+    if (!_vk.headless)
+    {
+        _vgpuVkDestroySwapchain(_vk.swapchain);
+    }
+
+    if (_vk.memoryAllocator != VK_NULL_HANDLE)
+    {
+        VmaStats stats;
+        vmaCalculateStats(_vk.memoryAllocator, &stats);
+
+        VGPU_LOGI("Total device memory leaked: %llu bytes.", stats.total.usedBytes);
+
+        vmaDestroyAllocator(_vk.memoryAllocator);
+        _vk.memoryAllocator = VK_NULL_HANDLE;
+    }
+
+    if (_vk.commandPool != VK_NULL_HANDLE)
+    {
+        vkDestroyCommandPool(_vk.device, _vk.commandPool, nullptr);
+        _vk.commandPool = VK_NULL_HANDLE;
+    }
+
     if (_vk.device != VK_NULL_HANDLE)
     {
         vkDestroyDevice(_vk.device, nullptr);
         _vk.device = VK_NULL_HANDLE;
+    }
+
+    if (_vk.surface != VK_NULL_HANDLE)
+    {
+        vkDestroySurfaceKHR(_vk.instance, _vk.surface, nullptr);
     }
 
     if (_vk.instance != VK_NULL_HANDLE)
@@ -912,7 +1635,7 @@ void vgpu_shutdown()
     _vk.instance = VK_NULL_HANDLE;
 }
 
-vgpu_result vgpu_begin_frame()
+vgpu_result vgpuBeginFrame()
 {
     uint32_t frame_index = _vk.frame_index;
     if (!_vk.headless)
@@ -931,7 +1654,8 @@ vgpu_result vgpu_begin_frame()
     return VGPU_SUCCESS;
 }
 
-vgpu_result vgpu_end_frame() {
+vgpu_result vgpuEndFrame()
+{
     vgpu_result result = VGPU_SUCCESS;
 
     const uint32_t frame_index = _vk.frame_index;
@@ -958,6 +1682,91 @@ vgpu_result vgpu_end_frame() {
     _vk.frame_index = (_vk.frame_index + 1u) % _vk.max_inflight_frames;
 
     return result;
+}
+
+VGpuTexture vgpuCreateTexture(const VGpuTextureDescriptor* descriptor)
+{
+    VkImageCreateInfo createInfo;
+    memset(&createInfo, 0, sizeof(createInfo));
+    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    createInfo.pNext = nullptr;
+    createInfo.flags = 0;
+    createInfo.imageType = _vgpuVkGetImageType(descriptor->type);
+    createInfo.format = _vgpuVkGetFormat(descriptor->format);
+    createInfo.extent.width = descriptor->width;
+    createInfo.extent.height = descriptor->height;
+    if (descriptor->type == VGPU_TEXTURE_TYPE_3D)
+    {
+        createInfo.extent.depth = descriptor->depthOrArraySize;
+    }
+    else
+    {
+        createInfo.extent.depth = 1u;
+        createInfo.arrayLayers = descriptor->depthOrArraySize;
+    }
+
+    createInfo.mipLevels = descriptor->mipLevels;
+    createInfo.samples = _vgpuVkGetSampleCount(descriptor->sampleCount);
+    createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    createInfo.usage = _vgpuVkGetTextureUsage(descriptor->usage, descriptor->format, descriptor->sampleCount);
+    createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (descriptor->type == VGPU_TEXTURE_TYPE_CUBE)
+    {
+        createInfo.arrayLayers *= 6;
+        createInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+    }
+
+    VmaAllocationCreateInfo memory_info{};
+    memory_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+    if (createInfo.usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)
+    {
+        memory_info.preferredFlags = VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+    }
+
+    VkImage handle;
+    VmaAllocation memory;
+    VkResult result = vmaCreateImage(_vk.memoryAllocator, &createInfo, &memory_info,
+        &handle, &memory, nullptr);
+
+    if (result != VK_SUCCESS) {
+        return nullptr;
+    }
+
+    VGpuTexture texture = _VGPU_ALLOC_HANDLE(VGpuTexture);
+    texture->externalHandle = false;
+    texture->handle = handle;
+    texture->memory = memory;
+    return texture;
+}
+
+VGpuTexture vgpuCreateExternalTexture(const VGpuTextureDescriptor* descriptor, void* handle)
+{
+    VGpuTexture texture = _VGPU_ALLOC_HANDLE(VGpuTexture);
+    texture->handle = (VkImage)handle;
+    texture->memory = VK_NULL_HANDLE;
+    texture->externalHandle = true;
+    return texture;
+}
+
+void vgpuDestroyTexture(VGpuTexture texture)
+{
+    assert(texture);
+    if (!texture->externalHandle)
+    {
+        if (texture->memory != VK_NULL_HANDLE)
+        {
+            vmaDestroyImage(_vk.memoryAllocator, texture->handle, texture->memory);
+        }
+        else
+        {
+            vkDestroyImage(_vk.device, texture->handle, nullptr);
+        }
+    }
+
+    _VGPU_FREE(texture);
 }
 
 #endif
