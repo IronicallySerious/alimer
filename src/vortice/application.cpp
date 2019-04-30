@@ -55,6 +55,12 @@ namespace vortice
             return;
         }
 
+        /* Get frame command buffer for recording. */
+        VGpuCommandBuffer commandBuffer = vgpuGetCommandBuffer();
+        vgpuBeginCommandBuffer(commandBuffer);
+        vgpuEndCommandBuffer(commandBuffer);
+        vgpuSubmitCommandBuffer(commandBuffer);
+
         vgpuEndFrame();
 
         /*sg_pass_action pass_action = {};

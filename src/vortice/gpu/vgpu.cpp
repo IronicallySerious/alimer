@@ -217,7 +217,7 @@ const char* vgpuGetFormatName(VGpuPixelFormat format)
     return FormatDesc[(uint32_t)format].name;
 }
 
-VGpuTexture vgpuCreateTexture2D(uint32_t width, uint32_t height, VgpuBool32 mipMap, uint32_t arrayLayers, VGpuPixelFormat format, uint32_t sampleCount, VGpuTextureUsageFlags usage)
+VGpuTexture vgpuCreateTexture2D(uint32_t width, uint32_t height, VgpuBool32 mipMap, uint32_t arrayLayers, VGpuPixelFormat format, VgpuSampleCount sampleCount, VGpuTextureUsageFlags usage)
 {
     VGpuTextureDescriptor descriptor = {};
     descriptor.type = VGPU_TEXTURE_TYPE_2D;

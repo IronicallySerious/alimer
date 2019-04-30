@@ -41,6 +41,10 @@
 #define _VGPU_FREE(ptr)             (free((void*)(ptr)))
 #define _VGPU_ALLOC_HANDLE(type)    ((type) calloc(1, sizeof(type##_T)))
 
+#ifndef VGPU_ASSERT
+#   define VGPU_ASSERT(c) assert(c)
+#endif
+
 #if defined(_MSC_VER)
 #ifndef WIN32_LEAN_AND_MEAN
 #   define WIN32_LEAN_AND_MEAN
@@ -120,7 +124,6 @@ typedef struct VGpuSwapchain_T {
     uint32_t                    image_count;
     VkImage*                    images;
     VkImageView*                image_views;
-    VkSemaphore*                image_semaphores;
     uint32_t                    image_index;
     VGpuTexture                 depthStencilTexture;
     VGpuClearValue              depthStencilClearValue;
@@ -131,6 +134,21 @@ typedef struct VGpuTexture_T {
     VkImage                     handle;
     VmaAllocation               memory;
 } VGpuTexture_T;
+
+typedef struct VGpuCommandBuffer_T {
+    VkCommandBuffer     vk_handle;
+    VkSemaphore         vk_semaphore;
+    bool                recording;
+} VGpuCommandBuffer_T;
+
+/* Internal data */
+typedef struct VgpuVkFrameData {
+    VkSemaphore                     renderCompleteSemaphore;
+    VkSemaphore                     presentCompleteSemaphore;
+    VkFence                         fence;
+    std::vector<VkCommandBuffer>    submittedCommandBuffers;
+    //std::vector<VkSemaphore>        waitSemaphores;
+} VgpuVkFrameData;
 
 struct {
     bool                        headless = false;
@@ -144,6 +162,8 @@ struct {
     VkSurfaceKHR                surface = VK_NULL_HANDLE;
 
     VkPhysicalDevice            physicalDevice = VK_NULL_HANDLE;
+    VkPhysicalDeviceProperties  properties;
+    VkPhysicalDeviceFeatures    features;
     uint32_t                    graphics_queue_family = VK_QUEUE_FAMILY_IGNORED;
     uint32_t                    compute_queue_family = VK_QUEUE_FAMILY_IGNORED;
     uint32_t                    transfer_queue_family = VK_QUEUE_FAMILY_IGNORED;
@@ -154,9 +174,13 @@ struct {
     VmaAllocator                memoryAllocator = VK_NULL_HANDLE;
     VkCommandPool               commandPool = VK_NULL_HANDLE;
     VGpuSwapchain               swapchain = nullptr;
-    uint32_t                    max_inflight_frames;
-    uint32_t                    frame_index;
+    uint32_t                    maxInflightFrames;
+    uint32_t                    frameIndex;
+    VgpuVkFrameData*            frameData = nullptr;
+    std::vector<VGpuCommandBuffer> commandBuffers;
 } _vk;
+
+static bool s_initialized = false;
 
 #if VULKAN_DEBUG
 static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_messenger_cb(
@@ -304,6 +328,29 @@ static const char* _vgpu_vk_get_result_string(VkResult result)
     }
 }
 
+static VGpuResult _vgpuVkConvertResult(VkResult value)
+{
+    switch (value)
+    {
+    case VK_SUCCESS:                        return VGPU_SUCCESS;
+    case VK_NOT_READY:                      return VGPU_NOT_READY;
+    case VK_TIMEOUT:                        return VGPU_TIMEOUT;
+    case VK_INCOMPLETE:                     return VGPU_INCOMPLETE;
+    case VK_ERROR_OUT_OF_HOST_MEMORY:       return VGPU_ERROR_OUT_OF_HOST_MEMORY;
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY:     return VGPU_ERROR_OUT_OF_DEVICE_MEMORY;
+    case VK_ERROR_INITIALIZATION_FAILED:    return VGPU_ERROR_INITIALIZATION_FAILED;
+    case VK_ERROR_DEVICE_LOST:              return VGPU_ERROR_DEVICE_LOST;
+    case VK_ERROR_TOO_MANY_OBJECTS:         return VGPU_ERROR_TOO_MANY_OBJECTS;
+
+    default:
+        if (value < VK_SUCCESS) {
+            return VGPU_ERROR_GENERIC;
+        }
+
+        return VGPU_SUCCESS;
+    }
+}
+
 
 static void _vgpuVkLogIfFailed(VkResult result)
 {
@@ -440,18 +487,17 @@ static VkImageType _vgpuVkGetImageType(VGpuTextureType type)
     return types[type];
 }
 
-static VkSampleCountFlagBits _vgpuVkGetSampleCount(uint32_t sample_count)
+static VkSampleCountFlagBits _vgpuVkGetSampleCount(VgpuSampleCount sample_count)
 {
     switch (sample_count)
     {
-    case 0u:
-    case 1u:  return VK_SAMPLE_COUNT_1_BIT;
-    case 2u:  return VK_SAMPLE_COUNT_2_BIT;
-    case 4u:  return VK_SAMPLE_COUNT_4_BIT;
-    case 8u:  return VK_SAMPLE_COUNT_8_BIT;
-    case 16u: return VK_SAMPLE_COUNT_16_BIT;
-    case 32u: return VK_SAMPLE_COUNT_32_BIT;
-    case 64u: return VK_SAMPLE_COUNT_64_BIT;
+    case VGPU_SAMPLE_COUNT1:  return VK_SAMPLE_COUNT_1_BIT;
+    case VGPU_SAMPLE_COUNT2:  return VK_SAMPLE_COUNT_2_BIT;
+    case VGPU_SAMPLE_COUNT4:  return VK_SAMPLE_COUNT_4_BIT;
+    case VGPU_SAMPLE_COUNT8:  return VK_SAMPLE_COUNT_8_BIT;
+    case VGPU_SAMPLE_COUNT16: return VK_SAMPLE_COUNT_16_BIT;
+    case VGPU_SAMPLE_COUNT32: return VK_SAMPLE_COUNT_32_BIT;
+    case VGPU_SAMPLE_COUNT64: return VK_SAMPLE_COUNT_64_BIT;
     default:  return VK_SAMPLE_COUNT_1_BIT;
     }
 
@@ -508,9 +554,184 @@ using namespace std;
 VGpuSwapchain _vgpuVkCreateSwapchain(uint32_t width, uint32_t height, VkSurfaceKHR surface, VkSwapchainKHR oldSwapchain, const VGpuSwapchainDescriptor* descriptor);
 void _vgpuVkDestroySwapchain(VGpuSwapchain swapchain);
 
-vgpu_result vgpuInitialize(const char* app_name, const VGpuRendererSettings * settings)
+
+// Put an image memory barrier for setting an image layout on the sub resource into the given command buffer
+static void vgpuVkTransitionImageLayout(
+    VkCommandBuffer commandBuffer,
+    VkImage image,
+    VkImageLayout oldImageLayout,
+    VkImageLayout newImageLayout,
+    VkImageSubresourceRange subresourceRange,
+    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
 {
-    if (_vk.instance != VK_NULL_HANDLE) {
+    // Create an image barrier object
+    VkImageMemoryBarrier imageMemoryBarrier{};
+    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.oldLayout = oldImageLayout;
+    imageMemoryBarrier.newLayout = newImageLayout;
+    imageMemoryBarrier.image = image;
+    imageMemoryBarrier.subresourceRange = subresourceRange;
+
+    // Source layouts (old)
+    // Source access mask controls actions that have to be finished on the old layout
+    // before it will be transitioned to the new layout
+    switch (oldImageLayout)
+    {
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+        // Image layout is undefined (or does not matter)
+        // Only valid as initial layout
+        // No flags required, listed only for completeness
+        imageMemoryBarrier.srcAccessMask = 0;
+        break;
+
+    case VK_IMAGE_LAYOUT_PREINITIALIZED:
+        // Image is preinitialized
+        // Only valid as initial layout for linear images, preserves memory contents
+        // Make sure host writes have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+        // Image is a color attachment
+        // Make sure any writes to the color buffer have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+        // Image is a depth/stencil attachment
+        // Make sure any writes to the depth/stencil buffer have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+        // Image is a transfer source 
+        // Make sure any reads from the image have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+        // Image is a transfer destination
+        // Make sure any writes to the image have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+        // Image is read by a shader
+        // Make sure any shader reads from the image have been finished
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        break;
+    default:
+        // Other source layouts aren't handled (yet)
+        break;
+    }
+
+    // Target layouts (new)
+    // Destination access mask controls the dependency for the new image layout
+    switch (newImageLayout)
+    {
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+        // Image will be used as a transfer destination
+        // Make sure any writes to the image have been finished
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+        // Image will be used as a transfer source
+        // Make sure any reads from the image have been finished
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+        // Image will be used as a color attachment
+        // Make sure any writes to the color buffer have been finished
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+        // Image layout will be used as a depth/stencil attachment
+        // Make sure any writes to depth/stencil buffer have been finished
+        imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        break;
+
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+        // Image will be read in a shader (sampler, input attachment)
+        // Make sure any writes to the image have been finished
+        if (imageMemoryBarrier.srcAccessMask == 0)
+        {
+            imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+        }
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        break;
+    default:
+        // Other source layouts aren't handled (yet)
+        break;
+    }
+
+    // Put barrier inside setup command buffer
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        srcStageMask,
+        dstStageMask,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &imageMemoryBarrier);
+}
+
+// Uses a fixed sub resource layout with first mip level and layer
+static void vgpuVkTransitionImageLayout(
+    VkCommandBuffer commandBuffer,
+    VkImage image,
+    VkImageAspectFlags aspectMask,
+    VkImageLayout oldImageLayout,
+    VkImageLayout newImageLayout,
+    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
+{
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = aspectMask;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = 1;
+    subresourceRange.layerCount = 1;
+    vgpuVkTransitionImageLayout(commandBuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
+}
+
+static void vgpuVkClearImageWithColor(
+    VkCommandBuffer commandBuffer,
+    VkImage image,
+    VkImageSubresourceRange range,
+    VkImageAspectFlags aspect,
+    VkImageLayout sourceLayout,
+    VkImageLayout destLayout,
+    VkClearColorValue *clearValue)
+{
+    // Transition to destination layout.
+    vgpuVkTransitionImageLayout(commandBuffer, image, aspect, sourceLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    // Clear the image
+    range.aspectMask = aspect;
+    vkCmdClearColorImage(
+        commandBuffer,
+        image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        clearValue,
+        1,
+        &range);
+
+    // Transition back to source layout.
+    vgpuVkTransitionImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
+}
+
+VGpuBackend vgpuGetBackend() {
+    return VGPU_BACKEND_VULKAN;
+}
+
+VGpuResult vgpuInitialize(const char* app_name, const VGpuRendererSettings * settings)
+{
+    if (s_initialized) {
         return VGPU_ALREADY_INITIALIZED;
     }
 
@@ -629,14 +850,15 @@ vgpu_result vgpuInitialize(const char* app_name, const VGpuRendererSettings * se
     }
 #endif
 
-    VkInstanceCreateInfo instanceCreateInfo = {};
+    VkInstanceCreateInfo instanceCreateInfo;
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pNext = NULL;
+    instanceCreateInfo.flags = 0u;
     instanceCreateInfo.pApplicationInfo = &appInfo;
-    instanceCreateInfo.enabledExtensionCount = (uint32_t)enabled_instance_extensions.size();
-    instanceCreateInfo.ppEnabledExtensionNames = enabled_instance_extensions.data();
     instanceCreateInfo.enabledLayerCount = (uint32_t)enabled_instance_layers.size();
     instanceCreateInfo.ppEnabledLayerNames = enabled_instance_layers.data();
+    instanceCreateInfo.enabledExtensionCount = (uint32_t)enabled_instance_extensions.size();
+    instanceCreateInfo.ppEnabledExtensionNames = enabled_instance_extensions.data();
 
     result = vkCreateInstance(&instanceCreateInfo, NULL, &_vk.instance);
     if (result != VK_SUCCESS) {
@@ -694,7 +916,7 @@ vgpu_result vgpuInitialize(const char* app_name, const VGpuRendererSettings * se
         {
             return VGPU_ERROR_INITIALIZATION_FAILED;
         }
-}
+    }
 
     // Enumerate physical device and create logical device.
     uint32_t gpu_count = 0u;
@@ -745,18 +967,18 @@ vgpu_result vgpuInitialize(const char* app_name, const VGpuRendererSettings * se
     }
 
     _vk.physicalDevice = gpus[best_device_index];
-    VkPhysicalDeviceProperties device_props;
-    vkGetPhysicalDeviceProperties(_vk.physicalDevice, &device_props);
+    vkGetPhysicalDeviceProperties(_vk.physicalDevice, &_vk.properties);
+    vkGetPhysicalDeviceFeatures(_vk.physicalDevice, &_vk.features);
 
-    VGPU_LOGI("Using Vulkan GPU: %s\n", device_props.deviceName);
+    VGPU_LOGI("Using Vulkan GPU: %s\n", _vk.properties.deviceName);
     VGPU_LOGI("    API: %u.%u.%u\n",
-        VK_VERSION_MAJOR(device_props.apiVersion),
-        VK_VERSION_MINOR(device_props.apiVersion),
-        VK_VERSION_PATCH(device_props.apiVersion));
+        VK_VERSION_MAJOR(_vk.properties.apiVersion),
+        VK_VERSION_MINOR(_vk.properties.apiVersion),
+        VK_VERSION_PATCH(_vk.properties.apiVersion));
     VGPU_LOGI("    Driver: %u.%u.%u\n",
-        VK_VERSION_MAJOR(device_props.driverVersion),
-        VK_VERSION_MINOR(device_props.driverVersion),
-        VK_VERSION_PATCH(device_props.driverVersion));
+        VK_VERSION_MAJOR(_vk.properties.driverVersion),
+        VK_VERSION_MINOR(_vk.properties.driverVersion),
+        VK_VERSION_PATCH(_vk.properties.driverVersion));
 
 
     uint32_t queue_count;
@@ -1003,12 +1225,45 @@ vgpu_result vgpuInitialize(const char* app_name, const VGpuRendererSettings * se
     }
 
     // Setup per frame resources.
-    _vk.max_inflight_frames = 3u;
+    _vk.frameIndex = 0;
+    _vk.maxInflightFrames = 3u;
     if (!_vk.headless)
     {
         _vk.swapchain = _vgpuVkCreateSwapchain(settings->width, settings->height, _vk.surface, VK_NULL_HANDLE, &settings->swapchain);
-        _vk.max_inflight_frames = _vk.swapchain->image_count;
+        _vk.maxInflightFrames = _vk.swapchain->image_count;
     }
+
+    /* Create frame data and frame command buffers. */
+    _vk.frameData = new VgpuVkFrameData[_vk.maxInflightFrames];
+    _vk.commandBuffers.resize(_vk.maxInflightFrames);
+    for (uint32_t i = 0u; i < _vk.maxInflightFrames; i++)
+    {
+        if (!_vk.headless)
+        {
+            VkSemaphoreCreateInfo semaphoreCreateInfo;
+            semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            semaphoreCreateInfo.pNext = nullptr;
+            semaphoreCreateInfo.flags = 0u;
+            _vgpuVkLogIfFailed(
+                vkCreateSemaphore(_vk.device, &semaphoreCreateInfo, nullptr, &_vk.frameData[i].renderCompleteSemaphore)
+            );
+
+            _vgpuVkLogIfFailed(
+                vkCreateSemaphore(_vk.device, &semaphoreCreateInfo, nullptr, &_vk.frameData[i].presentCompleteSemaphore)
+            );
+        }
+
+        // Create signalled fence.
+        VkFenceCreateInfo fenceCreateInfo{};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        _vgpuVkLogIfFailed(vkCreateFence(_vk.device, &fenceCreateInfo, nullptr, &_vk.frameData[i].fence));
+
+        // Allocate frame command buffer.
+        _vk.commandBuffers[i] = _VGPU_ALLOC_HANDLE(VGpuCommandBuffer);
+    }
+
+    s_initialized = true;
     return VGPU_SUCCESS;
 }
 
@@ -1074,176 +1329,6 @@ bool _vgpu_vk_flush_command_buffer(VkCommandBuffer commandBuffer)
     vkFreeCommandBuffers(_vk.device, _vk.commandPool, 1u, &commandBuffer);
 
     return true;
-}
-
-// Put an image memory barrier for setting an image layout on the sub resource into the given command buffer
-static void vgpuVkTransitionImageLayout(
-    VkCommandBuffer commandBuffer,
-    VkImage image,
-    VkImageLayout oldImageLayout,
-    VkImageLayout newImageLayout,
-    VkImageSubresourceRange subresourceRange,
-    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
-{
-    // Create an image barrier object
-    VkImageMemoryBarrier imageMemoryBarrier{};
-    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    imageMemoryBarrier.oldLayout = oldImageLayout;
-    imageMemoryBarrier.newLayout = newImageLayout;
-    imageMemoryBarrier.image = image;
-    imageMemoryBarrier.subresourceRange = subresourceRange;
-
-    // Source layouts (old)
-    // Source access mask controls actions that have to be finished on the old layout
-    // before it will be transitioned to the new layout
-    switch (oldImageLayout)
-    {
-    case VK_IMAGE_LAYOUT_UNDEFINED:
-        // Image layout is undefined (or does not matter)
-        // Only valid as initial layout
-        // No flags required, listed only for completeness
-        imageMemoryBarrier.srcAccessMask = 0;
-        break;
-
-    case VK_IMAGE_LAYOUT_PREINITIALIZED:
-        // Image is preinitialized
-        // Only valid as initial layout for linear images, preserves memory contents
-        // Make sure host writes have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-        break;
-
-    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-        // Image is a color attachment
-        // Make sure any writes to the color buffer have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        break;
-
-    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-        // Image is a depth/stencil attachment
-        // Make sure any writes to the depth/stencil buffer have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        break;
-
-    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-        // Image is a transfer source 
-        // Make sure any reads from the image have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        break;
-
-    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-        // Image is a transfer destination
-        // Make sure any writes to the image have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        break;
-
-    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-        // Image is read by a shader
-        // Make sure any shader reads from the image have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        break;
-    default:
-        // Other source layouts aren't handled (yet)
-        break;
-    }
-
-    // Target layouts (new)
-    // Destination access mask controls the dependency for the new image layout
-    switch (newImageLayout)
-    {
-    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-        // Image will be used as a transfer destination
-        // Make sure any writes to the image have been finished
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        break;
-
-    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-        // Image will be used as a transfer source
-        // Make sure any reads from the image have been finished
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        break;
-
-    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-        // Image will be used as a color attachment
-        // Make sure any writes to the color buffer have been finished
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        break;
-
-    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-        // Image layout will be used as a depth/stencil attachment
-        // Make sure any writes to depth/stencil buffer have been finished
-        imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        break;
-
-    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-        // Image will be read in a shader (sampler, input attachment)
-        // Make sure any writes to the image have been finished
-        if (imageMemoryBarrier.srcAccessMask == 0)
-        {
-            imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-        }
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        break;
-    default:
-        // Other source layouts aren't handled (yet)
-        break;
-    }
-
-    // Put barrier inside setup command buffer
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        srcStageMask,
-        dstStageMask,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &imageMemoryBarrier);
-}
-
-// Uses a fixed sub resource layout with first mip level and layer
-static void vgpuVkTransitionImageLayout(
-    VkCommandBuffer commandBuffer,
-    VkImage image,
-    VkImageAspectFlags aspectMask,
-    VkImageLayout oldImageLayout,
-    VkImageLayout newImageLayout,
-    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
-{
-    VkImageSubresourceRange subresourceRange = {};
-    subresourceRange.aspectMask = aspectMask;
-    subresourceRange.baseMipLevel = 0;
-    subresourceRange.levelCount = 1;
-    subresourceRange.layerCount = 1;
-    vgpuVkTransitionImageLayout(commandBuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
-}
-
-static void vgpuVkClearImageWithColor(
-    VkCommandBuffer commandBuffer,
-    VkImage image,
-    VkImageSubresourceRange range,
-    VkImageAspectFlags aspect,
-    VkImageLayout sourceLayout,
-    VkImageLayout destLayout,
-    VkClearColorValue *clearValue)
-{
-    // Transition to destination layout.
-    vgpuVkTransitionImageLayout(commandBuffer, image, aspect, sourceLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-    // Clear the image
-    range.aspectMask = aspect;
-    vkCmdClearColorImage(
-        commandBuffer,
-        image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        clearValue,
-        1,
-        &range);
-
-    // Transition back to source layout.
-    vgpuVkTransitionImageLayout(commandBuffer, image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destLayout);
 }
 
 VGpuSwapchain _vgpuVkCreateSwapchain(uint32_t width, uint32_t height, VkSurfaceKHR surface, VkSwapchainKHR oldSwapchain, const VGpuSwapchainDescriptor* descriptor)
@@ -1429,7 +1514,6 @@ VGpuSwapchain _vgpuVkCreateSwapchain(uint32_t width, uint32_t height, VkSurfaceK
 
     // Create image views for swapchain images.
     handle->image_views = _VGPU_ALLOCN(VkImageView, handle->image_count);
-    handle->image_semaphores = _VGPU_ALLOCN(VkSemaphore, handle->image_count);
 
     /* Clear or transition to default image layout */
     const bool canClear = surface_properties.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -1451,10 +1535,10 @@ VGpuSwapchain _vgpuVkCreateSwapchain(uint32_t width, uint32_t height, VkSurfaceK
         {
             // Clear images with default color.
             VkClearColorValue clearColor = {};
-            clearColor.float32[0] = descriptor->colorClearValue.r;
-            clearColor.float32[1] = descriptor->colorClearValue.g;
-            clearColor.float32[2] = descriptor->colorClearValue.b;
-            clearColor.float32[3] = descriptor->colorClearValue.a;
+            clearColor.float32[0] = descriptor->colorClearValue.color.r;
+            clearColor.float32[1] = descriptor->colorClearValue.color.g;
+            clearColor.float32[2] = descriptor->colorClearValue.color.b;
+            clearColor.float32[3] = descriptor->colorClearValue.color.a;
 
             VkImageSubresourceRange clearRange = {};
             clearRange.layerCount = 1;
@@ -1505,13 +1589,6 @@ VGpuSwapchain _vgpuVkCreateSwapchain(uint32_t width, uint32_t height, VkSurfaceK
         if (result != VK_SUCCESS) {
             return nullptr;
         }
-
-        VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        result = vkCreateSemaphore(_vk.device, &semaphoreCreateInfo, nullptr, &handle->image_semaphores[i]);
-        if (result != VK_SUCCESS) {
-            return nullptr;
-        }
     }
 
     // Make sure depth/stencil format is supported - fall back to VK_FORMAT_D16_UNORM if not
@@ -1557,11 +1634,9 @@ void _vgpuVkDestroySwapchain(VGpuSwapchain swapchain)
     for (uint32_t i = 0; i < swapchain->image_count; ++i)
     {
         vkDestroyImageView(_vk.device, swapchain->image_views[i], nullptr);
-        vkDestroySemaphore(_vk.device, swapchain->image_semaphores[i], nullptr);
     }
 
     _VGPU_FREE(swapchain->image_views);
-    _VGPU_FREE(swapchain->image_semaphores);
 
     // Destroy depth-stencil texture.
     if (swapchain->depthStencilTexture != nullptr)
@@ -1578,9 +1653,11 @@ void _vgpuVkDestroySwapchain(VGpuSwapchain swapchain)
 
 void vgpuShutdown()
 {
-    if (_vk.instance == VK_NULL_HANDLE) {
+    if (!s_initialized) {
         return;
     }
+
+    vkDeviceWaitIdle(_vk.device);
 
 #if VULKAN_DEBUG
     if (_vk.debug_callback != VK_NULL_HANDLE) {
@@ -1597,6 +1674,13 @@ void vgpuShutdown()
     if (!_vk.headless)
     {
         _vgpuVkDestroySwapchain(_vk.swapchain);
+
+        for (uint32_t i = 0; i < _vk.maxInflightFrames; ++i)
+        {
+            vkDestroyFence(_vk.device, _vk.frameData[i].fence, nullptr);
+            vkDestroySemaphore(_vk.device, _vk.frameData[i].renderCompleteSemaphore, nullptr);
+            vkDestroySemaphore(_vk.device, _vk.frameData[i].presentCompleteSemaphore, nullptr);
+        }
     }
 
     if (_vk.memoryAllocator != VK_NULL_HANDLE)
@@ -1633,19 +1717,26 @@ void vgpuShutdown()
     }
 
     _vk.instance = VK_NULL_HANDLE;
+    s_initialized = false;
 }
 
-vgpu_result vgpuBeginFrame()
+VGpuResult vgpuBeginFrame()
 {
-    uint32_t frame_index = _vk.frame_index;
+    uint32_t frameIndex = _vk.frameIndex;
+    const VgpuVkFrameData *frameData = &_vk.frameData[frameIndex];
+
+    _vgpuVkLogIfFailed(vkWaitForFences(_vk.device, 1, &frameData->fence, VK_TRUE, UINT64_MAX));
+    _vgpuVkLogIfFailed(vkResetFences(_vk.device, 1, &frameData->fence));
+
     if (!_vk.headless)
     {
         VkResult result = vkAcquireNextImageKHR(_vk.device,
             _vk.swapchain->vk_handle,
             UINT64_MAX,
-            _vk.swapchain->image_semaphores[frame_index],
+            frameData->presentCompleteSemaphore,
             VK_NULL_HANDLE,
             &_vk.swapchain->image_index);
+
         if (result != VK_SUCCESS) {
             return VGPU_ERROR_BEGIN_FRAME_FAILED;
         }
@@ -1654,34 +1745,179 @@ vgpu_result vgpuBeginFrame()
     return VGPU_SUCCESS;
 }
 
-vgpu_result vgpuEndFrame()
+VGpuResult vgpuEndFrame()
 {
-    vgpu_result result = VGPU_SUCCESS;
+    const uint32_t frameIndex = _vk.frameIndex;
+    VgpuVkFrameData *frameData = &_vk.frameData[frameIndex];
 
-    const uint32_t frame_index = _vk.frame_index;
+    // Submit command buffers.
+    const VkPipelineStageFlags allGraphicsStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+    const VkPipelineStageFlags colorAttachmentStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    VkSubmitInfo submitInfo;
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.pNext = nullptr;
+
+    submitInfo.waitSemaphoreCount = 1u;
+    submitInfo.pWaitSemaphores = &frameData->presentCompleteSemaphore;
+
+    if (frameData->submittedCommandBuffers.size() > 0)
+    {
+        submitInfo.pWaitDstStageMask = &colorAttachmentStage;
+        submitInfo.commandBufferCount = (uint32_t)frameData->submittedCommandBuffers.size();
+        submitInfo.pCommandBuffers = frameData->submittedCommandBuffers.data();
+
+    }
+    else
+    {
+        submitInfo.pWaitDstStageMask = &allGraphicsStage;
+        submitInfo.commandBufferCount = 0u;
+        submitInfo.pCommandBuffers = nullptr;
+    }
+
+    submitInfo.signalSemaphoreCount = 1u;
+    submitInfo.pSignalSemaphores = &frameData->renderCompleteSemaphore;
+
+    // Submit to the queue
+    VkResult result = vkQueueSubmit(_vk.graphics_queue, 1, &submitInfo, frameData->fence);
+    if (result != VK_SUCCESS)
+    {
+        return _vgpuVkConvertResult(result);
+    }
+
     if (!_vk.headless)
     {
-        VkResult present_result = VK_SUCCESS;
+        VkResult presentPesult = VK_SUCCESS;
 
-        VkPresentInfoKHR present_info = {};
-        present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        present_info.waitSemaphoreCount = 0;
-        present_info.pWaitSemaphores = nullptr;
-        present_info.swapchainCount = 1;
-        present_info.pSwapchains = &_vk.swapchain->vk_handle;
-        present_info.pImageIndices = &_vk.swapchain->image_index;
-        present_info.pResults = &present_result;
-        vkQueuePresentKHR(_vk.graphics_queue, &present_info);
-        if (present_result != VK_SUCCESS)
+        VkPresentInfoKHR presentInfo;
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.pNext = nullptr;
+        presentInfo.waitSemaphoreCount = 1u;
+        presentInfo.pWaitSemaphores = &frameData->renderCompleteSemaphore;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &_vk.swapchain->vk_handle;
+        presentInfo.pImageIndices = &_vk.swapchain->image_index;
+        presentInfo.pResults = &presentPesult;
+        vkQueuePresentKHR(_vk.graphics_queue, &presentInfo);
+        if (presentPesult != VK_SUCCESS)
         {
             return VGPU_ERROR_END_FRAME_FAILED;
         }
     }
 
     // Advance to next frame.
-    _vk.frame_index = (_vk.frame_index + 1u) % _vk.max_inflight_frames;
+    frameData->submittedCommandBuffers.clear();
+    _vk.frameIndex = (_vk.frameIndex + 1u) % _vk.maxInflightFrames;
 
-    return result;
+    return VGPU_SUCCESS;
+}
+
+VgpuBool32 vgpuQueryFeature(VGpuFeature feature)
+{
+    assert(s_initialized);
+
+    switch (feature)
+    {
+    case VGPU_FEATURE_INSTANCING:
+        return true;
+
+    case VGPU_FEATURE_ALPHA_TO_COVERAGE:
+        return true;
+
+    case VGPU_FEATURE_BLEND_INDEPENDENT:
+        return _vk.features.independentBlend;
+
+    case VGPU_FEATURE_COMPUTE_SHADER:
+        return true;
+
+    case VGPU_FEATURE_GEOMETRY_SHADER:
+        return _vk.features.geometryShader;
+
+    case VGPU_FEATURE_TESSELLATION_SHADER:
+        return _vk.features.tessellationShader;
+
+    case VGPU_FEATURE_MULTI_VIEWPORT:
+        return _vk.features.multiViewport;
+
+    case VGPU_FEATURE_INDEX_UINT32:
+        return _vk.features.fullDrawIndexUint32;
+
+    case VGPU_FEATURE_DRAW_INDIRECT:
+        return _vk.features.multiDrawIndirect;
+
+    case VGPU_FEATURE_FILL_MODE_NON_SOLID:
+        return _vk.features.fillModeNonSolid;
+
+    case VGPU_FEATURE_SAMPLER_ANISOTROPY:
+        return _vk.features.samplerAnisotropy;
+
+    case VGPU_FEATURE_TEXTURE_COMPRESSION_BC:
+        return _vk.features.textureCompressionBC;
+
+    case VGPU_FEATURE_TEXTURE_COMPRESSION_PVRTC:
+        return false;
+
+    case VGPU_FEATURE_TEXTURE_COMPRESSION_ETC2:
+        return _vk.features.textureCompressionETC2;
+
+    case VGPU_FEATURE_TEXTURE_COMPRESSION_ATC:
+    case VGPU_FEATURE_TEXTURE_COMPRESSION_ASTC:
+        return _vk.features.textureCompressionASTC_LDR;
+
+    case VGPU_FEATURE_TEXTURE_1D:
+        return true;
+
+    case VGPU_FEATURE_TEXTURE_3D:
+        return true;
+
+    case VGPU_FEATURE_TEXTURE_2D_ARRAY:
+        return true;
+
+    case VGPU_FEATURE_TEXTURE_CUBE_ARRAY:
+        return _vk.features.imageCubeArray;
+
+    case VGPU_FEATURE_RAYTRACING:
+        return false;
+
+    default:
+        return false;
+    }
+}
+
+void vgpuQueryLimits(VGpuLimits* pLimits)
+{
+    assert(s_initialized);
+    assert(pLimits);
+
+    VGpuLimits limits;
+    limits.maxTextureDimension1D = _vk.properties.limits.maxImageDimension1D;
+    limits.maxTextureDimension2D = _vk.properties.limits.maxImageDimension2D;
+    limits.maxTextureDimension3D = _vk.properties.limits.maxImageDimension3D;
+    limits.maxTextureDimensionCube = _vk.properties.limits.maxImageDimensionCube;
+    limits.maxTextureArrayLayers = _vk.properties.limits.maxImageArrayLayers;
+    limits.maxColorAttachments = _vk.properties.limits.maxColorAttachments;
+    limits.maxUniformBufferSize = _vk.properties.limits.maxUniformBufferRange;
+    limits.minUniformBufferOffsetAlignment = _vk.properties.limits.minUniformBufferOffsetAlignment;
+    limits.maxStorageBufferSize = _vk.properties.limits.maxStorageBufferRange;
+    limits.minStorageBufferOffsetAlignment = _vk.properties.limits.minStorageBufferOffsetAlignment;
+    limits.maxSamplerAnisotropy = static_cast<uint32_t>(_vk.properties.limits.maxSamplerAnisotropy);
+    limits.maxViewports = _vk.properties.limits.maxViewports;
+    limits.maxViewportDimensions[0] = _vk.properties.limits.maxViewportDimensions[0];
+    limits.maxViewportDimensions[1] = _vk.properties.limits.maxViewportDimensions[1];
+    limits.maxPatchVertices = _vk.properties.limits.maxTessellationPatchSize;
+    limits.pointSizeRange[0] = _vk.properties.limits.pointSizeRange[0];
+    limits.pointSizeRange[1] = _vk.properties.limits.pointSizeRange[1];
+    limits.lineWidthRange[0] = _vk.properties.limits.lineWidthRange[0];
+    limits.lineWidthRange[1] = _vk.properties.limits.lineWidthRange[0];
+    limits.maxComputeSharedMemorySize = _vk.properties.limits.maxComputeSharedMemorySize;
+    limits.maxComputeWorkGroupCount[0] = _vk.properties.limits.maxComputeWorkGroupCount[0];
+    limits.maxComputeWorkGroupCount[1] = _vk.properties.limits.maxComputeWorkGroupCount[1];
+    limits.maxComputeWorkGroupCount[2] = _vk.properties.limits.maxComputeWorkGroupCount[2];
+    limits.maxComputeWorkGroupInvocations = _vk.properties.limits.maxComputeWorkGroupInvocations;
+    limits.maxComputeWorkGroupSize[0] = _vk.properties.limits.maxComputeWorkGroupSize[0];
+    limits.maxComputeWorkGroupSize[1] = _vk.properties.limits.maxComputeWorkGroupSize[1];
+    limits.maxComputeWorkGroupSize[2] = _vk.properties.limits.maxComputeWorkGroupSize[2];
+    *pLimits = limits;
 }
 
 VGpuTexture vgpuCreateTexture(const VGpuTextureDescriptor* descriptor)
@@ -1767,6 +2003,101 @@ void vgpuDestroyTexture(VGpuTexture texture)
     }
 
     _VGPU_FREE(texture);
+}
+
+VGpuCommandBuffer vgpuGetCommandBuffer()
+{
+    return _vk.commandBuffers[_vk.frameIndex];
+}
+
+VGpuResult vgpuBeginCommandBuffer(VGpuCommandBuffer commandBuffer)
+{
+    VGPU_ASSERT(commandBuffer);
+
+    // Verify we're not recording.
+    if (commandBuffer->recording) {
+        return VGPU_ERROR_COMMAND_BUFFER_ALREADY_RECORDING;
+    }
+
+    VkResult result = VK_SUCCESS;
+    if (commandBuffer->vk_handle == VK_NULL_HANDLE)
+    {
+        VkCommandBufferAllocateInfo allocateInfo = {};
+        allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocateInfo.commandPool = _vk.commandPool;
+        allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocateInfo.commandBufferCount = 1u;
+
+        result = vkAllocateCommandBuffers(_vk.device, &allocateInfo, &commandBuffer->vk_handle);
+    }
+    else
+    {
+        result = vkResetCommandBuffer(commandBuffer->vk_handle, 0);
+    }
+
+    if (result != VK_SUCCESS)
+    {
+        return _vgpuVkConvertResult(result);
+    }
+
+    VkCommandBufferBeginInfo beginInfo;
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.pNext = nullptr;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+    result = vkBeginCommandBuffer(commandBuffer->vk_handle, &beginInfo);
+    if (result != VK_SUCCESS)
+    {
+        return _vgpuVkConvertResult(result);
+    }
+
+    commandBuffer->recording = true;
+    return VGPU_SUCCESS;
+}
+
+VGpuResult vgpuEndCommandBuffer(VGpuCommandBuffer commandBuffer)
+{
+    VGPU_ASSERT(commandBuffer);
+    if (!commandBuffer->recording) {
+        return VGPU_ERROR_COMMAND_BUFFER_NOT_RECORDING;
+    }
+
+    VkResult result = vkEndCommandBuffer(commandBuffer->vk_handle);
+    if (result != VK_SUCCESS)
+    {
+        return _vgpuVkConvertResult(result);
+    }
+
+    commandBuffer->recording = false;
+    return VGPU_SUCCESS;
+}
+
+void vgpuCmdEndRenderPass(VGpuCommandBuffer commandBuffer) {
+    VGPU_ASSERT(commandBuffer && commandBuffer->recording);
+    vkCmdEndRenderPass(commandBuffer->vk_handle);
+}
+
+void vgpuCmdSetViewport(VGpuCommandBuffer commandBuffer, float x, float y, float width, float height)
+{
+    VGPU_ASSERT(commandBuffer && commandBuffer->recording);
+
+    VkViewport viewport = { x, height + y, width, -height, 0.0f, 1.0f };
+    vkCmdSetViewport(commandBuffer->vk_handle, 0, 1, &viewport);
+}
+
+void vgpuCmdSetScissor(VGpuCommandBuffer commandBuffer, int32_t x, int32_t y, uint32_t width, uint32_t height)
+{
+    VGPU_ASSERT(commandBuffer && commandBuffer->recording);
+
+    VkRect2D scissor = { { x, y}, { width, height} };
+    vkCmdSetScissor(commandBuffer->vk_handle, 0, 1, &scissor);
+}
+
+void vgpuSubmitCommandBuffer(VGpuCommandBuffer commandBuffer)
+{
+    uint32_t frameIndex = _vk.frameIndex;
+    VgpuVkFrameData *frameData = &_vk.frameData[frameIndex];
+    frameData->submittedCommandBuffers.push_back(commandBuffer->vk_handle);
 }
 
 #endif
