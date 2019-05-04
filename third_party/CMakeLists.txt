@@ -20,22 +20,7 @@
 # THE SOFTWARE.
 #
 
-# sokol
-add_library(sokol INTERFACE)
-target_include_directories(sokol INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/sokol)
-target_compile_definitions(sokol INTERFACE SOKOL_NO_DEPRECATED)
-if (ALIMER_D3D11)
-    target_compile_definitions(sokol INTERFACE SOKOL_D3D11)
-elseif (SOKOL_USE_METAL)
-    target_compile_definitions(sokol INTERFACE SOKOL_METAL)
-else ()
-    if (ANDROID OR EMSCRIPTEN OR IOS)
-        target_compile_definitions(sokol INTERFACE SOKOL_GLES3)
-    else ()
-        target_compile_definitions(sokol INTERFACE SOKOL_GLCORE33)
-    endif ()
-endif()
-
+# GLFW
 if(NOT (EMSCRIPTEN OR ANDROID))
     set (GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     set (GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
