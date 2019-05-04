@@ -20,48 +20,26 @@
 // THE SOFTWARE.
 //
 
-#pragma once
+#if defined(VGPU_GL) || defined(VGPU_GLES)
+#include "vgpu.h"
+static bool s_initialized = false;
 
-#include "window.hpp"
-#include "input.hpp"
-
-namespace vortice
+VGpuResult vgpuInitialize(const char* app_name, const VGpuRendererSettings * settings)
 {
-    class VORTICE_API Application
-    {
-    public:
-        Application();
+    if (s_initialized) {
+        return VGPU_ALREADY_INITIALIZED;
+    }
 
-        /// Destructor.
-        virtual ~Application();
+    s_initialized = true;
+    return VGPU_SUCCESS;
+}
 
-        /// Runs main loop using Platform instance.
-        int run();
+void vgpuShutdown()
+{
+    if (!s_initialized) {
+        return;
+    }
 
-        /// Get the main system.
-        inline Window& get_window() { return _window; }
+}
 
-        /// Get the input system.
-        inline Input& get_input() { return _input; }
-
-    private:
-        void platform_construct();
-        void platform_shutdown();
-        /// Run OS main loop.
-        int run_main_loop();
-
-        void setup();
-        /// Run one frame.
-        void frame();
-
-    protected:
-        int _width = 1280;
-        int _height = 720;
-
-        /// Main window
-        Window _window;
-
-        /// Input system.
-        Input _input;
-    };
-} // namespace vortice
+#endif

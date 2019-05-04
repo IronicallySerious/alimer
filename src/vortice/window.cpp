@@ -20,26 +20,19 @@
 // THE SOFTWARE.
 //
 
-#if defined(VGPU_GL) || defined(VGPU_GLES)
-#include "vgpu.h"
-static bool s_initialized = false;
+#include "core/log.h"
+#include "window.hpp"
 
-VGpuResult vgpu_initialize(const VGpuDescriptor* descriptor)
+namespace vortice
 {
-    if (s_initialized) {
-        return VGPU_ALREADY_INITIALIZED;
+    Window::Window()
+        : _width(0)
+        , _height(0)
+    {
     }
 
-    s_initialized = true;
-    return VGPU_SUCCESS;
-}
-
-void vgpu_shutdown()
-{
-    if (!s_initialized) {
-        return;
+    Window::~Window()
+    {
     }
 
-}
-
-#endif
+} // namespace vortice

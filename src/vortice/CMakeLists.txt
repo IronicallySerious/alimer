@@ -110,11 +110,11 @@ endif()
 if (WIN32)
     target_compile_definitions(vortice PRIVATE -DVORTICE_GLFW)
     set_target_properties(vortice PROPERTIES COMPILE_FLAGS "/wd4244")
-    target_compile_definitions(vortice PUBLIC -D_CRT_SECURE_NO_WARNINGS)
-    target_compile_definitions(vortice PUBLIC -D_CRT_NONSTDC_NO_WARNINGS)
+    target_compile_definitions(vortice PRIVATE UNICODE _UNICODE)
+    target_compile_definitions(vortice PRIVATE _SCL_SECURE_NO_WARNINGS _CRT_SECURE_NO_WARNINGS _CRT_SECURE_NO_DEPRECATE)
 
     if (MSVC_VERSION VERSION_LESS 1900)
-        target_compile_definitions(vortice PUBLIC -Dinline=__inline -Dsnprintf=_snprintf)
+        target_compile_definitions(vortice PRIVATE -Dinline=__inline -Dsnprintf=_snprintf)
     endif()
     
 elseif (APPLE)
@@ -129,8 +129,15 @@ if(NOT (EMSCRIPTEN OR ANDROID))
     target_link_libraries(vortice PRIVATE glfw)
 endif ()
 
-if (ALIMER_VULKAN)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC -DVGPU_VK)
+if (ALIMER_D3D11)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DVGPU_D3D11)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        d3d11
+        dxgi
+    )
+
+elseif (ALIMER_VULKAN)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DVGPU_VK)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         volk
         vma
@@ -138,16 +145,13 @@ if (ALIMER_VULKAN)
 elseif (ALIMER_OPENGL)
     if (EMSCRIPTEN OR ANDROID)
         target_compile_definitions(vortice PUBLIC -DVGPU_GLES)
-        target_compile_definitions(vortice PUBLIC -DSOKOL_GLES3)
     else()
         # glad
         target_sources(vortice PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glad/src/glad.c)
         target_include_directories(vortice PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glad/include)
         target_compile_definitions(vortice PUBLIC -DVGPU_GL)
-        target_compile_definitions(vortice PUBLIC -DSOKOL_GLCORE33)
     endif ()
 endif ()
-target_link_libraries(vortice PRIVATE sokol)
 
 target_include_directories(vortice
     PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>

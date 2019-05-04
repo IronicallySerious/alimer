@@ -47,6 +47,28 @@ namespace vortice
 
     void Application::setup()
     {
+        _window.define("vortice", _width, _height);
+
+        // setup vgpu using window handle
+        VGpuRendererSettings gpuDescriptor = {};
+#if defined(_DEBUG)
+        gpuDescriptor.validation = false;
+#endif
+
+#if defined(__linux__)
+        gpuDescriptor.handle.connection = XGetXCBConnection(glfwGetX11Display());
+        gpuDescriptor.handle.window = glfwGetX11Window(window);
+#elif defined(_WIN32)
+        gpuDescriptor.handle.hinstance = ::GetModuleHandleW(NULL);
+        gpuDescriptor.handle.hwnd = _window.handle();
+#endif
+        gpuDescriptor.width = _width;
+        gpuDescriptor.height = _height;
+        gpuDescriptor.swapchain.image_count = 3;
+        gpuDescriptor.swapchain.srgb = true;
+        gpuDescriptor.swapchain.colorClearValue = { 0.0f, 0.0f, 0.2f, 1.0f };
+        gpuDescriptor.swapchain.depthStencilFormat = VGPU_PIXEL_FORMAT_D32_FLOAT;
+        vgpuInitialize("vortice", &gpuDescriptor);
     }
 
     void Application::frame()
@@ -65,10 +87,10 @@ namespace vortice
 
         /*sg_pass_action pass_action = {};
         pass_action.colors[0].action = SG_ACTION_CLEAR;
-        pass_action.colors[0].val = { { 0.0f, 0.0f, 0.2f, 1.0f } };
+        //pass_action.colors[0].val = { 0.0f, 0.0f, 0.2f, 1.0f };
 
         sg_begin_default_pass(&pass_action, _width, _height);
-        sg_apply_pipeline(pip);
+        /*sg_apply_pipeline(pip);
         sg_apply_bindings(&bind);
         sg_draw(0, 3, 1);
         sg_end_pass();

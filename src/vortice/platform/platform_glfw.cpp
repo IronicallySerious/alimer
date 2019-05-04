@@ -23,20 +23,19 @@
 #if defined(VORTICE_GLFW)
 #include "core/log.h"
 #include "core/version.h"
+#include "window.hpp"
 #include "application.hpp"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #if defined(_WIN32)
-#   include <Windows.h>
+#   include <Objbase.h>
 #endif
 
 #if defined(VGPU_GL)
 #   include <glad/glad.h>
 #endif
-
-#include "gpu/vgpu.h"
 
 #if defined(__linux__)
 #   define GLFW_EXPOSE_NATIVE_X11
@@ -50,8 +49,6 @@
 static void vortice_glfw_error(int code, const char* description) {
     //alimer_throw(description);
 }
-
-static GLFWwindow* _window = nullptr;
 
 namespace vortice
 {
@@ -181,7 +178,7 @@ namespace vortice
             return;
         }
 
-#if defined(VGPU_GL)
+#if defined(VGPU_GL) 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
@@ -189,12 +186,9 @@ namespace vortice
 #else
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 #endif
-        _window = glfwCreateWindow(_width, _height, "vortice", 0, 0);
 
-        glfwSetWindowUserPointer(_window, this);
-        glfwSetKeyCallback(_window, vortice_glfw_key_callback);
 
-#if defined(VGPU_GL)
+#if defined(VGPU_GL) 
         glfwMakeContextCurrent(_window);
         glfwSwapInterval(1);
 
@@ -204,11 +198,7 @@ namespace vortice
 
     void Application::platform_shutdown()
     {
-        if (_window)
-        {
-            glfwDestroyWindow(_window);
-           _window = nullptr;
-        }
+        _window.close();
 
         glfwTerminate();
 
@@ -221,28 +211,7 @@ namespace vortice
     {
         setup();
 
-        // Setup vgpu using glfw window handle
-        VGpuRendererSettings gpuDescriptor = {};
-#if defined(_DEBUG)
-        gpuDescriptor.validation = false;
-#endif
-
-#if defined(__linux__)
-        gpuDescriptor.handle.connection = XGetXCBConnection(glfwGetX11Display());
-        gpuDescriptor.handle.window = glfwGetX11Window(window);
-#elif defined(_WIN32)
-        gpuDescriptor.handle.hinstance = ::GetModuleHandleW(NULL);
-        gpuDescriptor.handle.hwnd = glfwGetWin32Window(_window);
-#endif
-        gpuDescriptor.width = _width;
-        gpuDescriptor.height = _height;
-        gpuDescriptor.swapchain.image_count = 3;
-        gpuDescriptor.swapchain.srgb = true;
-        gpuDescriptor.swapchain.colorClearValue = { 0.0f, 0.0f, 0.2f, 1.0f };
-        gpuDescriptor.swapchain.depthStencilFormat = VGPU_PIXEL_FORMAT_D32_FLOAT;
-        vgpuInitialize("vortice", &gpuDescriptor);
-
-        while (!glfwWindowShouldClose(_window))
+        while (_window.is_open())
         {
             if (_input.key_pressed(Key::A))
             {
@@ -251,7 +220,7 @@ namespace vortice
 
             frame();
 
-#ifdef SOKOL_GLCORE33
+#if defined(VGPU_GL) 
             glfwSwapBuffers(_window);
 #endif
             glfwPollEvents();
@@ -259,6 +228,130 @@ namespace vortice
 
         return 0;
     }
+
+    /* Window implementation */
+    void Window::define(const char* title, int width, int height, bool resizable, bool fullscreen)
+    {
+        GLFWmonitor* monitor = nullptr;
+        if (fullscreen)
+        {
+            monitor = glfwGetPrimaryMonitor();
+            const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+            width = mode->width;
+            height = mode->height;
+        }
+        else
+        {
+            glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
+        }
+
+        if (_impl == nullptr)
+        {
+            GLFWwindow* window = glfwCreateWindow(width, height, title, monitor, nullptr);
+
+            glfwSetWindowUserPointer(window, this);
+            //glfwSetWindowSizeCallback(window, Glfw_Resize);
+            glfwSetKeyCallback(window, vortice_glfw_key_callback);
+            //glfwSetMouseButtonCallback(window, Glfw_MouseButtonCallback);
+            //glfwSetCursorPosCallback(window, Glfw_MouseMoveCallback);
+            //glfwSetScrollCallback(window, Glfw_ScrollCallback);
+            //glfwSetCharCallback(window, Glfw_CharCallback);
+            //glfwSetCursorEnterCallback(window, Glfw_CursorEnterCallback);
+            //glfwSetDropCallback(_window, Glfw_DropCallback);
+
+            _impl = window;
+        }
+        else
+        {
+            glfwSetWindowTitle((GLFWwindow*)_impl, title);
+            glfwSetWindowSize((GLFWwindow*)_impl, width, height);
+        }
+
+        _width = width;
+        _height = height;
+    }
+
+    void Window::close()
+    {
+        if (_impl != nullptr)
+        {
+            glfwDestroyWindow((GLFWwindow*)_impl);
+            _impl = nullptr;
+        }
+    }
+
+    void Window::show()
+    {
+        if (_impl != nullptr)
+        {
+            glfwShowWindow((GLFWwindow*)_impl);
+        }
+    }
+
+    void Window::hide()
+    {
+        if (_impl != nullptr)
+        {
+            glfwHideWindow((GLFWwindow*)_impl);
+        }
+    }
+
+    void Window::minimize()
+    {
+        if (_impl != nullptr)
+        {
+            glfwIconifyWindow((GLFWwindow*)_impl);
+        }
+    }
+
+    void Window::maximize()
+    {
+        if (_impl != nullptr)
+        {
+            glfwMaximizeWindow((GLFWwindow*)_impl);
+        }
+    }
+
+    void Window::restore()
+    {
+        if (_impl != nullptr)
+        {
+            glfwRestoreWindow((GLFWwindow*)_impl);
+        }
+    }
+
+    void Window::set_title(const char* title)
+    {
+        if (_impl != nullptr)
+        {
+            glfwSetWindowTitle((GLFWwindow*)_impl, title);
+        }
+    }
+
+    bool Window::is_open() const
+    {
+        return _impl != nullptr && !glfwWindowShouldClose((GLFWwindow*)_impl);
+    }
+
+#if defined(_WIN32)
+    HWND Window::handle() const
+    {
+        if (_impl == nullptr) {
+            return nullptr;
+        }
+
+        return glfwGetWin32Window((GLFWwindow*)_impl);
+    }
+#elif defined(__linux__)
+    Window Window::handle() const
+    {
+        if (_impl == nullptr) {
+            return nullptr;
+        }
+
+        return glfwGetX11Window((GLFWwindow*)_impl);
+    }
+#endif
 
 } // namespace vortice
 

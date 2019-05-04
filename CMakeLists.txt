@@ -117,15 +117,16 @@ set (ALIMER_${ALIMER_PLATFORM} ON)
 
 # Graphics Backend
 if (WIN32)
-    set (ALIMER_RENDERER Vulkan CACHE STRING "Select renderer: Vulkan | D3D12 | D3D11")
+    set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11 | OpenGL")
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "WindowsStore") # UWP
-    set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D12 | D3D11")
+    set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11")
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Durango") #  XboxOne
-    set (ALIMER_RENDERER D3D12 CACHE STRING "Select renderer: D3D12 | D3D11")
-elseif (LINUX OR ANDROID)
-    set (ALIMER_RENDERER Vulkan CACHE STRING "Use Vulkan renderer" FORCE)
+    set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11")
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    # Use Metal on IOS and macOS platforms
+    set (ALIMER_RENDERER Metal CACHE STRING "Use Metal renderer" FORCE)
 else ()
-    set (ALIMER_RENDERER Vulkan CACHE STRING "Use Vulkan renderer" FORCE)
+    set (ALIMER_RENDERER OpenGL CACHE STRING "Use OpenGL renderer" FORCE)
 endif ()
 string(TOUPPER "${ALIMER_RENDERER}" ALIMER_RENDERER)
 set (ALIMER_${ALIMER_RENDERER} ON)
