@@ -216,27 +216,3 @@ const char* vgpuGetFormatName(VGpuPixelFormat format)
     assert(FormatDesc[(uint32_t)format].format == format);
     return FormatDesc[(uint32_t)format].name;
 }
-
-VGpuTexture vgpuCreateTexture2D(uint32_t width, uint32_t height, VgpuBool32 mipMap, uint32_t arrayLayers, VGpuPixelFormat format, VgpuSampleCount sampleCount, VGpuTextureUsageFlags usage)
-{
-    VGpuTextureDescriptor descriptor = {};
-    descriptor.type = VGPU_TEXTURE_TYPE_2D;
-    descriptor.format = format;
-    descriptor.width = width;
-    descriptor.height = height;
-    descriptor.depthOrArraySize = arrayLayers;
-    descriptor.mipLevels = 1;
-    if (mipMap)
-    {
-        uint32_t size = width > height ? width : height;
-        while (size > 1)
-        {
-            size /= 2;
-            descriptor.mipLevels++;
-        }
-    }
-
-    descriptor.sampleCount = sampleCount;
-    descriptor.usage = usage;
-    return vgpuCreateTexture(&descriptor);
-}

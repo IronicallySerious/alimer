@@ -280,7 +280,7 @@ if __name__ == "__main__":
 
             if _platform == "desktop":
                 batCmd.AddCommand(
-                    "cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" ../../" % (configuration))
+                    "cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" -DSC_ARCH_NAME=\"%s\" ../../" % (configuration, architecture))
             elif _platform == "web":
                 emscriptenSDKDir = os.environ.get('EMSCRIPTEN')
                 emscriptenToolchain = os.path.join(

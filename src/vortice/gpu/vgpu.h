@@ -72,12 +72,13 @@
 typedef uint32_t VgpuFlags;
 typedef uint32_t VgpuBool32;
 VGPU_DEFINE_HANDLE(VGpuTexture);
+VGPU_DEFINE_HANDLE(VGpuFramebuffer);
 VGPU_DEFINE_HANDLE(VGpuCommandBuffer);
 
 enum {
-    VGPU_MAX_COLOR_ATTACHMENTS = 8,
-    VGPU_MAX_VERTEX_BUFFER_BINDINGS = 4,
-    VGPU_MAX_VERTEX_ATTRIBUTES = 16
+    VGPU_MAX_COLOR_ATTACHMENTS = 8u,
+    VGPU_MAX_VERTEX_BUFFER_BINDINGS = 4u,
+    VGPU_MAX_VERTEX_ATTRIBUTES = 16u
 };
 
 typedef enum VGpuResult {
@@ -364,7 +365,7 @@ typedef struct VGpuPlatformHandle {
 } VGpuPlatformHandle;
 
 typedef struct VGpuSwapchainDescriptor {
-    uint32_t            image_count;
+    uint32_t            imageCount;
     VgpuBool32          srgb;
     VGpuClearValue      colorClearValue;
     VGpuPixelFormat     depthStencilFormat;
@@ -391,7 +392,31 @@ typedef struct VGpuTextureDescriptor {
     uint32_t                mipLevels;
     VgpuSampleCount         sampleCount;
     VGpuTextureUsageFlags   usage;
+    const char*             label;
 } VGpuTextureDescriptor;
+
+typedef struct VGpuFramebufferAttachment {
+    /// The texture attachment.
+    VGpuTexture texture;
+    /// The mipmap level of the texture used for rendering to the attachment.
+    uint32_t level;
+    union {
+        /// Cubemap face
+        uint32_t face;
+        /// The slice of the texture used for rendering to the attachment.
+        uint32_t slice;
+        /// The 3D texture layer.
+        uint32_t layer;
+    };
+} VGpuFramebufferAttachment;
+
+typedef struct VGpuFramebufferDescriptor {
+    VGpuFramebufferAttachment   colorAttachments[VGPU_MAX_COLOR_ATTACHMENTS];
+    VGpuFramebufferAttachment   depthStencilAttachment;
+    uint32_t                    width;
+    uint32_t                    height;
+    uint32_t                    layers;
+} VGpuFramebufferDescriptor;
 
 VGPU_API VGpuBackend vgpuGetBackend();
 
@@ -402,10 +427,14 @@ VGPU_API VGpuResult vgpuEndFrame();
 VGPU_API VgpuBool32 vgpuQueryFeature(VGpuFeature feature);
 VGPU_API void vgpuQueryLimits(VGpuLimits* pLimits);
 
+/* Texture */
 VGPU_API VGpuTexture vgpuCreateTexture(const VGpuTextureDescriptor* descriptor);
-VGPU_API VGpuTexture vgpuCreateTexture2D(uint32_t width, uint32_t height, VgpuBool32 mipMap, uint32_t arrayLayers, VGpuPixelFormat format, VgpuSampleCount sampleCount, VGpuTextureUsageFlags usage);
 VGPU_API VGpuTexture vgpuCreateExternalTexture(const VGpuTextureDescriptor* descriptor, void* handle);
 VGPU_API void vgpuDestroyTexture(VGpuTexture texture);
+
+/* Framebuffer */
+VGPU_API VGpuFramebuffer vgpuCreateFramebuffer(const VGpuFramebufferDescriptor* descriptor);
+VGPU_API void vgpuDestroyFramebuffer(VGpuFramebuffer framebuffer);
 
 /// Get frame command buffer for recording.
 VGPU_API VGpuCommandBuffer vgpuGetCommandBuffer();

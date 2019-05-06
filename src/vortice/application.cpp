@@ -64,10 +64,11 @@ namespace vortice
 #endif
         gpuDescriptor.width = _width;
         gpuDescriptor.height = _height;
-        gpuDescriptor.swapchain.image_count = 3;
+        gpuDescriptor.swapchain.imageCount = 3;
         gpuDescriptor.swapchain.srgb = true;
         gpuDescriptor.swapchain.colorClearValue = { 0.0f, 0.0f, 0.2f, 1.0f };
         gpuDescriptor.swapchain.depthStencilFormat = VGPU_PIXEL_FORMAT_D32_FLOAT;
+        gpuDescriptor.swapchain.sampleCount = VGPU_SAMPLE_COUNT1;
         vgpuInitialize("vortice", &gpuDescriptor);
     }
 

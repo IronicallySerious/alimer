@@ -33,6 +33,11 @@
 #define SAFE_RELEASE(obj) if (obj) { obj->Release(); obj=nullptr; }
 
 #if defined(_DEBUG)
+
+#if !defined(_XBOX_ONE) || !defined(_TITLE)
+#   pragma comment(lib,"dxguid.lib")
+#endif
+
 // Check for SDK Layer support.
 inline bool _vgpuD3D11SdkLayersAvailable()
 {
@@ -64,10 +69,15 @@ typedef struct VGpuTexture_T {
     VgpuSampleCount         sampleCount;
     VGpuTextureUsageFlags   usage;
     bool                    externalHandle;
-    ID3D11Texture1D*        d3d11_tex1d;
-    ID3D11Texture2D*        d3d11_tex2d;
-    ID3D11Texture3D*        d3d11_tex3d;
+    DXGI_FORMAT             dxgi_format;
+    ID3D11Resource*         d3d11_resource;
 } VGpuTexture_T;
+
+typedef struct VGpuFramebuffer_T {
+    uint32_t                numColorAttachments;
+    ID3D11RenderTargetView* d3d11_rtvs[VGPU_MAX_COLOR_ATTACHMENTS];
+    ID3D11DepthStencilView* d3d11_dsv;
+} VGpuFramebuffer_T;
 
 typedef struct VGpuCommandBuffer_T {
     ID3D11DeviceContext*    context;
@@ -81,9 +91,8 @@ struct {
     ID3D11DeviceContext*    context = nullptr;
     IDXGISwapChain*         swapChain = nullptr;
     VGpuTexture             renderTarget = nullptr;
-    ID3D11Texture2D*        depthStencil = nullptr;
-    ID3D11RenderTargetView* renderTargetView = nullptr;
-    ID3D11DepthStencilView* depthStencilView = nullptr;
+    VGpuTexture             depthStencilTexture = nullptr;
+    VGpuFramebuffer         framebuffer = nullptr;
 } _d3d11;
 
 inline void _vgpuD3D11ThrowIfFailed(HRESULT hr)
@@ -467,9 +476,10 @@ static void _vgpuD3D11SetupTexture(VGpuTexture texture, const VGpuTextureDescrip
     texture->mipLevels = descriptor->mipLevels;
     texture->sampleCount = descriptor->sampleCount;
     texture->usage = descriptor->sampleCount;
+    texture->dxgi_format = _vgpuD3D11GetFormat(descriptor->format);
 }
 
-VGpuResult _vgpuD3D11Resize(VGpuPlatformHandle handle, uint32_t width, uint32_t height);
+VGpuResult _vgpuD3D11Resize(VGpuPlatformHandle handle, uint32_t width, uint32_t height, const VGpuSwapchainDescriptor* descriptor);
 
 VGpuBackend vgpuGetBackend()
 {
@@ -539,7 +549,7 @@ VGpuResult vgpuInitialize(const char* app_name, const VGpuRendererSettings * set
     }
 #endif
 
-    _vgpuD3D11Resize(settings->handle, settings->width, settings->height);
+    _vgpuD3D11Resize(settings->handle, settings->width, settings->height, &settings->swapchain);
 
     _d3d11.initialized = true;
     return VGPU_SUCCESS;
@@ -557,15 +567,14 @@ void vgpuShutdown()
     _d3d11.initialized = false;
 }
 
-VGpuResult _vgpuD3D11Resize(VGpuPlatformHandle handle, uint32_t width, uint32_t height)
+VGpuResult _vgpuD3D11Resize(VGpuPlatformHandle handle, uint32_t width, uint32_t height, const VGpuSwapchainDescriptor* descriptor)
 {
     // Clear the previous window size specific context.
     ID3D11RenderTargetView* nullViews[] = { nullptr };
     _d3d11.context->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
-    SAFE_RELEASE(_d3d11.renderTargetView);
-    SAFE_RELEASE(_d3d11.depthStencilView);
+    vgpuDestroyFramebuffer(_d3d11.framebuffer);
     vgpuDestroyTexture(_d3d11.renderTarget);
-    SAFE_RELEASE(_d3d11.depthStencil);
+    vgpuDestroyTexture(_d3d11.depthStencilTexture);
     _d3d11.context->Flush();
 
     // Determine the render target size in pixels.
@@ -663,6 +672,37 @@ VGpuResult _vgpuD3D11Resize(VGpuPlatformHandle handle, uint32_t width, uint32_t 
     backBuffer->GetDesc(&backBufferD3D11TextureDesc);
     VGpuTextureDescriptor backBufferTextureDescriptor = _vgpuD3D11GetTextureDescriptor(backBufferD3D11TextureDesc);
     _d3d11.renderTarget = vgpuCreateExternalTexture(&backBufferTextureDescriptor, backBuffer);
+    if (descriptor->depthStencilFormat != VGPU_PIXEL_FORMAT_UNDEFINED)
+    {
+        VGpuPixelFormat depthStencilFormat = VGPU_PIXEL_FORMAT_UNDEFINED;
+
+        D3D11_FEATURE_DATA_FORMAT_SUPPORT featureDataFormatSupport = {};
+        featureDataFormatSupport.InFormat = _vgpuD3D11GetFormat(descriptor->depthStencilFormat);
+        if (SUCCEEDED(_d3d11.device->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT, &featureDataFormatSupport, sizeof(featureDataFormatSupport)))
+            && featureDataFormatSupport.OutFormatSupport & D3D11_FORMAT_SUPPORT_RENDER_TARGET | D3D11_FORMAT_SUPPORT_DEPTH_STENCIL)
+        {
+            depthStencilFormat = descriptor->depthStencilFormat;
+        }
+        else
+        {
+            // Fall back to something that's guaranteed to work
+            depthStencilFormat = VGPU_PIXEL_FORMAT_D16_UNORM;
+        }
+
+        VGpuTextureDescriptor depthStencilTextureDescriptor = {};
+        depthStencilTextureDescriptor.type = VGPU_TEXTURE_TYPE_2D;
+        depthStencilTextureDescriptor.format = depthStencilFormat;
+        depthStencilTextureDescriptor.width = width;
+        depthStencilTextureDescriptor.height = height;
+        depthStencilTextureDescriptor.depthOrArraySize = 1;
+        depthStencilTextureDescriptor.mipLevels = 1;
+        depthStencilTextureDescriptor.sampleCount = descriptor->sampleCount;
+        depthStencilTextureDescriptor.usage = VGPU_TEXTURE_USAGE_RENDER_TARGET;
+        depthStencilTextureDescriptor.label = "BackbufferDepthStencilTexture";
+        _d3d11.depthStencilTexture = vgpuCreateTexture(&depthStencilTextureDescriptor);
+        //handle->depthStencilClearValue.depth = descriptor->depthStencilClearValue.depth;
+        //handle->depthStencilClearValue.stencil = descriptor->depthStencilClearValue.stencil;
+    }
 
     return VGPU_SUCCESS;
 }
@@ -708,6 +748,103 @@ VGpuTexture vgpuCreateTexture(const VGpuTextureDescriptor* descriptor)
 {
     VGpuTexture texture = new VGpuTexture_T();
     _vgpuD3D11SetupTexture(texture, descriptor);
+
+    UINT d3d11_bind_flags = 0;
+    UINT d3d11_misc_flags = 0;
+
+    if (descriptor->usage & VGPU_TEXTURE_USAGE_SHADER_READ)
+    {
+        d3d11_bind_flags |= D3D11_BIND_SHADER_RESOURCE;
+    }
+
+    if (descriptor->usage & VGPU_TEXTURE_USAGE_SHADER_WRITE)
+    {
+        d3d11_bind_flags |= D3D11_BIND_UNORDERED_ACCESS;
+    }
+
+    if (descriptor->usage & VGPU_TEXTURE_USAGE_RENDER_TARGET)
+    {
+        if (!vgpuIsDepthStencilFormat(descriptor->format))
+        {
+            d3d11_bind_flags |= D3D11_BIND_RENDER_TARGET;
+            if (descriptor->mipLevels == 0 || descriptor->mipLevels > 1)
+            {
+                d3d11_misc_flags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+            }
+        }
+        else
+        {
+            d3d11_bind_flags |= D3D11_BIND_DEPTH_STENCIL;
+        }
+    }
+
+    D3D11_SUBRESOURCE_DATA* subResourceData = nullptr;
+    D3D11_TEXTURE1D_DESC d3d11_tex1d_desc;
+    D3D11_TEXTURE2D_DESC d3d11_tex2d_desc;
+    D3D11_TEXTURE3D_DESC d3d11_tex3d_desc;
+    HRESULT hr = S_OK;
+    switch (descriptor->type)
+    {
+    case VGPU_TEXTURE_TYPE_1D:
+        memset(&d3d11_tex1d_desc, 0, sizeof(d3d11_tex1d_desc));
+        d3d11_tex1d_desc.Width = descriptor->width;
+        d3d11_tex1d_desc.MipLevels = descriptor->mipLevels;
+        d3d11_tex1d_desc.ArraySize = descriptor->depthOrArraySize;
+        d3d11_tex1d_desc.Format = texture->dxgi_format;
+        d3d11_tex1d_desc.Usage = D3D11_USAGE_DEFAULT;
+        d3d11_tex1d_desc.BindFlags = d3d11_bind_flags;
+        d3d11_tex1d_desc.CPUAccessFlags = 0;
+        d3d11_tex1d_desc.MiscFlags = d3d11_misc_flags;
+
+        ID3D11Texture1D* d3d11_text1d;
+        hr = _d3d11.device->CreateTexture1D(&d3d11_tex1d_desc, subResourceData, &d3d11_text1d);
+        if (FAILED(hr))
+        {
+            //ALIMER_LOGCRITICAL("[D3D11]: Failed to create 1D texture.");
+        }
+
+        texture->d3d11_resource = d3d11_text1d;
+        break;
+
+    case VGPU_TEXTURE_TYPE_2D:
+    case VGPU_TEXTURE_TYPE_CUBE:
+        memset(&d3d11_tex2d_desc, 0, sizeof(d3d11_tex2d_desc));
+        d3d11_tex2d_desc.Width = descriptor->width;
+        d3d11_tex2d_desc.Height = descriptor->height;
+        d3d11_tex2d_desc.MipLevels = descriptor->mipLevels;
+        d3d11_tex2d_desc.ArraySize = descriptor->depthOrArraySize;
+        d3d11_tex2d_desc.Format = texture->dxgi_format;
+        d3d11_tex2d_desc.SampleDesc.Count = descriptor->sampleCount;
+        d3d11_tex2d_desc.SampleDesc.Quality = descriptor->sampleCount > 1 ? D3D11_STANDARD_MULTISAMPLE_PATTERN : 0;
+        d3d11_tex2d_desc.Usage = D3D11_USAGE_DEFAULT;
+        d3d11_tex2d_desc.BindFlags = d3d11_bind_flags;
+        d3d11_tex2d_desc.CPUAccessFlags = 0;
+        d3d11_tex2d_desc.MiscFlags = d3d11_misc_flags;
+
+        if (descriptor->type == VGPU_TEXTURE_TYPE_CUBE)
+        {
+            d3d11_tex2d_desc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
+        }
+
+        ID3D11Texture2D* d3d11_text2d;
+        hr = _d3d11.device->CreateTexture2D(&d3d11_tex2d_desc, subResourceData, &d3d11_text2d);
+        if (FAILED(hr))
+        {
+            //ALIMER_LOGCRITICAL("[D3D11]: Failed to create 1D texture.");
+        }
+
+        texture->d3d11_resource = d3d11_text2d;
+        break;
+    }
+
+#if defined(_DEBUG)
+    const UINT labelLength = descriptor->label ? (UINT)strlen(descriptor->label) : 0;
+    if (labelLength > 0)
+    {
+        texture->d3d11_resource->SetPrivateData(WKPDID_D3DDebugObjectName, labelLength, descriptor->label);
+    }
+#endif
+
     return texture;
 }
 
@@ -715,7 +852,7 @@ VGpuTexture vgpuCreateExternalTexture(const VGpuTextureDescriptor* descriptor, v
 {
     VGpuTexture texture = new VGpuTexture_T();
     _vgpuD3D11SetupTexture(texture, descriptor);
-    texture->d3d11_tex2d = (ID3D11Texture2D*)handle;
+    texture->d3d11_resource = (ID3D11Texture2D*)handle;
     texture->externalHandle = true;
     return texture;
 }
@@ -726,14 +863,122 @@ void vgpuDestroyTexture(VGpuTexture texture)
         return;
     }
 
-    if (texture->d3d11_tex1d) {
-        texture->d3d11_tex1d->Release();
+    if (texture->d3d11_resource) {
+        texture->d3d11_resource->Release();
     }
-    if (texture->d3d11_tex2d) {
-        texture->d3d11_tex2d->Release();
+}
+
+VGpuFramebuffer vgpuCreateFramebuffer(const VGpuFramebufferDescriptor* descriptor)
+{
+    VGpuFramebuffer framebuffer = new VGpuFramebuffer_T();
+
+    const VGpuFramebufferAttachment* attachment;
+    for (uint32_t i = 0; i < VGPU_MAX_COLOR_ATTACHMENTS; i++) {
+        attachment = &descriptor->colorAttachments[i];
+        if (attachment->texture == nullptr) {
+            continue;
+        }
+
+        const uint32_t arraySize = attachment->texture->depthOrArraySize - attachment->slice;
+        const bool isTextureMs = attachment->texture->sampleCount > 1;
+
+        D3D11_RENDER_TARGET_VIEW_DESC desc = {};
+        desc.Format = attachment->texture->dxgi_format;
+        switch (attachment->texture->type)
+        {
+        case VGPU_TEXTURE_TYPE_1D:
+            if (arraySize > 1)
+            {
+                desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1DARRAY;
+                desc.Texture1DArray.MipSlice = attachment->level;
+                desc.Texture1DArray.FirstArraySlice = attachment->slice;
+                desc.Texture1DArray.ArraySize = arraySize;
+            }
+            else
+            {
+                desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1D;
+                desc.Texture1D.MipSlice = attachment->level;
+            }
+            break;
+        case VGPU_TEXTURE_TYPE_2D:
+            if (arraySize > 1)
+            {
+                if (isTextureMs)
+                {
+                    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
+                    desc.Texture2DMSArray.FirstArraySlice = attachment->slice;
+                    desc.Texture2DMSArray.ArraySize = arraySize;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+                    desc.Texture2DArray.MipSlice = attachment->level;
+                    desc.Texture2DArray.FirstArraySlice = attachment->slice;
+                    desc.Texture2DArray.ArraySize = arraySize;
+                }
+            }
+            else
+            {
+                if (isTextureMs)
+                {
+                    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
+                }
+                else
+                {
+                    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+                    desc.Texture2D.MipSlice = attachment->level;
+                }
+            }
+
+            break;
+
+        case VGPU_TEXTURE_TYPE_3D:
+            assert(arraySize == 1);
+            desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
+            desc.Texture3D.MipSlice = attachment->level;
+            desc.Texture3D.FirstWSlice = attachment->slice;
+            desc.Texture3D.WSize = 1;
+            break;
+
+        case VGPU_TEXTURE_TYPE_CUBE:
+            desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+            desc.Texture2DArray.MipSlice = attachment->level;
+            desc.Texture2DArray.FirstArraySlice = attachment->slice * 6;
+            desc.Texture2DArray.ArraySize = arraySize * 6;
+            break;
+
+        default:
+            desc.ViewDimension = D3D11_RTV_DIMENSION_UNKNOWN;
+            //ALIMER_LOGCRITICAL("Invalid texture type");
+            break;
+        }
+
+        ID3D11Resource* d3d11_resource = attachment->texture->d3d11_resource;
+        HRESULT hr = _d3d11.device->CreateRenderTargetView(d3d11_resource, &desc, &framebuffer->d3d11_rtvs[framebuffer->numColorAttachments]);
+        if (FAILED(hr))
+        {
+            //ALIMER_LOGCRITICAL("[D3D11] - CreateRenderTargetView failed");
+        }
+
+
+        framebuffer->numColorAttachments++;
     }
-    if (texture->d3d11_tex3d) {
-        texture->d3d11_tex3d->Release();
+    return framebuffer;
+}
+
+void vgpuDestroyFramebuffer(VGpuFramebuffer framebuffer)
+{
+    if (!framebuffer) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < VGPU_MAX_COLOR_ATTACHMENTS; i++) {
+        if (framebuffer->d3d11_rtvs[i]) {
+            framebuffer->d3d11_rtvs[i]->Release();
+        }
+    }
+    if (framebuffer->d3d11_dsv) {
+        framebuffer->d3d11_dsv->Release();
     }
 }
 
@@ -764,7 +1009,12 @@ void vgpuCmdSetViewport(VGpuCommandBuffer commandBuffer, float x, float y, float
 
 void vgpuCmdSetScissor(VGpuCommandBuffer commandBuffer, int32_t x, int32_t y, uint32_t width, uint32_t height)
 {
-
+    D3D11_RECT rect;
+    rect.left = (LONG)x;
+    rect.top = (LONG)y;
+    rect.right = (LONG)(x + width);
+    rect.bottom = (LONG)(y + height);
+    commandBuffer->context->RSSetScissorRects(1, &rect);
 }
 
 void vgpuSubmitCommandBuffer(VGpuCommandBuffer commandBuffer)
