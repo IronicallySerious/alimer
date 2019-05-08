@@ -65,11 +65,6 @@ set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${ALIMER_BUILD_DIR}/lib")
 # Enable solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-# Define standard configurations
-if ( CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_CONFIGURATION_TYPES MATCHES "Debug;Dev;Release" )
-	set (CMAKE_CONFIGURATION_TYPES "Debug;Dev;Release" CACHE STRING "List of supported configurations." FORCE)
-endif()
-
 # Set CMake modules search path
 set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
@@ -83,41 +78,21 @@ endif ()
 
 # Options
 option (ALIMER_BUILD_SHARED "Build as a shared library." OFF)
-option (ALIMER_CSHARP "Enable C# support" OFF)
-option (ALIMER_CSHARP_MONO "Use mono for C# support" OFF)
 option (ALIMER_INSTALL "Generate installation target" ON)
 option (ALIMER_LOGGING "Enable logging macros" ON)
 option (ALIMER_PROFILING "Enable performance profiling" ON)
 option (ALIMER_SAMPLES "Enable samples" ON)
 
 if (EMSCRIPTEN)
-    set (ALIMER_THREADING OFF CACHE INTERNAL "Disable threading on WEB" FORCE)
-    set (ALIMER_NETWORK OFF CACHE INTERNAL "Disable network on WEB" FORCE)
+
 else ()
     option (ALIMER_THREADING "Enable threading support" TRUE)
     option (ALIMER_NETWORK "Enable network support" TRUE)
 endif ()
 
-# Windowing backend
-if (WIN32)
-    set (ALIMER_PLATFORM GLFW CACHE STRING "Select platform: GLFW | Win32")
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set (ALIMER_PLATFORM GLFW CACHE STRING "Use GLFW" FORCE)
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-    set (ALIMER_PLATFORM Android CACHE STRING "Use Android" FORCE)
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    if (IOS)
-        set (ALIMER_PLATFORM iOS CACHE STRING "Use iOS" FORCE)
-    else ()
-        set (ALIMER_PLATFORM GLFW CACHE STRING "Use GLFW" FORCE)
-    endif ()
-endif()
-string(TOUPPER "${ALIMER_PLATFORM}" ALIMER_PLATFORM)
-set (ALIMER_${ALIMER_PLATFORM} ON)
-
 # Graphics Backend
 if (WIN32)
-    set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11 | OpenGL")
+    set (ALIMER_RENDERER Vulkan CACHE STRING "Select renderer: Vulkan | D3D11 | OpenGL")
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "WindowsStore") # UWP
     set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11")
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Durango") #  XboxOne
@@ -147,22 +122,39 @@ set (ALIMER_SDK_SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Source/Alimer)
 set (ALIMER_THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 set (ALIMER_ASSETS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
-# Initialize the Dev configuration from release configuration.
-set(CMAKE_C_FLAGS_DEV "${CMAKE_C_FLAGS_RELEASE}")
-set(CMAKE_CXX_FLAGS_DEV "${CMAKE_CXX_FLAGS_RELEASE}")
-set(CMAKE_STATIC_LINKER_FLAGS_DEV "${CMAKE_STATIC_LINKER_FLAGS_RELEASE}")
-set(CMAKE_SHARED_LINKER_FLAGS_DEV "${CMAKE_SHARED_LINKER_FLAGS_RELEASE}")
-set(CMAKE_MODULE_LINKER_FLAGS_DEV "${CMAKE_MODULE_LINKER_FLAGS_RELEASE}")
-set(CMAKE_EXE_LINKER_FLAGS_DEV "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
-
-set(DEBUG_COMPILE_OPTIONS "-DALIMER_DEV=1")
-add_compile_options("$<$<CONFIG:Debug>:${DEBUG_COMPILE_OPTIONS}>")
-
-set(DEV_COMPILE_OPTIONS "-DALIMER_DEV=1" )
-add_compile_options("$<$<CONFIG:Dev>:${DEV_COMPILE_OPTIONS}>")
-
-set(RELEASE_COMPILE_OPTIONS "-DALIMER_DEV=0")
-add_compile_options("$<$<CONFIG:Release>:${RELEASE_COMPILE_OPTIONS}>")
+# Setup
+if (EMSCRIPTEN)
+    string(CONCAT ALIMER_EMSCRIPTEN_FLAGS
+        "-O3 "
+        "-s WASM=1 "
+        "-s USE_WEBGL2=1 "
+        "-s GL_PREINITIALIZED_CONTEXT=1 "
+        "-s USE_ZLIB=1 "
+        "-s USE_PTHREADS=0 "
+        "-s FULL_ES2=1 "
+        "-s FULL_ES3=1 "
+        "-s FORCE_FILESYSTEM=1 "
+        "-s ALLOW_MEMORY_GROWTH=1 "
+        "-s \"EXPORTED_FUNCTIONS=[ "
+        "'_main'"
+        "]\" "
+        "-s \"EXTRA_EXPORTED_RUNTIME_METHODS=['getValue','setValue']\" "
+        # "--js-library \"${CMAKE_CURRENT_SOURCE_DIR}/src/resources/webvr.js\" "
+        # "--shell-file \"${CMAKE_CURRENT_SOURCE_DIR}/src/resources/vortice.html\""
+    )
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ALIMER_EMSCRIPTEN_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ALIMER_EMSCRIPTEN_FLAGS}")
+    set (CMAKE_EXECUTABLE_SUFFIX ".html")
+    set (ALIMER_THREADING OFF CACHE INTERNAL "Disable threading on WEB" FORCE)
+    set (ALIMER_NETWORK OFF CACHE INTERNAL "Disable network on WEB" FORCE)
+elseif(ANDROID)
+    set (ALIMER_BUILD_SHARED CACHE INTERNAL "Build as shared library on Android" FORCE)
+elseif(UNIX)
+    if(APPLE)
+        set(CMAKE_MACOSX_RPATH 1)
+    endif()
+    find_package(PkgConfig)
+endif ()
 
 # third_party
 add_subdirectory(third_party)
@@ -187,8 +179,8 @@ endif()
 
 # Set VS Startup project.
 if(CMAKE_VERSION VERSION_GREATER "3.6")
-    if (ALIMER_TOOLS)
-        # set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT "vortice")
+    if (NOT ALIMER_BUILD_SHARED)
+        set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT "alimer")
     endif ()
 endif()
 
@@ -206,7 +198,5 @@ else()
 endif()
 
 message(STATUS "  Threading       ${ALIMER_THREADING}")
-message(STATUS "  Backend         ${ALIMER_PLATFORM}")
 message(STATUS "  Renderer        ${ALIMER_RENDERER}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")
-message(STATUS "  CSharp          ${ALIMER_CSHARP}")

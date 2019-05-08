@@ -1,1 +1,1 @@
-@python alimer.py --action=build --platform=web --buildSystem=ninja --verbose
+@python alimer.py --platform=web --buildSystem=ninja --verbose

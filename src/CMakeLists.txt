@@ -20,24 +20,5 @@
 # THE SOFTWARE.
 #
 
-# vortice
-add_subdirectory (vortice)
-
-# Engine
-# add_subdirectory (Alimer)
-
-# Player
-# add_subdirectory(Player)
-
-if (ALIMER_SAMPLES)
-    add_subdirectory(samples)
-endif ()
-
-if (NOT CMAKE_CROSS_COMPILING AND ALIMER_TOOLS)
-    #add_subdirectory (Assets)
-    #add_subdirectory (Tools)
-endif ()
-
-if (ALIMER_CSHARP)
-    #add_subdirectory (Managed)
-endif ()
+# alimer
+add_subdirectory (alimer)

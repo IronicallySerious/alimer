@@ -128,8 +128,6 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose',
                         help="Log verbose", action='store_true')
     parser.add_argument('-i', '--input', help="Input source directory")
-    parser.add_argument('-a', '--action', help="Action to execute",
-                        choices=['build', 'generate', 'clean'])
     parser.add_argument('-p', '--platform', help="Build platform",
                         choices=['desktop', 'android', 'ios', 'web', 'uwp', 'all'])
     parser.add_argument('--buildSystem', help="Build system",
@@ -167,11 +165,6 @@ if __name__ == "__main__":
     if not os.path.exists(buildDir):
         os.mkdir(buildDir)
 
-    if args.action is not None:
-        action = args.action
-    else:
-        action = "build"
-
     if args.platform is None:
         _platform = "desktop"
     else:
@@ -180,7 +173,7 @@ if __name__ == "__main__":
     if args.buildSystem is None:
         if _platform == "desktop":
             if hostPlatform == "win":
-                buildSystem = "vs2019"
+                buildSystem = "vs2017"
             else:
                 buildSystem = "ninja"
         elif _platform == "uwp":
@@ -218,7 +211,6 @@ if __name__ == "__main__":
     logVerbose('Platform: {}'.format(_platform))
     if _platform == "desktop":
         logVerbose('Compiler: {}'.format(compiler))
-    logVerbose('Action: {}'.format(action))
 
     multiConfig = (buildSystem.find("vs") == 0)
     if _platform == "desktop":
@@ -236,113 +228,99 @@ if __name__ == "__main__":
     os.chdir(buildDir)
     buildDir = os.path.abspath(os.curdir)
 
-    logVerbose('Executing {}'.format(action))
+    if _platform == "desktop":
+        logInfo('Generating build files: {}-{}-{}-{}'.format(buildSystem,
+                                                             hostPlatform, compiler, architecture))
+    else:
+        logInfo('Generating build files: {}-{}-{}'.format(buildSystem,
+                                                          _platform, configuration))
 
-    if action == "build" or action == "generate":
+    parallel = multiprocessing.cpu_count()
+    batCmd = BatchCommand(hostPlatform)
+
+    if (buildSystem == "vs2019") or (buildSystem == "vs2017") and hostPlatform == "win":
+        programFilesFolder = FindProgramFilesFolder()
+        if (buildSystem == "vs2019") or ((buildSystem == "ninja") and (compiler == "vc142")):
+            vsFolder = FindVS2019Folder(programFilesFolder)
+        elif (buildSystem == "vs2017") or ((buildSystem == "ninja") and (compiler == "vc141")):
+            vsFolder = FindVS2017Folder(programFilesFolder)
+        if architecture == "x64":
+            vcOption = "amd64"
+        elif architecture == "x86":
+            vcOption = "x86"
+        else:
+            logError("Unsupported architecture.")
+        vcToolset = ""
+        if (buildSystem == "vs2019") and (compiler == "vc141"):
+            vcOption += " -vcvars_ver=14.1"
+            vcToolset = "v141,"
+        elif ((buildSystem == "vs2019") or (buildSystem == "vs2017")) and (compiler == "vc140"):
+            vcOption += " -vcvars_ver=14.0"
+            vcToolset = "v140,"
+
+        batCmd.AddCommand("@call \"%sVCVARSALL.BAT\" %s" %
+                          (vsFolder, vcOption))
+        batCmd.AddCommand("@cd /d \"%s\"" % buildDir)
+
+    if (buildSystem == "ninja"):
+        if _platform == "desktop" and hostPlatform == "win":
+            batCmd.AddCommand("set CC=cl.exe")
+            batCmd.AddCommand("set CXX=cl.exe")
+
         if _platform == "desktop":
-            logInfo('Generating build files: {}-{}-{}-{}'.format(buildSystem,
-                                                                 hostPlatform, compiler, architecture))
+            batCmd.AddCommand(
+                "cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" -DSC_ARCH_NAME=\"%s\" ../../" % (configuration, architecture))
+        elif _platform == "web":
+            emscriptenSDKDir = os.environ.get('EMSCRIPTEN')
+            emscriptenToolchain = os.path.join(
+                emscriptenSDKDir, "cmake/Modules/Platform/Emscripten.cmake")
+            emscriptenInstallPrefix = "alimer-sdk-Web"
+            batCmd.AddCommand("cmake -G \"Ninja\" -DCMAKE_TOOLCHAIN_FILE=\"%s\" -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" %
+                              (emscriptenToolchain, configuration, emscriptenInstallPrefix))
+
+            # Generate files to run servers
+            if not os.path.exists(os.path.join(buildDir, "bin")):
+                os.mkdir(os.path.join(buildDir, "bin"))
+
+            _batchFileExt = "sh"
+            if "win" == hostPlatform:
+                _batchFileExt = "bat"
+
+            # Python 2
+            serverFile = open(os.path.join(
+                buildDir, "bin", "python_server." + _batchFileExt), "w")
+            serverFile.writelines("python -m SimpleHTTPServer")
+            serverFile.close()
+
+            # Python 3
+            serverFile = open(os.path.join(
+                buildDir, "bin", "python_server3." + _batchFileExt), "w")
+            serverFile.writelines("python -m http.server")
+            serverFile.close()
+        elif _platform == "android":
+            androidNDKDir = os.environ.get('ANDROID_NDK')
+            androidInstallPrefix = "alimer-sdk-Android"
+            batCmd.AddCommand("cmake -G \"Ninja\" -DANDROID_NDK=\"%s\" -DCMAKE_SYSTEM_NAME=Android -DCMAKE_SYSTEM_VERSION=21 -DCMAKE_ANDROID_ARCH_ABI=armeabi-v7a -DCMAKE_ANDROID_NDK_TOOLCHAIN_VERSION=clang -DCMAKE_ANDROID_STL_TYPE=c++_static -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" % (androidNDKDir, configuration, androidInstallPrefix))
+
+        batCmd.AddCommand("ninja -j%d" % parallel)
+    else:
+        if buildSystem == "vs2019":
+            generator = "Visual Studio 16"
+        elif buildSystem == "vs2017":
+            generator = "Visual Studio 15"
+
+        if _platform == "uwp":
+            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" %
+                              (generator, vcToolset, WIN_SDK_VERSION, architecture))
         else:
-            logInfo('Generating build files: {}-{}-{}'.format(buildSystem,
-                                                              _platform, configuration))
+            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" %
+                              (generator, vcToolset, WIN_SDK_VERSION, architecture))
 
-        parallel = multiprocessing.cpu_count()
-        batCmd = BatchCommand(hostPlatform)
+        batCmd.AddCommand("MSBuild ALL_BUILD.vcxproj /nologo /m:%d /v:m /p:Configuration=%s,Platform=%s" %
+                          (parallel, configuration, architecture))
 
-        if (buildSystem == "vs2019") or (buildSystem == "vs2017") and hostPlatform == "win":
-            programFilesFolder = FindProgramFilesFolder()
-            if (buildSystem == "vs2019") or ((buildSystem == "ninja") and (compiler == "vc142")):
-                vsFolder = FindVS2019Folder(programFilesFolder)
-            elif (buildSystem == "vs2017") or ((buildSystem == "ninja") and (compiler == "vc141")):
-                vsFolder = FindVS2017Folder(programFilesFolder)
-            if architecture == "x64":
-                vcOption = "amd64"
-            elif architecture == "x86":
-                vcOption = "x86"
-            else:
-                logError("Unsupported architecture.")
-            vcToolset = ""
-            if (buildSystem == "vs2019") and (compiler == "vc141"):
-                vcOption += " -vcvars_ver=14.1"
-                vcToolset = "v141,"
-            elif ((buildSystem == "vs2019") or (buildSystem == "vs2017")) and (compiler == "vc140"):
-                vcOption += " -vcvars_ver=14.0"
-                vcToolset = "v140,"
-
-            batCmd.AddCommand("@call \"%sVCVARSALL.BAT\" %s" %
-                              (vsFolder, vcOption))
-            batCmd.AddCommand("@cd /d \"%s\"" % buildDir)
-
-        if (buildSystem == "ninja"):
-            if _platform == "desktop" and hostPlatform == "win":
-                batCmd.AddCommand("set CC=cl.exe")
-                batCmd.AddCommand("set CXX=cl.exe")
-
-            if _platform == "desktop":
-                batCmd.AddCommand(
-                    "cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" -DSC_ARCH_NAME=\"%s\" ../../" % (configuration, architecture))
-            elif _platform == "web":
-                emscriptenSDKDir = os.environ.get('EMSCRIPTEN')
-                emscriptenToolchain = os.path.join(
-                    emscriptenSDKDir, "cmake/Modules/Platform/Emscripten.cmake")
-                emscriptenInstallPrefix = "alimer-sdk-Web"
-                batCmd.AddCommand("cmake -G \"Ninja\" -DCMAKE_TOOLCHAIN_FILE=\"%s\" -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" %
-                                  (emscriptenToolchain, configuration, emscriptenInstallPrefix))
-
-                # Generate files to run servers
-                if not os.path.exists(os.path.join(buildDir, "bin")):
-                    os.mkdir(os.path.join(buildDir, "bin"))
-
-                _batchFileExt = "sh"
-                if "win" == hostPlatform:
-                    _batchFileExt = "bat"
-
-                # Python 2
-                serverFile = open(os.path.join(
-                    buildDir, "bin", "python_server." + _batchFileExt), "w")
-                serverFile.writelines("python -m SimpleHTTPServer")
-                serverFile.close()
-
-                # Python 3
-                serverFile = open(os.path.join(
-                    buildDir, "bin", "python_server3." + _batchFileExt), "w")
-                serverFile.writelines("python -m http.server")
-                serverFile.close()
-            elif _platform == "android":
-                androidNDKDir = os.environ.get('ANDROID_NDK')
-                androidInstallPrefix = "alimer-sdk-Android"
-                batCmd.AddCommand("cmake -G \"Ninja\" -DANDROID_NDK=\"%s\" -DCMAKE_SYSTEM_NAME=Android -DCMAKE_SYSTEM_VERSION=21 -DCMAKE_ANDROID_ARCH_ABI=armeabi-v7a -DCMAKE_ANDROID_NDK_TOOLCHAIN_VERSION=clang -DCMAKE_ANDROID_STL_TYPE=c++_static -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" % (androidNDKDir, configuration, androidInstallPrefix))
-
-            if action == "build":
-                batCmd.AddCommand("ninja -j%d" % parallel)
-        else:
-            if buildSystem == "vs2019":
-                generator = "Visual Studio 16"
-            elif buildSystem == "vs2017":
-                generator = "Visual Studio 15"
-
-            if _platform == "uwp":
-                batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" %
-                                  (generator, vcToolset, WIN_SDK_VERSION, architecture))
-            else:
-                batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" %
-                                  (generator, vcToolset, WIN_SDK_VERSION, architecture))
-
-            if action == "build":
-                batCmd.AddCommand("MSBuild ALL_BUILD.vcxproj /nologo /m:%d /v:m /p:Configuration=%s,Platform=%s" %
-                                  (parallel, configuration, architecture))
-
-        if batCmd.Execute() != 0:
-            logError("Batch command execute failed.")
+    if batCmd.Execute() != 0:
+        logError("Batch command execute failed.")
 
     # Restore original directory
     os.chdir(originalDir)
-    if action == "clean":
-        if _platform == "desktop":
-            logInfo('Clean: {}-{}-{}-{}'.format(buildSystem,
-                                                hostPlatform, compiler, architecture))
-        else:
-            logInfo('Clean: {}-{}-{}'.format(buildSystem,
-                                             _platform, configuration))
-        shutil.rmtree(buildDir)
-        logInfo("  deleted '{}'".format(buildDir))
