@@ -238,7 +238,7 @@ if __name__ == "__main__":
     parallel = multiprocessing.cpu_count()
     batCmd = BatchCommand(hostPlatform)
 
-    if (buildSystem == "vs2019") or (buildSystem == "vs2017") and hostPlatform == "win":
+    if hostPlatform == "win":
         programFilesFolder = FindProgramFilesFolder()
         if (buildSystem == "vs2019") or ((buildSystem == "ninja") and (compiler == "vc142")):
             vsFolder = FindVS2019Folder(programFilesFolder)
@@ -258,26 +258,21 @@ if __name__ == "__main__":
             vcOption += " -vcvars_ver=14.0"
             vcToolset = "v140,"
 
-        batCmd.AddCommand("@call \"%sVCVARSALL.BAT\" %s" %
-                          (vsFolder, vcOption))
+        batCmd.AddCommand("@call \"%sVCVARSALL.BAT\" %s" % (vsFolder, vcOption))
         batCmd.AddCommand("@cd /d \"%s\"" % buildDir)
 
     if (buildSystem == "ninja"):
-        if _platform == "desktop" and hostPlatform == "win":
+        if hostPlatform == "win" and _platform == "desktop":
             batCmd.AddCommand("set CC=cl.exe")
             batCmd.AddCommand("set CXX=cl.exe")
 
         if _platform == "desktop":
-            batCmd.AddCommand(
-                "cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" -DSC_ARCH_NAME=\"%s\" ../../" % (configuration, architecture))
+            batCmd.AddCommand("cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" -DSC_ARCH_NAME=\"%s\" ../../" % (configuration, architecture))
         elif _platform == "web":
             emscriptenSDKDir = os.environ.get('EMSCRIPTEN')
-            emscriptenToolchain = os.path.join(
-                emscriptenSDKDir, "cmake/Modules/Platform/Emscripten.cmake")
+            emscriptenToolchain = os.path.join(emscriptenSDKDir, "cmake/Modules/Platform/Emscripten.cmake")
             emscriptenInstallPrefix = "alimer-sdk-Web"
-            batCmd.AddCommand("cmake -G \"Ninja\" -DCMAKE_TOOLCHAIN_FILE=\"%s\" -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" %
-                              (emscriptenToolchain, configuration, emscriptenInstallPrefix))
-
+            batCmd.AddCommand("cmake -G \"Ninja\" -DCMAKE_TOOLCHAIN_FILE=\"%s\" -DCMAKE_BUILD_TYPE=\"%s\" -DCMAKE_INSTALL_PREFIX=\"%s\" ../../" % (emscriptenToolchain, configuration, emscriptenInstallPrefix))
             # Generate files to run servers
             if not os.path.exists(os.path.join(buildDir, "bin")):
                 os.mkdir(os.path.join(buildDir, "bin"))
@@ -287,14 +282,12 @@ if __name__ == "__main__":
                 _batchFileExt = "bat"
 
             # Python 2
-            serverFile = open(os.path.join(
-                buildDir, "bin", "python_server." + _batchFileExt), "w")
+            serverFile = open(os.path.join(buildDir, "bin", "python_server." + _batchFileExt), "w")
             serverFile.writelines("python -m SimpleHTTPServer")
             serverFile.close()
 
             # Python 3
-            serverFile = open(os.path.join(
-                buildDir, "bin", "python_server3." + _batchFileExt), "w")
+            serverFile = open(os.path.join(buildDir, "bin", "python_server3." + _batchFileExt), "w")
             serverFile.writelines("python -m http.server")
             serverFile.close()
         elif _platform == "android":
@@ -310,14 +303,11 @@ if __name__ == "__main__":
             generator = "Visual Studio 15"
 
         if _platform == "uwp":
-            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" %
-                              (generator, vcToolset, WIN_SDK_VERSION, architecture))
+            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" % (generator, vcToolset, WIN_SDK_VERSION, architecture))
         else:
-            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" %
-                              (generator, vcToolset, WIN_SDK_VERSION, architecture))
+            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" % (generator, vcToolset, WIN_SDK_VERSION, architecture))
 
-        batCmd.AddCommand("MSBuild ALL_BUILD.vcxproj /nologo /m:%d /v:m /p:Configuration=%s,Platform=%s" %
-                          (parallel, configuration, architecture))
+        batCmd.AddCommand("MSBuild ALL_BUILD.vcxproj /nologo /m:%d /v:m /p:Configuration=%s,Platform=%s" % (parallel, configuration, architecture))
 
     if batCmd.Execute() != 0:
         logError("Batch command execute failed.")
