@@ -70,6 +70,18 @@ namespace vortice
         gpuDescriptor.swapchain.depthStencilFormat = VGPU_PIXEL_FORMAT_D32_FLOAT;
         gpuDescriptor.swapchain.sampleCount = VGPU_SAMPLE_COUNT1;
         vgpuInitialize("vortice", &gpuDescriptor);
+
+        const float vertices[] = {
+            /* positions            colors */
+             0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,
+             0.5f, -0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
+        };
+
+        VGpuBufferDescriptor buffer_desc = {};
+        buffer_desc.usage = VGPU_BUFFER_USAGE_VERTEX;
+        buffer_desc.size = sizeof(vertices);
+        auto buffer = vgpuCreateBuffer(&buffer_desc, vertices);
     }
 
     void Application::frame()
@@ -81,6 +93,8 @@ namespace vortice
         /* Get frame command buffer for recording. */
         VGpuCommandBuffer commandBuffer = vgpuGetCommandBuffer();
         vgpuBeginCommandBuffer(commandBuffer);
+        vgpuCmdBeginDefaultRenderPass(commandBuffer, { 0.5f, 0.5f, 0.5f, 1.0f}, 1.0f, 0);
+        vgpuCmdEndRenderPass(commandBuffer);
         vgpuEndCommandBuffer(commandBuffer);
         vgpuSubmitCommandBuffer(commandBuffer);
 
