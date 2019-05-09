@@ -19,20 +19,3 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
-//#include "core/log.h"
-#include "core/window.h"
-
-namespace alimer
-{
-    Window::Window()
-        : _width(0)
-        , _height(0)
-    {
-    }
-
-    Window::~Window()
-    {
-    }
-
-} // namespace vortice

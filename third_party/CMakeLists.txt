@@ -32,6 +32,11 @@ if(NOT (EMSCRIPTEN OR ANDROID))
     unset(LIB_SUFFIX CACHE)
 endif ()
 
+if (ALIMER_OPENGL)
+    add_subdirectory(glad)
+    set_property(TARGET glad PROPERTY FOLDER "third_party")
+endif ()
+
 if (ALIMER_VULKAN)
     # vulkan
     add_library(vulkan INTERFACE)
@@ -61,5 +66,7 @@ if (ALIMER_VULKAN)
     target_link_libraries(vma PUBLIC vulkan)
     target_include_directories(vma PUBLIC "vk_mem_alloc")
     set_property(TARGET vma PROPERTY FOLDER "third_party")
-
 endif ()
+
+add_subdirectory(vgpu)
+set_property(TARGET vgpu PROPERTY FOLDER "third_party")

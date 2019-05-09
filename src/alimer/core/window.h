@@ -23,19 +23,8 @@
 #pragma once
 
 #include "foundation/platform.h"
-#if defined(_WIN32)
-#   if !defined(NOMINMAX)
-#       define NOMINMAX
-#   endif
-#   if !defined(WIN32_LEAN_AND_MEAN)
-#       define WIN32_LEAN_AND_MEAN
-#   endif
-#   include <Windows.h>
-#elif defined(__linux__)
-#   include <X11/Xlib-xcb.h>
-#endif
 
-namespace vortice
+namespace alimer
 {
     /// Define OS window class.
     class ALIMER_API Window final
@@ -74,11 +63,13 @@ namespace vortice
         bool is_open() const;
 
         /// Returns the native window handle.
+        /*
 #if defined(_WIN32)
         HWND handle() const;
 #elif defined(__linux__)
         Window handle() const;
 #endif
+*/
 
     private:
         /// Native implementation handle
@@ -87,4 +78,4 @@ namespace vortice
         int _width;
         int _height;
     };
-} // namespace vortice
+}

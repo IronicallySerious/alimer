@@ -22,46 +22,25 @@
 
 #pragma once
 
-#include "core/window.hpp"
-//#include "input.hpp"
+#include "core/glfw/application_glfw.h"
+#ifndef NOMINMAX
+#    define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 
-namespace vortice
+namespace alimer
 {
-    class ALIMER_API Application
+    class ALIMER_API ApplicationWindows final : public ApplicationGlfw
     {
     public:
-        Application();
+        ApplicationWindows();
 
         /// Destructor.
-        virtual ~Application();
-
-        /// Runs main loop using Platform instance.
-        int run();
-
-        /// Get the main system.
-        inline Window& get_window() { return _window; }
-
-        /// Get the input system.
-        //inline Input& get_input() { return _input; }
+        ~ApplicationWindows() override;
 
     private:
-        //void platform_construct();
-        //void platform_shutdown();
-        /// Run OS main loop.
-        //int run_main_loop();
-
-        void setup();
-        /// Run one frame.
-        void frame();
-
-    protected:
-        int _width = 1280;
-        int _height = 720;
-
-        /// Main window
-        Window _window;
-
-        /// Input system.
-        //Input _input;
     };
 } 

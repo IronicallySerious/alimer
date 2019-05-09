@@ -21,18 +21,46 @@
 //
 
 //#include "core/log.h"
-#include "core/window.h"
+#include "application_windows.h"
+#include <shellapi.h>
+#include <Objbase.h>
 
 namespace alimer
 {
-    Window::Window()
-        : _width(0)
-        , _height(0)
+    ApplicationWindows::ApplicationWindows()
     {
+        int bufferSize;
+        std::vector<char> buffer;
+
+        int argc;
+        LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+        if (argc > 0)
+        {
+            for (int i = 0; i < argc; ++i)
+            {
+                bufferSize = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
+                if (bufferSize > 0)
+                {
+                    buffer.resize(bufferSize);
+                    WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, buffer.data(), bufferSize, nullptr, nullptr);
+                    _args.push_back(buffer.data());
+                }
+            }
+        }
+
+        if (argv) {
+            LocalFree(argv);
+        }
+
+        // Initialize COM
+        if (CoInitializeEx(NULL, COINIT_APARTMENTTHREADED) == RPC_E_CHANGED_MODE) {
+            CoInitializeEx(NULL, COINIT_MULTITHREADED);
+        }
     }
 
-    Window::~Window()
+    ApplicationWindows::~ApplicationWindows()
     {
+        // Shutdown COM
+        CoUninitialize();
     }
-
-} // namespace vortice
+}

@@ -20,9 +20,6 @@
 # THE SOFTWARE.
 #
 
-# alimer
-add_subdirectory (alimer)
-
-if (ALIMER_PLUGINS)
-    add_subdirectory(plugins)
-endif ()
+set (GLAD_FILES "glad.c" "glad.h" "khrplatform.h")
+add_library(glad STATIC ${GLAD_FILES})
+target_include_directories(glad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")

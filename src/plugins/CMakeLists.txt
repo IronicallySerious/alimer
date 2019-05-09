@@ -20,9 +20,21 @@
 # THE SOFTWARE.
 #
 
-# alimer
-add_subdirectory (alimer)
+function(add_plugin sample_name)
+    if (ALIMER_BUILD_SHARED)
+        if (WIN32)
+            add_executable(${sample_name} WIN32 ${CMAKE_CURRENT_SOURCE_DIR}/${sample_name}/main.cpp)
+        else ()
+            add_executable(${sample_name} ${CMAKE_CURRENT_SOURCE_DIR}/${sample_name}/main.cpp)
+        endif ()
+    else ()
+        add_library(${sample_name} SHARED ${CMAKE_CURRENT_SOURCE_DIR}/${sample_name}/main.cpp)
+    endif ()
 
-if (ALIMER_PLUGINS)
-    add_subdirectory(plugins)
-endif ()
+    if (MSVC)
+        set_target_properties(${sample_name} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)")
+        set_target_properties(${sample_name} PROPERTIES FOLDER "plugins")
+    endif ()
+endfunction()
+
+add_plugin(01_hello_world)

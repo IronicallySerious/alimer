@@ -21,28 +21,19 @@
 //
 
 //#include "core/log.h"
-#include "application.hpp"
+#include "core/application.h"
 //#include "gpu/vgpu.h"
 
-namespace vortice
+namespace alimer
 {
     Application::Application()
     {
-        //platform_construct();
     }
 
     Application::~Application()
     {
         // Shutdown vgpu
         //vgpuShutdown();
-
-        //platform_shutdown();
-    }
-
-    int Application::run()
-    {
-        int result = 0; // run_main_loop();
-        return result;
     }
 
     void Application::setup()

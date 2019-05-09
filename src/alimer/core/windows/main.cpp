@@ -29,17 +29,16 @@
 #   define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
-#include <shellapi.h>
-#include <string>
-#include <vector>
 
-#if defined(ALIMER_WIN32_FORCE_MAIN)
+#if defined(ALIMER_NETWORK)
+#   include <WinSock2.h>
+#   include <WS2tcpip.h>
+#endif /* defined(ALIMER_NETWORK) */
+
+#include "application_windows.h"
+
+#if defined(ALIMER_TOOLS)
 int main(int argc, char* argv[]) {
-    std::vector<std::string> args;
-    for (int i = 0; i < argc; ++i)
-    {
-        args.push_back(argv[i]);
-    }
 #else
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) {
     UNREFERENCED_PARAMETER(hInstance);
@@ -47,33 +46,35 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);
 
-    int bufferSize;
-    std::vector<char> buffer;
-    std::vector<std::string> args;
+#if defined(_DEBUG)
+    AllocConsole();
 
-    int argc;
-    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    if (argc > 0)
-    {
-        for (int i = 0; i < argc; ++i)
-        {
-            bufferSize = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
-            if (bufferSize > 0)
-            {
-                buffer.resize(bufferSize);
-                WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, buffer.data(), bufferSize, nullptr, nullptr);
-                args.push_back(buffer.data());
-            }
-        }
-    }
+    freopen("conin$", "r", stdin);
+    freopen("conout$", "w", stdout);
+    freopen("conout$", "w", stderr);
+#endif /* defined(_DEBUG) */
 
-    if (argv) {
-        LocalFree(argv);
-    }
 #endif
 
-    printf("%s", "HELLO");
-    return EXIT_SUCCESS;
+    
+#if defined(ALIMER_NETWORK)
+    WSADATA wsaData;
+    int error = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (error != 0) {
+        printf("WSAStartup failed with error: %d\n", error);
+        return EXIT_FAILURE;
+    }
+
+#endif /* defined(ALIMER_NETWORK) */
+
+    alimer::ApplicationWindows application;
+    int exit_code = application.run();
+
+#if defined(ALIMER_NETWORK)
+    WSACleanup();
+#endif /* defined(ALIMER_NETWORK) */
+
+    return exit_code;
 }
 
 

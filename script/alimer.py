@@ -14,8 +14,6 @@ import subprocess
 import sys
 VERSION = '0.9.0'
 enableLogVerbose = False
-WIN_SDK_VERSION = "10.0.17763.0"
-
 
 def logError(message):
     print("[ERROR] %s" % message)
@@ -303,9 +301,9 @@ if __name__ == "__main__":
             generator = "Visual Studio 15"
 
         if _platform == "uwp":
-            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" % (generator, vcToolset, WIN_SDK_VERSION, architecture))
+            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -A %s ../../" % (generator, vcToolset, architecture))
         else:
-            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -DCMAKE_SYSTEM_VERSION=\"%s\" -A %s ../../" % (generator, vcToolset, WIN_SDK_VERSION, architecture))
+            batCmd.AddCommand("cmake -G \"%s\" -T %shost=x64 -A %s ../../" % (generator, vcToolset, architecture))
 
         batCmd.AddCommand("MSBuild ALL_BUILD.vcxproj /nologo /m:%d /v:m /p:Configuration=%s,Platform=%s" % (parallel, configuration, architecture))
 

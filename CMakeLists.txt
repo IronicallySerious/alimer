@@ -81,7 +81,7 @@ option (ALIMER_BUILD_SHARED "Build as a shared library." OFF)
 option (ALIMER_INSTALL "Generate installation target" ON)
 option (ALIMER_LOGGING "Enable logging macros" ON)
 option (ALIMER_PROFILING "Enable performance profiling" ON)
-option (ALIMER_SAMPLES "Enable samples" ON)
+option (ALIMER_PLUGINS "Enable plugins support" ON)
 
 if (EMSCRIPTEN)
 
@@ -92,7 +92,8 @@ endif ()
 
 # Graphics Backend
 if (WIN32)
-    set (ALIMER_RENDERER Vulkan CACHE STRING "Select renderer: Vulkan | D3D11 | OpenGL")
+    #set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11 | OpenGL")
+    set (ALIMER_RENDERER OpenGL CACHE STRING "Select renderer: D3D11 | OpenGL")
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "WindowsStore") # UWP
     set (ALIMER_RENDERER D3D11 CACHE STRING "Select renderer: D3D11")
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Durango") #  XboxOne
@@ -106,7 +107,7 @@ endif ()
 string(TOUPPER "${ALIMER_RENDERER}" ALIMER_RENDERER)
 set (ALIMER_${ALIMER_RENDERER} ON)
 
-if (ALIMER_ANDROID OR ALIMER_IOS OR ALIMER_WEB)
+if (EMSCRIPTEN OR ANDROID OR IOS)
     set (ALIMER_TOOLS OFF CACHE INTERNAL "Build tools and editors" FORCE)
 else()
     option (ALIMER_TOOLS "Build tools and editors" ${ALIMER_DESKTOP})
@@ -200,3 +201,4 @@ endif()
 message(STATUS "  Threading       ${ALIMER_THREADING}")
 message(STATUS "  Renderer        ${ALIMER_RENDERER}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")
+message(STATUS "  Plugins         ${ALIMER_PLUGINS}")

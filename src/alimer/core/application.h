@@ -20,19 +20,51 @@
 // THE SOFTWARE.
 //
 
-//#include "core/log.h"
+#pragma once
+
 #include "core/window.h"
+//#include "input.hpp"
+#include <string>
+#include <vector>
 
 namespace alimer
 {
-    Window::Window()
-        : _width(0)
-        , _height(0)
+    class ALIMER_API Application
     {
-    }
+    public:
+        Application();
 
-    Window::~Window()
-    {
-    }
+        /// Destructor.
+        virtual ~Application();
 
-} // namespace vortice
+        Application(const Application&) = delete;
+        Application& operator=(const Application&) = delete;
+
+        Application(Application&&) = delete;
+        Application& operator=(Application&&) = delete;
+
+        inline const std::vector<std::string>& getArgs() const { return _args; }
+
+        /// Get the main system.
+        inline Window& get_window() { return _window; }
+
+        /// Get the input system.
+        //inline Input& get_input() { return _input; }
+
+    private:
+        void setup();
+        /// Run one frame.
+        void frame();
+
+    protected:
+        std::vector<std::string> _args;
+
+       
+
+        /// Main window
+        Window _window;
+
+        /// Input system.
+        //Input _input;
+    };
+} 

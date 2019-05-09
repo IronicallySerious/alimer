@@ -20,19 +20,30 @@
 // THE SOFTWARE.
 //
 
-//#include "core/log.h"
-#include "core/window.h"
+#pragma once
+
+#include "../application.h"
+struct GLFWwindow;
 
 namespace alimer
 {
-    Window::Window()
-        : _width(0)
-        , _height(0)
+    class ALIMER_API ApplicationGlfw : public Application
     {
-    }
+    public:
+        ApplicationGlfw();
 
-    Window::~Window()
-    {
-    }
+        /// Destructor.
+        virtual ~ApplicationGlfw() override;
 
-} // namespace vortice
+        /// Runs main looo.
+        int run();
+
+    protected:
+        bool init(uint32_t width, uint32_t height, bool fullscreen);
+
+        uint32_t _width = 0;
+        uint32_t _height = 0;
+
+        GLFWwindow* _window = nullptr;
+    };
+} 
