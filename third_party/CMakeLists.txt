@@ -68,5 +68,14 @@ if (ALIMER_VULKAN)
     set_property(TARGET vma PROPERTY FOLDER "third_party")
 endif ()
 
+# vgpu
 add_subdirectory(vgpu)
 set_property(TARGET vgpu PROPERTY FOLDER "third_party")
+
+# lua
+add_subdirectory(lua)
+set_property(TARGET liblua PROPERTY FOLDER "third_party")
+
+# ImGui
+add_subdirectory(imgui)
+set_property(TARGET ImGui PROPERTY FOLDER "third_party")
