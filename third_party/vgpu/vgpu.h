@@ -75,6 +75,7 @@ typedef uint32_t VgpuBool32;
 VGPU_DEFINE_HANDLE(VGpuTexture);
 VGPU_DEFINE_HANDLE(VGpuFramebuffer);
 VGPU_DEFINE_HANDLE(VGpuBuffer);
+VGPU_DEFINE_HANDLE(VGpuShader);
 VGPU_DEFINE_HANDLE(VGpuCommandBuffer);
 
 enum {
@@ -324,18 +325,18 @@ typedef enum VGpuAttachmentStoreOp {
     VGPU_ATTACHMENT_STORE_OP_DONT_CARE = 1,
 } VGpuAttachmentStoreOp;
 
-typedef enum VGpuBufferUsageFlagBits {
-    VGPU_BUFFER_USAGE_NONE = 0,
-    VGPU_BUFFER_USAGE_VERTEX = 1 << 0,
-    VGPU_BUFFER_USAGE_INDEX = 1 << 1,
-    VGPU_BUFFER_USAGE_UNIFORM = 1 << 2,
-    VGPU_BUFFER_USAGE_STORAGE_READ = 1 << 3,
-    VGPU_BUFFER_USAGE_STORAGE_WRITE = 1 << 4,
-    VGPU_BUFFER_USAGE_INDIRECT = 1 << 5,
-    VGPU_BUFFER_USAGE_DYNAMIC = 1 << 6,
-    VGPU_BUFFER_USAGE_STAGING = 1 << 7,
-} VGpuBufferUsageFlagBits;
-typedef VgpuFlags VGpuBufferUsageFlags;
+typedef enum VGpuBufferUsage {
+    VGPU_BUFFER_USAGE_STATIC = 0,
+    VGPU_BUFFER_USAGE_IMMUTABLE,
+    VGPU_BUFFER_USAGE_DYNAMIC,
+    VGPU_BUFFER_USAGE_STREAM
+} VGpuBufferUsage;
+
+typedef enum VGpuBufferType {
+    VGPU_BUFFER_TYPE_VERTEX = 0,
+    VGPU_BUFFER_TYPE_INDEX = 1,
+    VGPU_BUFFER_TYPE_COUNT
+} VGpuBufferType;
 
 typedef enum VGpuShaderStageFlagBits {
     VGPU_SHADER_STAGE_NONE              = 0,
@@ -362,13 +363,12 @@ typedef enum VGpuVertexFormat {
     VGPU_VERTEX_FORMAT_SHORT2N = 10,
     VGPU_VERTEX_FORMAT_SHORT4 = 11,
     VGPU_VERTEX_FORMAT_SHORT4N = 12,
-    VGPU_VERTEX_FORMAT_COUNT = (VGPU_VERTEX_FORMAT_SHORT2N - VGPU_VERTEX_FORMAT_UNKNOWN + 1),
-    _VGPU_VERTEX_FORMAT_MAX_ENUM = 0x7FFFFFFF
+    VGPU_VERTEX_FORMAT_COUNT
 } VGpuVertexFormat;
 
 typedef enum VGpuVertexInputRate {
     VGPU_VERTEX_INPUT_RATE_VERTEX = 0,
-    VGPU_VERTEX_INPUT_RATE_INSTANCE = 1,
+    VGPU_VERTEX_INPUT_RATE_INSTANCE,
 } VGpuVertexInputRate;
 
 typedef enum VGpuPrimitiveTopology {
@@ -387,8 +387,7 @@ typedef enum VGpuPrimitiveTopology {
 
 typedef enum VGpuIndexType {
     VGPU_INDEX_TYPE_UINT16 = 0,
-    VGPU_INDEX_TYPE_UINT32 = 1,
-    _VGPU_INDEX_TYPE_MAX_ENUM = 0x7FFFFFFF
+    VGPU_INDEX_TYPE_UINT32 = 1
 } VGpuIndexType;
 
 typedef enum VGpuCompareFunction {
@@ -414,6 +413,17 @@ typedef enum VGpuStencilOperation {
     VGPU_STENCIL_OPERATION_DECREMENT_WRAP,
 } VGpuStencilOperation;
 
+typedef struct VGpuExtent2D {
+    uint32_t    width;
+    uint32_t    height;
+} VGpuExtent2D;
+
+typedef struct VGpuExtent3D {
+    uint32_t    width;
+    uint32_t    height;
+    uint32_t    depth;
+} VGpuExtent3D;
+
 typedef struct VGpuColor {
     float r;
     float g;
@@ -435,9 +445,9 @@ typedef struct VGpuLimits {
     uint32_t        maxTextureArrayLayers;
     uint32_t        maxColorAttachments;
     uint32_t        maxUniformBufferSize;
-    uint32_t        minUniformBufferOffsetAlignment;
+    uint64_t        minUniformBufferOffsetAlignment;
     uint32_t        maxStorageBufferSize;
-    uint32_t        minStorageBufferOffsetAlignment;
+    uint64_t        minStorageBufferOffsetAlignment;
     uint32_t        maxSamplerAnisotropy;
     uint32_t        maxViewports;
     uint32_t        maxViewportDimensions[2];
@@ -492,13 +502,12 @@ typedef struct VGpuRendererSettings {
 } VGpuRendererSettings;
 
 typedef struct VGpuTextureDescriptor {
-    VGpuTextureType         type;
-    VGpuPixelFormat         format;
-    uint32_t                width;
-    uint32_t                height;
-    uint32_t                depthOrArraySize;
+    VGpuTextureType         textureType;
+    VGpuPixelFormat         pixelFormat;
+    VGpuExtent3D            size;
     uint32_t                mipLevels;
-    VgpuSampleCount         sampleCount;
+    uint32_t                arrayLayers;
+    VgpuSampleCount         samples;
     VGpuTextureUsageFlags   usage;
     const char*             label;
 } VGpuTextureDescriptor;
@@ -548,12 +557,6 @@ typedef struct VGpuRenderPassBeginDescriptor {
     VGpuDepthStencilAttachmentAction    depthStencil;
 } VGpuRenderPassBeginDescriptor;
 
-typedef struct VGpuBufferDescriptor {
-    uint64_t                size;
-    VGpuBufferUsageFlags    usage;
-    const char*             label;
-} VGpuBufferDescriptor;
-
 typedef struct VGpuStencilDescriptor {
     VGpuStencilOperation      failOperation;
     VGpuStencilOperation      passOperation;
@@ -573,14 +576,13 @@ typedef struct VGpuDepthStencilDescriptor {
 
 VGPU_API void vgpu_set_log_callback(vgpu_log_fn callback, void *userdata);
 
-VGPU_API VGpuBackend vgpu_get_backend();
+VGPU_API VGpuBackend vgpuGetBackend();
 
-VGPU_API bool vgpu_initialize(const char* app_name, const VGpuRendererSettings* settings);
-VGPU_API void vgpu_shutdown();
-VGPU_API VGpuResult vgpuBeginFrame();
-VGPU_API VGpuResult vgpuEndFrame();
-VGPU_API bool vgpu_query_feature(VGpuFeature feature);
-VGPU_API void vgpu_query_limits(VGpuLimits* pLimits);
+VGPU_API bool vgpuInitialize(const char* appName, const VGpuRendererSettings* settings);
+VGPU_API void vgpuShutdown();
+VGPU_API bool vgpuQueryFeature(VGpuFeature feature);
+VGPU_API void vgpuQueryLimits(VGpuLimits* pLimits);
+VGPU_API uint32_t vgpuFrame();
 
 /* Texture */
 VGPU_API VGpuTexture vgpuCreateTexture(const VGpuTextureDescriptor* descriptor);
@@ -592,8 +594,13 @@ VGPU_API VGpuFramebuffer vgpuCreateFramebuffer(const VGpuFramebufferDescriptor* 
 VGPU_API void vgpuDestroyFramebuffer(VGpuFramebuffer framebuffer);
 
 /* Buffer */
-VGPU_API VGpuBuffer vgpuCreateBuffer(const VGpuBufferDescriptor* descriptor, const void* pInitData);
+VGPU_API VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferType type, VGpuBufferUsage usage, const void* data);
 VGPU_API void vgpuDestroyBuffer(VGpuBuffer buffer);
+
+/* Shader */
+VGPU_API VGpuShader vgpuCreateShader(const char* vertexSource, const char* fragmentSource);
+VGPU_API VGpuShader vgpuCreateComputeShader(const char* source);
+VGPU_API void vgpuDestroyShader(VGpuShader shader);
 
 /// Get frame command buffer for recording.
 VGPU_API VGpuCommandBuffer vgpuGetCommandBuffer();
