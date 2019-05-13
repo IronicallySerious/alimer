@@ -236,7 +236,7 @@ if __name__ == "__main__":
     parallel = multiprocessing.cpu_count()
     batCmd = BatchCommand(hostPlatform)
 
-    if hostPlatform == "win":
+    if hostPlatform == "win" and _platform == "desktop":
         programFilesFolder = FindProgramFilesFolder()
         if (buildSystem == "vs2019") or ((buildSystem == "ninja") and (compiler == "vc142")):
             vsFolder = FindVS2019Folder(programFilesFolder)
@@ -265,7 +265,7 @@ if __name__ == "__main__":
             batCmd.AddCommand("set CXX=cl.exe")
 
         if _platform == "desktop":
-            batCmd.AddCommand("cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" -DSC_ARCH_NAME=\"%s\" ../../" % (configuration, architecture))
+            batCmd.AddCommand("cmake -G Ninja -DCMAKE_BUILD_TYPE=\"%s\" ../../" % (configuration))
         elif _platform == "web":
             emscriptenSDKDir = os.environ.get('EMSCRIPTEN')
             emscriptenToolchain = os.path.join(emscriptenSDKDir, "cmake/Modules/Platform/Emscripten.cmake")

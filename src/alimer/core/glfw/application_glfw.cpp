@@ -51,7 +51,7 @@ namespace alimer
 
     ApplicationGlfw::~ApplicationGlfw()
     {
-        vgpu_shutdown();
+        vgpuShutdown();
         glfwTerminate();
     }
 
@@ -63,19 +63,16 @@ namespace alimer
             return false;
         }
 
-        const bool opengl = vgpu_get_backend() == VGPU_BACKEND_OPENGL;
-
-        if (opengl)
-        {
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        }
-        else
-        {
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        }
+#if defined(VGPU_GL) || defined(VGPU_GLES)
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        //glfwWindowHint(GLFW_SAMPLES, msaa);
+        glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
+#else
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+#endif
 
         GLFWmonitor* monitor = nullptr;
         if (fullscreen)
@@ -84,6 +81,12 @@ namespace alimer
             const GLFWvidmode *mode = glfwGetVideoMode(monitor);
             width = mode->width;
             height = mode->height;
+#if defined(VGPU_GL) || defined(VGPU_GLES)
+            glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+            glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+            glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+            glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+#endif
         }
         else
         {
@@ -128,7 +131,10 @@ namespace alimer
         gpuDescriptor.swapchain.colorClearValue = { 0.0f, 0.0f, 0.2f, 1.0f };
         gpuDescriptor.swapchain.depthStencilFormat = VGPU_PIXEL_FORMAT_D32_FLOAT;
         gpuDescriptor.swapchain.sampleCount = VGPU_SAMPLE_COUNT1;
-        vgpu_initialize("vortice", &gpuDescriptor);
+        vgpuInitialize("vortice", &gpuDescriptor);
+
+        // Initialize app now
+        initialize();
 
         return true;
     }
@@ -147,6 +153,8 @@ namespace alimer
 
         while (!glfwWindowShouldClose(_window))
         {
+            frame();
+
 #if defined(VGPU_GL) || defined(VGPU_GLES)
             glfwSwapBuffers(_window);
 #endif

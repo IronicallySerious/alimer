@@ -118,7 +118,7 @@ if (WIN32)
 
 elseif (APPLE)
 elseif (EMSCRIPTEN)
-    target_link_libraries(alimer PRIVATE ${ALIMER_EMSCRIPTEN_FLAGS})
+    # target_link_libraries(alimer PRIVATE ${ALIMER_EMSCRIPTEN_FLAGS})
 elseif (ANDROID)
     target_link_libraries(alimer PRIVATE log EGL GLESv3)
     target_include_directories(alimer PRIVATE ${ANDROID_NDK}/sources/android/cpufeatures)
@@ -126,7 +126,11 @@ elseif (ANDROID)
 else ()
 endif ()
 
-target_link_libraries(alimer PRIVATE vgpu)
+target_link_libraries(alimer PRIVATE
+    vgpu
+    liblua
+    ImGui
+)
 
 if (ALIMER_D3D11)
     target_compile_definitions(alimer PRIVATE -DVGPU_D3D11)

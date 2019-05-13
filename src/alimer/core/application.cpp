@@ -22,7 +22,7 @@
 
 //#include "core/log.h"
 #include "core/application.h"
-//#include "gpu/vgpu.h"
+#include <vgpu.h>
 
 namespace alimer
 {
@@ -33,36 +33,13 @@ namespace alimer
     Application::~Application()
     {
         // Shutdown vgpu
-        //vgpuShutdown();
+        vgpuShutdown();
     }
 
-    void Application::setup()
+    static VGpuBuffer vertex_buffer;
+
+    void Application::initialize()
     {
-       // _window.define("vortice", _width, _height);
-
-        // setup vgpu using window handle
-        /*VGpuRendererSettings gpuDescriptor = {};
-#if defined(_DEBUG)
-        gpuDescriptor.validation = false;
-#endif
-
-#if defined(__linux__)
-        gpuDescriptor.handle.connection = XGetXCBConnection(glfwGetX11Display());
-        gpuDescriptor.handle.window = glfwGetX11Window(window);
-#elif defined(_WIN32)
-        gpuDescriptor.handle.hinstance = ::GetModuleHandleW(NULL);
-        gpuDescriptor.handle.hwnd = _window.handle();
-#endif
-        gpuDescriptor.width = _width;
-        gpuDescriptor.height = _height;
-        gpuDescriptor.swapchain.imageCount = 3;
-        gpuDescriptor.swapchain.srgb = true;
-        gpuDescriptor.swapchain.colorClearValue = { 0.0f, 0.0f, 0.2f, 1.0f };
-        gpuDescriptor.swapchain.depthStencilFormat = VGPU_PIXEL_FORMAT_D32_FLOAT;
-        gpuDescriptor.swapchain.sampleCount = VGPU_SAMPLE_COUNT1;
-        vgpuInitialize("vortice", &gpuDescriptor);
-        */
-
         const float vertices[] = {
             /* positions            colors */
              0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,
@@ -70,27 +47,21 @@ namespace alimer
             -0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f
         };
 
-        /*VGpuBufferDescriptor buffer_desc = {};
-        buffer_desc.usage = VGPU_BUFFER_USAGE_VERTEX;
-        buffer_desc.size = sizeof(vertices);
-        auto buffer = vgpuCreateBuffer(&buffer_desc, vertices);*/
+        vertex_buffer = vgpuCreateBuffer(sizeof(vertices), VGPU_BUFFER_TYPE_VERTEX, VGPU_BUFFER_USAGE_IMMUTABLE, vertices);
     }
 
     void Application::frame()
     {
-        /*if (vgpuBeginFrame() == VGPU_ERROR_BEGIN_FRAME_FAILED) {
-            return;
-        }
 
         // Get frame command buffer for recording. 
-        VGpuCommandBuffer commandBuffer = vgpuGetCommandBuffer();
+        /*VGpuCommandBuffer commandBuffer = vgpuGetCommandBuffer();
         vgpuBeginCommandBuffer(commandBuffer);
         vgpuCmdBeginDefaultRenderPass(commandBuffer, { 0.5f, 0.5f, 0.5f, 1.0f}, 1.0f, 0);
         vgpuCmdEndRenderPass(commandBuffer);
         vgpuEndCommandBuffer(commandBuffer);
-        vgpuSubmitCommandBuffer(commandBuffer);
+        vgpuSubmitCommandBuffer(commandBuffer);*/
 
-        vgpuEndFrame();*/
+        // Submit GPU frame.
+        vgpuFrame();
     }
-
 }

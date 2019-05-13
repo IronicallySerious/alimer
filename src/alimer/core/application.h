@@ -51,8 +51,9 @@ namespace alimer
         /// Get the input system.
         //inline Input& get_input() { return _input; }
 
-    private:
-        void setup();
+    protected:
+        // Initialize after all system setup
+        void initialize();
         /// Run one frame.
         void frame();
 
