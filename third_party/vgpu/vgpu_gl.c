@@ -93,7 +93,7 @@ typedef struct VGpuTexture_T {
 
 typedef struct VGpuBuffer_T {
     uint64_t        size;
-    VGpuBufferType  type;
+    VGpuBufferUsage bufferUsage;
     VGpuBufferUsage usage;
     bool            external_handle;
     GLenum          gl_target;
@@ -106,6 +106,7 @@ typedef struct VGpuShader_T {
 } VGpuShader_T;
 
 typedef struct _vgpu_gl_features {
+    bool    independentBlend;
     bool    compute;
     bool    geometry;
     bool    tessellation;
@@ -189,7 +190,11 @@ static float _vgpuGLGetFloat(GLenum param) {
 
 void _vgpu_gl_check_extension(const char* ext)
 {
-    if (strstr(ext, "EXT_texture_compression_s3tc")
+    if (strstr(ext, "ARB_draw_buffers_blend"))
+    {
+        _gl.features.independentBlend = true;
+    }
+    else if (strstr(ext, "EXT_texture_compression_s3tc")
         || strstr(ext, "MOZ_WEBGL_compressed_texture_s3tc")
         || strstr(ext, "WEBGL_compressed_texture_s3tc")
         || strstr(ext, "WEBKIT_WEBGL_compressed_texture_s3tc"))
@@ -508,6 +513,7 @@ bool vgpuInitialize(const char* appName, const VGpuRendererSettings* settings)
     // Version 4.0+
     if (_gl.version_major >= 4)
     {
+        _gl.features.independentBlend = true;
         _gl.features.textureCubeArray = true;
         // https://www.khronos.org/opengl/wiki/Tessellation
         _gl.features.tessellation = true;
@@ -644,8 +650,8 @@ bool vgpuQueryFeature(VGpuFeature feature) {
 
     switch (feature)
     {
-    case VGPU_FEATURE_BLEND_INDEPENDENT:
-        return false; // _d3d11.feature_level >= D3D_FEATURE_LEVEL_10_0;
+    case VGPU_FEATURE_INDEPENDENT_BLEND:
+        return _gl.features.independentBlend; // _d3d11.feature_level >= D3D_FEATURE_LEVEL_10_0;
 
     case VGPU_FEATURE_COMPUTE_SHADER:
         return _gl.features.compute;
@@ -778,10 +784,10 @@ static void _vgpuGLBindBuffer(VGpuBuffer buffer) {
     }
 }
 
-VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferType type, VGpuBufferUsage usage, const void* data) {
+VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferUsage bufferUsage, VGpuBufferUsage usage, const void* data) {
     VGpuBuffer buffer = _VGPU_ALLOC_HANDLE(VGpuBuffer);
     buffer->size = size;
-    buffer->type = type;
+    buffer->bufferUsage = bufferUsage;
     buffer->usage = usage;
     buffer->external_handle = false;
     buffer->gl_target = _vgpuGLConvertBufferType(type);
@@ -881,7 +887,7 @@ static GLuint _vgpuGLLinkProgram(GLuint program) {
         int logLength;
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
         char* log = malloc(logLength);
-        _VGPU_ASSERT(log, "Out of memory");
+        _VGPU_ASSERT(log);
         glGetProgramInfoLog(program, logLength, &logLength, log);
         //_vgpu_log(vgpu_log_type_error, "Could not link shader:\n%s", log);
     }
@@ -891,7 +897,13 @@ static GLuint _vgpuGLLinkProgram(GLuint program) {
 
 
 VGpuShader vgpuCreateShader(const char* vertexSource, const char* fragmentSource) {
-
+#if defined(VGPU_WEBGL) || defined(VGPU_GLES)
+    const char* vertexHeader = "#version 300 es\nprecision mediump float;\nprecision mediump int;\n";
+    const char* fragmentHeader = vertexHeader;
+#else
+    const char* vertexHeader = _gl.features.compute ? "#version 430\n" : "#version 150\n";
+    const char* fragmentHeader = "#version 150\n";
+#endif
 }
 
 VGpuShader vgpuCreateComputeShader(const char* source) {

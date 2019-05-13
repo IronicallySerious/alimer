@@ -132,7 +132,7 @@ typedef enum VGpuDevicePreference {
 } VGpuDevicePreference;
 
 typedef enum VGpuFeature {
-    VGPU_FEATURE_BLEND_INDEPENDENT = 0,
+    VGPU_FEATURE_INDEPENDENT_BLEND = 0,
     VGPU_FEATURE_COMPUTE_SHADER,
     VGPU_FEATURE_GEOMETRY_SHADER,
     VGPU_FEATURE_TESSELLATION_SHADER,
@@ -332,11 +332,16 @@ typedef enum VGpuBufferUsage {
     VGPU_BUFFER_USAGE_STREAM
 } VGpuBufferUsage;
 
-typedef enum VGpuBufferType {
-    VGPU_BUFFER_TYPE_VERTEX = 0,
-    VGPU_BUFFER_TYPE_INDEX = 1,
-    VGPU_BUFFER_TYPE_COUNT
-} VGpuBufferType;
+typedef enum VGpuBufferUsageFlags {
+    VGPU_BUFFER_USAGE_NONE = 0,
+    VGPU_BUFFER_USAGE_VERTEX = 1 << 0,
+    VGPU_BUFFER_USAGE_INDEX = 1 << 1,
+    VGPU_BUFFER_USAGE_UNIFORM = 1 << 2,
+    VGPU_BUFFER_USAGE_STORAGE_READ = 1 << 3,
+    VGPU_BUFFER_USAGE_STORAGE_WRITE = 1 << 4,
+    VGPU_BUFFER_USAGE_INDIRECT = 1 << 5,
+} VGpuBufferUsageFlags;
+typedef VgpuFlags VGpuBufferUsage;
 
 typedef enum VGpuShaderStageFlagBits {
     VGPU_SHADER_STAGE_NONE              = 0,
@@ -594,7 +599,7 @@ VGPU_API VGpuFramebuffer vgpuCreateFramebuffer(const VGpuFramebufferDescriptor* 
 VGPU_API void vgpuDestroyFramebuffer(VGpuFramebuffer framebuffer);
 
 /* Buffer */
-VGPU_API VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferType type, VGpuBufferUsage usage, const void* data);
+VGPU_API VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferUsage bufferUsage, VGpuBufferUsage usage, const void* data);
 VGPU_API void vgpuDestroyBuffer(VGpuBuffer buffer);
 
 /* Shader */
