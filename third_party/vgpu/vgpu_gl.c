@@ -77,6 +77,25 @@
 #define GL_TEXTURE_CUBE_MAP_ARRAY 0x9009
 #endif
 
+#ifndef GL_PATCHES
+#define GL_PATCHES 0x000E
+#endif
+
+/* GL only types */
+#define _VGPU_GL_MAX_TEXTURES (16u)
+//#define _VGPU_GL_SHADER_POSITION 0
+//#define _VGPU_GL_SHADER_NORMAL 1
+//#define _VGPU_GL_SHADER_TEX_COORD 2
+//#define _VGPU_GL_SHADER_VERTEX_COLOR 3
+
+typedef enum _VGpuGLBufferType {
+    _VGPU_GL_BUFFER_VERTEX,
+    _VGPU_GL_BUFFER_INDEX,
+    _VGPU_GL_BUFFER_UNIFORM,
+    _VGPU_GL_BUFFER_SHADER_STORAGE,
+    _VGPU_GL_BUFFER_TYPE_COUNT
+} _VGpuGLBufferType;
+
 /* Handle declaration */
 typedef struct VGpuTexture_T {
     VGpuTextureType         textureType;
@@ -92,18 +111,37 @@ typedef struct VGpuTexture_T {
 } VGpuTexture_T;
 
 typedef struct VGpuBuffer_T {
-    uint64_t        size;
-    VGpuBufferUsage bufferUsage;
-    VGpuBufferUsage usage;
-    bool            external_handle;
-    GLenum          gl_target;
-    GLuint          gl_handle;
-    void*           gl_data;
+    uint64_t            size;
+    VGpuBufferUsage     usage;
+    VGpuBufferUsage     resourceUsage;
+    bool                external_handle;
+    _VGpuGLBufferType   gl_type;
+    GLenum              gl_target;
+    GLuint              gl_handle;
+    void*               gl_data;
 } VGpuBuffer_T;
 
 typedef struct VGpuShader_T {
     GLuint          gl_handle;
 } VGpuShader_T;
+
+typedef struct _VGpuGLVertexAttribute {
+    int8_t vb_index;        /* -1 if attr is not enabled */
+    int8_t divisor;         /* -1 if not initialized */
+    uint8_t stride;
+    uint8_t size;
+    uint8_t normalized;
+    int offset;
+    GLenum type;
+    bool integer;
+} _VGpuGLVertexAttribute;
+
+typedef struct VGpuPipeline_T {
+    VGpuShader              shader;
+    GLenum                  topology;
+    bool                    vertex_layout_valid[VGPU_MAX_VERTEX_BUFFER_BINDINGS];
+    _VGpuGLVertexAttribute  gl_attrs[VGPU_MAX_VERTEX_ATTRIBUTES];
+} VGpuPipeline_T;
 
 typedef struct _vgpu_gl_features {
     bool    independentBlend;
@@ -126,12 +164,11 @@ typedef struct _vgpu_gl_features {
     bool    textureCompressionBC3;
     /* Extra features */
     bool    storageBuffers;
-    bool    bufferStorage; /* glBufferStorage = GL_ARB_buffer_storage*/
+    bool    textureStorage;             /* glTexStorage2D = 4.2 or GL_ARB_texture_storage*/
+    bool    textureStorageMultisample;  /* glTexStorage2DMultisample = 4.3 or GL_ARB_texture_storage_multisample*/
+    bool    bufferStorage;              /* glBufferStorage = 4.4 or GL_ARB_buffer_storage*/
     bool    clipControl;
 } _vgpu_gl_features;
-
-
-#define _VGPU_GL_MAX_TEXTURES (16u)
 
 typedef struct _vgpu_gl_cache {
     /* rasterizer state */
@@ -145,12 +182,16 @@ typedef struct _vgpu_gl_cache {
     /* blend state */
     bool                    alphaToCoverage;
 
+    /* program */
+    GLuint                  program;
+    VGpuPipeline            currentPipeline;
+
     /* Texture */
     GLuint                  activeTexture;
     VGpuTexture             textures[_VGPU_GL_MAX_TEXTURES];
 
     /* Buffer */
-    uint32_t                buffers[VGPU_BUFFER_TYPE_COUNT];
+    uint32_t                buffers[_VGPU_GL_BUFFER_TYPE_COUNT];
 } _vgpu_gl_cache;
 
 struct {
@@ -159,7 +200,9 @@ struct {
     _vgpu_gl_features       features;
     VGpuLimits              limits;
     _vgpu_gl_cache          state;
-    VGpuSwapchainDescriptor swapchain;
+    bool                    srgb;
+    GLsizei                 width;
+    GLsizei                 height;
     const char*             vendor;
     const char*             renderer;
     const char*             version;
@@ -240,9 +283,32 @@ void _vgpu_gl_check_extension(const char* ext)
     {
         _gl.features.geometry = true;
     }
+    else if (strstr(ext, "ARB_texture_storage"))
+    {
+        _gl.features.textureStorage = true;
+    }
+    else if (strstr(ext, "ARB_texture_storage_multisample"))
+    {
+        _gl.features.textureStorageMultisample = true;
+    }
     else if (strstr(ext, "ARB_buffer_storage"))
     {
         _gl.features.bufferStorage = true;
+    }
+}
+
+static GLenum _vgpuGLConvertResourceUsage(VGpuResourceUsage usage) {
+    switch (usage) {
+    case VGPU_RESOURCE_USAGE_STATIC:
+    case VGPU_RESOURCE_USAGE_IMMUTABLE:
+        return GL_STATIC_DRAW;
+
+    case VGPU_RESOURCE_USAGE_DYNAMIC:
+        return GL_DYNAMIC_DRAW;
+
+    case VGPU_RESOURCE_USAGE_STREAM:
+        return GL_STREAM_DRAW;
+    default: _VGPU_UNREACHABLE; return 0;
     }
 }
 
@@ -274,48 +340,132 @@ static GLenum _vgpuConvertCompareFunction(VGpuCompareFunction func)
 static GLenum _vgpuGLConvertTextureType(VGpuTextureType type, bool is_array) {
     switch (type)
     {
-    case VGPU_TEXTURE_TYPE_2D:  return is_array ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D;
-    case VGPU_TEXTURE_TYPE_3D:  return GL_TEXTURE_3D;
+    case VGPU_TEXTURE_TYPE_2D:
+        return is_array ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D;
+    case VGPU_TEXTURE_TYPE_3D:
+        return GL_TEXTURE_3D;
     case VGPU_TEXTURE_TYPE_CUBE:
+    {
         if (is_array
             && _gl.features.textureCubeArray) {
             return GL_TEXTURE_CUBE_MAP_ARRAY;
         }
 
         return GL_TEXTURE_CUBE_MAP;
+    }
     default: _VGPU_UNREACHABLE; return 0;
     }
 }
 
-static GLenum _vgpuGLConvertBufferType(VGpuBufferType type) {
+static _VGpuGLBufferType _vgpuGLConvertBufferUsage(VGpuBufferUsage usage) {
+    if (usage & VGPU_BUFFER_USAGE_UNIFORM) {
+        return _VGPU_GL_BUFFER_UNIFORM;
+    }
+
+    if ((usage & VGPU_BUFFER_USAGE_STORAGE_READ)
+        || (usage & VGPU_BUFFER_USAGE_STORAGE_READ)) {
+        return _VGPU_GL_BUFFER_SHADER_STORAGE;
+    }
+
+    if (usage & VGPU_BUFFER_USAGE_VERTEX) {
+        return _VGPU_GL_BUFFER_VERTEX;
+    }
+
+    if (usage & VGPU_BUFFER_USAGE_INDEX) {
+        return _VGPU_GL_BUFFER_UNIFORM;
+    }
+
+    return 0;
+}
+
+static GLenum _vgpuGLConvertBufferType(_VGpuGLBufferType type) {
     switch (type) {
-    case VGPU_BUFFER_TYPE_VERTEX: return GL_ARRAY_BUFFER;
-    case VGPU_BUFFER_TYPE_INDEX: return GL_ELEMENT_ARRAY_BUFFER;
-        //case VGPU_BUFFER_TYPE_UNIFORM: return GL_UNIFORM_BUFFER;
-        //case VGPU_BUFFER_TYPE_SHADER_STORAGE: return GL_SHADER_STORAGE_BUFFER;
-        //case VGPU_BUFFER_TYPE_GENERIC: return GL_COPY_WRITE_BUFFER;
+    case _VGPU_GL_BUFFER_VERTEX: return GL_ARRAY_BUFFER;
+    case _VGPU_GL_BUFFER_INDEX: return GL_ELEMENT_ARRAY_BUFFER;
+    case _VGPU_GL_BUFFER_UNIFORM: return GL_UNIFORM_BUFFER;
+    case _VGPU_GL_BUFFER_SHADER_STORAGE: return GL_SHADER_STORAGE_BUFFER;
+        //case _VGPU_GL_BUFFER_GENERIC: return GL_COPY_WRITE_BUFFER;
     default: _VGPU_UNREACHABLE; return 0;
     }
 }
 
-static GLenum _vgpuGLConvertBufferUsage(VGpuBufferUsage usage) {
-    switch (usage) {
-    case VGPU_BUFFER_USAGE_STATIC:
-    case VGPU_BUFFER_USAGE_IMMUTABLE:
-        return GL_STATIC_DRAW;
-
-    case VGPU_BUFFER_USAGE_DYNAMIC:
-        return GL_DYNAMIC_DRAW;
-
-    case VGPU_BUFFER_USAGE_STREAM:
-        return GL_STREAM_DRAW;
+static GLenum _vgpuGLConvertPrimitiveTopology(VGpuPrimitiveTopology topology) {
+    switch (topology) {
+    case VGPU_PRIMITIVE_TOPOLOGY_POINT_LIST: return GL_POINTS;
+    case VGPU_PRIMITIVE_TOPOLOGY_LINE_LIST: return GL_LINES;
+    case VGPU_PRIMITIVE_TOPOLOGY_LINE_STRIP: return GL_LINE_STRIP;
+    case VGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST: return GL_TRIANGLES;
+    case VGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP: return GL_TRIANGLE_STRIP;
+    case VGPU_PRIMITIVE_TOPOLOGY_PATCH_LIST: return GL_PATCHES;
     default: _VGPU_UNREACHABLE; return 0;
+    }
+}
+
+static uint8_t _vgpuGLGetVertexFormatSize(VGpuVertexFormat format) {
+    switch (format) {
+    case VGPU_VERTEX_FORMAT_FLOAT:     return 1;
+    case VGPU_VERTEX_FORMAT_FLOAT2:    return 2;
+    case VGPU_VERTEX_FORMAT_FLOAT3:    return 3;
+    case VGPU_VERTEX_FORMAT_FLOAT4:    return 4;
+    case VGPU_VERTEX_FORMAT_BYTE4:     return 4;
+    case VGPU_VERTEX_FORMAT_BYTE4N:    return 4;
+    case VGPU_VERTEX_FORMAT_UBYTE4:    return 4;
+    case VGPU_VERTEX_FORMAT_UBYTE4N:   return 4;
+    case VGPU_VERTEX_FORMAT_SHORT2:    return 2;
+    case VGPU_VERTEX_FORMAT_SHORT2N:   return 2;
+    case VGPU_VERTEX_FORMAT_SHORT4:    return 4;
+    case VGPU_VERTEX_FORMAT_SHORT4N:   return 4;
+    case VGPU_VERTEX_FORMAT_UINT10_N2: return 4;
+    default: _VGPU_UNREACHABLE; return 0;
+    }
+}
+
+static GLenum _vgpuGLGetVertexFormatType(VGpuVertexFormat format) {
+    switch (format) {
+    case VGPU_VERTEX_FORMAT_FLOAT:
+    case VGPU_VERTEX_FORMAT_FLOAT2:
+    case VGPU_VERTEX_FORMAT_FLOAT3:
+    case VGPU_VERTEX_FORMAT_FLOAT4:
+        return GL_FLOAT;
+    case VGPU_VERTEX_FORMAT_BYTE4:
+    case VGPU_VERTEX_FORMAT_BYTE4N:
+        return GL_BYTE;
+    case VGPU_VERTEX_FORMAT_UBYTE4:
+    case VGPU_VERTEX_FORMAT_UBYTE4N:
+        return GL_UNSIGNED_BYTE;
+    case VGPU_VERTEX_FORMAT_SHORT2:
+    case VGPU_VERTEX_FORMAT_SHORT2N:
+    case VGPU_VERTEX_FORMAT_SHORT4:
+    case VGPU_VERTEX_FORMAT_SHORT4N:
+        return GL_SHORT;
+    case VGPU_VERTEX_FORMAT_UINT10_N2:
+        return GL_UNSIGNED_INT_2_10_10_10_REV;
+    default:
+        _VGPU_UNREACHABLE; return 0;
+    }
+}
+
+static GLboolean _vgpuGLConvertVertexFormatNormalized(VGpuVertexFormat format) {
+    switch (format) {
+    case VGPU_VERTEX_FORMAT_BYTE4:
+    case VGPU_VERTEX_FORMAT_UBYTE4:
+    case VGPU_VERTEX_FORMAT_SHORT2N:
+    case VGPU_VERTEX_FORMAT_SHORT4N:
+    case VGPU_VERTEX_FORMAT_UINT10_N2:
+        return GL_TRUE;
+    default:
+        return GL_FALSE;
     }
 }
 
 void _vgpu_gl_reset_state_cache()
 {
-    for (uint32_t i = 0; i < VGPU_BUFFER_TYPE_COUNT; ++i) {
+    _gl.state.currentPipeline = 0;
+    _gl.state.program = 0;
+    glUseProgram(0);
+    _VGPU_CHECK_ERROR();
+
+    for (uint32_t i = 0; i < _VGPU_GL_BUFFER_TYPE_COUNT; ++i) {
         _gl.state.buffers[i] = 0;
         glBindBuffer(_vgpuGLConvertBufferType(i), 0);
     }
@@ -329,9 +479,9 @@ void _vgpu_gl_reset_state_cache()
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 #ifndef VGPU_WEBGL
-    glEnable(GL_LINE_SMOOTH);
-    glEnable(GL_PROGRAM_POINT_SIZE);
-    if (_gl.swapchain.srgb) {
+    //glEnable(GL_LINE_SMOOTH);
+    //glEnable(GL_PROGRAM_POINT_SIZE);
+    if (_gl.srgb) {
         glEnable(GL_FRAMEBUFFER_SRGB);
     }
     else {
@@ -388,15 +538,49 @@ void _vgpu_gl_reset_state_cache()
     glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
     glEnable(GL_DITHER);
     glDisable(GL_POLYGON_OFFSET_FILL);
-    glLineWidth(1.0f);
+    //glLineWidth(1.0f);
 #ifdef VGPU_GLES
-    glEnable(GL_PRIMITIVE_RESTART_FIXED_INDEX);
+    //glEnable(GL_PRIMITIVE_RESTART_FIXED_INDEX);
 #elif defined(VGPU_GL)
-    glEnable(GL_PRIMITIVE_RESTART);
-    _gl.state.primitiveRestart = 0xffffffff;
-    glPrimitiveRestartIndex(_gl.state.primitiveRestart);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //glEnable(GL_PRIMITIVE_RESTART);
+    //_gl.state.primitiveRestart = 0xffffffff;
+    //glPrimitiveRestartIndex(_gl.state.primitiveRestart);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 #endif
+}
+
+static void _vgpuGLBindTexture(VGpuTexture texture, uint32_t slot)
+{
+    _VGPU_ASSERT(slot >= 0 && slot < _VGPU_GL_MAX_TEXTURES);
+    //texture = texture ? texture : _vgpuGLGetDefaultTexture();
+
+    if (texture != _gl.state.textures[slot]) {
+        _gl.state.textures[slot] = texture;
+        if (_gl.state.activeTexture != slot) {
+            glActiveTexture(GL_TEXTURE0 + slot);
+            _gl.state.activeTexture = slot;
+        }
+        glBindTexture(texture->gl_target, texture->gl_handle);
+    }
+    _VGPU_CHECK_ERROR();
+}
+
+
+static void _vgpuGLBindBuffer(VGpuBuffer buffer) {
+    if (_gl.state.buffers[buffer->gl_type] != buffer->gl_handle) {
+        _gl.state.buffers[buffer->gl_type] = buffer->gl_handle;
+        glBindBuffer(buffer->gl_target, buffer->gl_handle);
+        _VGPU_CHECK_ERROR();
+    }
+}
+
+static void _vgpuGLUseProgram(uint32_t program) {
+    if (_gl.state.program != program) {
+        _gl.state.program = program;
+        glUseProgram(program);
+        _VGPU_CHECK_ERROR();
+        /* TODO: Increate shader switches stats */
+    }
 }
 
 static void _vgpuGLSetupTexture(VGpuTexture texture, const VGpuTextureDescriptor* descriptor)
@@ -410,7 +594,6 @@ static void _vgpuGLSetupTexture(VGpuTexture texture, const VGpuTextureDescriptor
     texture->usage = descriptor->usage;
     texture->gl_target = _vgpuGLConvertTextureType(descriptor->textureType, descriptor->arrayLayers > 1);
 }
-
 
 VGpuBackend vgpuGetBackend() {
     return VGPU_BACKEND_OPENGL;
@@ -518,19 +701,25 @@ bool vgpuInitialize(const char* appName, const VGpuRendererSettings* settings)
         // https://www.khronos.org/opengl/wiki/Tessellation
         _gl.features.tessellation = true;
 
+        // Core in version 4.2+
+        if (_gl.version_minor >= 2)
+        {
+            _gl.features.textureStorage = true;
+        }
+
         // Core in version 4.3+
         if (_gl.version_minor >= 3)
         {
             // https://www.khronos.org/opengl/wiki/Compute_Shader
             _gl.features.compute = true;
             _gl.features.storageBuffers = true;
+            _gl.features.textureStorageMultisample = true;
         }
 
         // Core in version 4.4+
         if (_gl.version_minor >= 4)
         {
             _gl.features.bufferStorage = true;
-
         }
 
         // Core in version 4.5+
@@ -623,13 +812,16 @@ bool vgpuInitialize(const char* appName, const VGpuRendererSettings* settings)
     glBindVertexArray(_gl.default_vao);
     _VGPU_CHECK_ERROR();
 
+    _gl.srgb = settings->swapchain.srgb;
+    _gl.width = settings->width;
+    _gl.height = settings->height;
     _vgpu_gl_reset_state_cache();
 
     _vgpu_log(vgpu_log_type_debug, "vgpu initialized with success");
     _gl.frameIndex = true;
     _gl.initialized = true;
     return true;
-    }
+}
 
 void vgpuShutdown()
 {
@@ -720,29 +912,10 @@ void vgpuQueryLimits(VGpuLimits* pLimits) {
 }
 
 uint32_t vgpuFrame() {
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
     return  _gl.frameIndex++;
 }
 
 /* Texture */
-static void _vgpuGLBindTexture(VGpuTexture texture, uint32_t slot)
-{
-    _VGPU_ASSERT(slot >= 0 && slot < _VGPU_GL_MAX_TEXTURES);
-    //texture = texture ? texture : _vgpuGLGetDefaultTexture();
-
-    if (texture != _gl.state.textures[slot]) {
-        _gl.state.textures[slot] = texture;
-        if (_gl.state.activeTexture != slot) {
-            glActiveTexture(GL_TEXTURE0 + slot);
-            _gl.state.activeTexture = slot;
-        }
-        glBindTexture(texture->gl_target, texture->gl_handle);
-    }
-    _VGPU_CHECK_ERROR();
-}
-
 VGpuTexture vgpuCreateTexture(const VGpuTextureDescriptor* descriptor) {
     VGpuTexture texture = _VGPU_ALLOC_HANDLE(VGpuTexture);
     texture->external_handle = false;
@@ -776,28 +949,30 @@ void vgpuDestroyTexture(VGpuTexture texture) {
 }
 
 /* Buffer */
-static void _vgpuGLBindBuffer(VGpuBuffer buffer) {
-    if (_gl.state.buffers[buffer->type] != buffer->gl_handle) {
-        _gl.state.buffers[buffer->type] = buffer->gl_handle;
-        glBindBuffer(buffer->gl_target, buffer->gl_handle);
-        _VGPU_CHECK_ERROR();
-    }
-}
-
-VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferUsage bufferUsage, VGpuBufferUsage usage, const void* data) {
+VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferUsage usage, VGpuResourceUsage resourceUsage, const void* data) {
+    _VGPU_CHECK_ERROR();
     VGpuBuffer buffer = _VGPU_ALLOC_HANDLE(VGpuBuffer);
     buffer->size = size;
-    buffer->bufferUsage = bufferUsage;
     buffer->usage = usage;
+    buffer->resourceUsage = resourceUsage;
     buffer->external_handle = false;
-    buffer->gl_target = _vgpuGLConvertBufferType(type);
+    buffer->gl_type = _vgpuGLConvertBufferUsage(usage);
+    buffer->gl_target = _vgpuGLConvertBufferType(buffer->gl_type);
     glGenBuffers(1, &buffer->gl_handle);
     _vgpuGLBindBuffer(buffer);
 
-#if !defined(VGPU_WEBGL)
+#if defined(VGPU_WEBGL)
+    buffer->gl_data = malloc(size);
+    _VGPU_ASSERT(buffer->gl_data);
+    glBufferData(buffer->gl_target, size, data, _vgpuGLConvertResourceUsage(usage));
+
+    if (data) {
+        memcpy(buffer->gl_data, data, size);
+    }
+#else
     if (_gl.features.bufferStorage) {
         const bool readable = false;
-        const bool dynamic = usage == VGPU_BUFFER_USAGE_DYNAMIC || usage == VGPU_BUFFER_USAGE_STREAM;
+        const bool dynamic = usage == VGPU_RESOURCE_USAGE_DYNAMIC || usage == VGPU_RESOURCE_USAGE_STREAM;
         GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
         if (dynamic) {
             flags |= GL_DYNAMIC_STORAGE_BIT;
@@ -809,17 +984,10 @@ VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferUsage bufferUsage, VGpuBuff
         buffer->gl_data = glMapBufferRange(buffer->gl_target, 0, size, flags | GL_MAP_FLUSH_EXPLICIT_BIT);
     }
     else {
-#endif
-        buffer->gl_data = malloc(size);
-        _VGPU_ASSERT(buffer->gl_data);
-        glBufferData(buffer->gl_target, size, data, _vgpuGLConvertBufferUsage(usage));
-
-        if (data) {
-            memcpy(buffer->gl_data, data, size);
-        }
-#if !defined(VGPU_WEBGL)
+        glBufferData(buffer->gl_target, size, data, _vgpuGLConvertResourceUsage(usage));
     }
 #endif
+    _VGPU_CHECK_ERROR();
 
     return buffer;
 }
@@ -847,6 +1015,17 @@ void vgpuDestroyBuffer(VGpuBuffer buffer) {
 }
 
 /* Shader */
+const char* _vgpuGLShaderVertexPrefix = ""
+"in vec3 vgpuPosition; \n"
+"in vec3 vgpuNormal; \n"
+"in vec2 vgpuTexCoord; \n"
+"in vec4 vgpuVertexColor; \n"
+"#line 0 \n";
+
+const char* _vgpuGLShaderComputeESHeader = ""
+"#version 310 es \n"
+"#line 0 \n";
+
 const char* _vgpuGLShaderComputeHeader = ""
 "#version 430 \n"
 "#line 0 \n";
@@ -861,19 +1040,24 @@ static GLuint _vgpuGLCompileShader(GLenum type, const char** sources, int count)
     if (!isShaderCompiled) {
         int logLength;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
-        char* log = malloc(logLength);
-        _VGPU_ASSERT(log);
-        glGetShaderInfoLog(shader, logLength, &logLength, log);
-        const char* name;
-        switch (type) {
-        case GL_VERTEX_SHADER: name = "vertex shader"; break;
-        case GL_FRAGMENT_SHADER: name = "fragment shader"; break;
-        case GL_COMPUTE_SHADER: name = "compute shader"; break;
-        default: name = "shader"; break;
-        }
+        if (logLength > 0)
+        {
+            char* log = malloc(logLength);
+            _VGPU_ASSERT(log);
+            glGetShaderInfoLog(shader, logLength, &logLength, log);
+            const char* name;
+            switch (type) {
+            case GL_VERTEX_SHADER: name = "vertex shader"; break;
+            case GL_FRAGMENT_SHADER: name = "fragment shader"; break;
+            case GL_COMPUTE_SHADER: name = "compute shader"; break;
+            default: name = "shader"; break;
+            }
 
-        //_vgpu_log(vgpu_log_type_error, "Could not compile %s:\n%s", name, log);
+            //_vgpu_log(vgpu_log_type_error, "Could not compile %s:\n%s", name, log);
+            free(log);
+        }
     }
+    _VGPU_CHECK_ERROR();
 
     return shader;
 }
@@ -901,9 +1085,37 @@ VGpuShader vgpuCreateShader(const char* vertexSource, const char* fragmentSource
     const char* vertexHeader = "#version 300 es\nprecision mediump float;\nprecision mediump int;\n";
     const char* fragmentHeader = vertexHeader;
 #else
-    const char* vertexHeader = _gl.features.compute ? "#version 430\n" : "#version 150\n";
+    const char* vertexHeader = _gl.features.compute ? "#version 430\n" : "#version 330 core\n";
     const char* fragmentHeader = "#version 150\n";
 #endif
+
+    const char* vertexSources[] = { vertexHeader/*, _vgpuGLShaderVertexPrefix*/, vertexSource };
+    GLuint vertexShader = _vgpuGLCompileShader(GL_VERTEX_SHADER, vertexSources, sizeof(vertexSources) / sizeof(vertexSources[0]));
+
+    // Fragment
+    const char* fragmentSources[] = { fragmentHeader, fragmentSource };
+    GLuint fragmentShader = _vgpuGLCompileShader(GL_FRAGMENT_SHADER, fragmentSources, sizeof(fragmentSources) / sizeof(fragmentSources[0]));
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    //glBindAttribLocation(program, _VGPU_GL_SHADER_POSITION, "vgpuPosition");
+    //glBindAttribLocation(program, _VGPU_GL_SHADER_NORMAL, "vgpuNormal");
+    //glBindAttribLocation(program, _VGPU_GL_SHADER_TEX_COORD, "vgpuTexCoord");
+    //glBindAttribLocation(program, _VGPU_GL_SHADER_VERTEX_COLOR, "vgpuVertexColor");
+    _vgpuGLLinkProgram(program);
+    glDetachShader(program, vertexShader);
+    glDeleteShader(vertexShader);
+    glDetachShader(program, fragmentShader);
+    glDeleteShader(fragmentShader);
+    _VGPU_CHECK_ERROR();
+
+    // Bind program and get reflection data.
+    _vgpuGLUseProgram(program);
+
+    VGpuShader shader = _VGPU_ALLOC_HANDLE(VGpuShader);
+    shader->gl_handle = program;
+    return shader;
 }
 
 VGpuShader vgpuCreateComputeShader(const char* source) {
@@ -914,7 +1126,11 @@ VGpuShader vgpuCreateComputeShader(const char* source) {
         //_VGPU_THROW("Compute shaders are not supported on this system");
     }
 
+#if defined(VGPU_GL) 
     const char* sources[] = { _vgpuGLShaderComputeHeader, source };
+#else
+    const char* sources[] = { _vgpuGLShaderComputeESHeader, source };
+#endif
 
     GLuint program = glCreateProgram();
     GLuint computeShader = _vgpuGLCompileShader(GL_COMPUTE_SHADER, sources, sizeof(sources) / sizeof(sources[0]));
@@ -922,6 +1138,7 @@ VGpuShader vgpuCreateComputeShader(const char* source) {
     _vgpuGLLinkProgram(program);
     glDetachShader(program, computeShader);
     glDeleteShader(computeShader);
+    _VGPU_CHECK_ERROR();
 
     VGpuShader shader = _VGPU_ALLOC_HANDLE(VGpuShader);
     shader->gl_handle = program;
@@ -932,12 +1149,162 @@ VGpuShader vgpuCreateComputeShader(const char* source) {
 }
 
 void vgpuDestroyShader(VGpuShader shader) {
+    if (!shader) {
+        return;
+    }
+
     _VGPU_CHECK_ERROR();
     if (shader->gl_handle) {
         glDeleteProgram(shader->gl_handle);
     }
     _VGPU_FREE(shader);
     _VGPU_CHECK_ERROR();
+}
+
+VGpuPipeline vgpuCreateRenderPipeline(const VGpuRenderPipelineDescriptor* descriptor) {
+    VGpuPipeline pipeline = _VGPU_ALLOC_HANDLE(VGpuPipeline);
+    pipeline->shader = descriptor->shader;
+    pipeline->topology = _vgpuGLConvertPrimitiveTopology(descriptor->primitiveTopology);
+
+    /* resolve vertex attributes */
+    for (unsigned i = 0; i < VGPU_MAX_VERTEX_ATTRIBUTES; i++) {
+        pipeline->gl_attrs[i].vb_index = -1;
+    }
+
+    for (GLint i = 0; i < VGPU_MAX_VERTEX_ATTRIBUTES; i++) {
+        const VGpuVertexAttributeDescriptor* attr_desc = &descriptor->vertexDescriptor.attributes[i];
+        if (attr_desc->format == VGPU_VERTEX_FORMAT_UNKNOWN) {
+            break;
+        }
+
+        _VGPU_ASSERT((attr_desc->bufferIndex >= 0) && (attr_desc->bufferIndex < VGPU_MAX_VERTEX_BUFFER_BINDINGS));
+        const VGpuVertexBufferLayoutDescriptor* buffer_layout_desc = &descriptor->vertexDescriptor.layouts[attr_desc->bufferIndex];
+        const VGpuVertexInputRate inputRate = buffer_layout_desc->inputRate;
+        GLint attr_loc = i;
+        /*if (!_sg_strempty(&shd->attrs[attr_index].name)) {
+            attr_loc = glGetAttribLocation(pip->shader->gl_prog, _sg_strptr(&shd->attrs[attr_index].name));
+        }*/
+        if (attr_loc != -1) {
+            _VGpuGLVertexAttribute* gl_attribute = &pipeline->gl_attrs[attr_loc];
+            _VGPU_ASSERT(gl_attribute->vb_index == -1);
+            gl_attribute->vb_index = (int8_t)attr_desc->bufferIndex;
+            if (inputRate == VGPU_VERTEX_INPUT_RATE_VERTEX) {
+                gl_attribute->divisor = 0;
+            }
+            else {
+                gl_attribute->divisor = 1;
+            }
+            _VGPU_ASSERT(buffer_layout_desc->stride > 0);
+            gl_attribute->stride = (uint8_t)buffer_layout_desc->stride;
+            gl_attribute->offset = attr_desc->offset;
+            gl_attribute->size = _vgpuGLGetVertexFormatSize(attr_desc->format);
+            gl_attribute->type = _vgpuGLGetVertexFormatType(attr_desc->format);
+            gl_attribute->normalized = _vgpuGLConvertVertexFormatNormalized(attr_desc->format);
+            pipeline->vertex_layout_valid[attr_desc->bufferIndex] = true;
+        }
+        else {
+        }
+    }
+
+    return pipeline;
+}
+
+void vgpuDestroyPipeline(VGpuPipeline pipeline) {
+    if (!pipeline) {
+        return;
+    }
+
+    _VGPU_CHECK_ERROR();
+    _VGPU_FREE(pipeline);
+    _VGPU_CHECK_ERROR();
+}
+
+/* Commands */
+void vgpuBeginDefaultRenderPass(VGpuColor clearColor, float clearDepth, uint8_t clearStencil) {
+    glBindFramebuffer(GL_FRAMEBUFFER, _gl.default_framebuffer);
+    glViewport(0, 0, _gl.width, _gl.height);
+    glScissor(0, 0, _gl.width, _gl.height);
+
+    GLbitfield clear_mask = GL_COLOR_BUFFER_BIT;
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+
+    clear_mask |= GL_DEPTH_BUFFER_BIT;
+    glDepthMask(GL_TRUE);
+#if defined(VGPU_GL)
+    glClearDepth(clearDepth);
+#else
+    glClearDepthf(clearDepth);
+#endif
+
+    glClear(clear_mask);
+
+}
+
+void vgpuBeginRenderPass(const VGpuRenderPassBeginDescriptor* descriptor) {
+}
+
+void vgpuEndRenderPass() {
+}
+
+void vgpuBindPipeline(VGpuPipeline pipeline) {
+    if (_gl.state.currentPipeline != pipeline)
+    {
+        _gl.state.currentPipeline = pipeline;
+
+        /* Bind program */
+        _vgpuGLUseProgram(pipeline->shader->gl_handle);
+    }
+}
+
+static void _vgpuGLPrepareDraw() {
+    /* vertex attributes */
+    uint32_t vb_offset = 0;
+    for (uint32_t i = 0; i < VGPU_MAX_VERTEX_ATTRIBUTES; i++) {
+        _VGpuGLVertexAttribute* gl_attr = &_gl.state.currentPipeline->gl_attrs[i];
+        if (gl_attr->vb_index >= 0) {
+            vb_offset = gl_attr->offset;
+
+            if (gl_attr->integer) {
+                glVertexAttribIPointer(i, gl_attr->size, gl_attr->type, gl_attr->stride, (const GLvoid*)(GLintptr)vb_offset);
+            }
+            else {
+                glVertexAttribPointer(i, gl_attr->size, gl_attr->type, gl_attr->normalized, gl_attr->stride, (const GLvoid*)(GLintptr)vb_offset);
+            }
+            glVertexAttribDivisor(i, gl_attr->divisor);
+            glEnableVertexAttribArray(i);
+        }
+    }
+}
+
+void vgpuDraw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex) {
+    GLenum primitive_type = _gl.state.currentPipeline->topology;
+
+    _vgpuGLPrepareDraw();
+
+    if (instanceCount > 1) {
+        glDrawArraysInstanced(primitive_type, firstVertex, vertexCount, instanceCount);
+    }
+    else {
+        glDrawArrays(primitive_type, firstVertex, vertexCount);
+    }
+    _VGPU_CHECK_ERROR();
+}
+
+void vgpuDispatch(VGpuShader computeShader, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {
+#if defined(VGPU_WEBGL)
+    _VGPU_THROW("Compute shaders are not supported on WebGL");
+#else
+    if (!_gl.features.compute) {
+        //_VGPU_THROW("Compute shaders are not supported on this system");
+    }
+
+    glUseProgram(computeShader->gl_handle);
+    glDispatchCompute(groupCountX, groupCountY, groupCountZ);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    _VGPU_CHECK_ERROR();
+#endif
 }
 
 #endif /* defined(VGPU_GL) || defined(VGPU_GLES) || defined(VGPU_WEBGL) */

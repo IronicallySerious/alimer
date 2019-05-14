@@ -41,9 +41,6 @@ namespace alimer
     protected:
         bool init(uint32_t width, uint32_t height, bool fullscreen);
 
-        uint32_t _width = 0;
-        uint32_t _height = 0;
-
         GLFWwindow* _window = nullptr;
     };
 } 

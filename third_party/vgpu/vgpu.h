@@ -76,7 +76,7 @@ VGPU_DEFINE_HANDLE(VGpuTexture);
 VGPU_DEFINE_HANDLE(VGpuFramebuffer);
 VGPU_DEFINE_HANDLE(VGpuBuffer);
 VGPU_DEFINE_HANDLE(VGpuShader);
-VGPU_DEFINE_HANDLE(VGpuCommandBuffer);
+VGPU_DEFINE_HANDLE(VGpuPipeline);
 
 enum {
     VGPU_MAX_COLOR_ATTACHMENTS = 8u,
@@ -325,12 +325,12 @@ typedef enum VGpuAttachmentStoreOp {
     VGPU_ATTACHMENT_STORE_OP_DONT_CARE = 1,
 } VGpuAttachmentStoreOp;
 
-typedef enum VGpuBufferUsage {
-    VGPU_BUFFER_USAGE_STATIC = 0,
-    VGPU_BUFFER_USAGE_IMMUTABLE,
-    VGPU_BUFFER_USAGE_DYNAMIC,
-    VGPU_BUFFER_USAGE_STREAM
-} VGpuBufferUsage;
+typedef enum VGpuResourceUsage {
+    VGPU_RESOURCE_USAGE_STATIC = 0,
+    VGPU_RESOURCE_USAGE_IMMUTABLE,
+    VGPU_RESOURCE_USAGE_DYNAMIC,
+    VGPU_RESOURCE_USAGE_STREAM
+} VGpuResourceUsage;
 
 typedef enum VGpuBufferUsageFlags {
     VGPU_BUFFER_USAGE_NONE = 0,
@@ -368,6 +368,7 @@ typedef enum VGpuVertexFormat {
     VGPU_VERTEX_FORMAT_SHORT2N = 10,
     VGPU_VERTEX_FORMAT_SHORT4 = 11,
     VGPU_VERTEX_FORMAT_SHORT4N = 12,
+    VGPU_VERTEX_FORMAT_UINT10_N2,
     VGPU_VERTEX_FORMAT_COUNT
 } VGpuVertexFormat;
 
@@ -382,10 +383,6 @@ typedef enum VGpuPrimitiveTopology {
     VGPU_PRIMITIVE_TOPOLOGY_LINE_STRIP,
     VGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
     VGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
-    VGPU_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY,
-    VGPU_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY,
-    VGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY,
-    VGPU_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY,
     VGPU_PRIMITIVE_TOPOLOGY_PATCH_LIST,
     VGPU_PRIMITIVE_TOPOLOGY_COUNT
 } VGpuPrimitiveTopology;
@@ -562,6 +559,15 @@ typedef struct VGpuRenderPassBeginDescriptor {
     VGpuDepthStencilAttachmentAction    depthStencil;
 } VGpuRenderPassBeginDescriptor;
 
+
+typedef struct VGpuBlendState {
+    uint32_t dummy;
+} VGpuBlendState;
+
+typedef struct VGpuRasterizerState {
+    bool alphaToCoverageEnabled;
+} VGpuRasterizerState;
+
 typedef struct VGpuStencilDescriptor {
     VGpuStencilOperation      failOperation;
     VGpuStencilOperation      passOperation;
@@ -569,7 +575,7 @@ typedef struct VGpuStencilDescriptor {
     VGpuCompareFunction       compareFunction;
 } VGpuStencilDescriptor;
 
-typedef struct VGpuDepthStencilDescriptor {
+typedef struct VGpuDepthStencilState {
     VGpuCompareFunction     depthCompareFunction;
     bool                    depthWriteEnabled;
     bool                    stencilTestEnable;
@@ -577,7 +583,34 @@ typedef struct VGpuDepthStencilDescriptor {
     uint8_t                 stencilWriteMask;
     VGpuStencilDescriptor   frontFace;
     VGpuStencilDescriptor   backFace;
-} VGpuDepthStencilDescriptor;
+} VGpuDepthStencilState;
+
+typedef struct VGpuVertexBufferLayoutDescriptor {
+    uint32_t                    stride;
+    VGpuVertexInputRate         inputRate;
+} VGpuVertexBufferLayoutDescriptor;
+
+typedef struct VGpuVertexAttributeDescriptor {
+    VGpuVertexFormat            format;
+    uint32_t                    offset;
+    uint32_t                    bufferIndex;
+} VGpuVertexAttributeDescriptor;
+
+typedef struct VGpuVertexDescriptor {
+    VGpuVertexBufferLayoutDescriptor    layouts[VGPU_MAX_VERTEX_BUFFER_BINDINGS];
+    VGpuVertexAttributeDescriptor       attributes[VGPU_MAX_VERTEX_ATTRIBUTES];
+} VGpuVertexDescriptor;
+
+
+typedef struct VGpuRenderPipelineDescriptor {
+    VGpuShader                  shader;
+    VGpuBlendState              blendState;
+    uint32_t                    sampleMask;
+    VGpuRasterizerState         rasterizerState;
+    VGpuDepthStencilState       depthStencil;
+    VGpuVertexDescriptor        vertexDescriptor;
+    VGpuPrimitiveTopology       primitiveTopology;
+} VGpuRenderPipelineDescriptor;
 
 VGPU_API void vgpu_set_log_callback(vgpu_log_fn callback, void *userdata);
 
@@ -599,7 +632,7 @@ VGPU_API VGpuFramebuffer vgpuCreateFramebuffer(const VGpuFramebufferDescriptor* 
 VGPU_API void vgpuDestroyFramebuffer(VGpuFramebuffer framebuffer);
 
 /* Buffer */
-VGPU_API VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferUsage bufferUsage, VGpuBufferUsage usage, const void* data);
+VGPU_API VGpuBuffer vgpuCreateBuffer(uint64_t size, VGpuBufferUsage usage, VGpuResourceUsage resourceUsage, const void* data);
 VGPU_API void vgpuDestroyBuffer(VGpuBuffer buffer);
 
 /* Shader */
@@ -607,16 +640,23 @@ VGPU_API VGpuShader vgpuCreateShader(const char* vertexSource, const char* fragm
 VGPU_API VGpuShader vgpuCreateComputeShader(const char* source);
 VGPU_API void vgpuDestroyShader(VGpuShader shader);
 
+/* Pipeline */
+VGPU_API VGpuPipeline vgpuCreateRenderPipeline(const VGpuRenderPipelineDescriptor* descriptor);
+VGPU_API void vgpuDestroyPipeline(VGpuPipeline pipeline);
+
 /// Get frame command buffer for recording.
-VGPU_API VGpuCommandBuffer vgpuGetCommandBuffer();
-VGPU_API VGpuResult vgpuBeginCommandBuffer(VGpuCommandBuffer commandBuffer);
-VGPU_API VGpuResult vgpuEndCommandBuffer(VGpuCommandBuffer commandBuffer);
-VGPU_API void vgpuCmdBeginDefaultRenderPass(VGpuCommandBuffer commandBuffer, VGpuColor clearColor, float clearDepth, uint8_t clearStencil);
-VGPU_API void vgpuCmdBeginRenderPass(VGpuCommandBuffer commandBuffer, const VGpuRenderPassBeginDescriptor* descriptor);
-VGPU_API void vgpuCmdEndRenderPass(VGpuCommandBuffer commandBuffer);
-VGPU_API void vgpuCmdSetViewport(VGpuCommandBuffer commandBuffer, float x, float y, float width, float height);
-VGPU_API void vgpuCmdSetScissor(VGpuCommandBuffer commandBuffer, int32_t x, int32_t y, uint32_t width, uint32_t height);
-VGPU_API void vgpuSubmitCommandBuffer(VGpuCommandBuffer commandBuffer);
+VGPU_API void vgpuBeginDefaultRenderPass(VGpuColor clearColor, float clearDepth, uint8_t clearStencil);
+VGPU_API void vgpuBeginRenderPass(const VGpuRenderPassBeginDescriptor* descriptor);
+VGPU_API void vgpuEndRenderPass();
+//VGPU_API void vgpuCmdSetViewport(VGpuCommandBuffer commandBuffer, float x, float y, float width, float height);
+//VGPU_API void vgpuCmdSetScissor(VGpuCommandBuffer commandBuffer, int32_t x, int32_t y, uint32_t width, uint32_t height);
+//VGPU_API void vgpuSubmitCommandBuffer(VGpuCommandBuffer commandBuffer);
+
+VGPU_API void vgpuBindPipeline(VGpuPipeline pipeline);
+VGPU_API void vgpuDraw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex);
+
+/// Compute API
+VGPU_API void vgpuDispatch(VGpuShader computeShader, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
 /// Get the number of bits per format
 VGPU_API uint32_t vgpuGetFormatBitsPerPixel(VGpuPixelFormat format);

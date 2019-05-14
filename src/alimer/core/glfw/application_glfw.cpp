@@ -66,10 +66,15 @@ namespace alimer
 #if defined(VGPU_GL) || defined(VGPU_GLES)
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef __APPLE__
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
+#endif
+
         //glfwWindowHint(GLFW_SAMPLES, msaa);
-        glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
+        // TODO: enable if srgb is true
+        //glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 #else
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 #endif
@@ -105,6 +110,9 @@ namespace alimer
         //glfwSetCursorEnterCallback(window, Glfw_CursorEnterCallback);
         //glfwSetDropCallback(_window, Glfw_DropCallback);
 
+        _width = width;
+        _height = height;
+
 #if defined(VGPU_GL) || defined(VGPU_GLES)
         glfwMakeContextCurrent(_window);
         glfwSwapInterval(1);
@@ -127,7 +135,7 @@ namespace alimer
         gpuDescriptor.width = _width;
         gpuDescriptor.height = _height;
         gpuDescriptor.swapchain.imageCount = 3;
-        gpuDescriptor.swapchain.srgb = true;
+        gpuDescriptor.swapchain.srgb = false;
         gpuDescriptor.swapchain.colorClearValue = { 0.0f, 0.0f, 0.2f, 1.0f };
         gpuDescriptor.swapchain.depthStencilFormat = VGPU_PIXEL_FORMAT_D32_FLOAT;
         gpuDescriptor.swapchain.sampleCount = VGPU_SAMPLE_COUNT1;
