@@ -32,10 +32,10 @@ project (Alimer LANGUAGES CXX C)
 set (PRODUCT_NAME "Alimer")
 set (PRODUCT_COMPANY "Amer Koleci")
 set (PRODUCT_COPYRIGHT "Copyright (C) 22018 ${PRODUCT_COMPANY}")
-set (ALIMER_VERSION_MAJOR 0)
-set (ALIMER_VERSION_MINOR 1)
-set (ALIMER_VERSION_PATCH 0)
-set (ALIMER_VERSION ${ALIMER_VERSION_MAJOR}.${ALIMER_VERSION_MINOR}.${ALIMER_VERSION_PATCH})
+set (PROJECT_VERSION_MAJOR 0)
+set (PROJECT_VERSION_MINOR 1)
+set (PROJECT_VERSION_PATCH 0)
+set (PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
 # Get the current working branch
 execute_process(
@@ -141,7 +141,7 @@ if (EMSCRIPTEN)
         "]\" "
         "-s \"EXTRA_EXPORTED_RUNTIME_METHODS=['getValue','setValue']\" "
         # "--js-library \"${CMAKE_CURRENT_SOURCE_DIR}/src/resources/webvr.js\" "
-        # "--shell-file \"${CMAKE_CURRENT_SOURCE_DIR}/src/resources/vortice.html\""
+        # "--shell-file \"${CMAKE_CURRENT_SOURCE_DIR}/src/resources/alimer.html\""
     )
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ALIMER_EMSCRIPTEN_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ALIMER_EMSCRIPTEN_FLAGS}")
@@ -202,3 +202,18 @@ message(STATUS "  Threading       ${ALIMER_THREADING}")
 message(STATUS "  Renderer        ${ALIMER_RENDERER}")
 message(STATUS "  Tools           ${ALIMER_TOOLS}")
 message(STATUS "  Plugins         ${ALIMER_PLUGINS}")
+
+# Packaging
+set (ALIMER_DESCRIPTION "Alimer is a free lightweight, cross-platform 2D and 3D game engine implemented in C++14 and released under the MIT license. Greatly inspired by Urho3D (https://github.com/urho3d/Urho3D).")
+set (CPACK_PACKAGE_NAME "alimer")
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY ${ALIMER_DESCRIPTION})
+set (CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set (CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+set (CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+set (CPACK_PACKAGE_DESCRIPTION_FILE "${ALIMER_ROOT_DIR}/README.md")
+set (CPACK_RESOURCE_FILE_WELCOME "${ALIMER_ROOT_DIR}/README.md")
+set (CPACK_RESOURCE_FILE_LICENSE "${ALIMER_ROOT_DIR}/LICENSE")
+set (CPACK_PACKAGE_FILE_NAME "alimer-${PROJECT_VERSION}$ENV{ALIMER_PACKAGE_SUFFIX}")
+set (CPACK_GENERATOR "ZIP;TGZ") # Remove this, if you want the NSIS installer on Windows
+include(CPack)
