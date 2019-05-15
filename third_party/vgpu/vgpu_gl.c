@@ -1224,21 +1224,20 @@ void vgpuBeginDefaultRenderPass(VGpuColor clearColor, float clearDepth, uint8_t 
     glBindFramebuffer(GL_FRAMEBUFFER, _gl.default_framebuffer);
     glViewport(0, 0, _gl.width, _gl.height);
     glScissor(0, 0, _gl.width, _gl.height);
+    _VGPU_CHECK_ERROR();
 
-    GLbitfield clear_mask = GL_COLOR_BUFFER_BIT;
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-
-    clear_mask |= GL_DEPTH_BUFFER_BIT;
-    glDepthMask(GL_TRUE);
 #if defined(VGPU_GL)
-    glClearDepth(clearDepth);
+    glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 #else
-    glClearDepthf(clearDepth);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 #endif
+    glClearBufferfv(GL_COLOR, 0, &clearColor.r);
+    _VGPU_CHECK_ERROR();
 
-    glClear(clear_mask);
-
+    // Enable depth mask when clearing depth.
+    glDepthMask(GL_TRUE);
+    glClearBufferfv(GL_DEPTH, 0, &clearDepth);
+    _VGPU_CHECK_ERROR();
 }
 
 void vgpuBeginRenderPass(const VGpuRenderPassBeginDescriptor* descriptor) {

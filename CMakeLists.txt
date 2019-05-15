@@ -164,11 +164,18 @@ add_subdirectory(third_party)
 add_subdirectory(src)
 
 if (ALIMER_INSTALL)
+    # README.md and license
+    install (FILES
+        ${ALIMER_ROOT_DIR}/README.md
+        ${ALIMER_ROOT_DIR}/LICENSE
+        DESTINATION .
+    )
+
     # Install CMake modules and toolchains provided by and for Alimer
-    install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION ${DEST_SHARE_DIR}/CMake)    # Note: the trailing slash is significant
+    install (DIRECTORY ${CMAKE_SOURCE_DIR}/CMake/ DESTINATION share/cmake)    # Note: the trailing slash is significant
 
     # Install data files (assets)
-    file (GLOB ASSET_DIRS ${Alimer_SOURCE_DIR}/assets ${CMAKE_SOURCE_DIR}/assets)
+    file (GLOB ASSET_DIRS ${ALIMER_ROOT_DIR}/assets ${CMAKE_SOURCE_DIR}/assets)
     file (MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
     if (NOT ANDROID)
         foreach (ASSET_DIR ${ASSET_DIRS})

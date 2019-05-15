@@ -36,12 +36,9 @@ macro (define_engine_source_files)
 
 		list (APPEND HEADER_FILES ${_files})
 
-        # Remove unsupported files for install.
-        list (REMOVE_ITEM _files Graphics/GPUDeviceImpl.h)
-
         if (ALIMER_INSTALL)
 		    # Install them
-            install (FILES ${_files} DESTINATION ${DEST_BASE_INCLUDE_DIR}/Alimer/${path})
+            install (FILES ${_files} DESTINATION include/alimer/${path})
         endif ()
 
 		# Get source files
@@ -149,3 +146,13 @@ endif()
 if (ALIMER_TOOLS)
     target_compile_definitions(alimer PRIVATE ALIMER_TOOLS)
 endif (ALIMER_TOOLS)
+
+# SDK installation
+if (ALIMER_INSTALL)
+    install(TARGETS alimer
+	    EXPORT alimer
+	    LIBRARY DESTINATION lib
+	    RUNTIME DESTINATION bin
+	    ARCHIVE DESTINATION lib
+    )
+endif ()
