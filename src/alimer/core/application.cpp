@@ -22,6 +22,7 @@
 
 //#include "core/log.h"
 #include "core/application.h"
+#include "graphics/graphics.h"
 #include <vgpu.h>
 
 namespace alimer
@@ -41,6 +42,8 @@ namespace alimer
 
     void Application::initialize()
     {
+        _graphics.reset(new Graphics());
+
         const float vertices[] = {
             // positions            colors 
              0.0f, 0.5f, 0.5f,      1.0f, 0.0f, 0.0f, 1.0f,

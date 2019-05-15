@@ -59,12 +59,13 @@ macro(group_sources)
     endforeach ()
 endmacro()
 
-define_engine_source_files (foundation)
-define_engine_source_files (NORECURSE core)
+define_engine_source_files (foundation content)
+define_engine_source_files (NORECURSE core audio graphics)
 
 if (WIN32)
     define_engine_source_files(core/windows)
     define_engine_source_files(core/glfw)
+    define_engine_source_files(graphics/d3d11)
 endif ()
 
 # Group source code in VS solution
@@ -129,8 +130,8 @@ target_link_libraries(alimer PRIVATE
     ImGui
 )
 
-if (ALIMER_D3D11)
-    target_compile_definitions(alimer PRIVATE -DVGPU_D3D11)
+if (WIN32)
+    target_compile_definitions(alimer PRIVATE -DALIMER_D3D11)
     target_link_libraries(alimer PRIVATE d3d11 dxgi)
 elseif (ALIMER_VULKAN)
     target_compile_definitions(alimer PRIVATE -DVGPU_VK)

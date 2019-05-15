@@ -24,11 +24,16 @@
 
 #include "core/window.h"
 //#include "input.hpp"
+#include "content/content_manager.h"
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace alimer
 {
+    class Graphics;
+
+    /// Application for main setup and main loop.
     class ALIMER_API Application
     {
     public:
@@ -51,6 +56,9 @@ namespace alimer
         /// Get the input system.
         //inline Input& get_input() { return _input; }
 
+        /// Get the content manager.
+        inline ContentManager& get_content() { return _content; }
+
     protected:
         // Initialize after all system setup
         void initialize();
@@ -68,5 +76,11 @@ namespace alimer
 
         /// Input system.
         //Input _input;
+
+        /// Content manager
+        ContentManager _content;
+
+        /// Graphics system.
+        std::unique_ptr<Graphics> _graphics;
     };
 } 
